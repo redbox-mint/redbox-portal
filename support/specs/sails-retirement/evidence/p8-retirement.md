@@ -2049,3 +2049,58 @@ rather than promising completed SR-040/044 work as future. These are prose-only
 corrections; no contract, generator input, dependency or application artifact
 changes. Relative-link checks cover both pages and six links, 0 missing;
 `git diff --check` exits 0. Log: `runbook-links.json`.
+
+
+## Corrected test-image export retry (2026-10-24 12:25Z)
+
+The original clean `a193b8731` test-image export ends **exit 1**, after
+`exporting layers 4661.2s`, with containerd `failed to open writer: lease does not
+exist: not found`. The preceding content commit reports a missing ingest path;
+the opened ingest descriptor was already unlinked. The source compilation steps
+were cached/successful; no test gate started. This is an infrastructure failure,
+not a successful image or suite result. Runtime/packed acceptance above remains
+unchanged. Disk has 8.5 GiB available after the failed export releases its writer.
+
+Investigation checks the isolated daemon/containerd logs, active leases/content,
+processes, kernel messages and disk usage. No other prune/build runs at failure;
+prune88 ended at 10:51Z, before this export began at 11:07Z. No new ENOSPC, OOM or
+filesystem error is observed. An expired/stale export lease is suspected; the
+exact deletion cause is not established. Do not equate this with a provider quota
+limit.
+
+Retry uses the **same clean archive/context, Dockerfile, source revision and
+normal Docker cache**, builds only the missing `test` then `rehearsal` targets,
+and retains the original failure log. It changes no dependency, application,
+assertion, deadline or test selection. All images must still have the exact
+source revision label before the serial suite runner proceeds. No cache cleanup
+runs during this retry. The gate runner's build-process liveness check follows
+the new PID. Ignored scripts/logs: `resume-build91.sh`, `resume-build91.log`,
+`final-a193b8731/test-build.log`, `test-build-retry91.log` and
+`all-final-gates91.log`. Final qualification remains pending.
+
+
+The short cached retry91 is deliberately interrupted (**exit 130**,203.4s export)
+before repeating the same expiry. The live leases expose `gc.expire` exactly one
+hour after creation. BuildKit's upstream
+[`util/leaseutil/manager.go`](https://github.com/moby/buildkit/blob/master/util/leaseutil/manager.go)
+creates the temporary lease with `leases.WithExpiration(time.Hour)` and provides
+no renewal in that helper. This matches the original >77-minute export and the
+unlinked ingest descriptor; expiry is the evidenced working diagnosis.
+
+Only the owned isolated engine is stopped/restarted, after stopping its four P8
+fixtures. Original containerd configuration is retained. Retry92 uses the same
+root/state/socket/cache with containerd **2.2.5**, Docker **29.6.1**, changing only
+GC `schedule_delay` from0s and `startup_delay` from100ms to24h. The supported
+`ctr plugins ls --detailed` output confirms `ScheduleDelay 24h0m0s`. This delays
+GC during the slow HDD export; it changes neither image contents nor runtime
+behavior/assertion deadlines. It also avoids concurrent pruning. Original GC
+settings must be restored and verified before any timed suite or cache
+reclamation; the serial build driver includes that restoration before publishing
+`build.complete`. Existing fixtures restart and pass real Mongo/Solr/IdP
+readiness before tests. Default Docker and the older P7 daemon are untouched.
+
+Commands/configurations/logs remain under ignored `engine92/`,
+`resume-build92.sh`, `restore-engine92.sh`, `test-build-retry92.log` and
+`all-final-gates92.log`. The initial unsupported `ctr plugins info` probe produces
+no result; the supported detailed listing above provides the actual verification.
+No provider quota/usage limit has occurred. Final images/suites remain pending.
