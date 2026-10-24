@@ -40,4 +40,8 @@ tests {
   test("Status code is 204", function () {
       expect(res.getStatus()).to.equal(204);
   });
+
+  test("The complete fixture reached its declared upload length", function () {
+      expect(Number(res.headers["upload-offset"])).to.equal(30148);
+  });
 }
