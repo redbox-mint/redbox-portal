@@ -1459,3 +1459,26 @@ Source TypeScript exit0, consumers47-tsc-final.log; a first source check correct
 reported a callback narrowing error, corrected by binding the validated rule array.
 The affected real PagesMongo view-orig assertion now requires200 and the persisted
 record title, replacing its former assertion that a missing template produced500.
+
+### Final startup consumer and documentation checks
+
+The first complete diagnostic core run ended **4460 passing / 40 pending /
+2 failing**, 4m (`core47-second.log`, exit2). It started before the response
+fixture and startup consumer fixes were loaded. Its two failures were the static
+404 heading expectation and the removed global DOMPurify lookup; the response
+checks pass in the 98-case focused run above. Optional persistence environment
+inputs were absent from this diagnostic, so its pending cases are not final proof.
+
+The startup subprocess now checks actual lazy sanitizer use, no DOMPurify/global
+host installation and explicit plain-owner persistence cleanup. Its source-loader
+25000ms subprocess bound is unchanged. A concurrent run timed out during other
+TypeScript jobs; the serial command below exits0, **1 passing / 0 pending /
+0 failing**, 9s (`startup49-serial.log`). This changes the retired-global consumer,
+not the production startup bound or lazy-import assertions.
+
+```sh
+cd packages/redbox-core
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  node_modules/mocha/bin/mocha.js --no-config --require ts-node/register/transpile-only \
+  --require chai --require test/setup.ts --timeout 30000 test/unit/startup-module-loading.test.ts
+```
