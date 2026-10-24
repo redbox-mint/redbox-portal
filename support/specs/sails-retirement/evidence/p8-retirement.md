@@ -1110,3 +1110,29 @@ workaround or weakened cleanup assertion was needed.
 `downloads35-second.log`: **15 passing / 0 pending / 0 failing** (223ms), Node
 26.11.1 explicit core runner. Pinned Prettier and diff check pass. No skipped or
 removed scenario. Whole-suite/final artifact qualification remains outstanding.
+
+### Owned response guards and whitespace-title regressions
+
+The core response suite retains **19 scenarios** against actual response helpers,
+record/schema HTTP and EJS pages, with no generic controller response facade.
+Actual `responses36-regression.log`: **16 passing / 0 pending / 3 failing**.
+Whitespace-only translated page titles yielded `| Site`; raw schema responses
+accepted non-object values and JSON values that serialization silently rewrites.
+Page formatting now trims title/site text. Schema delivery validates/clones using
+the existing Canonical JSON owner before setting success headers, rejects non-object
+schemas, and retains raw safe 503 Problem Details on invalid provider output.
+Getter rejection is tested without executing the accessor; sparse arrays, NaN,
+strings, dates and stream-like objects are rejected.
+
+The retired response-bag API is replaced by route-owned payload/status/media
+selection: schema success is its actual 200; unexpected provider failure becomes
+safe 503 without private diagnostics; unsupported client media negotiation cannot
+change the schema route's fixed media type. V1 special payloads are selected by
+the route; v2 record metadata is checked on real record reads. Neither an embedded
+error status nor a spoofed Error.status=200 changes the owned HTTP failure status.
+No scenario or raw-JSON safety coverage was deleted.
+
+`identity37-second.log`: **83 passing / 0 pending / 0 failing** (2s), including
+these 19, preceding 26 view/user/relationship cases and 38 account cases below.
+Node 26.11.1 explicit core runner; source TypeScript **exit 0**, `identity37-tsc.log`.
+Pinned Prettier and diff check pass. Full artifact gates remain outstanding.

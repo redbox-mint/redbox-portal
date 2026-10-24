@@ -262,7 +262,8 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
           }
           if (route.controller === 'ReportsController')
             locals.reports = await singleHttpResult(input.reports.findAllReportsForBrand(modelBrand));
-          const site = t('default-title') || 'Site';
+          title = title.trim();
+          const site = t('default-title').trim() || 'Site';
           locals.title = title && title !== site ? title + ' | ' + site : site;
           const body = render(view);
           res.type('html').send(route.view === 'admin/api-docs' ? body : render('layout', { body }));

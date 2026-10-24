@@ -1,3 +1,4 @@
+import { normalizeRedboxCanonicalJsonV1 } from '../../record-contract/canonical-json';
 import type { RequestHandler, Router } from 'express';
 import type { Services as Schemas } from '../../recordSchema/RecordSchema';
 import type { PoliciesConfig } from '../../config/policies.config';
@@ -28,6 +29,12 @@ export interface RecordSchemaReadHttpInput {
   readonly rootContext?: string;
   readonly policies: Readonly<Record<string, RequestHandler>>;
   readonly policyConfiguration: PoliciesConfig;
+}
+function schemaDocument(value: unknown) {
+  const document = normalizeRedboxCanonicalJsonV1(value);
+  if (!document || typeof document !== 'object' || Array.isArray(document))
+    throw new TypeError('Schema delivery requires a JSON object.');
+  return document;
 }
 export function mountRecordSchemaReadRoutes(router: Router, input: RecordSchemaReadHttpInput): void {
   for (const route of recordSchemaReadRoutes)
@@ -74,9 +81,10 @@ export function mountRecordSchemaReadRoutes(router: Router, input: RecordSchemaR
               return;
             }
             const etag = `"sha256:${result.artifact.digest}"` as const;
+            const document = result.kind === 'not-modified' ? undefined : schemaDocument(result.artifact.document);
             res.set(schemaResponseHeaders(etag));
             if (result.kind === 'not-modified') res.status(304).end();
-            else res.type(RECORD_SCHEMA_RESPONSE_MEDIA_TYPE).json(result.artifact.document);
+            else res.type(RECORD_SCHEMA_RESPONSE_MEDIA_TYPE).json(document);
           } else {
             const operation = typeof validated.query.operation === 'string' ? validated.query.operation : undefined;
             const result =
@@ -101,10 +109,11 @@ export function mountRecordSchemaReadRoutes(router: Router, input: RecordSchemaR
               problem(body);
               return;
             }
+            const document = schemaDocument(result.document);
             const canonical = recordSchemaImmutableUrl(brand.name, portal, result.digest, input.rootContext);
             res.set(schemaResponseHeaders(result.metadata.etag, canonical));
             if (req.get('If-None-Match')?.trim() === result.metadata.etag) res.status(304).end();
-            else res.type(RECORD_SCHEMA_RESPONSE_MEDIA_TYPE).json(result.document);
+            else res.type(RECORD_SCHEMA_RESPONSE_MEDIA_TYPE).json(document);
           }
         } catch {
           problem(schemaProblem('unavailable', instance));
