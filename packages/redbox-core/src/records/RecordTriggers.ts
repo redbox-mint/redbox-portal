@@ -147,7 +147,7 @@ export class RecordTriggers {
       this.input.log.info(`processRecordCounters - log level ${processRecordCountersLogLevel}`);
     }
 
-    //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
+    //The selected configuration can omit record.processRecordCountersLogLevel
     //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
     //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
     this.logAtLevel(
@@ -201,7 +201,7 @@ export class RecordTriggers {
       this.input.log.info(`incrementCounter - log level ${processRecordCountersLogLevel}`);
     }
 
-    //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
+    //The selected configuration can omit record.processRecordCountersLogLevel
     //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
     //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
     this.logAtLevel(processRecordCountersLogLevel, 'incrementCounter - enter');

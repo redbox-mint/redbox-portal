@@ -51,3 +51,12 @@ brand permissions, reads/writes, providers and successful drain are verified.
 Persistent primary objects, GridFS, branding fonts, staging and Companion temporary
 files must outlive containers. Configure resource/stop limits for the deployment;
 a failed drain remains a failed stop. See [maintenance](../specs/sails-retirement/maintenance-v6.md).
+
+The [Docker example](../deployment-examples/docker/docker-compose.yml) requires
+an immutable v6 `RBPORTAL_IMAGE`, canonical `REDBOX_PUBLIC_URL` and session secret.
+Adapt its explicit `deployment.cjs` for the selected institution extensions,
+authentication and disks. Start Mongo/Solr, then run
+`docker compose run --rm redboxportal node app.express.cjs --maintenance=indexes:ensure`
+before starting the portal. The [PM2 template](../ecosystem.template) likewise
+selects `app.express.cjs`, an explicit configuration path and current environment
+inputs; it requires the same qualified Node26 runtime and index preparation.

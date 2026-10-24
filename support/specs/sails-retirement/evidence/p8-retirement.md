@@ -1567,3 +1567,16 @@ than255 in the dependency ledger above. The final clean build must confirm ci.
 `storage52-clean-lock.log` records regeneration exit0. The ledger explicitly
 records the retained peer/helper and reason. This is a lock repair, not a test
 exception or peer-dependency bypass.
+
+A manual review of the broader SR-001 text candidates found legacy environment
+inputs that the first AST helper check did not cover. Corrected the PM2/deployment
+examples and both PDF Compose profiles to use explicit v6 configuration, current
+environment inputs and the sole Express executable. PDF fixtures now compose
+record definitions rather than overwriting emitted core files, and use bundled
+forms/PDF via the rehearsal target. Mongo nofile64000/64000 is explicit. The
+pre-v5 external DLCF/Selenium deployment is preserved as historical evidence;
+its old Compose entry includes the maintained complete Playwright stack. No
+current Mocha/Bruno/Playwright scenario or assertion is excluded by that redirect.
+The scanner now rejects legacy environment inputs in active shell/YAML/template
+files, inspects EJS inputs and classifies the released-v5 recovery command
+explicitly. Docker Compose config validation exits0 for all four changed profiles.

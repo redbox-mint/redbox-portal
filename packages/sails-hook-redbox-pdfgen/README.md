@@ -336,3 +336,10 @@ Set `enableChromeLogging: true` and raise the Sails log level to `verbose` to se
 ## License
 
 GPL-3.0
+
+The development and Bruno Compose profiles now build the portal's `rehearsal`
+target (the bundled forms plus this PDF extension). They load
+`support/api-integration-testing/deployment.cjs` and prepare disposable indexes
+before starting `app.express.cjs`. Customize the explicit fixture module for local
+work; do not overwrite emitted core configuration. The synthetic fixture bearer
+authenticates the actor; it does not disable CSRF for browser sessions.

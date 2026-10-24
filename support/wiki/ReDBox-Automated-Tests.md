@@ -157,3 +157,10 @@ missing-provider skips never qualify a path. Mongo containers require the record
 `support/integration-testing/qualify-sails-retirement-*.sh`; commands, exact image
 IDs, counts and failures belong in [P8 evidence](../specs/sails-retirement/evidence/p8-retirement.md).
 Historical P7 results are not proof of the final artifact.
+
+The old `support/acceptance-testing` DLCF/Selenium deployment predates v5. Its
+Compose entry now includes the maintained Playwright stack; the old deployment
+is retained only as historical retirement evidence. The full current Playwright
+collection and assertions remain unchanged. PDF integration/development profiles
+load explicit fixture configuration and the locally built `rehearsal` image;
+they prepare disposable indexes before starting the sole Express executable.

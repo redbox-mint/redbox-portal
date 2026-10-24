@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Record Type Config Interface
- * (sails.config.recordtype)
+ * (configuration.recordtype)
  *
  * Record type definitions with hooks and permissions.
  */
@@ -38,7 +38,7 @@ exports.recordtype = {
           //     triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
           //     request: {
           //       mint: {
-          //         // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
+          //         // to DRY, `fields` can either be the actual mapping or a string path of `configuration` object where the field mapping config resides
           //         fields: 'raid.mapping.dmp'
           //       }
           //     }
@@ -98,7 +98,7 @@ exports.recordtype = {
           //     triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
           //     request: {
           //       mint: {
-          //         // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
+          //         // to DRY, `fields` can either be the actual mapping or a string path of `configuration` object where the field mapping config resides
           //         fields: 'raid.mapping.dmp'
           //       }
           //     }

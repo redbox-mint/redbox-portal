@@ -88,7 +88,7 @@ if (!tree) {
             }
           }
         } else walk(full, name);
-      } else if (/\.(?:[cm]?js|tsx?|json|hbs|sh|ya?ml)$/.test(name)) files.push(name);
+      } else if (/\.(?:[cm]?js|tsx?|json|hbs|sh|ya?ml|ejs|template)$/.test(name)) files.push(name);
     }
   }
   function manifests(directory, relative) {
@@ -158,9 +158,17 @@ for (const file of files) {
     continue;
   }
   if (!/\.(?:[cm]?js|tsx?)(?:\.hbs)?$/.test(file)) {
-    if (/\bsails\.[A-Za-z]|\bSails\.[A-Za-z]|sails lift|sails lower/.test(source))
-      violations.push({ file, reason: 'Non-JavaScript executable/template legacy path requires review' });
-    else classified.push({ file, reason: 'Historical package name or schema description' });
+    const executableText = source.replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*#.*$/gm, '');
+    if (/\bsails\.[A-Za-z]|\bSails\.[A-Za-z]|\bsails_[A-Za-z_]|sails lift|sails lower/.test(executableText)) {
+      if (file === 'support/integration-testing/rehearse-sails-retirement-recovery.sh')
+        classified.push({
+          file,
+          reason:
+            'Historical released-v5 process inputs for source/recovery proof only; never v6 application configuration',
+        });
+      else violations.push({ file, reason: 'Non-JavaScript executable/template legacy path requires review' });
+    } else
+      classified.push({ file, reason: 'Historical package/task names, styles, schema descriptions or HTML comments' });
     continue;
   }
   const ast = ts.createSourceFile(file.replace(/\.hbs$/, ''), source, ts.ScriptTarget.Latest, true);
