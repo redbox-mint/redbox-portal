@@ -41,7 +41,9 @@ after source changes; this workflow does not install a runtime transpiler or a
 second HTTP host. The config module is explicitly mounted in both modes because
 `support/development` is excluded from production image contexts.
 
-The Mongo init script prepares new volumes. Before using existing state, follow
+The Mongo init scripts prepare domain, separate Agenda and v6 session indexes on
+new volumes; Compose waits for the final Mongo server and Solr core to be healthy.
+Before using existing state, follow
 [the upgrade runbook](../specs/sails-retirement/upgrade-recovery-v6.md), including
 quiescence, backup, reviewed indexes, migration and recovery. Engine/FCV changes
 are separate procedures. For explicit maintenance with this Compose deployment:

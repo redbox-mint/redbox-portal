@@ -39,8 +39,10 @@ x-rbportal-service: &rbportal-service
     # Debugging port
     - '127.0.0.1:${RBPORTAL_DEBUG_PORT:-9876}:9876'
   depends_on:
-    - mongodb
-    - solr
+    mongodb:
+      condition: service_healthy
+    solr:
+      condition: service_healthy
   networks:
     main:
       aliases:
@@ -92,6 +94,7 @@ services:
         hard: 64000
     volumes:
       - '../resources/mongodb-persistence-indexes.js:/docker-entrypoint-initdb.d/20-persistence-indexes.js:ro'
+      - './mongodb-runtime-indexes.js:/docker-entrypoint-initdb.d/30-runtime-indexes.js:ro'
       - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/devdata:/devdata:delegated'
       - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/mongo/data/db:/data/db:delegated'
       - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/log/mongo:/var/log/mongo:delegated'
@@ -101,12 +104,26 @@ services:
           - mongodb
     ports:
       - '127.0.0.1:${RBPORTAL_MONGO_PORT:-27017}:27017'
+    # The temporary init server binds loopback only. Probe the network alias so
+    # healthy means all fresh-volume DDL completed and the final server started.
+    healthcheck:
+      test: [CMD, mongosh, 'mongodb://mongodb:27017/admin?serverSelectionTimeoutMS=2000', --quiet, --eval, 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)']
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
   solr:
     image: solr:10.0.0@sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b
     expose:
       - '8983'
     ports:
       - '127.0.0.1:${RBPORTAL_SOLR_PORT:-8983}:8983'
+    healthcheck:
+      test: [CMD, curl, -fsS, 'http://localhost:8983/solr/redbox/admin/ping']
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
     # Example of pre create additional solr cores that needs to be coupled with correct record type configuration
     # volumes:
     #  - "../integration-testing/solr.in.sh:/etc/default/solr.in.sh"
