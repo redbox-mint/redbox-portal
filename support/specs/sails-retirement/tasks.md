@@ -10,7 +10,10 @@ artifacts pass 20 checks. Installed production images, full released-v5 stand-in
 cutover/restart/stop, operational comparisons and complete offline-capable
 checkpoint recovery pass. SR-045/049 remain partial only for the undesignated
 institution/source/topology. Internal-default promotion SR-050 is complete; its
-actual Docker/npm/dev workflows pass. P8 has not started.
+actual Docker/npm/dev workflows pass. P8 is in progress: shim output is reconciled;
+runtime adapter/dependency removal and consumer migration are underway. The P7
+counts above are historical; the P8 tree is not yet qualified. See
+[P8 evidence](evidence/p8-retirement.md).
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.

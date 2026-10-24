@@ -1520,3 +1520,22 @@ npm11.20.0 at source852a80bd2 plus the reviewed documentation changes:
 Logs: docs48-{api,generate,audit,tests,routes,links}.log and tools46-tests.log.
 Generated reference/API outputs remain in their designated ignored output
 locations. Advisory counts do not prove runtime/artifact readiness.
+
+### Closure method prepared for clean artifacts
+
+`retirement-closure.cjs` complements the unchanged SR-001 text-candidate method
+with AST/global/type/helper checks, structural exact dependency/lock checks and
+recursive installed-package manifests. Artifact scans include `.tmp/public` and
+scoped/unscoped owned extension source. Finite persisted-hook conversion fixtures,
+negative unregistered-operation checks and absent-global assertions are classified
+explicitly. The remaining `req.param` candidates in ContextVariables/Reports are
+finite typed inputs supplied explicitly by form/query adapters; their test fixture
+readers also require no framework request. They are classified rather than falsely
+counted as Sails execution. Historical own package names are allowed individually;
+other Sails hooks, framework packages, skipper and @sailshq packages are forbidden.
+Removed stale linter overrides for already-deleted legacy files.
+
+The original inventory now accepts git-grep exit1 for zero matches/generated
+headers; genuine git errors still fail. Its source/candidate/owner method is
+otherwise unchanged. The final committed/artifact scan and complete baseline
+reconciliation are still required below; this method section is not a pass claim.
