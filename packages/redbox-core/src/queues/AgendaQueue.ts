@@ -451,7 +451,7 @@ export class AgendaQueue implements QueueService {
     if (requiredBackends.size === 0) {
       requiredBackends.add(this.defaultBackend);
     }
-    const dbManager = requiredBackends.has('mongodb') ? await mongoDatabase(this.input.owner, 'mongodb') : undefined;
+    const dbManager = requiredBackends.has('mongodb') ? await this.mongoJobDatabase(queueOptions) : undefined;
     this.agendas = {};
 
     if (requiredBackends.has('mongodb')) {
@@ -557,7 +557,7 @@ export class AgendaQueue implements QueueService {
   private async moveHistory(): Promise<void> {
     const historyRetentionHours = this.input.config.options?.historyRetentionHours ?? 25;
     const historyRetentionMs = historyRetentionHours * 60 * 60 * 1000;
-    const dbManager = (await mongoDatabase(this.input.owner, 'mongodb')) as unknown as AgendaQueueMongoManager;
+    const dbManager = (await this.mongoJobDatabase(this.input.config.options ?? {})) as unknown as AgendaQueueMongoManager;
     const collectionName = String(_.get(this.input.config, 'options.collection', 'agendaJobs'));
     const jobsCollection = dbManager.collection(collectionName);
     const historyCollection = dbManager.collection(`${collectionName}History`);
@@ -710,12 +710,8 @@ export class AgendaQueue implements QueueService {
 
     if (backendName === 'mongodb') {
       const { MongoJobRepository, ObjectId } = await import('@agendajs/mongo-backend');
-      // All queue addresses borrow app-owned transport; history retains
-      // its established application-database routing.
-      const address = typeof options.db === 'string' && options.db.length > 0 ? options.db : undefined;
-      const queueDb = address
-        ? await mongoResourceDatabase(this.input.owner, 'agenda', { mongoUrl: address })
-        : (dbManager as Db);
+      // Readiness, processing and history use the same selected, app-owned database.
+      const queueDb = dbManager as Db;
       const backend = await this.createMongoBackend(queueDb, options);
       const repository = backend.repository;
       if (!(repository instanceof MongoJobRepository)) throw new Error('Agenda Mongo repository is unavailable.');
@@ -871,6 +867,11 @@ export class AgendaQueue implements QueueService {
 
   protected async prepareBackends(db: Db | undefined, options: AgendaQueueOptions): Promise<void> {
     if (this.agendas.mongodb && db) await this.createMongoIndexes(db, options);
+  }
+  private mongoJobDatabase(options: AgendaQueueOptions): Promise<Db> {
+    return options.db
+      ? mongoResourceDatabase(this.input.owner, 'agenda', { mongoUrl: options.db })
+      : mongoDatabase(this.input.owner, 'mongodb');
   }
   protected async createMongoBackend(db: Db, options: AgendaQueueOptions): Promise<AgendaBackend> {
     const { MongoJobRepository } = await import('@agendajs/mongo-backend');

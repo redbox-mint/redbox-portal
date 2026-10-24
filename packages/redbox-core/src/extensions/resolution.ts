@@ -179,18 +179,18 @@ function orderModules(modules: readonly ResolvedRegistration<ExtensionFactory>[]
   return ordered;
 }
 
-/** Resolve the whole graph before any factory is called. Core is always lowest precedence. */
-export function resolveExtensions(
+/** Validate and order offline contributions before concrete core factory inputs exist. */
+export function orderExtensionProviders(
   providers: readonly ExtensionProvider[],
   hookLoadPriority: readonly string[] = []
-): ResolvedExtensions {
+): readonly ExtensionProvider[] {
   providers.forEach(validate);
   if (new Set(providers.map(item => item.name)).size !== providers.length) fail('installation', 'duplicate provider');
   const priority = new Map(hookLoadPriority.map((name, index) => [name, index]));
   for (const name of priority.keys())
     if (!providers.some(provider => provider.name === name))
       fail('installation', 'hookLoadPriority references an undiscovered extension');
-  const ordered = [...providers].sort((a, b) => {
+  return [...providers].sort((a, b) => {
     if (a.name === 'core') return b.name === 'core' ? 0 : -1;
     if (b.name === 'core') return 1;
     const ai = priority.get(a.name),
@@ -200,6 +200,14 @@ export function resolveExtensions(
     if (bi !== undefined) return -1;
     return a.name.localeCompare(b.name);
   });
+}
+
+/** Resolve the whole graph before any factory is called. Core is always lowest precedence. */
+export function resolveExtensions(
+  providers: readonly ExtensionProvider[],
+  hookLoadPriority: readonly string[] = []
+): ResolvedExtensions {
+  const ordered = orderExtensionProviders(providers, hookLoadPriority);
   const modules = orderModules(select<ExtensionFactory>(ordered, 'modules'));
   const handlers = select<NonNullable<RedboxExtension['handlers']>[number]>(ordered, 'handlers');
   const integrations = select<NonNullable<RedboxExtension['integrations']>[number]>(ordered, 'integrations');
@@ -252,6 +260,15 @@ export async function loadExtensions(
   appPath: string,
   options: { includeDevDependencies?: boolean; core?: RedboxExtension } = {}
 ): Promise<ResolvedExtensions> {
+  const installed = await loadInstalledExtensionProviders(appPath, options);
+  return resolveExtensions(installed.providers, installed.hookLoadPriority);
+}
+
+/** Discovery/registration only; the production root resolves the complete graph after config. */
+export async function loadInstalledExtensionProviders(
+  appPath: string,
+  options: { includeDevDependencies?: boolean; core?: RedboxExtension } = {}
+): Promise<{ providers: readonly ExtensionProvider[]; hookLoadPriority: readonly string[] }> {
   const installed = await discoverInstalledExtensions(appPath, options);
   const providers: ExtensionProvider[] = options.core
     ? [{ name: 'core', root: appPath, declaration: options.core }]
@@ -269,5 +286,8 @@ export async function loadExtensions(
     }
     providers.push({ name: extension.name, root: extension.root, declaration });
   }
-  return resolveExtensions(providers, installed.hookLoadPriority);
+  return {
+    providers: orderExtensionProviders(providers, installed.hookLoadPriority),
+    hookLoadPriority: installed.hookLoadPriority,
+  };
 }

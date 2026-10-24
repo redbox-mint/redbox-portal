@@ -1060,11 +1060,11 @@ describe('AgendaQueueService', function () {
       expect(finished).to.equal(false);
       expect(persistenceRuntime.persistenceReady(sails)).to.equal(true);
       releaseStorage();
-      await worker;
-      await new Promise<void>(resolve => setImmediate(resolve));
+      await until(() => agenda.now.calledOnceWith('IntegrationNotificationService-Dispatch'));
       expect(agenda.now.calledOnceWith('IntegrationNotificationService-Dispatch')).to.equal(true);
       expect(finished).to.equal(false);
       releaseEnqueue();
+      await worker;
       await shutdown;
     } finally {
       releaseStorage();

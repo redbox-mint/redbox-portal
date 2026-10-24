@@ -171,7 +171,7 @@ export class ApplicationRuntime implements Application {
         const module = factory.create();
         registerPersistenceResource(this.owner, 'module:' + factory.name, {
           quiesce: () => module.quiesce?.(),
-          drain: () => module.drain?.() ?? Promise.resolve(),
+          drain: options => module.drain?.(options) ?? Promise.resolve(),
           close: async () => {
             await module.close();
             this.modules.delete(factory.name);

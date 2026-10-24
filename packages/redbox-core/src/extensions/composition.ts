@@ -86,7 +86,7 @@ export function composeExtensionApplication(
           initialize: () => instance.initialize(),
           activate: () => instance.activate?.() ?? Promise.resolve(),
           quiesce: () => instance.quiesce?.(),
-          drain: () => instance.drain?.() ?? Promise.resolve(),
+          drain: options => instance.drain?.(options) ?? Promise.resolve(),
           close: async () => {
             await instance.close();
             integrations.delete(name);

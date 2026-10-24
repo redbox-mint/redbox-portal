@@ -27,7 +27,15 @@ export function portalDomain<Input, Domain extends object>(
     requires,
     create: input => {
       const value = construct(input);
-      return { value, ...lifecycle(value) };
+      const resource = lifecycle(value);
+      return {
+        value,
+        initialize: () => resource.initialize(),
+        activate: () => resource.activate?.() ?? Promise.resolve(),
+        quiesce: () => resource.quiesce?.(),
+        drain: options => resource.drain?.(options) ?? Promise.resolve(),
+        close: () => resource.close(),
+      };
     },
   };
   return {
