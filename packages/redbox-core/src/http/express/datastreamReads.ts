@@ -1,4 +1,4 @@
-import type { Router, RequestHandler } from 'express';
+import type { Router, RequestHandler, Request, Response } from 'express';
 import { pipeline } from 'node:stream/promises';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { RecordsService } from '../../RecordsService';
@@ -39,6 +39,7 @@ export function mountDatastreamReadRoutes(
     readonly policies: Readonly<Record<string, RequestHandler>>;
     readonly policyConfiguration: PoliciesConfig;
     readonly log: ILogger;
+    notFound?(req: Request, res: Response): Promise<void>;
   }
 ): void {
   const bindings = datastreamReadRoutes.map(route => ({
@@ -89,10 +90,28 @@ export function mountDatastreamReadRoutes(
             sendApiErrors(req, res, 400, [{ detail: 'Invalid datastream identifier' }]);
             return;
           }
+          const missing = async () => {
+            if (route.controller === 'RecordController' && req.get('X-Source') !== 'jsclient' && input.notFound)
+              await input.notFound(req, res);
+            else sendApiErrors(req, res, 404, [{ detail: 'Attachment not found' }]);
+          };
           const found = attachments.find(a => a.fileId === id);
           if (!found) {
-            sendApiErrors(req, res, 404, [{ detail: 'Attachment not found' }]);
+            await missing();
             return;
+          }
+          let response: Awaited<ReturnType<DatastreamService['getDatastream']>>;
+          try {
+            response = await input.datastream.getDatastream(oid, id, { username: actor.username });
+          } catch (error) {
+            if (
+              error instanceof Error &&
+              (error.message === 'attachment-not-found' || Reflect.get(error, 'code') === 'ENOENT')
+            ) {
+              await missing();
+              return;
+            }
+            throw error;
           }
           const fileName = typeof req.query.fileName === 'string' ? req.query.fileName : String(found.name ?? id);
           res
@@ -105,7 +124,6 @@ export function mountDatastreamReadRoutes(
             .attachment(fileName);
           if (route.action === 'doAttachment' && Number.isSafeInteger(Number(found.size)) && Number(found.size) >= 0)
             res.set('Content-Length', String(found.size));
-          const response = await input.datastream.getDatastream(oid, id, { username: actor.username });
           if (response.readstream) {
             if (res.destroyed) {
               if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function')

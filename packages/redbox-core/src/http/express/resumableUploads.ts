@@ -1,3 +1,4 @@
+import checkDiskSpace from 'check-disk-space';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Request, Response, Router, RequestHandler } from 'express';
 import { Server as TusServer } from '@tus/server';
@@ -31,6 +32,7 @@ export interface ResumableUploadsInput {
   disk: Disks.IDisk;
   records: Pick<RecordsService, 'getMeta' | 'hasEditAccess'>;
   maxSize: number;
+  stagingFilesystem?: { root: string; reserveBytes: number };
   origins: readonly string[];
   rootContext?: string;
   log: ILogger;
@@ -156,9 +158,18 @@ export class ResumableUploads {
         return;
       }
     }
+    const length = req.headers['upload-length'];
+    if (this.input.stagingFilesystem && length !== undefined && typeof length === 'string' && /^\d+$/.test(length)) {
+      const { root, reserveBytes } = this.input.stagingFilesystem;
+      const { free } = await checkDiskSpace(root);
+      if (free <= Number(length) + reserveBytes) {
+        sendApiErrors(req, res, 500, [{ detail: 'not-enough-disk-space' }]);
+        return;
+      }
+    }
     const prefix =
       (this.input.rootContext ? '/' + this.input.rootContext.replace(/^\/+|\/+$/g, '') : '') +
-      req.path.replace(/\/attach(?:\/[^/]+)?$/, '');
+      req.path.replace(/\/attach(?:\/[^/]+)?\/?$/, '');
     const original = req.url;
     req.url = '/attach' + (id ? '/' + encodeURIComponent(String(id)) : '');
     try {

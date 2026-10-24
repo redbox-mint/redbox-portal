@@ -53,7 +53,7 @@ const definitions = [
   ['/record/edit/:oid', 'RecordController', 'edit', 'record/edit'],
   ['/record/finalise/:recordType/edit/:oid', 'RecordController', 'edit', 'record/edit'],
   ['/record/view/:oid', 'RecordController', 'view', 'record/view'],
-  ['/record/view-orig/:oid', 'RecordController', 'view', 'record/view-orig'],
+  ['/record/view-orig/:oid', 'RecordController', 'view', 'record/view'],
   ['/record/viewAudit/:oid', 'RecordAuditController', 'render', 'record/viewAudit'],
   // This literal must precede the parameterized dashboard URL.
   ['/dashboard/consolidated', 'RecordController', 'redirectLegacyConsolidatedDashboard', 'dashboard'],
@@ -165,6 +165,11 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
           res.status(400).end();
           return;
         }
+        const oid = typeof req.params.oid === 'string' ? req.params.oid.trim() : undefined;
+        if (req.params.oid !== undefined && !oid) {
+          res.status(400).end();
+          return;
+        }
         const { locals, t, render, error } = await preparePage(req, res, input);
         try {
           const view: string = route.action === 'login' ? (input.loginView ?? route.view) : route.view;
@@ -175,7 +180,7 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
             return;
           }
           if (req.params.oid) {
-            const record = await input.loadRecord(String(req.params.oid));
+            const record = await input.loadRecord(oid!);
             if (!record || record.metaMetadata?.brandId !== brand.id) {
               error(404);
               return;
@@ -186,8 +191,10 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
               error(403);
               return;
             }
-            locals.recordType = record.metaMetadata.type;
-            title = String(record.metadata?.title ?? '').trim() || t(locals.recordType + '-title-label');
+            locals.recordType = String(record.metaMetadata.type ?? '');
+            title =
+              String(record.metadata?.title ?? '').trim() ||
+              (locals.recordType ? t(locals.recordType + '-title-label') : oid!);
             if (route.action === 'edit') {
               locals.formName = route.path.includes('/finalise/') ? 'default-1.0-draft' : '';
               if (

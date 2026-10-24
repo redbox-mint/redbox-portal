@@ -82,9 +82,18 @@ export class PortalHttp implements ApplicationModule {
         fieldSize: 1024 * 1024,
       })
     );
+    const stagingConfiguration = data.disks.get().getStagingDiskConfig();
     this.uploads = this.own(
       new http.ResumableUploads({
         disk: staging,
+        ...(stagingConfiguration.driver === 'fs'
+          ? {
+              stagingFilesystem: {
+                root: stagingConfiguration.config.root,
+                reserveBytes: config.record.diskSpaceThreshold,
+              },
+            }
+          : {}),
         records: data.records.get(),
         maxSize: config.record.maxUploadSize,
         origins: [this.origin],
@@ -517,6 +526,9 @@ export class PortalHttp implements ApplicationModule {
     });
     http.mountDatastreamReadRoutes(router, {
       ...shared,
+      notFound: async (req, res) => {
+        (await http.preparePage(req, res, pages)).error(404);
+      },
       records: data.records.get(),
       datastream: data.datastream.get(),
     });

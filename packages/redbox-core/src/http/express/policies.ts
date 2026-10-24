@@ -164,7 +164,7 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
         return;
       }
       const brand = await input.branding.getBrand({ name: branding }, true);
-      if (!brand) {
+      if (!brand?.id) {
         missing();
         return;
       }

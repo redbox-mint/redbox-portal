@@ -16,6 +16,7 @@ describe('direct owned progress sockets on real HTTP Mongo sessions', function (
   let f: Awaited<ReturnType<typeof recordWriteFixture>>, sockets: ProgressSockets, oid: string;
   const clients: Socket[] = [];
   let server: Server;
+  let authorizationFailure = false;
   const otherUpgrade = () => {};
   before(async () => {
     f = await recordWriteFixture(async (router, fixture, input) => {
@@ -28,7 +29,10 @@ describe('direct owned progress sockets on real HTTP Mongo sessions', function (
         origins: ['http://127.0.0.1'],
         records: input.writer,
         progress,
-        authenticate: input.realtime.authenticateCredential,
+        authenticate: credential =>
+          authorizationFailure
+            ? Promise.reject(new Error('private authorization failure'))
+            : input.realtime.authenticateCredential(credential),
       });
       registerPersistenceResource(fixture.owner, 'progress-sockets', sockets);
       server = input.realtime.server;
@@ -89,6 +93,12 @@ describe('direct owned progress sockets on real HTTP Mongo sessions', function (
     assert.equal((await client.timeout(3000).emitWithAck('subscribe', oid)).status, true);
     assert.equal((await client.timeout(3000).emitWithAck('subscribe', 'foreign-record')).status, false);
     assert.equal((await client.timeout(3000).emitWithAck('subscribe', oid + '-invented-task')).status, false);
+    authorizationFailure = true;
+    try {
+      assert.deepEqual(await client.timeout(3000).emitWithAck('subscribe', oid), { status: false });
+    } finally {
+      authorizationFailure = false;
+    }
     client.disconnect();
   });
   it('persists progress, emits completion, rechecks revocation and reconnects with a fresh grant', async () => {

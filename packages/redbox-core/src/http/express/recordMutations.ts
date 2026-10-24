@@ -246,6 +246,43 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
               : await input.records.getMeta(id);
             return record && String(record.metaMetadata?.brandId ?? '') === brand.id ? record : null;
           };
+          const browserMetadata = async (record: RecordModel): Promise<Record<string, unknown> | null> => {
+            if (!record.metaMetadata.form) return null;
+            const edit = input.records.hasEditAccess(
+              brand,
+              user,
+              user.roles.map(r => ({ ...r })),
+              record
+            );
+            const mode = edit ? 'edit' : 'view';
+            const form = await singleHttpResult(input.forms.getFormByName(record.metaMetadata.form, edit, brand.id));
+            if (!form?.configuration) return null;
+            const client = await input.forms.buildClientFormConfig(
+              form.configuration,
+              mode,
+              user.roles.map(r => r.name).filter(Boolean),
+              record.metadata,
+              input.reusableFormDefinitions,
+              brand.name,
+              input.contextVariables.evaluateContextVariables(
+                {
+                  user,
+                  session: req.session,
+                  headers: req.headers,
+                  param: name => req.params[name] ?? req.query[name],
+                  get: name => req.get(name),
+                },
+                record
+              ),
+              { user, brand }
+            );
+            return projection.projectMetadataClientFormConfig(
+              record.metadata,
+              client,
+              mode,
+              input.reusableFormDefinitions
+            );
+          };
           let current: RecordModel | null = null;
           const lifecycle = ['deleteRecord', 'restoreRecord', 'destroyDeletedRecord'].includes(action);
           const permission = /^(add|remove)(User|Role)(View|Edit)$/.test(action);
@@ -385,7 +422,14 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
                   'record-validation-edit-unauthorized'
                 ),
               ];
-            result.setProjectedMetadata(latest.metadata);
+            if (browser) {
+              try {
+                result.setProjectedMetadata(await browserMetadata(latest));
+              } catch {
+                input.log.error('Failed to project current record metadata');
+              }
+            } else result.setProjectedMetadata(latest.metadata);
+            result.oid = oid;
             result.setConcurrencyMetadata({
               ...result.concurrency,
               ...recordRepresentationConcurrency(latest).metadata,
@@ -418,13 +462,19 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
                   ? action === 'transitionWorkflow'
                     ? legacySaveBody(result)
                     : {
-                        message: permission
-                          ? `Failed to update record with oid ${oid}.`
-                          : action === 'updateMeta'
-                            ? 'Update Metadata failed'
-                            : action === 'updateObjectMeta'
-                              ? 'Update Object Metadata failed'
-                              : 'Record save failed',
+                        message: browser
+                          ? action === 'create'
+                            ? result.message
+                            : action === 'transitionWorkflow'
+                              ? 'Error updating meta'
+                              : 'Failed to get record data'
+                          : permission
+                            ? `Failed to update record with oid ${oid}.`
+                            : action === 'updateMeta'
+                              ? 'Update Metadata failed'
+                              : action === 'updateObjectMeta'
+                                ? 'Update Object Metadata failed'
+                                : 'Record save failed',
                       }
                   : { errors: recordSaveDisplayErrors(result, 'Record save failed'), meta: { ...result } }
               );
@@ -450,37 +500,9 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
             data = saved;
             if (saved && !targetStep && input.returnMetadataOnSave !== false && saved.metaMetadata.form) {
               try {
-                const form = await singleHttpResult(
-                  input.forms.getFormByName(saved.metaMetadata.form, false, brand.id)
-                );
-                if (form?.configuration) {
-                  const client = await input.forms.buildClientFormConfig(
-                    form.configuration,
-                    'edit',
-                    user.roles.map(r => r.name),
-                    saved.metadata,
-                    input.reusableFormDefinitions,
-                    brand.name,
-                    input.contextVariables.evaluateContextVariables(
-                      {
-                        user,
-                        session: req.session,
-                        headers: req.headers,
-                        param: name => req.params[name] ?? req.query[name],
-                        get: name => req.get(name),
-                      },
-                      saved
-                    ),
-                    { user, brand }
-                  );
-                  result.metadata = await projection.projectMetadataClientFormConfig(
-                    saved.metadata,
-                    client,
-                    'edit',
-                    input.reusableFormDefinitions
-                  );
-                }
+                result.setProjectedMetadata(await browserMetadata(saved));
               } catch {
+                result.setProjectedMetadata(null);
                 input.log.error('Failed to project post-save record metadata');
               }
             }

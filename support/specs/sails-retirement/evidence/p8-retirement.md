@@ -1343,3 +1343,51 @@ over HTTP rather than escaping as native controller exceptions (design§1.3).
 The chronicle baseline fixture listener was closed in finally after a failed
 privacy assertion; only its task-owned diagnostic Mocha process was stopped.
 These focused checks do not qualify a final packed artifact or full application.
+
+### Browser record, resumable and progress consumer retirement
+
+All 123 registered scenarios from the old browser RecordController suite are
+accounted for. The replacement HTTP suites execute 123 cases: pages42, forms24,
+reads17, metadata6, mutations17, resumable13 and progress4. One new filesystem
+reserve check is included; the obsolete controller timestamp-helper scenario is
+consolidated into the actual RecordsService timestamp case (UTC, lastSavedBy and
+creation preservation), which ran in the same qualification. Actual HTTP, EJS,
+FormProjection, ACLs, multipart files, filesystem disks and owned protocol ports
+replace fabricated framework requests and service globals. No scenario is skipped.
+
+Production fixes found by preserving those contracts: whitespace OIDs fail before
+storage; missing brand IDs fail404; title/type fallbacks remain usable; view-orig
+uses the existing view renderer (the previous target template did not exist).
+Browser conflict responses project current metadata through the current actor's
+actual edit/view form; projection failures redact metadata. Current concurrency
+and authoritative OID remain available. Restored version1 browser failure literals.
+Filesystem resumable staging again checks length plus configured disk reserve
+before creating state; trailing-slash prefixes no longer produce doubled slashes.
+Missing attachment metadata/bytes return browser404 or JSON404 as appropriate,
+before attachment headers are set; other stream failures remain sanitized500.
+The real progress socket test retains backend authorization-error denial.
+
+Diagnostic logs record pages/forms54 passing/12 failing (11 whitespace-sensitive
+title fixture assertions and one missing template), reads15/2, mutations16/1,
+then mutations/tus25/4. Fixtures now use actual valid named forms, complete
+relationship endpoints and real disk paths; assertions were not weakened.
+recordbrowser45-pagesformsreads2.log:83/0/0; metadata6/0/0;
+recordbrowser45-combined4.log:122/0/0 before the final attachment case.
+recordbrowser45-final-consumers.log: **518 passing / 0 pending / 0 failing**,
+17s (123 browser +81 API +314 RecordsService). Source TypeScript exit0,
+recordbrowser45-tsc.log. Pinned Prettier and git diff --check pass.
+
+Real Docker Mongo8.0.34 with nofile64000/64000,
+sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907:
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:29511/sr_p4_http
+HTTP_READ_SOLR_PORT=8983 TS_NODE_PROJECT=test/tsconfig.json
+node --no-experimental-strip-types node_modules/mocha/bin/mocha.js --no-config
+--require ts-node/register/transpile-only --require chai --require test/setup.ts
+--timeout 45000 test/http/RecordMutationsMongo.test.ts
+test/http/ResumableUploadsMongo.test.ts test/http/ProgressSocketsMongo.test.ts
+(from packages/redbox-core).
+recordbrowser45-real-mongo.log: **21 passing / 0 pending / 0 failing**,18s,
+including all8 existing Bruno permission mutations/16 assertions. At completion
+there were no active sockets/requests; inspector diagnosis found31 outstanding
+300000ms one-shot timers. Natural process termination is checked separately;
+assertion completion alone is not claimed as full lifecycle qualification.
