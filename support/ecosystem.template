@@ -4,6 +4,7 @@
     "script": "app.express.cjs",
     "args": [],
     "watch": false,
+    "kill_timeout": 45000,
     "merge_logs": true,
     "cwd": "#PATH#",
     "env": {

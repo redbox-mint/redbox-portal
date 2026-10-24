@@ -4,6 +4,8 @@ services:
     image: '${RBPORTAL_IMAGE:?Set the qualified v6 image digest}'
     ports: ['127.0.0.1:1500:1500']
     restart: unless-stopped
+    # Must exceed server.stopDeadlineMs (default 30000 ms) and queue drainTimeoutMs.
+    stop_grace_period: 45s
     environment:
       NODE_ENV: production
       REDBOX_APPLICATION_CONFIG: /deployment.cjs

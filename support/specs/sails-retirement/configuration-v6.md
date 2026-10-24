@@ -173,7 +173,9 @@ successful stop or roll back accepted writes.
 
 Give containers a termination grace longer than the configured drain deadline
 plus connection/native cleanup overhead (for the default, start with **45 seconds**,
-e.g. Compose `stop_grace_period: 45s`, and measure representative uploads/jobs).
+e.g. Compose `stop_grace_period: 45s` or PM2 `kill_timeout: 45000`, and measure
+representative uploads/jobs). The supplied Compose and PM2 templates set these
+defaults; increase both the application bounds and supervisor grace together when needed.
 Longer accepted uploads may require larger explicitly configured bounds. Do not
 start maintenance or a new deployment while a failed stop retains writers.
 SIGKILL/forced process exit can leave partial writes or external effects and is an
