@@ -15,6 +15,41 @@ headers {
   Authorization: Bearer {{token}}
 }
 
+script:pre-request {
+  // Production persists these events through Agenda (the default poll is 5s).
+  // Attachment visibility precedes terminal audit persistence. Await that
+  // independent boundary, then run the unchanged final-response assertions.
+  const deadline = Date.now() + 30000;
+  const url = `${bru.getEnvVar("host")}/default/rdmp/api/integration-audit/${bru.getEnvVar("dmpOid")}?pageSize=50`;
+  while (Date.now() < deadline) {
+    try {
+      const response = await bru.sendRequest({
+        method: "GET",
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${bru.getEnvVar("token")}`
+        },
+        timeout: 5000
+      });
+      const records = response.data?.records;
+      if (Array.isArray(records)) {
+        const parent = records.find((r) =>
+          r.integrationName === 'pdf' && r.integrationAction === 'generatePdfTrigger');
+        if (parent?.status === 'failed') break;
+        if (parent?.status === 'success' && records.some((r) =>
+          r.integrationName === 'pdf' && r.integrationAction === 'generatePdf'
+          && r.status === 'success' && r.traceId === parent.traceId
+          && r.parentSpanId === parent.spanId)) break;
+      }
+    } catch (_error) {
+      // The final request and its assertions report any persistent failure.
+    }
+    const remaining = deadline - Date.now();
+    if (remaining > 0) await bru.sleep(Math.min(500, remaining));
+  }
+}
+
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
