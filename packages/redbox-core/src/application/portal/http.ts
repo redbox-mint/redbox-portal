@@ -504,6 +504,7 @@ export class PortalHttp implements ApplicationModule {
       ...shared,
       audit,
       branding: ref.branding.get(),
+      faceMaxBytes: config.branding.typefaceFaceMaxBytes,
       logos: this.logos,
       multipart: this.multipart,
       staging: data.disks.get().stagingDisk(),

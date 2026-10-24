@@ -1194,3 +1194,26 @@ referenced deleted asset classification; corrected these fixture assumptions.
 `fonts39-third.log`: 35/0/0 including all schema cases. After removing request.param,
 `fonts39-final.log`: **15 passing / 0 pending / 0 failing** (968ms). Pinned Prettier
 and diff check pass; source check is recorded above. Final qualification is open.
+
+### Branding management consumers and configured upload limits
+
+All 17 management scenarios now exercise actual operation/upload HTTP routes.
+REST/AJAX lifecycle registration, Admin denial, actor spoof exclusion, error/status
+mapping, rollback deprecation, param validation and response parity remain. Real
+FormData uploads pass through StreamingMultipart to physical temporary files;
+success, parser size failure, staging failure and domain conflict must remove all
+staged files before the response on both surfaces. No Skipper callbacks or global
+services/controller response captures remain.
+
+`branding40-first.log`: **15 passing / 0 pending / 2 failing**. One fixture searched
+the wrong route export. The other found that the HTTP owner fixed the default
+2MiB face constraint, ignoring runtime overrides and returning 400 for size
+violations. Production composition now passes validated typefaceFaceMaxBytes to
+the upload owner, which checks it with 413 and supplies the same override to the
+file contract validator. The existing runtime-override scenario now proves both
+3MiB refusal at the default and successful HTTP delegation with a 4MiB setting.
+The real domain retains structural/font/family validation after this boundary.
+
+`branding40-second.log`: **17 passing / 0 pending / 0 failing** (1s). Node26.11.1,
+explicit core runner; source TypeScript exit0 (`branding40-tsc.log`), pinned
+Prettier and diff check pass. No scenario removal or skip. Final gates remain open.

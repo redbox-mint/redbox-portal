@@ -3,6 +3,7 @@ import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { Services as Branding } from '../../branding/Branding';
 import type { Services as Logo } from '../../branding/BrandingLogo';
 import type { Services as Disks } from '../../storage/StorageManager';
+import { BRANDING_TYPEFACE_FACE_MAX_BYTES } from '../../model/BrandingTypeface';
 import { mapBrandingError } from '../../branding/HttpErrors';
 import { brandingFaceUploadRoute, brandingLogoRoute, brandingFaviconRoute } from '../../api-routes/groups/branding';
 import { validateApiRouteRequest, validateApiRouteFiles } from '../../api-routes/validation';
@@ -27,6 +28,7 @@ export function mountBrandingUploadRoutes(
     readonly branding: Pick<Branding.Branding, 'uploadTypefaceFace'>;
     readonly logos: Pick<Logo.BrandingLogo, 'putLogo' | 'putFavicon'>;
     readonly multipart: StreamingMultipart;
+    readonly faceMaxBytes?: number;
     readonly staging: Pick<Disks.IDisk, 'getBytes'>;
     audit(actor: { id: string; username: string }, action: string, context: { brandId: string }): Promise<unknown>;
     readonly csrf: Pick<ReturnType<typeof createHttpCsrf>, 'apiProtect' | 'protect'>;
@@ -61,9 +63,18 @@ export function mountBrandingUploadRoutes(
               if (received.files.length !== 1 || received.files[0]!.field !== field)
                 throw new MultipartError(400, 'Exactly one ' + field + ' file is required');
               const file = received.files[0]!;
-              const files = validateApiRouteFiles(route, {
-                [field]: [{ fd: file.key, filename: file.filename, type: file.mimeType, size: file.size }],
-              });
+              if (field === 'face' && file.size > (input.faceMaxBytes ?? BRANDING_TYPEFACE_FACE_MAX_BYTES))
+                throw new MultipartError(413, 'Typeface face size limit exceeded');
+              const files = validateApiRouteFiles(
+                route,
+                {
+                  [field]: [{ fd: file.key, filename: file.filename, type: file.mimeType, size: file.size }],
+                },
+                {
+                  maxBytesOverrides:
+                    field === 'face' ? { face: input.faceMaxBytes ?? BRANDING_TYPEFACE_FACE_MAX_BYTES } : undefined,
+                }
+              );
               if (!files.valid) throw new MultipartError(400, 'Invalid ' + field + ' upload');
               const body = {
                 ...received.fields,
