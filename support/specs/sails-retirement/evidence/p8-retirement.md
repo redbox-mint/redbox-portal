@@ -1580,3 +1580,35 @@ current Mocha/Bruno/Playwright scenario or assertion is excluded by that redirec
 The scanner now rejects legacy environment inputs in active shell/YAML/template
 files, inspects EJS inputs and classifies the released-v5 recovery command
 explicitly. Docker Compose config validation exits0 for all four changed profiles.
+
+
+### Clean webpack regression: preserve Angular HTML ownership
+
+The clean71017283c archive passes all strict package installs (including the
+repaired storage lock), Prisma/schema verification, package/host compilation and
+all Angular production builds. Webpack then exits1 with14 HTML embedded-script
+errors (`as is not a supported option`),6 warnings; no images or packs are accepted
+from that attempt. Log: `packed-71017283c-webpack-failed.log`.
+
+A minimal HTML-plus-JavaScript production webpack run reproduces the error without
+the application wrapper or CSS plugin. The root webpack5.111.1 default native HTML
+pipeline uses minimizer-webpack-plugin5.9.0 and passes HTML production metadata
+`as` into Terser. Core's separate locked5.11.0 minimizer does not throw, which is
+why the new regression explicitly resolves webpack from the real wrapper rather
+than accidentally testing that other installed tree. Neither resolution changes.
+
+The webpack configuration now disables its native HTML experiment: Angular owns
+and already optimizes these emitted entry pages; webpack copies them and owns
+shared JS/CSS minification. The added actual-compiler test first fails0passing/
+1failing against the pinned wrapper tree, then passes with the fix. It asserts
+byte-identical HTML including an event handler and inline script, constant-folded
+shared JavaScript and compressed CSS. All13 existing wrapper checks remain;
+combined result **14passing/0pending/0failing**,1s, original5000ms bound.
+No test or assertion is removed or weakened, and no dependency/pin changes.
+
+Commands: the core Mocha command with `--no-config --node-option
+no-experimental-strip-types --require ts-node/register/transpile-only --timeout
+5000 test/hooks/webpack-assets.test.ts test/hooks/webpack.test.ts`, and root
+`npm run lint`. Logs: `webpack54-{red,hypothesis,regression-pinned-red,
+regression-pinned-green}.log`, `lint54-final.log`. Full clean artifacts and suites
+must be rebuilt/rerun after this source correction.

@@ -36,6 +36,10 @@ export const webpack: WebpackConfig = {
         loggingDebug: ['sass-loader'],
       },
       mode: isDevelopmentAssetMode ? 'development' : 'production',
+      // Angular owns its emitted HTML. Native HTML processing in webpack 5.111
+      // re-minifies copied entry pages and passes unsupported embedded-script
+      // options to Terser. Keep these bytes intact while minifying shared JS/CSS.
+      experiments: { html: false },
       devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
       entry: './assets/default/default/js/client-script.js',
       output: {
