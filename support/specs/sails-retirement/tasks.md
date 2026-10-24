@@ -28,7 +28,10 @@ final mounted-source/compiled-tree qualification through `454eee512`, with Bruno
 fixture correction `ff7e2314d`. [Round 4](evidence/final-review-r4.md) records the
 critical R3 review and valid regression sensitivity controls, all prior P1
 provenance classifications, seven corrections and complete final qualification
-at runtime/test commit `f642ddaf8`. The `5088f4a7a`
+at runtime/test commit `f642ddaf8`. [Round 5](evidence/final-review-r5.md)
+records five feature corrections, including targeted concurrent upload/drain
+and login-fixture controls, and separates three unchanged inherited P2 items
+into the [follow-up backlog](evidence/inherited-defects-backlog.md). The `5088f4a7a`
 immutable-artifact results above remain historical; the reviews did not build replacement
 immutable images. SR-005/045/049/055's accepted institution gaps and checkboxes
 remain unchanged.

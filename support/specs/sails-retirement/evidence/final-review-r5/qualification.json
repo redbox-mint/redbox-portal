@@ -1,0 +1,498 @@
+{
+  "featureBase": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "initialHead": "39ad5813c4d2fb6952a6b2e88cf81dd2b2705b87",
+  "compiledRuntimeAndConfiguration": "f68721255c915538f7d66bc0b2638fd461bd108f",
+  "finalRuntimeTestInputs": "ff33ef1f7927eaad1856aba40f7010045e242895",
+  "evidencePreparedAtHead": "ff33ef1f7927eaad1856aba40f7010045e242895",
+  "toolchain": {
+    "node": "26.11.1",
+    "npm": "11.20.0",
+    "mongo": "9.0.4",
+    "dockerHost": "unix:///run/sr-p7-isolated/docker.sock",
+    "newImagesBuilt": 0
+  },
+  "qualificationScope": "Only suiteResults and staticGates describe accepted final qualification. Hashes also retain explicitly rejected preliminary attempts and expected negative controls; no failing preliminary log substitutes for a final suite.",
+  "inputProvenance": {
+    "compiledRuntimeAndConfiguration": "f68721255c915538f7d66bc0b2638fd461bd108f",
+    "finalTestCorrection": "ff33ef1f7927eaad1856aba40f7010045e242895",
+    "difference": [
+      "packages/redbox-core/test/http/CompanionUploadsMongo.test.ts",
+      "packages/redbox-core/test/http/IntegrationAdministrationMongo.test.ts",
+      "packages/redbox-core/test/http/PagesMongo.test.ts",
+      "packages/redbox-core/test/http/ProgressSocketsMongo.test.ts",
+      "packages/redbox-core/test/http/RecordMutationsMongo.test.ts",
+      "packages/redbox-core/test/http/ResumableUploadsMongo.test.ts"
+    ],
+    "qualificationNote": "The only post-build changes are separately collected real-service/Companion fixture logins and the held-write regression. Ordinary core excludes these files in .mocharc; other suites/build/docs inputs are unchanged. The exact application typecheck was rerun after the corrections. Final real-service and Companion runs execute after the main browser/API sequence, without compiler overlap."
+  },
+  "suiteResults": {
+    "core-default-final.log": {
+      "passed": 4601,
+      "pending": 7,
+      "failures": 0
+    },
+    "core-real-final.log": {
+      "passed": 213,
+      "pending": 0,
+      "failures": 0
+    },
+    "CompanionLifecycleProbe-final.log": {
+      "passed": 2,
+      "pending": 0,
+      "failures": 0
+    },
+    "CompanionUploadsMongo-final.log": {
+      "passed": 6,
+      "pending": 0,
+      "failures": 0
+    },
+    "root-final.log": {
+      "passed": 422,
+      "pending": 10,
+      "failures": 0
+    },
+    "storage-final-clean.log": {
+      "passed": 306,
+      "pending": 0,
+      "failures": 0
+    },
+    "dev-tools-final-clean.log": {
+      "passed": 52,
+      "pending": 0,
+      "failures": 0
+    },
+    "pdf-unit-final.log": {
+      "passed": 79,
+      "pending": 0,
+      "failures": 0
+    },
+    "docs-test-final.log": {
+      "passed": 4,
+      "pending": 0,
+      "failures": 0
+    },
+    "playwright-harness-final.log": {
+      "passed": 19,
+      "failures": 0,
+      "skipped": 0
+    },
+    "production-host-final.log": {
+      "passed": 1,
+      "failures": 0,
+      "skipped": 0
+    },
+    "generated-institution-final.log": {
+      "passed": 1,
+      "failures": 0,
+      "skipped": 0
+    },
+    "hook-qualification-final.log": {
+      "passed": 5,
+      "failures": 0,
+      "skipped": 0
+    },
+    "closure-tests-final.log": {
+      "passed": 8,
+      "failures": 0,
+      "skipped": 0
+    },
+    "playwright-full-final.xml": {
+      "testcases": 124,
+      "suites": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "retirement-browser-final.xml": {
+      "testcases": 4,
+      "suites": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-general-final.xml": {
+      "testcases": 557,
+      "suites": 309,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-oidc-final.xml": {
+      "testcases": 17,
+      "suites": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-s3-final.xml": {
+      "testcases": 12,
+      "suites": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "pdf-final.xml": {
+      "testcases": 10,
+      "suites": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "generalBruno": {
+    "requests": 309,
+    "tests": 554,
+    "assertions": 3
+  },
+  "staticGates": {
+    "packageBuilds": 5,
+    "exactCoreTypechecks": 6,
+    "rootTypecheck": "PASS",
+    "prismaContracts": "PASS",
+    "portalConfigurationSchema": "PASS",
+    "lintFiles": 936,
+    "lintWarnings": 0,
+    "lintErrors": 0,
+    "publishedDocumentationSurfaces": 43,
+    "existingDocumentationAdvisories": 524
+  },
+  "cleanup": {
+    "ownedContainersRemaining": 0,
+    "ownedNetworksRemaining": 0,
+    "ownedVolumesRemaining": 0,
+    "ownedFirewallRulesRemaining": 0,
+    "imagesBuilt": 0
+  },
+  "pins": {
+    "manifests": 23,
+    "declarations": 376,
+    "localReferences": 20,
+    "violations": []
+  },
+  "lockRootsChecked": 6,
+  "sourceClosure": {
+    "commit": "ff33ef1f7927eaad1856aba40f7010045e242895",
+    "scannedFiles": 1075,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0
+  },
+  "compiledClosure": {
+    "scannedFiles": 6131,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0
+  },
+  "sourceInventory": {
+    "sourceCommit": "ff33ef1f7927eaad1856aba40f7010045e242895",
+    "method": {
+      "trackedFiles": 4857,
+      "pattern": "sails|Sails|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket",
+      "committedTreeOnly": true,
+      "limitation": "Text inventory plus manually documented native owners/routes; symbols in comments are candidates, not proof of execution. Ignored/generated working-tree output and installed dependencies require separate probes."
+    },
+    "counts": {
+      "build-deployment-tooling": 15,
+      "repository-metadata": 3,
+      "dependency-lock": 9,
+      "package-metadata": 9,
+      "browser-views": 158,
+      "reference-only": 483,
+      "application-owned-config": 6,
+      "maintenance-entrypoint": 1,
+      "core-domain": 152,
+      "route-policy-contract": 4,
+      "http-config-middleware": 9,
+      "core-lifecycle-cache": 1,
+      "persistence-owner": 5,
+      "test-harness": 138,
+      "scaffold-tooling": 11,
+      "development-hook": 30,
+      "pdf-hook": 4,
+      "storage-hook": 3,
+      "shared-contract": 4,
+      "app-types": 1
+    },
+    "matchedFiles": 1046,
+    "matchedLines": 5531,
+    "unclassified": [],
+    "manifests": [
+      {
+        "file": "angular/package.json",
+        "name": "angular",
+        "version": "1.0.0",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "260918966f8a500e7669614aefd6258d55e0144826a058a601a6cffc57dc894e"
+      },
+      {
+        "file": "package.json",
+        "name": "redbox-portal",
+        "version": "2.1.0",
+        "packageManager": "npm@11.20.0",
+        "engines": null,
+        "sails": null,
+        "sha256": "beac5b50690794f90e5206669b4b87dcf82ea514d6cb673083802fc6e3a0e63d"
+      },
+      {
+        "file": "packages/agenda-sqs-backend/package.json",
+        "name": "@researchdatabox/agenda-sqs-backend",
+        "version": "0.0.1-beta.9472",
+        "packageManager": null,
+        "engines": {
+          "node": ">=18.0.0"
+        },
+        "sails": null,
+        "sha256": "5221ccd5c37af4efdbe4651f0685d18e084cfc37f4d8c28589d7596a0aaa2c64"
+      },
+      {
+        "file": "packages/raido/package.json",
+        "name": "@researchdatabox/raido-openapi-generated-node",
+        "version": "0.0.3",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "1482e3f9e34a451f588be893d4377a9faac5edbfb8e453704033c49ffc3a5a7c"
+      },
+      {
+        "file": "packages/redbox-core/package.json",
+        "name": "@researchdatabox/redbox-core",
+        "version": "0.0.1-beta.9022",
+        "packageManager": "npm@11.20.0",
+        "engines": null,
+        "sails": null,
+        "sha256": "bc088c879e770476b1cbe3f5ac4bbb39bb469ef15d56abe271dc5995ee6ca434"
+      },
+      {
+        "file": "packages/redbox-dev-tools/package.json",
+        "name": "@researchdatabox/redbox-dev-tools",
+        "version": "4.5.1",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "07bc862d2588da7f175c29541111166e54c4c425bafc0324df530b177e631bae"
+      },
+      {
+        "file": "packages/redbox-hook-dev/package.json",
+        "name": "redbox-hook-dev",
+        "version": "1.0.0",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "88c337c6fef3bb231d3529d41fc7f88342e3531498f5f25a0d1ed10ba2cd7ff2"
+      },
+      {
+        "file": "packages/rva-registry/package.json",
+        "name": "@researchdatabox/rva-registry-openapi-generated-node",
+        "version": "0.0.1",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "0a5388ad727993c083f48d3c0b6e13279801941de26795b8ec1fdde2faf6b751"
+      },
+      {
+        "file": "packages/sails-hook-redbox-pdfgen/package.json",
+        "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+        "version": "1.0.0",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "ece84bddc5d1a529521905d2de3f45246c8d75600becf94fd768ed0e7a79fdad"
+      },
+      {
+        "file": "packages/sails-hook-redbox-storage-mongo/package.json",
+        "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "version": "1.5.3",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "dad7c7aae56f8dc606c373c82f407f8cb7191fd4449a59eb22df962c45a5bda6"
+      },
+      {
+        "file": "packages/sails-ng-common/package.json",
+        "name": "@researchdatabox/sails-ng-common",
+        "version": "0.2.1",
+        "packageManager": null,
+        "engines": {
+          "node": ">=20.0.0"
+        },
+        "sails": null,
+        "sha256": "b15ae86d46ce8ed6a94778ccb91bf11a811e4d17ffaf869b5e2371fd5d9902c6"
+      }
+    ]
+  },
+  "baselineReconciliation": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "sourceCommit": "ff33ef1f7927eaad1856aba40f7010045e242895",
+    "method": "Rerun original SR-001 method; reconcile every baseline file against committed paths/candidates and successful AST/dependency closure. Removed/renamed source retains original migration owner. Historical names, finite conversions and explicit neutral parameter inputs are classified.",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1046,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "acceptedInstitutionGap": [
+    "SR-005",
+    "SR-045",
+    "SR-049",
+    "SR-055"
+  ],
+  "localEvidenceDirectory": ".tmp/sails-retirement/final-review-r5",
+  "logSha256": {
+    "CompanionLifecycleProbe-final.log": "90ed99af74c090c5c4fb2ae618ca835ad9ab3a2d87c46a8508f363069f6d7b9c",
+    "CompanionUploadsMongo-final.log": "1b4fddcda69439a7ee3b0cc4b721f089abaea4b6b9afe5b1fecd20e987b4b57e",
+    "before-source.cjs": "7a5d0409ffb5792cb24370bd2f4f23159709de30cf9ddbf35e487780e93f09fa",
+    "browser-cookie-helper-green.log": "02518eb402c3351c15d4e3584743c42bc913209d90c981fdf8ff59b97395b32b",
+    "browser-cookie-helper-insensitive-control.log": "0ac5fabe527b4c558d8e4478cb7df72ed3ffb94fea7cf15d3d91b5c56b42a325",
+    "browser-cookie-helper-invalid-gate.log": "09384e8ac50dd0fd10834b06bde1605c002f5f87582188c09689794449c43bfe",
+    "browser-cookie-helper-red.log": "1c565a783035dae23ad1eff778cec216ba13e07c706af821dd4d736129b96a0b",
+    "bruno-general-cleanup.log": "9e990717e570e03eb93f591d3b2f152d11c552f926d1022fe166088f72989e2e",
+    "bruno-general-containers.log": "9fbbc899aa425bf1a86b605f6c0a92c388e8d306dafe046600a40f11ca734d28",
+    "bruno-general-final.log": "49e215933769c39f0aed95bfcfd4a8a2b4c1f1acbc6aa283b6f4516532a9cd29",
+    "bruno-general-final.xml": "2fad057ed51bf691c5507b42b41dc3cb3d7d4cb5817db1b414b7f7bca2c0b74f",
+    "bruno-general-providers.log": "1b92431daa34f8370dd235030e89886aa9a3f4928c680edec9712e2632f5d4b7",
+    "bruno-general-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bruno-oidc-cleanup.log": "7ea74f6cab63f51f55428bc92775be071f6f141385102f447d228aa21c2d4cd5",
+    "bruno-oidc-containers.log": "3f395e9e93023dfd4f9fda2bd121a69efcd2d6bf337a168dc1cb913352ff3980",
+    "bruno-oidc-final.log": "06d5c807f55a4692f98a00bc3fada44696f1cd3c7ebfdf4a5e99ecffcb7e5c53",
+    "bruno-oidc-final.xml": "78637f231b34b69bffd280998aaaabdb812712cfd8ded52cf6ab7fe96af48a29",
+    "bruno-oidc-providers.log": "b5c236c602693df65978acd5f987d817251c3170b7f40221690f67436b6c82b9",
+    "bruno-oidc-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bruno-s3-cleanup.log": "c376cb71b004c0bf624942fa1dc8d8865d62bf44784e55dcd62f45f3dbafeac6",
+    "bruno-s3-containers.log": "f36d2294f38fed23b9a1010f95212e85e62b46f48aecf26551871f8fddb16f6f",
+    "bruno-s3-final.log": "0488f9b8814086c68520fed2173770b22fdac07d0fce820fe610ec52c54e5a5c",
+    "bruno-s3-final.xml": "bd5a6f2e7cb8785a07586a880b1c653979e85862a9593de443c0507656e16f54",
+    "bruno-s3-providers.log": "6f488e0543045c7e72cad0fc3713a51bf06cbb833316985377fc31a3c01066b6",
+    "bruno-s3-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build-driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build-final-driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build-final.log": "be244fa76fc5461dc4471f34bbd14d4b86cab2b266e3da3b83e23b9e872e0758",
+    "cleanup-driver.log": "7d269559dd449f424ddc24d3d76587331936005efcd04ac9c36c99018212197d",
+    "cleanup-round.sh": "8b9514b9e4033c2bc26936d2c7cd01c3f085712b58086be31288a5c8cea3556c",
+    "closure-tests-final.log": "29e9de531cc7c4546e041ad2d1e03d1b06851f498d9e76191000a92e7216c7a3",
+    "collect-qualification.py": "c9860eeff32a20b57f3d9b8fe5d8e22311c9bee6c872092125a144eb86d548d4",
+    "compiled-tree-closure-final.json": "eeec2b0598551326d2764614144ca4fd46acb2effeccda92284cda1b962d690e",
+    "compiled-tree-closure-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compiled.revision": "6abec6178b26d5d9ce544eddeb0f644f47eacedddbc42abcc8e2ae65a5b74354",
+    "container-cleanup.log": "25bf69234eea7777379a46d1d123d117bad1926d95621d9489fd384be8025d11",
+    "core-default-final.log": "087ebb5c1f89404a1a003b1ab2c8375483f130a573a87e03fadeb62560cf97c6",
+    "core-fixture-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "core-real-contention-attempt.log": "3e681806e0d322147f93f307fa734f0e3ec40dbbc23e55643b115d66cd3186ea",
+    "core-real-final.log": "68a417ed16fbb0e6b12e35a8297151312adca065ec77ff5cf5ae8fc78df2be69",
+    "dependency-pins.json": "49943d70e0638e7a50a279d2912cba608419a70d07f6a1aaf7eb5927f4f835d4",
+    "dev-tools-final-clean.log": "0bc5e4ff894f3144b37ffbbb7ee4e7fcd9277bd214978844b1a5b9b9e7005797",
+    "disk-after-cleanup.log": "561ba11a0fe49faba344accad31be2711aba5c27209eb1b8d2d1029a121444e5",
+    "doc-api-final.log": "ec255f504a977e8ccd79d66fe814581b11adf30a6ba354ae5ca898183ceb8517",
+    "docs-audit-final.log": "0e1eec794e07725e3070ec101bf8bcb3766fed42a8577f03cb3f133ef6ba6a8a",
+    "docs-generation-final.log": "768414753d45bfbe9ef65b0ada19a99841e1b551a032ae7a1a8c5d87e7ef641a",
+    "docs-lint-driver.log": "5b61100418734cb50d813b1e87f85c078c7950d02fb8bf1341c2cd6b96c6ea3d",
+    "docs-test-final.log": "ccd485c13fa23d88c750adf22a68fc8bbc65324cfe98405e3e9b1e61cd13c89a",
+    "extension-policy-green.log": "430868989dd95afe0978c498f02724cbb0fe15350f46e1898544de89dc8473fb",
+    "extension-policy-red-corrected.log": "2b0e10fc89ed322f79204c2029a8e32560c04157050ee8db8ecd16300899d6dc",
+    "extension-policy-red.log": "71272ca0cce3f54a915e671ab578b957fdb7685cce1c11ae9ccfdae13d24fa8b",
+    "final-compiled.revision": "6abec6178b26d5d9ce544eddeb0f644f47eacedddbc42abcc8e2ae65a5b74354",
+    "final-test-inputs.revision": "da85af6ccbbca7b590f72953051dc069152b9fecf87f2e6c507bb1610ef63c59",
+    "firewall-cleanup.log": "448a8b4f4fbaa83861125f7064fe8aa07c4d3195fe029da24957f1169868ba07",
+    "generated-institution-final.log": "59a1f4898c04445ad56d300feea15199481e4c6b442ea2e76e5583e50a0e4e01",
+    "hook-qualification-final.log": "69a9794235badd89e3d39e101aa489d52acfe0a5204bb58f6963fdf420f573a0",
+    "inherited-probes-verified.log": "b3f3acd566f3d4d68ed959ed43e245311bb39eb21a45fcefaf279001b426723a",
+    "inherited-probes.log": "67bc7cf309a6717218804806926f7ef0534d42066011cee466c54a98d2ec3c64",
+    "initial-build.log": "ab78340be60264379fae894c9b6ff95e1016d76cd2fda50426214d9cf25c3815",
+    "lint-final.log": "59db2987388fcd7df15d94feb46e118733c3a07e2f56205177dd6858d5297724",
+    "lockfile-consistency.json": "40fcde68131f238215d2ddf0e879202cc3964556b731698db7b2f28b32e061fe",
+    "multipart-final-focused.log": "763484dfaa708b8e664ec70c942b71d5ce6d76e601a20fe2e7eba62c390559b8",
+    "multipart-green.log": "d7dad051e2959aea0872f8a56ca2c7b7667216437a25c7861d0d33c3761471bc",
+    "multipart-red.log": "2d08b8e33306ef70eb7e667c5cffdc7205da1bddd24a816f77b87db0f339e67d",
+    "multipart-sensitivity.log": "a104296192501bc701bcd9cd3858839dd069ed09c77df549550a119cdf6bede8",
+    "network-cleanup.log": "0fdb42676eca005c67d1c9274cc05f53cafc163dc96a83e5be8a61a758f8c504",
+    "owned-anonymous-volumes.json": "e88b3be9a954f9e3f0622e4418274034789a8c149a31c617c0c4ca40c2055bfd",
+    "pdf-cleanup.log": "78bed08139b55874c1739a21df6998ce2ac8644d2357949675286a0efd22c812",
+    "pdf-containers.log": "b4b9df31dbba91dbbe05228ccd2de912ba0f50b0c7f135fa946f7092ffaa4b03",
+    "pdf-final.log": "66f2be1d799b23f55561c2df2ad5bdf7b7074503294fe15778379b0746ef2001",
+    "pdf-final.xml": "adeaf351cb8d4bc10039d72bd00019aa09836da80e4fa00971e582ca43022bfb",
+    "pdf-unit-driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pdf-unit-final.log": "62df46f1a59b3045abd5c64236dd7e4b30b7208c1b39b177843e41e63a272cb0",
+    "playwright-final.log": "76aaabbfab302cfa22fb0dec6aca6d7996cf1482459247f4632b8e668b00e787",
+    "playwright-full-final.xml": "26c80e980ed6aaad6285126981634766af13242ba4070671549f8a09de0dcf4e",
+    "playwright-harness-final.log": "6fbf2b5d196187f78a7eb07799d1a2c1be5092a76bae5ecb2523dc9283e06b70",
+    "playwright-index.log": "359cd437bad6e38e63f83ce8356c5033e6aa312ab9e88b9ddfab749b78d7f76c",
+    "playwright-portal.log": "94c9eb225a1270d1b6a99df54836dc54673fee625bee9a4aac58c2785dbbc755",
+    "playwright-ready.json": "b342fc286d0216cc212e0d7ba234894e2e7283ddf14f959adf0fe7fd5924308a",
+    "playwright-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "playwright-solr-reset.log": "d078339dc2b119dfd2324563164e2591b20509cbb70de6f8eed00c13b4aed052",
+    "playwright-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "playwright-stubs.log": "daab40a4632331b48782aca31e6003aacc341093f49071cb1ff8acf415e08338",
+    "portal-config-check.log": "bb7b37790ec6f972222ce1639f646467f333a864a50715191c95400b580d73b4",
+    "pre-policy-build-final.log": "be244fa76fc5461dc4471f34bbd14d4b86cab2b266e3da3b83e23b9e872e0758",
+    "pre-policy-static-driver.log": "e22da8fcd64d147840eb0cfec3443ef8a5e5d9e5c31f668495995e822d2e9250",
+    "pre-policy-typecheck-application-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "prisma-check.log": "bd022bcba652eabc26f1c60e07305f8dc5b89bd1e3b5ff12b14d159b7858a970",
+    "production-host-final.log": "5bb73ebad8e4708deb9b67f0e43d54e4d35bb795873f95d26354b20b386b0efe",
+    "production-qualifiers-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-driver.log": "5b7c462926b7dc00ec85d2f1bc7f3dd4f43d643f94945588cef1f89d8c813a8b",
+    "qualification-inputs.json": "5f4e0f24b76121da4aa65c4dc0d8413b4b3b17da7b2cd5f63292352ba82a0f29",
+    "real-core-driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reconciliation-qualified.json": "1f1bb38bc9a0caaa723a608c9a0f4b2bac33b0351ce858b43b27d1775190b9e3",
+    "remaining-owned-containers.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "remaining-owned-networks.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retirement-browser-final.log": "8101d1d9c64aa678cd1a008fff273db6c185ac980a3353f28093b78d191bd0c6",
+    "retirement-browser-final.xml": "bb98205402fada9f0430bdd935e80573384c204ed78b024fe45a5f43bf1d9c99",
+    "retirement-browser-host.log": "2615bc5e02118965ed29dd7fedd70fa1beca62a5dd2f495594c62ed12e921967",
+    "retirement-browser-package.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retirement-browser-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "root-final.log": "733a8dbb3603d89c80bb595b93ac73aee8f6e602bfa6c36fb671c9f853894e32",
+    "root-reset.log": "fd8c6f91fbc45f8ee1109eb46d9e5588c5237a295bfe3d838ec794365ebf9477",
+    "root-solr-reset.log": "3ee5a19282d399fe752af6ec15f922c0e07fcfcc9350e04bf8327238e21bc1fc",
+    "run-bruno.sh": "9fec90eec6b1363f0465b6ad45486f463792428f145a30a4f9a0ca83ef040e84",
+    "run-build-typechecks.sh": "cdb172e8ca7aba8224ff4d013625f5321842f06349e7feacda6c2acde422c75a",
+    "run-core.sh": "7113babf91a4c5da88055786ade542c09d92475202f1173a53965511fb09edbf",
+    "run-docs-lint.sh": "0492e2fb4f3aad0fe4ec1a79217b6e7404d83099c4cb9c59304302a8036d331e",
+    "run-final-additional.sh": "901caadcccc1b785148f609df084e78b30b2b60f617e23be249f8c7a4f6135e6",
+    "run-final-static.sh": "ba87b1378e2c5eb72f950d8cb48698fa778b90f47a9b4d557eb7b39e5d04ba7d",
+    "run-hook-qualification.sh": "2176eb865fc0812379a947f1e4b3fab09dbe4027dbaf9a87d28435c8a72e80b9",
+    "run-last-qualification.sh": "c5310512ce59111867af115ffcd6a8543222e471234c596ae2cfd4fca150bb3a",
+    "run-pdf-unit.sh": "c83ad3bb7cd3516b541c68fed466cf9e9774889a41ade855dd54f81ec4a2dea6",
+    "run-pdf.sh": "78f067b08e9b01b00fa76e2f566793edf9df1279db61832dc5f2479af126367c",
+    "run-playwright.sh": "f2df947651c5de0edf1fff0f89c8880bb6faa534810a0fc27e592203f300bacd",
+    "run-post-qualification.sh": "e96fc327ba71b69010745c87ddf717334c40e18f76d46c8230a29b39d5b4bcb0",
+    "run-production-qualifiers.sh": "2063fb8bc3caf7108437f8ea58cd14bc496899cd1650fc57fc2088098eab4bfc",
+    "run-real-core.sh": "d0259b6515093c00adf57cfebe00414df9c7284fa914bff594d697a237e81339",
+    "run-remaining-qualification.sh": "6a09811399f856ec7ce2adad7d505cbf1ef1d0c7a55fe7f16070cb3da7ff6355",
+    "run-retirement-browser.sh": "b8c52f5e22669352474c8338447193831a01bbc8319091ac7ec1386d48246c0a",
+    "run-root.sh": "df481b0a6d311fc6ba9215fa5ca30c2739837d33e70db36527686723d22ffb06",
+    "run-s3-final.sh": "ce34a651af56b0379ce38a717de9898df00906953797e25dbac5717c8142f25e",
+    "run-serial-tail.sh": "500f1d3aaf909d25e844554bc6acc6f17576f065adc230ba7c8db2ff01383474",
+    "run-storage.sh": "006787e8b5108ee57ef27ca6f0bff928838b64fbe6ca5ceff4f80830435aafc6",
+    "save-promotion-green.log": "8b7d86561e568ad2a292886f700baa93c73102a83741238e3876f64f3fe4dbcc",
+    "save-promotion-red.log": "7fe1ae5f14da5738fcff8f8a94197e119d976621e38625cee6d18bc9adfc3244",
+    "save-promotion-sensitivity.log": "6bf63be9d932b609ea2d2a4b8ab9121a416f0b8dcfd27f67ff4fa0b8f5deae16",
+    "serial-tail-driver.log": "c8078b31bd0b60c8a6fe2754b22834c8904b45f4152af816b4a502892b14b5f7",
+    "setup.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "setup.sh": "88258cb6db702a80fe044d516af846c5dcf4853b348decd55e5c811274205929",
+    "source-closure-qualified.json": "d947d70a5fbdc3052ce48daede5c4fddee9be2c3cbfcbdabadca3f02f8b67683",
+    "source-inventory-qualified.json": "8e4e135b90d1ac939893e88ebd3ee9ab743937b2f1fbab4441764efdb840157c",
+    "static-extras.cjs": "fc6d6f1cbe23b66d337365fc109757f6808e2675cde2e61b0728dc0865d2ee79",
+    "static-extras.log": "c5ba11baf7e20a4aeec483e0e3bde760b7343d334ee22646ad98a3516f80472e",
+    "static-final-driver.log": "d690e06d11c92c8a52c298f7a69e82eb2f3d9166f3712e690a741515c8cd1452",
+    "storage-final-clean.log": "580c27af30607d7aa20af3e8fe5cfef44d6ce6728c5e4bb7e00bc23542cedf79",
+    "typecheck-application-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-application.log": "fa71e1ed8f1f18337b5a04afaa8663668eb14be00931c7774e66bf9837188fe3",
+    "typecheck-effect-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-effect.log": "e9ec258f1bbf256d1e05047f3ebd9d50f9691d6d336e660014de037137f271ea",
+    "typecheck-persistence-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-persistence.log": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f",
+    "typecheck-record-contracts-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-record-contracts.log": "1220e085e059c79b8fcab164f50d5e23b3c317121fc2c539c5f9bdc74a4386ae",
+    "typecheck-record-schema-tests-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-record-schema-tests.log": "f76db3ac633f0373dfba04a11cb719f7fec9f586f420a3a194e48031a9cbe908",
+    "typecheck-root-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-strict-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-strict.log": "4bed0e01e91d8edccb9a1a2132408da584d2d22b36d55291c33415b233974f54",
+    "verify-s3-result.cjs": "b6bd8949d9b183acd14ed6f0ec700371af8e00dbe86b3da84eaca0d8621bb2d4",
+    "volume-cleanup.log": "8b7820919f3c371b74f7e0df9d89760141c0de7bad9b7709879570dc139b2a41"
+  }
+}

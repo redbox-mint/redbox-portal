@@ -1,0 +1,55 @@
+{
+  "reviewedHead": "39ad5813c4d2fb6952a6b2e88cf81dd2b2705b87",
+  "scope": "Focused red/green controls, not suite totals. Multipart and datastream controls substitute only reviewed-head source in memory; the policy control ran before its fix. Positive logs exercise the exact corresponding final implementation/test files; unrelated files may precede the final commit. No focused log is claimed as full-tree qualification.",
+  "results": [
+    {
+      "log": "multipart-sensitivity.log",
+      "passes": 0,
+      "failures": 2,
+      "sha256": "a104296192501bc701bcd9cd3858839dd069ed09c77df549550a119cdf6bede8"
+    },
+    {
+      "log": "save-promotion-sensitivity.log",
+      "passes": 0,
+      "failures": 1,
+      "sha256": "6bf63be9d932b609ea2d2a4b8ab9121a416f0b8dcfd27f67ff4fa0b8f5deae16"
+    },
+    {
+      "log": "extension-policy-red-corrected.log",
+      "passes": 0,
+      "failures": 2,
+      "sha256": "2b0e10fc89ed322f79204c2029a8e32560c04157050ee8db8ecd16300899d6dc"
+    },
+    {
+      "log": "multipart-final-focused.log",
+      "passes": 9,
+      "failures": 0,
+      "sha256": "763484dfaa708b8e664ec70c942b71d5ce6d76e601a20fe2e7eba62c390559b8"
+    },
+    {
+      "log": "save-promotion-green.log",
+      "passes": 68,
+      "failures": 0,
+      "sha256": "8b7d86561e568ad2a292886f700baa93c73102a83741238e3876f64f3fe4dbcc"
+    },
+    {
+      "log": "extension-policy-green.log",
+      "passes": 6,
+      "failures": 0,
+      "sha256": "430868989dd95afe0978c498f02724cbb0fe15350f46e1898544de89dc8473fb"
+    },
+    {
+      "log": "browser-cookie-helper-red.log",
+      "passes": 0,
+      "failures": 1,
+      "sha256": "1c565a783035dae23ad1eff778cec216ba13e07c706af821dd4d736129b96a0b"
+    },
+    {
+      "log": "browser-cookie-helper-green.log",
+      "passes": 1,
+      "failures": 0,
+      "sha256": "02518eb402c3351c15d4e3584743c42bc913209d90c981fdf8ff59b97395b32b"
+    }
+  ],
+  "finalImplementation": "ff33ef1f7927eaad1856aba40f7010045e242895"
+}
