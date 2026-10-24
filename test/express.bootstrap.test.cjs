@@ -3,6 +3,7 @@
 // No framework or service globals are installed.
 const path = require('node:path');
 const assert = require('node:assert/strict');
+const requireCore = require('node:module').createRequire(require.resolve('@researchdatabox/redbox-core/portal'));
 const { createPortalHost, persistenceStatus } = require('@researchdatabox/redbox-core/portal');
 const { portalFixture: fixture } = require('./helpers/portalFixture.cjs');
 const chai = require('chai');
@@ -174,7 +175,7 @@ before(async function () {
   });
   await names.CacheService.bootstrap();
   const router = Reflect.get(portal.host, 'router');
-  const dynamic = require('express').Router();
+  const dynamic = requireCore('express').Router();
   router.use(dynamic);
   const layer = router.stack.pop();
   router.stack.splice(
