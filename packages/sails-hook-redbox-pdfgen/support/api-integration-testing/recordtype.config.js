@@ -51,7 +51,7 @@ exports.recordtype = {
             function: 'pdf.create',
             options: {
               readinessStrategy: 'selector',
-              waitForSelector: 'div#loading.hidden',
+              waitForSelector: 'redbox-form .rb-form-components:not([aria-hidden="true"])',
               pdfPrefix: 'rdmp-pdf',
             },
           },
@@ -111,7 +111,7 @@ exports.recordtype = {
             function: 'pdf.create',
             options: {
               readinessStrategy: 'selector',
-              waitForSelector: 'div#loading.hidden',
+              waitForSelector: 'redbox-form .rb-form-components:not([aria-hidden="true"])',
               pdfPrefix: 'rdmp-pdf',
             },
           },
