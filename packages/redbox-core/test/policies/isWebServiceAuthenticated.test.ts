@@ -35,7 +35,7 @@ describe('application-owned web-service authentication', () => {
     f.req.headers.authorization = 'Bearer fixture-token';
     f.authenticate.callsFake(f.authentication.authenticate);
     await f.run('brandingandportal', 'iswebserviceauthenticated');
-    assert.equal(requestContext(f.req).actor, f.actor);
+    assert.deepEqual(requestContext(f.req).actor, f.actor);
     assert(f.next.calledOnce);
   });
   it('does not authenticate a false bearer result or fall back to a session', async () => {

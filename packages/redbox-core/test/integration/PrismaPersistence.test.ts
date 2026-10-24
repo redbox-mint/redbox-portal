@@ -100,7 +100,13 @@ const url = process.env.PERSISTENCE_TEST_MONGO_URL;
       repository: persistence.getBrandingRepository(app),
       disk: () => ({ getBytes: async () => { throw new Error('ENOENT'); } }) as any,
       legacyDatabase: async () => native.db(),
-      sanitize: value => value,
+      sanitize: value => ({
+        safe: true,
+        sanitized: value,
+        errors: [],
+        warnings: [],
+        info: { originalBytes: value.length, sanitizedBytes: value.length },
+      }),
       config: {},
       log: createSinonStubLogger(sinon),
     });
