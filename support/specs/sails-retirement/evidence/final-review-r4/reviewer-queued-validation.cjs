@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict');const path=require('node:path');const {execFileSync}=require('node:child_process');
+const root=process.cwd();const ts=require('ts-node').register({project:path.join(root,'packages/redbox-core/test/tsconfig.json'),transpileOnly:true});const previous=require.extensions['.ts'];
+require.extensions['.ts']=(module,filename)=>{const rel=path.relative(root,filename).split(path.sep).join('/');if(rel.startsWith('packages/')&&rel.includes('/src/')&&!rel.includes('/node_modules/'))module._compile(ts.compile(execFileSync('git',['show','62ac54cb8:'+rel],{encoding:'utf8',maxBuffer:32000000}),filename),filename);else previous(module,filename);};
+const {of}=require('rxjs');
+const {RecordTriggers}=require(path.join(root,'packages/redbox-core/src/records/RecordTriggers.ts'));
+const {Services:{Email}}=require(path.join(root,'packages/redbox-core/src/integrations/Email.ts'));
+const {convertQueuedRecordHookData}=require(path.join(root,'packages/redbox-core/src/queues/migrateRecordHooks.ts'));
+const {validateRecordHookConfiguration}=require(path.join(root,'packages/redbox-core/src/services/record-hooks/coordinator.ts'));
+const log=new Proxy({}, {get:()=>()=>{}});let sent=0;
+let email;
+const resolveHook=name=>{if(name==='email.sendRecordNotification')return (...args)=>email.sendRecordNotification(...args);throw Error('Unregistered record operation: '+name);};
+email=new Email({config:{},log,templateContext:{},resolveHook,retainFollowup:()=>{},runAcceptedWork:fn=>Promise.resolve().then(fn)});
+email.evaluateProperties=()=>({toRendered:'recipient@example.invalid',subjectRendered:'subject',templateRendered:of({status:200,body:'message'})});
+email.sendMessage=()=>{sent++;return of({success:true});};
+const triggers=new RecordTriggers({log,resolveHook});
+const hook={function:'email.sendRecordNotification',options:{triggerCondition:'true',onNotifySuccess:[{function:'removedInstitution.callback'}]}};
+(async()=>{
+ const converted=convertQueuedRecordHookData({oid:'record-a',record:{metaMetadata:{brandId:'brand-a'}},user:{id:'actor-a'},triggerConfiguration:hook});
+ await assert.rejects(triggers.queuedTriggerSubscriptionHandler({attrs:{name:'queued-test',data:converted}}),/Unregistered record operation/);
+ assert.equal(sent,1);
+ assert.throws(()=>validateRecordHookConfiguration({hooks:{onCreate:{pre:[converted.triggerConfiguration]}}},['onCreate'],definition=>resolveHook(definition.function)),/Unregistered record operation/);
+ console.log(JSON.stringify({probe:'queuedNestedHookValidation',conversionAccepted:true,emailSentBeforeUnregisteredCallbackRefusal:sent,directRecordCoordinatorRejectsBeforeExecution:true}));
+})().catch(e=>{console.error(e);process.exitCode=1;});

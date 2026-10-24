@@ -1,0 +1,376 @@
+{
+  "method": "Require-hook substitutes only relevant implementation source from fix parent; assertion failures with current test inputs. See report for rejected preliminary attempts, controls, and independent Mongo check.",
+  "results": [
+    {
+      "case": "R3-01",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "6"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-01-current.log"
+    },
+    {
+      "case": "R3-01",
+      "variant": "mutant",
+      "exit": 6,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "6"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/storage/StandardDatastream.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-01-mutant.log"
+    },
+    {
+      "case": "R3-02",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "3"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-02-current.log"
+    },
+    {
+      "case": "R3-02",
+      "variant": "mutant",
+      "exit": 3,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "3"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/storage/StandardDatastream.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-02-mutant.log"
+    },
+    {
+      "case": "R3-03-standard",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "4"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-03-standard-current.log"
+    },
+    {
+      "case": "R3-03-standard",
+      "variant": "mutant",
+      "exit": 4,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "4"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/storage/StandardDatastream.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-03-standard-mutant.log"
+    },
+    {
+      "case": "R3-03-journal",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "1"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-03-journal-current.log"
+    },
+    {
+      "case": "R3-03-journal",
+      "variant": "mutant",
+      "exit": 1,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "1"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/records/Records.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-03-journal-mutant.log"
+    },
+    {
+      "case": "R3-04",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "2"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-04-current.log"
+    },
+    {
+      "case": "R3-04",
+      "variant": "mutant",
+      "exit": 1,
+      "passing": [
+        "1"
+      ],
+      "failing": [
+        "1"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/records/Records.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-04-mutant.log"
+    },
+    {
+      "case": "R3-06",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "1"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-06-current.log"
+    },
+    {
+      "case": "R3-06",
+      "variant": "mutant",
+      "exit": 1,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "1"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/action-execution/legacy-result.ts",
+        "/opt/redbox-portal/packages/redbox-core/src/action-execution/executor.ts",
+        "/opt/redbox-portal/packages/redbox-core/src/services/record-hooks/coordinator.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-06-mutant.log"
+    },
+    {
+      "case": "R3-08",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "3"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-08-current.log"
+    },
+    {
+      "case": "R3-08",
+      "variant": "mutant",
+      "exit": 3,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "3"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/records/Records.ts",
+        "/opt/redbox-portal/packages/redbox-core/src/action-execution/executor.ts",
+        "/opt/redbox-portal/packages/redbox-core/src/services/record-hooks/coordinator.ts",
+        "/opt/redbox-portal/packages/redbox-core/src/action-execution/legacy-result.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-08-mutant.log"
+    },
+    {
+      "case": "R3-09",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "4"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-09-current.log"
+    },
+    {
+      "case": "R3-09",
+      "variant": "mutant",
+      "exit": 3,
+      "passing": [
+        "1"
+      ],
+      "failing": [
+        "3"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/application/portal/providers.ts",
+        "/opt/redbox-portal/packages/redbox-core/src/integrations/Email.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-09-mutant.log"
+    },
+    {
+      "case": "R3-10",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "3"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-10-current.log"
+    },
+    {
+      "case": "R3-10",
+      "variant": "mutant",
+      "exit": 3,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "3"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/vocabulary/Vocabulary.ts",
+        "/opt/redbox-portal/packages/redbox-core/src/vocabulary/FigshareVocabulary.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-10-mutant.log"
+    },
+    {
+      "case": "R3-11",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "6"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-11-current.log"
+    },
+    {
+      "case": "R3-11",
+      "variant": "mutant",
+      "exit": 4,
+      "passing": [
+        "2"
+      ],
+      "failing": [
+        "4"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/services/oni-v2/flydriveOcflStore.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-11-mutant.log"
+    },
+    {
+      "case": "R3-13",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "1"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-13-current.log"
+    },
+    {
+      "case": "R3-13",
+      "variant": "mutant",
+      "exit": 1,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "1"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/identity/Users.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-R3-13-mutant.log"
+    },
+    {
+      "case": "R3-12",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "1"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-corrected-R3-12-current.log"
+    },
+    {
+      "case": "R3-12",
+      "variant": "mutant",
+      "exit": 1,
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "1"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/http/express/identityAdministration.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-corrected-R3-12-mutant.log"
+    },
+    {
+      "case": "R3-05",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "3"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-compiled-R3-05-current.log"
+    },
+    {
+      "case": "R3-05",
+      "variant": "mutant",
+      "exit": 1,
+      "passing": [
+        "2"
+      ],
+      "failing": [
+        "1"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/sails-hook-redbox-pdfgen/dist/api/services/PDF.js"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-compiled-R3-05-mutant.log"
+    },
+    {
+      "case": "R3-07",
+      "variant": "current",
+      "exit": 0,
+      "passing": [
+        "2"
+      ],
+      "failing": [],
+      "mutated": [],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-queue-final-R3-07-current.log"
+    },
+    {
+      "case": "R3-07",
+      "variant": "mutant",
+      "exit": 1,
+      "passing": [
+        "1"
+      ],
+      "failing": [
+        "1"
+      ],
+      "mutated": [
+        "/opt/redbox-portal/packages/redbox-core/src/queues/AgendaQueue.ts"
+      ],
+      "log": ".tmp/sails-retirement/final-review-r4/sensitivity-queue-final-R3-07-mutant.log"
+    }
+  ]
+}
