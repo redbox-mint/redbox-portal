@@ -57,7 +57,8 @@ function migrateHookDependencyContract(pkg: any): any {
 
   for (const depName of forbiddenHookDeps) {
     delete nextPkg.dependencies[depName];
-    delete nextPkg.devDependencies[depName];
+    // The v6 scaffold builds with its explicitly pinned local compiler.
+    if (depName !== 'typescript') delete nextPkg.devDependencies[depName];
     delete nextPkg.peerDependencies[depName];
   }
 
@@ -65,6 +66,11 @@ function migrateHookDependencyContract(pkg: any): any {
     typeof version === 'string' && /^(?:\d+\.\d+\.\d+(?:-[\w.-]+)?$|file:|workspace:)/.test(version)
       ? version : installed;
   const coreVersion = readPackageJson(require.resolve('@researchdatabox/redbox-core/package.json')).version;
+  if (nextPkg.devDependencies.typescript != null)
+    nextPkg.devDependencies.typescript = exactOrInstalled(
+      nextPkg.devDependencies.typescript,
+      readPackageJson(require.resolve('typescript/package.json')).version
+    );
   nextPkg.peerDependencies['@researchdatabox/redbox-core'] =
     exactOrInstalled(nextPkg.peerDependencies['@researchdatabox/redbox-core'], coreVersion);
   nextPkg.devDependencies['@researchdatabox/redbox-core'] =
@@ -91,6 +97,7 @@ function findForbiddenHookDeps(pkg: any): string[] {
     }
 
     for (const depName of forbiddenHookDeps) {
+      if (section === 'devDependencies' && depName === 'typescript') continue;
       if (deps[depName] != null) {
         findings.push(`${section}.${depName}`);
       }

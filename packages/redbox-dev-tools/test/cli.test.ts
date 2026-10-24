@@ -43,6 +43,12 @@ describe('cli smoke test', function () {
     expect(pkg.redbox.extension).to.equal('.');
     expect(pkg.sails).to.equal(undefined);
     expect(result.stdout).to.contain('npm run build');
+    const checked = runCli(['check'], tempRoot);
+    expect(checked.status).to.equal(0, checked.stderr);
+    expect(runCli(['migrate-hook-dependencies'], tempRoot).status).to.equal(0);
+    const migrated = JSON.parse(fs.readFileSync(path.join(tempRoot, 'package.json'), 'utf8'));
+    expect(migrated.devDependencies.typescript).to.equal(pkg.devDependencies.typescript);
+    expect(runCli(['check'], tempRoot).status).to.equal(0);
   });
 
   it('should print help for the full command tree and exit 0', () => {
