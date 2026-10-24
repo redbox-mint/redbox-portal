@@ -24,6 +24,7 @@ import type { RequestHandler, Router } from 'express';
 import type { Server } from 'node:http';
 import type { AgendaJobHandler } from '../../queues/AgendaQueue';
 import { ScheduledWork } from '../../queues/ScheduledWork';
+import { selectedAgendaMongoOptions } from '../../queues/indexes';
 import {
   convertQueuedRecordHookData,
   migrateQueuedRecordHooks,
@@ -394,7 +395,7 @@ export async function createPortalApplication(options: PortalApplicationOptions)
     preparePersistence: async () => {
       const report = await prepareSelectedPersistenceIndexes(owner, 'inspect', {
         storage: preflight,
-        agenda: config.agendaQueue.options,
+        agenda: selectedAgendaMongoOptions(config.agendaQueue),
         session: config.redboxSession,
       });
       if (!report.ready)
