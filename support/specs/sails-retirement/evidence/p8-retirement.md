@@ -1179,3 +1179,18 @@ private source attributes remain excluded. `fonts39-third.log`: **35 passing / 0
 pending / 0 failing**, comprising all 20 schema and 15 font scenarios. Node 26.11.1
 explicit core runner; source TypeScript exit 0 (`fonts39-tsc.log`), pinned Prettier
 and diff check pass. No skipped/removed scenario. Final artifact gates remain open.
+
+### Font delivery consumers use neutral owners
+
+All 15 font/layout scenarios retain bytes, immutable headers/HEAD/304,
+missing/corrupt faces, 16MiB LRU behavior, publication hashes, preloads and layout
+ordering. They construct BrandingDelivery/Branding/Typeface explicitly with
+repository and disk ports. Preview-token cases use actual HTTP; no global
+services or controller facade. The obsolete optional request.param branch was
+removed from delivery after confirming every consumer uses params/query/body.
+
+The first preview fixtures omitted POST/current-history repository input and
+referenced deleted asset classification; corrected these fixture assumptions.
+`fonts39-third.log`: 35/0/0 including all schema cases. After removing request.param,
+`fonts39-final.log`: **15 passing / 0 pending / 0 failing** (968ms). Pinned Prettier
+and diff check pass; source check is recorded above. Final qualification is open.

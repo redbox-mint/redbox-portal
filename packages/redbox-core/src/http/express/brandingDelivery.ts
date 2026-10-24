@@ -16,10 +16,9 @@ interface DeliveryRequest {
   params?: Record<string, unknown>;
   query?: Record<string, unknown>;
   body?: Record<string, unknown>;
-  param?(name: string): unknown;
 }
 const parameter = (req: DeliveryRequest, name: string): string | undefined => {
-  const value = req.param ? req.param(name) : (req.params?.[name] ?? req.body?.[name] ?? req.query?.[name]);
+  const value = req.params?.[name] ?? req.body?.[name] ?? req.query?.[name];
   return typeof value === 'string' ? value : undefined;
 };
 export interface BrandingDeliveryInput {
