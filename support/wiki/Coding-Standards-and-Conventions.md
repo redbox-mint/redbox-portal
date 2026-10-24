@@ -18,7 +18,7 @@
 ## Directory Conventions
 
 - **Frontend**: Located in `angular/`.
-- **Backend Types Source**: Located in `typescript/`.
+- **Backend Types Source**: Located in `packages/redbox-core/src/`.
 - **Local Packages**: Shared code should be placed in `packages/` (e.g., `redbox-core`).
 
 ## Best Practices
