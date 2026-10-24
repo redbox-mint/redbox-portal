@@ -842,9 +842,8 @@ export class AgendaQueue implements QueueService {
     agenda.on('ready', () => {
       this.input.log.verbose(`AgendaQueue:: Started ${backend} backend.`);
     });
-    agenda.on('error', err => {
-      this.input.log.error(`AgendaQueue:: ${backend} backend error:`);
-      this.input.log.error(err instanceof Error ? (err.stack ?? err.message) : JSON.stringify(err));
+    agenda.on('error', () => {
+      this.input.log.error(`AgendaQueue:: ${backend} backend error`);
     });
     agenda.on('start', (job: Job) => {
       // complete precedes removeOnComplete. Own the entire public remove()
@@ -863,9 +862,8 @@ export class AgendaQueue implements QueueService {
       this.jobCompletions.delete(job);
       this.input.log.verbose(`AgendaQueue:: [${backend}] Job ${job.attrs.name} finished`);
     });
-    agenda.on('fail', (err, job) => {
+    agenda.on('fail', (_err, job) => {
       this.input.log.error(`AgendaQueue:: [${backend}] Job ${job.attrs.name} failed`);
-      this.input.log.error(err);
     });
   }
 

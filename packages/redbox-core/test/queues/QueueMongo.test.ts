@@ -83,12 +83,10 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     const valid = await db
       .collection('agendaJobs')
       .insertOne({ name: 'pdf', type: 'normal', priority: 0, nextRunAt: new Date(), lockedAt: null, data });
-    const invalid = await db
-      .collection('agendaJobs')
-      .insertOne({
-        name: 'pdf',
-        data: { ...data, triggerConfiguration: { function: 'sails.services.private.unsupported' } },
-      });
+    const invalid = await db.collection('agendaJobs').insertOne({
+      name: 'pdf',
+      data: { ...data, triggerConfiguration: { function: 'sails.services.private.unsupported' } },
+    });
     await assert.rejects(migrateQueuedRecordHooks(owner, config), /conversion failed/);
     assert.equal(
       (await db.collection('agendaJobs').findOne({ _id: valid.insertedId }))!.data.triggerConfiguration.function,
@@ -134,6 +132,47 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     assert.equal(data.triggerConfiguration.function, 'sails.services.pdfservice.createPDF');
     assert.throws(() =>
       convertQueuedRecordHookData({ ...data, triggerConfiguration: { function: 'sails.services.unknown' } })
+    );
+  });
+
+  it('bounds backend and worker failure logs without forwarding provider secrets', async () => {
+    const errors: unknown[][] = [];
+    class LoggingQueue extends AgendaQueue {
+      backend() {
+        return this.agendas.mongodb!;
+      }
+    }
+    const secret = 'private-queue-password-and-token';
+    const { owner, queue, db } = await fixture(
+      { fail: { fnName: 'test.fail' } },
+      () => async () => {
+        throw new Error('mongodb://operator:' + secret + '@private-host/queue');
+      },
+      input =>
+        new LoggingQueue({
+          ...input,
+          log: {
+            ...log,
+            error: (...args: unknown[]) => {
+              errors.push(args);
+            },
+          },
+        })
+    );
+    const app = new ApplicationRuntime(owner, [{ name: 'queue', create: () => queue }]);
+    apps.push(app);
+    await app.initialize();
+    (queue as LoggingQueue).backend().emit('error', new Error('Provider token=' + secret));
+    await app.activate();
+    await queue.now('fail', {});
+    await until(async () => !!(await db.collection('agendaJobs').findOne({ name: 'fail' }))?.failedAt);
+    await app.stop();
+    assert(errors.some(args => String(args[0]).includes('backend error')));
+    assert(errors.some(args => String(args[0]).includes('Job fail failed')));
+    assert.equal(JSON.stringify(errors).includes(secret), false);
+    assert.equal(
+      errors.flat().some(value => value instanceof Error),
+      false
     );
   });
 
