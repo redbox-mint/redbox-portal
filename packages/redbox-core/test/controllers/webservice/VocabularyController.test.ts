@@ -1,101 +1,39 @@
-import {createSinonStubLogger} from "../../logger.test";
+import assert from 'node:assert/strict';
+import { httpVocabularyFixture } from '../../helpers/httpVocabularyFixture';
 
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-import * as sinon from 'sinon';
-import { Controllers } from '../../../src/controllers/webservice/VocabularyController';
-
-function makeReq(req: Record<string, unknown>): Sails.Req {
-  return {
-    ...req,
-    apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
-      params: (req.params ?? {}) as Record<string, unknown>,
-      query: (req.query ?? {}) as Record<string, unknown>,
-      body: req.body,
-      files: (req.files as Record<string, unknown[]>) ?? {},
-    },
-  } as Sails.Req;
-}
-
-describe('Webservice VocabularyController', () => {
-  let controller: Controllers.Vocabulary;
-
-  beforeEach(() => {
-    (global as any).sails = {
-      services: {
-        vocabularyservice: {
-          list: sinon.stub().resolves({ data: [], meta: { total: 0, limit: 25, offset: 0 } }),
-          getById: sinon.stub().resolves({ id: 'v1' }),
-          getTree: sinon.stub().resolves([]),
-          create: sinon.stub().resolves({ id: 'v1' }),
-          update: sinon.stub().resolves({ id: 'v1' }),
-          delete: sinon.stub().resolves()
-        },
-        brandingservice: {
-          getBrandNameFromReq: sinon.stub().returns('default'),
-          getBrand: sinon.stub().returns({ id: 'default' }),
-          getBrandFromReq: sinon.stub().returns({ id: 'default' })
-        },
-        rvaimportservice: {
-          importRvaVocabulary: sinon.stub().resolves({ id: 'v2' }),
-          syncRvaVocabulary: sinon.stub().resolves({ created: 1, updated: 0, skipped: 0, lastSyncedAt: 'now' })
-        }
-      },
-      log: createSinonStubLogger(sinon),
-    };
-    controller = new Controllers.Vocabulary();
-    (global as any).BrandingService = (global as any).sails.services.brandingservice;
-    (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
-    (global as any).RvaImportService = (global as any).sails.services.rvaimportservice;
+describe('API vocabulary operations through owned HTTP', () => {
+  let f: Awaited<ReturnType<typeof httpVocabularyFixture>>;
+  beforeEach(async () => {
+    f = await httpVocabularyFixture();
   });
-
-  afterEach(() => {
-    sinon.restore();
-    delete (global as any).BrandingService;
-    delete (global as any).VocabularyService;
-    delete (global as any).RvaImportService;
-    delete (global as any).sails;
+  afterEach(async () => {
+    await f.close();
   });
-
-  it('lists vocabularies', async () => {
-    const req = makeReq({ param: sinon.stub().returns(undefined), session: { branding: 'default' } });
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-
-    await controller.list(req, res);
-
-    expect(sendResp.calledOnce).to.be.true;
-    expect(sendResp.firstCall.args[2]?.data?.records).to.deep.equal([]);
-    expect(sendResp.firstCall.args[2]?.data?.summary?.numFound).to.equal(0);
-    expect(sendResp.firstCall.args[2]?.data?.summary?.start).to.equal(0);
-    expect(sendResp.firstCall.args[2]?.data?.summary?.page).to.equal(1);
+  it('lists vocabularies with pagination metadata', async () => {
+    const response = await f.request('/default/portal/api/vocabulary');
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body.records, []);
+    assert.equal(response.body.summary.numFound, 0);
+    assert.equal(response.body.summary.start, 0);
+    assert.equal(response.body.summary.page, 1);
   });
-
-  it('gets vocabulary details with tree', async () => {
-    const req = makeReq({ params: { id: 'v1' }, param: sinon.stub().withArgs('id').returns('v1') });
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-
-    await controller.get(req, res);
-
-    expect(sendResp.calledOnce).to.be.true;
+  it('returns vocabulary details and its tree after verifying the stored brand', async () => {
+    const response = await f.request('/default/portal/api/vocabulary/v1');
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, { vocabulary: { id: 'v1', branding: f.brand.id }, entries: [] });
+    assert.equal(f.vocabulary.getTree.calledOnceWithExactly('v1'), true);
   });
-
-  it('returns display error detail when RVA import fails', async () => {
-    const req = makeReq({
+  it('returns a sanitized actionable 400 if RVA import fails', async () => {
+    f.rva.importRvaVocabulary.rejects(
+      new Error('RVA version 199 has no current concept tree artefact. PRIVATE provider credential')
+    );
+    const response = await f.request('/default/portal/api/vocabulary/import', {
+      method: 'POST',
       body: { rvaId: '141' },
     });
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-    (global as any).sails.services.rvaimportservice.importRvaVocabulary.rejects(
-      new Error('RVA version 199 has no current concept tree artefact.')
-    );
-
-    await controller.import(req, res);
-
-    expect(sendResp.calledOnce).to.be.true;
-    const payload = sendResp.firstCall.args[2];
-    expect(payload?.status).to.equal(400);
-    expect(payload?.displayErrors?.[0]?.detail).to.contain('no current concept tree artefact');
+    assert.equal(response.status, 400);
+    assert.match(response.body.message, /import or sync failed.*reviewing the vocabulary/);
+    assert(!response.text.includes('PRIVATE'));
+    assert.equal(f.rva.importRvaVocabulary.calledOnce, true);
   });
 });

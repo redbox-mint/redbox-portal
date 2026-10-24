@@ -88,17 +88,14 @@ export function mountVocabularyAdministrationRoutes(router: Router, input: Vocab
               )
                 throw new VocabularyRequestError(400, 'Invalid pagination');
               const result = await input.vocabulary.list({ ...q, branding: brand.id, offset, limit });
-              data =
-                route.controller === 'VocabularyController'
-                  ? result.data
-                  : {
-                      summary: {
-                        numFound: result.meta.total,
-                        start: result.meta.offset,
-                        page: Math.floor(result.meta.offset / result.meta.limit) + 1,
-                      },
-                      records: result.data,
-                    };
+              data = {
+                summary: {
+                  numFound: result.meta.total,
+                  start: result.meta.offset,
+                  page: result.meta.limit > 0 ? Math.floor(result.meta.offset / result.meta.limit) + 1 : 1,
+                },
+                records: result.data,
+              };
               break;
             }
             case 'get':
@@ -149,14 +146,23 @@ export function mountVocabularyAdministrationRoutes(router: Router, input: Vocab
           else sendApiData(req, res, data, status);
         } catch (error) {
           input.log.error('Vocabulary request failed');
-          sendApiErrors(req, res, error instanceof VocabularyRequestError ? error.status : 400, [
-            {
-              detail:
-                error instanceof VocabularyRequestError
-                  ? error.message
-                  : 'Vocabulary operation failed. Review current state before retrying.',
-            },
-          ]);
+          sendApiErrors(
+            req,
+            res,
+            error instanceof VocabularyRequestError
+              ? error.status
+              : route.controller === 'VocabularyController' || route.method === 'get'
+                ? 500
+                : 400,
+            [
+              {
+                detail:
+                  error instanceof VocabularyRequestError
+                    ? error.message
+                    : 'Vocabulary operation failed. Review current state before retrying.',
+              },
+            ]
+          );
         }
       })
     );

@@ -167,7 +167,7 @@ export namespace Services {
         };
       }
 
-      const message = _.merge({}, otherSendOptions, {
+      const message = _.merge({}, _.get(this.input.config.defaults, 'otherSendOptions', {}), otherSendOptions, {
         to: msgTo,
         subject: msgSubject,
         from: msgFrom,
@@ -197,7 +197,7 @@ export namespace Services {
 
     /**
      * Build Email Body from a Handlebars Template.
-     * Templates are defined in sails config.
+     * Templates are defined in the selected email configuration.
      *
      * @param templateName The file name without extension.
      * @param data The variables to use when rendering the template.
@@ -226,7 +226,7 @@ export namespace Services {
 
     /**
      * Build Email Body from Template.
-     * Templates are defined in sails config.
+     * Templates are defined in the selected email configuration.
      *
      * @param template The file name without extension.
      * @param data The variables to use when rendering the template.
@@ -241,7 +241,7 @@ export namespace Services {
 
     /**
      * Send Email from Template.
-     * Templates are defined in sails config.
+     * Templates are defined in the selected email configuration.
      *
      * No return. The email is sent after the built template promise is evaluated.
      *

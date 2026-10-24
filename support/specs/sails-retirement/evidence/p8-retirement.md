@@ -980,3 +980,35 @@ nonexistent /profiles retirement route, missing actual record grant and a local
 variable shadow). Corrected to actual declared paths/ports; no production change,
 scenario deletion or skip. Pinned Prettier and git diff --check pass. Complete
 core/artifact qualification remains outstanding.
+
+### Vocabulary list/error and notification defaults regressions
+
+The 18 scenarios across browser/API vocabulary, configured actions, declared page
+titles, named-query parameters and notification options now use owned HTTP/EJS and
+explicit ports. Callback-style actions become selected authorize/execute operations
+with exact facts, awaited data and one audit. The two public notification safety
+cases now check v1/v2 requests; direct controller invocation is retired. They use
+the actual Email sender and inspect transport messages, retaining exclusion of
+client attachment paths, arbitrary headers and recipient/subject overrides.
+
+Actual regression `vocabulary30-regression.log`: **5 passing / 2 failing**, browser
+unexpected create error changed 500 to 400 and browser list lost its pagination
+envelope. Restored browser/read failure statuses and the shared list envelope;
+page calculation also preserves the zero-limit fallback. API mutation refusals
+retain their existing 400. Provider failure details remain sanitized as required
+by v6: the old raw RVA message assertion becomes actionable retry/review guidance
+and a private-content exclusion, while retaining status/delivery assertions.
+
+Actual regression `notifications30-regression.log`: **6 passing / 1 failing**.
+Supplying a public replyTo discarded trusted configured headers. The owned Email
+sender now merges trusted defaults into a fresh message before applying explicit
+send options and mandatory recipient/subject/from fields. Existing mutation and
+successive-send isolation tests remain. No request-supplied arbitrary options are
+admitted by the public route.
+
+`operations30-final.log`, Node 26.11.1 explicit core runner: **32 passing / 0 pending
+/ 0 failing** (18 migrated cases plus 14 existing Email cases). First page-title
+attempts failed solely on EJS whitespace; assertions now compare the trimmed title
+element rather than matching exact markup whitespace. Pinned Prettier passes.
+No skip or removed scenario; full-suite/final artifact gates remain outstanding.
+Source `tsc --noEmit --incremental false`: **exit 0**, `operations30-tsc.log`.
