@@ -7,7 +7,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as sinon from 'sinon';
 import { ILogger, isLogger, logAtLevel, nothingLogger } from '@researchdatabox/sails-ng-common';
-import { CoreBase } from '../../src/CoreBase';
+import { bindExtensionFactory } from '../../src/extensions/composition';
 import { isPinoLogger, log, logfmtTransportOptions } from '../../src/config/log.config';
 import { createSinonStubLogger } from '../logger.test';
 import assert from 'node:assert/strict';
@@ -28,20 +28,6 @@ function createSink() {
   return { lines, stream };
 }
 
-class Probe extends CoreBase {
-  protected _loggerNamespaceSuffix = 'Service';
-  public get publicLogger(): ILogger {
-    return this.logger;
-  }
-}
-
-class Other extends CoreBase {
-  protected _loggerNamespaceSuffix = 'Service';
-  public get publicLogger(): ILogger {
-    return this.logger;
-  }
-}
-
 describe('log config', function () {
   afterEach(() => sinon.restore());
 
@@ -59,16 +45,16 @@ describe('log config', function () {
     const { lines, stream } = createSink();
     const parent = log.createPinoLogger('info', stream);
     const fallback = createSinonStubLogger(sinon);
-    const probe = new Probe(log.createNamespaceLogger('ProbeService', parent, undefined, 'warn'));
-    const other = new Other(log.createNamespaceLogger('OtherService', parent));
-    probe.publicLogger.info('probe info');
-    probe.publicLogger.warn({ structured: { value: 1 } }, 'probe warn');
-    other.publicLogger.verbose('other verbose');
+    const probe = log.createNamespaceLogger('ProbeService', parent, undefined, 'warn');
+    const other = log.createNamespaceLogger('OtherService', parent);
+    probe.info('probe info');
+    probe.warn({ structured: { value: 1 } }, 'probe warn');
+    other.verbose('other verbose');
     // Namespace loggers without a configured level follow later changes to the parent level.
     parent.level = 'verbose';
-    other.publicLogger.verbose('other verbose after');
+    other.verbose('other verbose after');
 
-    expect(probe.publicLogger).to.not.equal(fallback);
+    expect(probe).to.not.equal(fallback);
     expect(fallback.warn.called).to.equal(false);
     expect(lines.map(line => [line.level, line.name, line.msg])).to.deep.equal([
       ['warn', 'ProbeService', 'probe warn'],
@@ -77,13 +63,17 @@ describe('log config', function () {
     expect(lines[0].structured).to.deep.equal({ value: 1 });
   });
 
-  it('uses the explicitly supplied fallback without invoking a namespace factory', function () {
+  it('binds the explicitly supplied logger without invoking a namespace factory', function () {
     const fallback = createSinonStubLogger(sinon);
     const factory = sinon.stub(log, 'createNamespaceLogger').throws(new Error('broken factory'));
-    const probe = new Probe(fallback);
-    expect(probe.publicLogger).to.equal(fallback);
-    expect(probe.publicLogger).to.equal(fallback);
-    probe.publicLogger.warn('fallback remains usable');
+    const create = bindExtensionFactory(
+      {
+        name: 'probe',
+        create: (input: { log: ILogger }) => ({ write: () => input.log.warn('fallback remains usable') }),
+      },
+      { log: fallback }
+    );
+    create().write();
     expect(factory.callCount).to.equal(0);
     expect(fallback.warn.calledOnceWithExactly('fallback remains usable')).to.equal(true);
   });
@@ -119,11 +109,11 @@ describe('log config', function () {
     const { lines, stream } = createSink();
     const parent = log.createPinoLogger('info', stream);
     const child = log.createNamespaceLogger('Example', parent);
-    const service = new Probe(child);
+    const service = child;
 
     parent.blank();
     child.blank('ignored payload');
-    service.publicLogger.blank();
+    service.blank();
     parent.info('still logs messages');
 
     expect(lines.map(line => [line.level, line.msg])).to.deep.equal([['info', 'still logs messages']]);
@@ -162,12 +152,14 @@ describe('log config', function () {
 
   it('keeps structured objects through the injected application logger', function () {
     const { lines, stream } = createSink();
-    const service = new Probe(log.createPinoLogger('info', stream));
-    service.publicLogger.error({ errors: [{ message: 'failed' }], res: { statusCode: 500 } }, 'Request chronicle');
+    const service = log.createPinoLogger('info', stream);
+    service.error({ errors: [{ message: 'failed' }], res: { statusCode: 500 } }, 'Request chronicle');
     expect(lines).to.have.length(1);
     expect(lines[0]).to.deep.include({
-      level: 'error', msg: 'Request chronicle',
-      errors: [{ message: 'failed' }], res: { statusCode: 500 },
+      level: 'error',
+      msg: 'Request chronicle',
+      errors: [{ message: 'failed' }],
+      res: { statusCode: 500 },
     });
   });
 
@@ -181,14 +173,25 @@ describe('log config', function () {
         const { lines, stream } = createSink();
         const logger = log.createPinoLogger('error', stream);
         const app = new ApplicationRuntime({ config: {}, log: logger }, [], {
-          coreBootstrap: [{ name: 'failing-bootstrap', run: async () => { throw failure; } }],
+          coreBootstrap: [
+            {
+              name: 'failing-bootstrap',
+              run: async () => {
+                throw failure;
+              },
+            },
+          ],
         });
         let returned: unknown;
-        try { await app.initialize(); } catch (error) {
+        try {
+          await app.initialize();
+        } catch (error) {
           returned = error;
           logger.error(error, 'Initialization failed');
           logger.error({ name: error instanceof Error ? error.name : 'Error', status: app.status() }, 'Startup failed');
-        } finally { await app.stop(); }
+        } finally {
+          await app.stop();
+        }
         assert.equal(returned, failure);
         assert.equal(cacheError.cause, native);
         assert.equal(lines.length, 2);

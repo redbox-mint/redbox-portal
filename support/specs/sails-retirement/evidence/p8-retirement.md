@@ -656,3 +656,20 @@ contracts/schema, TypeScript, copied artifacts). `tsc-http18-final.log`: final
 source typecheck **exit 0** after cookie suppression. `lint-http18.log`:
 cross-package imports pass, **0 errors / 0 warnings**, 934 files. These are source
 checks, not the final clean installed artifact or whole-suite qualification.
+
+### Explicit logging, context and reference-persistence fixtures
+
+`utilities19-first.log`: **75 passing / 0 pending / 0 failing** (862ms),
+Node 26.11.1, explicit core Mocha runner, config/logConfig,
+utilities/{RequestChronicle,ContextVariableUtils}, unit/reference-persistence.
+Chronicle receives explicit retention settings and Express request facts;
+route-option merge and module-copy identity assertions use ordinary Lodash.
+ContextVariables receives its local configuration/logger. No process framework
+registry is installed or restored by these suites.
+
+Namespace/Pino/logfmt/error-redaction assertions remain, with explicit extension
+logger binding replacing the deleted CoreBase getter. The inherited generic
+getObservable test now exercises actual repository-backed Asynchs.get: it stays
+cold and shares the first result or rejection across subscribers. All reference
+predicate/projection/tenant/BSON/JSON contracts remain. The source comment now
+describes explicit chronicle settings. No new skips or weakened assertions.

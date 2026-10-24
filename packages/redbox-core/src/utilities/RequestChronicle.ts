@@ -114,7 +114,7 @@ export interface ChronicleRequestOptions {
 }
 
 export interface RequestChronicleOptions {
-  /** Retention settings. Defaults to `sails.config.log.requestChronicle`. */
+  /** Retention settings supplied by the application; omitted values use the documented defaults. */
   settings?: Partial<Record<keyof RequestChronicleSettings, unknown>>;
   /** Random number source between 0 and 1, used for sampling. */
   random?: () => number;

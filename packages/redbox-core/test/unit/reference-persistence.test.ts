@@ -1,5 +1,6 @@
 import { firstValueFrom } from 'rxjs';
-import { Services } from '../../src/CoreService';
+import { Services as Progress } from '../../src/progress/Asynchs';
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import assert from 'node:assert/strict';
 import {
   namedQueryCriteria,
@@ -21,11 +22,11 @@ import { ObjectId } from 'mongodb';
 import { initializeReferencePersistence, getReferenceRepositories } from '../../src/persistence/reference/runtime';
 import { cleanupPersistence } from '../../src/persistence/runtime';
 
-function application(): Sails.Application {
+function application(): PersistenceOwner {
   return {
     config: {},
     log: { warn() {} },
-  } as unknown as Sails.Application;
+  };
 }
 describe('reference persistence domain boundaries', () => {
   it('refuses inherited methods in projections while preserving stored properties with the same name', () => {
@@ -42,23 +43,21 @@ describe('reference persistence domain boundaries', () => {
     ]);
   });
   it('keeps repository-backed service Observables cold and shares the first result/error', async () => {
-    class Bridge extends Services.Core.Service {
-      operation<T>(execute: () => Promise<T>) {
-        return this.getObservable<T>(execute);
-      }
-    }
-    const bridge = new Bridge();
+    let execute: () => Promise<Record<string, unknown>[]>;
+    const bridge = new Progress.Asynchs({ listProgress: () => execute() } as never);
     let calls = 0;
-    const result = bridge.operation(async () => ++calls);
+    execute = async () => [{ calls: ++calls }];
+    const result = bridge.get({});
     assert.equal(calls, 0);
-    assert.equal(await firstValueFrom(result), 1);
-    assert.equal(await firstValueFrom(result), 1);
+    assert.deepEqual(await firstValueFrom(result), [{ calls: 1 }]);
+    assert.deepEqual(await firstValueFrom(result), [{ calls: 1 }]);
     assert.equal(calls, 1);
     const failure = new Error('repository failure');
-    const failed = bridge.operation(async () => {
+    execute = async () => {
       calls++;
       throw failure;
-    });
+    };
+    const failed = bridge.get({});
     await assert.rejects(firstValueFrom(failed), error => error === failure);
     await assert.rejects(firstValueFrom(failed), error => error === failure);
     assert.equal(calls, 2);
