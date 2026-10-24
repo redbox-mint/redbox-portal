@@ -1160,3 +1160,22 @@ the actual API contract; the cross-brand test now supplies otherwise-valid field
 `identity37-second.log`: **83/0/0** including all 38 account scenarios; source
 TypeScript **exit 0**, `identity37-tsc.log`. Pinned Prettier passes. No skip or
 scenario removal; whole-suite/final artifact qualification remains outstanding.
+
+### Schema controller consumers and normalized HTTP input
+
+All 20 schema-controller scenarios now use actual record-schema HTTP routes and
+explicit domain ports. They retain raw media/304/cache/link behavior, normalized
+create/update context, authoritative credential-safe actor, deterministic mapped
+errors, generic denied/missing 404, pre-authorization corruption concealment and
+actual immutable-grant/ACL service checks. Generated shim/export initialization is
+replaced by actual route registration. Missing context now terminates at routing
+404 and absent authentication at raw 401 before schema delegation, per v6.
+
+`recordschema38-first.log`: 18 passing / 0 pending / 2 failing. HTTP migration found
+recordType/OID whitespace was retained; the owner now trims these and operation
+before delegation, restoring the previous normalization. A subsequent fixture
+assertion was corrected for UserModel's existing empty additionalAttributes default;
+private source attributes remain excluded. `fonts39-third.log`: **35 passing / 0
+pending / 0 failing**, comprising all 20 schema and 15 font scenarios. Node 26.11.1
+explicit core runner; source TypeScript exit 0 (`fonts39-tsc.log`), pinned Prettier
+and diff check pass. No skipped/removed scenario. Final artifact gates remain open.

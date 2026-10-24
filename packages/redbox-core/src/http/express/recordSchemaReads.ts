@@ -86,15 +86,16 @@ export function mountRecordSchemaReadRoutes(router: Router, input: RecordSchemaR
             if (result.kind === 'not-modified') res.status(304).end();
             else res.type(RECORD_SCHEMA_RESPONSE_MEDIA_TYPE).json(document);
           } else {
-            const operation = typeof validated.query.operation === 'string' ? validated.query.operation : undefined;
+            const operation =
+              typeof validated.query.operation === 'string' ? validated.query.operation.trim() : undefined;
             const result =
               route.action === 'create'
                 ? await input.schemas.resolveCreate({
                     ...base,
-                    recordType: String(validated.params.recordType),
+                    recordType: String(validated.params.recordType).trim(),
                     operation,
                   })
-                : await input.schemas.resolveUpdate({ ...base, oid: String(validated.params.oid), operation });
+                : await input.schemas.resolveUpdate({ ...base, oid: String(validated.params.oid).trim(), operation });
             if (result.kind !== 'resolved' && result.kind !== 'partial') {
               const body =
                 route.action === 'create'
