@@ -39,6 +39,8 @@ tests {
 
     let location = res.headers.location;
       bru.setEnvVar("attachmentLocation", location );
-      bru.setEnvVar("attachmentId", location.split("/")[8] );
+      const attachmentId = new URL(location, bru.interpolate("{{host}}")).pathname.split("/").pop();
+      expect(attachmentId).to.match(/^[a-f0-9]{32}$/);
+      bru.setEnvVar("attachmentId", attachmentId);
   });
 }

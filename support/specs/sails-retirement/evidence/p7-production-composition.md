@@ -560,3 +560,29 @@ network override only supplies connectivity for the owned Docker daemon with
 iptables disabled; it does not replace a service. General's full green rerun and
 S3 remain open at this point. The subsequent route-order-only correction
 `11e6f6277` still needs its full general rerun and affected browser checks.
+
+### Literal-route follow-up and tus fixture parsing
+
+The route-order focused browser run passed A03 and both affected smoke cases
+(3 passing) but A19 observed 9/12 indexed records at its unchanged 30-second
+poll deadline while the general providers were starting. Agenda logged expired
+3-second Solr locks during that period. An unchanged A19-only rerun on the same
+running host passed **1/1, 0 failures/skips, 36.8 seconds**. No queue deadline,
+assertion or implementation was changed on the basis of the transient result.
+The earlier provider-restoration preflights ran zero browser tests: the OIDC
+issuer had been stopped to release memory, and the first restoration wait hit
+its probe bound. The real issuer was restored before these runs.
+
+General Compose run three passed the dashboard metadata case, then bailed at
+`Save attachment on Data Record`: **225 passed / 1 failed / 83 bail-skipped**,
+**412/413 tests and 3/3 assertions**. The tus PATCH itself returned 204. The
+following save used an unset `attachmentId`: its existing fixture extracted
+`location.split("/")[8]`, assuming the old protocol-relative `//host/...` URL.
+The owned host returns a valid same-origin relative Location, for which index 8
+does not exist. The Angular consumer already extracts the final path segment.
+The fixture now parses Location against its configured host and extracts that
+segment, adding a strict 32-hex identifier assertion. This test conversion is
+required by the valid URL representation change; it retains save/download/byte
+assertions and adds validation, with no host authorization or persistence bypass.
+Logs: `bruno-general-compose-third.{log,xml}` and
+`playwright-route-order{-a19-second,}.log` under `.tmp/sails-retirement/p7/`.
