@@ -1,10 +1,10 @@
-# Implemented v6 startup configuration (P3)
+# V6 startup configuration
 
 Use the narrow `@researchdatabox/redbox-core/configuration` public entry. This
-contract serves the internal v6 Express default and maintenance. `npm start`
-and Docker run `app.express.cjs`; the explicit Sails comparison scripts remain
-only until P8. P7 internal promotion does not establish production release
-acceptance; institution qualification and final Sails-free artifacts remain gates.
+contract serves the v6 Express host and maintenance. `npm start` and Docker run
+`app.express.cjs`. P8 removes the comparison scripts and adapters. Internal-default
+promotion does not establish production release acceptance; institution
+qualification and the final artifact evidence remain release gates.
 
 `loadStartupConfiguration` awaits explicitly selected application, environment and
 local data modules. An ESM module default-exports an object; CommonJS uses
@@ -145,21 +145,20 @@ institution credential/proxy/provider qualification remain SR-005/SR-045–049.
 reads the current hydrated AppConfig state for every call, then default-brand
 state and startup branding defaults. False and null are explicit values. It adds
 no cache; existing AppConfig save/reload/cache-invalidation operations remain the
-source of dynamic changes. The comparison `ConfigService.getBrand` delegates to
-this same function and supplies its old per-brand-map fallback. A startup snapshot
-contains defaults, never a frozen copy of live administrator settings.
+source of dynamic changes. A startup snapshot contains defaults, never a frozen
+copy of live administrator settings. The former comparison `ConfigService.getBrand`
+adapter was removed in P8; extensions use the explicit public helper and inputs.
 
 Neutral extensions use config declarations, selected factories, package-relative
 view/asset roots and awaited bootstrap work. They do not call `mergeHookConfig`.
-Legacy file walking, locale/file copying and service/controller injection live in
-`compat/sails/configuration.ts` until their comparison consumers retire. Native
-asset serving/production preparation remains SR-040/SR-047. Branded writes in that
-adapter return an awaitable completion and are registered on the persistence owner
-before executing. Comparison bootstrap awaits them before dashboard finalization
-and activation, even when an old caller ignores the return value. Cleanup waits
-all accepted siblings; an override failure blocks readiness and is reported without
-its payload. Existing init-only values are distinguished by
-`AppConfigAlreadyExistsError`; unrelated write errors no longer count as success.
+P8 removes legacy file walking, implicit locale/file copying and service/controller
+injection with the comparison adapter. Use the owned static build and selected
+package-relative roots for assets, and bind application-data writes to explicit
+awaited migration/bootstrap operations. Those operations finish before normal
+activation; failures prevent readiness. Existing init-only values are distinguished
+by `AppConfigAlreadyExistsError`; unrelated write errors do not count as success.
+See the [extension lifecycle](extensions-v6.md) and
+[hook migration](hook-migration-v6.md) for concrete bindings.
 
 Shutdown uses **30,000 ms** by default for the application, Express host and Agenda
 worker drain. Bind `server.stopDeadlineMs` to the host's `stopDeadlineMs` and the

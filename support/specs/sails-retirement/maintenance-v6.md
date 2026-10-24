@@ -135,6 +135,9 @@ recovery is not promised. This bounded drain improves on released v5, which had
 none. Inspect owned tus offsets after an interrupted transfer and reconcile/restart
 using the authorized actor/record; do not infer completion from a lost socket.
 
-Pages/static packaging remain SR-040 and full PDF/browser/provider lifetime
-combinations remain SR-044. The focused upload/realtime qualification is recorded
-in evidence/p6-uploads.md and evidence/p6-realtime.md.
+SR-040 and SR-044 cover pages/static packaging and PDF/browser/provider lifetime
+behavior. The focused [upload](evidence/p6-uploads.md) and
+[realtime](evidence/p6-realtime.md) evidence records their bounded contracts;
+[P8 evidence](evidence/p8-retirement.md) records final artifact qualification.
+Institution-specific provider, credentials and topology qualification remains an
+explicit release prerequisite.
