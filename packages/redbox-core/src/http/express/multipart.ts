@@ -114,11 +114,17 @@ export class StreamingMultipart {
         });
         streams.add(counter);
         stream.once('limit', () => fail(new MultipartError(413, 'File size limit exceeded')));
-        const write = Promise.all([pipeline(stream, counter), this.disk.putStream(file.key, counter)]).then(() => {
+        const copying = pipeline(stream, counter);
+        const storing = (async () => {
+          await this.disk.putStream(file.key, counter);
+        })();
+        // A failed parser pipeline can settle before the provider finishes its
+        // write/abort cleanup. Retain both actual operations until cleanup/drain.
+        writes.push(copying, storing);
+        const write = Promise.all([copying, storing]).then(() => {
           streams.delete(stream);
           streams.delete(counter);
         });
-        writes.push(write);
         void write.catch(() => fail(new MultipartError(500, 'Failed to stage upload')));
       });
     });

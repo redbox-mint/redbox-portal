@@ -16,6 +16,8 @@ describe('owned streaming multipart with real HTTP and disk', function () {
     failCleanup = false;
   let pauseStaging: Promise<void> | undefined;
   let stagingEntered: (() => void) | undefined;
+  let settleWrite: Promise<void> | undefined;
+  let writeSettling: (() => void) | undefined;
   let receivedBytes = 0;
   let limits: { files: number; fileSize: number; fields: number; fieldSize: number };
   let finalize: (result: {
@@ -31,7 +33,12 @@ describe('owned streaming multipart with real HTTP and disk', function () {
         putStream: async (key, stream) => {
           stagingEntered?.();
           await pauseStaging;
-          await pipeline(stream, createWriteStream(join(directory, key)));
+          try {
+            await pipeline(stream, createWriteStream(join(directory, key)));
+          } finally {
+            writeSettling?.();
+            await settleWrite;
+          }
           if (failWrite) throw new Error('Unknown persisted outcome');
         },
         delete: async key => {
@@ -79,6 +86,8 @@ describe('owned streaming multipart with real HTTP and disk', function () {
     failCleanup = false;
     pauseStaging = undefined;
     stagingEntered = undefined;
+    settleWrite = undefined;
+    writeSettling = undefined;
     await uploads.close();
     await new Promise<void>((resolve, reject) => server.close(e => (e ? reject(e) : resolve())));
     await rm(directory, { recursive: true, force: true });
@@ -203,4 +212,46 @@ describe('owned streaming multipart with real HTTP and disk', function () {
     assert.equal(finalized, false);
     assert.deepEqual(await readdir(directory), []);
   });
+  for (const failure of ['abort', 'limit'] as const) {
+    it(`joins the actual disk write after ${failure} before cleanup and drain`, async () => {
+      const entered = Promise.withResolvers<void>(),
+        release = Promise.withResolvers<void>();
+      settleWrite = release.promise;
+      writeSettling = entered.resolve;
+      let finalized = false;
+      finalize = async () => {
+        finalized = true;
+      };
+      const boundary = 'owned-delayed-write';
+      const req = httpRequest(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary },
+      });
+      req.on('error', () => {});
+      const started = Promise.withResolvers<void>();
+      stagingEntered = started.resolve;
+      req.write(
+        '--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="f"\r\n\r\n' + 'x'.repeat(32000)
+      );
+      await started.promise;
+      if (failure === 'abort') req.destroy();
+      else req.end('x'.repeat(limits.fileSize) + '\r\n--' + boundary + '--\r\n');
+      try {
+        await entered.promise;
+        let drained = false;
+        const drain = uploads.close().then(() => {
+          drained = true;
+        });
+        await new Promise(resolve => setTimeout(resolve, 30));
+        assert.equal(drained, false, 'Drain must retain the provider write after parser/pipeline failure');
+        assert.equal(finalized, false);
+        release.resolve();
+        await drain;
+        assert.deepEqual(await readdir(directory), []);
+      } finally {
+        release.resolve();
+        req.destroy();
+      }
+    });
+  }
 });
