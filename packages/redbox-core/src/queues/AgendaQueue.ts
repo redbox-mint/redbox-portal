@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { mongoDatabase, mongoResourceDatabase, runAcceptedPersistenceWork } from '../persistence/runtime';
+import { hasActivePersistenceWork, mongoDatabase, mongoResourceDatabase, runAcceptedPersistenceWork } from '../persistence/runtime';
 import { PersistenceError } from '../persistence/errors';
 import type { PersistenceOwner } from '../persistence/owner';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -71,20 +71,17 @@ export class AgendaQueue implements QueueService {
   private backendOperations = new Set<Promise<unknown>>();
   private claimReleases = new Set<() => Promise<void>>();
   private workerDrain?: Promise<void>;
-  private completionTimerStarted = false;
   private startedAgendas = new Set<Agenda>();
   private agendaDrains = new Map<Agenda, Promise<void>>();
   private agendaStarts = new Set<Promise<void>>();
   private application?: PersistenceOwner;
-  private completionAdmission = true;
-  private completionDeadline?: ReturnType<typeof setTimeout>;
   private drainTimeoutMs = 30_000;
 
   private accepting(completion = false): void {
     const scopedCompletion =
       completion &&
-      this.completionAdmission &&
-      (this.workerContext.getStore()?.active || (this.application && (this.input.hasAcceptedRequest?.() ?? false)));
+      (this.workerContext.getStore()?.active ||
+        (this.application && (hasActivePersistenceWork(this.input.owner) || (this.input.hasAcceptedRequest?.() ?? false))));
     if (this.startupFailed && !scopedCompletion)
       throw new Error('AgendaQueue startup failed; finish cleanup before retrying.');
     if (this.closing && !scopedCompletion) throw new Error('AgendaQueue is draining; restart before queuing work.');
@@ -115,15 +112,6 @@ export class AgendaQueue implements QueueService {
   }
 
   protected async drainWorkers(): Promise<void> {
-    if (!this.completionTimerStarted) {
-      this.completionTimerStarted = true;
-      // A failed stop/unlock must not revoke accepted completion work early,
-      // or extend its original admission deadline when cleanup is retried.
-      this.completionDeadline = setTimeout(() => {
-        this.completionAdmission = false;
-      }, this.drainTimeoutMs);
-      this.completionDeadline.unref();
-    }
     this.closing = true;
     if (!this.workerDrain) {
       const draining = (async () => {
@@ -157,9 +145,6 @@ export class AgendaQueue implements QueueService {
             ]);
           for (const release of this.claimReleases) await release();
         } while (this.workers.size || this.pending.size || this.jobCompletions.size || this.backendOperations.size);
-        this.completionAdmission = false;
-        clearTimeout(this.completionDeadline);
-        this.completionDeadline = undefined;
       })();
       this.workerDrain = draining;
       void draining.catch(() => {
@@ -192,7 +177,6 @@ export class AgendaQueue implements QueueService {
         work,
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => {
-            this.completionAdmission = false;
             reject(
               new PersistenceError(
                 'agenda-drain-deadline',
@@ -408,7 +392,7 @@ export class AgendaQueue implements QueueService {
   }
   /** Only the comparison adapter permits legacy lazy startup. */
   protected normalAdmission(completion = false): void {
-    if (!this.active && !(completion && this.completionAdmission && this.workerContext.getStore()?.active))
+    if (!this.active && !(completion && this.workerContext.getStore()?.active))
       throw new Error('AgendaQueue submissions require active application admission.');
   }
   protected registerOwnership(): void {}

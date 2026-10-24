@@ -352,7 +352,8 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     assert.equal(await db.collection('agendaJobs').countDocuments(), 0);
     assert.equal(persistenceStatus(owner).pools, 0);
   });
-  it('quiesces synchronously, preserves a real handler and its completion writes through deadline/retry', async () => {
+  for (const ownDeadline of [false, true])
+  it(`preserves real handler completion through ${ownDeadline ? 'queue and host' : 'host'} deadline/retry`, async () => {
     const { promise: held, resolve: release } = Promise.withResolvers<void>();
     const { promise: entered, resolve: enter } = Promise.withResolvers<void>();
     const { promise: detachedGate, resolve: detach } = Promise.withResolvers<void>();
@@ -398,6 +399,7 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     apps.push(app);
     await app.initialize();
     await app.activate();
+    if (ownDeadline) Reflect.set(queue, 'drainTimeoutMs', 25);
     await queue.now('work');
     await entered;
     const stopping = app.stop({ deadlineMs: 10 });
@@ -406,6 +408,7 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     await assert.rejects(queue.now('audit'), /draining/);
     assert.throws(() => getReferenceRepositories(owner), /not been initialized/);
     await failedStop;
+    if (ownDeadline) await assert.rejects(queue.drain(), /deadline/);
     assert.equal(app.status().cleanupPending, true);
     assert.equal(app.status().stopFailed, true);
     assert(persistenceStatus(owner).pools > 0);
