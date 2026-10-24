@@ -793,3 +793,36 @@ both parser and full existing StreamingMultipart suites: **29 passing / 0 pendin
 / 0 failing** (1s). `tsc --noEmit --incremental false`: **exit 0**,
 `chronicle24-tsc.log`. Pinned Prettier and git diff --check pass. Whole-suite and
 clean-artifact gates remain open.
+
+### Actual query, search, harvest and configuration HTTP fixtures
+
+Six former controller suites now use actual local HTTP through the production
+route mounts and createHttpPolicies. Their local fixture supplies explicit
+collaborators and controlled Admin identity; Express uses the same extended
+query parser as ExpressHost. It implements no controller facade. All 37 existing
+scenarios remain, including query tenant/name/mutation checks, override headers
+and failed reset, literal false bundle options, harvest page caps/missing runs,
+search exact/facet maps and audit dates/status/page validation.
+
+Regression found with the actual namedQueryTarget refusal: unscoped/unknown
+collection create/update returned 500 instead of the retained 400 validation
+contract. `queries25-regression.log`: **16 passing / 3 failing**, all three
+500-versus-400. Query writes now map only controlled PersistenceError with code
+named-query-compatibility to a sanitized 400 response. Stored-definition recovery
+instructions/native errors do not become API error text. Not-found/duplicate
+mappings remain 404/409; raw backend errors remain sanitized 500.
+
+Test-conversion justification: empty path names never reach a parameterized
+Express action. GET of the collection URL lists definitions; nameless PUT/DELETE
+return route 404 without invoking mutations. Invalid/reserved body names still
+return 400. Missing-update fixtures now use the real domain's 'not found' error
+rather than the deleted controller's alternate 'was not found' text. Unsupported
+models use actual explicit target refusal instead of deleted model introspection.
+Search removeAll now asserts the mandated tenant-scoped removeBrand operation,
+replacing the unsafe cross-brand wildcard assertion. Indexing requires the loaded
+record's current brand. All data/status/query-shape assertions remain; no skips.
+
+Node 26.11.1, explicit core Mocha runner: `queries25-first.log` **30 passing / 0
+pending / 0 failing** after the fix; `queries25-second.log` adds search and
+integration-audit suites: **37 passing / 0 pending / 0 failing**. Source-only
+results; final full-suite/artifact qualification remains outstanding.

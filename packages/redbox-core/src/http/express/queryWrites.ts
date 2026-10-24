@@ -1,3 +1,4 @@
+import { PersistenceError } from '../../persistence/errors';
 import type { RequestHandler, Router } from 'express';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { Services as NamedQueries } from '../../queries/NamedQueries';
@@ -101,8 +102,11 @@ export function mountQueryWriteRoutes(router: Router, input: QueryWriteHttpInput
         } catch (error) {
           input.log.error(error);
           const message = error instanceof Error ? error.message : '';
-          const status =
-            error instanceof Reports.ReportConfigServiceError
+          const invalidTarget =
+            named && error instanceof PersistenceError && error.code === 'named-query-compatibility';
+          const status = invalidTarget
+            ? 400
+            : error instanceof Reports.ReportConfigServiceError
               ? error.status
               : named && message === `Named query '${name}' not found`
                 ? 404
@@ -111,8 +115,9 @@ export function mountQueryWriteRoutes(router: Router, input: QueryWriteHttpInput
                   : 500;
           sendApiErrors(req, res, status, [
             {
-              detail:
-                error instanceof Reports.ReportConfigServiceError || status !== 500
+              detail: invalidTarget
+                ? 'Unsupported named-query collection or expression.'
+                : error instanceof Reports.ReportConfigServiceError || status !== 500
                   ? message
                   : 'Definition mutation failed.',
             },

@@ -1,182 +1,58 @@
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-
-import { Controllers } from '../../../src/controllers/webservice/HarvestRunController';
-import {createSinonStubLogger} from "../../logger.test";
-
-let expect: Chai.ExpectStatic;
-
-describe('Webservice HarvestRunController', () => {
-  let controller: Controllers.HarvestRun;
-  let originalSails: any;
-  let originalBrandingService: any;
-  let originalHarvestRunService: any;
-  let originalLodash: any;
-
-  before(async () => {
-    const chai = await import('chai');
-    expect = chai.expect;
-  });
-
-  beforeEach(() => {
-    originalSails = (global as any).sails;
-    originalBrandingService = (global as any).BrandingService;
-    originalHarvestRunService = (global as any).HarvestRunService;
-    originalLodash = (global as any)._;
-
-    (global as any).sails = {
-      log: createSinonStubLogger(sinon),
-    };
-    (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-    };
-    (global as any).HarvestRunService = {
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountQueryReadRoutes } from '../../../src/http/express/queryReads';
+const base = '/default/portal/api/harvest-runs';
+describe('Harvest history Express contracts', () => {
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let harvest: Record<string, sinon.SinonStub>;
+  beforeEach(async () => {
+    harvest = {
       listRuns: sinon.stub().resolves({ rows: [{ id: 'run-1', sourceRunId: 'run-a', status: 'running' }], total: 1 }),
-      getRun: sinon.stub().resolves({
-        run: { id: 'run-1', sourceRunId: 'run-a', status: 'running' },
-        chunks: [],
-        events: [],
-        aggregateCounts: {
-          totalProcessed: 0,
-          created: 0,
-          updated: 0,
-          deleted: 0,
-          unchanged: 0,
-          failed: 0,
-          chunksProcessed: 0,
-          duplicateChunks: 0,
-        },
-      }),
+      getRun: sinon.stub().resolves(null),
       runExists: sinon.stub().resolves(true),
       listRunEvents: sinon.stub().resolves({ rows: [{ id: 'event-1', harvestId: 'harvest-1' }], total: 1 }),
     };
-    (global as any)._ = require('lodash');
-
-    controller = new Controllers.HarvestRun();
+    f = await httpRouteFixture((router, input) => mountQueryReadRoutes(router, { ...input, harvest } as any));
   });
-
-  afterEach(() => {
-    sinon.restore();
-    (global as any).sails = originalSails;
-    (global as any).BrandingService = originalBrandingService;
-    (global as any).HarvestRunService = originalHarvestRunService;
-    (global as any)._ = originalLodash;
+  afterEach(async () => {
+    await f?.close();
   });
-
   it('returns paginated runs', async () => {
-    const req = {
-      session: { branding: 'default' },
-      apiRequest: {
-        params: {},
-        query: { page: '2', pageSize: '5' },
-        body: {},
-        files: {},
-      },
-    } as unknown as Sails.Req;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.listRuns(req, {} as Sails.Res);
-
-    expect((global as any).HarvestRunService.listRuns.calledOnce).to.equal(true);
-    expect((global as any).HarvestRunService.listRuns.firstCall.args[1]).to.include({ page: 2, pageSize: 5 });
-    expect(sendRespStub.calledOnce).to.equal(true);
-    expect(sendRespStub.firstCall.args[2]?.data?.summary?.numFound).to.equal(1);
+    const result = await f.request(base + '?page=2&pageSize=5');
+    assert.equal(result.status, 200);
+    assert(harvest.listRuns.calledOnce);
+    assert.equal(harvest.listRuns.firstCall.args[0].id, f.brand.id);
+    assert.equal(harvest.listRuns.firstCall.args[1].page, 2);
+    assert.equal(harvest.listRuns.firstCall.args[1].pageSize, 5);
+    assert.equal(result.body.summary.numFound, 1);
   });
-
-  it('caps run page size to match the service limit', async () => {
-    const req = {
-      session: { branding: 'default' },
-      apiRequest: {
-        params: {},
-        query: { page: '2', pageSize: '500' },
-        body: {},
-        files: {},
-      },
-    } as unknown as Sails.Req;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.listRuns(req, {} as Sails.Res);
-
-    expect((global as any).HarvestRunService.listRuns.calledOnce).to.equal(true);
-    expect((global as any).HarvestRunService.listRuns.firstCall.args[1]).to.include({ page: 2, pageSize: 100 });
-    expect(sendRespStub.calledOnce).to.equal(true);
-    expect(sendRespStub.firstCall.args[2]?.data?.summary?.start).to.equal(100);
+  it('caps run page size to the domain limit', async () => {
+    const result = await f.request(base + '?page=2&pageSize=500');
+    assert.equal(result.status, 200);
+    assert.equal(harvest.listRuns.firstCall.args[1].pageSize, 100);
+    assert.equal(result.body.summary.start, 100);
   });
-
-  it('returns 404 when a run is not found', async () => {
-    (global as any).HarvestRunService.getRun.resolves(null);
-    const req = {
-      session: { branding: 'default' },
-      apiRequest: {
-        params: { id: 'run-1' },
-        query: {},
-        body: {},
-        files: {},
-      },
-    } as unknown as Sails.Req;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getRun(req, {} as Sails.Res);
-
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+  it('returns 404 for a missing run', async () => assert.equal((await f.request(base + '/run-1')).status, 404));
+  it('returns paginated run events after verifying the run', async () => {
+    const result = await f.request(base + '/run-1/events?page=1&pageSize=10');
+    assert.equal(result.status, 200);
+    assert(harvest.runExists.calledOnce);
+    assert(harvest.listRunEvents.calledOnce);
+    assert.equal(harvest.listRunEvents.firstCall.args[1], 'run-1');
+    assert.deepEqual(result.body.records, [{ id: 'event-1', harvestId: 'harvest-1' }]);
   });
-
-  it('returns paginated run events', async () => {
-    const req = {
-      session: { branding: 'default' },
-      apiRequest: {
-        params: { id: 'run-1' },
-        query: { page: '1', pageSize: '10' },
-        body: {},
-        files: {},
-      },
-    } as unknown as Sails.Req;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.listRunEvents(req, {} as Sails.Res);
-
-    expect((global as any).HarvestRunService.runExists.calledOnce).to.equal(true);
-    expect((global as any).HarvestRunService.listRunEvents.calledOnce).to.equal(true);
-    expect((global as any).HarvestRunService.listRunEvents.firstCall.args[1]).to.equal('run-1');
-    expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal([{ id: 'event-1', harvestId: 'harvest-1' }]);
+  it('caps event page size to the domain limit', async () => {
+    const result = await f.request(base + '/run-1/events?page=3&pageSize=500');
+    assert.equal(result.status, 200);
+    assert(harvest.runExists.calledOnce);
+    assert.equal(harvest.listRunEvents.firstCall.args[2].page, 3);
+    assert.equal(harvest.listRunEvents.firstCall.args[2].pageSize, 100);
+    assert.equal(result.body.summary.start, 200);
   });
-
-  it('caps event page size to match the service limit', async () => {
-    const req = {
-      session: { branding: 'default' },
-      apiRequest: {
-        params: { id: 'run-1' },
-        query: { page: '3', pageSize: '500' },
-        body: {},
-        files: {},
-      },
-    } as unknown as Sails.Req;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.listRunEvents(req, {} as Sails.Res);
-
-    expect((global as any).HarvestRunService.runExists.calledOnce).to.equal(true);
-    expect((global as any).HarvestRunService.listRunEvents.calledOnce).to.equal(true);
-    expect((global as any).HarvestRunService.listRunEvents.firstCall.args[2]).to.include({ page: 3, pageSize: 100 });
-    expect(sendRespStub.calledOnce).to.equal(true);
-    expect(sendRespStub.firstCall.args[2]?.data?.summary?.start).to.equal(200);
-  });
-
-  it('returns 404 when listing events for a missing run', async () => {
-    (global as any).HarvestRunService.runExists.resolves(false);
-    const req = {
-      session: { branding: 'default' },
-      apiRequest: {
-        params: { id: 'run-1' },
-        query: { page: '1', pageSize: '10' },
-        body: {},
-        files: {},
-      },
-    } as unknown as Sails.Req;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.listRunEvents(req, {} as Sails.Res);
-
-    expect((global as any).HarvestRunService.listRunEvents.called).to.equal(false);
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+  it('returns 404 for events of a missing run without reading events', async () => {
+    harvest.runExists.resolves(false);
+    assert.equal((await f.request(base + '/run-1/events?page=1&pageSize=10')).status, 404);
+    assert(!harvest.listRunEvents.called);
   });
 });

@@ -1,108 +1,47 @@
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { Controllers } from '../../../src/controllers/webservice/IntegrationAuditController';
-import {createSinonStubLogger} from "../../logger.test";
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountQueryReadRoutes } from '../../../src/http/express/queryReads';
 
-let expect: Chai.ExpectStatic;
-
-describe('Webservice IntegrationAuditController', () => {
-  let controller: Controllers.IntegrationAudit;
-  let originalSails: any;
-  let originalIntegrationAuditService: any;
-  let originalLodash: any;
-
-  before(async () => {
-    const chai = await import('chai');
-    expect = chai.expect;
+describe('Integration audit Express reads', () => {
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let integrationLog: sinon.SinonStub;
+  beforeEach(async () => {
+    integrationLog = sinon.stub().resolves({ rows: [{ redboxOid: 'oid-1', status: 'success' }], total: 11 });
+    f = await httpRouteFixture((router, input) =>
+      mountQueryReadRoutes(router, { ...input, audit: { integrationLog } } as any)
+    );
   });
-
-  beforeEach(() => {
-    originalSails = (global as any).sails;
-    originalIntegrationAuditService = (global as any).IntegrationAuditService;
-    originalLodash = (global as any)._;
-
-    (global as any).sails = {
-      log: createSinonStubLogger(sinon),
-    };
-    (global as any).IntegrationAuditService = {
-      getAuditLog: sinon.stub().resolves({ rows: [{ redboxOid: 'oid-1', status: 'success' }], total: 11 }),
-    };
-    (global as any)._ = require('lodash');
-
-    controller = new Controllers.IntegrationAudit();
+  afterEach(async () => {
+    await f?.close();
   });
-
-  afterEach(() => {
-    sinon.restore();
-    (global as any).sails = originalSails;
-    (global as any).IntegrationAuditService = originalIntegrationAuditService;
-    (global as any)._ = originalLodash;
+  it('returns paginated audit data through the authorized record audit domain', async () => {
+    const result = await f.request(
+      '/default/portal/api/integration-audit/oid-1?status=success&dateFrom=2025-01-01T00:00:00Z&dateTo=2025-01-02T00:00:00Z&page=2&pageSize=5'
+    );
+    assert.equal(result.status, 200);
+    assert(integrationLog.calledOnce);
+    const [brand, user, oid, params] = integrationLog.firstCall.args;
+    assert.equal(brand.id, f.brand.id);
+    assert.equal(user.username, f.actor.username);
+    assert.equal(oid, 'oid-1');
+    assert.equal(params.status, 'success');
+    assert.equal(params.page, 2);
+    assert.equal(params.pageSize, 5);
+    assert.equal(params.dateFrom.toISOString(), '2025-01-01T00:00:00.000Z');
+    assert.equal(params.dateTo.toISOString(), '2025-01-02T00:00:00.000Z');
+    assert.equal(result.body.summary.page, 2);
+    assert.equal(result.body.summary.numFound, 11);
+    assert.deepEqual(result.body.records, [{ redboxOid: 'oid-1', status: 'success' }]);
   });
-
-  it('returns paginated audit data', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('status').returns('success');
-    param.withArgs('dateFrom').returns('2025-01-01T00:00:00Z');
-    param.withArgs('dateTo').returns('2025-01-02T00:00:00Z');
-    param.withArgs('page').returns('2');
-    param.withArgs('pageSize').returns('5');
-    const req = { param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getAuditLog(req, res);
-
-    expect((global as any).IntegrationAuditService.getAuditLog.calledOnce).to.be.true;
-    expect((global as any).IntegrationAuditService.getAuditLog.firstCall.args[0]).to.include({
-      oid: 'oid-1',
-      status: 'success',
-      page: 2,
-      pageSize: 5,
+  for (const [label, query] of [
+    ['status', 'status=not-valid'],
+    ['date', 'dateFrom=not-a-date'],
+    ['page', 'page=0'],
+  ]) {
+    it(`returns 400 for invalid ${label} without reading audit data`, async () => {
+      assert.equal((await f.request('/default/portal/api/integration-audit/oid-1?' + query)).status, 400);
+      assert(!integrationLog.called);
     });
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data?.summary?.page).to.equal(2);
-    expect(sendRespStub.firstCall.args[2]?.data?.summary?.numFound).to.equal(11);
-    expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal([{ redboxOid: 'oid-1', status: 'success' }]);
-  });
-
-  it('returns 400 for invalid status parameters', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('status').returns('not-valid');
-    const req = { param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getAuditLog(req, res);
-
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect((global as any).IntegrationAuditService.getAuditLog.called).to.be.false;
-  });
-
-  it('returns 400 for invalid date parameters', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('dateFrom').returns('not-a-date');
-    const req = { param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getAuditLog(req, res);
-
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect((global as any).IntegrationAuditService.getAuditLog.called).to.be.false;
-  });
-
-  it('returns 400 for invalid page parameters', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('page').returns('0');
-    const req = { param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getAuditLog(req, res);
-
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-  });
+  }
 });
