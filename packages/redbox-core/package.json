@@ -7,7 +7,6 @@
   "files": [
     "dist",
     "logfmt-transport.cjs",
-    "redbox-loader-templates",
     "bin"
   ],
   "scripts": {

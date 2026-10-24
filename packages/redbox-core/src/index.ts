@@ -250,8 +250,7 @@ export { initializeCachePersistence, cleanupCachePersistence } from './persisten
 export { inspectCachePersistence, ensureCachePersistenceIndex } from './persistence/cache/preflight';
 export type { CacheIndexInspection } from './persistence/cache/preflight';
 export { CachePersistenceError, DuplicateCacheEntryError } from './persistence/cache/errors';
-export { discoverRecordContractContributorRegistry, generateAllShims, mergeRedboxConfig } from './loader/index';
-export type { LoaderOptions, GenerateAllShimsResult, RedboxMigration } from './loader/index';
+export type { ApplicationMigration as RedboxMigration } from './application/migrations';
 export { createGeneratedBootstrap } from './loader/bootstrapShimRuntime';
 export type { GeneratedHookBootstrap } from './loader/bootstrapShimRuntime';
 export { runPendingMigrations } from './loader/MigrationRunner';
