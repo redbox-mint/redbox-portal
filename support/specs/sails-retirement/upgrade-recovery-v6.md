@@ -126,6 +126,24 @@ extension declares the record revision backfill through that API. Re-running
 completed definitions skips their bodies. The ledger is not a distributed
 upgrader lock: deployment coordination must enforce exclusivity.
 
+### Persisted record hooks and queued work
+
+Startup converts known v5 record-hook expressions, including nested notification
+success callbacks. The notification repair migration runs even when the earlier
+record-type converters are already complete in the ledger.
+`20261025T010000-v6-persisted-queued-record-hook-operations` also converts existing
+Mongo Agenda payloads for configured queued record-trigger jobs before workers
+activate. It validates every selected payload before its first write, preserves
+record/template data, and refuses unsupported declarations. Keep all other
+writers and consumers stopped; retries are idempotent.
+
+External SQS messages cannot be enumerated by startup. Each delivered queued
+record-trigger payload receives the same finite conversion before strict named
+operation dispatch, with ordinary acknowledgement/retry semantics. Unsupported
+messages fail before invoking their hook; reconcile these with the queue owner.
+There is no executable service-path fallback. Include both Mongo job documents
+and external messages in the checkpoint and institution rehearsal.
+
 ### Initialize, validate and activate the installed portal
 
 Set a strong deployment-owned `REDBOX_SESSION_SECRET` in the secret environment.

@@ -23,6 +23,11 @@ import type { RequestHandler, Router } from 'express';
 import type { Server } from 'node:http';
 import type { AgendaJobHandler } from '../../queues/AgendaQueue';
 import { ScheduledWork } from '../../queues/ScheduledWork';
+import {
+  convertQueuedRecordHookData,
+  migrateQueuedRecordHooks,
+  QUEUED_PAYLOAD_OPERATIONS_MIGRATION_NAME,
+} from '../../queues/migrateRecordHooks';
 import type { RecordModel } from '../../model/storage/RecordModel';
 import { portalDataPlan } from './data';
 import { portalProviderPlan } from './providers';
@@ -224,7 +229,10 @@ export async function createPortalApplication(options: PortalApplicationOptions)
       await data.reference.typeface.get().reconcileAssets();
     },
     'rdmpservice.queuedTriggerSubscriptionHandler': async job => {
-      await data.triggers.get().queuedTriggerSubscriptionHandler(job);
+      // External queues cannot be enumerated at startup. Convert each delivered
+      // payload before dispatch; a failed delivery retains ordinary retry/ack semantics.
+      const converted = convertQueuedRecordHookData(job.attrs.data);
+      await data.triggers.get().queuedTriggerSubscriptionHandler({ attrs: { ...job.attrs, data: converted } });
     },
     ...options.bindings?.jobs,
   };
@@ -308,6 +316,14 @@ export async function createPortalApplication(options: PortalApplicationOptions)
   };
   const migrations = [
     ...data.reference.migrations,
+    {
+      name: QUEUED_PAYLOAD_OPERATIONS_MIGRATION_NAME,
+      source: 'core',
+      up: async () => {
+        const changed = await migrateQueuedRecordHooks(owner, config.agendaQueue);
+        options.log.info(`Queued record hook operations: converted ${changed} jobs.`);
+      },
+    },
     ...resolved.migrations.map(item => ({ name: item.declaration.name, source: item.provider, up: bindWork(item) })),
   ];
   const extensionBootstrap = resolved.bootstrap.map(item => ({

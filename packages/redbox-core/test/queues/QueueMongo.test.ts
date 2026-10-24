@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { MongoClient, ObjectId } from 'mongodb';
 import { ApplicationRuntime } from '../../src/application';
 import { AgendaQueue, prepareAgendaIndexes } from '../../src/queues';
+import { migrateQueuedRecordHooks, convertQueuedRecordHookData } from '../../src/queues/migrateRecordHooks';
+import { RecordTriggers, type RecordTriggersInput } from '../../src/records/RecordTriggers';
+import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { initializePersistence, persistenceStatus } from '../../src/persistence/runtime';
 import { initializeReferencePersistence, getReferenceRepositories } from '../../src/persistence/reference/runtime';
 import { ensureReferencePersistenceIndexes } from '../../src/persistence/reference/preflight';
@@ -56,6 +59,84 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     const queue = createQueue({ owner, config, log, handler });
     return { owner, queue, db: native.db(name) };
   }
+  it('converts pre-existing v5 PDF jobs before claims and executes once across restart', async () => {
+    const jobs = { pdf: { fnName: 'rdmpservice.queuedTriggerSubscriptionHandler' } };
+    let calls = 0;
+    const triggers = new RecordTriggers({
+      config: { maxUploadSize: 100 },
+      log: nothingLogger,
+      translate: value => value,
+      resolveHook: name => {
+        assert.equal(name, 'pdf.create');
+        return async () => {
+          calls++;
+        };
+      },
+    } as RecordTriggersInput);
+    const { owner, queue, db } = await fixture(jobs, () => job => triggers.queuedTriggerSubscriptionHandler(job));
+    const config = { jobs, options: { collection: 'agendaJobs' } };
+    const data = {
+      oid: 'existing-record',
+      record: { metadata: { template: 'sails.services.opaque.template' } },
+      triggerConfiguration: { function: 'sails.services.pdfservice.createPDF', options: { filename: 'preserved.pdf' } },
+    };
+    const valid = await db
+      .collection('agendaJobs')
+      .insertOne({ name: 'pdf', type: 'normal', priority: 0, nextRunAt: new Date(), lockedAt: null, data });
+    const invalid = await db
+      .collection('agendaJobs')
+      .insertOne({
+        name: 'pdf',
+        data: { ...data, triggerConfiguration: { function: 'sails.services.private.unsupported' } },
+      });
+    await assert.rejects(migrateQueuedRecordHooks(owner, config), /conversion failed/);
+    assert.equal(
+      (await db.collection('agendaJobs').findOne({ _id: valid.insertedId }))!.data.triggerConfiguration.function,
+      'sails.services.pdfservice.createPDF'
+    );
+    assert.equal(calls, 0);
+    await db.collection('agendaJobs').deleteOne({ _id: invalid.insertedId });
+    const app = new ApplicationRuntime(owner, [{ name: 'queue', create: () => queue }], {
+      migrations: async () => {
+        assert.equal(await migrateQueuedRecordHooks(owner, config), 1);
+      },
+    });
+    apps.push(app);
+    await app.initialize();
+    const converted = (await db.collection('agendaJobs').findOne({ _id: valid.insertedId }))!.data;
+    assert.equal(converted.triggerConfiguration.function, 'pdf.create');
+    assert.deepEqual(converted.record, data.record);
+    assert.equal(calls, 0);
+    await app.activate();
+    await until(async () => !!(await db.collection('agendaJobs').findOne({ _id: valid.insertedId }))!.lastFinishedAt);
+    await app.stop();
+    assert.equal(calls, 1);
+    const restartedOwner = { config: owner.config, log };
+    const restartedQueue = new AgendaQueue({
+      owner: restartedOwner,
+      config: { jobs, options: { processEvery: '0.02 seconds' } },
+      log,
+      handler: () => job => triggers.queuedTriggerSubscriptionHandler(job),
+    });
+    const restarted = new ApplicationRuntime(restartedOwner, [{ name: 'queue', create: () => restartedQueue }], {
+      migrations: async () => {
+        assert.equal(await migrateQueuedRecordHooks(restartedOwner, config), 0);
+      },
+    });
+    apps.push(restarted);
+    await restarted.initialize();
+    await restarted.activate();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await restarted.stop();
+    assert.equal(calls, 1);
+    // External queue deliveries use the same finite, idempotent conversion without acknowledging early.
+    assert.deepEqual(convertQueuedRecordHookData(data), converted);
+    assert.equal(data.triggerConfiguration.function, 'sails.services.pdfservice.createPDF');
+    assert.throws(() =>
+      convertQueuedRecordHookData({ ...data, triggerConfiguration: { function: 'sails.services.unknown' } })
+    );
+  });
+
   it('defines without claims, schedules or submissions, then activates and schedules once', async () => {
     let calls = 0;
     const { owner, queue, db } = await fixture(
