@@ -216,8 +216,8 @@ export class BrandingDelivery {
       res.removeHeader('Pragma');
       res.set('Expires', new Date(Date.now() + (immutable ? 31536000 : 300) * 1000).toUTCString());
       return res.send(minifiedCss);
-    } catch (e) {
-      this.input.log.error('Error serving CSS:', e);
+    } catch {
+      this.input.log.error('Error serving CSS');
       return res.status(500).send('/* error serving theme */');
     }
   }
@@ -314,8 +314,8 @@ export class BrandingDelivery {
         return res.status(200).end();
       }
       return res.send(buf);
-    } catch (e) {
-      this.input.log.error('Error serving font:', e);
+    } catch {
+      this.input.log.error('Error serving font');
       return notFound();
     }
   }

@@ -437,7 +437,7 @@ export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput
             return;
           }
           const status = error instanceof RecordReadError ? error.status : 500;
-          if (status === 500) input.log.error(error);
+          if (status === 500) input.log.error('Record read failed');
           sendApiErrors(req, res, status, [
             { detail: error instanceof RecordReadError ? error.message : 'Record read failed.' },
           ]);

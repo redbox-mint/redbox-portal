@@ -100,7 +100,7 @@ export function mountQueryWriteRoutes(router: Router, input: QueryWriteHttpInput
           const status = route.action.startsWith('create') ? 201 : 200;
           sendApiData(req, res, result, status);
         } catch (error) {
-          input.log.error(error);
+          input.log.error('Definition mutation failed');
           const message = error instanceof Error ? error.message : '';
           const invalidTarget =
             named && error instanceof PersistenceError && error.code === 'named-query-compatibility';
