@@ -172,6 +172,17 @@ const authBootstrap = z
     hiddenRoles: strings,
     hiddenUsers: strings,
     postLogoutRedir: z.string(),
+    logoutOrigins: z
+      .array(
+        z
+          .string()
+          .url()
+          .refine(value => {
+            const url = new URL(value);
+            return ['http:', 'https:'].includes(url.protocol) && url.origin === value;
+          }, 'Expected an HTTP(S) origin without a path or credentials')
+      )
+      .optional(),
   })
   .strict();
 const sessionSchema = deploymentSchema.shape.redboxSession.unwrap();
@@ -245,9 +256,7 @@ export const portalSchema = deploymentSchema
       .object({
         captureFingerprints: z.record(z.string(), z.string().min(1)).optional(),
         acceptedFindingIdsByBrand: z.record(z.string(), z.array(z.string().min(1))).optional(),
-        replacements: z
-          .array(z.object({ brand: z.string().min(1), target: data, settings: data }).strict())
-          .optional(),
+        replacements: z.array(z.object({ brand: z.string().min(1), target: data, settings: data }).strict()).optional(),
       })
       .strict()
       .optional(),

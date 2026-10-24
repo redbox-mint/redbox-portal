@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { z } from 'zod';
+import { portalSchema, portalDefaults } from '../../src/configuration/portal';
 import { execFileSync } from 'node:child_process';
 import { loadStartupConfiguration } from '../../src/configuration/loading';
 import { ConfigurationError, resolveStartupConfiguration } from '../../src/configuration';
@@ -46,6 +47,16 @@ const core = {
 };
 const executablePaths = ['transform'];
 describe('Startup configuration', () => {
+  it('accepts explicit IdP logout origins and refuses URLs with paths or credentials', () => {
+    const defaults = portalDefaults().values;
+    for (const origin of ['https://identity.example.invalid', 'http://localhost:28080']) {
+      const result = portalSchema.shape.auth.parse({ ...(defaults.auth as object), logoutOrigins: [origin] });
+      assert.deepEqual(result.logoutOrigins, [origin]);
+    }
+    for (const origin of ['https://identity.example.invalid/path', 'https://user:password@identity.example.invalid', 'javascript:alert(1)']) {
+      assert.equal(portalSchema.shape.auth.safeParse({ ...(defaults.auth as object), logoutOrigins: [origin] }).success, false);
+    }
+  });
   it('resolves every layer in order with typed env and CLI inputs, retaining functions', () => {
     const extensions = resolveExtensions(
       [

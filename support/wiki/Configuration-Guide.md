@@ -58,6 +58,13 @@ Core section defaults/interfaces live in `packages/redbox-core/src/config/`;
 include `record`, `auth`, `recordValidation`, `recordSchema`, `solr`, `storage`,
 `brandingConfigurationDefaults`, `agendaQueue`, `redboxSession` and `companion`.
 
+For OIDC provider logout, set `auth.logoutOrigins` to the trusted HTTP(S)
+origins of the provider's end-session endpoints, for example
+`['https://identity.example.edu']`. Origins must have no path, credentials or
+trailing slash. When `logoutFromAuthServer` is enabled, only an allowlisted
+provider origin survives login session rotation and may receive the logout
+redirect. Without an allowlist, logout uses the configured local destination.
+
 ### Branding typeface limits (`branding`)
 
 `packages/redbox-core/src/config/branding.config.ts` adds four operator-configurable positive integers (invalid values fall back to the defaults with a logged warning):

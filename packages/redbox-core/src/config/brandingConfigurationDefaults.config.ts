@@ -139,6 +139,8 @@ export interface AuthBootstrapConfig {
   hiddenRoles: string[];
   hiddenUsers: string[];
   postLogoutRedir: string;
+  /** Explicit trusted origins for identity-provider logout redirects. */
+  logoutOrigins?: string[];
 }
 
 export interface BrandingConfigurationDefaultsConfig {

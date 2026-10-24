@@ -289,6 +289,7 @@ export class PortalHttp implements ApplicationModule {
         '/' +
         config.brandingConfigurationDefaults.auth.local.postLoginRedir.replace(/^\//, ''),
       postLogoutPath: config.auth.postLogoutRedir,
+      logoutOrigins: config.auth.logoutOrigins,
       audit: async (action, actor, req) => {
         await audit(actor, action, { brandId: brandForRequest(req).id });
       },
