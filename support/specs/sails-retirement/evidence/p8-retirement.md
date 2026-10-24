@@ -404,3 +404,26 @@ Earlier `agenda9-first.log` failed to load the deleted session wrapper;
 failed 39 cases; `agenda9-fourth.log` had 49 passing/10 failing while the old
 readiness/start-order expectations were being migrated. The fifth run passes
 all 59. These remain incremental checks, not full-core/artifact acceptance.
+
+### Durable Figshare and path-rule fixture migration
+
+Source based on `6782285e0`, Node 26.11.1/npm 11.20.0:
+
+- `worker10-second.log`: **57 passing / 0 pending / 0 failing** (17s),
+  `FIGSHARE_TEST_MONGO_URI=mongodb://127.0.0.1:29511/redbox` with the explicit
+  core Mocha runner and `test/services/figshare-queued.test.ts`. The real MongoDB
+  8.0.34 provider and controlled HTTP server execute claims, stale owners,
+  heartbeats, lost delivery, admission/drain, generations, repairs, publication,
+  owner identity and status-redaction scenarios. The provider, source-intent
+  owner and pure status/configuration query functions receive explicit inputs.
+  `worker10-first.log` had 44 passing/13 failures from deleted helper imports;
+  migrating those imports/inputs resolved all failures without skips.
+- `pathrules-first.log`: **12 passing / 0 pending / 0 failing** (41ms), same
+  runner with `test/services/PathRulesService.test.ts`. Actual bootstrapPathRules
+  and PathRules owners replace callback bootstrap and global role/brand lookup.
+  Existing matching/read/write assertions remain; seed checks additionally
+  verify both resolved role IDs and the selected brand. Public-method checks
+  now inspect the domain's loadRules instead of a generated exports shim.
+
+These are source checkpoints. Full-core and final clean artifact qualification
+remain outstanding; P8 acceptance is not claimed.
