@@ -118,8 +118,8 @@ export namespace Services {
             // Temporarily change to each language to activate it
             await i18nextInstance.changeLanguage(lng);
             this.input.log.debug(`Activated language: ${lng}`);
-          } catch (e) {
-            this.input.log.warn(`Failed to activate language ${lng}:`, (e as Error)?.message || e);
+          } catch {
+            this.input.log.warn(`Failed to activate language ${lng}:`);
           }
         }
       }
@@ -145,8 +145,8 @@ export namespace Services {
           } else {
             this.input.log.debug(`No namespaces found for ${lng}`);
           }
-        } catch (e) {
-          this.input.log.debug(`Test translation failed for ${lng}:`, (e as Error)?.message || e);
+        } catch {
+          this.input.log.debug(`Test translation failed for ${lng}:`);
         }
       }
 
@@ -226,14 +226,13 @@ export namespace Services {
               delete (data as Record<string, unknown>)._meta;
             }
             resources[lng][ns] = data || {};
-          } catch (e) {
+          } catch {
             // Note: Keeping this as verbose since it's already a low-level diagnostic message
             this.input.log.verbose(
               '[TranslationService] Failed to load bundle',
               brandingId,
               lng,
-              ns,
-              (e as Error)?.message || e
+              ns
             );
             resources[lng][ns] = {};
           }
@@ -279,8 +278,8 @@ export namespace Services {
           if (!branding) continue;
           await this.getI18nextForBranding(branding);
           this.input.log.debug(`Re-created i18next instance for branding: ${bId}`);
-        } catch (e) {
-          this.input.log.warn(`Failed to re-create i18next for branding ${bId}:`, (e as Error)?.message || e);
+        } catch {
+          this.input.log.warn(`Failed to re-create i18next for branding ${bId}:`);
         }
       }
     }
@@ -320,20 +319,17 @@ export namespace Services {
               langs[b.locale] = true;
             }
           });
-        } catch (e) {
+        } catch {
           // Note: Keeping this as verbose since it's already a low-level diagnostic message
-          this.input.log.verbose(
-            '[TranslationService.getAvailableLanguagesForBranding] DB scan failed:',
-            (e as Error)?.message || e
-          );
+          this.input.log.verbose('[TranslationService.getAvailableLanguagesForBranding] DB scan failed.');
         }
 
         const list = Object.keys(langs);
         list.sort();
         this.input.log.debug(`Final language list: ${JSON.stringify(list)}`);
         return list;
-      } catch (e) {
-        this.input.log.warn('Error:', (e as Error)?.message || e);
+      } catch {
+        this.input.log.warn('Failed to resolve available languages.');
         return this.input.config?.i18n?.next?.init?.supportedLngs || ['en'];
       }
     }

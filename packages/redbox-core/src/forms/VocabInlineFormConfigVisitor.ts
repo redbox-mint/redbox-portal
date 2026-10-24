@@ -202,7 +202,6 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       this.logger.warn(
         `Failed to resolve inline vocab '${componentConfig.vocabRef}' for component '${definition?.name ?? ''}'`
       );
-      this.logger.debug(error);
       throw error;
     }
   }

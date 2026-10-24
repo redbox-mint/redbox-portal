@@ -1019,9 +1019,8 @@ export class AgendaQueue implements QueueService {
     this.accepting(true);
     this.input.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`);
     const queuedJob = this.track(this.getAgendaForJobName(jobName).now(jobName, this.toSerializableJobData(data)));
-    queuedJob.catch(e => {
+    queuedJob.catch(() => {
       this.input.log.error(`AgendaQueue:: Failed to start job now: ${jobName}`);
-      this.input.log.error(e);
     });
     return await queuedJob;
   }

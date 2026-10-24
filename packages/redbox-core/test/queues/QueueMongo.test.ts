@@ -73,7 +73,9 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
         };
       },
     } as RecordTriggersInput);
-    const { owner, queue, db } = await fixture(jobs, () => job => triggers.queuedTriggerSubscriptionHandler(job));
+    const { owner, queue, db } = await fixture(jobs, () => async job => {
+      await triggers.queuedTriggerSubscriptionHandler(job);
+    });
     const config = { jobs, options: { collection: 'agendaJobs' } };
     const data = {
       oid: 'existing-record',
@@ -114,7 +116,9 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
       owner: restartedOwner,
       config: { jobs, options: { processEvery: '0.02 seconds' } },
       log,
-      handler: () => job => triggers.queuedTriggerSubscriptionHandler(job),
+      handler: () => async job => {
+        await triggers.queuedTriggerSubscriptionHandler(job);
+      },
     });
     const restarted = new ApplicationRuntime(restartedOwner, [{ name: 'queue', create: () => restartedQueue }], {
       migrations: async () => {
@@ -166,7 +170,19 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     await app.activate();
     await queue.now('fail', {});
     await until(async () => !!(await db.collection('agendaJobs').findOne({ name: 'fail' }))?.failedAt);
+    const backend = (queue as LoggingQueue).backend();
+    const now = backend.now;
+    const failure = new Error('Provider token=' + secret);
+    backend.now = async () => {
+      throw failure;
+    };
+    try {
+      await assert.rejects(queue.now('fail', {}), error => error === failure);
+    } finally {
+      backend.now = now;
+    }
     await app.stop();
+    assert(errors.some(args => String(args[0]).includes('Failed to start job now')));
     assert(errors.some(args => String(args[0]).includes('backend error')));
     assert(errors.some(args => String(args[0]).includes('Job fail failed')));
     assert.equal(JSON.stringify(errors).includes(secret), false);

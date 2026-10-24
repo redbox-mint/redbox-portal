@@ -88,11 +88,10 @@ export class RecordAuditReader {
             name: String(_.get(user, 'name', '')),
             email: String(_.get(user, 'email', '')),
           });
-        } catch (error) {
+        } catch {
           this.input.log.warn(
             `RecordsService.getResolvedPermissionsSummary could not resolve user '${username}' for record '${oid}'.`
           );
-          this.input.log.warn(error);
           resolvedUsers.push({
             username,
             name: '',

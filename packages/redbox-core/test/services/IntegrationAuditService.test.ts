@@ -285,7 +285,7 @@ describe('IntegrationAuditService', function () {
     expect(payload.responseSummary).to.equal(undefined);
   });
 
-  it('logs the storage response message when persistence is rejected by storage', async function () {
+  it('bounds the storage failure log without forwarding response messages or details', async function () {
     mockStorageService.createIntegrationAudit.resolves({
       success: false,
       message: 'Invalid new record.',
@@ -302,8 +302,7 @@ describe('IntegrationAuditService', function () {
 
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(fixture.log.error.calledWithMatch(sinon.match('Storage response message: Invalid new record.'))).to.be.true;
-    expect(fixture.log.error.calledWithMatch(sinon.match('Storage response details: "message cannot be null"'))).to.be.true;
+    expect(fixture.log.error.calledOnceWithExactly('IntegrationAuditService:: Failed to persist integration audit.')).to.be.true;
   });
 
   for (const response of [null, undefined, {}, { success: false }, { success: true, isSuccessful: () => false }]) {

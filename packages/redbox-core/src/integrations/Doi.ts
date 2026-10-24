@@ -503,7 +503,6 @@ export namespace Services {
               }
             } catch (error) {
               this.input.log.error(`Failed to persist DOI metadata for record '${oid}'.`);
-              this.input.log.error(error);
               throw error;
             }
           }

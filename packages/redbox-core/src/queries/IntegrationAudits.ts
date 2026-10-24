@@ -278,24 +278,16 @@ export namespace Services {
           (typeof response.isSuccessful === 'function' ? response.isSuccessful() === true : response.success === true);
         if (!persisted) {
           this.input.log.error(`${this.logHeader} Failed to persist integration audit.`);
-          if (!_.isEmpty(response?.message)) {
-            this.input.log.error(`${this.logHeader} Storage response message: ${response.message}`);
-          }
-          if (!_.isNil(response?.details)) {
-            this.input.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(response.details)}`);
-          }
           return;
         }
         await this.enqueueNotification(entry);
         if (this.input.emitSecurityEvent) {
-          await this.input.emitSecurityEvent({ ...entry }).catch(error => {
+          await this.input.emitSecurityEvent({ ...entry }).catch(() => {
             this.input.log.error(`${this.logHeader} Failed to emit integration audit security event.`);
-            this.input.log.error(error);
           });
         }
-      } catch (error) {
+      } catch {
         this.input.log.error(`${this.logHeader} Failed to persist integration audit entry.`);
-        this.input.log.error(error);
       }
     }
 
@@ -306,15 +298,14 @@ export namespace Services {
      * would surface as an unhandled rejection and crash the process. This swallows both.
      */
     private safeQueueNow(jobName: string, entry: IntegrationAuditModel, failureMessage: string): Promise<void> {
-      const logFailure = (err: unknown) => {
+      const logFailure = () => {
         this.input.log.error(`${this.logHeader} ${failureMessage}`);
-        this.input.log.error(err);
       };
       try {
         const result = this.input.enqueue(jobName, entry);
         return this.retain(Promise.resolve(result).then(() => {}, logFailure));
-      } catch (err) {
-        logFailure(err);
+      } catch {
+        logFailure();
         return Promise.resolve();
       }
     }
@@ -1077,9 +1068,8 @@ export namespace Services {
       try {
         const entry = new IntegrationAuditModel(data);
         await this.retain(this.persistEntry(entry));
-      } catch (error) {
+      } catch {
         this.input.log.error(`${this.logHeader} Failed to construct integration audit entry from queued payload.`);
-        this.input.log.error(error);
       }
     }
   }

@@ -73,9 +73,8 @@ export namespace Services {
         try {
           const rawConfig = await this.input.configuration(brandId);
           brandConfig = rawConfig ?? {};
-        } catch (err) {
+        } catch {
           this.input.log.error(`${this.logHeader} Failed to resolve notification config.`);
-          this.input.log.error(err);
           return;
         }
 
@@ -128,7 +127,7 @@ export namespace Services {
           let existingState: unknown = null;
           try {
             existingState = await this.input.state.get(cacheKey);
-          } catch (_cacheErr) {
+          } catch {
             this.input.log.verbose(`${this.logHeader} Cache lookup failed, proceeding without throttle check.`);
           }
 
@@ -166,7 +165,7 @@ export namespace Services {
           let existingState: unknown = null;
           try {
             existingState = await this.input.state.get(cacheKey);
-          } catch (_cacheErr) {
+          } catch {
             this.input.log.verbose(`${this.logHeader} Cache lookup failed, treating as no prior failure.`);
           }
 
@@ -181,9 +180,8 @@ export namespace Services {
 
           await this.input.state.set(cacheKey, null, 0);
         }
-      } catch (err) {
+      } catch {
         this.input.log.error(`${this.logHeader} Dispatch failed.`);
-        this.input.log.error(err);
       }
     }
 
@@ -292,9 +290,8 @@ export namespace Services {
             if (sent) {
               delivered = true;
             }
-          } catch (err) {
+          } catch {
             this.input.log.error(`${this.logHeader} Channel '${channelType}' send failed.`);
-            this.input.log.error(err);
           }
         })
       );
@@ -344,14 +341,13 @@ export class EmailChannel implements IntegrationNotificationChannel {
     let buildResult: Record<string, unknown>;
     try {
       buildResult = await firstValueFrom(this.input.email.buildFromTemplate(templateName, templateData));
-    } catch (err) {
+    } catch {
       this.input.log.error(`EmailChannel:: Failed to build template '${templateName}'.`);
-      this.input.log.error(err);
       return false;
     }
 
     if (buildResult['status'] !== 200) {
-      this.input.log.error(`EmailChannel:: Template '${templateName}' returned status ${buildResult['status']}.`);
+      this.input.log.error('EmailChannel:: Template did not render successfully.');
       return false;
     }
 
@@ -362,13 +358,12 @@ export class EmailChannel implements IntegrationNotificationChannel {
         msg: string;
       };
       if (!sendResult.success) {
-        this.input.log.error(`EmailChannel:: Failed to send email: ${sendResult.msg}`);
+        this.input.log.error('EmailChannel:: Failed to send email.');
         return false;
       }
       return true;
-    } catch (err) {
+    } catch {
       this.input.log.error(`EmailChannel:: Email send failed.`);
-      this.input.log.error(err);
       return false;
     }
   }

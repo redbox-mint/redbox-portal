@@ -210,13 +210,15 @@ describe('TranslationService', function () {
 
     it('should handle DB errors gracefully', async function () {
       const branding = { id: 'brand-1', name: 'default' };
-      mockI18nBundle.find.rejects(new Error('DB error'));
+      mockI18nBundle.find.rejects(new Error('private-translation-provider-secret'));
 
       const result = await TranslationService.getAvailableLanguagesForBranding(branding);
 
       // Should still return configured languages
       expect(result).to.be.an('array');
       expect(result.length).to.be.greaterThan(0);
+      const calls = ['warn', 'debug', 'verbose'].flatMap(level => fixture.log[level].getCalls());
+      expect(calls.some(call => call.args.some(arg => String(arg).includes('private-translation-provider-secret')))).to.equal(false);
     });
   });
 

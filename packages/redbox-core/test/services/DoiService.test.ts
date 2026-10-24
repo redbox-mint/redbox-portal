@@ -620,6 +620,31 @@ describe('DoiService', function () {
   });
 
   describe('trigger audit nesting', function () {
+    it('preserves metadata writeback failures without forwarding provider credentials to logs', async function () {
+      const failure = new Error('private-doi-writeback-credential');
+      collaborators.RecordsService.updateMetaInternal.rejects(failure);
+      const record = withBrand({
+        metadata: {
+          creators: [{ given_name: 'First', family_name: 'Last' }],
+          citation_title: 'My Title',
+          citation_publisher: 'My Publisher',
+          citation_publication_date: '2023-04-01',
+        },
+      });
+      let caught: unknown;
+      try {
+        await service.publishDoiTrigger('oid1', record, { forceRun: true });
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught).to.equal(failure);
+      const calls = (fixture.log.error as sinon.SinonStub).getCalls();
+      expect(
+        calls.some((call) => call.args.some((arg) => arg === failure || String(arg).includes(failure.message))),
+      ).to.equal(false);
+      expect(calls.some((call) => String(call.args[0]).includes('Failed to persist DOI metadata'))).to.equal(true);
+    });
+
     it('threads the initiating hook actor into the detached DOI metadata writeback', async function () {
       const record = withBrand({
         metadata: {

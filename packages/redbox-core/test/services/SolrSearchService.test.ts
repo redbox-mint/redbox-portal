@@ -72,6 +72,16 @@ describe('SolrSearchService', function () {
     SolrSearchService.queueService = mockQueueService;
   });
 
+  it('bounds failed Solr startup diagnostics without serializing credentials', async function () {
+    const secret = 'private-solr-provider-credential';
+    sinon.stub(require('axios'), 'get').rejects(Object.assign(new Error(secret), { credentials: secret }));
+    fixture.config.solr.maxWaitTries = 1;
+    await SolrSearchService.waitForSolr('default', SolrSearchService);
+    const calls = ['info', 'error'].flatMap((level) => fixture.log[level].getCalls());
+    expect(calls.length).to.be.greaterThan(0);
+    expect(calls.some((call) => call.args.some((arg) => String(arg).includes(secret)))).to.equal(false);
+  });
+
   afterEach(function () {
     restoreRepositoryFixtures();
     delete collaborators.RecordsService;

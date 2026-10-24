@@ -224,9 +224,8 @@ export namespace Services {
           const response = await axios.post(schemaUrl, schemaDef).then((response: { data: unknown }) => response.data);
           this.logger.verbose(`${ref.logHeader} Schema reconciliation successful, response: `);
           this.logger.verbose(JSON.stringify(response));
-        } catch (err) {
+        } catch {
           this.logger.error(`${ref.logHeader} Failed to reconcile SOLR schema for core: ${coreName}.`);
-          this.logger.error(JSON.stringify(err));
         }
       }
     }
@@ -342,9 +341,8 @@ export namespace Services {
           } else {
             throw new Error(`SOLR core: ${coreName} is still loading.`);
           }
-        } catch (err) {
+        } catch {
           this.logger.info(`${ref.logHeader} SOLR core: ${coreName} is still down, waiting.`);
-          this.logger.info(JSON.stringify(err));
           if (tryCtr == this.input.config.maxWaitTries) {
             this.logger.error(`${ref.logHeader} SOLR seemed to have failed startup, giving up on waiting.`);
             break;

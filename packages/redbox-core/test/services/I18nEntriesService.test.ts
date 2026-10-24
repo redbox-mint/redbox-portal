@@ -574,7 +574,7 @@ describe('I18nEntriesService', function () {
       mockI18nTranslation.find.onFirstCall().resolves([]).onSecondCall().resolves([
         { key: 'html', value: '<p>Safe</p>', contentFormat: 'html' },
       ]);
-      const failure = new Error('partial insert');
+      const failure = new Error('private-entry-provider-secret');
       mockI18nTranslation.createEach.onFirstCall().rejects(failure).onSecondCall().resolves([]);
       let rejected: unknown;
       try {
@@ -583,6 +583,7 @@ describe('I18nEntriesService', function () {
         rejected = error;
       }
       expect(rejected).to.equal(failure);
+      expect(['warn', 'debug'].flatMap(level => fixture.log[level].getCalls()).some(call => call.args.some(arg => String(arg).includes('private-entry-provider-secret')))).to.equal(false);
       expect(stored.data).to.deep.equal({ html: '<p>Safe</p>', nullish: 'nullish' });
 
       await I18nEntriesService.syncEntriesFromBundle(stored);
@@ -759,6 +760,25 @@ describe('I18nEntriesService', function () {
       expect(mockI18nTranslation.createEach.firstCall.args[0][0].value).to.equal('<p>value</p>');
       expect(mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data.key).to.equal('<p>value</p>');
     });
+  });
+
+  it('bounds invalid metadata file diagnostics without echoing file contents', async function () {
+    fs.mkdirSync(testLocalesDir, { recursive: true });
+    try {
+      for (const [filename, operation] of [
+        ['meta.json', 'loadCentralizedMeta'],
+        ['language-names.json', 'loadLanguageNames'],
+      ]) {
+        fs.writeFileSync(path.join(testLocalesDir, filename), 'secret-entry');
+        expect(await I18nEntriesService[operation]()).to.deep.equal({});
+      }
+      const calls = (fixture.log.warn as sinon.SinonStub).getCalls();
+      expect(calls.length).to.equal(2);
+      expect(calls.some((call) => call.args.some((arg) => String(arg).includes('secret-entry')))).to.equal(false);
+    } finally {
+      for (const filename of ['meta.json', 'language-names.json'])
+        fs.rmSync(path.join(testLocalesDir, filename), { force: true });
+    }
   });
 
   describe('bootstrap additive defaults', function () {

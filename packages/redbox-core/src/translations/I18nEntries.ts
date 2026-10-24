@@ -218,13 +218,13 @@ export class I18nEntries {
                 `Merged defaults and added ${createdCount} entries for ${defaultBrand.id}:${lng}:${ns}`
               );
             }
-          } catch (e) {
-            this.logger.debug('Skipping seed/sync for', lng, ns, 'due to error:', (e as Error)?.message || e);
+          } catch {
+            this.logger.debug('Skipping seed/sync for', lng, ns, 'due to error:');
           }
         }
       }
-    } catch (err) {
-      this.logger.warn('I18nEntriesService.bootstrap failed:', (err as Error)?.message || err);
+    } catch {
+      this.logger.warn('I18nEntriesService.bootstrap failed:');
     }
   }
 
@@ -395,15 +395,15 @@ export class I18nEntries {
         this.setNested(data, key, sanitizedValue);
         await this.input.repository.bundles.reviseBundle(String(bundle.id), { data });
       }
-    } catch (e) {
-      this.logger.warn('Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
+    } catch {
+      this.logger.warn('Bundle sync failed for', brandingId, locale, namespace, key);
     }
 
     // Trigger i18next cache refresh (best-effort) unless suppressed (e.g., batch operations)
     if (!options?.noReload) {
       try {
         await this.input.reloadResources(brandingId);
-      } catch (_e) {
+      } catch {
         const chronicle = currentRequestChronicle();
         chronicle?.addInfo({ translationReloadFailed: true });
         chronicle?.addError(new Error('Translation resource reload failed'));
@@ -424,14 +424,13 @@ export class I18nEntries {
           this.removeNested(bundle.data, key);
           await this.input.repository.bundles.reviseBundle(String(bundle.id), { data: bundle.data });
         }
-      } catch (e) {
+      } catch {
         this.logger.warn(
           'Bundle sync (remove) failed for',
           brandingId,
           locale,
           namespace,
-          key,
-          (e as Error)?.message || e
+          key
         );
       }
     }
@@ -533,7 +532,7 @@ export class I18nEntries {
 
     try {
       await this.input.reloadResources(brandingId);
-    } catch (_e) {
+    } catch {
       const chronicle = currentRequestChronicle();
       chronicle?.addInfo({ translationReloadFailed: true });
       chronicle?.addError(new Error('Translation resource reload failed'));
@@ -610,13 +609,13 @@ export class I18nEntries {
       if (bundle && shouldSplitToEntries) {
         await this.syncEntriesFromBundle(bundle, shouldOverwriteEntries);
       }
-    } catch (e) {
-      this.logger.warn('Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
+    } catch {
+      this.logger.warn('Entry sync failed for', brandingId, locale, namespace);
     }
     // After full bundle update & sync, refresh translations
     try {
       await this.input.reloadResources(brandingId);
-    } catch (_e) {
+    } catch {
       const chronicle = currentRequestChronicle();
       chronicle?.addInfo({ translationReloadFailed: true });
       chronicle?.addError(new Error('Translation resource reload failed'));
@@ -772,14 +771,14 @@ export class I18nEntries {
     for (const obsoleteKey of existingKeysSet) {
       try {
         await this.deleteEntry(brandingModel, safeLocale, safeNamespace, String(obsoleteKey));
-      } catch (e) {
-        this.logger.warn('Failed to prune obsolete key', obsoleteKey, (e as Error)?.message || e);
+      } catch {
+        this.logger.warn('Failed to prune obsolete key', obsoleteKey);
       }
     }
     // Bulk operation complete; reload once
     try {
       await this.input.reloadResources(brandingId);
-    } catch (_e) {
+    } catch {
       const chronicle = currentRequestChronicle();
       chronicle?.addInfo({ translationReloadFailed: true });
       chronicle?.addError(new Error('Translation resource reload failed'));
@@ -829,8 +828,8 @@ export class I18nEntries {
         return JSON.parse(metaContent) as MetaMap;
       }
       return {};
-    } catch (e) {
-      this.logger.warn('Error loading meta.json:', (e as Error)?.message || e);
+    } catch {
+      this.logger.warn('Error loading meta.json:');
       return {};
     }
   }
@@ -849,8 +848,8 @@ export class I18nEntries {
         return JSON.parse(namesContent) as Record<string, string>;
       }
       return {};
-    } catch (e) {
-      this.logger.warn('Error loading language-names.json:', (e as Error)?.message || e);
+    } catch {
+      this.logger.warn('Error loading language-names.json:');
       return {};
     }
   }
