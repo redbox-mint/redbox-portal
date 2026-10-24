@@ -1,0 +1,209 @@
+{
+  "node": "26.11.1",
+  "npm": "11.20.0",
+  "installedPdf": {
+    "checks": 1,
+    "node": "v26.11.1",
+    "puppeteer": "25.0.4",
+    "chromium": "Chrome/156.0.8078.47",
+    "bytes": 19330,
+    "network": "none",
+    "installedImage": true
+  },
+  "failedAttempts": [
+    {
+      "directory": "artifact-d82dc4f86",
+      "exitCode": 1,
+      "cause": "Solr 10 ignored SOLR_PORT and bound 8983; full portal did not start. Installed asset and split-store component each passed.",
+      "correctionCommit": "ed9fc8613",
+      "assertionsOrTimeoutChanged": false
+    }
+  ],
+  "publication": false,
+  "baselineQualification": {
+    "exitCode": 0,
+    "assets": {
+      "passing": 1,
+      "failing": 0,
+      "skipped": 0,
+      "angularApplications": 20,
+      "views": 6
+    },
+    "splitMongoComponent": {
+      "passing": 1,
+      "failing": 0,
+      "skipped": 0,
+      "engine": "8.0.34",
+      "fcv": "8.0"
+    },
+    "fresh": {
+      "startupSeconds": 13,
+      "stopSeconds": 1,
+      "probe": {
+        "actualInstalledExecutable": true,
+        "health": 200,
+        "ready": 200,
+        "page": 200,
+        "asset": 200,
+        "csrfLogin": 200,
+        "formsRequests": 20,
+        "formsLatencyMs": {
+          "p50": 11.878807999999935,
+          "p95": 14.685062999999957,
+          "max": 17.805849999999964
+        }
+      },
+      "memory": "sr-p7-artifact-portal 345MiB / 1.5GiB 2.09%",
+      "exitCode": 0,
+      "oomKilled": false,
+      "dockerHealthyObserved": true
+    },
+    "restart": {
+      "startupSeconds": 7,
+      "stopSeconds": 0,
+      "probe": {
+        "actualInstalledExecutable": true,
+        "health": 200,
+        "ready": 200,
+        "page": 200,
+        "asset": 200,
+        "csrfLogin": 200,
+        "formsRequests": 20,
+        "formsLatencyMs": {
+          "p50": 12.278995000000009,
+          "p95": 19.680665000000033,
+          "max": 20.146140000000003
+        }
+      },
+      "memory": "sr-p7-artifact-portal 268.5MiB / 1.5GiB 0.26%",
+      "exitCode": 0,
+      "oomKilled": false,
+      "dockerHealthyObserved": true
+    },
+    "cleanup": {
+      "containersRemoved": 5,
+      "volumesRemoved": true
+    }
+  },
+  "baselineImages": {
+    "runtime": {
+      "id": "sha256:a506b102f183ff960b07f5bafca4f9cfd1c92b96fe57df82e1509dfb6ee21b9a",
+      "revision": "d82dc4f864be4797451b5b3795afbf694896725f",
+      "sizeBytes": 277745678,
+      "platform": "linux/amd64",
+      "cmd": [
+        "node",
+        "app.js"
+      ]
+    },
+    "rehearsal": {
+      "id": "sha256:5996a512e8577e028fb6a84464b21713d7faa82dcba442d6ef15a3e778364651",
+      "revision": "d82dc4f864be4797451b5b3795afbf694896725f",
+      "sizeBytes": 611250957,
+      "platform": "linux/amd64",
+      "cmd": [
+        "node",
+        "app.js"
+      ]
+    }
+  },
+  "baselineSource": "d82dc4f864be4797451b5b3795afbf694896725f",
+  "source": "b232d67617527b2e2630cda0dc3cf0f065a77f48",
+  "buildMethod": "Clean d82 archive and exactly three reviewed production source files from clean b232 archive; full emitted core rebuilt inside the cached clean builder. No host emitted output or dependencies supplied.",
+  "images": {
+    "runtime": {
+      "id": "sha256:332d331772f678fc6697790716b6a5084f0a80717cbdd5f83b9641e768492ece",
+      "revision": "b232d67617527b2e2630cda0dc3cf0f065a77f48",
+      "sizeBytes": 280915453,
+      "platform": "linux/amd64",
+      "cmd": [
+        "node",
+        "app.js"
+      ]
+    },
+    "rehearsal": {
+      "id": "sha256:25725acf4be38222bdf3546e29cdd1016492ec671c19c9920c7beb8420a05b1b",
+      "revision": "b232d67617527b2e2630cda0dc3cf0f065a77f48",
+      "sizeBytes": 614420736,
+      "platform": "linux/amd64",
+      "cmd": [
+        "node",
+        "app.js"
+      ]
+    }
+  },
+  "runtimeQualification": {
+    "exitCode": 0,
+    "assets": {
+      "passing": 1,
+      "failing": 0,
+      "skipped": 0,
+      "angularApplications": 20,
+      "views": 6
+    },
+    "splitMongoComponent": {
+      "passing": 1,
+      "failing": 0,
+      "skipped": 0,
+      "engine": "8.0.34",
+      "fcv": "8.0"
+    },
+    "fresh": {
+      "startupSeconds": 13,
+      "stopSeconds": 1,
+      "probe": {
+        "actualInstalledExecutable": true,
+        "health": 200,
+        "ready": 200,
+        "page": 200,
+        "asset": 200,
+        "csrfLogin": 200,
+        "formsRequests": 20,
+        "formsLatencyMs": {
+          "p50": 12.693253000000027,
+          "p95": 16.520173999999997,
+          "max": 18.38705699999997
+        }
+      },
+      "memory": "sr-p7-artifact-portal 349.1MiB / 1.5GiB 2.12%",
+      "exitCode": 0,
+      "oomKilled": false,
+      "dockerHealthyObserved": true
+    },
+    "restart": {
+      "startupSeconds": 6,
+      "stopSeconds": 0,
+      "probe": {
+        "actualInstalledExecutable": true,
+        "health": 200,
+        "ready": 200,
+        "page": 200,
+        "asset": 200,
+        "csrfLogin": 200,
+        "formsRequests": 20,
+        "formsLatencyMs": {
+          "p50": 12.851188999999977,
+          "p95": 14.78552000000002,
+          "max": 20.155020999999977
+        }
+      },
+      "memory": "sr-p7-artifact-portal 258.4MiB / 1.5GiB 1.30%",
+      "exitCode": 0,
+      "oomKilled": false,
+      "dockerHealthyObserved": true
+    },
+    "cleanup": {
+      "containersRemoved": 5,
+      "volumesRemoved": true
+    },
+    "engine": "isolated /run/sr-p7-isolated/docker.sock, dedicated containerd namespace"
+  },
+  "cancelledIntermediateBuilds": [
+    {
+      "source": "f71e71f2e",
+      "exitCode": 130,
+      "coreBuild": "passed",
+      "consumerResult": "cancelled after the additional explicit dashboard decision input was found; no qualified image claimed"
+    }
+  ]
+}

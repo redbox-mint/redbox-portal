@@ -1,17 +1,16 @@
 # Sails retirement: v6 task list
 
 Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
-production-source designation. P7 is in progress. The complete production
-Node 26/MongoDB 8 and 9 matrix passes all four rows: 216 checks, zero failures
-or skips, including independent three-member sets and elections on both datastores.
-Institution topology/source designation remains open. Existing Playwright passes
-124/124 with no failures/skips; general Bruno passes 309 requests/553 tests/3
-assertions; dedicated OIDC passes 13 requests/17 tests. S3 passes 7 requests/12 tests after correcting its helper sandbox; all three
-Bruno profiles pass 329 requests/582 tests/3 assertions with no failures or skips.
-Root Mocha passes against compiled Express: 422 passing/10 unchanged pending/0
-failing. The final fully serialized core run passes 4485 tests/7 unchanged pending/0
-failing, with every real-Mongo case executing. SR-046 is accepted; no artifact/recovery acceptance or default promotion is claimed. Clean production
-artifacts and complete stand-in cutover/recovery remain open. P8 has not started.
+production-source designation. P7 has accepted SR-046/047/048. The complete
+local Node 26/MongoDB 8 and 9 matrix passes 216 checks, including separate
+three-member sets/elections/drain. Existing suites pass: Playwright 124, Bruno
+329 requests/582 tests/3 assertions, core Mocha 4485 passing/7 unchanged pending,
+root Mocha 422 passing/10 unchanged pending; no failures. Twelve clean packed
+artifacts pass 20 checks. Installed production images, full released-v5 stand-in
+cutover/restart/stop, operational comparisons and complete offline-capable
+checkpoint recovery pass. SR-045/049 remain partial only for the undesignated
+institution/source/topology. Internal-default promotion SR-050 is in progress;
+P8 has not started.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -710,7 +709,8 @@ Read the [design](design.md) for behavior and the
   modules into an installed production Express portal, including complete domain
   configuration/bootstrap, selected extension/provider bindings and HTTP/pages.
   The new `app.express.cjs` candidate supplies this entrypoint; its complete
-  broad-suite/artifact/topology qualification remains open. See
+  broad-suite/artifact/local-topology qualification passes. Institution qualification
+  remains SR-005/049. See
   [production composition](evidence/p7-production-composition.md).
 
   **Deliver:** existing Mocha/Bruno/Playwright and relevant package suites over the
@@ -720,9 +720,9 @@ Read the [design](design.md) for behavior and the
   failures/skips are reviewed, not hidden by partial-host coverage or broad mocks.
   Record counts, commands, artifacts and external-service fixture limitations.
 
-- [ ] **SR-047 — Qualify clean package/image artifacts and operational comparisons.**
+- [x] **SR-047 — Qualify clean package/image artifacts and operational comparisons.**
 
-  **Status:** partial; current clean production source builds all nine packages, 20 Angular applications/2 libraries and webpack, and its twelve packed artifacts pass all 20 production/offline consumer checks with strict peers/legacy=false and no failures/skips. Historical runtime component checks passed (1+1); the new production runtime/rehearsal images and full installed portal/operational comparison remain open; [artifact evidence](evidence/p7-qualification.md#sr-047--clean-packed-artifacts).
+  **Status:** done for the user-authorized qualification scope; twelve clean tarballs pass 20 strict production/offline consumer checks; all nine packages, 20 Angular apps/2 libraries and webpack build. Installed runtime/rehearsal images pass assets, split-store lifecycle, native PDF, actual portal health/ready/login/forms/restart/stop and pre-recorded v5 operational tolerances. Clean archived inputs and exact incremental-build provenance are in [artifact evidence](evidence/p7-qualification.md#sr-047--clean-packed-artifacts). Institution-specific generated applications remain SR-005/049's external gate.
 
   **Depends on:** SR-017, SR-018, SR-037, SR-044, SR-045.
   Full portal qualification also requires SR-046's production-composition prerequisite.
@@ -735,9 +735,9 @@ Read the [design](design.md) for behavior and the
   comparisons use observed baselines and recorded tolerances. Full package ESM
   conversion is not added as a promotion gate.
 
-- [ ] **SR-048 — Publish a concrete v6 upgrade and recovery procedure.**
+- [x] **SR-048 — Publish a concrete v6 upgrade and recovery procedure.**
 
-  **Status:** partial; [operator runbook](upgrade-recovery-v6.md) published with real maintenance commands and explicit production startup gate. Complete portal cutover is unexercised; [rehearsal evidence](evidence/institution-upgrade-recovery.md).
+  **Status:** done; [operator runbook](upgrade-recovery-v6.md) exercised with installed production artifact through full cutover/restart/stop, injected partial failure and complete native database/file/config/hook/image recovery; fresh empty offline-engine binary proof passes. [Executed results](evidence/institution-upgrade-recovery.md).
 
   **Depends on:** SR-020, SR-025, SR-038, SR-024, SR-045.
   Complete cutover execution also requires SR-046's production-composition prerequisite.
@@ -752,7 +752,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-049 — Rehearse a representative institution upgrade and recovery.**
 
-  **Status:** partial; released-v5/sanitized-fixture/bundled-hook stand-in checkpoint restoration/restart passed, including 24 collections/1895 documents in the final corrected-source run and binary/configuration/image recovery. Full v6 portal upgrade/restart/stop plus recovery and a designated institution/source remain open; [scope and results](evidence/institution-upgrade-recovery.md).
+  **Status:** partial solely for the undesignated real institution/source/hooks/configuration/topology and reconciliation owner. The explicitly authorized released-v5.0.4/sanitized-fixture/bundled-hook stand-in passes full installed v6 upgrade/restart/stop, all operational tolerances, deliberate partial failure and complete checkpoint restoration (25 collections/1895 documents, files/config/hooks and independently recoverable source image). [Scope and results](evidence/institution-upgrade-recovery.md).
 
   **Depends on:** SR-047, SR-048, SR-046, SR-045.
 
@@ -766,7 +766,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-050 — Promote the qualified Express host as the internal v6 default.**
 
-  **Status:** pending SR-046/047/049 acceptance; the production Express candidate is implemented and under qualification. Start scripts, Docker and dev workflow still use the actual Sails comparison host; no fixture is promoted and no P8 work has begun; [promotion gate](evidence/p7-qualification.md#sr-050--promotion-gate).
+  **Status:** in progress; complete installed stand-in qualification now passes. The user explicitly authorizes internal-default promotion in this round while SR-049's institution designation remains external. Script/Docker/dev promotion and actual default-entrypoint verification follow; P8 remains untouched. [Promotion evidence](evidence/p7-qualification.md#sr-050--internal-promotion).
 
   **Depends on:** SR-049, SR-046, SR-047.
 

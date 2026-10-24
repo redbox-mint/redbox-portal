@@ -29,7 +29,7 @@
     {
       "name": "@researchdatabox/redbox-core",
       "filename": "researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
-      "sha256": "41625584a8e429e21bcbf5d90aaa93da5910867917de89194e98374386d77b01",
+      "sha256": "1d3cb68222d99e54991af3c82fa41319982df4100bdc9f5ffa1712c522aa4940",
       "files": 2605
     },
     {
@@ -92,9 +92,9 @@
     "development": true,
     "compiledScaffold": true
   },
-  "sourceCommit": "d82dc4f864be4797451b5b3795afbf694896725f",
-  "qualificationHarnessCommit": "40b79fc3c",
-  "cleanBuild": "git archive; no host source/dist/node_modules mounts",
+  "sourceCommit": "b232d67617527b2e2630cda0dc3cf0f065a77f48",
+  "qualificationHarnessCommit": "b232d67617527b2e2630cda0dc3cf0f065a77f48",
+  "cleanBuild": "Two clean git archives; cached qualified baseline builder plus exactly three reviewed source files; core and all packed consumers rebuilt without host dependency or emitted-output input",
   "strictPeerDeps": true,
   "legacyPeerDeps": false,
   "onlineInstallPackages": 1423,
@@ -107,5 +107,11 @@
     "version": "5.111.1",
     "warnings": 9,
     "errors": 0
-  }
+  },
+  "baselineSourceCommit": "d82dc4f864be4797451b5b3795afbf694896725f",
+  "productionSourceDelta": [
+    "packages/redbox-core/src/compat/sails/dashboardConfig.ts",
+    "packages/redbox-core/src/configuration/portal.ts",
+    "packages/redbox-core/src/dashboards/DashboardConfig.ts"
+  ]
 }

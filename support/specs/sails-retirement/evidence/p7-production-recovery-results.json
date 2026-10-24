@@ -1,0 +1,176 @@
+{
+  "sourceCommit": "b232d6761",
+  "candidateImage": "sha256:25725acf4be38222bdf3546e29cdd1016492ec671c19c9920c7beb8420a05b1b [\"redbox-portal@sha256:25725acf4be38222bdf3546e29cdd1016492ec671c19c9920c7beb8420a05b1b\"]",
+  "releasedImage": "sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9 [\"qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9\"]",
+  "checkpoint": {
+    "mode": "snapshot",
+    "collections": 25,
+    "documents": 1895,
+    "gridfs": true
+  },
+  "restore": {
+    "mode": "verify",
+    "collections": 25,
+    "documents": 1895,
+    "gridfs": true
+  },
+  "migrationFailureProbe": {
+    "mode": "upgrade-components",
+    "migrations": 1,
+    "secondRun": 0,
+    "preservedRoles": 4,
+    "localPassword": true,
+    "partialFailure": true,
+    "scope": "Bundled storage migrations and deliberate partial-failure injection after the full candidate HTTP cutover."
+  },
+  "observations": {
+    "source": {
+      "startupSeconds": 216,
+      "stopSeconds": 1,
+      "memoryMiB": 554.0,
+      "probe": {
+        "mode": "probe",
+        "home": 200,
+        "localLogin": 200,
+        "formsRequests": 20,
+        "records": 2,
+        "forms": 2,
+        "workflows": 2,
+        "pages": 2,
+        "formsLatencyMs": {
+          "p50": 104.58013600000004,
+          "p95": 155.8933380000003,
+          "max": 190.72246799999994
+        }
+      },
+      "exitCode": 0,
+      "oomKilled": false
+    },
+    "candidate": {
+      "startupSeconds": 8,
+      "stopSeconds": 0,
+      "memoryMiB": 377.5,
+      "probe": {
+        "mode": "probe-v6",
+        "home": 200,
+        "localLogin": 200,
+        "formsRequests": 20,
+        "records": 2,
+        "forms": 2,
+        "workflows": 2,
+        "pages": 2,
+        "health": 200,
+        "ready": 200,
+        "freshCsrfLogin": true,
+        "sessionVersion": 6,
+        "formsLatencyMs": {
+          "p50": 20.610214999999926,
+          "p95": 25.942854000000125,
+          "max": 30.051915999999892
+        }
+      },
+      "exitCode": 0,
+      "oomKilled": false
+    },
+    "candidate-restarted": {
+      "startupSeconds": 9,
+      "stopSeconds": 0,
+      "memoryMiB": 295.8,
+      "probe": {
+        "mode": "probe-v6",
+        "home": 200,
+        "localLogin": 200,
+        "formsRequests": 20,
+        "records": 2,
+        "forms": 2,
+        "workflows": 2,
+        "pages": 2,
+        "health": 200,
+        "ready": 200,
+        "freshCsrfLogin": true,
+        "sessionVersion": 6,
+        "formsLatencyMs": {
+          "p50": 19.713518000000022,
+          "p95": 23.16069200000004,
+          "max": 23.204341
+        }
+      },
+      "exitCode": 0,
+      "oomKilled": false
+    },
+    "recovered": {
+      "startupSeconds": 14,
+      "stopSeconds": 0,
+      "memoryMiB": 425.2,
+      "probe": {
+        "mode": "probe",
+        "home": 200,
+        "localLogin": 200,
+        "formsRequests": 20,
+        "records": 2,
+        "forms": 2,
+        "workflows": 2,
+        "pages": 2,
+        "formsLatencyMs": {
+          "p50": 35.360455999999886,
+          "p95": 45.26370100000008,
+          "max": 47.28324499999985
+        }
+      },
+      "exitCode": 0,
+      "oomKilled": false
+    }
+  },
+  "operationalComparison": {
+    "baseline": "initialized/restored released v5.0.4",
+    "tolerancesRecordedBeforeCandidate": {
+      "startup": 1.5,
+      "memory": 1.5,
+      "formsP95": 2
+    },
+    "results": {
+      "candidate": {
+        "ratios": {
+          "startup": 0.5714285714285714,
+          "memory": 0.8878174976481656,
+          "formsP95": 0.5731491996202449
+        },
+        "acceptedTolerances": {
+          "startup": true,
+          "memory": true,
+          "formsP95": true
+        }
+      },
+      "candidate-restarted": {
+        "ratios": {
+          "startup": 0.6428571428571429,
+          "memory": 0.6956726246472249,
+          "formsP95": 0.5116835673689166
+        },
+        "acceptedTolerances": {
+          "startup": true,
+          "memory": true,
+          "formsP95": true
+        }
+      }
+    }
+  },
+  "scratch": "/mnt/docker-storage/sr-p7-clean-production/.tmp/recovery-b232d6761/sr-p7-recovery.5pZ6qI",
+  "institutionDesignated": false,
+  "rehearsalExitCode": 0,
+  "imageBackup": {
+    "checks": 1,
+    "platform": "linux/amd64",
+    "layers": 23,
+    "bytes": 525915136,
+    "sha256": "052c811bf18ced5437a52740ce8cfe19b867af37f14ad3b2042e80aebc461f1d",
+    "completePayload": true,
+    "freshEngineInitiallyEmpty": true,
+    "daemonNetworkNamespace": "unshare --net; no registry access",
+    "runNetwork": "none",
+    "pullPolicy": "never",
+    "releasedNode": "v24.16.0",
+    "exitCode": 0,
+    "ownedDaemonsStopped": true
+  }
+}

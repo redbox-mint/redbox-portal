@@ -2,10 +2,10 @@
 
 This runbook accompanies SR-048/SR-049. The production Express entrypoint is
 `app.express.cjs`; it composes the installed selected domains and bundled hooks.
-**P7 qualification is still in progress.** Use a qualified immutable candidate
-artifact for a cutover; the current branch is not yet approved for production.
-The recorded component recovery rehearsal does not certify a complete portal
-upgrade. Follow the evidence links for the actual acceptance scope.
+The complete installed released-v5 stand-in cutover and recovery have passed.
+Use a qualified immutable artifact and explicitly reviewed deployment inputs.
+Institution designation/qualification and P8 remain production release gates;
+this runbook does not grant production acceptance to the current branch.
 
 ## Prepare the release and checkpoint
 
@@ -204,7 +204,7 @@ connects to an institution database. Keep at least 6 GiB free in the scratch roo
 export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
 export SR_P7_SCRATCH_ROOT=/path/to/disposable/scratch
 # Immutable image ID from the clean SR-047 build; use the bundled-hook stand-in.
-export SR_P7_CANDIDATE_IMAGE="$(docker image inspect sr-p7-v6-candidate:local --format '{{.Id}}')"
+export SR_P7_CANDIDATE_IMAGE=sha256:25725acf4be38222bdf3546e29cdd1016492ec671c19c9920c7beb8420a05b1b
 bash support/integration-testing/rehearse-sails-retirement-recovery.sh
 ```
 
@@ -212,9 +212,10 @@ The scratch path is recorded in the timestamped
 `.tmp/sails-retirement/p7/recovery-*/scratch-path.txt` directory (or the explicit
 `SR_P7_RECOVERY_LOGS` directory); backups and the saved image
 are deliberately retained there for inspection. Logs are summarized in
-[the rehearsal evidence](evidence/institution-upgrade-recovery.md). Neither
-sanitized fixture recovery nor the missing institution designation replaces the
-required complete v6 portal upgrade/restart/stop and recovery acceptance.
+[the rehearsal evidence](evidence/institution-upgrade-recovery.md). That complete
+installed cutover/restart/stop and recovery passed, including a fresh offline
+source-image restore. The real institution's approved configuration, hooks,
+providers, topology and checkpoint still require their own rehearsal.
 
 ## Dashboard conversion decisions before activation
 
@@ -249,3 +250,23 @@ standard dashboard's populated cells/actions. This decision applies only to the
 bundled synthetic fixture. An institution must review its own capture and
 behavior. The rehearsal supplies that single explicit decision and retains
 all migration validation and fingerprint checks.
+
+## Verify that the saved source image contains its filesystem
+
+Save the actual deployment platform, then verify the archive before calling it
+a binary backup:
+
+```sh
+docker image save --platform linux/amd64 -o released-image.tar "$SOURCE_IMAGE_DIGEST"
+node packages/redbox-core/test/qualification/image-backup.cjs released-image.tar
+```
+
+Use the deployment's actual platform if it differs. The read-only verifier checks
+that the configuration and every referenced filesystem layer are present, and
+records the archive SHA256. The rehearsal found that a cached OCI index could be
+saved/reloaded successfully while its tar omitted all referenced blobs. A
+successful `docker load` into an engine that already has those layers is therefore
+insufficient proof. Load the verified archive into a fresh isolated engine with
+registry access unavailable, then run the loaded image with `--pull=never` and
+`--network=none` (for example, its own `node --version`). Preserve the verified
+archive and exact config/hooks with the database/files checkpoint.

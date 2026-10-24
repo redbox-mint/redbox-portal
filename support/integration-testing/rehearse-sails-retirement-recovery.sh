@@ -116,7 +116,10 @@ docker cp sr-p7-upgrade-core:/usr/bin/mongorestore "$task_state/tools/mongoresto
 "$task_state/tools/mongodump" --uri "$SR_REHEARSAL_STORAGE_URL" --archive="$task_state/checkpoint/storage.archive" > "$task_logs/storage-dump.log" 2>&1
 fixture snapshot "$task_state/checkpoint/database-manifest.json" > "$task_logs/checkpoint.log" 2>&1
 tar -C "$task_state/state" -cpf "$task_state/checkpoint/files.tar" attachments configuration
-docker image save -o "$task_state/checkpoint/released-image.tar" "$task_image"
+docker image save --platform linux/amd64 -o "$task_state/checkpoint/released-image.tar" "$task_image"
+# A cached OCI index can reload while omitting the configuration/layer payload.
+# Check the actual archive rather than relying on the current engine's cache.
+node packages/redbox-core/test/qualification/image-backup.cjs "$task_state/checkpoint/released-image.tar" > "$task_logs/image-backup-payload.json"
 docker image inspect "$task_image" --format '{{.Id}} {{json .RepoDigests}}' > "$task_logs/released-image.txt"
 cat > "$task_state/deployment.cjs" <<CONFIG
 module.exports = { datastores: { mongodb: { url: '$SR_REHEARSAL_CORE_URL' }, redboxStorage: { url: '$SR_REHEARSAL_STORAGE_URL' } }, agendaQueue: { options: { db: '$SR_REHEARSAL_CORE_URL', collection: 'agendaJobs' } } };

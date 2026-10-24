@@ -485,34 +485,129 @@ The image's actual CMD is still `["node", "app.js"]`, the Sails comparison host.
 These are green installed-component results, not full production Express startup.
 
 These historical image results do not qualify the subsequently implemented
-complete production composition. Its installed startup/readiness/shutdown,
-generated institution portal behavior and comparable request latency/memory
-still require the new clean artifact run. Packed-library or installed-component
+complete production composition. The corrected clean artifact run below supplies
+its installed startup/readiness/shutdown evidence; the full stand-in recovery
+record supplies the operational comparison. Packed-library or installed-component
 checks cannot supply those results. Released-v5 operational observations are in the recovery
 evidence; they are not an Express-versus-v5 comparison.
 
+### Corrected production artifacts and installed executable
+
+The released-checkpoint run exposed two narrow dashboard migration defects,
+fixed in **`f71e71f2e`** and **`b232d6761`**; red/green and unchanged-test evidence
+are in [production composition](p7-production-composition.md#released-checkpoint-dashboard-snapshot-regression).
+Final installed source is **`b232d67617527b2e2630cda0dc3cf0f065a77f48`**.
+
+The clean baseline builder/image comes from archived `d82dc4f864be4797451b5b3795afbf694896725f`.
+A second clean `git archive b232d6761` supplies exactly three changed production
+files: `src/dashboards/DashboardConfig.ts`, `src/configuration/portal.ts` and
+`src/compat/sails/dashboardConfig.ts` under core. A recorded `git diff` proves
+all package manifests/locks, Dockerfile and executable are identical; the other
+changes are tests, qualification drivers and evidence. No host dependency tree
+or emitted output is supplied. The temporary recipe appends to the unchanged
+baseline Dockerfile:
+
+```dockerfile
+FROM builder AS corrected_builder
+COPY --from=correction packages/redbox-core/src/dashboards/DashboardConfig.ts /opt/redbox-portal/packages/redbox-core/src/dashboards/DashboardConfig.ts
+COPY --from=correction packages/redbox-core/src/configuration/portal.ts /opt/redbox-portal/packages/redbox-core/src/configuration/portal.ts
+COPY --from=correction packages/redbox-core/src/compat/sails/dashboardConfig.ts /opt/redbox-portal/packages/redbox-core/src/compat/sails/dashboardConfig.ts
+# The new service regression case is also copied from the correction archive.
+RUN --network=none cd packages/redbox-core && npm run build
+ENV npm_config_strict_peer_deps=true npm_config_legacy_peer_deps=false
+RUN node packages/redbox-core/test/extensions/run-packed.cjs
+FROM scratch AS corrected_packed_results
+COPY --from=corrected_builder /opt/redbox-portal/.tmp/sails-retirement/p2-pack/ /
+FROM runtime AS corrected_runtime
+COPY --from=corrected_builder --chown=node:node /opt/redbox-portal/packages/redbox-core/dist ./packages/redbox-core/dist
+FROM rehearsal AS corrected_rehearsal
+COPY --from=corrected_builder --chown=node:node /opt/redbox-portal/packages/redbox-core/dist ./packages/redbox-core/dist
+```
+
+Using the two archives, `docker build --network host --build-context
+correction="$correction" --file "$recipe" --target corrected_packed_results
+--output "type=local,dest=$results" "$baseline"` passes **12 tarballs / 20 checks**,
+zero failures/skips. Strict/legacy-false online install adds **1423** packages;
+fresh offline ci adds **1419**. Then the same recipe builds targets
+`corrected_runtime` and `corrected_rehearsal` with the complete source revision
+label. This is an incremental clean build over a qualified clean baseline,
+with the complete emitted core regenerated/copied; it is not a claim that a
+post-P8 Sails-free Dockerfile has been built. The first intermediate correction
+`f71e71f2e` compiled successfully but its consumer step was deliberately cancelled
+(exit **130**) after the explicit decision-input gap was found; no image or
+consumer acceptance is claimed for that intermediate attempt.
+
+| Qualified image | Immutable local OCI index / image ID | Inspected bytes |
+| --- | --- | ---: |
+| Runtime | `sha256:332d331772f678fc6697790716b6a5084f0a80717cbdd5f83b9641e768492ece` | 280915453 |
+| Bundled PDF/demo-hook rehearsal | `sha256:25725acf4be38222bdf3546e29cdd1016492ec671c19c9920c7beb8420a05b1b` | 614420736 |
+
+Both are linux/amd64, Node **26.11.1**, npm **11.20.0**, tagged only locally;
+no package or image was published. The rehearsal retains production dependencies,
+not the builder's development tree. Its unchanged native PDF layer passed an
+actual network-disabled render: **1 check**, Puppeteer **25.0.4**,
+Chrome/Chromium **156.0.8078.47**, **19330** PDF bytes with a valid signature.
+
+The unchanged installed verifier runs on the immutable runtime ID, using the
+isolated engine `unix:///run/sr-p7-isolated/docker.sock` (its own containerd):
+
+```sh
+SR_P7_IMAGE=sha256:332d331772f678fc6697790716b6a5084f0a80717cbdd5f83b9641e768492ece \
+SR_P7_ARTIFACT_LOGS="$PWD/.tmp/sails-retirement/p7/artifact-b232d6761" \
+  bash support/integration-testing/qualify-sails-retirement-artifact.sh
+```
+
+Runner exit **0**: assets/exports **1 pass**, split-Mongo maintenance/GridFS/
+ledger/drain/retry/restart component **1 pass**, zero failures/skips. Both actual
+portal cycles pass health/readiness/home/CSS **200**, fresh CSRF login **200**,
+**20/20** forms requests and Docker healthy. Fresh/restart startup **13/6 s**;
+stop **1/0 s**, both exit **0**, no OOM. Memory snapshots **349.1/258.4 MiB**;
+forms p95 **16.520/14.786 ms**. All five containers and their anonymous volumes
+are removed. No host source/dist/node_modules mount is used for these assertions.
+[Current image manifest](p7-production-image-artifacts.json) and
+[all twelve packed hashes](p7-production-packed-artifacts.json) preserve the results.
+
+The first baseline artifact attempt failed before portal startup because Solr 10
+ignored `SOLR_PORT` and listened on 8983. Assets/component had each passed.
+Harness **`ed9fc8613`** supplies the actual `--port 29631` CLI option; no assertion
+or timeout changes. The corrected baseline and final runtime runs both pass.
+An isolated restored diagnostic later completed initialize with exit **0**, but
+its original engine briefly delayed task deletion/cleanup (`DeadlineExceeded`);
+cleanup eventually completed. No system Docker/containerd was stopped/restarted.
+Final image and recovery runs use the dedicated engine and `sr-p7-final` network.
+Raw build/runtime logs stay in ignored `.tmp/sails-retirement/p7/`.
+
 ## SR-048 / SR-049 — Upgrade and recovery
 
-The [operator runbook](../upgrade-recovery-v6.md) describes artifact/configuration/
-hook preparation, complete quiescent checkpoints, reviewed index preparation,
-one coordinated nontransactional migration runner, bootstrap/validation/activation,
-fresh login, complete restoration and external-effect reconciliation. It uses the implemented `app.express.cjs` maintenance, initialize-only and
-normal startup commands. The complete installed cutover run remains required.
+The [operator runbook](../upgrade-recovery-v6.md) is exercised end-to-end with the
+clean installed candidate: explicit index maintenance, all six migrations,
+ordered bootstrap/validation, fresh v6 CSRF login, retained records/forms/workflows,
+restart, successful stop, deliberate partial migration failure and full recovery.
+Both databases (**25 collections / 1895 documents**), all document/index hashes,
+GridFS/primary/staging/config bytes and complete source image recover. A fresh
+empty, network-isolated engine loads the actual **23-layer / 525915136-byte**
+checkpoint and runs released Node **24.16.0** with pull disabled. This supersedes
+earlier cached-engine image-recovery claims, whose thin exports omitted payloads.
 
-Executed stand-in rehearsal commands, outcomes and limits are recorded separately
-in [institution upgrade/recovery](institution-upgrade-recovery.md). Database-only
-component migration, source restart, or missing institution designation cannot
-stand in for a complete v6 portal upgrade/restart/stop and recovery acceptance.
+[Full commands/results and limitations](institution-upgrade-recovery.md) and
+[machine-readable results](p7-production-recovery-results.json) supply acceptance.
+Installed candidate/restart startup **8/9 s**, stop **0/0 s**, memory
+**377.5/295.8 MiB**, forms p95 **25.943/23.161 ms**; initialized/restored released
+v5 baseline **14 s**, **0 s**, **425.2 MiB**, **45.264 ms**. Every 20-request sample
+succeeds; all three pre-recorded tolerances below pass, no OOM/forced exits.
 
-## SR-050 — Promotion gate
+SR-047 artifact/operational checks and SR-048 procedure are accepted for the
+user-authorized stand-in. SR-045 and SR-049 remain partial only for SR-005's
+undesignated institution/source/hook/configuration/topology and reconciliation
+owner. External publisher effects were fenced, not sent and magically reversed.
 
-Promotion has not been performed. SR-046/047/049 require the integrated production
-Express artifact and full qualification. Repointing `npm start`, Docker or the
-development workflow at a fixture would make normal deployment incomplete. The
-Sails comparison entrypoint remains the actual default until those gates pass.
-P8 has not started. Missing institution designation is **not the only remaining
-gap**: the production artifact and complete installed upgrade execution also
-remain. The complete broad regression is accepted under SR-046 above.
+## SR-050 — Internal promotion
+
+The complete stand-in qualification is green. The user explicitly authorized
+internal default promotion in this round despite the remaining institution
+qualification gate. Promotion verification is in progress; P8 has not started.
+Production release acceptance still requires the institution rehearsal and P8's
+removal/final clean-artifact evidence.
 
 ### Operational comparison criteria for the production candidate
 
