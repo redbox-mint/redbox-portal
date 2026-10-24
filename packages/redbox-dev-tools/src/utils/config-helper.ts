@@ -101,9 +101,11 @@ export async function updateRoutes(params: {
     .some(el =>
       el.isKind(SyntaxKind.ObjectLiteralExpression) && getStringProp(el, 'name') === name
     );
+  const access = ['noCache', 'brandingAndPortal', 'isWebServiceAuthenticated', 'brandActor', 'checkAuth'];
+  if (!['get', 'head', 'options'].includes(method.toLowerCase())) access.push('csrf');
   if (!duplicate)
     routes.addElement(
-      `{ name: ${JSON.stringify(name)}, method: ${JSON.stringify(method.toLowerCase())}, path: ${JSON.stringify(routePath)}, handler: ${JSON.stringify(name)}, access: ['authenticated'] }`
+      `{ name: ${JSON.stringify(name)}, method: ${JSON.stringify(method.toLowerCase())}, path: ${JSON.stringify(routePath)}, handler: ${JSON.stringify(name)}, access: ${JSON.stringify(access)} }`
     );
   sourceFile.formatText();
   if (!params.dryRun) await sourceFile.save();

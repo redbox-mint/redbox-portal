@@ -89,20 +89,25 @@ export const auth: any = {
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
     expect(routesContent).to.contain('path: "/test-route"');
     expect(routesContent).to.contain('handler: "TestController-index"');
-    expect(routesContent).to.contain("access: ['authenticated']");
     const { Project } = require('ts-morph');
     const project = new Project({ useInMemoryFileSystem: true, compilerOptions: { module: 1 } });
     const source = project.createSourceFile('/routes.ts', routesContent);
     const emitted = source.getEmitOutput().getOutputFiles()[0].getText();
     const output = { exports: {} };
     new Function('exports', emitted)(output.exports);
-    const routes = (output.exports as { routes: Array<{ name: string; handler: string }> }).routes;
+    const routes = (output.exports as { routes: Array<{ name: string; handler: string; access: string[] }> }).routes;
     const { resolveExtensions } = require('@researchdatabox/redbox-core/extensions');
     const resolved = resolveExtensions([{ name: 'generated', root: tempRoot, declaration: {
       apiVersion: 1, routes, handlers: routes.map(route => ({ name: route.handler, create: () => () => {} })),
     } }]);
     expect(resolved.routes).to.have.length(1);
     expect(resolved.handlers[0].declaration.name).to.equal(resolved.routes[0].declaration.handler);
+    const { createHttpPolicies, bindHttpPolicies } = require('@researchdatabox/redbox-core/http/express');
+    const policies = createHttpPolicies({});
+    expect(() => bindHttpPolicies(routes[0].access.map(name => name.toLowerCase()), policies)).not.to.throw();
+    expect(routes[0].access.map(name => name.toLowerCase())).to.deep.equal([
+      'nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth',
+    ]);
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
     expect(authContent).to.contain("{ path: '/test-route', role: 'Admin', can_read: true }");
@@ -137,6 +142,20 @@ export const auth: any = {
     expect(routesContent).to.contain(
       'handler: "api-TestController-index"'
     );
+    const { Project } = require('ts-morph');
+    const project = new Project({ useInMemoryFileSystem: true, compilerOptions: { module: 1 } });
+    const emitted = project.createSourceFile('/routes.ts', routesContent).getEmitOutput().getOutputFiles()[0].getText();
+    const output = { exports: {} };
+    new Function('exports', emitted)(output.exports);
+    const routes = (output.exports as { routes: Array<{ access: string[] }> }).routes;
+    const { createHttpPolicies, createHttpCsrf, bindHttpPolicies } = require('@researchdatabox/redbox-core/http/express');
+    const csrf = createHttpCsrf({ origins: ['https://portal.example.invalid'] });
+    expect(routes[0].access.map(name => name.toLowerCase())).to.deep.equal([
+      'nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth', 'csrf',
+    ]);
+    expect(() => bindHttpPolicies(routes[0].access.map(name => name.toLowerCase()), {
+      ...createHttpPolicies({}), csrf: csrf.apiProtect,
+    })).not.to.throw();
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
     expect(authContent).to.contain("{ path: '/api/test', role: 'Admin', can_update: true }");

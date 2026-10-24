@@ -265,7 +265,7 @@ export class PortalHttp implements ApplicationModule {
       chain.use(
         ...http.bindHttpPolicies(
           names.map(name => name.toLowerCase()),
-          policies
+          { ...policies, csrf: csrf.apiProtect }
         )
       );
       return chain;

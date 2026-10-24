@@ -52,6 +52,13 @@ initialization, activation, migration ledger, HTTP admission, drain and close;
 the hook does not create another listener or signal owner. Protected routes need
 ordered policies; the sample status route is deliberately public.
 
+Controller, add-method and Angular-page routes use the host's ordered
+`noCache`, `brandingAndPortal`, `isWebServiceAuthenticated`, `brandActor` and
+`checkAuth` policies. Supply a path with `/:branding/:portal` parameters and
+include the generated declarations in the extension's `routes`; bind its named
+handlers. Write methods also select `csrf`: browser callers send a session token,
+and independently verified API bearer credentials receive the host's exemption.
+
 See [v6 conversion and deployment bindings](../../support/specs/sails-retirement/hook-migration-v6.md)
 and [the generated-app qualification](../redbox-core/test/qualification/generated-institution.cjs).
 The latter compiles and packs a fresh hook, supplies concrete persisted operations,
