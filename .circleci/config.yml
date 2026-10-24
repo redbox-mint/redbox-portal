@@ -158,9 +158,8 @@ jobs:
           name: Use patched Node.js from .nvmrc
           command: |
             nvm install
-            echo 'export NVM_DIR="$HOME/.nvm"' >> "$BASH_ENV"
-            echo '. "$NVM_DIR/nvm.sh"' >> "$BASH_ENV"
-            echo "nvm use $(cat .nvmrc) >/dev/null" >> "$BASH_ENV"
+            nvm use
+            printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
       - attach_workspace:
           at: /tmp
       - run:
