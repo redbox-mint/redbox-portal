@@ -826,3 +826,38 @@ Node 26.11.1, explicit core Mocha runner: `queries25-first.log` **30 passing / 0
 pending / 0 failing** after the fix; `queries25-second.log` adds search and
 integration-audit suites: **37 passing / 0 pending / 0 failing**. Source-only
 results; final full-suite/artifact qualification remains outstanding.
+
+### Page language options and owned navigation fixtures
+
+The actual committed preparePage returned disabled languages and the cimode test
+locale to the browser. After correcting an invalid empty-artifact fixture,
+`pages26-regression-actual.log` compiles the `fa6db9e12` page module in memory and
+shows the real failure (**exit 1**): both disabled French and cimode appear in
+availableLanguages. The same bounded reproduction against the working source
+passes **exit 0**, `pages26-fixed.log`.
+
+Page preparation now filters disabled/test languages, fills absent display names,
+uses configured supported-language options when no bundles exist, and safely
+falls back to English with a generic warning if language acquisition fails.
+A disabled language cannot be selected with lng. The explicit PagesHttpInput
+states the consumed supportedLngs and enabled fields; no global lookup or
+unsupported config alias was added. Existing configured selection precedence is
+unchanged.
+
+Three retired policy suites retain all 14 scenarios through actual preparePage
+and Navigation. They check explicit page locals, current-brand translation,
+awaited language preparation, menu/panel/sidebar resolution and fallback paths.
+Framework request/response local mirroring becomes the explicit locals returned
+for rendering. Navigation failure assertions use the actual owner's error logger
+rather than the deleted policy wrapper's warning logger. Throwing configuration
+getters exercise each actual resolution catch; translation fallback itself does
+not throw. An initial malformed empty-artifact fixture caused all cases to fail;
+corrected to existing absolute view/asset roots. A subsequent run exposed three
+fixture assumptions (empty panel filtering and translation fallback); corrected
+using actual valid panel items and throwing resolution inputs, without removing
+assertions or scenarios.
+
+Node 26.11.1 explicit core runner: `pages26-third.log` **14 passing / 0 pending / 0
+failing**; final assertions rerun in `pages26-fourth.log` with the next method/socket
+slice (**25 passing total / 0 pending / 0 failing**). `tsc --noEmit`: **exit 0**,
+`pages26-tsc.log` (also checks the preceding named-query fix). No skip introduced.

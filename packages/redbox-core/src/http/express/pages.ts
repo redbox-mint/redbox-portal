@@ -110,12 +110,12 @@ export interface PagesHttpInput {
     import('../../navigation/Navigation').NavigationInput['configuration'] &
       Record<string, unknown> & { webAnalytics?: { enabled?: boolean; provider?: string; trackingId?: string } }
   >;
-  languages(brand: { id: string; name?: string }): Promise<{ code: string; displayName: string }[]>;
+  languages(brand: { id: string; name?: string }): Promise<{ code: string; displayName: string; enabled?: boolean }[]>;
   translate(brand: string, language: string, key: string, context?: Record<string, unknown>): string;
   typeface(brand: string): { regularUrl: string } | null;
   readonly templateConfig: Record<string, unknown> & {
     appmode?: Record<string, unknown>;
-    i18n?: { next?: { init?: { lng?: unknown; fallbackLng?: unknown } } };
+    i18n?: { next?: { init?: { lng?: unknown; fallbackLng?: unknown; supportedLngs?: unknown } } };
   };
   readonly loginView?: string;
 }
@@ -279,8 +279,23 @@ export async function preparePage(req: Request, res: Response, input: PagesHttpI
   req.session.branding = brand.name;
   req.session.portal = portal;
   const settings = await input.settings(brand);
-  const languages = await input.languages(brand);
   const languageConfig = input.templateConfig.i18n?.next?.init;
+  let languages: { code: string; displayName: string }[];
+  try {
+    const loaded = await input.languages(brand);
+    const configured = Array.isArray(languageConfig?.supportedLngs)
+      ? languageConfig.supportedLngs.filter((code): code is string => typeof code === 'string' && code !== 'cimode')
+      : ['en'];
+    const options = loaded.length
+      ? loaded
+      : configured.map(code => ({ code, displayName: code === 'en' ? 'English' : code }));
+    languages = options
+      .filter(language => language.code !== 'cimode' && Reflect.get(language, 'enabled') !== false)
+      .map(language => ({ code: language.code, displayName: language.displayName || language.code }));
+  } catch {
+    input.log.warn('Page language options could not be loaded.');
+    languages = [{ code: 'en', displayName: 'English' }];
+  }
   const configuredFallbacks =
     typeof languageConfig?.fallbackLng === 'string'
       ? [languageConfig.fallbackLng]
