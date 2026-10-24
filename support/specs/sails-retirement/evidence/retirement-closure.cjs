@@ -226,7 +226,7 @@ for (const file of files) {
       )
         classify(node, 'Diagnostic records the absent runtime');
       else if (
-        file === 'packages/redbox-core/test/loader/retirement.test.ts' &&
+        /^(?:packages|node_modules\/@researchdatabox)\/redbox-core\/test\/loader\/retirement\.test\.ts$/.test(file) &&
         ts.isPropertyAssignment(node.parent) &&
         node.parent.name === node
       )

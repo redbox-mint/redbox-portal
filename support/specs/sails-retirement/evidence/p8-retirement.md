@@ -1612,3 +1612,17 @@ no-experimental-strip-types --require ts-node/register/transpile-only --timeout
 `npm run lint`. Logs: `webpack54-{red,hypothesis,regression-pinned-red,
 regression-pinned-green}.log`, `lint54-final.log`. Full clean artifacts and suites
 must be rebuilt/rerun after this source correction.
+
+
+### Installed-path audit classification
+
+Before image scanning, copying the existing retirement test to its real scoped
+installed-package path reproduced a scanner false positive:1 executable violation
+for that test's deliberately rejected `sails: { isHook: true }` metadata. Its
+source path was already explicitly classified. Extended only that same finite
+fixture classification to `node_modules/@researchdatabox/redbox-core/...`.
+The copied fixture now reports0violations/0forbidden dependencies. Adding an
+actual global assignment and required framework dependency still makes the audit
+fail, with1 executable violation and1 forbidden dependency entry. Logs are
+`closure55-{installed-fixture-red,installed-fixture-green,active-control-red}.json`.
+This is audit tooling only; the853d0039d application archive is unchanged.
