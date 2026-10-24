@@ -1379,18 +1379,7 @@ export class PrismaStorage implements StorageService, DatastreamService {
       classify: () => this.classifyActiveNoMatch(brand, oid, expectedRevision),
       expectedRevision,
       onDispatchError: err => {
-        this.collaborators.log.error(
-          `${this.logHeader} updateMeta() failed for oid ${oid}: ${this.getErrorMessage(err)}`
-        );
-        this.collaborators.log.error(
-          `${this.logHeader} Failed to save update to MongoDB: ${JSON.stringify({
-            error: err,
-            response,
-            brand,
-            oid,
-            user,
-          })}`
-        );
+        this.collaborators.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}.`);
       },
     });
     if (options?.expectedVersion != null && result.applicationState === 'not-applied') throw new RecordWriteConflict();
@@ -1423,8 +1412,7 @@ export class PrismaStorage implements StorageService, DatastreamService {
       return this.notApplied(response, await classify());
     } catch (err) {
       this.collaborators.log.error(
-        `${this.logHeader} could not classify a certified no-match for oid ${response.oid}: ` +
-          this.getErrorMessage(err)
+        `${this.logHeader} could not classify a certified no-match for oid ${response.oid}.`
       );
       return this.notApplied(response, 'capability-unavailable');
     }
@@ -2656,7 +2644,6 @@ export class PrismaStorage implements StorageService, DatastreamService {
       } catch (err) {
         hasFailure = true;
         this.collaborators.log.error(`${this.logHeader} Failed to upload datastream for oid '${oid}':`);
-        this.collaborators.log.error(err);
         const failureMessage = `Failed to upload: ${JSON.stringify(fileId)}, error is:\n${this.getErrorMessage(err)}`;
         response.message = _.isEmpty(response.message) ? failureMessage : `${response.message}\n${failureMessage}`;
       }
@@ -2738,7 +2725,6 @@ export class PrismaStorage implements StorageService, DatastreamService {
         await this.gridFsBucket.delete(fileDoc._id);
       } catch (err) {
         this.collaborators.log.error(`Error deleting: ${fileDoc._id}`);
-        this.collaborators.log.error(JSON.stringify(err));
       }
       this.collaborators.log.verbose(`${this.logHeader} removeDatastream() -> Delete successful.`);
     } else {
@@ -3129,8 +3115,8 @@ export class PrismaStorage implements StorageService, DatastreamService {
     if (_.isDate(params.dateFrom)) range.$gte = params.dateFrom.toISOString();
     if (_.isDate(params.dateTo)) range.$lte = params.dateTo.toISOString();
     if (Object.keys(range).length) criteria.createdAt = range;
-    return (await this.auditModel('recordaudit').where(prismaModelFilter(criteria)).all().toArray()).map(row =>
-      prismaModelRow(row)!
+    return (await this.auditModel('recordaudit').where(prismaModelFilter(criteria)).all().toArray()).map(
+      row => prismaModelRow(row)!
     );
   }
 

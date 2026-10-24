@@ -580,6 +580,16 @@ describe('MongoStorageService', function () {
     expect(recordCollection.findOneAndUpdate.notCalled).to.equal(true);
   });
 
+  it('bounds failed mutation diagnostics without serializing actor credentials', async function () {
+    const secret = 'private-mongo-mutation-provider-credential';
+    recordCollection.findOneAndUpdate.rejects(Object.assign(new Error(secret), { credentials: secret }));
+    const response = await service.updateMeta({ id: 'brand-1' }, 'oid-1', { metadata: {} }, { username: 'alice', password: secret, token: secret });
+    expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('unknown');
+    expect(owner.log.error.called).to.equal(true);
+    expect(JSON.stringify(owner.log.error.args)).not.to.include(secret);
+  });
+
   it('returns an unsuccessful response when updateMeta fails', async function () {
     recordCollection.findOneAndUpdate.rejects(new Error('update failed'));
 
@@ -589,7 +599,7 @@ describe('MongoStorageService', function () {
     expect(response.success).to.equal(false);
     expect(response.applicationState).to.equal('unknown');
     expect(String(response.message.message || response.message)).to.include('update failed');
-    expect(owner.log.error.calledWithMatch('updateMeta() failed for oid oid-1: update failed')).to.equal(true);
+    expect(owner.log.error.calledWithMatch('updateMeta() failed for oid oid-1.')).to.equal(true);
   });
 
   it('declares concurrency capability only after required indices and typed handles are ready', function () {
