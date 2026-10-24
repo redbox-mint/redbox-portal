@@ -543,8 +543,8 @@ describe('AgendaQueueService', function () {
     }
   });
 
-  it('keeps accepted completion admission after early unlock failure until the original deadline', async function () {
-    const releaseFirst = deferred(), firstDone = deferred(), releaseSecond = deferred();
+  it('keeps accepted completion admission after early unlock failure and the original deadline', async function () {
+    const releaseFirst = deferred(), firstDone = deferred(), releaseSecond = deferred(), secondDone = deferred();
     let claimed = 0, refuseUnlock = true, firstError: unknown, secondError: unknown;
     const { service, agenda } = await realQueue({
       getNextJobToRun: async name => claimed < 2
@@ -560,6 +560,7 @@ describe('AgendaQueueService', function () {
       firstDone.resolve();
       await releaseSecond.promise;
       try { await service.now('failure-completion'); } catch (error) { secondError = error; }
+      secondDone.resolve();
     });
     await until(async () => (await agenda.getRunningStats()).lockedJobs === 2);
     const shutdown = stopOwner(environment);
@@ -571,8 +572,9 @@ describe('AgendaQueueService', function () {
       expect(firstError).to.equal(undefined);
       await new Promise(resolve => setTimeout(resolve, 240));
       releaseSecond.resolve();
-      await until(() => secondError !== undefined);
-      expect(String(secondError)).to.match(/draining/);
+      await secondDone.promise;
+      expect(secondError).to.equal(undefined);
+      await assert.rejects(service.now('failure-completion'), /draining/);
     } finally {
       refuseUnlock = false; releaseFirst.resolve(); releaseSecond.resolve();
       await shutdown.catch(() => {});
@@ -892,7 +894,7 @@ describe('AgendaQueueService', function () {
     await service.activate();
     service.defineJob('held-handler', {}, async () => {
       await afterDeadline;
-      attempted = assert.rejects(service.now('held-handler'), /draining/);
+      attempted = service.now('held-handler').then(() => {});
       reportAttempt();
       await attempted;
       await held;
@@ -907,9 +909,11 @@ describe('AgendaQueueService', function () {
       expect(agenda.stop.calledOnceWith(false)).to.equal(true);
       expect(persistenceRuntime.persistenceStatus(environment).resources.length).to.be.greaterThan(0);
       expect(persistenceRuntime.persistenceReady(environment)).to.equal(false);
+      await assert.rejects(service.now('held-handler'), /draining/);
       resume();
       await attempt;
       await attempted;
+      expect(agenda.now.calledOnceWith('held-handler')).to.equal(true);
       let cleaned = false;
       const retry = persistenceRuntime.cleanupPersistence(environment).then(() => { cleaned = true; });
       void retry.catch(() => {});
