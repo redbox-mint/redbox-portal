@@ -28,18 +28,20 @@ describe('owned Companion authorization', () => {
       branding: { getBrand: async () => brand },
       portals: ['rdmp'],
       pathRules: {
-        getRulesFromPath: () => matchingRule ? [{}] as never : null,
+        getRulesFromPath: () => (matchingRule ? ([{}] as never) : null),
         canRead: () => allowed,
       },
       defaultUnauthenticatedRole: () => undefined,
       emitRequestFailure: async () => {},
-      authenticate: async () => authenticated ? { id: 'user', username: 'researcher', roles } : false,
+      authenticate: async () => (authenticated ? { id: 'user', username: 'researcher', roles } : false),
     });
     mountCompanionRoutes(app, {
       path: '/companion',
-      context: () => branding ? { branding, portal: 'rdmp' } : undefined,
+      appUrl: 'https://portal.example.edu/default/rdmp',
+      context: () => (branding ? { branding, portal: 'rdmp' } : undefined),
       uploads: { handle: (_req, res) => res.json({ delivered: true }) } as CompanionUploads,
-      policies, policyConfiguration: { '*': true },
+      policies,
+      policyConfiguration: { '*': true },
       csrf: { apiProtect: (_req, _res, next) => next() },
       audit: async () => {},
     });
@@ -73,6 +75,18 @@ describe('owned Companion authorization', () => {
     authenticated = true;
     matchingRule = true;
     expect((await request().get('/companion/drive/list/root').expect(200)).body).to.deep.equal({ delivered: true });
+  });
+  it('delivers the popup callback only after actor and brand authorization', async () => {
+    await request().get('/companion/drive/send-token').expect(401);
+    authenticated = true;
+    const response = await request().get('/companion/drive/send-token').expect(200);
+    expect(response.headers['content-type']).to.include('text/html');
+    expect(response.headers['cache-control']).to.equal('no-cache, no-store, must-revalidate');
+    expect(response.headers['content-security-policy']).to.include("default-src 'none'");
+    expect(response.text).to.include('companion-send-token-config').and.include('https://portal.example.edu');
+    expect(response.text).to.include("config.secureCookie?'; Secure':''");
+    roles = [];
+    await request().get('/companion/drive/send-token').expect(403);
   });
   it('requires brand membership even when path rules allow access', async () => {
     authenticated = true;

@@ -59,8 +59,10 @@ export async function prepareHttpMiddleware(router: Router, input: HttpMiddlewar
     runWithRequestChronicle(chronicle, next);
   });
   const parsers = [express.json({ limit: '1mb' }), express.urlencoded({ extended: true, limit: '1mb' })];
+  const exclusions = input.parserExclusions?.map(path => path.toLowerCase());
   router.use((req, res, next) => {
-    if (input.parserExclusions?.some(path => req.path === path || req.path.startsWith(path + '/'))) {
+    const requestPath = req.path.toLowerCase();
+    if (exclusions?.some(path => requestPath === path || requestPath.startsWith(path + '/'))) {
       next();
       return;
     }

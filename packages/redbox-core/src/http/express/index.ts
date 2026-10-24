@@ -97,3 +97,7 @@ export * from './pages';
 export * from './pageAssets';
 export { PageArtifacts } from '../../pages/Artifacts';
 export { Services as PageTemplates } from '../../pages/Templates';
+
+export { pageResponseHeaders, applyPageHeaders, isImmutableAssetPath, type PageHeaderInput } from './pageHeaders';
+
+export { buildCompanionSendTokenConfig, buildCompanionSendTokenHtml } from './companionSendToken';

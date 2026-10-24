@@ -178,6 +178,8 @@ export class PortalHttp implements ApplicationModule {
       if (!brand) throw new Error('Authentication brand is unavailable.');
       return brand;
     };
+    const pageHeaders = { sessionMaxAgeMs: config.redboxSession.cookie?.maxAge, noCache: config.page.noCache };
+    router.use(http.pageResponseHeaders(pageHeaders));
     const authentication = await http.prepareHttpMiddleware(router, {
       owner,
       identity,
@@ -525,6 +527,7 @@ export class PortalHttp implements ApplicationModule {
         ...shared,
         uploads: this.companion,
         path: config.companion.route,
+        appUrl: config.server.publicUrl + rootContext,
         context: req => ({
           branding: req.session.branding ?? config.auth.defaultBrand,
           portal: config.auth.defaultPortal,
@@ -563,7 +566,7 @@ export class PortalHttp implements ApplicationModule {
       reports: ref.reports.get(),
       templates: new Templates.Template(log),
     });
-    http.mountStaticPageArtifacts(router, this.artifacts);
+    http.mountStaticPageArtifacts(router, this.artifacts, pageHeaders);
     await this.portal.prepareExtensions('afterRoutes', router, server, extensionPolicies);
     http.mountPageNotFound(router, pages);
     router.use(http.httpErrorHandler(log));

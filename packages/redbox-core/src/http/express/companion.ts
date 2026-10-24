@@ -13,6 +13,7 @@ import type { PoliciesConfig } from '../../config/policies.config';
 import type { createHttpCsrf } from './csrf';
 import { httpAction } from './middleware';
 import type { AuthenticatedActor } from './identity';
+import { buildCompanionSendTokenHtml } from './companionSendToken';
 
 type ProviderOptions = Parameters<typeof Companion.app>[0];
 type Provider = ReturnType<typeof Companion.app>;
@@ -252,6 +253,8 @@ export function mountCompanionRoutes(
   input: {
     uploads: CompanionUploads;
     path: string;
+    /** Canonical browser destination supplied by the application, never request headers. */
+    appUrl?: string;
     context(req: Request): { branding: string; portal: string } | undefined;
     policies: Readonly<Record<string, RequestHandler>>;
     policyConfiguration: PoliciesConfig;
@@ -291,6 +294,20 @@ export function mountCompanionRoutes(
         (!req.body || typeof req.body.url !== 'string')
       ) {
         res.status(400).json({ message: 'Invalid URL request' });
+        return;
+      }
+      const relative = req.path.slice(input.path.length).split('/').filter(Boolean);
+      if (req.method === 'GET' && input.appUrl && relative.length === 2 && relative[1] === 'send-token') {
+        res
+          .set({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+            'Content-Security-Policy':
+              "default-src 'none'; script-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; style-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+          })
+          .type('html')
+          .send(buildCompanionSendTokenHtml(input.appUrl, relative[0]!));
         return;
       }
       const { actor, brand } = requestContext(req);

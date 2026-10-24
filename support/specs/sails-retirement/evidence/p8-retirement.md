@@ -614,3 +614,45 @@ attribution, duplicate diagnostics, malformed/throwing registrations and impleme
 identity remain. Invalid/unbound registrations fail closed without generating a
 RecordSchemaService shim; v6 does not continue startup with invalid declarations.
 No tests are skipped. Whole-suite and installed-artifact verification remain open.
+
+### Static headers, parser exclusions and Companion popup regressions
+
+Node 26.11.1/npm 11.20.0, source following `1b25aedd1`.
+The deleted HTTP-config suites now exercise actual Express middleware and declared
+PageArtifacts rather than framework globals, Skipper or generated config imports.
+Existing escape/origin/Secure-cookie, static path, cache lifetime/no-cache suffix,
+parser exclusion and hook/core specificity assertions remain.
+
+Production fixes found while retaining these assertions:
+
+- An actual fingerprinted static bundle returned `public, max-age=0`; the bounded
+  `static-headers-regression.cjs` reproduction fails exit 1 on the pre-fix tree
+  (`static-headers-regression.log`). Page headers now preserve private session-age
+  caching, configured page.noCache suffixes, immutable fingerprinted artifacts,
+  Expires/Pragma and popup-compatible COOP. Public immutable caching is applied
+  only after an actual declared static file resolves. Existing or deferred
+  Set-Cookie headers are suppressed for those public artifacts. The same real
+  HTTP reproduction passes exit 0 (`static-headers-fixed.log`).
+- Explicit raw parser mounts now match case-insensitively, agreeing with the
+  host's Express routes, and retain mount-boundary checks. First migrated run:
+  **19 passing / 1 failing**, uppercase exclusion mismatch (`http18-first.log`).
+  No assertion was weakened; the actual parser owner was fixed.
+- The inert, escaped Companion send-token popup response moved to its own module
+  and the real authenticated/membership-protected Companion mount. Production
+  supplies its canonical configured app URL. Responses retain no-cache/CSP and
+  HTTPS Secure cookies. Actor and brand authorization still precede delivery;
+  callback/shared secrets do not replace authentication.
+
+`http18-third.log`: **40 passing / 0 pending / 0 failing** (1s), HTTP-config,
+hook-static, Companion authorization and HTTP middleware suites together, explicit
+core Mocha runner. New focused assertions check public-artifact cookie suppression,
+actual authorized/denied popup delivery, HEAD/no-write behavior, malformed decoding,
+symlink boundaries and owned-route precedence. Raw parsing uses explicit concrete
+mount inputs; retired dynamic global pattern/Skipper dispatch checks are replaced
+by actual raw bytes and ordinary Express parser outputs.
+
+`core-build-http18.log`: clean incremental core build **exit 0** (Prisma
+contracts/schema, TypeScript, copied artifacts). `tsc-http18-final.log`: final
+source typecheck **exit 0** after cookie suppression. `lint-http18.log`:
+cross-package imports pass, **0 errors / 0 warnings**, 934 files. These are source
+checks, not the final clean installed artifact or whole-suite qualification.

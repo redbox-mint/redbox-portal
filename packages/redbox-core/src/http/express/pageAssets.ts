@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { applyPageHeaders, isImmutableAssetPath, type PageHeaderInput } from './pageHeaders';
 import type { Router, RequestHandler, Response } from 'express';
 import type { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import { buildKeyString } from '@researchdatabox/sails-ng-common';
@@ -131,7 +132,11 @@ export function mountBrandingDeliveryRoutes(
   return delivery;
 }
 
-export function mountStaticPageArtifacts(router: Router, artifacts: PageArtifacts): void {
+export function mountStaticPageArtifacts(
+  router: Router,
+  artifacts: PageArtifacts,
+  headers: PageHeaderInput = {}
+): void {
   const serve: RequestHandler = httpAction(async (req, res, next) => {
     if (!['GET', 'HEAD'].includes(req.method)) {
       next();
@@ -154,6 +159,16 @@ export function mountStaticPageArtifacts(router: Router, artifacts: PageArtifact
       next();
       return;
     }
+    if (isImmutableAssetPath(req.path)) {
+      // A public immutable artifact must never replay session cookies from an
+      // upstream middleware or a deferred express-session response save.
+      res.removeHeader('Set-Cookie');
+      const setHeader = res.setHeader;
+      res.setHeader = function (name, value) {
+        return name.toLowerCase() === 'set-cookie' ? this : setHeader.call(this, name, value);
+      };
+    }
+    applyPageHeaders(req, res, headers, true);
     res.set('X-Content-Type-Options', 'nosniff');
     await sendPageArtifact(res, file);
   });
