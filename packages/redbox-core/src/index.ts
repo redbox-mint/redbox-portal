@@ -163,7 +163,7 @@ export type * from './persistence/rows';
 
 export * from './transformers/ExportJSONTransformer';
 
-export * from './configmodels/ConfigModels';
+export * from './configuration/ConfigModelRegistry';
 export * from './configmodels/DashboardSettings';
 export * from './services/DashboardLegacyConversion';
 export * from './configmodels/MenuConfig';

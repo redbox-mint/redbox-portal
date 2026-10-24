@@ -427,3 +427,31 @@ Source based on `6782285e0`, Node 26.11.1/npm 11.20.0:
 
 These are source checkpoints. Full-core and final clean artifact qualification
 remain outstanding; P8 acceptance is not claimed.
+
+### Application-owned configuration fixtures and HTTP boundary checks
+
+`appconfig11-second.log`: **99 passing / 0 pending / 0 failing** (901ms),
+Node 26.11.1, source based on `0d304ca8a`; explicit core Mocha runner with
+`test/services/AppConfigService.test.ts`, `test/ConfigModels.test.ts`, and
+`test/configmodels/ConfigModels.test.ts`. First run: 97 passing/2 fixture
+failures (actual duplicate-name diagnostic and default API envelope selection),
+both corrected. No new pending cases.
+
+AppConfigs now receives explicit repositories/configuration/brand functions and
+an application-local ConfigModelRegistry. Registry tests construct independent
+instances. The unused process-wide comparison ConfigModels facade is removed;
+the package exports the actual ConfigModelRegistry. Actual Express admin and
+configuration write route owners execute the single/all/nested masking,
+masked round-trip, sanitized AWS failure and SIEM credential-target 400 cases.
+The helper fixes an authenticated brand administrator and bypasses CSRF only
+for these focused domain-response checks; real security coverage remains in
+the dedicated HTTP suites.
+
+Justified replacement of retired conventions: directory-discovered
+mergeHookConfig writes become awaited, named extension bootstrap work. The
+unchanged-secret checks still verify two writes, one AWS resolution, preserved
+references and a failed third write; initialization failure is observable.
+Duplicate-directory key scenarios become duplicate explicit bootstrap/migration
+work-name rejection before execution, with identical names permitted across
+separate stages. V6 does not scan the old branded-config directory trees.
+This checkpoint does not claim full core or final artifact qualification.

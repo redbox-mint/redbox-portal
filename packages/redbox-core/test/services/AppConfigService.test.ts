@@ -6,27 +6,42 @@ import { CreateSecretCommand, GetSecretValueCommand, SecretsManagerClient } from
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { Services as ConfigServices } from '../../src/services/ConfigService';
-import { Controllers as WebserviceControllers } from '../../src/controllers/webservice/AdminController';
+import { configurationFixtures } from '../helpers/serviceRepositories';
+import { resolveExtensions } from '../../src/extensions/resolution';
+import { ApplicationRuntime } from '../../src/application';
+import { configurationHttp } from '../helpers/configurationHttp';
+import _ from 'lodash';
 import { APP_CONFIG_SECRET_CLEAR } from '../../src/services/AppConfigService';
-import { APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
-import { ConfigModels } from '../../src/configmodels/ConfigModels';
+import { APP_CONFIG_SECRET_MASK, AppConfigs } from '../../src/services/AppConfigService';
+import { ConfigModelRegistry } from '../../src/configuration/ConfigModelRegistry';
 import {
   DoiPublishing,
   fromDoiPublishingFormModel,
   toDoiPublishingFormModel,
 } from '../../src/configmodels/DoiPublishing';
 import { normalizeSiemConfiguration, SiemConfigurationError } from '../../src/configmodels/SiemConfiguration';
-import { Controllers as AppConfigControllers } from '../../src/controllers/AppConfigController';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
+
+function makeConfig(fixture: any, models: ConfigModelRegistry, branding: any) {
+  return new AppConfigs({
+    repository: configurationFixtures(),
+    models,
+    config: fixture.config,
+    log: fixture.log,
+    availableBrands: () => branding.getAvailable(),
+    getBrand: name => branding.getBrand(name),
+  });
+}
 
 describe('AppConfigService', function () {
-  let service: Services.AppConfigs;
-  let mockSails: any;
+  let service: AppConfigs;
+  let fixture: any;
+  let models: ConfigModelRegistry;
+  let branding: any;
 
   beforeEach(function () {
-    mockSails = createMockSails();
-    setupServiceTestGlobals(mockSails);
+    fixture = createDomainFixture();
+    models = new ConfigModelRegistry();
 
     const mockDeferred = (result: unknown) => {
       const p: any = Promise.resolve(result);
@@ -41,23 +56,21 @@ describe('AppConfigService', function () {
       updateOne: sinon.stub().returns({ set: sinon.stub().callsFake(() => mockDeferred({ configData: {} })) }),
     };
 
-    (global as any).BrandingService = {
+    branding = {
       getAvailable: sinon.stub().returns(['default']),
       getBrand: sinon.stub().returns({ id: 'brand1', name: 'default' }),
     };
 
-    sinon.stub(ConfigModels, 'getConfigKeys').returns([]);
-    sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'MockModel', class: class MockModel {} });
+    sinon.stub(models, 'getConfigKeys').returns([]);
+    sinon.stub(models, 'getModelInfo').returns({ modelName: 'MockModel', class: class MockModel {} });
 
-    service = new Services.AppConfigs();
+    service = makeConfig(fixture, models, branding);
     service.brandingAppConfigMap = {};
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
     delete repositoryFixtures.AppConfig;
-    delete (global as any).BrandingService;
-    sinon.restore(); // Restores ConfigModels stubs
+    sinon.restore(); // Restores models stubs
   });
 
   describe('AWS secret storage', function () {
@@ -66,9 +79,15 @@ describe('AppConfigService', function () {
     let send: sinon.SinonStub;
 
     beforeEach(function () {
-      mockSails.config.appConfigSecrets = { provider: 'aws-secrets-manager', namePrefix: 'test/appconfig', region: 'ap-southeast-2' };
-      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
-        modelName: 'SecretModel', class: class {}, secretFields: ['connection.token']
+      fixture.config.appConfigSecrets = {
+        provider: 'aws-secrets-manager',
+        namePrefix: 'test/appconfig',
+        region: 'ap-southeast-2',
+      };
+      (models.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'SecretModel',
+        class: class {},
+        secretFields: ['connection.token'],
       });
       send = sinon.stub(SecretsManagerClient.prototype, 'send');
       send.callsFake(async (command: unknown) => {
@@ -79,12 +98,21 @@ describe('AppConfigService', function () {
     });
 
     it('stores and hydrates SIEM array credentials and literal secret headers in AWS mode', async function () {
-      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
-        modelName: 'Siem', class: class {}, secretFields: ['destinations[].token', 'destinations[].password']
+      (models.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'Siem',
+        class: class {},
+        secretFields: ['destinations[].token', 'destinations[].password'],
       });
-      const result = await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'siem', {
-        destinations: [{ id: 'collector', endpointUrl: 'https://collector.example/events', adapterType: 'http',
-          token: 'aws-secret', headers: { 'X.Private[0]': 'aws-secret', Accept: 'application/json' } }]
+      const result = await service.createOrUpdateConfig(branding.getBrand('default'), 'siem', {
+        destinations: [
+          {
+            id: 'collector',
+            endpointUrl: 'https://collector.example/events',
+            adapterType: 'http',
+            token: 'aws-secret',
+            headers: { 'X.Private[0]': 'aws-secret', Accept: 'application/json' },
+          },
+        ],
       });
       const stored = (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData;
       expect(stored.destinations[0].token).to.deep.equal(reference);
@@ -98,28 +126,42 @@ describe('AppConfigService', function () {
 
     it('replaces an unreadable old ARN in AWS mode without persisting plaintext', async function () {
       const oldArn = arn + '-deleted';
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: { $appConfigSecret: { provider: 'aws-secrets-manager', arn: oldArn } } } } }]);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        {
+          configKey: 'test',
+          configData: { connection: { token: { $appConfigSecret: { provider: 'aws-secrets-manager', arn: oldArn } } } },
+        },
+      ]);
       send.callsFake(async command => {
         if (command instanceof CreateSecretCommand) return { ARN: arn };
-        if (command instanceof GetSecretValueCommand && command.input.SecretId === oldArn) throw new Error('old secret deleted');
+        if (command instanceof GetSecretValueCommand && command.input.SecretId === oldArn)
+          throw new Error('old secret deleted');
         return { SecretString: 'replacement' };
       });
       const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
-      const result = await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'replacement' } });
+      const result = await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+        connection: { token: 'replacement' },
+      });
       expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
       expect(result).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK } });
       expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('replacement');
     });
 
     it('does not downgrade an unreadable ARN in database mode', async function () {
-      mockSails.config.appConfigSecrets.provider = 'database';
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      fixture.config.appConfigSecrets.provider = 'database';
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: { connection: { token: reference } } },
+      ]);
       send.rejects(new Error('old secret deleted'));
       try {
-        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'replacement' } });
+        await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+          connection: { token: 'replacement' },
+        });
         expect.fail('Expected rejection');
-      } catch (error) { expect(String(error)).to.contain('Unable to resolve'); }
+      } catch (error) {
+        expect(String(error)).to.contain('Unable to resolve');
+      }
       expect((repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).called).to.equal(false);
       expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
     });
@@ -130,10 +172,14 @@ describe('AppConfigService', function () {
       for (const key of ['test.connection', 'test[connection]', '__proto__', 'constructor']) {
         for (const write of [
           () => service.createConfig('default', key, { token: 'replacement' }),
-          () => service.createOrUpdateConfig(BrandingService.getBrand('default'), key, { token: 'replacement' })
+          () => service.createOrUpdateConfig(branding.getBrand('default'), key, { token: 'replacement' }),
         ]) {
-          try { await write(); expect.fail('Expected rejection'); }
-          catch (error) { expect(String(error)).to.contain('single safe configuration name'); }
+          try {
+            await write();
+            expect.fail('Expected rejection');
+          } catch (error) {
+            expect(String(error)).to.contain('single safe configuration name');
+          }
         }
       }
       expect(cache.connection.token).to.equal('original');
@@ -145,46 +191,60 @@ describe('AppConfigService', function () {
     for (const provider of ['database', 'aws-secrets-manager']) {
       for (const operation of ['create', 'update']) {
         it(`preserves masked deployment defaults on ${operation} in ${provider} mode`, async function () {
-          mockSails.config.appConfigSecrets.provider = provider;
-          mockSails.config.brandingConfigurationDefaults = { test: { connection: { token: 'aws-secret' } } };
+          fixture.config.appConfigSecrets.provider = provider;
+          fixture.config.brandingConfigurationDefaults = { test: { connection: { token: 'aws-secret' } } };
           const data = { connection: { token: APP_CONFIG_SECRET_MASK } };
-          const result = operation === 'create'
-            ? await service.createConfig('default', 'test', data)
-            : await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', data);
-          const stored = (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData;
+          const result =
+            operation === 'create'
+              ? await service.createConfig('default', 'test', data)
+              : await service.createOrUpdateConfig(branding.getBrand('default'), 'test', data);
+          const stored = (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0]
+            .configData;
           expect(stored.connection.token).to.deep.equal(provider === 'database' ? 'aws-secret' : reference);
           expect(result).to.deep.equal(data);
           expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('aws-secret');
-          expect(mockSails.config.brandingConfigurationDefaults.test.connection.token).to.equal('aws-secret');
+          expect(fixture.config.brandingConfigurationDefaults.test.connection.token).to.equal('aws-secret');
         });
       }
     }
 
     it('hydrates and masks legacy own constructor site keys while refusing new writes', async function () {
-      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'SecretModel', class: class {}, secretFields: ['sites.*.ingestion.adminToken'] });
+      (models.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'SecretModel',
+        class: class {},
+        secretFields: ['sites.*.ingestion.adminToken'],
+      });
       const data = JSON.parse(JSON.stringify({ sites: { constructor: { ingestion: { adminToken: reference } } } }));
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: data }]);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: data },
+      ]);
       const loaded = await service.loadAppConfigurationModel('brand1');
       expect(_.get(loaded, ['test', 'sites', 'constructor', 'ingestion', 'adminToken'])).to.equal('aws-secret');
       const masked = await service.getAppConfigByBrandAndKey('brand1', 'test');
       expect(_.get(masked, ['sites', 'constructor', 'ingestion', 'adminToken'])).to.equal(APP_CONFIG_SECRET_MASK);
       expect(data.sites.constructor.ingestion.adminToken).to.deep.equal(reference);
       try {
-        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { sites: { constructor: { ingestion: { adminToken: 'new' } } } });
+        await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+          sites: { constructor: { ingestion: { adminToken: 'new' } } },
+        });
         expect.fail('Expected rejection');
-      } catch (error) { expect(String(error)).to.contain('Unsafe'); }
+      } catch (error) {
+        expect(String(error)).to.contain('Unsafe');
+      }
       expect(Object.prototype).not.to.have.property('ingestion');
     });
 
     it('excludes legacy dotted rows from backend configuration, admin views and forms', async function () {
-      (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['test']);
-      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => key === 'test'
-        ? { modelName: 'SecretModel', class: class {}, schema: {}, secretFields: ['connection.token'] }
-        : undefined);
+      (models.getConfigKeys as sinon.SinonStub).returns(['test']);
+      (models.getModelInfo as sinon.SinonStub).callsFake((key: string) =>
+        key === 'test'
+          ? { modelName: 'SecretModel', class: class {}, schema: {}, secretFields: ['connection.token'] }
+          : undefined
+      );
       const rows = [
         { configKey: 'test', configData: { connection: { token: reference } } },
         { configKey: 'test.js', configData: { connection: { token: 'legacy-plaintext' } } },
-        { configKey: 'test[0]', configData: { token: 'legacy-plaintext' } }
+        { configKey: 'test[0]', configData: { token: 'legacy-plaintext' } },
       ];
       (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves(rows);
       const loaded = await service.loadAppConfigurationModel('brand1');
@@ -195,20 +255,25 @@ describe('AppConfigService', function () {
       const masked = service.getMaskedAppConfigurationForBrand('default');
       expect(_.get(masked, 'test.connection.token')).to.equal(APP_CONFIG_SECRET_MASK);
       expect(JSON.stringify(masked)).not.to.contain('legacy-plaintext');
-      const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+      const form = await service.getAppConfigForm(branding.getBrand('default'), 'test');
       expect(_.get(form.model, 'connection.token')).to.equal(APP_CONFIG_SECRET_MASK);
       expect(JSON.stringify(form.model)).not.to.contain('legacy-plaintext');
       expect([...Reflect.get(loaded, Symbol.for('redbox.appConfig.presentKeys'))]).to.deep.equal(['test']);
-      expect(mockSails.log.warn.calledWithMatch('Skipping legacy AppConfig row')).to.equal(true);
-      try { await service.getAppConfigByBrandAndKey('brand1', 'test.js'); expect.fail('Expected rejection'); }
-      catch (error) { expect(String(error)).to.contain('single safe configuration name'); }
+      expect(fixture.log.warn.calledWithMatch('Skipping legacy AppConfig row')).to.equal(true);
+      try {
+        await service.getAppConfigByBrandAndKey('brand1', 'test.js');
+        expect.fail('Expected rejection');
+      } catch (error) {
+        expect(String(error)).to.contain('single safe configuration name');
+      }
     });
 
     it('stores only an ARN in the database and masks the create response', async function () {
       const incoming = { connection: { token: 'aws-secret' }, url: 'example' };
       const result = await service.createConfig('default', 'test', incoming);
-      expect((repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData)
-        .to.deep.equal({ connection: { token: reference }, url: 'example' });
+      expect(
+        (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData
+      ).to.deep.equal({ connection: { token: reference }, url: 'example' });
       expect(result).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK }, url: 'example' });
       expect(incoming.connection.token).to.equal('aws-secret');
       const command = send.firstCall.args[0] as CreateSecretCommand;
@@ -218,11 +283,15 @@ describe('AppConfigService', function () {
 
     for (const provider of ['database', 'aws-secrets-manager']) {
       it(`preserves the ARN on unchanged plaintext resubmission in ${provider} mode`, async function () {
-        mockSails.config.appConfigSecrets.provider = provider;
-        (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+        fixture.config.appConfigSecrets.provider = provider;
+        (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+          { configKey: 'test', configData: { connection: { token: reference } } },
+        ]);
         const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
         (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
-        const result = await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'aws-secret' } });
+        const result = await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+          connection: { token: 'aws-secret' },
+        });
         expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
         expect(result).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK } });
         expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
@@ -232,20 +301,25 @@ describe('AppConfigService', function () {
     }
 
     it('makes zero AWS calls when a cached field secret is preserved or resubmitted unchanged', async function () {
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: { connection: { token: reference } } },
+      ]);
       const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
       service.brandingAppConfigMap.default = await service.loadAppConfigurationModel('brand1');
       send.resetHistory();
       for (const token of [APP_CONFIG_SECRET_MASK, 'aws-secret']) {
-        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token }, label: 'edited' });
+        await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+          connection: { token },
+          label: 'edited',
+        });
       }
       expect(send.called).to.equal(false);
     });
 
     it('updates only the saved cache key and preserves defaults and present-key metadata', async function () {
       const symbol = Symbol.for('redbox.appConfig.presentKeys');
-      mockSails.config.brandingConfigurationDefaults = { defaultOnly: { enabled: true } };
+      fixture.config.brandingConfigurationDefaults = { defaultOnly: { enabled: true } };
       await service.createConfig('default', 'first', { connection: { token: 'aws-secret' } });
       const cache = service.getAppConfigurationForBrand('default');
       const unrelated = { connection: { token: 'previously-hydrated' } };
@@ -267,7 +341,9 @@ describe('AppConfigService', function () {
 
     it('retains cache changes from concurrent saves to different keys', async function () {
       let releaseFirst: () => void;
-      const firstWritten = new Promise<void>(resolve => { releaseFirst = resolve; });
+      const firstWritten = new Promise<void>(resolve => {
+        releaseFirst = resolve;
+      });
       (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).callsFake(async data => {
         if (data.configKey === 'first') await firstWritten;
         return data;
@@ -279,25 +355,32 @@ describe('AppConfigService', function () {
       await first;
       expect(_.get(service.getAppConfigurationForBrand('default'), 'first.value')).to.equal(1);
       expect(_.get(service.getAppConfigurationForBrand('default'), 'second.value')).to.equal(2);
-      expect([...Reflect.get(service.getAppConfigurationForBrand('default'), Symbol.for('redbox.appConfig.presentKeys'))]).to.have.members(['first', 'second']);
+      expect([
+        ...Reflect.get(service.getAppConfigurationForBrand('default'), Symbol.for('redbox.appConfig.presentKeys')),
+      ]).to.have.members(['first', 'second']);
     });
 
     it('serializes same-key updates through DB replies and cache publication', async function () {
-      mockSails.config.appConfigSecrets.provider = 'database';
+      fixture.config.appConfigSecrets.provider = 'database';
       let persisted = { configKey: 'test', configData: { connection: { token: 'original-secret' }, value: 0 } };
       (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).callsFake(async () => [persisted]);
       let releaseFirst!: () => void;
-      const firstReply = new Promise<void>(resolve => { releaseFirst = resolve; });
+      const firstReply = new Promise<void>(resolve => {
+        releaseFirst = resolve;
+      });
       const set = sinon.stub().callsFake(async data => {
         persisted = { configKey: 'test', configData: data.configData };
         if (data.configData.value === 1) await firstReply;
         return persisted;
       });
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
-      const brand = BrandingService.getBrand('default');
+      const brand = branding.getBrand('default');
       const first = service.createOrUpdateConfig(brand, 'test', { connection: { token: 'new-secret' }, value: 1 });
       await new Promise(resolve => setImmediate(resolve));
-      const second = service.createOrUpdateConfig(brand, 'test', { connection: { token: APP_CONFIG_SECRET_MASK }, value: 2 });
+      const second = service.createOrUpdateConfig(brand, 'test', {
+        connection: { token: APP_CONFIG_SECRET_MASK },
+        value: 2,
+      });
       await new Promise(resolve => setImmediate(resolve));
       expect(set.callCount).to.equal(1);
       expect((repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).callCount).to.equal(1);
@@ -310,9 +393,13 @@ describe('AppConfigService', function () {
 
     it('uses the same write gate for creation and updates of one key', async function () {
       let persisted: Record<string, unknown> | undefined;
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).callsFake(async () => persisted ? [persisted] : []);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).callsFake(async () =>
+        persisted ? [persisted] : []
+      );
       let releaseCreate!: () => void;
-      const createReply = new Promise<void>(resolve => { releaseCreate = resolve; });
+      const createReply = new Promise<void>(resolve => {
+        releaseCreate = resolve;
+      });
       (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).callsFake(async data => {
         persisted = data;
         await createReply;
@@ -325,7 +412,7 @@ describe('AppConfigService', function () {
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
       const create = service.createConfig('default', 'test', { value: 1 });
       await new Promise(resolve => setImmediate(resolve));
-      const update = service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { value: 2 });
+      const update = service.createOrUpdateConfig(branding.getBrand('default'), 'test', { value: 2 });
       await new Promise(resolve => setImmediate(resolve));
       expect(set.called).to.equal(false);
       releaseCreate();
@@ -336,9 +423,14 @@ describe('AppConfigService', function () {
     });
 
     it('releases the same-key write gate after failures', async function () {
-      (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).onFirstCall().rejects(new Error('database failed'));
+      (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub)
+        .onFirstCall()
+        .rejects(new Error('database failed'));
       const first = service.createConfig('default', 'test', { value: 1 });
-      const failed = first.then(() => expect.fail('Expected rejection'), error => expect(error.message).to.equal('database failed'));
+      const failed = first.then(
+        () => expect.fail('Expected rejection'),
+        error => expect(error.message).to.equal('database failed')
+      );
       const second = service.createConfig('default', 'test', { value: 2 });
       await Promise.all([failed, second]);
       expect((repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).callCount).to.equal(2);
@@ -355,11 +447,18 @@ describe('AppConfigService', function () {
     });
 
     it('handles nested wildcard secrets with literal dynamic keys through their full lifecycle', async function () {
-      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'Sites', class: class {}, secretFields: ['sites.*.ingestion.adminToken'] });
-      const incoming = { sites: {
-        'site.one[2]': { ingestion: { adminToken: 'aws-secret', endpoint: 'one' }, enabled: true },
-        'site-two': { ingestion: { adminToken: 'aws-secret', endpoint: 'two' } }
-      }, label: 'unchanged' };
+      (models.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'Sites',
+        class: class {},
+        secretFields: ['sites.*.ingestion.adminToken'],
+      });
+      const incoming = {
+        sites: {
+          'site.one[2]': { ingestion: { adminToken: 'aws-secret', endpoint: 'one' }, enabled: true },
+          'site-two': { ingestion: { adminToken: 'aws-secret', endpoint: 'two' } },
+        },
+        label: 'unchanged',
+      };
       await service.createConfig('default', 'test', incoming);
       const stored = (repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData;
       expect(stored.sites['site.one[2]'].ingestion.adminToken).to.deep.equal(reference);
@@ -368,12 +467,14 @@ describe('AppConfigService', function () {
       const masked = service.getMaskedAppConfigurationForBrand('default', 'test') as typeof incoming;
       expect(masked.sites['site.one[2]'].ingestion.adminToken).to.equal(APP_CONFIG_SECRET_MASK);
       expect(incoming.sites['site.one[2]'].ingestion.adminToken).to.equal('aws-secret');
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: stored }]);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: stored },
+      ]);
       const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
       send.resetHistory();
       masked.sites['site-two'].ingestion.adminToken = APP_CONFIG_SECRET_CLEAR;
-      await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', masked);
+      await service.createOrUpdateConfig(branding.getBrand('default'), 'test', masked);
       const saved = set.firstCall.args[0].configData;
       expect(saved.sites['site.one[2]'].ingestion.adminToken).to.deep.equal(reference);
       expect(saved.sites['site-two'].ingestion).to.deep.equal({ endpoint: 'two' });
@@ -383,149 +484,151 @@ describe('AppConfigService', function () {
       expect(_.get(loaded, ['test', 'sites', 'site.one[2]', 'ingestion', 'adminToken'])).to.equal('aws-secret');
       for (const value of [reference, 42]) {
         try {
-          await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { sites: { 'site.one[2]': { ingestion: { adminToken: value } } } });
+          await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+            sites: { 'site.one[2]': { ingestion: { adminToken: value } } },
+          });
           expect.fail('Expected rejection');
-        } catch (error) { expect(String(error)).to.contain('must be a string'); }
+        } catch (error) {
+          expect(String(error)).to.contain('must be a string');
+        }
       }
       (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([]);
       try {
-        await service.createConfig('default', 'other', JSON.parse('{"sites":{"__proto__":{"ingestion":{"adminToken":"secret"}}}}'));
+        await service.createConfig(
+          'default',
+          'other',
+          JSON.parse('{"sites":{"__proto__":{"ingestion":{"adminToken":"secret"}}}}')
+        );
         expect.fail('Expected rejection');
-      } catch (error) { expect(String(error)).to.contain('Unsafe'); }
+      } catch (error) {
+        expect(String(error)).to.contain('Unsafe');
+      }
       expect(Object.prototype).not.to.have.property('ingestion');
     });
 
-    it('applies unchanged hook overrides repeatedly without creating secrets and catches override failures', async function () {
-      const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'appconfig-override-'));
-      const override = path.join(temporary, 'node_modules/test-hook/branded-config/default/override');
-      fs.mkdirSync(override, { recursive: true });
-      const file = path.join(override, 'test.js');
-      fs.writeFileSync(file, 'module.exports = { connection: { token: "aws-secret" } };');
-      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => key === 'test' ? { modelName: 'SecretModel', class: class {}, secretFields: ['connection.token'] } : undefined);
-      mockSails.config.appPath = temporary;
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+    it('awaits explicit hook overrides repeatedly without creating secrets and propagates override failures', async function () {
+      (models.getModelInfo as sinon.SinonStub).callsFake((key: string) =>
+        key === 'test' ? { modelName: 'SecretModel', class: class {}, secretFields: ['connection.token'] } : undefined
+      );
+      (repositoryFixtures.AppConfig.find as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: { connection: { token: reference } } },
+      ]);
       const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
-      (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
-      const globals = globalThis as unknown as Record<string, unknown>;
-      const original = globals.AppConfigService;
-      globals.AppConfigService = service;
-      try {
-        const configService = new ConfigServices.Config();
-        for (let i = 0; i < 2; i++) {
-          configService.mergeHookConfig('test-hook', {}, []);
-          await new Promise(resolve => setImmediate(resolve));
-        }
-        expect(set.callCount).to.equal(2);
-        expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
-        expect(set.secondCall.args[0].configData.connection.token).to.deep.equal(reference);
-        expect(send.callCount).to.equal(1); // Both later comparisons and hydration reuse this value.
-        set.rejects(new Error('Database unavailable'));
-        configService.mergeHookConfig('test-hook', {}, []);
-        await new Promise(resolve => setImmediate(resolve));
-        expect(mockSails.log.error.calledWithMatch('Failed to apply branded AppConfig override')).to.equal(true);
-        expect(set.callCount).to.equal(3); // Two successes, followed by the failed database attempt.
-      } finally {
-        globals.AppConfigService = original;
-        delete require.cache[file];
-        fs.rmSync(temporary, { recursive: true, force: true });
+      (repositoryFixtures.AppConfig.updateOne as sinon.SinonStub).returns({ set });
+      const run = async () => {
+        await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+          connection: { token: 'aws-secret' },
+        });
+      };
+      for (let i = 0; i < 2; i++) {
+        const app = new ApplicationRuntime(createDomainFixture(), [], {
+          extensionBootstrap: [{ name: 'test-override', run }],
+        });
+        await app.initialize();
+        await app.stop();
       }
+      expect(set.callCount).to.equal(2);
+      expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+      expect(set.secondCall.args[0].configData.connection.token).to.deep.equal(reference);
+      expect(send.callCount).to.equal(1);
+      set.rejects(new Error('Database unavailable'));
+      const failed = new ApplicationRuntime(createDomainFixture(), [], {
+        extensionBootstrap: [{ name: 'test-override', run }],
+      });
+      try {
+        await failed.initialize();
+        expect.fail('Expected startup failure');
+      } catch {
+        expect(failed.status().state).to.equal('failed');
+      }
+      await failed.stop();
+      expect(set.callCount).to.equal(3);
     });
 
-    it('rejects duplicate normalized hook keys per tree before loading files while allowing keys across trees', async function () {
-      const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'appconfig-duplicates-'));
-      const root = path.join(temporary, 'node_modules/test-hook/branded-config/default');
-      const globals = globalThis as unknown as Record<string, unknown>;
-      const original = globals.AppConfigService;
-      const create = sinon.stub().resolves({});
-      const update = sinon.stub().resolves({});
-      globals.AppConfigService = { createConfig: create, createOrUpdateConfig: update };
-      const files: string[] = [];
-      try {
-        for (const tree of ['init-only', 'override']) {
-          const directory = path.join(root, tree);
-          fs.mkdirSync(path.join(directory, 'nested'), { recursive: true });
-          const duplicateJs = path.join(directory, 'duplicate.js');
-          const duplicateJson = path.join(directory, 'nested/duplicate.json');
-          const shared = path.join(directory, 'shared.json');
-          files.push(duplicateJs, duplicateJson, shared);
-          // Collision detection must run before either conflicting module is required.
-          fs.writeFileSync(duplicateJs, 'throw new Error("conflicting module must not load");');
-          fs.writeFileSync(duplicateJson, '{"value":"duplicate"}');
-          fs.writeFileSync(shared, '{"value":"shared"}');
-        }
-        mockSails.config.appPath = temporary;
-        new ConfigServices.Config().mergeHookConfig('test-hook', {}, []);
-        await new Promise(resolve => setImmediate(resolve));
-        expect(create.calledOnce).to.equal(true);
-        expect(update.calledOnce).to.equal(true);
-        expect(create.firstCall.args.slice(0, 2)).to.deep.equal(['default', 'shared']);
-        expect(update.firstCall.args[1]).to.equal('shared');
-        expect(mockSails.log.error.callCount).to.equal(2);
-        expect(mockSails.log.error.firstCall.args[0]).to.contain("Duplicate branded AppConfig key 'duplicate'");
-        expect(mockSails.log.error.firstCall.args[0]).to.contain('init-only');
-        expect(mockSails.log.error.secondCall.args[0]).to.contain('override');
-      } finally {
-        globals.AppConfigService = original;
-        for (const file of files) delete require.cache[file];
-        fs.rmSync(temporary, { recursive: true, force: true });
+    it('rejects duplicate explicit hook work names before execution while allowing names across stages', () => {
+      const run = sinon.stub().resolves();
+      for (const stage of ['bootstrap', 'migrations']) {
+        expect(() =>
+          resolveExtensions([
+            {
+              name: 'test-hook',
+              root: '/hook',
+              declaration: {
+                apiVersion: 1,
+                [stage]: [
+                  { name: 'duplicate', run },
+                  { name: 'duplicate', run },
+                ],
+              },
+            },
+          ])
+        ).to.throw(/unique bounded names/);
+        expect(run.called).to.equal(false);
       }
+      const resolved = resolveExtensions([
+        {
+          name: 'test-hook',
+          root: '/hook',
+          declaration: { apiVersion: 1, bootstrap: [{ name: 'shared', run }], migrations: [{ name: 'shared', run }] },
+        },
+      ]);
+      expect(resolved.bootstrap).to.have.length(1);
+      expect(resolved.migrations).to.have.length(1);
+      expect(run.called).to.equal(false);
     });
 
     it('masks webservice single/all responses without mutating the cache and accepts masked round trips', async function () {
       await service.createConfig('default', 'test', { connection: { token: 'aws-secret' }, visible: true });
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference }, visible: true } }]);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: { connection: { token: reference }, visible: true } },
+      ]);
       const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
-      const globals = globalThis as unknown as Record<string, unknown>;
-      const original = globals.AppConfigService;
-      globals.AppConfigService = service;
-      Object.assign(BrandingService, { getBrandNameFromReq: () => 'default' });
-      const controller = new WebserviceControllers.Admin();
-      const respond = sinon.stub(controller, 'apiRespond');
-      try {
+      await configurationHttp(service, fixture.log, async request => {
         for (const configKey of [undefined, 'test', 'test.connection.token']) {
-          const req = { apiRequest: { params: { configKey }, body: {}, query: {} } } as unknown as Sails.Req;
-          await controller.getAppConfig(req, {} as Sails.Res);
-          const result = respond.lastCall.args[2];
-          expect(configKey === 'test.connection.token' ? result : _.get(result, configKey ? 'connection.token' : 'test.connection.token')).to.equal(APP_CONFIG_SECRET_MASK);
+          const response = await request('GET', '/default/rdmp/api/admin/config' + (configKey ? '/' + configKey : ''));
+          expect(response.status).to.equal(200);
+          const result = response.body;
+          expect(
+            configKey === 'test.connection.token'
+              ? result
+              : _.get(result, configKey ? 'connection.token' : 'test.connection.token')
+          ).to.equal(APP_CONFIG_SECRET_MASK);
           expect(JSON.stringify(result)).not.to.contain('aws-secret');
           expect(JSON.stringify(result)).not.to.contain(arn);
           expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('aws-secret');
         }
         const masked = service.getMaskedAppConfigurationForBrand('default', 'test');
         send.resetHistory();
-        await controller.setAppConfig({ apiRequest: { params: { configKey: 'test' }, body: masked, query: {} } } as unknown as Sails.Req, {} as Sails.Res);
+        expect((await request('POST', '/default/rdmp/api/admin/config/test', masked)).status).to.equal(200);
         expect(set.lastCall.args[0].configData.connection.token).to.deep.equal(reference);
         expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
-      } finally { globals.AppConfigService = original; }
+      });
     });
 
     for (const operation of ['store', 'resolve']) {
       it(`returns a generic API error for AWS ${operation} failures`, async function () {
-        const globals = globalThis as unknown as Record<string, unknown>;
-        const original = globals.AppConfigService;
-        globals.AppConfigService = service;
-        Object.assign(BrandingService, { getBrandNameFromReq: () => 'default' });
-        if (operation === 'resolve') {
-          (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
-        }
-        const error = new Error('Access denied for arn:aws:iam::123456789012:role/private; value=aws-secret');
-        error.name = 'AccessDeniedException';
+        if (operation === 'resolve')
+          (repositoryFixtures.AppConfig.find as sinon.SinonStub).resolves([
+            { configKey: 'test', configData: { connection: { token: reference } } },
+          ]);
+        const error = Object.assign(
+          new Error('Access denied for arn:aws:iam::123456789012:role/private; value=aws-secret'),
+          { name: 'AccessDeniedException' }
+        );
         send.rejects(error);
-        const controller = new WebserviceControllers.Admin();
-        const respond = sinon.stub(controller, 'sendResp');
-        sinon.stub(controller, 'getNoCacheHeaders').returns({});
-        try {
-          await controller.setAppConfig({ apiRequest: { params: { configKey: 'test' }, body: { connection: { token: operation === 'resolve' ? APP_CONFIG_SECRET_MASK : 'aws-secret' } }, query: {} } } as unknown as Sails.Req, {} as Sails.Res);
-          const response = JSON.stringify(respond.lastCall.args[2]);
-          expect(response).to.contain(`Unable to ${operation} AppConfig secret`);
-          expect(response).not.to.contain('arn:');
-          expect(response).not.to.contain('aws-secret');
-          expect(JSON.stringify(mockSails.log.error.args)).to.contain('AccessDeniedException');
-          expect(JSON.stringify(mockSails.log.error.args)).not.to.contain('arn:');
-          expect((repositoryFixtures.AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
-          expect((repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).called).to.equal(false);
-        } finally { globals.AppConfigService = original; }
+        await configurationHttp(service, fixture.log, async request => {
+          const response = await request('POST', '/default/rdmp/api/admin/config/test', {
+            connection: { token: operation === 'resolve' ? APP_CONFIG_SECRET_MASK : 'aws-secret' },
+          });
+          expect(response.status).to.equal(500);
+          expect(JSON.stringify(response.body)).to.contain('Administration operation failed');
+          expect(JSON.stringify(response.body)).not.to.contain('arn:');
+          expect(JSON.stringify(response.body)).not.to.contain('aws-secret');
+          expect(JSON.stringify(fixture.log.error.args)).not.to.contain('arn:');
+          expect((repositoryFixtures.AppConfig.create as sinon.SinonStub).called).to.equal(false);
+          expect((repositoryFixtures.AppConfig.updateOne as sinon.SinonStub).called).to.equal(false);
+        });
       });
     }
 
@@ -541,19 +644,27 @@ describe('AppConfigService', function () {
     });
 
     it('preserves masked references without creating another secret', async function () {
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: { connection: { token: reference } } },
+      ]);
       const set = sinon.stub().resolves({ configData: { connection: { token: reference } } });
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
-      await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: APP_CONFIG_SECRET_MASK } });
+      await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+        connection: { token: APP_CONFIG_SECRET_MASK },
+      });
       expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
       expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
     });
 
     it('migrates a preserved plaintext secret on the next save', async function () {
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: 'legacy-secret' } } }]);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: { connection: { token: 'legacy-secret' } } },
+      ]);
       const set = sinon.stub().resolves({ configData: { connection: { token: reference } } });
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
-      await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: APP_CONFIG_SECRET_MASK } });
+      await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+        connection: { token: APP_CONFIG_SECRET_MASK },
+      });
       expect((send.firstCall.args[0] as CreateSecretCommand).input.SecretString).to.equal('legacy-secret');
       expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
     });
@@ -588,14 +699,18 @@ describe('AppConfigService', function () {
 
     it('keeps an old ARN intact when a replacement database write fails', async function () {
       const existing = { configKey: 'test', configData: { connection: { token: reference } } };
-      service.brandingAppConfigMap = { default: { test: { connection: { token: 'aws-secret' } } } } as unknown as typeof service.brandingAppConfigMap;
+      service.brandingAppConfigMap = {
+        default: { test: { connection: { token: 'aws-secret' } } },
+      } as unknown as typeof service.brandingAppConfigMap;
       const previousCache = service.getAppConfigurationForBrand('default');
       (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([existing]);
       const set = sinon.stub().rejects(new Error('Database unavailable'));
       (repositoryFixtures.AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
       send.withArgs(sinon.match.instanceOf(CreateSecretCommand)).resolves({ ARN: arn + '-new' });
       try {
-        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'replacement' } });
+        await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+          connection: { token: 'replacement' },
+        });
         expect.fail('Expected rejection');
       } catch (error) {
         expect(String(error)).to.contain('Database unavailable');
@@ -607,12 +722,16 @@ describe('AppConfigService', function () {
     });
 
     it('resolves existing references in database mode but refuses a plaintext downgrade', async function () {
-      mockSails.config.appConfigSecrets.provider = 'database';
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      fixture.config.appConfigSecrets.provider = 'database';
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: { connection: { token: reference } } },
+      ]);
       const loaded = await service.loadAppConfigurationModel('brand1');
       expect(_.get(loaded, 'test.connection.token')).to.equal('aws-secret');
       try {
-        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'replacement' } });
+        await service.createOrUpdateConfig(branding.getBrand('default'), 'test', {
+          connection: { token: 'replacement' },
+        });
         expect.fail('Expected rejection');
       } catch (error) {
         expect(String(error)).to.contain('Enable AWS Secrets Manager');
@@ -621,7 +740,9 @@ describe('AppConfigService', function () {
     });
 
     it('fails hydration rather than returning an unresolved reference', async function () {
-      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      (repositoryFixtures.AppConfig.find as unknown as sinon.SinonStub).resolves([
+        { configKey: 'test', configData: { connection: { token: reference } } },
+      ]);
       send.rejects(new Error('AWS unavailable'));
       try {
         await service.loadAppConfigurationModel('brand1');
@@ -633,8 +754,8 @@ describe('AppConfigService', function () {
   });
 
   it('registers Oni ingestion tokens as scoped wildcard secrets', function () {
-    (ConfigModels.getModelInfo as sinon.SinonStub).restore();
-    expect(ConfigModels.getModelInfo('oniPublishing')?.secretFields).to.include('sites.*.ingestion.adminToken');
+    (models.getModelInfo as sinon.SinonStub).restore();
+    expect(models.getModelInfo('oniPublishing')?.secretFields).to.include('sites.*.ingestion.adminToken');
   });
 
   describe('bootstrap', function () {
@@ -650,7 +771,10 @@ describe('AppConfigService', function () {
     it('reports override presence and resets only the requested brand/key before reloading defaults', async function () {
       const destroy = sinon.stub().resolves([]);
       Object.assign(repositoryFixtures.AppConfig, { destroy });
-      const branding = { id: 'brand1', name: 'default' } as import('../../src/model/storage/BrandingModel').BrandingModel;
+      const branding = {
+        id: 'brand1',
+        name: 'default',
+      } as import('../../src/model/storage/BrandingModel').BrandingModel;
       const defaults = { systemMessage: { enabled: false } };
       const refresh = sinon.stub(service, 'loadAppConfigurationModel').resolves(defaults);
       const read = sinon.stub(service, 'getAppConfigByBrandAndKey').resolves({ enabled: false });
@@ -718,7 +842,7 @@ describe('AppConfigService', function () {
       class SecretModel {
         connection = { token: 'secret-token' };
       }
-      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+      (models.getModelInfo as sinon.SinonStub).returns({
         modelName: 'SecretModel',
         class: SecretModel,
         secretFields: ['connection.token'],
@@ -737,7 +861,7 @@ describe('AppConfigService', function () {
       class SecretModel {
         connection = { token: '' };
       }
-      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+      (models.getModelInfo as sinon.SinonStub).returns({
         modelName: 'SecretModel',
         class: SecretModel,
         secretFields: ['connection.token'],
@@ -772,7 +896,7 @@ describe('AppConfigService', function () {
     });
 
     it('should mask and preserve SIEM destination array secrets', async function () {
-      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+      (models.getModelInfo as sinon.SinonStub).returns({
         modelName: 'SiemConfiguration',
         class: class SiemConfigurationMock {},
         secretFields: [
@@ -863,7 +987,7 @@ describe('AppConfigService', function () {
     });
 
     it('should preserve SIEM destination secrets by id when destinations are reordered', async function () {
-      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+      (models.getModelInfo as sinon.SinonStub).returns({
         modelName: 'SiemConfiguration',
         class: class SiemConfigurationMock {},
         secretFields: ['destinations[].token'],
@@ -903,8 +1027,8 @@ describe('AppConfigService', function () {
     });
 
     it('should prefer the most recently updated duplicate config record when loading app config', async function () {
-      (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['doiPublishing']);
-      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => {
+      (models.getConfigKeys as sinon.SinonStub).returns(['doiPublishing']);
+      (models.getModelInfo as sinon.SinonStub).callsFake((key: string) => {
         if (key === 'doiPublishing') {
           return {
             modelName: 'DoiPublishing',
@@ -1002,7 +1126,7 @@ describe('AppConfigService', function () {
         }
       }
 
-      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => {
+      (models.getModelInfo as sinon.SinonStub).callsFake((key: string) => {
         if (key === 'doiPublishing') {
           return {
             modelName: 'DoiPublishing',
@@ -1066,15 +1190,18 @@ describe('AppConfigService', function () {
 });
 
 describe('SIEM secret-header policy', () => {
-  let service: Services.AppConfigs;
+  let service: AppConfigs;
+  let fixture: any;
+  let models: ConfigModelRegistry;
+  const branding = { getBrand: () => ({ id: 'brand', name: 'default' }), getAvailable: () => ['default'] };
   beforeEach(() => {
-    setupServiceTestGlobals(createMockSails());
-    service = new Services.AppConfigs();
-    sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'Siem', class: class {} });
+    fixture = createDomainFixture();
+    models = new ConfigModelRegistry();
+    service = makeConfig(fixture, models, branding);
+    sinon.stub(models, 'getModelInfo').returns({ modelName: 'Siem', class: class {} });
   });
   afterEach(() => {
     sinon.restore();
-    cleanupServiceTestGlobals();
   });
   const stored = {
     destinations: [
@@ -1118,7 +1245,7 @@ describe('SIEM secret-header policy', () => {
   });
   it('masks configured runtime defaults when there is no stored row', async () => {
     Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([]) });
-    Reflect.set(sails.config, 'brandingConfigurationDefaults', { siem: stored });
+    Reflect.set(fixture.config, 'brandingConfigurationDefaults', { siem: stored });
     const result = await service.getAppConfigByBrandAndKey('brand', 'siem');
     expect(JSON.stringify(result)).not.to.include('first-auth');
     expect(JSON.stringify(result)).not.to.include('first-key');
@@ -1142,15 +1269,16 @@ describe('SIEM secret-header policy', () => {
 describe('SIEM generic AppConfig persistence validation', () => {
   afterEach(() => {
     sinon.restore();
-    cleanupServiceTestGlobals();
   });
   it('rejects invalid configuration through the registered form adapter before writes', async () => {
-    setupServiceTestGlobals(createMockSails());
+    const fixture = createDomainFixture();
+    const models = new ConfigModelRegistry();
+    const branding = { getBrand: () => ({ id: 'brand', name: 'default' }), getAvailable: () => ['default'] };
     const create = sinon.stub();
     const updateOne = sinon.stub();
     Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([]), create, updateOne });
-    const service = new Services.AppConfigs();
-    const brand = Object.assign(createMockSails(), { id: 'brand', name: 'default' });
+    const service = makeConfig(fixture, models, branding);
+    const brand = Object.assign(createDomainFixture(), { id: 'brand', name: 'default' });
     let rejected = false;
     try {
       await service.createOrUpdateConfig(brand, 'siem', { delivery: { batchSize: -1 } });
@@ -1176,23 +1304,30 @@ describe('SIEM credentials remain bound to their collector target', () => {
       },
     ],
   };
-  let service: Services.AppConfigs;
+  let service: AppConfigs;
   let create: sinon.SinonStub;
   let updateOne: sinon.SinonStub;
   let set: sinon.SinonStub;
+  let fixture: any;
+  let models: ConfigModelRegistry;
+  const branding = { getBrand: () => ({ id: 'brand', name: 'default' }), getAvailable: () => ['default'] };
   beforeEach(() => {
-    setupServiceTestGlobals(createMockSails());
-    service = new Services.AppConfigs();
+    fixture = createDomainFixture();
+    models = new ConfigModelRegistry();
+    service = makeConfig(fixture, models, branding);
     create = sinon.stub();
     set = sinon.stub().callsFake(async data => data);
     updateOne = sinon.stub().returns({ set });
-    Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([{ configData: stored }]), create, updateOne });
+    Reflect.set(repositoryFixtures, 'AppConfig', {
+      find: sinon.stub().resolves([{ configData: stored }]),
+      create,
+      updateOne,
+    });
   });
   afterEach(() => {
     sinon.restore();
-    cleanupServiceTestGlobals();
   });
-  const brand = () => Object.assign(createMockSails(), { id: 'brand', name: 'default' });
+  const brand = () => Object.assign(createDomainFixture(), { id: 'brand', name: 'default' });
   for (const change of [
     { endpointUrl: 'https://edited.example/ingest' },
     { endpointUrl: 'https://collector.example/another-path' },
@@ -1309,7 +1444,7 @@ describe('SIEM credentials remain bound to their collector target', () => {
   });
   it('rejects moving masked runtime-default credentials on the first persisted save', async () => {
     Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([]), create, updateOne });
-    sinon.stub(service, 'getAppConfigurationForBrand').returns(Object.assign(createMockSails(), { siem: stored }));
+    sinon.stub(service, 'getAppConfigurationForBrand').returns(Object.assign(createDomainFixture(), { siem: stored }));
     let message = '';
     try {
       await service.createOrUpdateConfig(brand(), 'siem', {
@@ -1341,22 +1476,14 @@ describe('SIEM credentials remain bound to their collector target', () => {
     expect(destination.headers).to.deep.equal({ 'x-private': 'original-private' });
   });
   it('returns a 400 from generic AppConfig save for credential target validation errors', async () => {
-    const badRequest = sinon.stub();
-    const serverError = sinon.stub();
-    sails.services.appconfigservice = {
-      createOrUpdateConfig: sinon
-        .stub()
-        .rejects(new SiemConfigurationError('Replace or explicitly clear every masked credential')),
-    };
-    sails.services.brandingservice = { getBrand: () => brand() };
-    const req = Object.assign(createMockSails(), {
-      session: { branding: 'default' },
-      param: () => 'siem',
-      body: stored,
+    const save = sinon
+      .stub(service, 'createOrUpdateConfig')
+      .rejects(new SiemConfigurationError('Replace or explicitly clear every masked credential'));
+    await configurationHttp(service, fixture.log, async request => {
+      const response = await request('POST', '/default/rdmp/appconfig/form/siem', stored);
+      expect(response.status).to.equal(400);
+      expect(JSON.stringify(response.body)).to.contain('Replace or explicitly clear every masked credential');
+      sinon.assert.calledOnce(save);
     });
-    const res = Object.assign(createMockSails(), { badRequest, serverError });
-    await new AppConfigControllers.AppConfig().saveAppConfig(req, res);
-    expect(badRequest.calledOnceWith('Replace or explicitly clear every masked credential')).to.equal(true);
-    expect(serverError.called).to.equal(false);
   });
 });
