@@ -993,6 +993,23 @@ describe('UsersService', function () {
       expect(result.impact?.recordsRewritten).to.equal(1);
     });
 
+    it('rejects a shared primary before linking a locally controlled alias to foreign permissions', async () => {
+      mockUser.findOne.onFirstCall().returns(createQueryObject({
+        id: 'primary', username: 'shared-primary', accountLinkState: 'active',
+        roles: [{ id: 'local', branding: 'brand-1' }, { id: 'foreign-admin', branding: { id: 'brand-2' } }],
+      }));
+      mockUser.findOne.onSecondCall().returns(createQueryObject({
+        id: 'secondary', username: 'local-alias', accountLinkState: 'active',
+        roles: [{ id: 'local', branding: 'brand-1' }],
+      }));
+      try {
+        await UsersService.linkAccounts('primary', 'secondary', 'local-admin', 'brand-1').toPromise();
+        expect.fail('Expected shared primary rejection');
+      } catch (error) { expect((error as Error).message).to.equal('Primary user belongs to a different brand and cannot be linked here'); }
+      expect(mockUserLink.create.called).to.equal(false);
+      expect(mockUser.update.called).to.equal(false);
+    });
+
     it('should reject linking a secondary user that already has linked accounts', async function () {
       mockUser.findOne.onFirstCall().returns(
         createQueryObject({

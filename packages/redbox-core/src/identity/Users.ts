@@ -83,6 +83,16 @@ export function mergeBrandRoleIds(
   return _.uniq([...foreignRoleIds, ...brandRoleIds]);
 }
 
+/** Global account changes require authority over every membership, not just one brand. */
+export function hasForeignBrandRoles(user: UserModel | UserAttributes, brandId: string): boolean {
+  return ((user.roles ?? []) as unknown[]).some(role => {
+    if (!role || typeof role !== 'object') return true;
+    const branding = Reflect.get(role, 'branding');
+    const id = branding && typeof branding === 'object' ? Reflect.get(branding, 'id') : branding;
+    return String(id ?? '') !== brandId;
+  });
+}
+
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
   type DoneCallback = (err: unknown, user?: unknown, info?: unknown) => void;
@@ -1123,6 +1133,9 @@ export namespace Services {
             throw new UserAccountLinkError('Primary user must already belong to the current brand');
           }
 
+          if (hasForeignBrandRoles(primaryUser, brandId)) {
+            throw new UserAccountLinkError('Primary user belongs to a different brand and cannot be linked here');
+          }
           const secondaryBrandRoles = this.getRolesForBrand(secondaryUserObj, brandId);
           const secondaryForeignRoles = _.filter((secondaryUserObj.roles as unknown[]) ?? [], (role: unknown) => {
             const roleObj = role as AnyRecord;

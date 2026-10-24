@@ -2,7 +2,7 @@ import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import { randomUUID } from 'node:crypto';
 import type { RequestHandler, Router } from 'express';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
-import type { Services as Users } from '../../identity/Users';
+import { hasForeignBrandRoles, type Services as Users } from '../../identity/Users';
 import type { Services as Roles } from '../../identity/Roles';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 import { userApiRoutes } from '../../api-routes/groups/users';
@@ -183,6 +183,11 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
             throw new IdentityAdministrationError(400, 'Invalid user identifier');
           const target = userId ? await input.users.requireUserInBrand(userId, brand.id) : null;
           if (userId && !target) throw new IdentityAdministrationError(403, 'Unauthorized cross-brand access');
+          if (
+            target && userId !== actor.id &&
+            ['updateUser', 'disableUser', 'enableUser', 'generateAPIToken', 'revokeAPIToken'].includes(action) &&
+            hasForeignBrandRoles(target, brand.id)
+          ) throw new IdentityAdministrationError(403, 'Shared account changes require the account owner');
           if (action === 'disableUser' || action === 'enableUser') {
             if (action === 'disableUser' && userId === actor.id)
               throw new IdentityAdministrationError(400, 'You cannot disable your own account');

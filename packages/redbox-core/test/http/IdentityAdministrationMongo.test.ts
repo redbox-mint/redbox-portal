@@ -308,6 +308,7 @@ describe('owned identity and query administration on Mongo HTTP', function () {
   let cookie = '',
     token = '',
     targetId = '',
+    sharedId = '',
     foreignId = '',
     aliasId = '',
     foreignRoleId = '';
@@ -322,7 +323,13 @@ describe('owned identity and query administration on Mongo HTTP', function () {
         name: 'Managed',
         email: 'managed@example.invalid',
         type: 'local',
-        roles: [f.reader.id, foreignRole.id],
+        roles: [f.reader.id],
+      })
+    ).id;
+    sharedId = (
+      await f.identities.create('user', {
+        username: 'shared-managed', name: 'Shared managed', email: 'shared@example.invalid',
+        type: 'local', roles: [f.reader.id, foreignRole.id],
       })
     ).id;
     foreignId = (
@@ -361,7 +368,7 @@ describe('owned identity and query administration on Mongo HTTP', function () {
   });
   const session = () => ({ Cookie: cookie, 'X-CSRF-Token': token });
   it('returns only the requested brand audit events for a shared user through both aliases', async () => {
-    const target = { id: targetId, username: 'managed' };
+    const target = { id: sharedId, username: 'shared-managed' };
     const own = await f.identities.create('useraudit', {
       user: target,
       action: 'login',
@@ -375,7 +382,7 @@ describe('owned identity and query administration on Mongo HTTP', function () {
     const foreignAdmin = await f.identities.create('useraudit', {
       user: { username: 'foreign-admin' },
       action: 'disable-user',
-      additionalContext: JSON.stringify({ userId: targetId, brandId: f.otherBrand.id, detail: 'FOREIGN ADMIN' }),
+      additionalContext: JSON.stringify({ userId: sharedId, brandId: f.otherBrand.id, detail: 'FOREIGN ADMIN' }),
     });
     const unscoped = await f.identities.create('useraudit', {
       user: target,
@@ -383,7 +390,7 @@ describe('owned identity and query administration on Mongo HTTP', function () {
       additionalContext: JSON.stringify({ detail: 'UNKNOWN BRAND' }),
     });
     for (const prefix of ['/api', '/admin']) {
-      const response = await fetch(f.url + base + prefix + '/users/' + targetId + '/audit', { headers: f.headers });
+      const response = await fetch(f.url + base + prefix + '/users/' + sharedId + '/audit', { headers: f.headers });
       assert.equal(response.status, 200);
       const text = await response.text();
       const data = JSON.parse(text);
@@ -479,7 +486,7 @@ describe('owned identity and query administration on Mongo HTTP', function () {
     assert.equal((await vocabRequest(base + '/api/vocabulary/' + id, undefined, 'DELETE')).response.status, 204);
     assert.equal(await f.vocabulary.getById(id), null);
   });
-  it('creates, retries and updates users without exposing secrets or replacing foreign memberships', async () => {
+  it('creates, retries and updates users without exposing secrets', async () => {
     const payload = {
       username: 'created',
       name: 'Created',
@@ -505,7 +512,7 @@ describe('owned identity and query administration on Mongo HTTP', function () {
     assert.equal((await persisted())!.name, 'Changed');
     assert.deepEqual(
       ((await persisted())!.roles ?? []).map(role => (role as { id: string }).id).sort(),
-      [f.role.id, foreignRoleId].sort()
+      [f.role.id].sort()
     );
   });
   it('disables/enables through the selected override and both aliases, persisting audits and repeat semantics', async () => {
@@ -522,6 +529,27 @@ describe('owned identity and query administration on Mongo HTTP', function () {
     assert.equal((await request(base + '/api/users/' + f.user.id + '/disable')).response.status, 400);
     assert.equal((await request(base + '/api/users/' + aliasId + '/disable')).response.status, 400);
     assert.equal((await request(base + '/api/users/' + aliasId + '/enable')).response.status, 400);
+  });
+  it('rejects global account changes to a shared target through every admin/API alias', async () => {
+    const before = await persisted(sharedId);
+    for (const [route, body, headers] of [
+      ['/api/users/token/generate?id=' + sharedId, {}, f.headers],
+      ['/api/users/token/revoke?id=' + sharedId, {}, f.headers],
+      ['/admin/users/genKey', { userid: sharedId }, session()],
+      ['/admin/users/revokeKey', { userid: sharedId }, session()],
+      ...['disable', 'enable'].flatMap(action => [
+        ['/api/users/' + sharedId + '/' + action, {}, f.headers],
+        ['/admin/users/' + sharedId + '/' + action, {}, session()],
+      ]),
+      ['/api/users', { id: sharedId, name: 'Stolen', password: 'replacement', email: 'attacker@example.invalid' }, f.headers],
+      ['/admin/users/update', { userid: sharedId, details: { name: 'Stolen', password: 'replacement' } }, session()],
+    ] as Array<[string, unknown, Record<string, string>]>) {
+      const result = await request(base + route, body, 'POST', headers);
+      assert.equal(result.response.status, 403, route + ': ' + JSON.stringify(result.body));
+    }
+    assert.deepEqual(await persisted(sharedId), before);
+    assert.equal((await request(base + '/admin/roles/user', { userid: sharedId, roles: ['Researcher'] }, 'POST', session())).response.status, 200);
+    assert.deepEqual(((await persisted(sharedId))!.roles ?? []).map(role => (role as { id: string }).id).sort(), [f.reader.id, foreignRoleId].sort());
   });
   it('generates/revokes hashed API tokens through API, admin and self routes', async () => {
     for (const [generate, revoke, body, headers] of [
@@ -567,12 +595,12 @@ describe('owned identity and query administration on Mongo HTTP', function () {
     );
     assert.equal(updated.response.status, 200);
     assert.equal(
-      (await request(base + '/admin/roles/user', { userid: targetId, roles: ['Admin'] }, 'POST', session())).response
+      (await request(base + '/admin/roles/user', { userid: sharedId, roles: ['Admin'] }, 'POST', session())).response
         .status,
       200
     );
     assert.deepEqual(
-      ((await persisted())!.roles ?? []).map(role => (role as { id: string }).id).sort(),
+      ((await persisted(sharedId))!.roles ?? []).map(role => (role as { id: string }).id).sort(),
       [f.role.id, foreignRoleId].sort()
     );
     assert.equal(

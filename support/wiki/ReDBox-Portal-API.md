@@ -115,3 +115,10 @@ schema. See [Generated Reference Documentation](Generated-Reference-Documentatio
 for regeneration commands and
 [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations)
 for rollout and repair procedures.
+
+Global account mutations (profile/password, enable/disable and API token
+rotation/revocation) cannot be performed by a brand administrator on another
+account with foreign brand memberships. The account owner can use the existing
+self routes. Brand role edits remain scoped to the selected brand and preserve
+foreign memberships. Account linking requires both accounts to have no foreign
+memberships because an alias authenticates as its global primary account.
