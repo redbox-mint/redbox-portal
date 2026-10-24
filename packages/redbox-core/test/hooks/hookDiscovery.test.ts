@@ -1,151 +1,52 @@
-let expect: Chai.ExpectStatic;
-import fs from 'fs';
-import { createRequire } from 'module';
-import os from 'os';
-import path from 'path';
-import sinon from 'sinon';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { discoverInstalledExtensions, loadExtensions } from '../../src/extensions';
 
-const testRequire = createRequire(__filename);
-
-describe('hookDiscovery', function () {
-  before(async function () {
-    const chai = await import('chai');
-    expect = chai.expect;
-  });
+describe('installed extension discovery and precedence', () => {
   let appPath: string;
-  let discoverRedboxHookPackages: typeof import('../../src/hooks/hookDiscovery').discoverRedboxHookPackages;
-  let getHookPrecedenceOrder: typeof import('../../src/hooks/hookDiscovery').getHookPrecedenceOrder;
-  let getHookProcessingOrder: typeof import('../../src/hooks/hookDiscovery').getHookProcessingOrder;
-  let readHookLoadPriority: typeof import('../../src/hooks/hookDiscovery').readHookLoadPriority;
-
-  function writeJson(filePath: string, value: unknown): void {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+  const dependencies = { 'redbox-hook-alpha': '1.0.0', 'redbox-hook-beta': '1.0.0', 'not-a-hook': '1.0.0' };
+  const devDependencies = { '@scope/redbox-hook-gamma': '1.0.0' };
+  async function manifest(priority?: unknown) {
+    await fs.writeFile(path.join(appPath, 'package.json'), JSON.stringify({ dependencies, devDependencies, ...(priority === undefined ? {} : { hookLoadPriority: priority }) }));
   }
-
-  function writeFile(filePath: string, content = ''): void {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, content);
-  }
-
-  function createHook(packageName: string, sailsConfig: Record<string, unknown> = { isHook: true }): string {
-    const hookRoot = path.join(appPath, 'node_modules', packageName);
-    writeJson(path.join(hookRoot, 'package.json'), {
-      name: packageName,
-      main: 'index.js',
-      sails: sailsConfig,
-    });
-    writeFile(path.join(hookRoot, 'index.js'), 'module.exports = {};');
-    return hookRoot;
-  }
-
-  beforeEach(function () {
-    ({
-      discoverRedboxHookPackages,
-      getHookPrecedenceOrder,
-      getHookProcessingOrder,
-      readHookLoadPriority,
-    } = testRequire('../../src/hooks/hookDiscovery'));
-
-    appPath = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-discovery-')));
-    writeJson(path.join(appPath, 'package.json'), {
-      dependencies: {
-        'redbox-hook-alpha': '1.0.0',
-        'redbox-hook-beta': '1.0.0',
-        'not-a-hook': '1.0.0',
-      },
-      devDependencies: {
-        '@scope/redbox-hook-gamma': '1.0.0',
-      },
-    });
+  beforeEach(async () => {
+    appPath = await fs.mkdtemp(path.join(os.tmpdir(), 'redbox-extension-discovery-'));
+    await manifest();
+    for (const name of [...Object.keys(dependencies), ...Object.keys(devDependencies)]) {
+      const root = path.join(appPath, 'node_modules', name);
+      await fs.mkdir(root, { recursive: true });
+      await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({ name, version: '1.0.0', main: 'index.js', ...(name === 'not-a-hook' ? {} : { redbox: { extension: '.' } }) }));
+      await fs.writeFile(path.join(root, 'index.js'), 'exports.registerRedboxExtension = async () => ({ apiVersion: 1, views: ["views"] });');
+    }
   });
-
-  afterEach(function () {
-    fs.rmSync(appPath, { recursive: true, force: true });
-    sinon.restore();
+  afterEach(async () => fs.rm(appPath, { recursive: true, force: true }));
+  it('preserves descending-name lookup and explicit development allowlisting', async () => {
+    const production = await loadExtensions(appPath);
+    assert.deepEqual(production.providers.map(p => p.name), ['redbox-hook-alpha', 'redbox-hook-beta']);
+    const development = await loadExtensions(appPath, { includeDevDependencies: true });
+    assert.deepEqual(development.providers.map(p => p.name), ['@scope/redbox-hook-gamma', 'redbox-hook-alpha', 'redbox-hook-beta']);
+    assert.deepEqual(development.views, ['redbox-hook-beta', 'redbox-hook-alpha', '@scope/redbox-hook-gamma'].map(name => path.join(appPath, 'node_modules', name, 'views')));
   });
-
-  it('preserves existing precedence when hookLoadPriority is missing', function () {
-    createHook('redbox-hook-alpha');
-    createHook('redbox-hook-beta');
-    createHook('@scope/redbox-hook-gamma');
-    createHook('not-a-hook', {});
-
-    const hooks = discoverRedboxHookPackages(appPath);
-
-    expect(hooks.map(hook => hook.name)).to.deep.equal([
-      'redbox-hook-beta',
-      'redbox-hook-alpha',
-      '@scope/redbox-hook-gamma',
-    ]);
-    expect(getHookProcessingOrder(appPath).map(hook => hook.name)).to.deep.equal([
-      '@scope/redbox-hook-gamma',
-      'redbox-hook-alpha',
-      'redbox-hook-beta',
-    ]);
+  it('places listed hooks first for lookup and unlisted hooks after them', async () => {
+    await manifest(['redbox-hook-alpha', '@scope/redbox-hook-gamma']);
+    const result = await loadExtensions(appPath, { includeDevDependencies: true });
+    assert.deepEqual(result.providers.map(p => p.name), ['redbox-hook-beta', '@scope/redbox-hook-gamma', 'redbox-hook-alpha']);
+    assert.deepEqual(result.views, ['redbox-hook-alpha', '@scope/redbox-hook-gamma', 'redbox-hook-beta'].map(name => path.join(appPath, 'node_modules', name, 'views')));
   });
-
-  it('returns listed hooks first and keeps unlisted hooks after them', function () {
-    writeJson(path.join(appPath, 'package.json'), {
-      hookLoadPriority: ['redbox-hook-alpha', '@scope/redbox-hook-gamma'],
-      dependencies: {
-        'redbox-hook-alpha': '1.0.0',
-        'redbox-hook-beta': '1.0.0',
-      },
-      devDependencies: {
-        '@scope/redbox-hook-gamma': '1.0.0',
-      },
-    });
-    createHook('redbox-hook-alpha');
-    createHook('redbox-hook-beta');
-    createHook('@scope/redbox-hook-gamma');
-
-    expect(getHookPrecedenceOrder(appPath).map(hook => hook.name)).to.deep.equal([
-      'redbox-hook-alpha',
-      '@scope/redbox-hook-gamma',
-      'redbox-hook-beta',
-    ]);
-    expect(getHookProcessingOrder(appPath).map(hook => hook.name)).to.deep.equal([
-      'redbox-hook-beta',
-      '@scope/redbox-hook-gamma',
-      'redbox-hook-alpha',
-    ]);
+  it('deduplicates valid priorities and rejects invalid or undiscovered entries', async () => {
+    await manifest(['redbox-hook-alpha', 'redbox-hook-alpha']);
+    assert.deepEqual((await discoverInstalledExtensions(appPath)).hookLoadPriority, ['redbox-hook-alpha']);
+    for (const entry of ['', 42]) {
+      await manifest(['redbox-hook-alpha', entry]);
+      await assert.rejects(loadExtensions(appPath), /hookLoadPriority must contain package names/);
+    }
+    await manifest(['redbox-hook-missing']);
+    await assert.rejects(loadExtensions(appPath), /undiscovered extension/);
   });
-
-  it('warns for invalid, duplicate, and unknown hookLoadPriority entries', function () {
-    const warn = sinon.stub(console, 'warn');
-    writeJson(path.join(appPath, 'package.json'), {
-      hookLoadPriority: ['redbox-hook-alpha', 'redbox-hook-alpha', '', 42, 'redbox-hook-missing'],
-      dependencies: {
-        'redbox-hook-alpha': '1.0.0',
-      },
-    });
-    createHook('redbox-hook-alpha');
-
-    expect(readHookLoadPriority(appPath)).to.deep.equal(['redbox-hook-alpha', 'redbox-hook-missing']);
-    expect(getHookPrecedenceOrder(appPath).map(hook => hook.name)).to.deep.equal(['redbox-hook-alpha']);
-    expect(warn.calledWith('[redbox-loader:warn] Duplicate hookLoadPriority entry "redbox-hook-alpha"; keeping first occurrence.')).to.be.true;
-    expect(warn.calledWith('[redbox-loader:warn] Ignoring invalid hookLoadPriority entry ""; expected a package name string.')).to.be.true;
-    expect(warn.calledWith('[redbox-loader:warn] Ignoring invalid hookLoadPriority entry 42; expected a package name string.')).to.be.true;
-    expect(warn.calledWith('[redbox-loader:warn] hookLoadPriority references "redbox-hook-missing", but it is not an installed ReDBox hook.')).to.be.true;
-  });
-
-  it('warns and behaves as empty when hookLoadPriority is not an array', function () {
-    const warn = sinon.stub(console, 'warn');
-    writeJson(path.join(appPath, 'package.json'), {
-      hookLoadPriority: 'redbox-hook-alpha',
-      dependencies: {
-        'redbox-hook-alpha': '1.0.0',
-        'redbox-hook-beta': '1.0.0',
-      },
-    });
-    createHook('redbox-hook-alpha');
-    createHook('redbox-hook-beta');
-
-    expect(getHookPrecedenceOrder(appPath).map(hook => hook.name)).to.deep.equal([
-      'redbox-hook-beta',
-      'redbox-hook-alpha',
-    ]);
-    expect(warn.calledWith('[redbox-loader:warn] package.json hookLoadPriority must be an array of package names; ignoring value.')).to.be.true;
+  it('rejects a non-array priority before application acquisition', async () => {
+    await manifest('redbox-hook-alpha');
+    await assert.rejects(loadExtensions(appPath), /hookLoadPriority must contain package names/);
   });
 });

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm, access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { assertRetiredModelSurfaces } from '../../src/loader/retirement';
+import { createHash } from 'node:crypto';
+import { discoverInstalledExtensions } from '../../src/extensions/loading';
+const { reconcile } = require('../../../../support/migrations/retire-v5-shims.cjs');
 import { assertPersistenceConfiguration } from '../../src/persistence/selection';
 import { resolveDatastore } from '../../src/persistence/mongodb/configuration';
 
@@ -20,53 +22,47 @@ describe('retired persistence surfaces', () => {
     await writeFile(join(directory, 'package.json'), '{}');
   });
   afterEach(async () => rm(directory, { recursive: true, force: true }));
-  it('removes only exact generated model and obsolete config shims on repeated starts', async () => {
-    await writeFile(join(directory, 'api/models/User.js'), generatedModel());
-    for (const name of ['models', 'orm', 'persistence'])
-      await writeFile(join(directory, `config/${name}.js`), generatedConfig(name));
-    await assertRetiredModelSurfaces(directory);
-    await assertRetiredModelSurfaces(directory);
-    await assert.rejects(access(join(directory, 'api/models/User.js')));
-    for (const name of ['models', 'orm', 'persistence'])
-      await assert.rejects(access(join(directory, `config/${name}.js`)));
+  async function manifest(files: string[]) {
+    return { files: await Promise.all(files.map(async file => ({
+      file, generatedHeader: true, tracked: false,
+      sha256: createHash('sha256').update(await readFile(join(directory, file))).digest('hex'),
+    }))) };
+  }
+  it('removes exact generated model and obsolete config shims only through explicit offline reconciliation', async () => {
+    const files = ['api/models/User.js', ...['models', 'orm', 'persistence'].map(name => `config/${name}.js`)];
+    await writeFile(join(directory, files[0]), generatedModel());
+    for (const name of ['models', 'orm', 'persistence']) await writeFile(join(directory, `config/${name}.js`), generatedConfig(name));
+    const inventory = await manifest(files);
+    assert.deepEqual((await reconcile(directory, inventory)).map((result: { state: string }) => result.state), files.map(() => 'exact'));
+    for (const file of files) await access(join(directory, file));
+    assert.deepEqual((await reconcile(directory, inventory, true)).map((result: { state: string }) => result.state), files.map(() => 'removed'));
+    for (const file of files) await assert.rejects(access(join(directory, file)));
+    assert.deepEqual((await reconcile(directory, inventory, true)).map((result: { state: string }) => result.state), files.map(() => 'missing'));
   });
   for (const kind of ['custom-model', 'edited-model', 'edited-config']) {
-    it(`preserves ${kind} and refuses startup with institution guidance`, async () => {
-      const filename = join(directory, kind === 'edited-config' ? 'config/models.js' : 'api/models/Institution.js');
-      const source =
-        kind === 'custom-model'
-          ? 'module.exports = { custom: true };\n'
-          : (kind === 'edited-config' ? generatedConfig('models') : generatedModel('Institution')) +
-            '// institution edit\n';
-      await writeFile(filename, source);
-      await assert.rejects(assertRetiredModelSurfaces(directory), /preserved.*(?:migrate|Migrate|obsolete)/);
+    it(`preserves ${kind} for explicit institution migration`, async () => {
+      const file = kind === 'edited-config' ? 'config/models.js' : 'api/models/Institution.js';
+      const filename = join(directory, file);
+      const original = kind === 'custom-model' ? 'module.exports = { custom: true };\n' : kind === 'edited-config' ? generatedConfig('models') : generatedModel('Institution');
+      await writeFile(filename, original);
+      const inventory = await manifest([file]);
+      if (kind === 'custom-model') inventory.files[0].generatedHeader = false;
+      else await writeFile(filename, original + '// institution edit\n');
+      const source = await readFile(filename, 'utf8');
+      const results = await reconcile(directory, inventory, true);
+      assert.deepEqual(results.map((result: { state: string }) => result.state), kind === 'custom-model' ? [] : ['preserved']);
       assert.equal(await readFile(filename, 'utf8'), source);
     });
   }
   for (const variant of ['flag', 'export', 'config']) {
-    it(`rejects stale institution ${variant} registrations before loading Sails`, async () => {
+    it(`does not execute or discover stale institution ${variant} registration`, async () => {
       await mkdir(join(directory, 'node_modules/institution'), { recursive: true });
       await writeFile(join(directory, 'package.json'), JSON.stringify({ dependencies: { institution: '1.0.0' } }));
-      await writeFile(
-        join(directory, 'node_modules/institution/package.json'),
-        JSON.stringify({
-          name: 'institution',
-          main: 'index.js',
-          sails: { isHook: true, ...(variant === 'flag' ? { hasModels: true } : {}) },
-        })
-      );
-      await writeFile(
-        join(directory, 'node_modules/institution/index.js'),
-        variant === 'export'
-          ? 'exports.registerRedboxModels = () => ({});'
-          : variant === 'config'
-            ? 'exports.registerRedboxConfig = () => ({ models: { securityevent: { datastore: "other" } } });'
-            : 'module.exports = {};'
-      );
-      await assert.rejects(
-        assertRetiredModelSurfaces(directory),
-        /(?:Model registration has been removed|split model datastores are unsupported)/
-      );
+      await writeFile(join(directory, 'node_modules/institution/package.json'), JSON.stringify({
+        name: 'institution', main: 'index.js', sails: { isHook: true, ...(variant === 'flag' ? { hasModels: true } : {}) },
+      }));
+      await writeFile(join(directory, 'node_modules/institution/index.js'), 'throw new Error("legacy module must never execute");');
+      assert.deepEqual((await discoverInstalledExtensions(directory)).extensions, []);
     });
   }
   it('rejects all explicit selectors, including former defaults, without exposing values', () => {

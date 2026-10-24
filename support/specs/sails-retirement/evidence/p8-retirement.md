@@ -555,3 +555,30 @@ compiler/stats/cleanup failures and pending compilation are exercised.
 `tooling15-first.log`: **23 passing / 0 pending / 0 failing** (135ms), migration
 and build-command suites together, using the explicit core Mocha command above.
 This is source-level incremental evidence, not final clean-artifact proof.
+
+### Hook, bootstrap and conservative retirement fixtures
+
+`hooks16-first.log`: **32 passing / 0 pending / 0 failing** (169ms), Node
+26.11.1, explicit core Mocha runner with hooks/{defineRedboxHook,hookDiscovery,
+hookResources} and loader/{bootstrapShimRuntime,retirement} test files.
+
+The deleted callback/arity adapter is replaced by real bindExtensionFactory/work
+checks: exact inputs/results, awaited authored callback bridges (including default
+and rest parameters), promise/error identity and synchronous failure. Application
+bootstrap retains preparation/migration/core/extension order and both preparation
+failure paths. Removed secret-bearing snapshot output is now asserted absent;
+explicit post-bootstrap work failure is observable and cleanup completes.
+
+Installed discovery uses the public v6 registration and optional explicit dev
+allowlist. Name/priority precedence, resource roots, view/asset winners and
+traversal protection remain; outside-root symlink protection also executes.
+V6 invalid/unknown priorities fail before acquisition instead of the retired
+loader's warn-and-ignore convention. Valid duplicate priorities are deduplicated.
+
+Model/config removal tests invoke the actual offline opt-in reconciler: dry run
+preserves exact files, apply removes only matching trusted hashes, repeated apply
+is safe, custom/edited files survive. Old framework-only metadata is ignored
+without executing its module; legacy persistence configuration remains rejected.
+These changes replace removed runtime generation/startup deletion conventions
+with their implemented v6 contracts; no runtime compatibility facade or skip was
+introduced. The whole core suite still needs the remaining consumer migrations.
