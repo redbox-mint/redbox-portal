@@ -40,3 +40,7 @@ tests {
       expect(String(jsonData.data[0].value)).to.include('10.');
   });
 }
+
+script:pre-request {
+  await require("./bruno-helpers.js").csrf({bru, req});
+}

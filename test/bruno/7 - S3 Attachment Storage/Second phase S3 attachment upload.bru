@@ -5,7 +5,7 @@ meta {
 }
 
 patch {
-  url: http:{{s3AttachmentLocation}}
+  url: {{host}}{{s3AttachmentLocation}}
   body: file
   auth: none
 }
@@ -30,6 +30,7 @@ headers {
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
   bruHelper.setCookies({bru, req});
+  await require("./bruno-helpers.js").csrf({bru, req});
 }
 
 tests {

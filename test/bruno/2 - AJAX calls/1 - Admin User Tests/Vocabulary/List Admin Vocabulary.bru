@@ -19,3 +19,7 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
 }
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({bru, req});
+}

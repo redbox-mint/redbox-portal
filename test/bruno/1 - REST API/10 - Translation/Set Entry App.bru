@@ -35,3 +35,7 @@ tests {
       expect(data.value).to.equal("Test Value");
   });
 }
+
+script:pre-request {
+  await require("./bruno-helpers.js").csrf({bru, req});
+}
