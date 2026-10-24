@@ -952,3 +952,31 @@ Node 26.11.1 explicit core runner: `siem28-fixed.log` **125 passing / 0 pending 
 `siem28-tsc.log`. Pinned Prettier passes. Earlier `siem28-regression.log` included
 two fixture errors alongside the five confirmed production failures. No skips.
 Whole-suite and final artifact qualifications remain outstanding.
+
+### Metadata, dashboard and record-audit controller consumer retirement
+
+Three deleted-controller suites retain all **31** scenarios (record audit 18,
+record-type discovery 5, dashboard configuration 8). They now exercise actual
+HTTP mounts, EJS pages, RecordAuditViews and explicit domain ports. The page
+fixture initializes and closes the real ordered PageArtifacts and supplies a
+local session; it has no legacy controller facade. Audit ordering/date bounds,
+diff labels, missing/invalid event times, translation keys, admin-only diagnostics,
+pagination, DOI context and missing trace/event ids remain asserted.
+
+Intentional context conversions: a nameless page route is 404; invalid brand
+segments are refused rather than borrowing another brand. Real view authorization
+requires an explicit record grant, so the page fixture includes the granted
+actor's username instead of stubbing a controller's access result. Record-type
+HTTP uses valid public brand/portal names; the pure public URL builder separately
+retains encoding checks for spaces and embedded slash segments. HTTP values are
+compared by data rather than in-process object identity. Dashboard v2 structured
+warning/fingerprint details are checked on the wire, and the actual retired
+/defaults route returns 410. Admin route declarations replace deleted exported
+controller-method metadata; owned CSRF behavior remains covered by the HTTP suites.
+
+Node 26.11.1 explicit core runner, `metadata29-second.log`: **31 passing / 0 pending
+/ 0 failing** (821ms). First attempts failed on fixtures (invalid public HTTP brand,
+nonexistent /profiles retirement route, missing actual record grant and a local
+variable shadow). Corrected to actual declared paths/ports; no production change,
+scenario deletion or skip. Pinned Prettier and git diff --check pass. Complete
+core/artifact qualification remains outstanding.
