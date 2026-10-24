@@ -1,7 +1,8 @@
 {
-  "sourceCommit": "853d0039df1164beaa4098a8dba9c7984e498147",
   "node": "v26.11.1",
   "npm": "11.20.0",
+  "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+  "supersedesSourceCommit": "853d0039df1164beaa4098a8dba9c7984e498147",
   "artifacts": [
     {
       "name": "@researchdatabox/sails-ng-common",
@@ -54,7 +55,7 @@
     {
       "name": "@researchdatabox/redbox-dev-tools",
       "filename": "researchdatabox-redbox-dev-tools-4.5.1.tgz",
-      "sha256": "1cd5d04bcc2185799dcbf7315434bc73ac4c9c1db50033fc18ea02e3d8dba482",
+      "sha256": "b9c62813c502eb73f44b1c92c87471567a787284eba8566e3dfdf87bef3a0223",
       "files": 86
     },
     {
@@ -95,9 +96,10 @@
   },
   "closure": {
     "typescript": "5.9.3",
+    "runtimeAndPackedContentAuditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c",
     "runtime": {
-      "image": "sha256:771ebe39b424ae38dd7d3b876a4371d6c0cfd5865e80e3b5855fafab9b485b72",
-      "scannedFiles": 3780,
+      "image": "sha256:4dd74a393059adad91a990f8c0ec69ef2a41fae8df8f0eb881323428f721b647",
+      "scannedFiles": 3781,
       "executableViolations": 0,
       "forbiddenDependencyEntries": 0
     },
@@ -107,7 +109,6 @@
       "executableViolations": 0,
       "forbiddenDependencyEntries": 0
     },
-    "runtimeAndPackedContentAuditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c",
     "installedPackedConsumer": {
       "toolImage": "sha256:733b974d57895dbcfd61578f3729b62d99e221534a4edeb7f83452fd1ea271f2",
       "manifestSource": "hash-verified-packed-core",
@@ -118,16 +119,36 @@
       "scannedFiles": 2191,
       "executableViolations": 0,
       "forbiddenDependencyEntries": 0,
-      "auditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c"
+      "auditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c",
+      "elapsedSeconds": 376.67,
+      "exitCode": 0,
+      "temporaryFilesystem": "1536MiB container tmpfs; npm cache and consumer removed"
     },
     "sourceInventory": {
-      "sourceCommit": "8cb15b8638771e16c63e2bb8e1ec66f41a2ce9a4",
-      "matchedFiles": 1020,
-      "matchedLines": 4943,
-      "scannedFiles": 1049,
+      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "matchedFiles": 1021,
+      "matchedLines": 4944,
+      "scannedFiles": 1050,
       "baselineFilesReconciled": 1261,
       "executableViolations": 0,
-      "forbiddenDependencyEntries": 0
+      "forbiddenDependencyEntries": 0,
+      "reconciliationCounts": {
+        "remaining-classified": 742,
+        "removed": 136,
+        "retained-without-candidates": 365,
+        "dependency-metadata-checked": 18
+      }
+    },
+    "shimReconciliation": {
+      "node": "v26.11.1",
+      "generatedShimsAbsent": 236,
+      "authoredPathsPreserved": 9
+    },
+    "auditorAndShimControls": {
+      "passing": 6,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 1943.671356
     }
   }
 }

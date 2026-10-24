@@ -40,13 +40,13 @@ qualification remains SR-053/055.
 
 ## Qualification status
 
-The clean application archive `853d0039df1164beaa4098a8dba9c7984e498147` has
-built all packages/Angular/shared assets, twelve tarballs and the pristine runtime
-image. Twenty packed production/offline/scaffold checks pass. The additional
-test/rehearsal/builder image targets and full regression/recovery/installed-graph
-qualification remain in progress. Earlier P7 broad-suite results are historical
-inputs, not post-removal proof. SR-051/052 are accepted; remaining P8 tasks await their complete entrypoint/suite/
-recovery qualification.
+The corrected clean application archive
+`a193b87312a24221744c7e1ac58b1328d472156b` builds all packages/Angular/shared
+assets and passes twelve actual packs/twenty consumer checks. Its pristine runtime
+and fresh1194-package packed consumer pass canonical closure. Test/rehearsal image
+export and final suite/recovery qualification remain in progress. SR-051/052 are
+accepted. Earlier853d0039d/P7 results below are historical; they do not qualify
+the corrected final tree. See the corrected clean-artifact section at the end.
 
 ## SR-052 — Runtime and dependency removal (accepted)
 
@@ -1978,3 +1978,74 @@ Logs: `foundation79-enospc.log`, `mocha-mongo79-enospc.log`,
 `test-interrupted84-remove.log`, `images83-space-inventory.txt`. Corrected clean
 build and final suite results remain pending; this records the incident and
 implemented build change rather than a successful qualification.
+
+
+### Corrected clean artifacts and canonical closure
+
+Clean `git archive a193b87312a24221744c7e1ac58b1328d472156b` contains the
+production-scaffold configuration fix and the builder-layer test target. No host
+source/dist/node_modules is copied into this archive. The repeated clean package
+qualification exits 0: **12 real npm archives / 20 checks**, including strict
+installed/offline-ci consumers, ESM-only/top-level-await, bundled neutral hooks,
+Express host and compiled v6 scaffold. The dev-tools archive changes to
+`b9c62813c502eb73f44b1c92c87471567a787284eba8566e3dfdf87bef3a0223`;
+the other eleven archive digests are unchanged. Exact digests are in
+[p8-artifacts.json](p8-artifacts.json).
+
+The pristine runtime build exits 0, immutable local image ID
+`sha256:4dd74a393059adad91a990f8c0ec69ef2a41fae8df8f0eb881323428f721b647`.
+Production `npm ci --omit=dev --no-audit` adds 1,183 packages. Its default user is
+`node`; production startup/restart/health qualification remains pending. The
+network-disabled/read-only canonical audit exits 0 across **3,781 owned files,
+0 executable violations / 0 forbidden dependency entries**. A separate image check
+requires all 236 retired shim paths absent and all 9 application-owned paths
+present; it exits 0. The twelve SHA256-verified extracted archives pass across
+2,191 owned files, 0 violations / 0 forbidden entries. Auditor/shim safety controls
+pass **6 / 0 / 0**, 1.944s, including all five ambient-global distinctions.
+
+A fresh strict consumer of these twelve archives runs in the previously qualified
+build-tools-only base `733b974d5789` (Git 2.39.5), with no application/dependency
+mount. Its disposable `/tmp` and npm cache use 1,536 MiB container tmpfs to avoid
+additional disk contention. Actual `npm install --prefer-offline --omit=dev
+--ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit --no-fund`
+adds 1,194 packages in 3m; canonical installed-graph scan checks 2,191 owned files
+and recursive installed manifests, 0 violations / 0 forbidden entries. The full
+command including removal exits 0, 376.67s. No pin, peer bypass or test assertion
+changes. Node 26.11.1 / npm 11.20.0 / TypeScript 5.9.3 remain unchanged.
+
+The original SR-001 method is rerun at this exact commit: **1,021 matched files /
+4,944 matched lines**. AST/metadata audit checks 1,050 candidate/manifest files,
+0 violations / 0 forbidden entries. All 1,261 baseline entries reconcile: 742
+explicitly classified, 136 removed, 365 retained without candidates and 18
+structurally checked metadata files. Remaining matches are recorded as
+documentation/historical names, finite conversion/negative fixtures or explicit
+neutral parameter inputs; none requires Sails execution. Three published
+historical package names stay unchanged.
+
+Commands repeat the committed `inventory.cjs <commit>`,
+`retirement-closure.cjs <commit>`, `reconcile-retirement-inventory.cjs`;
+`qualify-sails-retirement-packages.sh` with the clean archive;
+`docker build --target runtime --label org.opencontainers.image.revision=<commit>`;
+`node --test test/tooling/*.test.cjs`; hash-verified packed-content extraction;
+network-none/read-only image audit and strict installed-consumer audit as recorded
+above. Logs under ignored `.tmp/sails-retirement/p8/final-a193b8731/`:
+`packed-build.log`, `runtime-build.log`, source inventory/closure/reconciliation,
+`packed-content-closure.*`, `tooling-controls.log`, `runtime-closure.*`,
+`runtime-shims.*`, `packed-installed-closure.*` and `packed-installed-time.log`.
+No final full-suite/recovery results are claimed in this subsection.
+
+The test-image export remains actively gzip-compressing/reading tar layers on the
+saturated local Docker disk. A supported Docker SIGUSR1 diagnostic at 11:27Z
+shows active flate compression and tar reads, not a blocked registry/provider
+request. The previously requested builder prune exits 0 and reclaims 11.1 GB.
+Timed database/browser suites wait for all image builds and resource cleanup;
+no deadline is relaxed. No provider usage/quota limit has occurred.
+
+The final operator-runbook review removes stale current-tense comparison scripts,
+`ConfigService.getBrand` adapter and `compat/sails/configuration.ts` instructions
+from `configuration-v6.md`. It now directs explicit awaited bindings and owned
+asset roots. `maintenance-v6.md` links the existing upload/realtime/P8 evidence
+rather than promising completed SR-040/044 work as future. These are prose-only
+corrections; no contract, generator input, dependency or application artifact
+changes. Relative-link checks cover both pages and six links, 0 missing;
+`git diff --check` exits 0. Log: `runbook-links.json`.
