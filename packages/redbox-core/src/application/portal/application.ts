@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { retainHttpRequestFollowup } from '../../middleware/requestLifetime';
+import { httpAction } from '../../http/express/middleware';
 import type { Observable } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { ApplicationRuntime, type ApplicationModule, type ApplicationWork } from '../Application';
@@ -452,7 +453,17 @@ export async function createPortalApplication(options: PortalApplicationOptions)
       server: Server,
       policy: (names: readonly string[]) => RequestHandler
     ): Promise<void> {
-      handlerInstances ??= new Map(handlers.map(handler => [handler.name, handler.create()]));
+      handlerInstances ??= new Map(
+        handlers.map(item => {
+          const handler = item.create();
+          return [
+            item.name,
+            httpAction(async (req, res, next) => {
+              await handler(req, res, next);
+            }),
+          ];
+        })
+      );
       if (stage === 'beforeRoutes') {
         for (const instance of integrations.values()) await instance.prepare(server);
         for (const { declaration: middleware } of resolved.middleware)

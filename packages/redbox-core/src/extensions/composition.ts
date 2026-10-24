@@ -7,6 +7,7 @@ import {
   type ApplicationInitialization,
 } from '../application';
 import type { PersistenceOwner } from '../persistence/owner';
+import { httpAction } from '../http/express/middleware';
 import { initializeMigrationPersistence, getMigrationLedgerRepository } from '../persistence/migration/runtime';
 import type { ExtensionFactory, ExtensionHostIntegration, ExtensionWork } from './contract';
 import { ExtensionError } from './loading';
@@ -118,7 +119,17 @@ export function composeExtensionApplication(
       if (application.status().state !== 'initialized')
         return Promise.reject(new ExtensionError('host', 'initialize application before HTTP preparation'));
       return (preparing ??= Promise.resolve().then(async () => {
-        const instances = new Map(handlers.map(item => [item.name, item.create()]));
+        const instances = new Map(
+          handlers.map(item => {
+            const handler = item.create();
+            return [
+              item.name,
+              httpAction(async (req, res, next) => {
+                await handler(req, res, next);
+              }),
+            ];
+          })
+        );
         for (const instance of integrations.values()) await instance.prepare(server);
         for (const stage of ['beforeRoutes', 'afterRoutes'] as const) {
           if (stage === 'afterRoutes') {
