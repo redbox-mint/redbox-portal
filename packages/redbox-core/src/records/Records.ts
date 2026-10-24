@@ -1,4 +1,6 @@
 import _ from 'lodash';
+import * as Effect from 'effect/Effect';
+import * as Fiber from 'effect/Fiber';
 import type { ILogger, ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
 import type { RecordConfig } from '../config/record.config';
 import type { RecordValidationConfig } from '../config/recordValidation.config';
@@ -621,6 +623,11 @@ export namespace Services {
       await this.drain();
     }
 
+    private retainHookFollowup(work: Promise<void>): void {
+      this.hookExecutionSupervisor?.track?.(work);
+      this.input.retainFollowup?.(work);
+    }
+
     private hookExecutionDependencies(): ActionExecutionDependencies {
       return {
         uuid: randomUUID,
@@ -630,7 +637,15 @@ export namespace Services {
           warn: (message, fields) => this.logger.warn(`${this.logHeader}${message}`, fields),
           error: (message, fields) => this.logger.error(`${this.logHeader}${message}`, fields),
         },
-        supervisor: this.hookExecutionSupervisor,
+        supervisor: {
+          ...this.hookExecutionSupervisor,
+          register: fiber => {
+            this.hookExecutionSupervisor?.register?.(fiber);
+            // Retain the whole execution, including Observable/Effect results
+            // and their completion callbacks, in the admitted HTTP scope.
+            this.retainHookFollowup(Effect.runPromise(Fiber.await(fiber)).then(() => {}));
+          },
+        },
       };
     }
 
@@ -2916,6 +2931,10 @@ export namespace Services {
         }
       }
       let auditTimer: ReturnType<typeof setTimeout> | undefined;
+      const auditCompletion = Promise.withResolvers<void>();
+      // Own both the grace timer and the eventual audit enqueue before the
+      // response can release completion admission at the queue.
+      this.retainHookFollowup(auditCompletion.promise);
       const submitAudit = (detachedFinalization: DetachedAuditFinalization = 'complete'): void => {
         if (operation?.detachedAuditFinalized) {
           return;
@@ -2950,7 +2969,8 @@ export namespace Services {
           )
           .catch((error: unknown) => {
             this.logger.error(`${this.logHeader} persistence audit submission failed`);
-          });
+          })
+          .finally(() => auditCompletion.resolve());
       };
       if (operation && (operation.detachedPending ?? 0) > 0) {
         operation.onDetachedComplete = () => submitAudit('complete');
@@ -3595,10 +3615,9 @@ export namespace Services {
           typeof Reflect.get(result, 'then') === 'function'
         ) {
           const work = Promise.resolve(result);
-          this.hookExecutionSupervisor?.track?.(work);
           // Keep an admitted request's persistence scope alive even when a hook
           // times out: cancelling a fiber cannot cancel an opaque Promise.
-          this.input.retainFollowup?.(
+          this.retainHookFollowup(
             work.then(
               () => {},
               () => {}

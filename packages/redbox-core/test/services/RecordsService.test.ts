@@ -15,7 +15,12 @@ import { Services as AttachmentServices } from '../../src/services/AttachmentMet
 import { Datastream } from '../../src/Datastream';
 import { Settings } from 'luxon';
 import _ from 'lodash';
-import { of, firstValueFrom } from 'rxjs';
+import { of, firstValueFrom, Subject } from 'rxjs';
+import * as Effect from 'effect/Effect';
+import { ExpressHost } from '../../src/http/express';
+import { AgendaQueue } from '../../src/queues/AgendaQueue';
+import * as persistenceRuntime from '../../src/persistence/runtime';
+import { drainHttpRequests, hasActiveHttpRequest, retainHttpRequestFollowup, runHttpRequestHandler } from '../../src/middleware/requestLifetime';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -11477,6 +11482,65 @@ describe('RecordsService', function () {
       expect(fixture.log.error.calledWithMatch('record_hook_detached_action_failed')).to.equal(true);
       expect(JSON.stringify(fixture.log.error.args)).not.to.include('detached secret');
     });
+
+    for (const kind of ['Observable', 'Effect', 'grace-expired'] as const)
+      it(`drains a saved ${kind} post hook and its audit enqueue after the response`, async () => {
+        const release = Promise.withResolvers<void>();
+        const entered = Promise.withResolvers<void>();
+        const observable = new Subject<void>();
+        const backend = { define() {}, on() {}, start: async () => {}, stop: async () => {}, now: sinon.stub().resolves({}) };
+        const queue = new AgendaQueue({
+          owner: fixture, log: fixture.log, config: { options: { backend: 'mongodb' }, jobs: {} },
+          handler: () => undefined,
+          drainRequests: () => drainHttpRequests(fixture),
+          hasAcceptedRequest: () => hasActiveHttpRequest(fixture),
+        });
+        sinon.stub(persistenceRuntime, 'mongoDatabase').resolves({} as any);
+        sinon.stub(queue as any, 'createAgendaForBackend').resolves(backend);
+        sinon.stub(queue as any, 'prepareBackends').resolves();
+        const application = new ApplicationRuntime(fixture, [
+          { name: 'queue', create: () => queue },
+          { name: 'records', create: () => ({ initialize: async () => {}, drain: () => RecordsService.drain(), close: () => RecordsService.close() }) },
+        ]);
+        RecordsService.input.retainFollowup = (work: Promise<void>) => retainHttpRequestFollowup(fixture, work);
+        sinon.stub(RecordsService, 'auditRecord').callsFake(async () => { await queue.now('completion'); });
+        const hook = defineHook('review-r2-drain', () => {
+          entered.resolve();
+          return kind === 'Effect' ? Effect.promise(() => release.promise) : observable;
+        });
+        const host = new ExpressHost(application, { owner: fixture, hostname: '127.0.0.1', port: 0,
+          prepare: async router => {
+            router.post('/save', async (req, res) => {
+              const result = await runHttpRequestHandler(req, () => RecordsService.create(
+                { id: 'brand-1' }, { metadata: { title: 'Owned hook' } },
+                recordTypeWithHooks({ onCreate: { post: [{ function: hook, ...(kind === 'grace-expired' ? { execution: { timeoutMs: 1500 } } : {}) }] } }),
+                { id: 'user', username: 'user-1' }
+              ));
+              res.json({ outcome: result.outcome });
+            });
+          },
+        });
+        let shutdown: Promise<void> | undefined;
+        try {
+          await host.initialize(); await host.activate();
+          queue.defineJob('completion', {}, async () => {});
+          const response = await fetch(`http://127.0.0.1:${host.address()!.port}/save`, { method: 'POST' });
+          expect((await response.json() as any).outcome).to.equal('saved');
+          await entered.promise;
+          let stopped = false;
+          shutdown = host.stop().then(() => { stopped = true; });
+          await new Promise(done => setTimeout(done, 25));
+          expect(stopped).to.equal(false);
+          if (kind === 'grace-expired') await new Promise(done => setTimeout(done, 1050));
+          else { release.resolve(); observable.next(); }
+          await shutdown;
+          expect(backend.now.calledOnce).to.equal(true);
+          expect(fixture.log.error.args.some((args: unknown[]) => String(args[0]).includes('audit submission failed'))).to.equal(false);
+        } finally {
+          release.resolve(); observable.next(); observable.complete();
+          await shutdown?.catch(() => {}); await host.stop();
+        }
+      });
 
     it('queues the terminal detached outcome instead of a dispatch-only audit result', async function () {
       mockQueueService.now.resetHistory();
