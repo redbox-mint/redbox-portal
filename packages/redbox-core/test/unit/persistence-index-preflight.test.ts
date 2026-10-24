@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import { strict as assert } from 'node:assert';
 import * as sinon from 'sinon';
 import * as runtime from '../../src/persistence/runtime';
@@ -35,7 +36,7 @@ describe('shared persistence index barrier', () => {
           if (failure === 'audit') reports[1].duplicateKeyGroups = 1;
         },
       });
-      await assert.rejects(preflight.ensure({} as Sails.Application), /Required persistence index/);
+      await assert.rejects(preflight.ensure({} as PersistenceOwner), /Required persistence index/);
       assert.equal(inspect.callCount, 2);
       assert.equal(ensure.callCount, 0);
     }

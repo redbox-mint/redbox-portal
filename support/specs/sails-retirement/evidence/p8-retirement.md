@@ -695,3 +695,32 @@ explicit core Mocha runner. All mapping, brand resolution, conditional publishin
 audit/writeback, OCFL/Flydrive, crosswalk fallback/privacy and sequential partial
 failure contracts execute. The deleted exports() adapter assertion now checks the
 actual public exportDataset operation. No skips were introduced.
+
+### Explicit branding and real persistence fixtures
+
+Node 26.11.1/npm 11.20.0, source following `d4732076b`. Branding positive-integer
+validation receives explicit config/logger; migration fixtures use local owners.
+Persistence tests use structural PersistenceOwner types, actual BrandingLogo ports
+and composeHttpSession with awaited preparation. No global framework/storage
+registry is installed. Existing legacy malformed-GridFS cursor-kill/session-end,
+shared session transport, restart/fencing, raw BSON and durable concurrency checks
+remain; no assertions or scenarios were dropped.
+
+Explicit core Mocha runner (`--no-config --require ts-node/register/transpile-only
+--require chai --require test/setup.ts`, TS_NODE_PROJECT=test/tsconfig.json):
+
+- `PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:29511/p8_prisma21`,
+  model/BrandingTypeface, migrations/BrandingTypefaceBackfill and
+  integration/PrismaPersistence: **53 passing / 0 pending / 0 failing** (4s),
+  `persistence21-first.log`. Real MongoDB 8.0.34; disposable database dropped.
+- unit/{prisma-runtime,storage-named-query,persistence-index-preflight} plus
+  services/NamedQueryService: **60 passing / 0 pending / 0 failing** (2s),
+  `persistence21-unit.log`.
+- `P1_MONGO_URL=mongodb://p1_fixture:p1-only@127.0.0.1:29512/wr_p1_core?authSource=admin`,
+  integration/PersistenceFoundation: **3 passing / 0 pending / 0 failing** (9s),
+  `foundation21.log`. Actual authenticated MongoDB 9.0.4, image
+  `mongo@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8`,
+  task-owned `sr-p8-foundation-mongo`, nofile 64000:64000, 768 MiB limit,
+  WiredTiger 0.25 GiB, host network/127.0.0.1:29512.
+
+These focused source results do not close the final artifact or matrix gates.

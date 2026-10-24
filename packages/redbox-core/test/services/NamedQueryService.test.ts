@@ -661,7 +661,7 @@ describe('NamedQueryService', function() {
     });
 
     it('captures pagination and counts without logging criteria or parameter values', async function() {
-      const item = RequestChronicleHelper.fromReq(fixture.log, { options: {} } as Sails.Req);
+      const item = RequestChronicleHelper.fromReq(fixture.log, { options: {} } as import('express').Request);
       item.start();
       const response = await runWithRequestChronicle(item, () => NamedQueryService.performNamedQueryFromConfig(
         { collectionName: 'record', mongoQuery: { 'metadata.title': 'PRIVATE TITLE' } },

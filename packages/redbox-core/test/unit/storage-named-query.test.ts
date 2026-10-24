@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { MongoClient, ObjectId } from 'mongodb';
@@ -12,7 +13,7 @@ describe('storage named-query translation', () => {
   const app = {
     config: { datastores: { mongodb: { url: 'mongodb://fixture/unit' } } },
     log: { warn() {} },
-  } as unknown as Sails.Application;
+  } as unknown as PersistenceOwner;
   let client: CorePrismaClient;
   const stop = new Error('stop before transport');
   const request = { target: 'counter', tenant: new ObjectId().toHexString(), start: 0 };

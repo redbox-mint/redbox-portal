@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import assert from 'node:assert/strict';
 import { GridFSBucket, MongoClient, ObjectId, type FindCursor } from 'mongodb';
 import * as runtime from '../../src/persistence/runtime';
@@ -6,7 +7,8 @@ const persistence = { ...runtime, ...storageRuntime };
 import { ensureCachePersistenceIndex } from '../../src/persistence/cache/preflight';
 import { initializeCachePersistence, getCacheEntryRepository } from '../../src/persistence/cache/runtime';
 import { inspectPersistenceIndex, ensurePersistenceIndex } from '../../src/persistence/indexes';
-import { redboxSession } from '../../src/middleware/redboxSession';
+import { composeHttpSession } from '../../src/http/express/session';
+import { createSinonStubLogger } from '../logger.test';
 import express from 'express';
 import { createServer } from 'node:http';
 import * as sinon from 'sinon';
@@ -18,7 +20,7 @@ import { executeStorageQuery } from '../../src/persistence/storage/NamedQueryTar
 const url = process.env.PERSISTENCE_TEST_MONGO_URL;
 (url ? describe : describe.skip)('Prisma persistence regression contracts', function () {
   this.timeout(30_000);
-  let app: Sails.Application, native: MongoClient;
+  let app: PersistenceOwner, native: MongoClient;
   const names = [
     'Migration',
     'Reference',
@@ -60,7 +62,7 @@ const url = process.env.PERSISTENCE_TEST_MONGO_URL;
     await native.close();
   });
   it('recovers GridFS bytes after the first separately configured connection fails', async () => {
-    const owner = { config: {}, log: { warn() {} } } as unknown as Sails.Application;
+    const owner = { config: {}, log: { warn() {} } } as unknown as PersistenceOwner;
     await persistence.initializePersistence(owner);
     const driver = new GridFSDriver({ url, bucketName: 'recovery' }, undefined, undefined, owner);
     const connect = sinon.stub(MongoClient.prototype, 'connect').callThrough();
@@ -94,19 +96,17 @@ const url = process.env.PERSISTENCE_TEST_MONGO_URL;
       .db()
       .collection('fs.chunks')
       .insertMany(Array.from({ length: 299 }, (_, index) => ({ files_id: id, n: index + 1, data: Buffer.from('x') })));
-    const originalSails = Reflect.get(globalThis, 'sails');
-    const originalStorage = Reflect.get(globalThis, 'StorageManagerService');
-    Reflect.set(globalThis, 'sails', app);
-    Reflect.set(globalThis, 'StorageManagerService', {
-      primaryDisk: () => ({
-        getBytes: async () => {
-          throw new Error('ENOENT');
-        },
-      }),
+    const logo = new LogoServices.BrandingLogo({
+      repository: persistence.getBrandingRepository(app),
+      disk: () => ({ getBytes: async () => { throw new Error('ENOENT'); } }) as any,
+      legacyDatabase: async () => native.db(),
+      sanitize: value => value,
+      config: {},
+      log: createSinonStubLogger(sinon),
     });
     const download = sinon.spy(GridFSBucket.prototype, 'openDownloadStream');
     try {
-      assert.equal(await new LogoServices.BrandingLogo().getBinaryAsync(id.toHexString()), null);
+      assert.equal(await logo.getBinaryAsync(id.toHexString()), null);
       assert.equal(download.callCount, 1);
       const stream = download.firstCall.returnValue as unknown as {
         s: { cursor?: FindCursor & { session?: { hasEnded: boolean } } };
@@ -123,8 +123,7 @@ const url = process.env.PERSISTENCE_TEST_MONGO_URL;
       );
     } finally {
       download.restore();
-      Reflect.set(globalThis, 'sails', originalSails);
-      Reflect.set(globalThis, 'StorageManagerService', originalStorage);
+      await logo.close();
     }
   });
   it('uses BSON ids and supplied-field patches without rewriting existing raw documents', async () => {
@@ -730,10 +729,10 @@ const url = process.env.PERSISTENCE_TEST_MONGO_URL;
     assert.equal(await native.db().collection(descriptor.collection).countDocuments({ configKey: 'same' }), 2);
   });
   it('shares session transport with the app runtime and closes it only after the store', async () => {
-    const original = Reflect.get(globalThis, 'sails');
-    Reflect.set(globalThis, 'sails', app);
     const web = express();
-    web.use(redboxSession({ adapter: 'mongo', mongoUrl: url, secret: 'fixture-secret', cookie: { secure: false } }));
+    const sessions = composeHttpSession({ adapter: 'mongo', mongoUrl: url, secret: 'fixture-secret', cookie: { secure: false } }, app);
+    await sessions.ready;
+    web.use(sessions.middleware);
     web.get('/', (req, res) => {
       (req.session as any).fixture = true;
       res.end('ok');
@@ -750,7 +749,7 @@ const url = process.env.PERSISTENCE_TEST_MONGO_URL;
       assert.equal(await native.db().collection('sessions').countDocuments(), 1);
     } finally {
       await new Promise<void>(resolve => server.close(() => resolve()));
-      Reflect.set(globalThis, 'sails', original);
+      await sessions.drain();
     }
   });
   it('fences retained repositories across shutdown and restart without rewriting stored data', async () => {

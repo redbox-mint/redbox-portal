@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import assert from 'node:assert/strict';
 import { MongoClient } from 'mongodb';
 import { initializePersistence, mongoDatabase, cleanupPersistence } from '../../src/persistence/runtime';
@@ -17,7 +18,7 @@ const uri = process.env.P1_MONGO_URL;
 const suite = uri ? describe : describe.skip;
 suite('isolated standalone driver foundation', function () {
   this.timeout(30000);
-  let app: Sails.Application;
+  let app: PersistenceOwner;
   let raw: MongoClient;
   before(async () => {
     assert.match(uri!, /^mongodb:\/\/p1_fixture:p1-only@127\.0\.0\.1:(?!27017\/)[0-9]+\/wr_p1_core\?authSource=admin$/);
@@ -29,7 +30,7 @@ suite('isolated standalone driver foundation', function () {
         },
       },
       log: { warn() {} },
-    } as unknown as Sails.Application;
+    } as unknown as PersistenceOwner;
     raw = await new MongoClient(uri!).connect();
     assert.equal((await raw.db().command({ buildInfo: 1 })).version, '9.0.4');
     await initializePersistence(app);
