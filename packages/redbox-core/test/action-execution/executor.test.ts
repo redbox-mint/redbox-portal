@@ -188,34 +188,28 @@ describe('Effect action execution', function () {
     expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(false);
   });
 
-  it('unsubscribes an Observable hook before reporting a cooperative timeout', async function () {
+  it('retains an opaque Observable lifetime after timing out its outer wait', async function () {
     let activeSubscriptions = 0;
-    const observable = new Observable(() => {
+    let finish!: () => void;
+    const observable = new Observable(subscriber => {
       activeSubscriptions += 1;
-      return () => {
-        activeSubscriptions -= 1;
-      };
+      finish = () => subscriber.next(undefined);
+      return () => { activeSubscriptions -= 1; };
     });
+    const cancellation = { value: true };
+    const retained: Promise<unknown>[] = [];
     const operation = createActionExecutionOperation('onCreate');
-    const outcome = await Effect.runPromise(
-      runSequentialActionPlan(
-        [
-          {
-            actionId: 'observable-timeout',
-            mode: 'onCreate',
-            phase: 'pre',
-            index: 0,
-            policy: { timeoutMs: 5 },
-            invoke: () => legacyHookToEffect(() => observable),
-          },
-        ],
-        createPhaseContext(operation, 'pre')
-      )
-    );
-
-    expect(activeSubscriptions).to.equal(0);
+    const outcome = await Effect.runPromise(runSequentialActionPlan([{
+      actionId: 'observable-timeout', mode: 'onCreate', phase: 'pre', index: 0,
+      policy: { timeoutMs: 5 }, cooperativeCancellation: () => cancellation.value,
+      invoke: () => legacyHookToEffect(() => observable, cancellation, { retain: work => { retained.push(work); } }),
+    }], createPhaseContext(operation, 'pre')));
+    expect(activeSubscriptions).to.equal(1);
     expect(outcome.report.actions[0].status).to.equal('timed_out');
-    expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(true);
+    expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(false);
+    finish();
+    await Promise.all(retained);
+    expect(activeSubscriptions).to.equal(0);
   });
 
   it('does not retry a non-cooperative timeout into an overlapping invocation', async function () {

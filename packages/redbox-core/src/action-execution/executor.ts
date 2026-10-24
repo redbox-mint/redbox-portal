@@ -203,7 +203,7 @@ function shouldRetry(action: ActionExecutionAction, attemptNumber: number, failu
   if (!retry || attemptNumber >= retry.maxAttempts) {
     return false;
   }
-  // An opaque Promise keeps running after Effect times out. Retrying it here
+  // An opaque asynchronous result may keep running after Effect times out. Retrying it here
   // would overlap the original side effect with a second invocation. The
   // idempotent acknowledgement alone is not enough to make that safe.
   if ((failure.kind === 'timeout' || failure.kind === 'interrupted') && failure.cancellationCooperative === false) {
@@ -339,7 +339,7 @@ export function createActionExecutionOperation(
 
 /**
  * Owns detached fibers for the lifetime of a service. Application drain can
- * join fibers and opaque Promise lifetimes before closing their datastores.
+ * join fibers and opaque asynchronous lifetimes before closing their datastores.
  */
 export function createActionExecutionSupervisor(): ActionExecutionDependencies['supervisor'] {
   const fibers = new Set<Fiber.Fiber<unknown, unknown>>();

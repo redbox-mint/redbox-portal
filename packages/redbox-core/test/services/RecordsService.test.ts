@@ -15,7 +15,7 @@ import { Services as AttachmentServices } from '../../src/services/AttachmentMet
 import { Datastream } from '../../src/Datastream';
 import { Settings } from 'luxon';
 import _ from 'lodash';
-import { of, firstValueFrom, Subject } from 'rxjs';
+import { of, from, firstValueFrom, Subject } from 'rxjs';
 import * as Effect from 'effect/Effect';
 import { ExpressHost } from '../../src/http/express';
 import { AgendaQueue } from '../../src/queues/AgendaQueue';
@@ -11541,6 +11541,56 @@ describe('RecordsService', function () {
       expect(JSON.stringify(fixture.log.error.args)).not.to.include('detached secret');
     });
 
+    for (const kind of ['Promise', 'Observable', 'Effect'] as const)
+      it(`preserves worker-origin ${kind} hooks, timeout ownership and the save audit during drain`, async () => {
+        const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+        let attempts = 0, writes = 0;
+        const backend = { define() {}, on() {}, start: async () => {}, stop: async () => {}, now: sinon.stub().resolves({}) };
+        const queue = new AgendaQueue({
+          owner: fixture, log: fixture.log, config: { options: { backend: 'mongodb' }, jobs: {} }, handler: () => undefined,
+        });
+        sinon.stub(persistenceRuntime, 'mongoDatabase').resolves({} as any);
+        sinon.stub(queue as any, 'createAgendaForBackend').resolves(backend);
+        sinon.stub(queue as any, 'prepareBackends').resolves();
+        const app = new ApplicationRuntime(fixture, [
+          { name: 'queue', create: () => queue },
+          { name: 'records', create: () => ({ initialize: async () => {}, drain: () => RecordsService.drain(), close: () => RecordsService.close() }) },
+        ]);
+        RecordsService.input.runAcceptedWork = (operation: () => Promise<unknown>) => persistenceRuntime.runAcceptedPersistenceWork(fixture, operation);
+        RecordsService.input.retainFollowup = (work: Promise<void>) => retainHttpRequestFollowup(fixture, work);
+        sinon.stub(RecordsService, 'auditRecord').callsFake(async () => { await queue.now('completion'); });
+        const body = async () => {
+          attempts++; entered.resolve(); await release.promise;
+          await persistenceRuntime.persistenceOperation(fixture, async () => { writes++; });
+        };
+        const hook = defineHook(`review-r3-worker-${kind}`, () => kind === 'Effect'
+          ? Effect.tryPromise({ try: body, catch: error => error })
+          : kind === 'Observable' ? from(body()) : body());
+        try {
+          await app.initialize(); await app.activate();
+          queue.defineJob('completion', {}, async () => {});
+          const job = (queue as any).acceptedJob(async () => {
+            const result = await RecordsService.create(
+              { id: 'brand-1' }, { metadata: { title: 'Worker save' } },
+              recordTypeWithHooks({ onCreate: { post: [{ function: hook, execution: {
+                timeoutMs: 5, retry: { maxAttempts: 2, retryOn: ['timeout'], idempotent: true },
+              } }] } }), { id: 'user', username: 'user-1' }
+            );
+            expect(result.outcome).to.equal('saved');
+          });
+          await job({ attrs: {} }); await entered.promise;
+          await new Promise(done => setTimeout(done, 20));
+          await rejects(app.stop({ deadlineMs: 20 }), /deadline|drain/);
+          expect(app.status().cleanupPending).to.equal(true);
+          expect(attempts).to.equal(1);
+          await rejects(queue.now('completion'), /draining/);
+          release.resolve(); await app.stop({ deadlineMs: 1000 });
+          expect(writes).to.equal(1);
+          expect(backend.now.calledOnce).to.equal(true);
+          expect(persistenceRuntime.persistenceStatus(fixture).operations).to.equal(0);
+        } finally { release.resolve(); await app.stop(); }
+      });
+
     for (const kind of ['Observable', 'Effect', 'grace-expired'] as const)
       it(`drains a saved ${kind} post hook and its audit enqueue after the response`, async () => {
         const release = Promise.withResolvers<void>();
@@ -11590,7 +11640,7 @@ describe('RecordsService', function () {
           await new Promise(done => setTimeout(done, 25));
           expect(stopped).to.equal(false);
           if (kind === 'grace-expired') await new Promise(done => setTimeout(done, 1050));
-          else { release.resolve(); observable.next(); }
+          release.resolve(); observable.next();
           await shutdown;
           expect(backend.now.calledOnce).to.equal(true);
           expect(fixture.log.error.args.some((args: unknown[]) => String(args[0]).includes('audit submission failed'))).to.equal(false);

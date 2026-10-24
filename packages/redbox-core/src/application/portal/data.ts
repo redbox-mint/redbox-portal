@@ -227,6 +227,7 @@ export function portalDataPlan(
       wakeFigshareRecord: oid => queue.get().now('Figshare-SyncRecord', { oid }),
       emitSecurityEvent: entry => input.securityEvent(entry),
       retainFollowup: work => retainHttpRequestFollowup(owner, input.retainFollowup(work)),
+      runAcceptedWork: operation => runAcceptedPersistenceWork(owner, operation),
     })
   );
   const workspaces = portalDomain(

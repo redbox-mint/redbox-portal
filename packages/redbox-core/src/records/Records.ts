@@ -68,6 +68,7 @@ export interface RecordPipelineInput {
   wakeFigshareRecord(oid: string): Promise<unknown>;
   emitSecurityEvent?(record: Record<string, unknown>): Promise<unknown>;
   retainFollowup?(work: Promise<void>): Promise<void>;
+  runAcceptedWork?<T>(operation: () => Promise<T>): Promise<T>;
 }
 
 import { RecordCreateAuthorization, resolvedWorkflowTargetDiagnostic } from '../records/RecordCreateAuthorization';
@@ -631,6 +632,7 @@ export namespace Services {
 
     private hookExecutionDependencies(): ActionExecutionDependencies {
       return {
+        runLegacyWork: this.input.runAcceptedWork,
         uuid: randomUUID,
         logger: {
           debug: (message, fields) => this.logger.debug(`${this.logHeader}${message}`, fields),
@@ -640,6 +642,7 @@ export namespace Services {
         },
         supervisor: {
           ...this.hookExecutionSupervisor,
+          track: work => this.retainHookFollowup(work.then(() => {}, () => {})),
           register: fiber => {
             this.hookExecutionSupervisor?.register?.(fiber);
             // Retain the whole execution, including Observable/Effect results
@@ -2932,10 +2935,28 @@ export namespace Services {
         }
       }
       let auditTimer: ReturnType<typeof setTimeout> | undefined;
-      const auditCompletion = Promise.withResolvers<void>();
+      const auditFinalization = Promise.withResolvers<DetachedAuditFinalization>();
+      const writeAudit = async () => {
+        const detachedFinalization = await auditFinalization.promise;
+        try {
+          await this.auditRecord(
+            oid, persistedRecord, user, action,
+            operation ? projectRecordHookExecutionAuditSummary(operation, {
+              partial: detachedFinalization === 'grace-expired', detachedFinalization,
+            }) : undefined,
+            {
+              ...(finalRevision !== undefined ? { revision: finalRevision } : {}),
+              resolution: concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+            }
+          );
+        } catch {
+          this.logger.error(`${this.logHeader} persistence audit submission failed`);
+        }
+      };
+      const auditCompletion = this.input.runAcceptedWork ? this.input.runAcceptedWork(writeAudit) : writeAudit();
       // Own both the grace timer and the eventual audit enqueue before the
       // response can release completion admission at the queue.
-      this.retainHookFollowup(auditCompletion.promise);
+      this.retainHookFollowup(auditCompletion);
       const submitAudit = (detachedFinalization: DetachedAuditFinalization = 'complete'): void => {
         if (operation?.detachedAuditFinalized) {
           return;
@@ -2949,29 +2970,7 @@ export namespace Services {
           }
           this.completeHookOperation(operation, detachedFinalization === 'grace-expired', detachedFinalization);
         }
-        void Promise.resolve()
-          .then(() =>
-            this.auditRecord(
-              oid,
-              persistedRecord,
-              user,
-              action,
-              operation
-                ? projectRecordHookExecutionAuditSummary(operation, {
-                    partial: detachedFinalization === 'grace-expired',
-                    detachedFinalization,
-                  })
-                : undefined,
-              {
-                ...(finalRevision !== undefined ? { revision: finalRevision } : {}),
-                resolution: concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
-              }
-            )
-          )
-          .catch((_error: unknown) => {
-            this.logger.error(`${this.logHeader} persistence audit submission failed`);
-          })
-          .finally(() => auditCompletion.resolve());
+        auditFinalization.resolve(detachedFinalization);
       };
       if (operation && (operation.detachedPending ?? 0) > 0) {
         operation.onDetachedComplete = () => submitAudit('complete');
@@ -3609,26 +3608,7 @@ export namespace Services {
           displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
         });
       }
-      const invoke = evaluated as (...args: unknown[]) => unknown;
-      const fn = (...args: unknown[]): unknown => {
-        const result = invoke(...args);
-        if (
-          result &&
-          (typeof result === 'object' || typeof result === 'function') &&
-          typeof Reflect.get(result, 'then') === 'function'
-        ) {
-          const work = Promise.resolve(result);
-          // Keep an admitted request's persistence scope alive even when a hook
-          // times out: cancelling a fiber cannot cancel an opaque Promise.
-          this.retainHookFollowup(
-            work.then(
-              () => {},
-              () => {}
-            )
-          );
-        }
-        return result;
-      };
+      const fn = evaluated as (...args: unknown[]) => unknown;
       this.configuredHookFunctions.set(hook, { expression, fn });
       return fn;
     }

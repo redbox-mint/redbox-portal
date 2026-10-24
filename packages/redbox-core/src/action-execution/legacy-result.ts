@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import * as Cause from 'effect/Cause';
 import { isObservable, Observable } from 'rxjs';
 
 /**
@@ -67,15 +68,23 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
 /** Adapt whatever a legacy hook returned to an Effect. */
 export function adaptLegacyHookResult(value: unknown): LegacyEffectAdaptation {
   if (Effect.isEffect(value)) {
-    return { effect: value as Effect.Effect<unknown, unknown, never>, cooperativeCancellation: true };
+    return { effect: value as Effect.Effect<unknown, unknown, never>, cooperativeCancellation: false };
   }
   if (isObservable(value)) {
-    return { effect: observableEffect(value), cooperativeCancellation: true };
+    return { effect: observableEffect(value), cooperativeCancellation: false };
   }
   if (isThenable(value)) {
     return { effect: promiseEffect(value), cooperativeCancellation: false };
   }
   return { effect: Effect.succeed(value), cooperativeCancellation: true };
+}
+
+/** A legacy container may hide opaque I/O. Its first result owns the full wait. */
+export async function settleLegacyHookResult(value: unknown): Promise<unknown> {
+  const exit = await Effect.runPromise(Effect.exit(adaptLegacyHookResult(value).effect));
+  if (exit._tag === 'Success') return exit.value;
+  const failure = Cause.findErrorOption(exit.cause);
+  throw failure._tag === 'Some' ? failure.value : Cause.squash(exit.cause);
 }
 
 /**
@@ -84,11 +93,25 @@ export function adaptLegacyHookResult(value: unknown): LegacyEffectAdaptation {
  */
 export function legacyHookToEffect(
   invoke: () => unknown,
-  cancellation: CancellationCell = { value: true }
+  cancellation: CancellationCell = { value: true },
+  owner: {
+    runWork?<T>(operation: () => Promise<T>): Promise<T>;
+    retain?(work: Promise<unknown>): void;
+  } = {}
 ): Effect.Effect<unknown, unknown, never> {
-  return Effect.suspend(() => {
-    const adaptation = adaptLegacyHookResult(invoke());
-    cancellation.value = adaptation.cooperativeCancellation;
-    return adaptation.effect;
+  return Effect.tryPromise({
+    try: () => {
+      const operation = () => {
+        const value = invoke();
+        cancellation.value = adaptLegacyHookResult(value).cooperativeCancellation;
+        return settleLegacyHookResult(value);
+      };
+      // An independent lifetime prevents interrupting the outer action wait
+      // from abandoning a Promise hidden inside an Observable or Effect.
+      const work = owner.runWork ? owner.runWork(operation) : Promise.resolve().then(operation);
+      owner.retain?.(work);
+      return work;
+    },
+    catch: error => error,
   });
 }
