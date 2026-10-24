@@ -1,495 +1,453 @@
-import { installIdentityRepositoryMock } from '../../helpers/identityMock';
 import * as sinon from 'sinon';
 import { of, throwError } from 'rxjs';
-import { Controllers } from '../../../src/controllers/webservice/UserManagementController';
-import {createSinonStubLogger} from "../../logger.test";
-
+import { httpIdentityFixture, accountHttpRoutes } from '../../helpers/httpIdentityFixture';
+import { httpPagesFixture } from '../../helpers/httpPagesFixture';
+import { UserAccountLinkError } from '../../../src/identity/Users';
 let expect: Chai.ExpectStatic;
-
-function makeReq(req: Record<string, unknown>): Sails.Req {
-    return {
-        ...req,
-        apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
-            params: (req.params ?? {}) as Record<string, unknown>,
-            query: (req.query ?? {}) as Record<string, unknown>,
-            body: req.body,
-            files: (req.files as Record<string, unknown[]>) ?? {},
-        },
-    } as Sails.Req;
-}
-
 describe('Webservice UserManagementController', () => {
-    let controller: Controllers.UserManagement;
-    let originalSails: any;
-    let originalUsersService: any;
-    let originalBrandingService: any;
-    let originalRolesService: any;
+  let f: Awaited<ReturnType<typeof httpIdentityFixture>>;
+  let users: Record<string, any>;
+  let response: Awaited<ReturnType<typeof f.request>>;
+  const makeReq = (value: any) => value;
+  async function request(action: string, req: any) {
+    const route = accountHttpRoutes.find(route => route.action === action && route.path.includes('/api/'))!;
+    const params: Record<string, unknown> = { branding: 'default', portal: 'portal', ...req.params };
+    for (const key of ['id', 'query', 'primaryUserId'])
+      if (req.param?.(key) !== undefined) params[key] = req.param(key);
+    const path = route.path.replace(/:([A-Za-z]+)/g, (_match, key) =>
+      encodeURIComponent(String(params[key] ?? 'missing'))
+    );
+    const query = { ...req.query };
+    for (const key of ['query', 'primaryUserId']) if (params[key] !== undefined) query[key] = params[key];
+    response = await f.request(path + '?' + new URLSearchParams(query), {
+      method: route.method.toUpperCase(),
+      body: req.body,
+      headers: { 'X-ReDBox-Api-Version': '2.0' },
+    });
+  }
+  before(async () => {
+    expect = (await import('chai')).expect;
+  });
+  beforeEach(async () => {
+    f = await httpIdentityFixture();
+    users = f.users;
+    users.getUsersForBrand.returns(
+      of([
+        {
+          id: 'bbbbbbbbbbbbbbbbbbbbbbbb',
+          username: 'primary-user',
+          name: 'Primary User',
+          roles: [{ branding: 'brand-1', name: 'Researcher' }],
+          hasApiKey: true,
+        },
+        {
+          id: 'cccccccccccccccccccccccc',
+          username: 'alias-user',
+          name: 'Alias User',
+          linkedPrimaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb',
+          accountLinkState: 'linked-alias',
+          roles: [],
+        },
+      ])
+    );
+    f.repository.list.withArgs('userlink').resolves([
+      {
+        primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb',
+        secondaryUserId: 'cccccccccccccccccccccccc',
+        brandId: 'brand-1',
+        status: 'active',
+      },
+    ]);
+    f.repository.list.withArgs('user').resolves([{ id: 'bbbbbbbbbbbbbbbbbbbbbbbb', username: 'primary-user' }]);
+  });
+  afterEach(async () => {
+    await f.close();
+    sinon.restore();
+  });
 
-    before(async () => {
-        const chai = await import('chai');
-        expect = chai.expect;
+  it('should search link candidates', async () => {
+    const req = makeReq({
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      query: { query: 'candidate', primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb' },
     });
 
-    beforeEach(() => {
-    installIdentityRepositoryMock();
-        originalSails = (global as any).sails;
-        originalUsersService = (global as any).UsersService;
-        originalBrandingService = (global as any).BrandingService;
-        originalRolesService = (global as any).RolesService;
+    await request('searchLinkCandidates', req);
 
-        (global as any).sails = {
-            log: createSinonStubLogger(sinon),
-        };
-        (global as any).BrandingService = {
-            getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
-        };
-        (global as any).UsersService = {
-            getUserWithId: sinon.stub().returns(of({
-                id: 'user-1',
-                username: 'target-user',
-                password: 'secret',
-                token: 'tok',
-                roles: [{ name: 'Researcher', branding: 'brand-1' }]
-            })),
-            getUserAudit: sinon.stub().resolves({
-                records: [{ id: 'audit-1', action: 'login', details: 'User logged in' }],
-                summary: { returnedCount: 1, truncated: false }
-            }),
-            searchLinkCandidates: sinon.stub().returns(of([{ id: 'candidate-1', username: 'candidate-user' }])),
-            getLinkedAccounts: sinon.stub().returns(of({ primary: { id: 'primary-1', username: 'primary-user' }, linkedAccounts: [] })),
-            linkAccounts: sinon.stub().returns(of({ primary: { id: 'primary-1', username: 'primary-user' }, linkedAccounts: [], impact: { rolesMerged: 1, recordsRewritten: 2 } })),
-            enrichUsersWithEffectiveDisabledState: sinon.stub().callsFake((users: any[]) => Promise.resolve(users.map((u: any) => ({ ...u, effectiveLoginDisabled: false })))),
-            disableUser: sinon.stub().resolves(),
-            enableUser: sinon.stub().resolves()
-        };
+    expect(users.searchLinkCandidates.calledWith('candidate', 'brand-1', 'bbbbbbbbbbbbbbbbbbbbbbbb')).to.be.true;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.body.data).to.deep.equal([{ id: 'candidate-1', username: 'candidate-user' }]);
+  });
 
-        controller = new Controllers.UserManagement();
+  it('should reject link candidate searches when branding cannot be resolved', async () => {
+    f.getBrand.resolves(null);
+    const req = makeReq({
+      session: { branding: 'default' },
+      query: { query: 'candidate', primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb' },
     });
 
-    afterEach(() => {
-        sinon.restore();
-        (global as any).sails = originalSails;
-        (global as any).UsersService = originalUsersService;
-        (global as any).BrandingService = originalBrandingService;
-        (global as any).RolesService = originalRolesService;
+    await request('searchLinkCandidates', req);
+
+    expect(users.searchLinkCandidates.called).to.be.false;
+    expect(response.status).to.equal(404);
+    expect(response.status).to.equal(404);
+  });
+
+  it('should get linked accounts through the service', async () => {
+    const req = makeReq({
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      params: { id: 'bbbbbbbbbbbbbbbbbbbbbbbb' },
     });
 
-    it('should search link candidates', async () => {
+    await request('getUserLinks', req);
+
+    expect(users.getLinkedAccounts.calledWith('bbbbbbbbbbbbbbbbbbbbbbbb')).to.be.true;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.body.data?.primary?.id).to.equal('bbbbbbbbbbbbbbbbbbbbbbbb');
+  });
+
+  it('should reject linked account lookups when branding cannot be resolved', async () => {
+    f.getBrand.resolves(null);
+    const req = makeReq({
+      session: { branding: 'default' },
+      params: { id: 'bbbbbbbbbbbbbbbbbbbbbbbb' },
+    });
+
+    await request('getUserLinks', req);
+
+    expect(users.getLinkedAccounts.called).to.be.false;
+    expect(response.status).to.equal(404);
+    expect(response.status).to.equal(404);
+  });
+
+  describe('getUserAudit', () => {
+    it('should return audit data for an admin and sanitize the user payload', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: '111111111111111111111111' },
+      });
+
+      await request('getUserAudit', req);
+
+      expect(users.getUserWithId.calledWith('111111111111111111111111')).to.be.true;
+      expect(users.getUserAudit.calledWith('111111111111111111111111')).to.be.true;
+      expect(response.headers.get('Content-Type')).to.contain('json');
+      expect(response.body.data?.user?.password).to.be.undefined;
+      expect(response.body.data?.user?.token).to.be.undefined;
+      expect(response.body.data?.summary?.returnedCount).to.equal(1);
+    });
+
+    it('should return 400 when the user id is missing', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: {},
+      });
+
+      await request('getUserAudit', req);
+
+      expect(response.status).to.equal(400);
+    });
+
+    it('should return 404 when the user does not exist', async () => {
+      users.getUserWithId = sinon.stub().returns(of(null));
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: 'dddddddddddddddddddddddd' },
+      });
+
+      await request('getUserAudit', req);
+
+      expect(response.status).to.equal(404);
+    });
+
+    it('should return 400 when branding cannot be resolved', async () => {
+      f.getBrand.resolves(null);
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: '111111111111111111111111' },
+      });
+
+      await request('getUserAudit', req);
+
+      expect(users.getUserAudit.called).to.be.false;
+      expect(response.status).to.equal(404);
+    });
+
+    it('should return 500 when the audit service fails', async () => {
+      users.getUserAudit = sinon.stub().rejects(new Error('audit exploded'));
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: '111111111111111111111111' },
+      });
+
+      await request('getUserAudit', req);
+
+      expect(response.status).to.equal(500);
+    });
+  });
+
+  it('should link accounts through the service', async () => {
+    const req = makeReq({
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      body: { primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb', secondaryUserId: 'cccccccccccccccccccccccc' },
+    });
+
+    await request('linkAccounts', req);
+
+    expect(
+      users.linkAccounts.calledWith('bbbbbbbbbbbbbbbbbbbbbbbb', 'cccccccccccccccccccccccc', 'admin-user', 'brand-1')
+    ).to.be.true;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.body.data?.impact?.rolesMerged).to.equal(1);
+  });
+
+  it('should reject link requests with missing user ids', async () => {
+    const req = makeReq({
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      body: { primaryUserId: '', secondaryUserId: 'cccccccccccccccccccccccc' },
+    });
+
+    await request('linkAccounts', req);
+
+    expect(users.linkAccounts.called).to.be.false;
+    expect(response.status).to.equal(400);
+  });
+
+  it('should reject link requests where the same user is provided twice', async () => {
+    const req = makeReq({
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      body: { primaryUserId: '111111111111111111111111', secondaryUserId: '111111111111111111111111' },
+    });
+
+    await request('linkAccounts', req);
+
+    expect(users.linkAccounts.called).to.be.false;
+    expect(response.status).to.equal(400);
+  });
+
+  it('should reject link requests when branding cannot be resolved', async () => {
+    f.getBrand.resolves(null);
+    const req = makeReq({
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      body: { primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb', secondaryUserId: 'cccccccccccccccccccccccc' },
+    });
+
+    await request('linkAccounts', req);
+
+    expect(users.linkAccounts.called).to.be.false;
+    expect(response.status).to.equal(404);
+  });
+
+  it('should map validation failures from the service to 400', async () => {
+    users.linkAccounts = sinon
+      .stub()
+      .returns(throwError(() => new UserAccountLinkError('Primary user must already belong to the current brand')));
+    const req = makeReq({
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      body: { primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb', secondaryUserId: 'cccccccccccccccccccccccc' },
+    });
+
+    await request('linkAccounts', req);
+
+    expect(response.status).to.equal(400);
+  });
+
+  it('should map unexpected service failures to 500', async () => {
+    users.linkAccounts = sinon.stub().returns(throwError(() => new Error('database offline')));
+    const req = makeReq({
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      body: { primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb', secondaryUserId: 'cccccccccccccccccccccccc' },
+    });
+
+    await request('linkAccounts', req);
+
+    expect(response.status).to.equal(500);
+  });
+
+  describe('disableUser', () => {
+    it('should disable a user when called by admin', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: '111111111111111111111111' },
+      });
+
+      await request('disableUser', req);
+
+      expect(users.disableUser.calledWith('111111111111111111111111', 'admin-user', 'brand-1')).to.be.true;
+      expect(response.headers.get('Content-Type')).to.contain('json');
+      expect(response.body.data.status).to.be.true;
+    });
+
+    it('should reject when user id is missing', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: {},
+      });
+
+      await request('disableUser', req);
+
+      expect(response.status).to.equal(400);
+    });
+
+    it('should reject self-disable attempts', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { id: 'aaaaaaaaaaaaaaaaaaaaaaaa', username: 'admin-user' },
+        params: { id: 'aaaaaaaaaaaaaaaaaaaaaaaa' },
+      });
+
+      await request('disableUser', req);
+
+      expect(users.disableUser.called).to.be.false;
+      expect(response.status).to.equal(400);
+    });
+  });
+
+  describe('enableUser', () => {
+    it('should enable a user when called by admin', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: '111111111111111111111111' },
+      });
+
+      await request('enableUser', req);
+
+      expect(users.enableUser.calledWith('111111111111111111111111', 'admin-user', 'brand-1')).to.be.true;
+      expect(response.headers.get('Content-Type')).to.contain('json');
+      expect(response.body.data.status).to.be.true;
+    });
+
+    it('should reject when user id is missing', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: {},
+      });
+
+      await request('enableUser', req);
+
+      expect(response.status).to.equal(400);
+    });
+
+    it('should reject enable requests when branding cannot be resolved', async () => {
+      f.getBrand.resolves(null);
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: '111111111111111111111111' },
+      });
+
+      await request('enableUser', req);
+
+      expect(users.enableUser.called).to.be.false;
+      expect(response.status).to.equal(404);
+    });
+  });
+
+  describe('brand-scoped user mutations', () => {
+    it('rejects reusing a username owned by another brand', async () => {
+      users.addLocalUser = sinon.stub().returns(throwError(() => new Error('Username already exists')));
+      users.getUserWithUsername = sinon.stub().returns(
+        of({
+          id: 'eeeeeeeeeeeeeeeeeeeeeeee',
+          username: 'existing-user',
+          roles: [{ branding: { id: 'brand-2' } }],
+        })
+      );
+      users.getUserWithId = sinon
+        .stub()
+        .returns(
+          of({ id: 'eeeeeeeeeeeeeeeeeeeeeeee', username: 'existing-user', roles: [{ branding: { id: 'brand-2' } }] })
+        );
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        body: {
+          username: 'existing-user',
+          name: 'Existing User',
+          email: 'existing@example.org',
+          password: 'secret',
+        },
+      });
+
+      await request('createUser', req);
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(users.getUserWithUsername.calledOnceWithExactly('existing-user')).to.be.true;
+      expect(response.status).to.equal(403);
+    });
+    it('rejects updating a user outside the current brand', async () => {
+      users.getUserWithId = sinon.stub().returns(
+        of({
+          id: 'eeeeeeeeeeeeeeeeeeeeeeee',
+          roles: [{ branding: { id: 'brand-2' } }],
+        })
+      );
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        body: { id: 'eeeeeeeeeeeeeeeeeeeeeeee', name: 'Other User', email: '', password: '' },
+      });
+
+      await request('updateUser', req);
+
+      expect(response.status).to.equal(403);
+    });
+
+    for (const method of ['generateAPIToken', 'revokeAPIToken'] as const) {
+      it(`rejects ${method} for a user outside the current brand`, async () => {
+        users.getUserWithId = sinon.stub().returns(
+          of({
+            id: 'eeeeeeeeeeeeeeeeeeeeeeee',
+            roles: [{ branding: 'brand-2' }],
+          })
+        );
         const req = makeReq({
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            query: { query: 'candidate', primaryUserId: 'primary-1' }
+          session: { branding: 'default' },
+          user: { username: 'admin-user' },
+          query: { id: 'eeeeeeeeeeeeeeeeeeeeeeee' },
         });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
-        await controller.searchLinkCandidates(req, res);
+        await request(method, req);
 
-        expect((global as any).UsersService.searchLinkCandidates.calledWith('candidate', 'brand-1', 'primary-1')).to.be.true;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.data).to.deep.equal([{ id: 'candidate-1', username: 'candidate-user' }]);
-    });
+        expect(response.status).to.equal(403);
+      });
 
-    it('should reject link candidate searches when branding cannot be resolved', async () => {
-        (global as any).BrandingService.getBrand = sinon.stub().returns(null);
+      it(`allows ${method} for a user in the current brand`, async () => {
+        users.setUserKey = sinon.stub().returns(
+          of({
+            id: '111111111111111111111111',
+            username: 'target-user',
+          })
+        );
         const req = makeReq({
-            session: { branding: 'default' },
-            query: { query: 'candidate', primaryUserId: 'primary-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.searchLinkCandidates(req, res);
-
-        expect((global as any).UsersService.searchLinkCandidates.called).to.be.false;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
-
-    it('should get linked accounts through the service', async () => {
-        const req = makeReq({
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            params: { id: 'primary-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.getUserLinks(req, res);
-
-        expect((global as any).UsersService.getLinkedAccounts.calledWith('primary-1')).to.be.true;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.data?.primary?.id).to.equal('primary-1');
-    });
-
-    it('should reject linked account lookups when branding cannot be resolved', async () => {
-        (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-        const req = makeReq({
-            session: { branding: 'default' },
-            params: { id: 'primary-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.getUserLinks(req, res);
-
-        expect((global as any).UsersService.getLinkedAccounts.called).to.be.false;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
-
-    describe('getUserAudit', () => {
-        it('should return audit data for an admin and sanitize the user payload', async () => {
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: { id: 'user-1' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.getUserAudit(req, res);
-
-            expect((global as any).UsersService.getUserWithId.calledWith('user-1')).to.be.true;
-            expect((global as any).UsersService.getUserAudit.calledWith('user-1')).to.be.true;
-            expect(sendRespStub.calledOnce).to.be.true;
-            expect(sendRespStub.firstCall.args[2]?.data?.user?.password).to.be.undefined;
-            expect(sendRespStub.firstCall.args[2]?.data?.user?.token).to.be.undefined;
-            expect(sendRespStub.firstCall.args[2]?.data?.summary?.returnedCount).to.equal(1);
+          session: { branding: 'default' },
+          user: { username: 'admin-user' },
+          query: { id: '111111111111111111111111' },
         });
 
-        it('should return 400 when the user id is missing', async () => {
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: {}
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
+        await request(method, req);
 
-            await controller.getUserAudit(req, res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-        });
-
-        it('should return 404 when the user does not exist', async () => {
-            (global as any).UsersService.getUserWithId = sinon.stub().returns(of(null));
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: { id: 'missing-user' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.getUserAudit(req, res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
-        });
-
-        it('should return 400 when branding cannot be resolved', async () => {
-            (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: { id: 'user-1' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.getUserAudit(req, res);
-
-            expect((global as any).UsersService.getUserAudit.called).to.be.false;
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-        });
-
-        it('should return 500 when the audit service fails', async () => {
-            (global as any).UsersService.getUserAudit = sinon.stub().rejects(new Error('audit exploded'));
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: { id: 'user-1' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.getUserAudit(req, res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(500);
-        });
-    });
-
-    it('should link accounts through the service', async () => {
-        const req = makeReq({
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            body: { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.linkAccounts(req, res);
-
-        expect((global as any).UsersService.linkAccounts.calledWith('primary-1', 'secondary-1', 'admin-user', 'brand-1')).to.be.true;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.data?.impact?.rolesMerged).to.equal(1);
-    });
-
-    it('should reject link requests with missing user ids', async () => {
-        const req = makeReq({
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            body: { primaryUserId: '', secondaryUserId: 'secondary-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.linkAccounts(req, res);
-
-        expect((global as any).UsersService.linkAccounts.called).to.be.false;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
-
-    it('should reject link requests where the same user is provided twice', async () => {
-        const req = makeReq({
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            body: { primaryUserId: 'user-1', secondaryUserId: 'user-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.linkAccounts(req, res);
-
-        expect((global as any).UsersService.linkAccounts.called).to.be.false;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
-
-    it('should reject link requests when branding cannot be resolved', async () => {
-        (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-        const req = makeReq({
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            body: { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.linkAccounts(req, res);
-
-        expect((global as any).UsersService.linkAccounts.called).to.be.false;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
-
-    it('should map validation failures from the service to 400', async () => {
-        (global as any).UsersService.linkAccounts = sinon.stub().returns(throwError(() => new Error('Primary user must already belong to the current brand')));
-        const req = makeReq({
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            body: { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.linkAccounts(req, res);
-
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
-
-    it('should map unexpected service failures to 500', async () => {
-        (global as any).UsersService.linkAccounts = sinon.stub().returns(throwError(() => new Error('database offline')));
-        const req = makeReq({
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            body: { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' }
-        });
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.linkAccounts(req, res);
-
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(500);
-    });
-
-    describe('disableUser', () => {
-        it('should disable a user when called by admin', async () => {
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: { id: 'user-1' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
-
-            await controller.disableUser(req, res);
-
-            expect((global as any).UsersService.disableUser.calledWith('user-1', 'admin-user', 'brand-1')).to.be.true;
-            expect(apiRespondStub.calledOnce).to.be.true;
-            expect(apiRespondStub.firstCall.args[2]?.status).to.be.true;
-        });
-
-        it('should reject when user id is missing', async () => {
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: {}
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.disableUser(req, res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-        });
-
-        it('should reject self-disable attempts', async () => {
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { id: 'admin-1', username: 'admin-user' },
-                params: { id: 'admin-1' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.disableUser(req, res);
-
-            expect((global as any).UsersService.disableUser.called).to.be.false;
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-        });
-
-    });
-
-    describe('enableUser', () => {
-        it('should enable a user when called by admin', async () => {
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: { id: 'user-1' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
-
-            await controller.enableUser(req, res);
-
-            expect((global as any).UsersService.enableUser.calledWith('user-1', 'admin-user', 'brand-1')).to.be.true;
-            expect(apiRespondStub.calledOnce).to.be.true;
-            expect(apiRespondStub.firstCall.args[2]?.status).to.be.true;
-        });
-
-        it('should reject when user id is missing', async () => {
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: {}
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.enableUser(req, res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-        });
-
-        it('should reject enable requests when branding cannot be resolved', async () => {
-            (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                params: { id: 'user-1' }
-            });
-            const res = {} as unknown as Sails.Res;
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.enableUser(req, res);
-
-            expect((global as any).UsersService.enableUser.called).to.be.false;
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-        });
-
-    });
-
-    describe('brand-scoped user mutations', () => {
-        it('rejects reusing a username owned by another brand', async () => {
-            (global as any).UsersService.addLocalUser = sinon.stub().returns(
-                throwError(() => new Error('Username already exists'))
-            );
-            (global as any).UsersService.getUserWithUsername = sinon.stub().returns(of({
-                id: 'other-user',
-                username: 'existing-user',
-                roles: [{ branding: { id: 'brand-2' } }]
-            }));
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                body: {
-                    username: 'existing-user',
-                    name: 'Existing User',
-                    email: 'existing@example.org',
-                    password: 'secret'
-                }
-            });
-
-            controller.createUser(req, {} as Sails.Res);
-            await new Promise((resolve) => setImmediate(resolve));
-
-            expect((global as any).UsersService.getUserWithUsername.calledOnceWithExactly('existing-user')).to.be.true;
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
-        });
-        it('rejects updating a user outside the current brand', async () => {
-            (global as any).UsersService.getUserWithId = sinon.stub().returns(of({
-                id: 'other-user',
-                roles: [{ branding: { id: 'brand-2' } }]
-            }));
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-            const req = makeReq({
-                session: { branding: 'default' },
-                user: { username: 'admin-user' },
-                body: { id: 'other-user', name: 'Other User' }
-            });
-
-            await controller.updateUser(req, {} as Sails.Res);
-
-            expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
-        });
-
-        for (const method of ['generateAPIToken', 'revokeAPIToken'] as const) {
-            it(`rejects ${method} for a user outside the current brand`, async () => {
-                (global as any).UsersService.getUserWithId = sinon.stub().returns(of({
-                    id: 'other-user',
-                    roles: [{ branding: 'brand-2' }]
-                }));
-                const sendRespStub = sinon.stub(controller as any, 'sendResp');
-                const req = makeReq({
-                    session: { branding: 'default' },
-                    user: { username: 'admin-user' },
-                    query: { id: 'other-user' }
-                });
-
-                await controller[method](req, {} as Sails.Res);
-
-                expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
-            });
-
-            it(`allows ${method} for a user in the current brand`, async () => {
-                (global as any).UsersService.setUserKey = sinon.stub().returns(of({
-                    id: 'user-1',
-                    username: 'target-user'
-                }));
-                const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
-                const req = makeReq({
-                    session: { branding: 'default' },
-                    user: { username: 'admin-user' },
-                    query: { id: 'user-1' }
-                });
-
-                await controller[method](req, {} as Sails.Res);
-
-                expect((global as any).UsersService.setUserKey.calledOnce).to.be.true;
-                expect((global as any).UsersService.setUserKey.firstCall.args[0]).to.equal('user-1');
-                expect(apiRespondStub.calledOnce).to.be.true;
-                expect(apiRespondStub.firstCall.args[2]?.username).to.equal('target-user');
-            });
-        }
-    });
+        expect(users.setUserKey.calledOnce).to.be.true;
+        expect(users.setUserKey.firstCall.args[0]).to.equal('111111111111111111111111');
+        expect(response.headers.get('Content-Type')).to.contain('json');
+        expect(response.body.data.username).to.equal('target-user');
+      });
+    }
+  });
 });

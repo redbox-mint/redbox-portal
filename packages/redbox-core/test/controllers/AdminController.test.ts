@@ -1,270 +1,233 @@
-import { repositoryFixtures } from '../helpers/repositoryFixtures';
-import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
-import { Controllers } from '../../src/controllers/AdminController';
-import { createQueryObject } from '../services/testHelper';
-import {createSinonStubLogger} from "../logger.test";
-
+import { of, throwError } from 'rxjs';
+import { httpIdentityFixture, accountHttpRoutes } from '../helpers/httpIdentityFixture';
+import { httpPagesFixture } from '../helpers/httpPagesFixture';
+import { UserAccountLinkError } from '../../src/identity/Users';
 let expect: Chai.ExpectStatic;
-
 describe('AdminController', () => {
-    let controller: Controllers.Admin;
-    let originalSails: any;
-    let originalUsersService: any;
-    let originalBrandingService: any;
-    let originalUser: any;
-    let originalUserLink: any;
-
-    before(async () => {
-        const chai = await import('chai');
-        expect = chai.expect;
+  let f: Awaited<ReturnType<typeof httpIdentityFixture>>;
+  let users: Record<string, any>;
+  let response: Awaited<ReturnType<typeof f.request>>;
+  const makeReq = (value: any) => value;
+  async function request(action: string, req: any) {
+    const route = accountHttpRoutes.find(route => route.action === action && !route.path.includes('/api/'))!;
+    const params: Record<string, unknown> = { branding: 'default', portal: 'portal', ...req.params };
+    for (const key of ['id', 'query', 'primaryUserId'])
+      if (req.param?.(key) !== undefined) params[key] = req.param(key);
+    const path = route.path.replace(/:([A-Za-z]+)/g, (_match, key) =>
+      encodeURIComponent(String(params[key] ?? 'missing'))
+    );
+    const query = { ...req.query };
+    for (const key of ['query', 'primaryUserId']) if (params[key] !== undefined) query[key] = params[key];
+    response = await f.request(path + '?' + new URLSearchParams(query), {
+      method: route.method.toUpperCase(),
+      body: req.body,
+      headers: { 'X-ReDBox-Api-Version': '2.0' },
     });
+  }
+  before(async () => {
+    expect = (await import('chai')).expect;
+  });
+  beforeEach(async () => {
+    f = await httpIdentityFixture();
+    users = f.users;
+    users.getUsersForBrand.returns(
+      of([
+        {
+          id: 'bbbbbbbbbbbbbbbbbbbbbbbb',
+          username: 'primary-user',
+          name: 'Primary User',
+          roles: [{ branding: 'brand-1', name: 'Researcher' }],
+          hasApiKey: true,
+        },
+        {
+          id: 'cccccccccccccccccccccccc',
+          username: 'alias-user',
+          name: 'Alias User',
+          linkedPrimaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb',
+          accountLinkState: 'linked-alias',
+          roles: [],
+        },
+      ])
+    );
+    f.repository.list.withArgs('userlink').resolves([
+      {
+        primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb',
+        secondaryUserId: 'cccccccccccccccccccccccc',
+        brandId: 'brand-1',
+        status: 'active',
+      },
+    ]);
+    f.repository.list.withArgs('user').resolves([{ id: 'bbbbbbbbbbbbbbbbbbbbbbbb', username: 'primary-user' }]);
+  });
+  afterEach(async () => {
+    await f.close();
+    sinon.restore();
+  });
 
-    beforeEach(() => {
-    installIdentityRepositoryMock();
-        originalSails = (global as any).sails;
-        originalUsersService = (global as any).UsersService;
-        originalBrandingService = (global as any).BrandingService;
-        originalUser = repositoryFixtures.User;
-        originalUserLink = repositoryFixtures.UserLink;
+  it('should enrich admin users with link metadata', async () => {
+    const req = { session: { branding: 'default' }, query: {} };
 
-        (global as any).sails = {
-            config: {
-                auth: {
-                    hiddenUsers: [],
-                    hiddenRoles: []
-                }
-            },
-            log: createSinonStubLogger(sinon)
-        };
-        (global as any).BrandingService = {
-            getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
-        };
-        (global as any).RolesService = {
-            getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' })
-        };
-        (global as any).UsersService = {
-            getUsersForBrand: sinon.stub().returns(of([
-                { id: 'primary-1', username: 'primary-user', name: 'Primary User', roles: [{ branding: 'brand-1', name: 'Researcher' }], token: 'hashed' },
-                { id: 'alias-1', username: 'alias-user', name: 'Alias User', linkedPrimaryUserId: 'primary-1', accountLinkState: 'linked-alias', roles: [] }
-            ])),
-            enrichUsersWithEffectiveDisabledState: sinon.stub().callsFake((users: any[]) => Promise.resolve(users.map((u: any) => ({ ...u, effectiveLoginDisabled: false })))),
-            hasRole: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
-            getUserWithId: sinon.stub().returns(of({ id: 'user-1', username: 'target-user', password: 'secret', token: 'tok' })),
-            getUserAudit: sinon.stub().resolves({
-                records: [{ id: 'audit-1', action: 'login', details: 'User logged in' }],
-                summary: { returnedCount: 1, truncated: false }
-            }),
-            searchLinkCandidates: sinon.stub().returns(of([{ id: 'candidate-1', username: 'candidate-user' }])),
-            getLinkedAccounts: sinon.stub().returns(of({ primary: { id: 'primary-1', username: 'primary-user' }, linkedAccounts: [] })),
-            linkAccounts: sinon.stub().returns(of({ primary: { id: 'primary-1', username: 'primary-user' }, linkedAccounts: [], impact: { rolesMerged: 1, recordsRewritten: 2 } })),
-            disableUser: sinon.stub().resolves(),
-            enableUser: sinon.stub().resolves()
-        };
-        repositoryFixtures.UserLink = {
-            find: sinon.stub().returns(createQueryObject([
-                { primaryUserId: 'primary-1', secondaryUserId: 'alias-1', brandId: 'brand-1', status: 'active' }
-            ]))
-        };
-        repositoryFixtures.User = {
-            find: sinon.stub().returns(createQueryObject([
-                { id: 'primary-1', username: 'primary-user' }
-            ]))
-        };
+    await request('getUsers', req);
 
-        controller = new Controllers.Admin();
-    });
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    const payload = { data: response.body.data };
+    expect(payload.data).to.have.length(2);
+    expect(payload.data[0].linkedAccountCount).to.equal(1);
+    expect(payload.data[1].effectivePrimaryUsername).to.equal('primary-user');
+  });
 
-    afterEach(() => {
-        sinon.restore();
-        (global as any).sails = originalSails;
-        (global as any).UsersService = originalUsersService;
-        (global as any).BrandingService = originalBrandingService;
-        repositoryFixtures.User = originalUser;
-        repositoryFixtures.UserLink = originalUserLink;
-    });
+  it('renders the harvest runs admin page', async () => {
+    const page = await httpPagesFixture();
+    try {
+      const result = await page.request('/default/portal/admin/harvest-runs');
+      expect(result.status).to.equal(200);
+      expect(result.text).to.contain('harvest-runs');
+    } finally {
+      await page.close();
+    }
+  });
 
-    it('should enrich admin users with link metadata', async () => {
-        const req = { session: { branding: 'default' }, query: {} } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+  it('falls back to alias username when the primary repository returns no users', async () => {
+    const req = { session: { branding: 'default' }, query: {} };
 
-        await controller.getUsers(req, res);
+    f.repository.list.withArgs('user').resolves([]);
 
-        expect(sendRespStub.called).to.be.true;
-        const payload = sendRespStub.firstCall.args[2];
-        expect(payload.data).to.have.length(2);
-        expect(payload.data[0].linkedAccountCount).to.equal(1);
-        expect(payload.data[1].effectivePrimaryUsername).to.equal('primary-user');
-    });
+    await request('getUsers', req);
 
-    it('should render the harvest runs admin page', () => {
-        const req = {} as Sails.Req;
-        const res = {} as Sails.Res;
-        const sendViewStub = sinon.stub(controller as any, 'sendView');
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    const payload = { data: response.body.data };
+    expect(payload.data[1].effectivePrimaryUsername).to.equal('alias-user');
+  });
 
-        controller.harvestRunsIndex(req, res);
+  it('should return audit data for an admin and sanitize the user payload', async () => {
+    const param = sinon.stub();
+    param.withArgs('id').returns('111111111111111111111111');
+    const req = {
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      param,
+    };
 
-        expect(sendViewStub.calledOnceWithExactly(req, res, 'admin/harvest-runs')).to.be.true;
-    });
+    await request('getUserAudit', req);
 
-    it('should skip primary user lookup when the User model is unavailable', async () => {
-        const req = { session: { branding: 'default' }, query: {} } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    expect(users.getUserWithId.calledWith('111111111111111111111111')).to.be.true;
+    expect(users.getUserAudit.calledWith('111111111111111111111111')).to.be.true;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.body.data?.user?.password).to.be.undefined;
+    expect(response.body.data?.user?.token).to.be.undefined;
+    expect(response.body.data?.summary?.returnedCount).to.equal(1);
+  });
 
-        delete repositoryFixtures.User;
+  it('should reject link candidate searches when branding cannot be resolved', async () => {
+    f.getBrand.resolves(null);
+    const param = sinon.stub();
+    param.withArgs('query').returns('candidate');
+    param.withArgs('primaryUserId').returns('bbbbbbbbbbbbbbbbbbbbbbbb');
+    const req = {
+      session: { branding: 'default' },
+      param,
+    };
 
-        await controller.getUsers(req, res);
+    await request('searchLinkCandidates', req);
 
-        expect(sendRespStub.calledOnce).to.be.true;
-        const payload = sendRespStub.firstCall.args[2];
-        expect(payload.data[1].effectivePrimaryUsername).to.equal('alias-user');
-    });
+    expect(users.searchLinkCandidates.called).to.be.false;
+    expect(response.status).to.equal(404);
+    expect(response.status).to.equal(404);
+  });
 
-    it('should return audit data for an admin and sanitize the user payload', async () => {
-        const param = sinon.stub();
-        param.withArgs('id').returns('user-1');
-        const req = {
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            param
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+  it('should reject user audit requests when branding cannot be resolved', async () => {
+    f.getBrand.resolves(null);
+    const param = sinon.stub();
+    param.withArgs('id').returns('111111111111111111111111');
+    const req = {
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      param,
+    };
 
-        await controller.getUserAudit(req, res);
+    await request('getUserAudit', req);
 
-        expect((global as any).UsersService.getUserWithId.calledWith('user-1')).to.be.true;
-        expect((global as any).UsersService.getUserAudit.calledWith('user-1')).to.be.true;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.data?.user?.password).to.be.undefined;
-        expect(sendRespStub.firstCall.args[2]?.data?.user?.token).to.be.undefined;
-        expect(sendRespStub.firstCall.args[2]?.data?.summary?.returnedCount).to.equal(1);
-    });
+    expect(users.getUserAudit.called).to.be.false;
+    expect(response.status).to.equal(404);
+    expect(response.status).to.equal(404);
+  });
 
-    it('should reject link candidate searches when branding cannot be resolved', async () => {
-        (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-        const param = sinon.stub();
-        param.withArgs('query').returns('candidate');
-        param.withArgs('primaryUserId').returns('primary-1');
-        const req = {
-            session: { branding: 'default' },
-            param
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+  it('should link accounts through the admin controller', async () => {
+    const req = {
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      body: { primaryUserId: 'bbbbbbbbbbbbbbbbbbbbbbbb', secondaryUserId: 'cccccccccccccccccccccccc' },
+    };
 
-        await controller.searchLinkCandidates(req, res);
+    await request('linkAccounts', req);
 
-        expect((global as any).UsersService.searchLinkCandidates.called).to.be.false;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
+    expect(
+      users.linkAccounts.calledWith('bbbbbbbbbbbbbbbbbbbbbbbb', 'cccccccccccccccccccccccc', 'admin-user', 'brand-1')
+    ).to.be.true;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.body.data?.impact?.rolesMerged).to.equal(1);
+  });
 
-    it('should reject user audit requests when branding cannot be resolved', async () => {
-        (global as any).BrandingService.getBrand = sinon.stub().returns(null);
-        const param = sinon.stub();
-        param.withArgs('id').returns('user-1');
-        const req = {
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            param
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+  it('should reject link requests when a user is linked to itself', async () => {
+    const req = {
+      session: { branding: 'default' },
+      user: { username: 'admin-user' },
+      body: { primaryUserId: '111111111111111111111111', secondaryUserId: '111111111111111111111111' },
+    };
 
-        await controller.getUserAudit(req, res);
+    await request('linkAccounts', req);
 
-        expect((global as any).UsersService.getUserAudit.called).to.be.false;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
+    expect(users.linkAccounts.called).to.be.false;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.status).to.equal(400);
+  });
 
-    it('should link accounts through the admin controller', async () => {
-        const req = {
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            body: { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' }
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+  it('should disable a user through the admin controller', async () => {
+    const param = sinon.stub();
+    param.withArgs('id').returns('222222222222222222222222');
+    const req = {
+      session: { branding: 'default' },
+      user: { id: 'aaaaaaaaaaaaaaaaaaaaaaaa', username: 'admin-user' },
+      param,
+    };
 
-        await controller.linkAccounts(req, res);
+    await request('disableUser', req);
 
-        expect((global as any).UsersService.linkAccounts.calledWith('primary-1', 'secondary-1', 'admin-user', 'brand-1')).to.be.true;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.data?.impact?.rolesMerged).to.equal(1);
-    });
+    expect(users.disableUser.calledWith('222222222222222222222222', 'admin-user', 'brand-1')).to.be.true;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.body.data?.status).to.equal(true);
+  });
 
-    it('should reject link requests when a user is linked to itself', async () => {
-        const req = {
-            session: { branding: 'default' },
-            user: { username: 'admin-user' },
-            body: { primaryUserId: 'user-1', secondaryUserId: 'user-1' }
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+  it('should reject disabling your own admin account', async () => {
+    const param = sinon.stub();
+    param.withArgs('id').returns('aaaaaaaaaaaaaaaaaaaaaaaa');
+    const req = {
+      session: { branding: 'default' },
+      user: { id: 'aaaaaaaaaaaaaaaaaaaaaaaa', username: 'admin-user' },
+      param,
+    };
 
-        await controller.linkAccounts(req, res);
+    await request('disableUser', req);
 
-        expect((global as any).UsersService.linkAccounts.called).to.be.false;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
+    expect(users.disableUser.called).to.be.false;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.status).to.equal(400);
+  });
 
-    it('should disable a user through the admin controller', async () => {
-        const param = sinon.stub();
-        param.withArgs('id').returns('user-2');
-        const req = {
-            session: { branding: 'default' },
-            user: { id: 'admin-1', username: 'admin-user' },
-            param
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+  it('should enable a user through the admin controller', async () => {
+    const param = sinon.stub();
+    param.withArgs('id').returns('222222222222222222222222');
+    const req = {
+      session: { branding: 'default' },
+      user: { id: 'aaaaaaaaaaaaaaaaaaaaaaaa', username: 'admin-user' },
+      param,
+    };
 
-        await controller.disableUser(req, res);
+    await request('enableUser', req);
 
-        expect((global as any).UsersService.disableUser.calledWith('user-2', 'admin-user', 'brand-1')).to.be.true;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.data?.status).to.equal(true);
-    });
-
-    it('should reject disabling your own admin account', async () => {
-        const param = sinon.stub();
-        param.withArgs('id').returns('admin-1');
-        const req = {
-            session: { branding: 'default' },
-            user: { id: 'admin-1', username: 'admin-user' },
-            param
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.disableUser(req, res);
-
-        expect((global as any).UsersService.disableUser.called).to.be.false;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    });
-
-    it('should enable a user through the admin controller', async () => {
-        const param = sinon.stub();
-        param.withArgs('id').returns('user-2');
-        const req = {
-            session: { branding: 'default' },
-            user: { id: 'admin-1', username: 'admin-user' },
-            param
-        } as unknown as Sails.Req;
-        const res = {} as unknown as Sails.Res;
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-        await controller.enableUser(req, res);
-
-        expect((global as any).UsersService.enableUser.calledWith('user-2', 'admin-user', 'brand-1')).to.be.true;
-        expect(sendRespStub.calledOnce).to.be.true;
-        expect(sendRespStub.firstCall.args[2]?.data?.status).to.equal(true);
-    });
+    expect(users.enableUser.calledWith('222222222222222222222222', 'admin-user', 'brand-1')).to.be.true;
+    expect(response.headers.get('Content-Type')).to.contain('json');
+    expect(response.body.data?.status).to.equal(true);
+  });
 });

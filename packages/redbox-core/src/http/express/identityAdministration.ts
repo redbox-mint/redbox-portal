@@ -179,6 +179,8 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
             send({ status: false, message: 'Username already exists' });
             return;
           }
+          if (userId && !/^[a-f0-9]{24}$/i.test(userId))
+            throw new IdentityAdministrationError(400, 'Invalid user identifier');
           const target = userId ? await input.users.requireUserInBrand(userId, brand.id) : null;
           if (userId && !target) throw new IdentityAdministrationError(403, 'Unauthorized cross-brand access');
           if (action === 'disableUser' || action === 'enableUser') {

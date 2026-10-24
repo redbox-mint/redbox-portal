@@ -1136,3 +1136,27 @@ No scenario or raw-JSON safety coverage was deleted.
 these 19, preceding 26 view/user/relationship cases and 38 account cases below.
 Node 26.11.1 explicit core runner; source TypeScript **exit 0**, `identity37-tsc.log`.
 Pinned Prettier and diff check pass. Full artifact gates remain outstanding.
+
+### Account controller consumers and identifier validation
+
+Admin and user-management suites retain all **38 scenarios** through actual
+account-link/admin HTTP mounts. The shared fixture uses real Users enrichment and
+requireUserInBrand with explicit repository ports, preserving linked counts,
+primary usernames/fallbacks, audit credential exclusion, self-disable refusal,
+link validation, typed domain errors and token grant/refusal checks. The admin
+harvest page renders actual EJS. No global model/controller services are installed.
+
+Actual `identity37-first.log`: **27 passing / 0 pending / 11 failing**. Most were
+migration fixture assumptions (bodyless unknown-brand 404, inconsistent existing
+user/lookup identity, omitted required update fields, a remaining deleted capture).
+Corrected to actual HTTP contracts, and added explicit 24-hex identifier validation
+before account mutation lookup. Previously a malformed target could reach the
+repository and depend on native validation; malformed IDs now return controlled
+400 before mutation. Unknown brands remain 404 before any account domain access.
+Known account-link validation uses UserAccountLinkError rather than message-based
+Error classification. Missing required update fields are separately validated by
+the actual API contract; the cross-brand test now supplies otherwise-valid fields.
+
+`identity37-second.log`: **83/0/0** including all 38 account scenarios; source
+TypeScript **exit 0**, `identity37-tsc.log`. Pinned Prettier passes. No skip or
+scenario removal; whole-suite/final artifact qualification remains outstanding.
