@@ -184,3 +184,10 @@ delay up to `lockLifetime/2` after a handler completes; it can keep Node's event
 loop alive beyond resource closure. Allow for the actual configured lock lifetimes
 when choosing process termination grace; no premature pool closure is used to
 shorten that delay.
+
+Configured RVA and Figshare vocabulary imports retain their original work and
+completion scope after a bootstrap timeout (including RVA early-row
+reconciliation). The existing per-item failure logging and retry policy remain;
+a timeout does not prove cancellation. Application stop drains the original
+imports before closing dependencies, or fails its deadline retaining cleanup for
+retry. OCFL writable abort likewise joins the disk upload's actual cleanup.

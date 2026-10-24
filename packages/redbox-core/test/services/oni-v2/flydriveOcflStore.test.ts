@@ -1,5 +1,11 @@
 import { expect } from 'chai';
 import { Readable } from 'node:stream';
+import { finished } from 'node:stream/promises';
+import assert from 'node:assert/strict';
+import { nothingLogger } from '@researchdatabox/sails-ng-common';
+import { ApplicationRuntime } from '../../../src/application';
+import { runAcceptedPersistenceWork } from '../../../src/persistence/runtime';
+import { Services as Oni } from '../../../src/integrations/Oni';
 import * as sinon from 'sinon';
 import { createStorageManagerOcflStoreClass } from '../../../src/services/oni-v2/flydriveOcflStore';
 
@@ -62,6 +68,61 @@ function rawDriverHarness() {
 }
 
 describe('Oni Flydrive OCFL store', () => {
+  for (const web of [false, true]) for (const rejectUpload of [false, true])
+    it(`joins ${web ? 'Web' : 'Node'} writable abort cleanup when the disk ${rejectUpload ? 'rejects' : 'resolves'}`, async () => {
+      const { store, disk } = harness();
+      const owner = { config: {}, log: nothingLogger };
+      const release = Promise.withResolvers<void>();
+      let uploadSettled = false, callerSettled = false;
+      disk.putStream.callsFake(async (_key: string, source: Readable) => {
+        source.on('error', () => {});
+        await release.promise; uploadSettled = true;
+        if (rejectUpload) throw new Error('disk abort failed');
+      });
+      const oni = new Oni.OniService({ runWork: <T>(fn: () => Promise<T>) => runAcceptedPersistenceWork(owner, fn) } as any);
+      const app = new ApplicationRuntime(owner, [{ name: 'oni', create: () => ({
+        initialize: async () => {}, drain: () => oni.drain(), close: () => oni.close(),
+      }) }]);
+      try {
+        await app.initialize(); await app.activate();
+        const entered = Promise.withResolvers<void>();
+        const work = (oni as any).retain(async () => {
+          if (web) {
+            const stream = await store.createWritable('/repo/file');
+            entered.resolve(); await stream.abort(new Error('caller aborted')).catch(() => {});
+          } else {
+            const stream = await store.createWriteStream('/repo/file');
+            const completion = finished(stream).catch(() => {});
+            stream.destroy(new Error('caller aborted')); entered.resolve(); await completion;
+          }
+          callerSettled = true;
+        });
+        await entered.promise;
+        await assert.rejects(app.stop({ deadlineMs: 15 }), /deadline/);
+        assert.equal(uploadSettled, false); assert.equal(callerSettled, false);
+        release.resolve(); await work; await app.stop({ deadlineMs: 1000 });
+        assert.equal(uploadSettled, true); assert.equal(callerSettled, true);
+      } finally { release.resolve(); await app.stop(); }
+    });
+
+  for (const rejectUpload of [false, true])
+    it(`joins normal writable finalization when the disk ${rejectUpload ? 'rejects' : 'resolves'}`, async () => {
+      const { store, disk } = harness();
+      const release = Promise.withResolvers<void>();
+      let settled = false;
+      disk.putStream.callsFake(async (_key: string, source: Readable) => {
+        source.on('error', () => {}); source.resume(); await release.promise;
+        if (rejectUpload) throw new Error('disk failed');
+      });
+      const stream = await store.createWriteStream('/repo/file');
+      const completion = finished(stream);
+      void completion.then(() => { settled = true; }, () => { settled = true; });
+      stream.end('content'); await new Promise(resolve => setImmediate(resolve));
+      assert.equal(settled, false); release.resolve();
+      if (rejectUpload) await assert.rejects(completion, /disk failed/); else await completion;
+      assert.equal(settled, true);
+    });
+
   it('maps root, workspace, encoded, and raw keys', () => {
     const { store } = harness();
     expect(store.keyFor('/repo')).to.equal('oni');

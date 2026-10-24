@@ -1,4 +1,5 @@
 import { PassThrough, Readable, Writable } from 'node:stream';
+import { finished } from 'node:stream/promises';
 import { ReadableStream, WritableStream } from 'node:stream/web';
 import { posix as pathPosix, relative } from 'node:path';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
@@ -236,7 +237,12 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
         },
         destroy(error: Error | null, callback: (error?: Error | null) => void) {
           uploadStream.destroy(error ?? undefined);
-          callback(error);
+          // Stream destruction is not proof that the disk finished abort cleanup.
+          // Keep pipeline/Web Writable completion joined to the actual upload.
+          upload.then(
+            () => callback(error),
+            reason => callback(error ?? (reason instanceof Error ? reason : new Error(String(reason))))
+          );
         },
       });
       upload.catch(error => writable.destroy(error instanceof Error ? error : new Error(String(error))));
@@ -248,7 +254,18 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
     }
 
     async createWritable(filePath: string): Promise<WritableStream> {
-      return Writable.toWeb(await this.createWriteStream(filePath));
+      const writable = await this.createWriteStream(filePath);
+      const writer = Writable.toWeb(writable).getWriter();
+      return new WritableStream({
+        write: chunk => writer.write(chunk),
+        close: () => writer.close(),
+        abort: async reason => {
+          // Node's toWeb abort resolves before _destroy's callback. Join that
+          // callback as well so OCFL cannot release an upload still cleaning up.
+          const completion = finished(writable).catch(() => {});
+          try { await writer.abort(reason); } finally { await completion; }
+        },
+      });
     }
 
     async readFile(
