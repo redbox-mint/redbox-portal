@@ -10,7 +10,7 @@ export type { ExampleWorkInput } from './work';
 export function registerRedboxExtension(): RedboxExtension {
   return {
     apiVersion: 1,
-    config: { {{json hookShortName}}: exampleConfig },
+    config: { custom: { {{json hookShortName}}: exampleConfig } },
     modules: [{ name: 'Example{{hookPascalName}}', create: (input: ExampleInput) => new Example(input) }],
     handlers: [{ name: 'Status{{hookPascalName}}', requires: ['Example{{hookPascalName}}'], create: createExampleHandler }],
     routes: [{

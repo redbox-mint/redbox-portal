@@ -4,6 +4,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import type { ApplicationModule } from '@researchdatabox/redbox-core/application';
 import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+import { loadPortalConfiguration } from '@researchdatabox/redbox-core/configuration';
 
 const { generateHookArchetype } = require('../../src/templates/hook-archetype');
 
@@ -47,6 +48,11 @@ describe('v6 hook archetype', () => {
       const declaration = hook.registerRedboxExtension();
       assert.equal(declaration.modules?.length, 1);
       assert.equal(declaration.routes?.[0].access, 'public');
+      const finalized = await loadPortalConfiguration({
+        extensions: { providers: [{ name: pkg.name, root: output, declaration }] },
+        env: { REDBOX_SESSION_SECRET: 'generated-hook-qualification-secret-at-least-32' },
+      });
+      assert.deepEqual(finalized.custom['123-demo'], { greeting: '123Demo' });
       const auditPath = path.join(output, 'audit.log');
       const instance = new hook.Example({ auditPath, greeting: 'hello' });
       assert.equal(fs.existsSync(auditPath), false);

@@ -1,16 +1,16 @@
 # {{packageName}}
 
-Initial v6 extension scaffold. Generate with `redbox-dev-tools init {{hookShortName}} --template v6`.
-Run `npm install` and `npm run build` against the matching core prerelease or
-locally packed core artifact. Package versions are exact; replace them only with
+V6 extension scaffold. Generate with `redbox-dev-tools init {{hookShortName}} --template v6`.
+Run `npm install`, `npm run build` and `npm pack --ignore-scripts` against the
+matching core prerelease or locally packed core artifact. Package versions are exact; replace them only with
 qualified versions. This template compiles CommonJS and exposes the neutral
 `registerRedboxExtension()` contract. It needs no Sails shims or global services.
 
 The application binds each selected factory's concrete input with
 `bindExtensionFactory`: `ExampleInput` for the module and `{ example }` for the
 handler. Supply an application-owned writable audit path and the finalized
-greeting configuration. The factory only wires objects; initialize opens the
-file, activate admits greetings, drain waits for accepted writes and close owns
+greeting configuration from `config.custom[{{json hookShortName}}]`. The factory
+only wires objects; initialize opens the file, activate admits greetings, drain waits for accepted writes and close owns
 the native handle. The sample route deliberately permits public access; declare
 ordered policy names and supply host policy execution for protected routes.
 
@@ -22,6 +22,10 @@ the declaration adds no transaction or exactly-once guarantee. Asset/view paths
 are package-relative and included in the artifact.
 
 Legacy `CoreService`, global `sails`, events, `lower` patches and controller shims
-need source conversion even when the package stays CommonJS. This scaffold is an
-extension example, not a complete portal/host deployment. Full generated-app
-packaging and release tooling follow in SR-047/SR-053.
+need source conversion even when the package stays CommonJS. Install the packed
+extension in the portal deployment and supply the concrete module, work and handler bindings through `createPortalHost`. The host owns the
+listener and signals. A fresh generated extension is qualified in production
+composition, including persisted work, HTTP startup, restart and cleanup, by
+`packages/redbox-core/test/qualification/generated-institution.cjs` in the portal
+source. Use the deployment's explicit configuration and approved artifacts; this
+package does not start a second portal by itself.

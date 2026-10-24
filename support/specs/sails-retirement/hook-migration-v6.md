@@ -12,7 +12,12 @@ npm run build
 The template lives in this repository at
 `packages/redbox-dev-tools/templates/hook-archetype/v6/`. V6 is now the only scaffold and the default; `standard` is rejected. The v6
 template demonstrates an extension, not a complete standalone portal deployment.
-Generated application packaging and release commands remain SR-047/SR-053.
+Build and pack it, install the archive in the portal deployment, and bind its
+concrete module/work/handler inputs through `createPortalHost`. Startup data
+belongs under `config.custom[hookName]`.
+[Generated institution qualification](../../../packages/redbox-core/test/qualification/generated-institution.cjs)
+exercises these bindings, persisted work, public HTTP, restart and drain on the
+production host; it supplements the isolated packed registration checks.
 
 ## Package format and registration
 

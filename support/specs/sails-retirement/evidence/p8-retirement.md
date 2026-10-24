@@ -1873,3 +1873,71 @@ and integration-permission diagnostics explicit in the client table: stored bran
 checks apply, and integration audit/permission diagnostics need the owning brand's
 Admin role. This avoids leaving the stricter role requirement implicit in the
 general read/admin rows. No application or generated-contract change.
+
+
+### SR-053 generated institution application regression
+
+The final scaffold review finds a real production-composition gap: the compiled
+v6 example contributes a hook-named top-level configuration key. The production
+portal's schema correctly rejects it. The existing packed check compiled and
+resolved the generated declaration but did not load it through production portal
+configuration. Strengthening the existing dev-tools test reproduces:
+`Configuration redbox-hook-123-demo at 123-demo: invalid configuration
+(unrecognized_keys)` —0passing/1failing,2s.
+
+The template now contributes data under `custom.<hook-name>`. The production
+schema stays strict. Existing dev-tools assertions and30s bound are preserved;
+the full suite passes **52/0/0**,26s, including the new finalized-config assertion.
+No dependency changes. Dev-tools and generated README instructions now describe
+the only v6 scaffold, exact artifacts and concrete production bindings rather
+than removed `standard`, globals and shim registrations.
+
+New `packages/redbox-core/test/qualification/generated-institution.cjs` generates,
+compiles and packs a fresh hook, installs its archive in a fresh application
+directory, and uses the real production `createPortalHost` with concrete selected
+module/HTTP/repository inputs. It ensures a real default brand and upserts two
+named-query definitions through the Prisma reference repository, verifies one
+ledger migration and bootstrap on both startups, serves readiness/the generated
+HTTP route, restarts and requires zero pools after each owned stop. Bundled
+packages and assets resolve inside the application artifact; final execution
+in the new clean image remains required. This synthetic institution does not
+designate the outstanding representative-institution cohort.
+
+The first two verifier assemblies fail for missing deployment view/asset roots
+and an invalid synthetic brand reference. The fixture is corrected to supply
+the existing packaged roots and establish/use the actual brand via its concrete
+bootstrap operation. No application behavior/assertion/deadline is relaxed. The
+next callback passes, but plain `node --test` stays alive for the accepted
+process-owned provider cron and is interrupted after owned stop. The final
+command uses the same `--test-force-exit` setting as the existing production-host
+qualifiers: **1passing/0failed/0skipped**,15.027s, exit0, original120s test bound.
+This flag terminates the provider's process-lifetime timer after the test; it
+does not skip its startup, persisted-work, HTTP, restart or drain assertions.
+
+```sh
+npm --prefix packages/redbox-dev-tools test -- --grep 'compiles generated public declarations'
+npm --prefix packages/redbox-dev-tools test
+SR_GENERATED_APP_MONGO_URL=mongodb://127.0.0.1:29513/sr_p8_generated_institution \
+SR_PORTAL_SOLR_PORT=8983 node --test --test-force-exit \
+  packages/redbox-core/test/qualification/generated-institution.cjs
+npm run doc:api
+npm run docs:generate
+npm run docs:audit
+npm run docs:test
+npm run lint
+```
+
+Actual services are the already recorded Docker Mongo8.0.34 fixture
+(nofile64000/tmpfs) and Solr10.0.0. Node26.11.1/npm11.20.0/TypeScript5.9.3.
+API generation writes4files; generation/audit report43published surfaces and
+523advisories; documentation tests **4/0/0**. Source lint checks934files,
+0warnings/0errors, plus the cross-package import check. A three-page relative
+link audit checks7links,0missing. Logs: `scaffold80-config-{red,green}.log`,
+`generated81-source.log`, `generated82-source.log`, `generated83-source.log`,
+`generated84-source.log`, `docs85-{api,generate,audit,test}.log`,
+`scaffold85-links.json`, `scaffold86-lint.log`. The extra attempted direct lint
+of test files is ignored by repository patterns and is not counted as coverage.
+
+This executable template change supersedes853d0039d for final SR-053/055
+qualification. Earlier source/pack/runtime closure remains real historical
+evidence; corrected clean packs and all final images/suites must be rebuilt.
