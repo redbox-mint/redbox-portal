@@ -16,7 +16,7 @@ import { getCacheEntryRepository } from '../../persistence/cache/runtime';
 import type { RecordsService } from '../../RecordsService';
 import type { Services as Disks } from '../../storage/StorageManager';
 import type { Services as Solr } from '../../queries/Solr';
-import { RecordTypes } from '../../recordTypes';
+import { RecordTypes, migrateRecordHooks, RECORD_HOOK_OPERATIONS_MIGRATION_NAME } from '../../recordTypes';
 import { Services as Branding } from '../../branding/Branding';
 import { Services as Typeface } from '../../branding/BrandingTypeface';
 import { Services as Theme } from '../../branding/BrandingThemeCss';
@@ -518,6 +518,14 @@ export function portalReferencePlan(
     },
   ];
   const migrations: ApplicationMigration[] = [
+    {
+      name: RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+      source: 'core',
+      up: async () => {
+        const result = await migrateRecordHooks({ brands: brands(), types: refs().recordTypes });
+        log.info(`Record hook operations: inspected ${result.inspected}, converted ${result.changed} record types.`);
+      },
+    },
     {
       name: BRANDING_TYPEFACE_MIGRATION_NAME,
       source: 'core',

@@ -5,3 +5,4 @@ export {
   type RecordTypesDependencies,
 } from './RecordTypes';
 export { convertBuiltinRecordHooks, convertBuiltinRecordTypeHooks } from './RecordHookNames';
+export { migrateRecordHooks, RECORD_HOOK_OPERATIONS_MIGRATION_NAME } from './migrateRecordHooks';

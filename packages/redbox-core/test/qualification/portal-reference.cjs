@@ -318,7 +318,7 @@ test(
         { populate: ['roles'] }
       );
       assert(admin?.roles.some(role => role.name === 'Admin'));
-      assert.equal((await runtime.getMigrationLedgerRepository(first.owner).executedNames()).length, 3);
+      assert.equal((await runtime.getMigrationLedgerRepository(first.owner).executedNames()).length, 4);
       await first.application.activate();
       assert.equal(first.application.status().ready, true);
       await first.application.stop();
@@ -344,7 +344,7 @@ test(
         !Object.keys(require.cache).some(file => /[/\\](CoreBase|CoreService|services[/\\]index)\.js$/.test(file))
       );
       console.log(
-        JSON.stringify({ referenceDomains: 18, types: types.length, forms, selected, defaults, migrations: 3 })
+        JSON.stringify({ referenceDomains: 18, types: types.length, forms, selected, defaults, migrations: 4 })
       );
     } finally {
       await app?.stop();

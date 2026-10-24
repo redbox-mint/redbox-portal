@@ -83,3 +83,52 @@ complete job registry or execute record writes. RVA imports are explicitly disab
 in this qualifier while local vocabulary bootstrap runs; external RVA behavior is
 separately covered by the existing provider suites. Full selected provider/HTTP
 assembly, all broad suites, clean artifacts and complete v6 cutover remain open.
+
+## Persisted v5 record-hook conversion and explicit bindings (2026-10-24)
+
+`recordTypes/migrateRecordHooks.ts` supplies the deliberate core ledger migration
+`20261024T000000-v6-record-hook-operations`. It reads all persisted brands/types,
+validates the complete declaration plan before its first write, converts only
+known built-in expressions and explicit nested `options.hooks`, and preserves
+templates/options/other row fields. Invalid shapes, execution policies, unknown
+Sails expressions, modes or phases fail with the record-type ID and conversion
+instructions, without echoing arbitrary expressions or options. Already named
+institution operations retain their names; actual bindings remain a composition
+responsibility. Missing JSON hooks decoded as null are absent. Partial body writes
+are resumable through idempotent conversion; writers must remain stopped.
+
+`application/portal/recordOperations.ts` binds concrete selected record/workflow/
+email/DOI/RAiD/ONI/Figshare operations through lazy instance references. No path
+evaluation, service locator or comparison fallback is used. Known Figshare aliases
+convert to their existing equivalent validate/wake/cleanup operations, retaining
+the final names recognized by source-intent preparation. The converter now checks
+the runtime shape of persisted unknown JSON as well as typed bundled input.
+
+Node **26.11.1**, Mongo **8.0.34**, qualified Node bin on PATH:
+
+```sh
+node packages/redbox-core/node_modules/typescript/bin/tsc -p packages/redbox-core/tsconfig.json
+SR_RECORD_HOOK_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_record_hooks \
+  node --test packages/redbox-core/test/qualification/{record-hook-names,persisted-record-hooks,workflow-triggers}.cjs
+SR_REFERENCE_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_reference \
+SR_REFERENCE_SOLR_PORT=8983 node --test packages/redbox-core/test/qualification/portal-reference.cjs
+```
+
+Build exits **0**. Hook aggregate **4 passing / 0 failing / 0 skipped**, exit **0**,
+**5270.592084 ms** total: two real brands/four types, three converted rows, invalid
+second-brand plan performs **0 writes**; interruption on write 2 leaves one
+converted row; retry performs **2 writes** and the next run **0**. Stored converted
+template hook executes through the selected registry and real RecordTriggers,
+preserving record identity/content; legacy/unregistered/object-prototype names
+are rejected. Seven malformed persisted shapes/policies are rejected. Standalone
+graph is clean and disposable DB is removed. Reference composition recheck:
+**1 passing / 0 failing / 0 skipped**, exit **0**, **10020.323418 ms**; **29 types /
+31 forms / 4 migrations**, selected override constructed three times and default
+zero, restart/failure-cleanup/index-invariance assertions retained.
+
+Logs: `record-operations-build.log`, `record-operations-mongo.log`,
+`record-hooks-reference.log`, `record-operations-lint.log` under the ignored P7
+directory. Focused lint **0 warnings / 0 errors**; format/diff checks pass. No
+dependencies or existing regression tests changed. The new reference qualifier's
+expected ledger count changes **3→4** solely to assert the added real migration;
+no check is removed or weakened. Full v5 fixture/portal cutover is still open.
