@@ -2839,7 +2839,7 @@ export namespace Services {
             await this.storageService.readyFigshareIntent!(oid, intent.saveToken);
             await this.input
               .wakeFigshareRecord(oid)
-              .catch(_error => this.logger._error('Figshare wake-up failed; dispatcher will recover'));
+              .catch(_error => this.logger.error('Figshare wake-up failed; dispatcher will recover'));
           } else {
             await this.storageService.abandonFigshareIntent!(oid, intent.saveToken);
           }

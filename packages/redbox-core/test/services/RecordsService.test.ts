@@ -1452,7 +1452,7 @@ describe('RecordsService', function () {
       ];
 
       await (RecordsService as any).prepareAttachmentJournal('record-1', plan);
-      const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan);
+      const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan, { id: 'brand-1' }, { id: 'user-1', username: 'user-1' });
 
       expect(journal.prepareMutations.calledOnce).to.equal(true);
       expect(result.map((item: any) => item.status)).to.deep.equal(['completed', 'completed']);
@@ -1480,7 +1480,7 @@ describe('RecordsService', function () {
         },
       ];
 
-      const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan);
+      const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan, { id: 'brand-1' }, { id: 'user-1', username: 'user-1' });
 
       expect(result[0].status).to.equal('incomplete');
       expect(result[0].code).to.equal('attachment-generation-not-current');
