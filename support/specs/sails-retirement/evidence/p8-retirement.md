@@ -1829,3 +1829,21 @@ Logs: `consumer-base-build.log`, `consumer-base-inspect.json`,
 `packed-installed-closure.{json,log}`. Image ID, versions and compact closure
 results are in [p8-artifacts.json](p8-artifacts.json). The earlier missing-Git
 probe is superseded by this actual successful installation, not suppressed.
+
+
+### Final operator-documentation reconciliation
+
+The retirement review removes stale current-tense guidance to use `app.js`,
+`compat/sails` and temporary bundled comparison entries from the extension and
+upgrade runbooks. P2/P3 provenance remains described as history. The authoritative
+wiki now states the actual default cookie name (`redbox.sid`), secure/HttpOnly/
+SameSite=Lax defaults and path `/`, distinguishes the example's selected new
+`redbox.v6.sid`, and directs operators to rotate the name/secret and validate
+root-context, HTTPS/proxy and browser-origin settings. Clients must reacquire
+CSRF/progress grants; staging and byte stores remain independent of forced login.
+These are documentation corrections to the already implemented session behavior,
+not application changes or a new protocol decision.
+
+Four edited pages: a Python relative-link existence audit (including extensionless
+GitHub wiki names) checks 24 local links, 0 missing; `git diff --check` exits0. Log: `docs73-links.json`. The source artifact
+remains853d0039d; these documentation-only changes need no application rebuild.

@@ -1,4 +1,4 @@
-# Implemented v6 extension declarations (P2)
+# Implemented v6 extension declarations
 
 Packages opt in with `"redbox": { "extension": "./extension" }` in their installed
 manifest and expose that public subpath through `exports` (or use `"."` for the
@@ -39,17 +39,17 @@ Routes identify a named handler factory and explicitly declare `access: 'public'
 or a nonempty ordered list of policy names. Named replacements retain or expressly
 revise the route's contract and policies; accidental method/path collisions fail
 before mounting, including parameter-name, case and trailing-slash aliases under
-the partial host's default Express router. The host
+the host's default Express router. The host
 must bind policy execution; declaration metadata is not authorization. Middleware
 and integrations participate in the host's admission and application cleanup.
 Integrations attach to the host's single server, never call listen or add signal
 handlers, and register ownership before preparation. This interface is a supported
 contract, not a sandbox for arbitrary hook code.
 
-P2 does not promote a production host, merge institution configuration, activate
-queue backends, or implement public route/authentication/provider parity. Those
-remain in P3–P6. Bundled packages temporarily retain their explicit legacy entry
-alongside the neutral public extension subpath for the separate comparison host.
+The contract was introduced in P2; P3–P6 added production composition, startup
+configuration, queues, public routes and authentication/provider ownership. P8
+retires bundled legacy entries and all comparison adapters. Extensions must use
+the neutral public entrypoints.
 
 See [the initial scaffold and before/after conversion examples](hook-migration-v6.md).
 
@@ -76,9 +76,9 @@ it records success only after the body. Failed bodies can leave partial writes;
 no transaction, distributed body lock or exactly-once guarantee is added. Fresh
 applications skip ledger-completed bodies. Keep one designated migration runner
 and stop other writers during upgrades. Startup inspects required indexes;
-explicit index ensure remains maintenance work. Comparison-only Sails callbacks,
+explicit index ensure remains maintenance work. Comparison-only callbacks,
 configuration-write waits, version/global discovery and the legacy migration skip
-flag live in `compat/sails`; neutral imports do not execute them.
+flag were removed with `compat/sails` in P8.
 
 Queue and cron owners are available at `redbox-core/queues`. Bind each configured
 Agenda `fnName` to a concrete handler; missing bindings fail initialization. Queue
@@ -89,8 +89,8 @@ submissions require activation. SQS recurring work still requires an external
 scheduler. Cron receives named, bound async operations and owns both timers and
 accepted callback promises. Required remote imports belong in named bootstrap
 work rather than recurring work. PDF retains its existing explicit activation and
-owned retry/browser lifecycle. The temporary Sails adapters alone translate ready
-callbacks, global lookup, legacy lazy queue initialization and shutdown hooks.
+owned retry/browser lifecycle. Ready callbacks, global lookup, legacy lazy queue
+initialization and framework shutdown hooks are retired.
 
 Resources may implement synchronous, idempotent `quiesce()` to close producer
 admission before draining. The application invokes it immediately on stop, then
@@ -101,12 +101,11 @@ scope can finish during shutdown; unrelated callers and detached descendants aft
 scope settlement are denied. Queue handlers enter this scope; persisted cron
 operations supply their owner. Do not retain a scope for unbounded detached work.
 
-Supply the same `owner` to the partial Express host for persistent handlers. Its
+Supply the same `owner` to the Express host for persistent handlers. Its
 existing HTTP lifetime interface owns `trackHttpRequestWork`, callback/response
 handoffs and accepted request context. A finished/aborted response alone cannot
-release explicitly tracked work. P4/P5 route adapters must retain returned action
-work and session handoffs through this interface; the partial host does not yet
-adapt arbitrary legacy actions. Future upload/socket/native owners must use this
+release explicitly tracked work. Route adapters retain returned action work and
+session handoffs through this interface. Upload/socket/native owners use this
 resource contract and keep real work, including late completion writes, owned.
 
 ## Selected mutation operations and native providers

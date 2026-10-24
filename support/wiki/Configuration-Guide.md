@@ -34,6 +34,17 @@ module.exports = {
 };
 ```
 
+The default cookie name is `redbox.sid`; the example deliberately selects a new
+`redbox.v6.sid` for cutover. Set a new name and rotate the secret so v5 sessions
+cannot be reused. Defaults are `Secure`, `HttpOnly`, `SameSite=Lax`, with path `/`;
+set `cookie.path` to the deployment root when appropriate. HTTPS termination must
+match the configured public URL and trusted proxy settings so secure cookies are
+issued. Custom browser clients must send that cookie, fetch a new root-scoped
+`/csrfToken`, and reacquire progress grants after login. Explicitly allow each
+canonical browser origin; a forwarded host does not establish trust. Preserve
+upload/staging bytes independently of session invalidation; see
+[v6 client compatibility](V6-Client-Compatibility.md).
+
 Use `REDBOX_SESSION_SECRET` (at least 32 characters), `REDBOX_SESSION_MONGODB_URL`
 and other documented inputs in [configuration conversion](../specs/sails-retirement/configuration-v6.md).
 Legacy `sails_*`/`sails__*`, `.sailsrc`, generated config, arbitrary framework

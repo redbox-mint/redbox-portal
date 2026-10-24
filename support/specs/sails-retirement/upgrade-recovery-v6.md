@@ -169,10 +169,14 @@ Exercise restart and graceful stop while maintenance remains active. Send SIGTER
 to the supervised Node process (or use `docker stop` with sufficient grace),
 require successful drain and exit 0, then repeat startup/readiness/public probes.
 A listener close or elapsed container timeout is not evidence of successful
-resource cleanup. Keep the actual Sails entrypoint `app.js` only for isolated
-comparison runs until P8; never start it against a database modified by v6.
+resource cleanup. The v6 artifact has no Sails comparison entrypoint. Keep any
+released-v5 comparison in a separate environment and never start it against a
+database modified by v6.
 
-Use the v6 session name/secret and require fresh login. Do not delete account,
+Select a new session cookie name, rotate the secret and require fresh login.
+Verify the cookie path, HTTPS/proxy settings and browser origin allowlist using
+[session configuration](../../wiki/Configuration-Guide.md). Reacquire CSRF and
+progress grants after login. Do not delete account,
 membership, record or upload/staging state to invalidate sessions. Drain old
 uploads before cutover; reconcile unbound v5 staging metadata from trusted
 operator records instead of accepting client-supplied ownership. Companion's
@@ -253,8 +257,8 @@ module.exports = {
 The JSON contains `captureFingerprints` by brand,
 `acceptedFindingIdsByBrand` and `replacements` (brand, target, complete settings).
 Use only the actual reviewed fingerprint and finding IDs; changed inputs fail
-instead of reusing stale decisions. The temporary Sails comparison adapter retains
-its old file environment input. V6 has no migration-skip startup mode.
+instead of reusing stale decisions. The former comparison adapter and its file
+environment input are retired. V6 has no migration-skip startup mode.
 
 The sanitized stand-in's reviewed fingerprint is
 `4439b700369c53470342b7a6f3ae1ee3884708931211121ea25ba5279a62539a`;
