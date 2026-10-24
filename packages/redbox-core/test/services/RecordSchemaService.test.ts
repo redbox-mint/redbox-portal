@@ -60,7 +60,30 @@ import { clearCapturedOpenTelemetryMeasurements, getCapturedOpenTelemetryMeasure
 import { createRecordContractFixture } from '../fixtures/record-contract.fixtures';
 
 const DIGEST = 'a'.repeat(64);
-type RecordSchemaLifecycleOverrides = NonNullable<ConstructorParameters<typeof Services.RecordSchema>[0]>;
+type RecordSchemaLifecycleOverrides = Partial<RecordSchemaServiceDependencies>;
+
+/** Explicit unused ports keep focused fixtures compatible with the production constructor. */
+function newRecordSchema(overrides: Partial<RecordSchemaServiceDependencies> = {}): Services.RecordSchema {
+  const dependencies: RecordSchemaServiceDependencies = {
+    getConfig: () => undefined,
+    getStorageProvider: () => undefined,
+    getContributorRegistry: () => undefined,
+    getContributorRegistrationIssues: () => [],
+    getContributorComponentTypes: () => [],
+    getConfiguredFormCandidates: () => [],
+    resolveContractContext: async () => {
+      throw new Error('Contract context is not configured in this fixture');
+    },
+    buildContractFormConfig: async () => {
+      throw new Error('Form construction is not configured in this fixture');
+    },
+    authorizeCreate: async () => false,
+    authorizeUpdate: async () => false,
+    clock: () => Date.now(),
+  };
+  Object.defineProperties(dependencies, Object.getOwnPropertyDescriptors(overrides));
+  return new Services.RecordSchema(dependencies);
+}
 
 function enabledConfig(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -108,7 +131,7 @@ function lifecycleService(overrides: RecordSchemaLifecycleOverrides = {}): Servi
     getConfiguredFormCandidates: () => [],
   };
   Object.defineProperties(dependencies, Object.getOwnPropertyDescriptors(overrides));
-  return new Services.RecordSchema(dependencies);
+  return newRecordSchema(dependencies);
 }
 
 function captureLifecycleError(run: () => void): RecordSchemaLifecycleError {
@@ -350,7 +373,7 @@ function createResolutionFixture(overrides: Partial<RecordSchemaServiceDependenc
   const resolveContractContext = sinon.stub().resolves(context);
   const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
   const authorizeCreate = sinon.stub().resolves(true);
-  const service = new Services.RecordSchema({
+  const service = newRecordSchema({
     getConfig: () => enabledConfig(),
     getStorageProvider: () => storageProvider,
     getContributorRegistry: () => coreRegistry(),
@@ -380,7 +403,7 @@ function updateResolutionFixture(
   const resolveContractContext = sinon.stub().resolves(context);
   const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
   const authorizeUpdate = sinon.stub().resolves(true);
-  const service = new Services.RecordSchema({
+  const service = newRecordSchema({
     getConfig: () => enabledConfig(),
     getStorageProvider: () => storageProvider,
     getContributorRegistry: () => coreRegistry(),
@@ -492,7 +515,7 @@ function immutableResolutionFixture(seed: ImmutableSeed, overrides: Partial<Reco
   const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
   const authorizeCreate = sinon.stub().resolves(true);
   const authorizeUpdate = sinon.stub().resolves(true);
-  const service = new Services.RecordSchema({
+  const service = newRecordSchema({
     getConfig: () => enabledConfig(),
     getStorageProvider: () => storageProvider,
     getContributorRegistry: () => coreRegistry(),
@@ -974,7 +997,7 @@ describe('RecordSchemaService create resolution', function () {
     const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
     const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
     const hasCreateAccess = sinon.stub().resolves(true);
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
       getContributorRegistry: () => coreRegistry(),
@@ -1082,7 +1105,7 @@ describe('RecordSchemaService create resolution', function () {
         contributor,
         source: 'core' as const,
       }));
-      const service = new Services.RecordSchema({
+      const service = newRecordSchema({
         getConfig: () => enabledConfig({ unknownProperties: 'declared' }),
         getStorageProvider: () => ({
           putRecordSchemaArtifact: sinon.stub().resolves(storageResponse(true)),
@@ -1692,11 +1715,14 @@ describe('RecordSchemaService update resolution', function () {
     const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
     const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
     const hasEditAccess = sinon.stub().returns(true);
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
       getContributorRegistry: () => coreRegistry(),
-      authorizeUpdate: async (context, caller) => Boolean(caller.user.username) && context.resolution.actor.authenticated && hasEditAccess(caller.brand, caller.user, caller.user.roles, context.resolution.existingRecord),
+      authorizeUpdate: async (context, caller) =>
+        Boolean(caller.user.username) &&
+        context.resolution.actor.authenticated &&
+        hasEditAccess(caller.brand, caller.user, caller.user.roles, context.resolution.existingRecord),
       resolveContractContext,
       buildContractFormConfig,
     });
@@ -1734,11 +1760,14 @@ describe('RecordSchemaService update resolution', function () {
     const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
     const recordsService = { hasEditAccess: recordHasEditAccess };
     const hasEditAccess = sinon.spy(recordsService, 'hasEditAccess');
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
       getContributorRegistry: () => coreRegistry(),
-      authorizeUpdate: async (context, caller) => Boolean(caller.user.username) && context.resolution.actor.authenticated && hasEditAccess(caller.brand, caller.user, caller.user.roles, context.resolution.existingRecord),
+      authorizeUpdate: async (context, caller) =>
+        Boolean(caller.user.username) &&
+        context.resolution.actor.authenticated &&
+        hasEditAccess(caller.brand, caller.user, caller.user.roles.map(role => ({ ...role })), context.resolution.existingRecord),
       resolveContractContext,
       buildContractFormConfig,
     });
@@ -1975,7 +2004,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
   it('rejects retention request discriminator mismatches before reading storage', async function () {
     const getStorageProvider = sinon.stub();
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider,
     });
@@ -1998,7 +2027,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     const putRecordSchemaReference = sinon.stub();
     putRecordSchemaReference.onFirstCall().resolves(storageResponse(false));
     putRecordSchemaReference.onSecondCall().resolves(storageResponse(true));
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaReference }),
     });
@@ -2046,7 +2075,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
   it('preserves typed save-reference storage failure semantics and contains hostile responses', async function () {
     const putRecordSchemaReference = sinon.stub();
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaReference }),
     });
@@ -2091,7 +2120,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
   it('rejects the literal invalid save-reference operation publish now before storage', async function () {
     const putRecordSchemaReference = sinon.stub();
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaReference }),
     });
@@ -2118,11 +2147,11 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       digests: [DIGEST],
       now: new Date('2026-08-24T00:00:00.000Z'),
     } as const;
-    const disabled = new Services.RecordSchema({
+    const disabled = newRecordSchema({
       getConfig: () => ({ ...enabledConfig(), enabled: false }),
       getStorageProvider: () => ({ putRecordSchemaReference }),
     });
-    const invalid = new Services.RecordSchema({
+    const invalid = newRecordSchema({
       getConfig: () => enabledConfig({ cacheMaxEntries: 0 }),
       getStorageProvider: () => ({ putRecordSchemaReference }),
     });
@@ -2148,7 +2177,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     const integrationPins = Array.from({ length: MAX_RECORD_SCHEMA_INTEGRATION_PINS + 1 }, (_, index) =>
       validPin({ owner: `owner-${index}` })
     );
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig({ integrationPins }),
       getStorageProvider: () => ({ putRecordSchemaReference }),
     });
@@ -2168,7 +2197,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       validPin({ expiresAt: '2027-01-01T00:00:00.000Z', operation: '__strict_all__' }),
       validPin({ expiresAt: '2027-01-01T00:00:00.000Z', operation: 'publish now' }),
     ]) {
-      const service = new Services.RecordSchema({
+      const service = newRecordSchema({
         getConfig: () => enabledConfig({ integrationPins: [pin] }),
         getStorageProvider: () => ({ putRecordSchemaReference }),
       });
@@ -2197,12 +2226,12 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
         ],
       });
       process.env.TZ = 'UTC';
-      await new Services.RecordSchema({
+      await newRecordSchema({
         getConfig: () => config,
         getStorageProvider: () => ({ putRecordSchemaReference: captureReference }),
       }).materializeIntegrationPins();
       process.env.TZ = 'Australia/Adelaide';
-      await new Services.RecordSchema({
+      await newRecordSchema({
         getConfig: () => config,
         getStorageProvider: () => ({ putRecordSchemaReference: captureReference }),
       }).materializeIntegrationPins();
@@ -2231,7 +2260,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       purpose: 'Retain integration B.',
       expiresAt: undefined,
     });
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig({ integrationPins: [secondPin, firstPin, { ...secondPin }] }),
       getStorageProvider: () => ({ putRecordSchemaReference }),
     });
@@ -2259,7 +2288,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     const putRecordSchemaReference = sinon.stub();
     putRecordSchemaReference.onFirstCall().resolves(storageResponse(false, 'record-schema.reference-key-collision'));
     putRecordSchemaReference.onSecondCall().rejects(new Error('temporary outage'));
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () =>
         enabledConfig({
           integrationPins: [validPin({ owner: 'one' }), validPin({ owner: 'two' })],
@@ -2326,7 +2355,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     const listRecordSchemaReferences = sinon.stub();
     listRecordSchemaReferences.onFirstCall().resolves(Array.from({ length: 1_000 }, () => reference));
     listRecordSchemaReferences.onSecondCall().resolves([reference]);
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ getRecordSchemaArtifact, listRecordSchemaReferences }),
     });
@@ -2363,7 +2392,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
   it('bounds actual digest and reference iteration when array lengths are deceptive', async function () {
     const getRecordSchemaArtifact = sinon.stub().resolves(null);
-    const noReadService = new Services.RecordSchema({
+    const noReadService = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ getRecordSchemaArtifact, listRecordSchemaReferences: sinon.stub() }),
     });
@@ -2399,7 +2428,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     const listRecordSchemaReferences = sinon
       .stub()
       .resolves(zeroLengthArrayYielding(Array.from({ length: 1_001 }, () => reference)));
-    const boundedService = new Services.RecordSchema({
+    const boundedService = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({
         getRecordSchemaArtifact: async () => ({
@@ -2425,7 +2454,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
   });
 
   it('rejects incomplete persisted references instead of treating them as retention evidence', async function () {
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({
         getRecordSchemaArtifact: async () => ({
@@ -2487,7 +2516,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
     const results = await Promise.all(
       malformedReferences.map(reference =>
-        new Services.RecordSchema({
+        newRecordSchema({
           getConfig: () => enabledConfig(),
           getStorageProvider: () => ({
             getRecordSchemaArtifact: async () => ({ digest: DIGEST, createdAt: storedAt }),
@@ -2511,7 +2540,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
   it('rejects a persisted referenceKey outside the canonical storage grammar', async function () {
     const storedAt = new Date('2026-01-01T00:00:00.000Z');
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({
         getRecordSchemaArtifact: async () => ({ digest: DIGEST, createdAt: storedAt }),
@@ -2548,7 +2577,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       digests: [DIGEST],
       now: new Date('2026-08-24T00:00:00.000Z'),
     } as const;
-    const throwing = new Services.RecordSchema({
+    const throwing = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({
         getRecordSchemaArtifact: async () => {
@@ -2571,7 +2600,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
         },
       }
     );
-    const malformedArtifact = new Services.RecordSchema({
+    const malformedArtifact = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({
         getRecordSchemaArtifact: async () => hostileArtifact,
@@ -2589,7 +2618,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
         return Reflect.get(target, property, receiver);
       },
     });
-    const malformedReferences = new Services.RecordSchema({
+    const malformedReferences = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({
         getRecordSchemaArtifact: async () => ({
@@ -2619,7 +2648,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
         artifacts.filter(artifact => !query.afterDigest || artifact.digest > query.afterDigest).slice(0, query.limit)
       );
     const listRecordSchemaReferences = sinon.stub().resolves([]);
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () => enabledConfig({ retention: { minimumAgeDays: 30 } }),
       getStorageProvider: () => ({
         listRecordSchemaArtifacts,
@@ -2765,7 +2794,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     const listRecordSchemaReferences = sinon
       .stub()
       .callsFake(async (query: { digest?: string }) => references.get(query.digest ?? '') ?? []);
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig: () =>
         enabledConfig({
           retention: { minimumAgeDays: 30 },
@@ -2852,7 +2881,7 @@ describe('RecordSchemaService telemetry', function () {
     const validationClock = sinon.stub();
     validationClock.onFirstCall().returns(20);
     validationClock.onSecondCall().returns(25);
-    const validator = new Services.RecordSchema({
+    const validator = newRecordSchema({
       getConfig: () => enabledConfig(),
       clock: validationClock,
     });
@@ -2954,7 +2983,7 @@ describe('RecordSchemaService telemetry', function () {
     });
     expect(precondition.kind).to.equal('precondition-failed');
 
-    const save = new Services.RecordSchema({
+    const save = newRecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaReference: async () => storageResponse(true) }),
     });
@@ -2996,7 +3025,7 @@ describe('RecordSchemaService telemetry', function () {
     const telemetryLogger = { info: sinon.stub(), error: sinon.stub() };
     const secret = 'private-oid alice@example.test secret-save-identity';
     lifecycleService({ telemetryLogger }).init();
-    const maintenance = new Services.RecordSchema({
+    const maintenance = newRecordSchema({
       telemetryLogger,
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({
@@ -3104,14 +3133,14 @@ describe('RecordSchemaService telemetry', function () {
       touchRecordSchemaArtifact: () => Promise<StorageServiceResponse>
     ) => ({ getRecordSchemaArtifact, findRecordSchemaGrantForAuthorization, touchRecordSchemaArtifact });
 
-    await new Services.RecordSchema({
+    await newRecordSchema({
       telemetryLogger,
       getConfig: () => enabledConfig(),
       getStorageProvider: () => {
         throw new Error(secret);
       },
     }).resolveImmutable(request);
-    await new Services.RecordSchema({
+    await newRecordSchema({
       telemetryLogger,
       getConfig: () => enabledConfig(),
       getStorageProvider: () =>
@@ -3123,7 +3152,7 @@ describe('RecordSchemaService telemetry', function () {
           async () => storageResponse(true)
         ),
     }).resolveImmutable(request);
-    await new Services.RecordSchema({
+    await newRecordSchema({
       telemetryLogger,
       getConfig: () => enabledConfig(),
       getStorageProvider: () =>
@@ -3148,7 +3177,7 @@ describe('RecordSchemaService telemetry', function () {
     });
     await touchFailure.service.resolveImmutable(request);
 
-    await new Services.RecordSchema({
+    await newRecordSchema({
       telemetryLogger,
       getConfig: () => enabledConfig(),
       getStorageProvider: () => {
@@ -3164,7 +3193,7 @@ describe('RecordSchemaService telemetry', function () {
       oid: 'private-oid',
       saveIdentity: 'private-save-identity',
     });
-    await new Services.RecordSchema({
+    await newRecordSchema({
       telemetryLogger,
       getConfig: () => enabledConfig({ integrationPins: [validPin()] }),
       getStorageProvider: () => {
@@ -3217,12 +3246,12 @@ describe('RecordSchemaService telemetry', function () {
     });
     const throwingLoggerFactory = sinon.stub().throws(new Error(secret));
 
-      const baselineSave = new Services.RecordSchema({
+      const baselineSave = newRecordSchema({
         telemetryLogger: safeLogger,
         getConfig: () => enabledConfig(),
         getStorageProvider: storageFailure,
       });
-      const throwingSave = new Services.RecordSchema({
+      const throwingSave = newRecordSchema({
         get telemetryLogger() { return throwingLoggerFactory(); },
         getConfig: () => enabledConfig(),
         getStorageProvider: storageFailure,
@@ -3309,7 +3338,7 @@ describe('RecordSchemaService immutable resolution', function () {
     const getStorageProvider = sinon.stub().throws(new Error('storage must not be inspected'));
     const resolveContractContext = sinon.stub().throws(new Error('authorization must not run'));
     const buildContractFormConfig = sinon.stub().throws(new Error('form construction must not run'));
-    const service = new Services.RecordSchema({
+    const service = newRecordSchema({
       getConfig,
       getStorageProvider,
       resolveContractContext,
