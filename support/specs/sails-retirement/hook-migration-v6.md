@@ -264,3 +264,13 @@ scheduled retry start inside that scope and retain it through their actual fiber
 completion. The HTTP trigger or queue callback may finish sooner; its settled
 scope must not be inherited as the lifetime of detached PDF work. Every application supplies this binding. Keep `quiesce`, `drain` and `close` registered
 with the application's existing resource registry.
+
+Companion 7.1.1's native logger serializes failed tus requests, including caller
+credentials, and prints transfer grants. The owned host uses a narrow Node 26
+loader hook to replace only the exact version/hash-checked logger module with
+bounded activity/warning/error messages; it deregisters the hook after import.
+It neither changes installed files nor intercepts the process console. Do not
+preload Companion in an extension: startup refuses an already-loaded or changed
+provider rather than running its unsafe logger. Requalify this adapter when
+changing the pinned provider. Transfer protocols and acknowledgement behavior
+are unchanged; request/provider payloads are deliberately absent from native logs.

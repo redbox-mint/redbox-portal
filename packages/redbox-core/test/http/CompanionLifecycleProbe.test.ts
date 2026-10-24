@@ -15,4 +15,14 @@ describe('Companion 7.1.1 supported public API process ownership', function () {
     assert.equal(result.status, 0, result.error?.message ?? result.stderr);
     assert.match(result.stdout, /Companion process qualification:/);
   });
+  it('refuses a provider imported before the owned logging boundary', () => {
+    const result = spawnSync(process.execPath, ['test/http/fixtures/companion-preloaded.cjs'], {
+      cwd: resolve(__dirname, '../..'),
+      env: { ...process.env, NODE_ENV: 'production' },
+      encoding: 'utf8',
+      timeout: 10000,
+    });
+    assert.equal(result.status, 0, result.error?.message ?? result.stderr);
+    assert.match(result.stdout, /Preloaded unsafe Companion refused/);
+  });
 });

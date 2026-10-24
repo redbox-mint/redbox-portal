@@ -8,6 +8,7 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { of } from 'rxjs';
 import WebSocket from 'ws';
+import sinon from 'sinon';
 import { io, type Socket } from 'socket.io-client';
 import { recordWriteFixture } from './recordWriteFixture';
 import { CompanionUploads, mountCompanionRoutes } from '../../src/http/express/companion';
@@ -29,6 +30,7 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
   let holdPatch: Promise<void> | undefined,
     patchSeen: (() => void) | undefined,
     patches = 0;
+  let rejectUpload = false;
   let releaseMeta: (() => void) | undefined, metaSeen: (() => void) | undefined;
   let releaseSlow: (() => void) | undefined;
   const data = Buffer.alloc(512 * 1024, 'x');
@@ -82,6 +84,10 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
           ...input,
           uploads: {
             handle: async (req, res) => {
+              if (rejectUpload && req.method === 'POST') {
+                res.status(401).end('private-native-companion-response');
+                return;
+              }
               if (req.method === 'PATCH' && holdPatch && ++patches === 2) {
                 patchSeen?.();
                 await holdPatch;
@@ -215,6 +221,28 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
     assert.equal(result.status, 200, await result.clone().text());
     return (await result.json()).token as string;
   }
+  it('never logs credentials, transfer grants or raw provider responses when a real tus transfer fails', async () => {
+    const output = sinon.spy(console, 'log');
+    rejectUpload = true;
+    try {
+      const grant = await start();
+      const socket = await connect(grant);
+      assert.equal((await terminal(socket)).action, 'error');
+      await delay(20);
+      const logs = JSON.stringify(output.getCalls().map(call => call.args));
+      assert(!logs.includes('pilot-api-token'), 'Bearer credentials must not enter native logs');
+      assert(
+        !logs.includes('private-native-companion-response'),
+        'Provider response bodies must not enter native logs'
+      );
+      assert(!logs.includes(grant), 'Transfer grants must not enter native logs');
+      assert(logs.includes('Companion provider'), 'The native logging boundary must be exercised');
+    } finally {
+      rejectUpload = false;
+      output.restore();
+    }
+  });
+
   it('enforces actor brand role CSRF and destination/input gates before remote mutation', async () => {
     assert.equal((await post('/url/meta', { url: sourceUrl + '/small' }, {})).status, 401);
     brand = 'other';
@@ -301,6 +329,7 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
       patchSeen = resolve;
     });
     patches = 0;
+    let rejectUpload = false;
     const actor = await f.identity.bearer('pilot-api-token');
     assert(actor);
     const grant = progress.issue({ authorization: f.headers.Authorization }, f.brand, actor);

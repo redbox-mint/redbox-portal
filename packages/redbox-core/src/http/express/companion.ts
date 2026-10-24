@@ -13,6 +13,7 @@ import type { PoliciesConfig } from '../../config/policies.config';
 import type { createHttpCsrf } from './csrf';
 import { httpAction } from './middleware';
 import type { AuthenticatedActor } from './identity';
+import { loadCompanionWithSafeLogging } from './companionLogging';
 import { buildCompanionSendTokenHtml } from './companionSendToken';
 
 type ProviderOptions = Parameters<typeof Companion.app>[0];
@@ -29,7 +30,7 @@ export interface CompanionInput {
   isReady(): boolean;
 }
 
-/** One process-wide provider, owned by its application. Uses only Companion's public app/socket/emitter APIs. */
+/** One process-wide provider, owned by its application. Uses Companion's public app/socket/emitter APIs and a pinned bounded logger. */
 export class CompanionUploads {
   private initializing?: Promise<void>;
   private server?: Server;
@@ -80,7 +81,6 @@ export class CompanionUploads {
   private async prepare(server: Server): Promise<void> {
     await mkdir(this.input.options.filePath, { recursive: true });
     await access(this.input.options.filePath, constants.R_OK | constants.W_OK);
-    const companion: typeof Companion = await import('@uppy/companion');
     if (this.closing) throw new Error('Companion stopped during initialization.');
     if (Reflect.get(globalThis, processOwner))
       throw new Error(
@@ -88,6 +88,8 @@ export class CompanionUploads {
       );
     // Never reset this guard: the provider keeps shared emitter/cron state after close.
     Reflect.set(globalThis, processOwner, this);
+    const companion = await loadCompanionWithSafeLogging();
+    if (this.closing) throw new Error('Companion stopped during initialization.');
     this.provider = companion.app({ ...this.input.options, corsOrigins: [...this.input.origins] });
     this.provider.emitter.on('upload-start', this.started);
     this.dedicated = createServer(); // Deliberately never listens on a port.
