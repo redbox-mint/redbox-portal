@@ -646,3 +646,26 @@ helper environment. No collection request or assertion changes; session-bound
 CSRF remains required, and no product policy/token/storage check is bypassed.
 `bash -n` passes. Full S3 rerun required; log/JUnit:
 `bruno-s3-compose-first.{log,xml}` under `.tmp/sails-retirement/p7/`.
+
+The complete corrected S3 Compose rerun exited **0**: **7/7 requests, 12/12
+tests, 0 failures/skips, 3266 ms**. Real tus upload, record save, S3 retrieval,
+byte verification and cleanup all ran. Logs/JUnit:
+`bruno-s3-compose-second.{log,xml}`. All seven containers and the isolated Mailpit
+volume were removed before the final full-core retry started. The general,
+dedicated OIDC and S3 profiles together execute **329 requests / 582 tests /
+3 assertions**, with no failures or skips in their successful complete runs.
+Provider versions/digests remain as recorded above; only the S3 helper sandbox
+selection changed for the final invocation. Collection assertions remain intact.
+
+### Recovery public-behavior coverage
+
+Before the complete installed-image rehearsal, its black-box verifier was
+strengthened to read both retained records, forms, workflow lists and edit pages
+through fresh authenticated sessions on **both released-v5 runs** as well as
+both candidate runs. Earlier recovery checked these paths only on v6 and used
+login/home/forms-list probes for restored v5. The operator procedure requires
+existing-record behavior after recovery too, so those same assertions now apply
+to the source and restored source. V6-specific health/readiness/session/CSRF
+assertions remain unchanged. This adds coverage; it does not relax fixture counts
+or use direct database reads in place of the public assertions. `node --check`
+passes; the complete image rehearsal remains to be executed.

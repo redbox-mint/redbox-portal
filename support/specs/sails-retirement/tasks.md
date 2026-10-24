@@ -1,19 +1,18 @@
 # Sails retirement: v6 task list
 
 Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
-production-source designation. P7 is in progress. The installed production Express
-composition now runs the selected domains, bootstrap, pages, APIs and providers.
-The serial production Node 26/MongoDB 8 and 9 matrix passes all four rows:
-216 checks, zero failures/skips, including independent three-member sets and
-elections on both datastores. Institution topology/source designation remains open. The complete existing Playwright rerun now passes 124/124 with no failures or
-skips; dedicated OIDC passes 13 requests/17 checks. General route ordering and
-S3 qualification remain open.
-Root Mocha now passes against the compiled Express host: 422 passing / 10
-unchanged pending / 0 failing. Full browser/provider qualification is in progress.
-Earlier full-core regression remains 4481 passing / 7 unchanged explicitly
-pending / 0 failing. No P7 acceptance or default promotion is claimed. Clean
-production artifacts and complete stand-in cutover/recovery remain open. P8 has
-not started.
+production-source designation. P7 is in progress. The complete production
+Node 26/MongoDB 8 and 9 matrix passes all four rows: 216 checks, zero failures
+or skips, including independent three-member sets and elections on both datastores.
+Institution topology/source designation remains open. Existing Playwright passes
+124/124 with no failures/skips; general Bruno passes 309 requests/553 tests/3
+assertions; dedicated OIDC passes 13 requests/17 tests. S3 passes 7 requests/12 tests after correcting its helper sandbox; all three
+Bruno profiles pass 329 requests/582 tests/3 assertions with no failures or skips.
+Root Mocha passes against compiled Express: 422 passing/10 unchanged pending/0
+failing. The latest full-core retry has 4484 passing/7 unchanged pending/1 source
+loader deadline failure during cold provider startup; a fully serialized retry is
+queued. No P7 acceptance or default promotion is claimed. Clean production
+artifacts and complete stand-in cutover/recovery remain open. P8 has not started.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -704,7 +703,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-046 — Run broad API, domain and browser regression.**
 
-  **Status:** partial; existing core regression passes 4481/7 unchanged pending/0 failing. The actual production Express portal passes full Playwright (124 passing/0 failing/0 skipped), dedicated OIDC (13 requests/17 checks/0 failures or skips), and compiled-source root Mocha (422 passing/10 unchanged pending/0 failing). General failed one route-order case and needs its full corrected rerun; S3, clean production artifacts and complete cutover remain open; [integration evidence](evidence/p7-production-composition.md).
+  **Status:** partial; actual production Express passes full Playwright (124 passing/0 failing/0 skipped), general Bruno (309 requests/553 tests/3 assertions/0 failures or skips), dedicated OIDC (13 requests/17 tests/0 failures or skips), and compiled-source root Mocha (422 passing/10 unchanged pending/0 failing). The latest full-core retry is 4484 passing/7 unchanged pending/1 source-loader deadline failure; S3 passes 7 requests/12 tests with no failures/skips; only the final serialized core rerun remains open. Clean artifacts and complete cutover are tracked below; [integration evidence](evidence/p7-production-composition.md).
 
   **Depends on:** SR-003, SR-037, SR-044.
 

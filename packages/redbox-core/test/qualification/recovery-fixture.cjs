@@ -45,34 +45,33 @@ async function main() {
       if (v6) {
         assert.equal((await fetch(base + '/healthz')).status, 200);
         assert.equal((await fetch(base + '/readyz')).status, 200);
-        const loginCookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
-        assert(loginCookie.includes('redbox.v6.sid='));
-        const browser = { Cookie: loginCookie };
-        const response = await fetch(base + '/default/rdmp/user/info', { headers: browser });
-        assert.equal(response.status, 200);
-        assert.equal((await response.json()).user.username, 'admin');
-        for (const record of await databases[1].collection('record').find().toArray()) {
-          const read = await fetch(base + '/default/rdmp/api/records/metadata/' + record.redboxOid, { headers });
-          assert.equal(read.status, 200, 'released record metadata');
-          assert(JSON.stringify(await read.json()).includes(record.metadata.title));
-          records++;
-          const form = await fetch(base + '/default/rdmp/api/forms/get?name=' + encodeURIComponent(record.metaMetadata.form), { headers });
-          assert.equal(form.status, 200, 'released form');
-          forms++;
-          const workflow = await fetch(base + '/default/rdmp/record/wfSteps/' + encodeURIComponent(record.metaMetadata.type), { headers: browser });
-          assert.equal(workflow.status, 200, 'released workflow');
-          assert((await workflow.json()).length > 0);
-          workflows++;
-          const page = await fetch(base + '/default/rdmp/record/edit/' + record.redboxOid, { headers: browser });
-          assert.equal(page.status, 200, 'released form page');
-          assert((await page.text()).includes('form'));
-        }
       }
-      if (v6) {
-        assert.equal(records, 2, 'both released fixture records must be exercised');
-        assert.equal(forms, 2);
-        assert.equal(workflows, 2);
+      const loginCookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+      assert(loginCookie, 'fresh login must issue a session');
+      if (v6) assert(loginCookie.includes('redbox.v6.sid='));
+      const browser = { Cookie: loginCookie, Accept: 'application/json', 'X-Source': 'jsclient' };
+      const response = await fetch(base + '/default/rdmp/user/info', { headers: browser });
+      assert.equal(response.status, 200);
+      assert.equal((await response.json()).user.username, 'admin');
+      for (const record of await databases[1].collection('record').find().toArray()) {
+        const read = await fetch(base + '/default/rdmp/api/records/metadata/' + record.redboxOid, { headers });
+        assert.equal(read.status, 200, 'released record metadata');
+        assert(JSON.stringify(await read.json()).includes(record.metadata.title));
+        records++;
+        const form = await fetch(base + '/default/rdmp/api/forms/get?name=' + encodeURIComponent(record.metaMetadata.form), { headers });
+        assert.equal(form.status, 200, 'released form');
+        forms++;
+        const workflow = await fetch(base + '/default/rdmp/record/wfSteps/' + encodeURIComponent(record.metaMetadata.type), { headers: browser });
+        assert.equal(workflow.status, 200, 'released workflow');
+        assert((await workflow.json()).length > 0);
+        workflows++;
+        const page = await fetch(base + '/default/rdmp/record/edit/' + record.redboxOid, { headers: browser });
+        assert.equal(page.status, 200, 'released form page');
+        assert((await page.text()).includes('form'));
       }
+      assert.equal(records, 2, 'both released fixture records must be exercised');
+      assert.equal(forms, 2);
+      assert.equal(workflows, 2);
       const times = [];
       for (let index = 0; index < 20; index++) {
         const started = performance.now();
@@ -88,7 +87,8 @@ async function main() {
           home: 200,
           localLogin: 200,
           formsRequests: times.length,
-          ...(v6 ? { health: 200, ready: 200, freshCsrfLogin: true, sessionVersion: 6, records, forms, workflows, pages: records } : {}),
+          records, forms, workflows, pages: records,
+          ...(v6 ? { health: 200, ready: 200, freshCsrfLogin: true, sessionVersion: 6 } : {}),
           formsLatencyMs: { p50: times[9], p95: times[18], max: times[19] },
         })
       );
