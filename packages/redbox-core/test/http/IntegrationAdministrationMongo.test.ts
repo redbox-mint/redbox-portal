@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { firstValueFrom } from 'rxjs';
+import MongoStore from 'connect-mongo';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { recordWriteFixture } from './recordWriteFixture';
 import { Services as Branding } from '../../src/branding/Branding';
@@ -63,12 +64,19 @@ describe('owned integration administration on real Mongo HTTP and provider socke
   let smtpFailures = false;
   const deliveries: string[] = [];
   let mailDirectory = '';
+  let holdLoginWrite: (() => Promise<void>) | undefined;
   let calls = 0,
     failProvider = false,
     endpoint = '',
     refreshes = 0,
     actionCalls = 0;
   before(async () => {
+    // Session composition captures store methods; install the gate while it creates this fixture's store.
+    const original = MongoStore.prototype.set;
+    MongoStore.prototype.set = async function (...args: Parameters<MongoStore['set']>) {
+      if (Reflect.get(args[1], 'authenticationVersion') === 6) await holdLoginWrite?.();
+      return original.apply(this, args);
+    };
     f = await recordWriteFixture(async (router, fixture, bindings) => {
       const provider = createServer((_req, res) => {
         calls++;
@@ -329,6 +337,8 @@ describe('owned integration administration on real Mongo HTTP and provider socke
           },
         },
       });
+    }).finally(() => {
+      MongoStore.prototype.set = original;
     });
   });
   after(async () => {
@@ -355,6 +365,8 @@ describe('owned integration administration on real Mongo HTTP and provider socke
         portal: 'rdmp',
       }),
     });
+    assert.equal(login.status, 200);
+    assert.deepEqual(await login.json(), { success: true });
     const cookie = login.headers.get('set-cookie')!.split(';')[0]!;
     const token = await fetch(f.url + '/csrfToken', { headers: { Cookie: cookie } });
     return { Cookie: cookie, 'X-CSRF-Token': (await token.json())._csrf };
@@ -362,6 +374,41 @@ describe('owned integration administration on real Mongo HTTP and provider socke
   it('mounts 24 branding and 19 Figshare declarations without legacy imports', () => {
     assert.equal(brandingOperationRoutes.length, 24);
     assert.equal(figshareAdministrationRoutes.length, 19);
+  });
+  it('waits for the complete login before reusing its browser cookie', async () => {
+    const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>(),
+      headers = Promise.withResolvers<void>();
+    holdLoginWrite = async () => {
+      holdLoginWrite = undefined;
+      entered.resolve();
+      await release.promise;
+    };
+    const originalFetch = globalThis.fetch;
+    let tokenRequested = false;
+    globalThis.fetch = async (...args: Parameters<typeof fetch>) => {
+      if (args[0] === f.url + '/csrfToken') tokenRequested = true;
+      const response = await originalFetch(...args);
+      if (args[0] === f.url + '/__test/login') headers.resolve();
+      return response;
+    };
+    const pending = browser();
+    try {
+      await entered.promise;
+      await headers.promise;
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assert.equal(tokenRequested, false, 'Login headers do not establish that the session write completed');
+      release.resolve();
+      const cookie = await pending;
+      assert.equal((await request('GET', '/app/branding/config', undefined, cookie)).response.status, 200);
+    } finally {
+      release.resolve();
+      try {
+        await pending;
+      } finally {
+        holdLoginWrite = undefined;
+        globalThis.fetch = originalFetch;
+      }
+    }
   });
   it('saves drafts, rejects stale counters, previews, publishes, restores and audits persisted branding', async () => {
     const state = await request('GET', '/api/branding/config');
