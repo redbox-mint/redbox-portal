@@ -468,12 +468,20 @@ export async function createPortalApplication(options: PortalApplicationOptions)
         for (const instance of integrations.values()) await instance.prepare(server);
         for (const { declaration: middleware } of resolved.middleware)
           if (middleware.stage === stage) router.use(handlerInstances.get(middleware.handler)!);
-        for (const { declaration: route } of resolved.routes)
+        for (const { declaration: route } of resolved.routes) {
+          const boundPolicy = route.access === 'public' ? undefined : policy(route.access);
           router[route.method](
             route.path,
-            ...(route.access === 'public' ? [] : [policy(route.access)]),
+            ...(boundPolicy
+              ? [
+                  httpAction(async (req, res, next) => {
+                    await boundPolicy(req, res, next);
+                  }),
+                ]
+              : []),
             handlerInstances.get(route.handler)!
           );
+        }
       } else {
         for (const { declaration: middleware } of resolved.middleware)
           if (middleware.stage === stage) router.use(handlerInstances.get(middleware.handler)!);

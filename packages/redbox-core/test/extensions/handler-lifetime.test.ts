@@ -12,8 +12,8 @@ import { persistenceOperation } from '../../src/persistence/runtime';
 
 describe('extension HTTP handler ownership', () => {
   for (const production of [false, true]) {
-    for (const middleware of [false, true]) {
-      it(`retains returned ${middleware ? 'middleware' : 'route'} work in ${production ? 'production' : 'standalone'} composition`, async () => {
+    for (const kind of ['route', 'middleware', 'policy'] as const) {
+      it(`retains returned ${kind} work in ${production ? 'production' : 'standalone'} composition`, async () => {
         const directory = await mkdtemp(join(tmpdir(), 'sr-handler-lifetime-'));
         const release = Promise.withResolvers<void>();
         let writes = 0;
@@ -29,9 +29,19 @@ describe('extension HTTP handler ownership', () => {
               },
             },
           ],
-          ...(middleware
+          ...(kind === 'middleware'
             ? { middleware: [{ name: 'write', stage: 'beforeRoutes', handler: 'write' }] }
-            : { routes: [{ name: 'write', method: 'post', path: '/hook', handler: 'write', access: 'public' }] }),
+            : {
+                routes: [
+                  {
+                    name: 'write',
+                    method: 'post',
+                    path: '/hook',
+                    handler: 'write',
+                    access: kind === 'policy' ? ['checked'] : 'public',
+                  },
+                ],
+              }),
         };
         try {
           const installed = join(directory, 'node_modules/owned-hook');
@@ -64,7 +74,13 @@ describe('extension HTTP handler ownership', () => {
               completionError = error;
             }
           };
-          const binding = () => () => handler;
+          const binding = () => () =>
+            kind === 'policy'
+              ? () => {
+                  throw new Error('The terminating policy must not dispatch the route');
+                }
+              : handler;
+          const policy = (): RequestHandler => (kind === 'policy' ? handler : (_req, _res, next) => next());
           const portal = production
             ? await createPortalApplication({
                 appPath: directory,
@@ -88,6 +104,7 @@ describe('extension HTTP handler ownership', () => {
                     throw new Error('unused');
                   },
                   handler: binding,
+                  policies: policy,
                 }
               );
           // Use a small runtime to exercise production HTTP preparation without
@@ -99,8 +116,8 @@ describe('extension HTTP handler ownership', () => {
             hostname: '127.0.0.1',
             prepare: portal
               ? async (router, server) => {
-                  await portal.prepareExtensions('beforeRoutes', router, server, () => (_req, _res, next) => next());
-                  await portal.prepareExtensions('afterRoutes', router, server, () => (_req, _res, next) => next());
+                  await portal.prepareExtensions('beforeRoutes', router, server, policy);
+                  await portal.prepareExtensions('afterRoutes', router, server, policy);
                 }
               : composition!.prepare,
           });

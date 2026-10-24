@@ -134,7 +134,14 @@ export function composeExtensionApplication(
         for (const stage of ['beforeRoutes', 'afterRoutes'] as const) {
           if (stage === 'afterRoutes') {
             for (const { declaration: route } of resolved.routes) {
-              const chain = route.access === 'public' ? [] : [bindings.policies!(route.access)];
+              const policy = route.access === 'public' ? undefined : bindings.policies!(route.access);
+              const chain = policy
+                ? [
+                    httpAction(async (req, res, next) => {
+                      await policy(req, res, next);
+                    }),
+                  ]
+                : [];
               router[route.method](route.path, ...chain, instances.get(route.handler)!);
             }
           }
