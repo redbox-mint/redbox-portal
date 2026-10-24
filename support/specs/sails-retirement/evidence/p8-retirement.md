@@ -724,3 +724,35 @@ Explicit core Mocha runner (`--no-config --require ts-node/register/transpile-on
   WiredTiger 0.25 GiB, host network/127.0.0.1:29512.
 
 These focused source results do not close the final artifact or matrix gates.
+
+### Explicit authentication, route context, path authorization and CSP fixtures
+
+Nine retired policy suites now exercise createHttpPolicies, actual per-application
+Passport strategies, PathRules, pageCsp and page headers. A local fixture supplies
+observable Express request/response facts and explicit ports; it implements no
+legacy policy facade. The same 91 scenarios execute (30 initial basic-policy
+cases plus 61 path/CSP cases). Actual guest/admin/researcher paths, case/trailing
+slash/tenant matching, schema Problem Details/media/cache headers, nonce identity,
+Redoc exceptions, analytics allowlists and parser-independent context remain.
+Failure capture is now explicitly awaited before the 403 response.
+
+Intentional v6 scenario conversions (design authentication/authorization rules):
+anonymous APIs return 401/Bearer rather than 403/continue; authenticated actors
+come from Passport, never session.authenticated/session.user; explicit bad bearer
+credentials cannot fall back to a valid session and provider errors propagate.
+Brand/portal live in validated immutable request context rather than mutable
+framework options; missing params/unknown brands fail 404 without default-brand
+disclosure. Transport-looking prefixes do not alter route params. The retired
+Companion flag cannot bypass current path ACL. Configured noCache suffixes belong
+to page headers; protected noCache policies always set no-store. CSP consumes the
+selected explicit config/analytics snapshot: tests of old config-location lookup
+and global branding callback failure become direct snapshot/absence tests, since
+those ambient lookups no longer exist. Header/nonce and analytics security
+assertions are retained; each request gets a distinct nonce.
+
+Explicit core runner, Node 26.11.1: `policies22-first.log` **30 passing/0 pending/0
+failing**. `policies23-first.log` failed to load due to fixture syntax; corrected.
+`policies23-second.log` **38 passing/1 failing** (stale Services.PathRules import);
+converted to actual PathRules. `policies23-third.log`: all nine files together,
+**91 passing / 0 pending / 0 failing** (222ms). No production failure was bypassed
+and no skip introduced. Formatting uses pinned Prettier. Full-suite gates remain.
