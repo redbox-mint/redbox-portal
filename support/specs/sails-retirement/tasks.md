@@ -9,9 +9,8 @@ Institution topology/source designation remains open. Existing Playwright passes
 assertions; dedicated OIDC passes 13 requests/17 tests. S3 passes 7 requests/12 tests after correcting its helper sandbox; all three
 Bruno profiles pass 329 requests/582 tests/3 assertions with no failures or skips.
 Root Mocha passes against compiled Express: 422 passing/10 unchanged pending/0
-failing. The latest full-core retry has 4484 passing/7 unchanged pending/1 source
-loader deadline failure during cold provider startup; a fully serialized retry is
-queued. No P7 acceptance or default promotion is claimed. Clean production
+failing. The final fully serialized core run passes 4485 tests/7 unchanged pending/0
+failing, with every real-Mongo case executing. SR-046 is accepted; no artifact/recovery acceptance or default promotion is claimed. Clean production
 artifacts and complete stand-in cutover/recovery remain open. P8 has not started.
 
 Read the [design](design.md) for behavior and the
@@ -701,9 +700,9 @@ Read the [design](design.md) for behavior and the
   supported combination; unsupported combinations and engine-upgrade prerequisites
   are explicit. Runtime guard acceptance alone does not qualify a combination.
 
-- [ ] **SR-046 — Run broad API, domain and browser regression.**
+- [x] **SR-046 — Run broad API, domain and browser regression.**
 
-  **Status:** partial; actual production Express passes full Playwright (124 passing/0 failing/0 skipped), general Bruno (309 requests/553 tests/3 assertions/0 failures or skips), dedicated OIDC (13 requests/17 tests/0 failures or skips), and compiled-source root Mocha (422 passing/10 unchanged pending/0 failing). The latest full-core retry is 4484 passing/7 unchanged pending/1 source-loader deadline failure; S3 passes 7 requests/12 tests with no failures/skips; only the final serialized core rerun remains open. Clean artifacts and complete cutover are tracked below; [integration evidence](evidence/p7-production-composition.md).
+  **Status:** done; actual production Express passes full Playwright (124 passing/0 failing/0 skipped), general Bruno (309 requests/553 tests/3 assertions), dedicated OIDC (13 requests/17 tests) and S3 (7 requests/12 tests), all with no failures/skips. Compiled-source root Mocha passes 422 tests/10 unchanged pending/0 failing. Final fully serialized core passes 4485 tests/7 unchanged pending/0 failing with all real-Mongo cases executing. Earlier failures, retained external-service cases and test conversions are recorded in [integration evidence](evidence/p7-production-composition.md). Clean artifacts and complete cutover are tracked below.
 
   **Depends on:** SR-003, SR-037, SR-044.
 

@@ -669,3 +669,44 @@ to the source and restored source. V6-specific health/readiness/session/CSRF
 assertions remain unchanged. This adds coverage; it does not relax fixture counts
 or use direct database reads in place of the public assertions. `node --check`
 passes; the complete image rehearsal remains to be executed.
+
+### Final complete broad-regression acceptance (SR-046)
+
+The fully serialized final core run exited **0**: **4485 passing / 7 unchanged
+pending / 0 failing**, approximately two minutes. Every real-Mongo case ran,
+including foundation and all Prisma contracts; the unchanged source-loader child
+also passed. Log: `.tmp/sails-retirement/p7/core-serial-final.log`. The seven
+pending cases remain the pre-existing external DOI publisher credential/prefix
+cases recorded earlier; they are not counted as passes. No timeout, test or
+product assertion was weakened for the successful retry.
+
+```sh
+PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:29513/redbox_prisma_p7_clean \
+P1_MONGO_URL='mongodb://p1_fixture:p1-only@127.0.0.1:29512/wr_p1_core?authSource=admin' \
+FIGSHARE_TEST_MONGO_URI=mongodb://127.0.0.1:29513/sr_p7_figshare \
+SIEM_TEST_MONGO_URL=mongodb://127.0.0.1:29513/sr_p7_siem npm run test:core
+```
+
+Node 26.11.1/npm 11.20.0; MongoDB 8.0.34 (fresh real Docker regression fixture,
+768 MiB tmpfs and 64000 fd limit) plus the isolated authenticated MongoDB 9.0.4
+foundation fixture. The fresh regression container was stopped and removed after
+exit 0. Build installation and owned old-archive reclamation then resumed.
+The full current regression total supersedes the historical 4481 figure.
+
+Accepted complete suite results:
+
+| Existing suite | Passed | Pending/skipped | Failed |
+| --- | ---: | ---: | ---: |
+| Full core Mocha | 4485 | 7 reviewed existing pending | 0 |
+| Root integration Mocha, compiled production Express | 422 | 10 reviewed existing pending | 0 |
+| Full Playwright apps/forms/smoke | 60 / 41 / 23 | 0 | 0 |
+| General Bruno Compose | 309 requests; 553 tests; 3 assertions | 0 | 0 |
+| Dedicated real OIDC Compose | 13 requests; 17 tests | 0 | 0 |
+| Real S3 Compose | 7 requests; 12 tests | 0 | 0 |
+
+Application source is unchanged since `11e6f6277`; the clean artifact input is
+`d82dc4f86`. Later commits affect runners/verifiers/evidence only. Existing
+Playwright RVA/tile stubs and opt-in scenarios remain explicit fixture inputs;
+OIDC, S3, email, Solr and MongoDB providers actually ran. Sails comparison and
+released-v5 public-fixture evidence remain as linked earlier; the full installed
+v5-to-v6 upgrade/recovery comparison is the next gate, not claimed by these suites.

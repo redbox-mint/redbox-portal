@@ -65,8 +65,11 @@ async function main() {
         assert.equal(workflow.status, 200, 'released workflow');
         assert((await workflow.json()).length > 0);
         workflows++;
-        const page = await fetch(base + '/default/rdmp/record/edit/' + record.redboxOid, { headers: browser });
+        const page = await fetch(base + '/default/rdmp/record/edit/' + record.redboxOid, {
+          headers: { Cookie: loginCookie, Accept: 'text/html' },
+        });
         assert.equal(page.status, 200, 'released form page');
+        assert(page.headers.get('content-type')?.includes('text/html'));
         assert((await page.text()).includes('form'));
       }
       assert.equal(records, 2, 'both released fixture records must be exercised');
