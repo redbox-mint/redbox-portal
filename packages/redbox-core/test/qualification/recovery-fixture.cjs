@@ -68,6 +68,11 @@ async function main() {
           assert((await page.text()).includes('form'));
         }
       }
+      if (v6) {
+        assert.equal(records, 2, 'both released fixture records must be exercised');
+        assert.equal(forms, 2);
+        assert.equal(workflows, 2);
+      }
       const times = [];
       for (let index = 0; index < 20; index++) {
         const started = performance.now();
