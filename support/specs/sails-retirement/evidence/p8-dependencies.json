@@ -3026,7 +3026,7 @@
     },
     {
       "file": "packages/sails-hook-redbox-storage-mongo/package-lock.json",
-      "removed": 255,
+      "removed": 253,
       "added": 0,
       "versionChanges": 0,
       "entries": [
@@ -3893,7 +3893,7 @@
         {
           "path": "node_modules/rxjs",
           "version": "7.8.2",
-          "reason": "Unreachable after removal of the retired direct dependencies; no remaining lock owner."
+          "reason": "Retained exact peer resolution; clean npm ci exposed an earlier incomplete retirement lock regeneration. RxJS is the declared exact storage peer and tslib is its locked helper."
         },
         {
           "path": "node_modules/safe-buffer",
@@ -4188,7 +4188,7 @@
         {
           "path": "node_modules/tslib",
           "version": "2.8.1",
-          "reason": "Unreachable after removal of the retired direct dependencies; no remaining lock owner."
+          "reason": "Retained exact peer resolution; clean npm ci exposed an earlier incomplete retirement lock regeneration. RxJS is the declared exact storage peer and tslib is its locked helper."
         },
         {
           "path": "node_modules/tsscmp",

@@ -64,7 +64,7 @@ Exact dependency changes, including **every removed lock entry**, are in
 - Six lockfiles were regenerated using Node **26.11.1**, npm **11.20.0**,
   `npm install --package-lock-only --ignore-scripts --strict-peer-deps
   --legacy-peer-deps=false --no-audit --no-fund`. Root/core/storage remove
-  **351/217/255** lock entries respectively. The other three locks reconcile local
+  **351/217/253** lock entries respectively. The other three locks reconcile local
   package metadata. There are **zero added resolutions or resolved-version
   changes**. No package pin was broadened.
 
@@ -1551,3 +1551,19 @@ HTTP failure branch. Removed that unused binding; behavior and assertions are
 unchanged. `npm run lint` now exits0 with0 warnings/errors. The first archived
 artifact build started from2e7da7a08 before this lint-only correction; a final
 source archive/image rebuild is required before accepting SR-055.
+
+
+### Clean-lock regression and remaining deployment consumers
+
+The first two clean archive attempts (2e7da7a08/61f37e604) passed root/core
+installs, then failed storage `npm ci` with EUSAGE: missing rxjs7.8.2 and
+tslib2.8.1. The earlier package-lock-only command had used an installed tree and
+omitted these required peer entries. Regenerated from the clean archived package
+with no node_modules using the same strict/script-free npm11.20.0 command.
+The restored resolutions/integrities are exactly those in the P8 baseline; no
+version or manifest pin changes. Storage removal count is corrected to253 rather
+than255 in the dependency ledger above. The final clean build must confirm ci.
+
+`storage52-clean-lock.log` records regeneration exit0. The ledger explicitly
+records the retained peer/helper and reason. This is a lock repair, not a test
+exception or peer-dependency bypass.
