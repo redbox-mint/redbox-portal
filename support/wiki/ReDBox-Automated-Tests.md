@@ -13,6 +13,7 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
 | `cd packages/redbox-core && npm test` | Package Unit | Runs core domain, HTTP, contract and tooling tests. |
+| `cd packages/redbox-core && npm run test:http-notifications:mongo` | Mongo Integration | Verifies released-v5 notification conversion and delivery against a disposable Mongo fixture; requires `HTTP_PILOT_TEST_MONGO_URL` ending in `/sr_p4_http`. |
 
 ## Running Tests
 

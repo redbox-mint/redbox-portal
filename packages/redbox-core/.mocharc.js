@@ -7,6 +7,7 @@ module.exports = {
   // Real-service suites require the dedicated commands and disposable database URLs.
   ignore: [
     'test/http/PagesMongo.test.ts',
+    'test/http/NotificationHooksMongo.test.ts',
     'test/http/RecordMutationsMongo.test.ts',
     'test/http/IntegrationAdministrationMongo.test.ts',
     'test/http/ResumableUploadsMongo.test.ts',

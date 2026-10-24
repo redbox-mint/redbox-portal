@@ -48,6 +48,7 @@
     "test:http-configuration:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/ConfigurationMongo.test.ts",
     "test:http-auth:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/AuthenticationMongo.test.ts test/http/OidcMongo.test.ts",
     "test:http-csrf:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/CsrfMongo.test.ts",
+    "test:http-notifications:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/NotificationHooksMongo.test.ts",
     "test:http-pages:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/PagesMongo.test.ts",
     "generate:portal-config": "node scripts/portal-configuration-schema.cjs",
     "check:portal-config": "node scripts/portal-configuration-schema.cjs --check",
