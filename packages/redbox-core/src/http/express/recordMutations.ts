@@ -161,7 +161,7 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
             type: actor.type ?? '',
             name: actor.name ?? '',
             email: actor.email ?? '',
-            roles: actor.roles.map(role => ({
+            roles: actor.roles.filter(role => role.brandId === snapshot.id).map(role => ({
               id: role.id,
               name: role.name ?? '',
               users: [],

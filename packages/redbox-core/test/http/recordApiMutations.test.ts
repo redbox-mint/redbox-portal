@@ -420,6 +420,18 @@ describe('Owned record API mutations', function () {
       headers: { ...headers(version), ...extra },
       body: {},
     });
+  it('passes only requested-brand roles into workflow authorization', async () => {
+    f.authenticate.resolves({ ...f.actor, roles: [
+      { id: 'a-reader', brandId: f.brand.id, name: 'Researcher' },
+      { id: 'b-publisher', brandId: 'foreign-brand', name: 'Publisher' },
+    ] });
+    const response = await transition();
+    expect(response.status).to.equal(200);
+    const actor = f.records.updateMeta.firstCall.args[3];
+    expect(actor.roles.map((role: { name: string }) => role.name)).to.deep.equal(['Researcher']);
+    const { hasTransitionRoleAuthorization } = require('../../src/records/access');
+    expect(hasTransitionRoleAuthorization({ config: { authorization: { transitionRoles: ['Publisher'] } } }, actor)).to.equal(false);
+  });
   function refusal(kind: 'conflict' | 'authorization' | 'validation', code: string, revision?: number) {
     const result = notSavedResult();
     result.problems = [{ kind, phase: 'pre-save', issues: [{ code, message: '@' + code }] }];
