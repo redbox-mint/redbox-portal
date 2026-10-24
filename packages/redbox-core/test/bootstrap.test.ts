@@ -2,11 +2,9 @@ import { createSinonStubLogger } from './logger.test';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
-import * as persistenceRuntime from '../src/persistence/runtime';
+import { ApplicationRuntime } from '../src/application';
 
-import { bootstrapRecordSchema, coreBootstrap, preLiftSetup } from '../src/bootstrap';
-import { ApiRouteDefinition, resetResolvedApiRouteCache, resolveApiRouteForRequest } from '../src/api-routes';
+import { ApiRouteDefinition, createApiRouteResolver, getMergedApiRoutes } from '../src/api-routes';
 import {
   CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
   createCoreRecordContractContributors,
@@ -24,162 +22,61 @@ import {
   type RecordSchemaServiceDependencies,
 } from '../src/services/RecordSchemaService';
 
-function createReq(overrides: Partial<Sails.Req> = {}): Sails.Req {
-  return {
-    method: 'GET',
-    path: '/default/rdmp/api/hooks/late',
-    originalUrl: '/default/rdmp/api/hooks/late',
-    url: '/default/rdmp/api/hooks/late',
-    route: { path: '/:branding/:portal/api/hooks/late' },
-    params: { branding: 'default', portal: 'rdmp' },
-    query: {},
-    headers: {},
-    session: { branding: 'default', portal: 'rdmp' } as Sails.Req['session'],
-    isAuthenticated: (() => true) as Sails.Req['isAuthenticated'],
-    ...overrides,
-  } as Sails.Req;
-}
-
-describe('bootstrap pre-lift setup', function () {
-  let originalSails: unknown;
-  let originalLodash: unknown;
-
-  before(async function () {
-    const chai = await import('chai');
-    expect = chai.expect;
-  });
-
-  beforeEach(function () {
-    originalSails = (global as Record<string, unknown>).sails;
-    originalLodash = (global as Record<string, unknown>)._;
-    resetResolvedApiRouteCache();
-    // These route/schema-order tests do not supply a database; adapter behavior
-    // is covered by the focused transition fixtures.
-    sinon.stub(persistenceRuntime, 'initializePersistence').resolves();
-sinon.stub(require('../src/persistence/cache/runtime'), 'initializeCachePersistence').resolves();
-sinon.stub(require('../src/persistence/migration/runtime'), 'initializeMigrationPersistence').resolves();
-sinon.stub(require('../src/persistence/reference/runtime'), 'initializeReferencePersistence').resolves();
-sinon.stub(require('../src/persistence/configuration/runtime'), 'initializeConfigurationPersistence').resolves();
-sinon.stub(require('../src/persistence/progress/runtime'), 'initializeProgressPersistence').resolves();
-sinon.stub(require('../src/persistence/harvest/runtime'), 'initializeHarvestPersistence').resolves();
-sinon.stub(require('../src/persistence/storage/runtime'), 'initializeStoragePersistence').resolves();
-sinon.stub(require('../src/persistence/vocabulary/runtime'), 'initializeVocabularyPersistence').resolves();
-sinon.stub(require('../src/persistence/branding/runtime'), 'initializeBrandingPersistence').resolves();
-sinon.stub(require('../src/persistence/siem/runtime'), 'initializeSiemPersistence').resolves();
-    sinon.stub(require('../src/persistence/identity/runtime'), 'initializeIdentityPersistence').resolves();
-    sinon.stub(require('../src/persistence/figshare/runtime'), 'initializeFigsharePersistence').resolves();
-  });
-
-  afterEach(function () {
+describe('owned bootstrap ordering', function () {
+  const applications: ApplicationRuntime[] = [];
+  afterEach(async () => {
+    for (const app of applications.splice(0)) await app.stop();
     sinon.restore();
-    resetResolvedApiRouteCache();
-    (global as Record<string, unknown>).sails = originalSails;
-    (global as Record<string, unknown>)._ = originalLodash;
   });
-
-  it('awaits service initialization before clearing the resolved route cache', async function () {
-    const lateHookRoute: ApiRouteDefinition = {
-      method: 'get',
-      path: '/:branding/:portal/api/hooks/late',
-      controller: 'hook/LateController',
-      action: 'show',
-      summary: 'Late hook route',
+  it('awaits module initialization before resolving the route snapshot', async function () {
+    const route: ApiRouteDefinition = {
+      method: 'get', path: '/:branding/:portal/api/hooks/late',
+      controller: 'hook/LateController', action: 'show', summary: 'Late hook route',
     };
-    const lateHookReq = createReq();
-
-    const sailsConfig: Record<string, unknown> = {
-
-      security: { csrf: true },
-      bootstrap: {},
-      environment: 'development',
-      ng2: { force_bundle: false, use_bundled: false },
-      log: { customLogger: { level: 'info' }, level: 'info' },
-      appmode: { bootstrapAlways: false },
-      apiRoutesHooks: [],
-    };
-
+    const config = { apiRoutesHooks: [] as Array<() => ApiRouteDefinition[]> };
+    const request = { method: 'GET', path: '/default/rdmp/api/hooks/late' };
+    let resolve = createApiRouteResolver(getMergedApiRoutes(config));
     const init = sinon.stub().callsFake(async () => {
       await Promise.resolve();
-      expect(resolveApiRouteForRequest(lateHookReq)).to.equal(undefined);
-      sailsConfig.apiRoutesHooks = [() => [lateHookRoute]];
+      expect(resolve(request)).to.equal(undefined);
+      config.apiRoutesHooks = [() => [route]];
     });
-
-    (global as Record<string, unknown>).sails = {
-      config: sailsConfig,
-      log: createSinonStubLogger(sinon),
-
-      services: {
-        laterouteservice: { init },
-      },
-      _actions: {},
-    };
-    (global as Record<string, unknown>)._ = require('lodash');
-
-    await preLiftSetup();
-
-    const resolvedRoute = resolveApiRouteForRequest(lateHookReq);
-
+    const app = new ApplicationRuntime({ config: {}, log: createSinonStubLogger(sinon) }, [
+      { name: 'late-routes', create: () => ({ initialize: init, close: async () => {} }) },
+    ], { postBootstrap: [{ name: 'route-snapshot', run: async () => {
+      resolve = createApiRouteResolver(getMergedApiRoutes(config));
+    } }] });
+    applications.push(app);
+    await app.initialize();
+    const resolved = resolve(request);
     expect(init.calledOnce).to.equal(true);
-    expect(resolvedRoute?.path).to.equal(lateHookRoute.path);
-    expect(resolvedRoute?.controller).to.equal(lateHookRoute.controller);
-    expect(resolvedRoute?.action).to.equal(lateHookRoute.action);
+    expect(resolved?.path).to.equal(route.path);
+    expect(resolved?.controller).to.equal(route.controller);
+    expect(resolved?.action).to.equal(route.action);
   });
 
   it('defers record-schema validation to the post-storage readiness gate', async function () {
-    const storageInit = sinon.stub().resolves();
-    const recordSchemaInit = sinon.stub().throws(new Error('record schema validation ran too early'));
-    (global as Record<string, unknown>).sails = {
-      config: {
-
-        security: { csrf: true },
-        bootstrap: {},
-        environment: 'development',
-        ng2: { force_bundle: false, use_bundled: false },
-        log: { customLogger: { level: 'info' }, level: 'info' },
-        appmode: { bootstrapAlways: false },
-        apiRoutesHooks: [],
-      },
-      log: createSinonStubLogger(sinon),
-
-      services: {
-        mongostorageservice: { init: storageInit },
-        recordschemaservice: { init: recordSchemaInit },
-      },
-      _actions: {},
-    };
-    (global as Record<string, unknown>)._ = require('lodash');
-
-    await preLiftSetup();
-
+    let finishStorage!: () => void;
+    const pending = new Promise<void>(resolve => { finishStorage = resolve; });
+    const storageInit = sinon.stub().returns(pending);
+    const recordSchemaInit = sinon.stub().resolves();
+    const app = new ApplicationRuntime({ config: {}, log: createSinonStubLogger(sinon) }, [
+      { name: 'storage', create: () => ({ initialize: storageInit, close: async () => {} }) },
+    ], { postBootstrap: [{ name: 'record-schema', run: recordSchemaInit }] });
+    applications.push(app);
+    const startup = app.initialize();
+    await new Promise<void>(resolve => setImmediate(resolve));
     expect(storageInit.calledOnce).to.equal(true);
     expect(recordSchemaInit.notCalled).to.equal(true);
+    finishStorage();
+    await startup;
+    expect(recordSchemaInit.calledOnce).to.equal(true);
   });
 });
 
 describe('record schema bootstrap lifecycle', function () {
-  let originalSails: unknown;
-  let originalLodash: unknown;
-  let originalAppConfigService: unknown;
-
-  before(async function () {
-    const chai = await import('chai');
-    expect = chai.expect;
-  });
-
-  beforeEach(function () {
-    originalSails = (global as Record<string, unknown>).sails;
-    originalLodash = (global as Record<string, unknown>)._;
-    originalAppConfigService = (global as Record<string, unknown>).AppConfigService;
-
-  });
-
-  afterEach(function () {
-    sinon.restore();
-    (global as Record<string, unknown>).sails = originalSails;
-    (global as Record<string, unknown>)._ = originalLodash;
-    (global as Record<string, unknown>).AppConfigService = originalAppConfigService;
-
-  });
+  before(async () => { expect = (await import('chai')).expect; });
+  afterEach(() => sinon.restore());
 
   function enabledRecordSchemaConfig(overrides: Record<string, unknown> = {}): Record<string, unknown> {
     return {
@@ -249,14 +146,10 @@ describe('record schema bootstrap lifecycle', function () {
   }
 
   async function runRecordSchemaLift(service: RecordSchemaServices.RecordSchema): Promise<void> {
-    (global as Record<string, unknown>).sails = {
-      services: {
-        recordschemaservice: {
-          bootstrap: service.bootstrap.bind(service),
-        },
-      },
-    };
-    await bootstrapRecordSchema();
+    const app = new ApplicationRuntime({ config: {}, log: createSinonStubLogger(sinon) }, [], {
+      postBootstrap: [{ name: 'record-schema', run: () => service.bootstrap() }],
+    });
+    try { await app.initialize(); } finally { await app.stop(); }
   }
 
   async function captureLiftFailure(service: RecordSchemaServices.RecordSchema): Promise<RecordSchemaLifecycleError> {
@@ -275,11 +168,12 @@ describe('record schema bootstrap lifecycle', function () {
       complete = resolve;
     });
     const bootstrap = sinon.stub().returns(pending);
-    (global as Record<string, unknown>).sails = {
-      services: { recordschemaservice: { bootstrap } },
-    };
+    const owner = () => ({ config: {}, log: createSinonStubLogger(sinon) });
+    const app = new ApplicationRuntime(owner(), [], {
+      postBootstrap: [{ name: 'record-schema', run: bootstrap }],
+    });
     let settled = false;
-    const startup = bootstrapRecordSchema().then(() => {
+    const startup = app.initialize().then(() => {
       settled = true;
     });
 
@@ -288,12 +182,16 @@ describe('record schema bootstrap lifecycle', function () {
     complete?.();
     await startup;
     expect(bootstrap.calledOnce).to.equal(true);
+    await app.stop();
 
     const failure = new Error('configured form compilation failed');
     bootstrap.rejects(failure);
     let caught: unknown;
     try {
-      await bootstrapRecordSchema();
+      const failing = new ApplicationRuntime(owner(), [], {
+        postBootstrap: [{ name: 'record-schema', run: bootstrap }],
+      });
+      try { await failing.initialize(); } finally { await failing.stop(); }
     } catch (error) {
       caught = error;
     }
@@ -466,78 +364,31 @@ describe('record schema bootstrap lifecycle', function () {
     expect(first.message).to.equal(second.message);
   });
 
-  it('keeps the real core bootstrap pending until record-schema startup finishes after storage readiness', async function () {
+  it('keeps application initialization pending until record-schema startup finishes after storage readiness', async function () {
     const events: string[] = [];
-    let finishPins: (() => void) | undefined;
-    const pinWrite = new Promise<void>(resolve => {
-      finishPins = resolve;
+    let finishPins!: () => void;
+    const pinWrite = new Promise<void>(resolve => { finishPins = resolve; });
+    const app = new ApplicationRuntime({ config: {}, log: createSinonStubLogger(sinon) }, [], {
+      coreBootstrap: [{ name: 'storage-ready', run: async () => { events.push('storage-ready'); } }],
+      postBootstrap: [
+        { name: 'record-schema', run: async () => {
+          events.push('record-schema-started');
+          await pinWrite;
+          events.push('record-schema-finished');
+        } },
+        { name: 'ready', run: async () => { events.push('ready'); } },
+      ],
     });
-    const immediate = async () => undefined;
-    const brandingservice = {
-      bootstrap: () => of({ id: 'default' }),
-      getDefault: () => ({ id: 'default' }),
-    };
-    const log = {
-      verbose: sinon.stub().callsFake((message: string) => {
-        if (message === 'Bootstrap complete!') events.push('ready');
-      }),
-      debug: sinon.stub(),
-      info: sinon.stub(),
-      error: sinon.stub(),
-    };
-    (global as Record<string, unknown>)._ = require('lodash');
-    (global as Record<string, unknown>).AppConfigService = {
-      getAppConfigurationForBrand: sinon.stub(),
-    };
-    (global as Record<string, unknown>).sails = {
-      config: { crontab: { enabled: false } },
-      log,
-      services: {
-        brandingservice,
-        rolesservice: { bootstrap: () => of([]), getRolesWithBrand: () => of([]) },
-        reportsservice: { bootstrapData: immediate },
-        namedqueryservice: { bootstrapData: immediate },
-        usersservice: { bootstrap: () => of({ defUser: {}, defRoles: [] }) },
-        pathrulesservice: { bootstrap: () => of(undefined) },
-        recordtypesservice: { bootstrap: async () => [] },
-        dashboardtypesservice: { bootstrap: immediate },
-        workflowstepsservice: { bootstrap: async () => [] },
-        formsservice: { bootstrap: immediate },
-        recordsservice: {
-          auditRecordValidationRollout: immediate,
-          bootstrapData: immediate,
-          checkRedboxRunning: async () => {
-            events.push('storage-ready');
-            return true;
-          },
-        },
-        vocabularyservice: { bootstrapData: immediate },
-        i18nentriesservice: { bootstrap: immediate },
-        translationservice: { bootstrap: immediate },
-        appconfigservice: { bootstrap: immediate },
-        figsharevocabularyservice: { bootstrapData: immediate },
-        agendaqueueservice: { init: immediate },
-        workspacetypesservice: { bootstrap: () => of(undefined) },
-        cacheservice: { bootstrap: immediate },
-        recordschemaservice: {
-          bootstrap: async () => {
-            events.push('record-schema-started');
-            await pinWrite;
-            events.push('record-schema-finished');
-          },
-        },
-      },
-    };
-
-    let settled = false;
-    const startup = coreBootstrap().then(() => {
-      settled = true;
-    });
-    await new Promise<void>(resolve => setImmediate(resolve));
-    expect(events).to.deep.equal(['storage-ready', 'record-schema-started']);
-    expect(settled).to.equal(false);
-    finishPins?.();
-    await startup;
-    expect(events).to.deep.equal(['storage-ready', 'record-schema-started', 'record-schema-finished', 'ready']);
+    try {
+      let settled = false;
+      const startup = app.initialize().then(() => { settled = true; });
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(events).to.deep.equal(['storage-ready', 'record-schema-started']);
+      expect(settled).to.equal(false);
+      expect(app.status().ready).to.equal(false);
+      finishPins();
+      await startup;
+      expect(events).to.deep.equal(['storage-ready', 'record-schema-started', 'record-schema-finished', 'ready']);
+    } finally { await app.stop(); }
   });
 });

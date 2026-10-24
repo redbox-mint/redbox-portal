@@ -1,18 +1,18 @@
-import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
 import { expect } from 'chai';
 import express from 'express';
 import session from 'express-session';
 import { createServer, get, type ClientRequest, type ServerResponse } from 'node:http';
 import { of } from 'rxjs';
-import { Controllers } from '../../src/CoreController';
-import { redboxSession } from '../../src/middleware/redboxSession';
+import { drainHttpRequests, runHttpRequestHandler, retainHttpCallback, trackHttpRequestWork } from '../../src/middleware/requestLifetime';
+import type { PersistenceOwner } from '../../src/persistence/owner';
+import { composeHttpSession } from '../../src/http/express/session';
 import {
   cleanupPersistence,
   initializePersistence,
   persistenceOperation,
   persistenceReady,
 } from '../../src/persistence/runtime';
-import { createMockSails } from '../services/testHelper';
+import { createDomainFixture } from '../services/testHelper';
 
 const deferred = () => {
   let resolve!: () => void;
@@ -22,7 +22,7 @@ const deferred = () => {
   return { promise, resolve };
 };
 const turn = () => new Promise<void>(resolve => setImmediate(resolve));
-type Work = (req: Sails.Req, res: Sails.Res) => unknown;
+type Work = (req: express.Request, res: express.Response) => unknown;
 
 function storedSession() {
   const store = new session.MemoryStore();
@@ -42,42 +42,40 @@ function storedSession() {
   return { store, cookie: `connect.sid=${encodeURIComponent('s:' + signature.sign(sid, 'request-lifetime-fixture'))}` };
 }
 
-class CallbackController extends Controllers.Core.Controller {
-  protected override _exportedMethods = ['run'];
+class CallbackController {
   constructor(private readonly work: Work) {
-    super();
   }
-  public run(req: Sails.Req, res: Sails.Res) {
+  public run(req: express.Request, res: express.Response) {
     return this.work(req, res);
   }
-  public handoff(req: Sails.Req) {
-    this.retainRequestCallback(req);
+  public handoff(req: express.Request) {
+    retainHttpCallback(req);
   }
-  public background(req: Sails.Req, work: Promise<unknown>) {
-    this.recordBackgroundOperation(req, 'requestLifetimeFixture', work);
+  public background(req: express.Request, work: Promise<unknown>) {
+    trackHttpRequestWork(req, work);
   }
 }
 class AsyncController extends CallbackController {
-  public override async run(req: Sails.Req, res: Sails.Res) {
+  public override async run(req: express.Request, res: express.Response) {
     return super.run(req, res);
   }
 }
 
 async function fixture(
-  app: Sails.Application,
+  app: PersistenceOwner,
   controller: CallbackController,
   options: {
-    session?: Parameters<typeof redboxSession>[0];
+    session?: Parameters<typeof composeHttpSession>[0];
     cookie?: string;
     entered?: Promise<void>;
-    handleError?: (error: unknown, res: Sails.Res) => unknown;
+    handleError?: (error: unknown, res: express.Response) => unknown;
   } = {}
 ) {
   const web = express();
   const entered = deferred(),
     closed = deferred();
   const errors: unknown[] = [];
-  const action = controller.exports().run as (req: Sails.Req, res: Sails.Res) => unknown;
+  const action = controller.run.bind(controller);
   let returned: unknown;
   let response: ServerResponse | undefined;
   web.use((_req, res, next) => {
@@ -85,12 +83,10 @@ async function fixture(
     res.once('close', closed.resolve);
     next();
   });
-  web.use(redboxSession({ secret: 'request-lifetime-fixture', cookie: { secure: false }, ...options.session }));
+  web.use(composeHttpSession({ secret: 'request-lifetime-fixture', cookie: { secure: false }, ...options.session }, app).middleware);
   web.get('/', (req, res, next) => {
     try {
-      returned = action(req as unknown as Sails.Req, res as unknown as Sails.Res);
-      // Match Sails' AsyncFunction-specific error handling, rather than masking
-      // a classification regression with Express 5's Promise-aware router.
+      returned = runHttpRequestHandler(req, () => action(req, res));
       if (action.constructor.name === 'AsyncFunction') {
         void Promise.resolve(returned).catch(next);
       }
@@ -102,7 +98,7 @@ async function fixture(
   web.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     errors.push(error);
     entered.resolve();
-    if (options.handleError) return options.handleError(error, res as unknown as Sails.Res);
+    if (options.handleError) return options.handleError(error, res as unknown as express.Response);
     if (!res.destroyed) res.status(500).end('failed');
   });
   const server = createServer(web);
@@ -128,16 +124,11 @@ async function fixture(
   void body.catch(() => {});
   await (options.entered ?? entered.promise);
   let shutdownComplete = false;
-  const shutdown = () =>
-    new Promise<void>((resolve, reject) => {
-      app.config.beforeShutdown!(error => {
-        if (error) reject(error);
-        else {
-          shutdownComplete = true;
-          resolve();
-        }
-      });
-    });
+  const shutdown = async () => {
+    await drainHttpRequests(app);
+    await cleanupPersistence(app);
+    shutdownComplete = true;
+  };
   return {
     action,
     errors,
@@ -166,18 +157,13 @@ async function fixture(
 }
 
 describe('HTTP controller lifetime during persistence shutdown', () => {
-  let original: Sails.Application;
-  let app: Sails.Application;
+  let app: PersistenceOwner;
   beforeEach(async () => {
-    original = Reflect.get(global, 'sails');
-    app = createMockSails();
-    Reflect.set(global, 'sails', app);
-    attachSailsPersistenceLifecycle(app);
+    app = createDomainFixture();
     await initializePersistence(app);
   });
   afterEach(async () => {
     await cleanupPersistence(app);
-    Reflect.set(global, 'sails', original);
   });
 
   it('waits for an aborted async action and its final persistence write', async () => {

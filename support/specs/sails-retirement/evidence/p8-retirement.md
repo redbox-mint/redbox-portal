@@ -324,3 +324,11 @@ verification; it is not added to the package extension barrel.
 These are incremental source checks, **not** the final full-core or clean-artifact
 qualification. Core adapter/controller/policy fixtures and final matrix remain
 outstanding; P8 acceptance boxes remain unchecked.
+
+The combined rerun `domains-checkpoint-second.log` completed with **1,274
+passing / 5 unchanged pending / 0 failing** (35 existing suite files, 27s).
+Additional migrated fixtures were checked in the recorded focused runs:
+`integrations-third.log` 92 passing, `doi-branding-third.log` 109 passing,
+`appconfig-secrets-second.log` 45 passing, `page-utils-first.log` 11 passing,
+and `workers-first.log` 30 passing. No new skips were introduced. These
+source-fixture checkpoints do not close full-suite or artifact acceptance.

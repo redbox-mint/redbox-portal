@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import * as Effect from 'effect/Effect';
 import * as References from 'effect/References';
-import { makeOniLoggerLayer } from '../../../src/services/oni-v2/runtime';
+import { makeOniLoggerLayer } from '../../../src/integrations/oni/runtime';
 import { makeLoggerLayer } from '../../../src/services/raid-v2/logger';
 
 describe('integration Effect logging', function () {

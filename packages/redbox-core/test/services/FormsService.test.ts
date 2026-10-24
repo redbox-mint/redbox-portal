@@ -1,10 +1,12 @@
+import { referenceFixtures } from '../helpers/serviceRepositories';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
 import { assertJsonValue } from '../../src/persistence/cache/validation';
@@ -32,14 +34,14 @@ function findComponentDefinitionByName(componentDefinitions: unknown[] | undefin
 }
 
 describe('FormsService', function () {
-  let mockSails: any;
+  let fixture: any;
   let FormsService: any;
   let mockForm: any;
   let mockWorkflowStep: any;
   let mockRecordType: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         appmode: {
@@ -84,8 +86,8 @@ describe('FormsService', function () {
       findOne: sinon.stub().returns(createQueryObject(null)),
     };
 
-    setupServiceTestGlobals(mockSails);
-    (global as any).BrandingService = {
+    installRepositoryFixtures();
+    collaborators.BrandingService = {
       getDefault: sinon.stub().returns({ id: 'default-brand' }),
       getBrand: sinon.stub().returns({ id: 'default-brand' }),
       getBrandFromReq: sinon.stub().returns('default'),
@@ -94,18 +96,18 @@ describe('FormsService', function () {
     repositoryFixtures.WorkflowStep = mockWorkflowStep;
     repositoryFixtures.RecordType = mockRecordType;
 
-    const { Services } = require('../../src/services/FormsService');
-    FormsService = new Services.Forms();
+    const { Forms } = require('../../src/services/FormsService');
+    FormsService = new Forms({ repository: referenceFixtures(), log: fixture.log, config: fixture.config, get records() { return collaborators.RecordsService ?? fixture.services.recordsservice; }, get validation() { return collaborators.RecordValidationService ?? fixture.services.recordvalidationservice; }, get recordTypes() { return collaborators.RecordTypesService; }, get workflowSteps() { return collaborators.WorkflowStepsService; }, vocabulary: { getEntries: (...args) => collaborators.VocabularyService.getEntries(...args), defaultBrand: () => collaborators.BrandingService.getDefault().name }, formRegistry: () => fixture.config.form?.formConfigRegistry ?? {}, defaultBrand: () => collaborators.BrandingService.getDefault(), translate: (...args) => collaborators.TranslationService?.t(...args) });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).BrandingService;
+    restoreRepositoryFixtures();
+    delete collaborators.BrandingService;
     delete repositoryFixtures.Form;
     delete repositoryFixtures.WorkflowStep;
     delete repositoryFixtures.RecordType;
-    delete (global as any).RecordTypesService;
-    delete (global as any).WorkflowStepsService;
+    delete collaborators.RecordTypesService;
+    delete collaborators.WorkflowStepsService;
     sinon.restore();
   });
 
@@ -298,17 +300,17 @@ describe('FormsService', function () {
           exceptionText: 'database password',
         },
       ]);
-      mockSails.services = {
+      fixture.services = {
         recordsservice: {
           hasEditAccess: sinon.stub().returns(true),
           hasTransitionRoleAuthorization: sinon.stub().callsFake((step: any) => step.name !== 'private'),
         },
         recordvalidationservice: { discoverOperations },
       };
-      (global as any).RecordTypesService = {
+      collaborators.RecordTypesService = {
         get: sinon.stub().returns(of({ id: 'record-type-1', name: 'dataset' })),
       };
-      (global as any).WorkflowStepsService = {
+      collaborators.WorkflowStepsService = {
         getAllForRecordType: sinon.stub().returns(
           of([
             { name: 'review', config: { authorization: { transitionRoles: ['Researcher'] } } },
@@ -344,8 +346,8 @@ describe('FormsService', function () {
         type: 'dataset',
         form: 'dataset-draft',
       });
-      expect((global as any).RecordTypesService.get.firstCall.args[1]).to.equal('dataset');
-      expect((global as any).WorkflowStepsService.getAllForRecordType.calledOnce).to.equal(true);
+      expect(collaborators.RecordTypesService.get.firstCall.args[1]).to.equal('dataset');
+      expect(collaborators.WorkflowStepsService.getAllForRecordType.calledOnce).to.equal(true);
       expect(JSON.stringify(discoverOperations.args)).not.to.include('private-stage');
       expect(JSON.stringify(operations)).not.to.include('SecretRole');
       expect(JSON.stringify(operations)).not.to.include('secret-group');
@@ -355,7 +357,7 @@ describe('FormsService', function () {
 
     it('fails closed when a record form is attached to a different requested form payload', async function () {
       const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
-      mockSails.services = {
+      fixture.services = {
         recordsservice: {
           hasEditAccess: sinon.stub().returns(true),
           hasTransitionRoleAuthorization: sinon.stub().returns(true),
@@ -381,7 +383,7 @@ describe('FormsService', function () {
 
     it('omits discovery when the actor lacks edit access or context is missing', async function () {
       const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
-      mockSails.services = {
+      fixture.services = {
         recordsservice: {
           hasEditAccess: sinon.stub().returns(false),
           hasTransitionRoleAuthorization: sinon.stub().returns(true),
@@ -417,7 +419,7 @@ describe('FormsService', function () {
 
     it('does not mix a caller-supplied record type or unrelated form into create discovery', async function () {
       const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
-      mockSails.services = {
+      fixture.services = {
         recordsservice: {
           hasEditAccess: sinon.stub().returns(true),
           hasTransitionRoleAuthorization: sinon.stub().returns(true),
@@ -425,8 +427,8 @@ describe('FormsService', function () {
         recordvalidationservice: { discoverOperations },
       };
       const getRecordType = sinon.stub().returns(of({ id: 'record-type-1', name: 'dataset' }));
-      (global as any).RecordTypesService = { get: getRecordType };
-      (global as any).WorkflowStepsService = {
+      collaborators.RecordTypesService = { get: getRecordType };
+      collaborators.WorkflowStepsService = {
         getAllForRecordType: sinon.stub().returns(
           of([
             { name: 'draft', starting: true, config: { form: 'dataset-draft' } },
@@ -615,7 +617,7 @@ describe('FormsService', function () {
     });
 
     it('should destroy and recreate if bootstrapAlways is true', async function () {
-      mockSails.config.appmode.bootstrapAlways = true;
+      fixture.config.appmode.bootstrapAlways = true;
       sinon.stub(FormsService, 'getFormConfigRegistry').returns({
         'default-form': { type: 'rdmp', fields: [], messages: {}, attachmentFields: [] },
       });
@@ -652,7 +654,7 @@ describe('FormsService', function () {
       const firstForm = { name: 'a-form', componentDefinitions: [{ name: 'title' }] };
       const secondForm = { name: 'z-form', componentDefinitions: [{ name: 'description' }] };
       const reusable = { common: [{ name: 'shared' }] };
-      mockSails.config.reusableFormDefinitions = reusable;
+      fixture.config.reusableFormDefinitions = reusable;
       sinon.stub(FormsService, 'getFormConfigRegistry').returns({
         'z-form': secondForm,
         'a-form': firstForm,
@@ -702,7 +704,7 @@ describe('FormsService', function () {
         recordMetadata,
         reusableFormDefs
       );
-      const visitor = new TemplateFormConfigVisitor(mockSails.log);
+      const visitor = new TemplateFormConfigVisitor(fixture.log);
 
       expect(form).to.have.property('name');
       expect(form.name).to.eql(item.name);

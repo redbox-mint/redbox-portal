@@ -15,23 +15,36 @@ const {
   clearCapturedOpenTelemetryMeasurements,
   getCapturedOpenTelemetryMeasurements,
 } = require('../setup') as typeof import('../setup');
-const { ServiceExports } = require('../../src/services') as typeof import('../../src/services');
 const {
   RECORD_VALIDATION_DIAGNOSTIC_CODES,
   resolveValidationMode,
-  Services,
+  RecordValidation,
 } = require('../../src/services/RecordValidationService') as
   typeof import('../../src/services/RecordValidationService');
 const { createRecordValidationFixture, validationForm } = require('../fixtures/record-validation.fixtures') as
   typeof import('../fixtures/record-validation.fixtures');
-const { createMockSails } = require('./testHelper') as typeof import('./testHelper');
+import { createSinonStubLogger } from '../logger.test';
+import * as sinon from 'sinon';
 const { Services: DomSanitizerServices } = require('../../src/services/DomSanitizerService') as
   typeof import('../../src/services/DomSanitizerService');
 
 let expect: Chai.ExpectStatic;
 
+let environment: any;
+let sanitizer: InstanceType<typeof DomSanitizerServices.DomSanitizer>;
+function createValidation(dependencies: any) {
+  return new RecordValidation({
+    get log() { return environment.log; }, get config() { return environment.config; },
+    readers: dependencies,
+    html: {
+      sanitizeWithProfile: (value, profile) => sanitizer.sanitizeWithProfile(value, profile),
+      htmlSanitizationMode: () => environment.config.record?.form?.htmlSanitizationMode ?? 'sanitize',
+    },
+  }, dependencies);
+}
+
 function configure(mode: 'shadow' | 'enforce' = 'shadow', operations?: Record<string, unknown>): void {
-  (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.recordValidation = {
+  environment.config.recordValidation = {
     mode,
     timeoutMs: 5_000,
     allowedRequestParameters: ['locale', 'nested'],
@@ -50,7 +63,7 @@ function codes(result: { diagnostics: readonly { code: string }[] }): string[] {
 }
 
 function resolutionEvents(): Record<string, unknown>[] {
-  return (global as any).sails.log.info.args
+  return environment.log.info.args
     .map((args: unknown[]) => args[1])
     .filter((event: Record<string, unknown> | undefined) => event?.event === 'record_validation_completed')
     .map((event: Record<string, unknown>) => ({
@@ -135,57 +148,30 @@ function richHtmlTransformation(
 }
 
 describe('RecordValidationService', function () {
-  let priorSails: unknown;
-  let priorDomSanitizerService: unknown;
-
-  before(async function () {
-    expect = (await import('chai')).expect;
-  });
-
+  before(async function () { expect = (await import('chai')).expect; });
   beforeEach(function () {
     clearCapturedOpenTelemetryMeasurements();
-    priorSails = (global as Record<string, unknown>).sails;
-    priorDomSanitizerService = (global as Record<string, unknown>).DomSanitizerService;
-    (global as Record<string, unknown>).sails = createMockSails();
-    (global as Record<string, unknown>).DomSanitizerService = new DomSanitizerServices.DomSanitizer();
-    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.dompurify = {
-      profiles: {
-        html: { USE_PROFILES: { html: true } },
-        svg: { USE_PROFILES: { svg: true } },
-      },
+    environment = { config: {}, log: createSinonStubLogger(sinon) };
+    environment.config.dompurify = {
+      profiles: { html: { USE_PROFILES: { html: true } }, svg: { USE_PROFILES: { svg: true } } },
       defaultProfile: 'html',
     };
+    sanitizer = new DomSanitizerServices.DomSanitizer(environment);
     configure();
   });
 
-  afterEach(function () {
-    if (priorSails === undefined) {
-      delete (global as Record<string, unknown>).sails;
-    } else {
-      (global as Record<string, unknown>).sails = priorSails;
+  it('exports a plain domain with authoritative resolution methods', function () {
+    for (const method of ['resolve', 'resolveContractContext', 'discoverOperations']) {
+      expect(RecordValidation.prototype).to.have.property(method).that.is.a('function');
     }
-    if (priorDomSanitizerService === undefined) {
-      delete (global as Record<string, unknown>).DomSanitizerService;
-    } else {
-      (global as Record<string, unknown>).DomSanitizerService = priorDomSanitizerService;
-    }
+    expect(RecordValidation.prototype).not.to.have.property('exports');
   });
 
-  it('is registered through the core service export convention', function () {
-    expect(ServiceExports).to.have.property('RecordValidationService');
-    expect(ServiceExports.RecordValidationService).to.have.property('resolve').that.is.a('function');
-    expect(ServiceExports.RecordValidationService).to.have.property('resolveContractContext').that.is.a('function');
-    expect(ServiceExports.RecordValidationService).to.have.property('discoverOperations').that.is.a('function');
-  });
-
-  it('uses an isolated Sails fixture without mutating a suite-global config stub', function () {
-    expect((global as Record<string, unknown>).sails).not.to.equal(priorSails);
-    if (priorSails && typeof priorSails === 'object' && 'config' in priorSails) {
-      const priorConfig = (priorSails as { config?: Record<string, unknown> }).config;
-      expect(priorConfig?.recordValidation).not.to.equal(
-        (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.recordValidation
-      );
-    }
+  it('uses isolated configuration without mutating another domain fixture', function () {
+    const other = { config: { recordValidation: { mode: 'shadow' } } };
+    configure('enforce');
+    expect(other.config.recordValidation.mode).to.equal('shadow');
+    expect(environment.config.recordValidation).not.to.equal(other.config.recordValidation);
   });
 
   it('resolves rollout precedence in one pure helper', function () {
@@ -204,7 +190,7 @@ describe('RecordValidationService', function () {
   });
 
   it('preserves safe malformed-mode diagnostics while using the shared resolver', async function () {
-    (global as any).sails.config.recordValidation = {
+    environment.config.recordValidation = {
       mode: 'invalid-global',
       timeoutMs: 5_000,
       operations: { submit: { mode: 'enforce' } },
@@ -219,7 +205,7 @@ describe('RecordValidationService', function () {
         },
       } as never,
     });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
     });
@@ -232,7 +218,7 @@ describe('RecordValidationService', function () {
 
   it('resolves the exact starting workflow form for create', async function () {
     const fixture = createRecordValidationFixture();
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     const result = await service.resolve({ ...fixture.request, writeKind: 'create' });
 
     expect(result.status).to.equal('resolved');
@@ -244,13 +230,13 @@ describe('RecordValidationService', function () {
   });
 
   it('treats a null record-type schema attribute as an unset override', async function () {
-    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.recordSchema = {
+    environment.config.recordSchema = {
       unknownProperties: 'allow',
     };
     const fixture = createRecordValidationFixture({
       recordType: { id: 'record-type-1', name: 'dataset', recordSchema: null },
     });
-    const context = await new Services.RecordValidation(fixture.dependencies).resolveContractContext({
+    const context = await createValidation(fixture.dependencies).resolveContractContext({
       kind: 'create',
       brand: 'brand-1',
       portal: 'portal',
@@ -265,7 +251,7 @@ describe('RecordValidationService', function () {
   it('resolves a requested create target independently of the operation', async function () {
     const targetForm = validationForm({ name: 'dataset-2.4-review' });
     const fixture = createRecordValidationFixture({ form: targetForm });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     const result = await service.resolve({ ...fixture.request, writeKind: 'create', targetStep: 'review' });
 
     expect(result.status).to.equal('resolved');
@@ -284,7 +270,7 @@ describe('RecordValidationService', function () {
       },
       recordType: { id: 'alternate-type', name: 'alternate' },
     });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await createValidation(fixture.dependencies).resolve(fixture.request);
 
     expect(result.status).to.equal('resolved');
     expect(fixture.calls.recordTypes).to.deep.equal([{ brand: 'brand-2', recordType: 'alternate' }]);
@@ -294,7 +280,7 @@ describe('RecordValidationService', function () {
   it('uses the exact target-step form for transitions instead of the candidate form', async function () {
     const targetForm = validationForm({ name: 'dataset-2.4-published' });
     const fixture = createRecordValidationFixture({ form: targetForm });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       writeKind: 'transition',
       targetStep: 'published',
@@ -319,7 +305,7 @@ describe('RecordValidationService', function () {
           },
         },
       });
-      const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve({
+      const result = requireResolved(await createValidation(fixture.dependencies).resolve({
         ...fixture.request,
         writeKind: 'transition',
         targetStep: 'published',
@@ -336,7 +322,7 @@ describe('RecordValidationService', function () {
       fixture.calls.forms.push({ formName, brand });
       return null;
     };
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await createValidation(fixture.dependencies).resolve(fixture.request);
 
     expect(result.status).to.equal('unresolved');
     expect(fixture.calls.forms).to.deep.equal([{ formName: 'dataset-2.4-draft', brand: 'brand-1' }]);
@@ -348,7 +334,7 @@ describe('RecordValidationService', function () {
     const missing = createRecordValidationFixture({
       candidate: { metaMetadata: { brandId: 'brand-1', type: 'dataset' } },
     });
-    const missingResult = await new Services.RecordValidation(missing.dependencies).resolve(missing.request);
+    const missingResult = await createValidation(missing.dependencies).resolve(missing.request);
     expect(missingResult.shouldBlock).to.equal(true);
     expect(codes(missingResult)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMissing);
 
@@ -356,7 +342,7 @@ describe('RecordValidationService', function () {
     const malformed = createRecordValidationFixture({
       candidate: { metaMetadata: { brandId: 'brand-1', type: 'dataset', form: '../secret' } },
     });
-    const malformedResult = await new Services.RecordValidation(malformed.dependencies).resolve(malformed.request);
+    const malformedResult = await createValidation(malformed.dependencies).resolve(malformed.request);
     expect(malformedResult.shouldBlock).to.equal(false);
     expect(codes(malformedResult)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMalformed);
 
@@ -364,7 +350,7 @@ describe('RecordValidationService', function () {
     const enforceMalformed = createRecordValidationFixture({
       candidate: { metaMetadata: { brandId: 'brand-1', type: 'dataset', form: '../secret' } },
     });
-    const enforceMalformedResult = await new Services.RecordValidation(enforceMalformed.dependencies).resolve(
+    const enforceMalformedResult = await createValidation(enforceMalformed.dependencies).resolve(
       enforceMalformed.request
     );
     expect(enforceMalformedResult.status).to.equal('unresolved');
@@ -376,7 +362,7 @@ describe('RecordValidationService', function () {
     const missing = createRecordValidationFixture({
       candidate: { metaMetadata: { form: 'dataset-2.4-draft' } },
     });
-    const missingResult = await new Services.RecordValidation(missing.dependencies).resolve(missing.request);
+    const missingResult = await createValidation(missing.dependencies).resolve(missing.request);
     expect(codes(missingResult)).to.include.members([
       RECORD_VALIDATION_DIAGNOSTIC_CODES.brandReferenceMissing,
       RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeReferenceMissing,
@@ -388,7 +374,7 @@ describe('RecordValidationService', function () {
         metaMetadata: { brandId: '../brand', type: 'bad type', form: 'dataset-2.4-draft' },
       },
     });
-    const malformedResult = await new Services.RecordValidation(malformed.dependencies).resolve(malformed.request);
+    const malformedResult = await createValidation(malformed.dependencies).resolve(malformed.request);
     expect(codes(malformedResult)).to.include.members([
       RECORD_VALIDATION_DIAGNOSTIC_CODES.brandReferenceMalformed,
       RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeReferenceMalformed,
@@ -396,18 +382,18 @@ describe('RecordValidationService', function () {
   });
 
   it('uses configured record-type enforce mode when runtime record-type resolution fails', async function () {
-    (global as any).sails.config.recordtype = {
+    environment.config.recordtype = {
       dataset: { recordValidation: { mode: 'enforce' } },
     };
     const fixture = createRecordValidationFixture({ recordType: null });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await createValidation(fixture.dependencies).resolve(fixture.request);
     expect(result).to.deep.include({ status: 'unresolved', mode: 'enforce', shouldBlock: true });
     expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeNotFound);
   });
 
   it('keeps malformed stored current-step references mode-aware so shadow records remain repairable', async function () {
     const shadowFixture = createRecordValidationFixture();
-    const shadow = requireResolved(await new Services.RecordValidation(shadowFixture.dependencies).resolve({
+    const shadow = requireResolved(await createValidation(shadowFixture.dependencies).resolve({
       ...shadowFixture.request,
       currentStep: '../legacy-bad-step',
     }));
@@ -416,7 +402,7 @@ describe('RecordValidationService', function () {
 
     configure('enforce');
     const enforceFixture = createRecordValidationFixture();
-    const enforce = requireResolved(await new Services.RecordValidation(enforceFixture.dependencies).resolve({
+    const enforce = requireResolved(await createValidation(enforceFixture.dependencies).resolve({
       ...enforceFixture.request,
       currentStep: '../legacy-bad-step',
     }));
@@ -425,7 +411,7 @@ describe('RecordValidationService', function () {
       enforce.diagnostics.find(item => item.code === RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed)
     ).to.have.property('severity', 'warning');
 
-    const namedOperation = requireResolved(await new Services.RecordValidation(enforceFixture.dependencies).resolve({
+    const namedOperation = requireResolved(await createValidation(enforceFixture.dependencies).resolve({
       ...enforceFixture.request,
       currentStep: '../legacy-bad-step',
       validationOperation: 'submit',
@@ -438,7 +424,7 @@ describe('RecordValidationService', function () {
 
   it('diagnoses missing target workflows and missing/malformed step form references', async function () {
     const absent = createRecordValidationFixture({ workflowSteps: { absent: null } });
-    const absentResult = await new Services.RecordValidation(absent.dependencies).resolve({
+    const absentResult = await createValidation(absent.dependencies).resolve({
       ...absent.request,
       writeKind: 'transition',
       targetStep: 'absent',
@@ -448,7 +434,7 @@ describe('RecordValidationService', function () {
     const missingForm = createRecordValidationFixture({
       workflowSteps: { review: { name: 'review', config: {} } },
     });
-    const missingFormResult = await new Services.RecordValidation(missingForm.dependencies).resolve({
+    const missingFormResult = await createValidation(missingForm.dependencies).resolve({
       ...missingForm.request,
       writeKind: 'transition',
       targetStep: 'review',
@@ -458,7 +444,7 @@ describe('RecordValidationService', function () {
     const malformedForm = createRecordValidationFixture({
       workflowSteps: { review: { name: 'review', config: { form: '../fallback' } } },
     });
-    const malformedFormResult = await new Services.RecordValidation(malformedForm.dependencies).resolve({
+    const malformedFormResult = await createValidation(malformedForm.dependencies).resolve({
       ...malformedForm.request,
       writeKind: 'transition',
       targetStep: 'review',
@@ -470,7 +456,7 @@ describe('RecordValidationService', function () {
   it('continues update form resolution when an irrelevant current-stage policy cannot resolve', async function () {
     configure('enforce');
     const fixture = createRecordValidationFixture({ workflowSteps: { draft: null } });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await createValidation(fixture.dependencies).resolve(fixture.request);
     expect(result.status).to.equal('resolved');
     expect(result.shouldBlock).to.equal(false);
     expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound);
@@ -480,7 +466,7 @@ describe('RecordValidationService', function () {
     expect(fixture.calls.forms).to.deep.equal([{ formName: 'dataset-2.4-draft', brand: 'brand-1' }]);
 
     const operationFixture = createRecordValidationFixture({ workflowSteps: { draft: null } });
-    const operationResult = await new Services.RecordValidation(operationFixture.dependencies).resolve({
+    const operationResult = await createValidation(operationFixture.dependencies).resolve({
       ...operationFixture.request,
       validationOperation: 'submit',
     });
@@ -496,7 +482,7 @@ describe('RecordValidationService', function () {
       const shadowFixture = createRecordValidationFixture({
         candidate: { workflow: stage === undefined ? {} : { stage } },
       });
-      const shadow = requireResolved(await new Services.RecordValidation(shadowFixture.dependencies).resolve({
+      const shadow = requireResolved(await createValidation(shadowFixture.dependencies).resolve({
         ...shadowFixture.request,
         validationOperation: 'submit',
       }));
@@ -513,7 +499,7 @@ describe('RecordValidationService', function () {
       const enforceFixture = createRecordValidationFixture({
         candidate: { workflow: stage === undefined ? {} : { stage } },
       });
-      const enforce = requireResolved(await new Services.RecordValidation(enforceFixture.dependencies).resolve({
+      const enforce = requireResolved(await createValidation(enforceFixture.dependencies).resolve({
         ...enforceFixture.request,
         validationOperation: 'submit',
       }));
@@ -527,7 +513,7 @@ describe('RecordValidationService', function () {
     const fixture = createRecordValidationFixture();
     fixture.dependencies.loadForm = async () =>
       ({ id: 'form-1', name: 'dataset-2.4-draft', branding: 'brand-1' }) as never;
-    const missingConfig = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const missingConfig = await createValidation(fixture.dependencies).resolve(fixture.request);
     expect(missingConfig.shouldBlock).to.equal(true);
     expect(codes(missingConfig)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.formConfigurationMissing);
 
@@ -536,7 +522,7 @@ describe('RecordValidationService', function () {
     broken.dependencies.constructForm = async () => {
       throw new Error('secret compiler exception');
     };
-    const brokenResult = await new Services.RecordValidation(broken.dependencies).resolve(broken.request);
+    const brokenResult = await createValidation(broken.dependencies).resolve(broken.request);
     expect(brokenResult.shouldBlock).to.equal(false);
     expect(codes(brokenResult)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.formConfigurationMalformed);
     expect(JSON.stringify(brokenResult)).not.to.contain('secret compiler exception');
@@ -547,14 +533,14 @@ describe('RecordValidationService', function () {
     shadow.dependencies.loadForm = async () => {
       throw new Error('mongo timeout: connection refused to 10.0.0.5');
     };
-    const shadowResult = await new Services.RecordValidation(shadow.dependencies).resolve(
+    const shadowResult = await createValidation(shadow.dependencies).resolve(
       shadow.request
     );
     expect(shadowResult).to.deep.include({ status: 'unresolved', shouldBlock: false });
     expect(codes(shadowResult)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.resolutionFailed);
     expect(resolutionEvents()).to.have.length(1);
     expect(JSON.stringify(shadowResult)).not.to.match(/mongo|10\.0\.0\.5|connection refused/);
-    const resolutionLog = (global as any).sails.log.warn.args
+    const resolutionLog = environment.log.warn.args
       .map((args: unknown[]) => String(args[0] ?? ''))
       .find((message: string) => message.includes('Record validation resolution could not be completed'));
     expect(resolutionLog).to.include('errorType=Error');
@@ -563,7 +549,7 @@ describe('RecordValidationService', function () {
     configure('enforce');
     const enforce = createRecordValidationFixture();
     enforce.dependencies.loadForm = shadow.dependencies.loadForm;
-    const enforceResult = await new Services.RecordValidation(enforce.dependencies).resolve(
+    const enforceResult = await createValidation(enforce.dependencies).resolve(
       enforce.request
     );
     expect(enforceResult).to.deep.include({ status: 'unresolved', shouldBlock: true });
@@ -573,7 +559,7 @@ describe('RecordValidationService', function () {
   it('projects metadata through native JSON serialization', async function () {
     const metadata = { title: 'Final title', hookValue: () => 'not-cloneable' };
     const fixture = createRecordValidationFixture({ candidate: { metadata } });
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
     expect(result.shouldBlock).to.equal(false);
     expect(result.resolved.expressionContext?.formData).to.deep.equal({ title: 'Final title' });
     expect(codes(result)).not.to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported);
@@ -591,7 +577,7 @@ describe('RecordValidationService', function () {
     });
     const fixture = createRecordValidationFixture({ form });
     const { constructForm: _fixtureConstructor, ...productionConstructorDependencies } = fixture.dependencies;
-    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.reusableFormDefinitions = {
+    environment.config.reusableFormDefinitions = {
       'shared-validation-fields': [
         {
           name: 'expanded-validator-field',
@@ -611,7 +597,7 @@ describe('RecordValidationService', function () {
       ],
     };
 
-    const result = await new Services.RecordValidation(productionConstructorDependencies).resolve(fixture.request);
+    const result = await createValidation(productionConstructorDependencies).resolve(fixture.request);
     const resolved = requireResolved(result);
     expect(JSON.stringify(resolved.resolved.constructedForm)).to.contain('expanded-validator-field');
     expect(resolved.resolved.conditionalGroups).to.deep.equal(['base', 'conditional']);
@@ -620,7 +606,7 @@ describe('RecordValidationService', function () {
 
   it('rejects malformed operation syntax without echoing the supplied value', async function () {
     const fixture = createRecordValidationFixture();
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'bad operation secret',
     });
@@ -633,7 +619,7 @@ describe('RecordValidationService', function () {
 
   it('trims safe case-sensitive operation names and rejects unknown names even in shadow', async function () {
     const fixture = createRecordValidationFixture();
-    const known = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const known = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: ' submit ',
       targetStep: 'review',
@@ -641,14 +627,14 @@ describe('RecordValidationService', function () {
     expect(known.effectiveOperation).to.equal('submit');
     expect(known.shouldBlock).to.equal(false);
 
-    const unknown = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const unknown = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'Submit',
     });
     expect(unknown.shouldBlock).to.equal(true);
     expect(codes(unknown)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationUnknown);
 
-    const prototypeName = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const prototypeName = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'constructor',
     });
@@ -695,7 +681,7 @@ describe('RecordValidationService', function () {
         },
       },
     });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       writeKind: 'transition',
       validationOperation: 'submit',
@@ -715,7 +701,7 @@ describe('RecordValidationService', function () {
     const fixture = createRecordValidationFixture({
       recordType: { id: 'record-type-1', name: 'dataset', recordValidation: { mode: 'enforce' } },
     });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
     });
@@ -724,14 +710,14 @@ describe('RecordValidationService', function () {
 
   it('returns stable role and target authorization diagnostics', async function () {
     const fixture = createRecordValidationFixture();
-    const noMovement = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const noMovement = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
     });
     expect(noMovement.status).to.equal('resolved');
     expect(noMovement.shouldBlock).to.equal(false);
 
-    const roleFailure = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const roleFailure = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
       targetStep: 'review',
@@ -740,7 +726,7 @@ describe('RecordValidationService', function () {
     expect(roleFailure.shouldBlock).to.equal(true);
     expect(codes(roleFailure)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationRoleUnauthorized);
 
-    const targetFailure = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const targetFailure = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
       targetStep: 'archived',
@@ -753,7 +739,7 @@ describe('RecordValidationService', function () {
     for (const mode of ['shadow', 'enforce'] as const) {
       configure(mode);
       const authorizedFixture = createRecordValidationFixture();
-      const authorized = await new Services.RecordValidation(authorizedFixture.dependencies).resolve({
+      const authorized = await createValidation(authorizedFixture.dependencies).resolve({
         ...authorizedFixture.request,
         validationOperation: 'submit',
         evaluateFormValidators: false,
@@ -763,7 +749,7 @@ describe('RecordValidationService', function () {
       expect(authorizedFixture.calls.validatorGroups).to.deep.equal([]);
 
       const unknownFixture = createRecordValidationFixture();
-      const unknown = await new Services.RecordValidation(unknownFixture.dependencies).resolve({
+      const unknown = await createValidation(unknownFixture.dependencies).resolve({
         ...unknownFixture.request,
         validationOperation: 'missing-operation',
         evaluateFormValidators: false,
@@ -773,7 +759,7 @@ describe('RecordValidationService', function () {
       expect(unknownFixture.calls.validatorGroups).to.deep.equal([]);
 
       const unauthorizedFixture = createRecordValidationFixture();
-      const unauthorized = await new Services.RecordValidation(unauthorizedFixture.dependencies).resolve({
+      const unauthorized = await createValidation(unauthorizedFixture.dependencies).resolve({
         ...unauthorizedFixture.request,
         validationOperation: 'submit',
         evaluateFormValidators: false,
@@ -792,7 +778,7 @@ describe('RecordValidationService', function () {
     const fixture = createRecordValidationFixture({ candidate: { metadata } });
 
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve({
+      await createValidation(fixture.dependencies).resolve({
         ...fixture.request,
         validationOperation: 'submit',
         evaluateFormValidators: false,
@@ -845,7 +831,7 @@ describe('RecordValidationService', function () {
         configuration: { ...form, name: formName },
       } as never;
     };
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     const operations = await service.discoverOperations({
       candidate: fixture.request.candidate,
       writeKind: 'update',
@@ -882,7 +868,7 @@ describe('RecordValidationService', function () {
     fixture.dependencies.loadWorkflowSteps = async recordType =>
       (await loadWorkflowSteps(recordType)).filter(step => step.name !== 'draft');
 
-    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+    const operations = await createValidation(fixture.dependencies).discoverOperations({
       candidate: fixture.request.candidate,
       writeKind: 'update',
       actor: { authenticated: true, roles: ['Researcher'] },
@@ -930,7 +916,7 @@ describe('RecordValidationService', function () {
       } as never : null;
     };
 
-    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+    const operations = await createValidation(fixture.dependencies).discoverOperations({
       candidate: fixture.request.candidate,
       writeKind: 'update',
       actor: { authenticated: true, roles: ['Researcher'] },
@@ -982,7 +968,7 @@ describe('RecordValidationService', function () {
       } as never : null;
     };
 
-    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+    const operations = await createValidation(fixture.dependencies).discoverOperations({
       candidate: fixture.request.candidate,
       writeKind: 'update',
       actor: { authenticated: true, roles: ['Researcher'] },
@@ -1015,7 +1001,7 @@ describe('RecordValidationService', function () {
       throw new Error('secret compiler exception for oid-1');
     };
 
-    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+    const operations = await createValidation(fixture.dependencies).discoverOperations({
       candidate: fixture.request.candidate,
       writeKind: 'update',
       actor: { authenticated: true, roles: ['Researcher'] },
@@ -1023,7 +1009,7 @@ describe('RecordValidationService', function () {
       authorizedTargetSteps: ['review', 'published'],
     });
 
-    const warn = (global as any).sails.log.warn as sinon.SinonStub;
+    const warn = environment.log.warn as sinon.SinonStub;
     expect(operations).to.deep.equal([]);
     expect(warn.callCount).to.equal(1);
     expect(String(warn.firstCall.args[0])).to.include('errorType=Error');
@@ -1059,7 +1045,7 @@ describe('RecordValidationService', function () {
       return rawForm as never;
     };
 
-    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+    const operations = await createValidation(fixture.dependencies).discoverOperations({
       candidate: fixture.request.candidate,
       writeKind: 'update',
       actor: { authenticated: true, roles: ['Researcher'] },
@@ -1089,7 +1075,7 @@ describe('RecordValidationService', function () {
     });
     const fixture = createRecordValidationFixture({ form });
 
-    const operations = await new Services.RecordValidation(fixture.dependencies).discoverOperations({
+    const operations = await createValidation(fixture.dependencies).discoverOperations({
       candidate: fixture.request.candidate,
       writeKind: 'update',
       actor: { authenticated: true, roles: ['Researcher'] },
@@ -1144,7 +1130,7 @@ describe('RecordValidationService', function () {
         },
       },
     });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     fixture.dependencies.loadForm = async (formName, brand) => {
       fixture.calls.forms.push({ formName, brand });
       return {
@@ -1176,7 +1162,7 @@ describe('RecordValidationService', function () {
 
   it('fails operation discovery safely when edit, actor, target, or policy authorization is absent', async function () {
     const fixture = createRecordValidationFixture();
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     const base = {
       candidate: fixture.request.candidate,
       writeKind: 'transition' as const,
@@ -1201,7 +1187,7 @@ describe('RecordValidationService', function () {
       startingStep: null,
       workflowSteps: { draft: null },
     });
-    expect(await new Services.RecordValidation(missingStage.dependencies).discoverOperations({
+    expect(await createValidation(missingStage.dependencies).discoverOperations({
       candidate: missingStage.request.candidate,
       writeKind: 'update',
       actor: { authenticated: true, roles: ['Researcher'] },
@@ -1222,7 +1208,7 @@ describe('RecordValidationService', function () {
       recordValidation: { operations: { submit: { roles: ['Researcher', 42] } } },
     };
     const shadow = createRecordValidationFixture({ form, recordType: malformedOverride });
-    const shadowResult = await new Services.RecordValidation(shadow.dependencies).resolve({
+    const shadowResult = await createValidation(shadow.dependencies).resolve({
       ...shadow.request,
       validationOperation: 'submit',
     });
@@ -1231,7 +1217,7 @@ describe('RecordValidationService', function () {
 
     configure('enforce');
     const enforce = createRecordValidationFixture({ form, recordType: malformedOverride });
-    const enforceResult = await new Services.RecordValidation(enforce.dependencies).resolve({
+    const enforceResult = await createValidation(enforce.dependencies).resolve({
       ...enforce.request,
       validationOperation: 'submit',
     });
@@ -1240,7 +1226,7 @@ describe('RecordValidationService', function () {
 
   it('runs the strict all-validators sentinel when operation is omitted', async function () {
     const fixture = createRecordValidationFixture();
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await createValidation(fixture.dependencies).resolve(fixture.request);
     expect(requireResolved(result).effectiveGroups).to.deep.equal([]);
     expect(fixture.calls.validatorGroups).to.deep.equal([[]]);
   });
@@ -1255,7 +1241,7 @@ describe('RecordValidationService', function () {
         },
       },
     });
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
     }));
@@ -1294,7 +1280,7 @@ describe('RecordValidationService', function () {
       return constructed as never;
     };
 
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
     expect(result.resolved.conditionalGroups).to.deep.equal(['base']);
     expect(result.effectiveGroups).to.deep.equal([]);
     expect(result.advisoryGroups).to.deep.equal([]);
@@ -1305,7 +1291,7 @@ describe('RecordValidationService', function () {
     const form = validationForm({ validationOperations: { submit: { enabledValidationGroups: [] } } });
     const fixture = createRecordValidationFixture({ form });
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve({
+      await createValidation(fixture.dependencies).resolve({
         ...fixture.request,
         validationOperation: 'submit',
       })
@@ -1338,7 +1324,7 @@ describe('RecordValidationService', function () {
       session: { secret: 'session-secret' },
       user: { password: 'password-secret' },
     } as unknown as RecordValidationRequest;
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(adversarialRequest);
+    const result = await createValidation(fixture.dependencies).resolve(adversarialRequest);
     const context = requireResolved(result).resolved.expressionContext!;
 
     expect(context.formData).to.deep.equal({ title: 'Merged final title', nested: { valid: true } });
@@ -1365,7 +1351,7 @@ describe('RecordValidationService', function () {
     metadata.functionSecret = () => 'must-not-run';
     metadata.cycle = metadata;
     const fixture = createRecordValidationFixture({ candidate: { metadata } });
-    const shadow = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const shadow = await createValidation(fixture.dependencies).resolve(fixture.request);
     expect(getterRuns).to.equal(0);
     expect(shadow.status).to.equal('unresolved');
     expect(codes(shadow)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported);
@@ -1373,7 +1359,7 @@ describe('RecordValidationService', function () {
 
     configure('enforce');
     const enforceFixture = createRecordValidationFixture({ candidate: { metadata } });
-    const enforce = await new Services.RecordValidation(enforceFixture.dependencies).resolve(enforceFixture.request);
+    const enforce = await createValidation(enforceFixture.dependencies).resolve(enforceFixture.request);
     expect(enforce.status).to.equal('unresolved');
     expect(enforce.shouldBlock).to.equal(true);
     expect(getterRuns).to.equal(0);
@@ -1396,7 +1382,7 @@ describe('RecordValidationService', function () {
     const fixture = createRecordValidationFixture({ candidate: { metadata } });
 
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
+      await createValidation(fixture.dependencies).resolve(fixture.request)
     );
 
     expect(result.shouldBlock).to.equal(false);
@@ -1411,7 +1397,7 @@ describe('RecordValidationService', function () {
   it('uses the server allowlist when caller-side request-parameter narrowing is omitted', async function () {
     const fixture = createRecordValidationFixture();
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve({
+      await createValidation(fixture.dependencies).resolve({
         ...fixture.request,
         requestParameters: { locale: 'en-AU' },
       })
@@ -1423,7 +1409,7 @@ describe('RecordValidationService', function () {
   it('diagnoses dropped request parameters without exposing their names or values', async function () {
     const fixture = createRecordValidationFixture();
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve({
+      await createValidation(fixture.dependencies).resolve({
         ...fixture.request,
         requestParameters: { forbiddenSecretName: 'forbidden-secret-value' },
       })
@@ -1456,7 +1442,7 @@ describe('RecordValidationService', function () {
       ],
     });
     const fixture = createRecordValidationFixture({ form });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
       targetStep: 'review',
@@ -1466,7 +1452,7 @@ describe('RecordValidationService', function () {
     expect(resolved.resolved.conditionalGroups).to.deep.equal(['conditional']);
     expect(resolved.effectiveGroups).to.deep.equal(['submit']);
 
-    const withoutOperation = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const withoutOperation = await createValidation(fixture.dependencies).resolve(fixture.request);
     const conditionallyResolved = requireResolved(withoutOperation);
     expect(conditionallyResolved.resolved.conditionalGroups).to.deep.equal(['conditional']);
     expect(conditionallyResolved.effectiveGroups).to.deep.equal([]);
@@ -1526,7 +1512,7 @@ describe('RecordValidationService', function () {
       ],
     });
     const fixture = createRecordValidationFixture({ form });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
       targetStep: 'review',
@@ -1564,7 +1550,7 @@ describe('RecordValidationService', function () {
       });
 
       const result = requireResolved(
-        await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
+        await createValidation(fixture.dependencies).resolve(fixture.request)
       );
 
       expect(codes(result), condition).not.to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported);
@@ -1585,7 +1571,7 @@ describe('RecordValidationService', function () {
       }],
     } as never] });
     const fixture = createRecordValidationFixture({ form, candidate: { metadata: { items: [{ value: 1 }] } } });
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
     expect(result.resolved.conditionalGroups).to.deep.equal(['base', 'conditional']);
     expect(codes(result)).not.to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported);
   });
@@ -1613,7 +1599,7 @@ describe('RecordValidationService', function () {
       form,
       candidate: { metadata: { title: 'a::b' } },
     });
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
     expect(result.resolved.conditionalGroups).to.deep.equal(['base', 'conditional']);
     expect(result.effectiveGroups).to.deep.equal([]);
     expect(codes(result)).not.to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported);
@@ -1640,7 +1626,7 @@ describe('RecordValidationService', function () {
       ],
     });
     const fixture = createRecordValidationFixture({ form });
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
     expect(result.resolved.conditionalGroups).to.deep.equal(['base']);
     expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported);
   });
@@ -1663,7 +1649,7 @@ describe('RecordValidationService', function () {
       ],
     });
     const fixture = createRecordValidationFixture({ form });
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
     expect(result.resolved.conditionalGroups).to.deep.equal(['conditional']);
     expect(result.effectiveGroups).to.deep.equal([]);
     expect(codes(result)).to.include('validation-group-initial-empty-deprecated');
@@ -1689,7 +1675,7 @@ describe('RecordValidationService', function () {
       ],
     });
     const shadow = createRecordValidationFixture({ form });
-    const shadowResult = await new Services.RecordValidation(shadow.dependencies).resolve({
+    const shadowResult = await createValidation(shadow.dependencies).resolve({
       ...shadow.request,
       validationOperation: 'submit',
       targetStep: 'review',
@@ -1699,7 +1685,7 @@ describe('RecordValidationService', function () {
 
     configure('enforce');
     const enforce = createRecordValidationFixture({ form });
-    const enforceResult = await new Services.RecordValidation(enforce.dependencies).resolve({
+    const enforceResult = await createValidation(enforce.dependencies).resolve({
       ...enforce.request,
       validationOperation: 'submit',
       targetStep: 'review',
@@ -1724,7 +1710,7 @@ describe('RecordValidationService', function () {
       ],
     });
     const fixture = createRecordValidationFixture({ form });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
     });
@@ -1741,7 +1727,7 @@ describe('RecordValidationService', function () {
       validationOperations: { submit: { enabledValidationGroups: ['not-declared'] } },
     });
     const fixture = createRecordValidationFixture({ form });
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
     });
@@ -1751,7 +1737,7 @@ describe('RecordValidationService', function () {
 
   it('only returns resolved groups accepted by ValidatorsSupport', async function () {
     const fixture = createRecordValidationFixture();
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
     expect(() =>
       new ValidatorsSupport().checkValidationGroups(result.resolved.constructedForm.validationGroups ?? {}, [
         ...result.effectiveGroups,
@@ -1761,7 +1747,7 @@ describe('RecordValidationService', function () {
 
   it('emits duration, mode/outcome, error, timeout, and configuration telemetry per resolution', async function () {
     const fixture = createRecordValidationFixture();
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
       requestParameters: { secret: 'never-observed' },
@@ -1788,7 +1774,7 @@ describe('RecordValidationService', function () {
     expect(latestResolutionEvent().durationMs).to.be.a('number').and.at.least(0);
     expect(JSON.stringify(resolutionEvents())).not.to.contain('never-observed');
 
-    const log = (global as any).sails.log.info.lastCall.args[1];
+    const log = environment.log.info.lastCall.args[1];
     expect(log).to.deep.include({
       event: 'record_validation_completed',
       request_id: 'request-1',
@@ -1804,7 +1790,7 @@ describe('RecordValidationService', function () {
 
     const failing = createRecordValidationFixture();
     failing.dependencies.loadForm = async () => null;
-    await new Services.RecordValidation(failing.dependencies).resolve(failing.request);
+    await createValidation(failing.dependencies).resolve(failing.request);
     expect(latestResolutionEvent()).to.deep.include({
       recordType: 'dataset',
       formName: 'dataset-2.4-draft',
@@ -1825,7 +1811,7 @@ describe('RecordValidationService', function () {
       const fixture = createRecordValidationFixture({
         candidate: { metaMetadata: { brandId: 'brand-1', type: recordType, form: formName } },
       });
-      await new Services.RecordValidation(fixture.dependencies).resolve({
+      await createValidation(fixture.dependencies).resolve({
         ...fixture.request,
         validationOperation: operation,
       });
@@ -1870,7 +1856,7 @@ describe('RecordValidationService', function () {
           },
         }),
       ]);
-      await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+      await createValidation(fixture.dependencies).resolve(fixture.request);
     }
 
     const measurements = getCapturedOpenTelemetryMeasurements();
@@ -1899,7 +1885,7 @@ describe('RecordValidationService', function () {
     const fixture = createRecordValidationFixture({
       candidate: { metadata: { title: 'raw-secret-title', nested: { token: 'raw-secret-token' } } },
     });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     await service.resolve({
       ...fixture.request,
       requestParameters: { secret: 'raw-secret-parameter' },
@@ -1908,14 +1894,14 @@ describe('RecordValidationService', function () {
     });
 
     const observable = JSON.stringify({
-      logs: (global as any).sails.log.info.args,
+      logs: environment.log.info.args,
     });
     expect(observable).not.to.match(/raw-secret-title|raw-secret-token|raw-secret-parameter|raw-secret-runtime|raw-secret-role/);
   });
 
   it('buckets unknown client operation names before logs and telemetry', async function () {
     const fixture = createRecordValidationFixture();
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
 
     const result = await service.resolve({
       ...fixture.request,
@@ -1923,19 +1909,19 @@ describe('RecordValidationService', function () {
     });
 
     expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationUnknown);
-    const observable = JSON.stringify((global as any).sails.log.info.args);
+    const observable = JSON.stringify(environment.log.info.args);
     expect(observable).not.to.include('UnknownExternalOperation');
   });
 
   it('does not let observability failures change resolver behavior', async function () {
     const fixture = createRecordValidationFixture();
-    (global as any).sails.log.info.throws(new Error('private logger failure'));
+    environment.log.info.throws(new Error('private logger failure'));
 
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await createValidation(fixture.dependencies).resolve(fixture.request);
 
     expect(result.status).to.equal('resolved');
     expect(result.shouldBlock).to.equal(false);
-    expect((global as any).sails.log.warn.calledWith('Record validation observability failed.')).to.equal(true);
+    expect(environment.log.warn.calledWith('Record validation observability failed.')).to.equal(true);
   });
 
   it('discovers advisory groups and executes blocking and advisory visitors separately', async function () {
@@ -1953,7 +1939,7 @@ describe('RecordValidationService', function () {
       return validatorExecution(groups.includes('advisory') ? [validatorSummary()] : []);
     };
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve({
+      await createValidation(fixture.dependencies).resolve({
         ...fixture.request,
         validationOperation: 'submit',
       })
@@ -1974,7 +1960,7 @@ describe('RecordValidationService', function () {
   });
 
   it('uses the existing constructor and ValidatorFormConfigVisitor for both production passes', async function () {
-    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
+    environment.config.validators = {
       definitions: formValidatorsSharedDefinitions,
     };
     const form = validationForm({
@@ -2008,7 +1994,7 @@ describe('RecordValidationService', function () {
     const fixture = createRecordValidationFixture({ form, candidate: { metadata: {} } });
     const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } = fixture.dependencies;
     const result = requireResolved(
-      await new Services.RecordValidation(productionDependencies).resolve({
+      await createValidation(productionDependencies).resolve({
         ...fixture.request,
         validationOperation: 'submit',
       })
@@ -2032,15 +2018,15 @@ describe('RecordValidationService', function () {
 
     for (const mode of ['shadow', 'enforce'] as const) {
       configure(mode);
-      (global as any).sails.config.record = { form: { htmlSanitizationMode: 'sanitize' } };
-      (global as any).sails.config.validators = { definitions: formValidatorsSharedDefinitions };
+      environment.config.record = { form: { htmlSanitizationMode: 'sanitize' } };
+      environment.config.validators = { definitions: formValidatorsSharedDefinitions };
       const metadata = { description: dirtyHtml, untouched: { retained: true } };
       const fixture = createRecordValidationFixture({ form, candidate: { metadata } });
       const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } =
         fixture.dependencies;
 
       const result = requireResolved(
-        await new Services.RecordValidation(productionDependencies).resolve(fixture.request)
+        await createValidation(productionDependencies).resolve(fixture.request)
       );
 
       expect(result.shouldBlock, mode).to.equal(false);
@@ -2059,8 +2045,8 @@ describe('RecordValidationService', function () {
 
   it('sanitizes repeatable rich text before required validation and returns indexed transformations', async function () {
     configure('enforce');
-    (global as any).sails.config.record = { form: { htmlSanitizationMode: 'sanitize' } };
-    (global as any).sails.config.validators = { definitions: formValidatorsSharedDefinitions };
+    environment.config.record = { form: { htmlSanitizationMode: 'sanitize' } };
+    environment.config.validators = { definitions: formValidatorsSharedDefinitions };
     const form = validationForm({
       componentDefinitions: [{
         name: 'contributors',
@@ -2094,7 +2080,7 @@ describe('RecordValidationService', function () {
       fixture.dependencies;
 
     const result = requireResolved(
-      await new Services.RecordValidation(productionDependencies).resolve(fixture.request)
+      await createValidation(productionDependencies).resolve(fixture.request)
     );
 
     expect(result.shouldBlock).to.equal(true);
@@ -2116,7 +2102,7 @@ describe('RecordValidationService', function () {
     ]);
 
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
+      await createValidation(fixture.dependencies).resolve(fixture.request)
     );
 
     expect(result.shouldBlock).to.equal(true);
@@ -2131,7 +2117,7 @@ describe('RecordValidationService', function () {
     fixture.dependencies.collectTransformations = async () => [];
 
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
+      await createValidation(fixture.dependencies).resolve(fixture.request)
     );
 
     expect(result.transformedCandidate).not.to.equal(fixture.request.candidate);
@@ -2162,7 +2148,7 @@ describe('RecordValidationService', function () {
     });
 
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
+      await createValidation(fixture.dependencies).resolve(fixture.request)
     );
 
     expect(result.shouldBlock).to.equal(false);
@@ -2202,7 +2188,7 @@ describe('RecordValidationService', function () {
             : [],
         });
 
-        const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+        const result = await createValidation(fixture.dependencies).resolve(fixture.request);
 
         expect(result, `${mode}/${pass}`).to.deep.include({ status: 'unresolved', shouldBlock: true });
         expect(result.transformedCandidate?.metadata.description, `${mode}/${pass}`).to.equal(dirtyHtml);
@@ -2214,7 +2200,7 @@ describe('RecordValidationService', function () {
 
   it('retains validator-pass sanitation when a synchronous overrun becomes a shadow timeout', async function () {
     configure('shadow');
-    (global as any).sails.config.recordValidation.timeoutMs = 5;
+    environment.config.recordValidation.timeoutMs = 5;
     const dirtyHtml = '<p>Safe</p><script>alert(1)</script>';
     const fixture = createRecordValidationFixture({ candidate: { metadata: { description: dirtyHtml } } });
     fixture.dependencies.collectTransformations = async () => [];
@@ -2229,7 +2215,7 @@ describe('RecordValidationService', function () {
       };
     };
 
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await createValidation(fixture.dependencies).resolve(fixture.request);
 
     expect(result).to.deep.include({ status: 'unresolved', shouldBlock: false });
     expect(result.transformedCandidate?.metadata.description).to.equal('<p>Safe</p>');
@@ -2249,7 +2235,7 @@ describe('RecordValidationService', function () {
         transformations: [richHtmlTransformation(dirtyHtml, '<p>Stale replacement</p>')],
       });
 
-      const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+      const result = await createValidation(fixture.dependencies).resolve(fixture.request);
 
       expect(result, mode).to.deep.include({ status: 'unresolved', shouldBlock: true });
       expect(result.transformedCandidate?.metadata.description, mode).to.equal('<p>Safe</p>');
@@ -2276,7 +2262,7 @@ describe('RecordValidationService', function () {
         { kind: 'future-transformation' } as never,
       ];
 
-      const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+      const result = await createValidation(fixture.dependencies).resolve(fixture.request);
 
       expect(result, mode).to.deep.include({ status: 'unresolved', shouldBlock: true });
       expect(result.transformedCandidate?.metadata, mode).to.deep.equal(originalMetadata);
@@ -2292,8 +2278,8 @@ describe('RecordValidationService', function () {
 
   it('keeps htmlUnsafe blocking and leaves the candidate unchanged in reject mode', async function () {
     configure('enforce');
-    (global as any).sails.config.record = { form: { htmlSanitizationMode: 'reject' } };
-    (global as any).sails.config.validators = { definitions: formValidatorsSharedDefinitions };
+    environment.config.record = { form: { htmlSanitizationMode: 'reject' } };
+    environment.config.validators = { definitions: formValidatorsSharedDefinitions };
     const dirtyHtml = '<p>Unsafe</p><script>alert(1)</script>';
     const form = validationForm({
       componentDefinitions: [{
@@ -2306,7 +2292,7 @@ describe('RecordValidationService', function () {
     const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } = fixture.dependencies;
 
     const result = requireResolved(
-      await new Services.RecordValidation(productionDependencies).resolve(fixture.request)
+      await createValidation(productionDependencies).resolve(fixture.request)
     );
 
     expect(result.shouldBlock).to.equal(true);
@@ -2317,7 +2303,7 @@ describe('RecordValidationService', function () {
   });
 
   it('keeps advisory-only validators out of omitted and empty-operation strict-all blocking passes', async function () {
-    (global as any).sails.config.validators = { definitions: formValidatorsSharedDefinitions };
+    environment.config.validators = { definitions: formValidatorsSharedDefinitions };
     const form = validationForm({
       validationGroups: {
         all: { description: 'all', initialMembership: 'none' },
@@ -2348,7 +2334,7 @@ describe('RecordValidationService', function () {
     });
     const fixture = createRecordValidationFixture({ form, candidate: { metadata: {} } });
     const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } = fixture.dependencies;
-    const service = new Services.RecordValidation(productionDependencies);
+    const service = createValidation(productionDependencies);
 
     for (const validationOperation of [undefined, 'submit']) {
       const result = requireResolved(await service.resolve({ ...fixture.request, validationOperation }));
@@ -2361,7 +2347,7 @@ describe('RecordValidationService', function () {
 
   it('rejects initial-all advisory configuration without suppressing strict-all blocking validators', async function () {
     configure('enforce');
-    (global as any).sails.config.validators = { definitions: formValidatorsSharedDefinitions };
+    environment.config.validators = { definitions: formValidatorsSharedDefinitions };
     const form = validationForm({
       validationGroups: {
         all: { description: 'all', initialMembership: 'all' },
@@ -2389,7 +2375,7 @@ describe('RecordValidationService', function () {
     };
 
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
+      await createValidation(fixture.dependencies).resolve(fixture.request)
     );
 
     expect(result.blockingErrors.map(issue => issue.class)).to.deep.equal(['required']);
@@ -2413,7 +2399,7 @@ describe('RecordValidationService', function () {
         ],
       }),
     ]);
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
 
     expect(result.shouldBlock).to.equal(true);
     expect(result.blockingErrors).to.deep.equal([
@@ -2434,7 +2420,7 @@ describe('RecordValidationService', function () {
       candidate: { metadata: { contributors: [{ name: 'private submitted value' }] } },
     });
     fixture.dependencies.executeValidators = async () => validatorExecution([validatorSummary()]);
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
 
     await service.resolve(fixture.request);
 
@@ -2461,7 +2447,7 @@ describe('RecordValidationService', function () {
     });
     const shadow = createRecordValidationFixture({ form });
     const shadowResult = requireResolved(
-      await new Services.RecordValidation(shadow.dependencies).resolve({
+      await createValidation(shadow.dependencies).resolve({
         ...shadow.request,
         validationOperation: 'submit',
       })
@@ -2472,7 +2458,7 @@ describe('RecordValidationService', function () {
     configure('enforce');
     const enforce = createRecordValidationFixture({ form });
     const enforceResult = requireResolved(
-      await new Services.RecordValidation(enforce.dependencies).resolve({
+      await createValidation(enforce.dependencies).resolve({
         ...enforce.request,
         validationOperation: 'submit',
       })
@@ -2490,7 +2476,7 @@ describe('RecordValidationService', function () {
     for (const mode of ['shadow', 'enforce'] as const) {
       configure(mode);
       const fixture = createRecordValidationFixture({ form });
-      const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
+      const result = requireResolved(await createValidation(fixture.dependencies).resolve(fixture.request));
 
       expect(result.shouldBlock, mode).to.equal(mode === 'enforce');
       expect(result.advisoryGroups, mode).to.deep.equal([]);
@@ -2521,7 +2507,7 @@ describe('RecordValidationService', function () {
       if (groups.includes('advisory')) throw new Error('private downstream request and record value');
       return validatorExecution();
     };
-    const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve({
+    const result = requireResolved(await createValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
     }));
@@ -2536,7 +2522,7 @@ describe('RecordValidationService', function () {
 
   it('classifies malformed advisory-only JSONata as a nonblocking advisory execution warning', async function () {
     configure('enforce');
-    (global as any).sails.config.validators = { definitions: formValidatorsSharedDefinitions };
+    environment.config.validators = { definitions: formValidatorsSharedDefinitions };
     const form = validationForm({
       validationGroups: {
         all: { description: 'all', initialMembership: 'none' },
@@ -2571,7 +2557,7 @@ describe('RecordValidationService', function () {
       fixture.dependencies;
 
     const result = requireResolved(
-      await new Services.RecordValidation(productionDependencies).resolve({
+      await createValidation(productionDependencies).resolve({
         ...fixture.request,
         validationOperation: 'submit',
       })
@@ -2595,12 +2581,10 @@ describe('RecordValidationService', function () {
 
   it('applies one configured timeout to blocking execution and classifies it by mode', async function () {
     configure('enforce');
-    (
-      global as unknown as { sails: { config: { recordValidation: { timeoutMs: number } } } }
-    ).sails.config.recordValidation.timeoutMs = 10;
+    environment.config.recordValidation.timeoutMs = 10;
     const fixture = createRecordValidationFixture();
     fixture.dependencies.executeValidators = async () => await new Promise(() => undefined);
-    const enforce = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const enforce = await createValidation(fixture.dependencies).resolve(fixture.request);
     expect(enforce).to.deep.include({ status: 'unresolved', shouldBlock: true });
     expect(codes(enforce)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
     expect(latestResolutionEvent()).to.deep.include({
@@ -2611,12 +2595,10 @@ describe('RecordValidationService', function () {
     });
 
     configure('shadow');
-    (
-      global as unknown as { sails: { config: { recordValidation: { timeoutMs: number } } } }
-    ).sails.config.recordValidation.timeoutMs = 10;
+    environment.config.recordValidation.timeoutMs = 10;
     const shadowFixture = createRecordValidationFixture();
     shadowFixture.dependencies.executeValidators = fixture.dependencies.executeValidators;
-    const shadow = await new Services.RecordValidation(shadowFixture.dependencies).resolve(
+    const shadow = await createValidation(shadowFixture.dependencies).resolve(
       shadowFixture.request
     );
     expect(shadow).to.deep.include({ status: 'unresolved', shouldBlock: false });
@@ -2629,7 +2611,7 @@ describe('RecordValidationService', function () {
 
   it('classifies synchronous event-loop overruns against the shared wall-clock deadline', async function () {
     configure('enforce');
-    (global as any).sails.config.recordValidation.timeoutMs = 5;
+    environment.config.recordValidation.timeoutMs = 5;
     const fixture = createRecordValidationFixture();
     fixture.dependencies.executeValidators = async () => {
       const stopAt = performance.now() + 20;
@@ -2639,7 +2621,7 @@ describe('RecordValidationService', function () {
       return validatorExecution();
     };
 
-    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
+    const result = await createValidation(fixture.dependencies).resolve(fixture.request);
 
     expect(result).to.deep.include({ status: 'unresolved', shouldBlock: true });
     expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
@@ -2648,9 +2630,7 @@ describe('RecordValidationService', function () {
 
   it('keeps advisory timeout diagnostic-only and absorbs a late rejection', async function () {
     configure('enforce');
-    (
-      global as unknown as { sails: { config: { recordValidation: { timeoutMs: number } } } }
-    ).sails.config.recordValidation.timeoutMs = 10;
+    environment.config.recordValidation.timeoutMs = 10;
     const form = validationForm({
       validationGroups: {
         ...validationForm().validationGroups,
@@ -2671,7 +2651,7 @@ describe('RecordValidationService', function () {
     process.on('unhandledRejection', listener);
     try {
       const result = requireResolved(
-        await new Services.RecordValidation(fixture.dependencies).resolve({
+        await createValidation(fixture.dependencies).resolve({
           ...fixture.request,
           validationOperation: 'submit',
         })
@@ -2705,7 +2685,7 @@ describe('RecordValidationService', function () {
     };
     const form = validationForm({ componentDefinitions: [{ name: 'field', expressions: [expression] } as never] });
     const fixture = createRecordValidationFixture({ form });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     const first = requireResolved(await service.resolve(fixture.request));
     const second = requireResolved(
       await service.resolve({
@@ -2744,7 +2724,7 @@ describe('RecordValidationService', function () {
         configuration: selected,
       } as never;
     };
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
 
     const older = service.resolve(fixture.request);
     await Promise.resolve();
@@ -2760,14 +2740,14 @@ describe('RecordValidationService', function () {
   });
 
   it('uses current reusable definitions and candidate data for each construction', async function () {
-    (global as any).sails.config.reusableFormDefinitions = { shared: { name: 'first' } };
+    environment.config.reusableFormDefinitions = { shared: { name: 'first' } };
     const reusableFixture = createRecordValidationFixture();
-    const reusableService = new Services.RecordValidation(reusableFixture.dependencies);
+    const reusableService = createValidation(reusableFixture.dependencies);
     await reusableService.resolve(reusableFixture.request);
     await reusableService.resolve(reusableFixture.request);
     expect(reusableFixture.calls.constructions).to.equal(2);
 
-    (global as any).sails.config.reusableFormDefinitions = { shared: { name: 'second' } };
+    environment.config.reusableFormDefinitions = { shared: { name: 'second' } };
     await reusableService.resolve(reusableFixture.request);
     expect(reusableFixture.calls.constructions).to.equal(3);
 
@@ -2778,7 +2758,7 @@ describe('RecordValidationService', function () {
         ],
       }),
     });
-    const questionTreeService = new Services.RecordValidation(questionTreeFixture.dependencies);
+    const questionTreeService = createValidation(questionTreeFixture.dependencies);
     await questionTreeService.resolve(questionTreeFixture.request);
     await questionTreeService.resolve({
       ...questionTreeFixture.request,
@@ -2806,7 +2786,7 @@ describe('RecordValidationService', function () {
         ],
       } as never;
     };
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
 
     await service.resolve(fixture.request);
     await service.resolve({
@@ -2823,7 +2803,7 @@ describe('RecordValidationService', function () {
   });
 
   it('reads current validator definitions for every resolution', async function () {
-    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
+    environment.config.validators = {
       definitions: formValidatorsSharedDefinitions,
     };
     const expression = {
@@ -2840,18 +2820,18 @@ describe('RecordValidationService', function () {
       { name: 'candidate-sensitive', component: { class: 'QuestionTreeComponent' } } as never,
     ] });
     const fixture = createRecordValidationFixture({ form });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     expect((await service.resolve(fixture.request)).status).to.equal('resolved');
 
     const firstDefinition = formValidatorsSharedDefinitions[0];
-    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
+    environment.config.validators = {
       definitions: [firstDefinition, firstDefinition],
     };
     const invalidated = await service.resolve(fixture.request);
     expect(invalidated.status).to.equal('unresolved');
     expect(codes(invalidated)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingExecutionFailed);
 
-    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
+    environment.config.validators = {
       definitions: formValidatorsSharedDefinitions,
     };
     expect((await service.resolve(fixture.request)).status).to.equal('resolved');
@@ -2864,7 +2844,7 @@ describe('RecordValidationService', function () {
       runs += 1;
       return validatorExecution(runs === 1 ? [validatorSummary()] : []);
     };
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     const first = requireResolved(await service.resolve(fixture.request));
     const second = requireResolved(
       await service.resolve({

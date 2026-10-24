@@ -1,14 +1,17 @@
+import { getIdentityRepositories as identityRepositories } from '../../src/persistence/identity/runtime';
+const collaborators: any = {};
+const hooks = new Map<string, unknown>();
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import * as sinon from 'sinon';
 import { of, firstValueFrom } from 'rxjs';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture, createQueryObject, configureModelMethod } from './testHelper';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 
 describe('RDMPService', function () {
-  let mockSails: any;
+  let fixture: any;
   let RDMPService: any;
   let mockUser: any;
   let mockCounter: any;
@@ -20,7 +23,7 @@ describe('RDMPService', function () {
 
   beforeEach(function () {
     installIdentityRepositoryMock();
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         record: {
@@ -50,59 +53,59 @@ describe('RDMPService', function () {
       updateOne: sinon.stub().returns(createQueryObject({ id: 'counter-1', value: 101 }))
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.User = mockUser;
     repositoryFixtures.Counter = mockCounter;
     sinon.stub(require('../../src/persistence/storage/runtime'), 'getStorageRepositories').returns({ counters: { incrementGlobal: sinon.stub().resolves(101) } });
     repositoryFixtures.RecordType = {
       findOne: sinon.stub()
     };
-    (global as any).RecordsService = {
+    collaborators.RecordsService = {
       getMeta: sinon.stub().resolves({}),
       updateMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().returns(true),
       hasViewAccess: sinon.stub().returns(true)
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
     };
-    (global as any).UsersService = {
+    collaborators.UsersService = {
       hasRole: sinon.stub().returns(false),
       getEffectiveUser: sinon.stub().callsFake((user: unknown) => of(user))
     };
-    (global as any).RolesService = {
+    collaborators.RolesService = {
       getAdminFromBrand: sinon.stub().returns({ id: 'admin-role', name: 'Admin' })
     };
-    (global as any).WorkflowStepsService = {
+    collaborators.WorkflowStepsService = {
       get: sinon.stub().resolves([])
     };
-    (global as any).TranslationService = {
+    collaborators.TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
       tInter: sinon.stub().callsFake((msg: string, params: any) => msg)
     };
-    (global as any).WorkspaceService = {
+    collaborators.WorkspaceService = {
       addWorkspaceToRecord: sinon.stub().resolves({}),
       removeWorkspaceFromRecord: sinon.stub().resolves({})
     };
 
     // Import after mocks are set up
-    const { Services } = require('../../src/services/RDMPService');
-    RDMPService = new Services.RDMPS({ incrementGlobal: async () => 101 });
-    RDMPService.queueService = mockSails.services.agendaqueueservice;
+    const { RecordTriggers } = require('../../src/services/RDMPService');
+    RDMPService = new RecordTriggers({ config: fixture.config.record, log: fixture.log, identities: identityRepositories(), counters: { incrementGlobal: async () => 101 }, get queue() { return fixture.services.agendaqueueservice; }, effectiveUser: user => firstValueFrom(collaborators.UsersService.getEffectiveUser(user)), translate: key => collaborators.TranslationService.t(key), interpolate: (...args) => collaborators.TranslationService.tInter(...args), resolveHook: name => hooks.get(name), get workspaces() { return collaborators.WorkspaceService; } });
+    RDMPService.queueService = fixture.services.agendaqueueservice;
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.User;
     delete repositoryFixtures.Counter;
     delete repositoryFixtures.RecordType;
-    delete (global as any).RecordsService;
-    delete (global as any).BrandingService;
-    delete (global as any).UsersService;
-    delete (global as any).RolesService;
-    delete (global as any).WorkflowStepsService;
-    delete (global as any).TranslationService;
-    delete (global as any).WorkspaceService;
+    delete collaborators.RecordsService;
+    delete collaborators.BrandingService;
+    delete collaborators.UsersService;
+    delete collaborators.RolesService;
+    delete collaborators.WorkflowStepsService;
+    delete collaborators.TranslationService;
+    delete collaborators.WorkspaceService;
     sinon.restore();
   });
 
@@ -471,7 +474,7 @@ describe('RDMPService', function () {
     });
 
     it('should throw when total size exceeds limit', function () {
-      mockSails.config.record.maxUploadSize = 1000;
+      fixture.config.record.maxUploadSize = 1000;
 
       const record = {
         metadata: {
@@ -488,7 +491,7 @@ describe('RDMPService', function () {
     });
 
     it('should use custom error message code', function () {
-      mockSails.config.record.maxUploadSize = 1000;
+      fixture.config.record.maxUploadSize = 1000;
 
       const record = {
         metadata: {
@@ -506,7 +509,7 @@ describe('RDMPService', function () {
         RDMPService.checkTotalSizeOfFilesInRecord('oid-1', record, options, {});
       }).to.throw();
 
-      expect((global as any).TranslationService.t.calledWith('custom-error-key')).to.be.true;
+      expect(collaborators.TranslationService.t.calledWith('custom-error-key')).to.be.true;
     });
 
     it('should skip records with no attachments', function () {
@@ -690,8 +693,8 @@ describe('RDMPService', function () {
 
       const result = await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, {}, user, response);
 
-      expect((global as any).WorkspaceService.addWorkspaceToRecord.calledWith('rdmp-123', 'ws-1')).to.be.true;
-      expect((global as any).WorkspaceService.addWorkspaceToRecord.firstCall.args[4]).to.equal(user);
+      expect(collaborators.WorkspaceService.addWorkspaceToRecord.calledWith('rdmp-123', 'ws-1')).to.be.true;
+      expect(collaborators.WorkspaceService.addWorkspaceToRecord.firstCall.args[4]).to.equal(user);
       expect(response).to.have.property('workspaceOid', 'ws-1');
     });
 
@@ -703,7 +706,7 @@ describe('RDMPService', function () {
 
       const result = await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, {}, {}, response);
 
-      expect((global as any).WorkspaceService.addWorkspaceToRecord.called).to.be.false;
+      expect(collaborators.WorkspaceService.addWorkspaceToRecord.called).to.be.false;
       expect(result).to.deep.equal(workspaceData);
     });
 
@@ -717,8 +720,8 @@ describe('RDMPService', function () {
 
       await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, options, user, response);
 
-      expect((global as any).WorkspaceService.addWorkspaceToRecord.calledWith('rdmp-custom', 'ws-1')).to.be.true;
-      expect((global as any).WorkspaceService.addWorkspaceToRecord.firstCall.args[4]).to.equal(user);
+      expect(collaborators.WorkspaceService.addWorkspaceToRecord.calledWith('rdmp-custom', 'ws-1')).to.be.true;
+      expect(collaborators.WorkspaceService.addWorkspaceToRecord.firstCall.args[4]).to.equal(user);
     });
   });
 
@@ -732,8 +735,8 @@ describe('RDMPService', function () {
 
       const result = await RDMPService.removeWorkspaceFromRecord('ws-1', workspaceData, {}, user, response);
 
-      expect((global as any).WorkspaceService.removeWorkspaceFromRecord.calledWith('rdmp-123', 'ws-1')).to.be.true;
-      expect((global as any).WorkspaceService.removeWorkspaceFromRecord.firstCall.args[4]).to.equal(user);
+      expect(collaborators.WorkspaceService.removeWorkspaceFromRecord.calledWith('rdmp-123', 'ws-1')).to.be.true;
+      expect(collaborators.WorkspaceService.removeWorkspaceFromRecord.firstCall.args[4]).to.equal(user);
       expect(response).to.have.property('workspaceOid', 'ws-1');
     });
 
@@ -745,7 +748,7 @@ describe('RDMPService', function () {
 
       const result = await RDMPService.removeWorkspaceFromRecord('ws-1', workspaceData, {}, {}, response);
 
-      expect((global as any).WorkspaceService.removeWorkspaceFromRecord.called).to.be.false;
+      expect(collaborators.WorkspaceService.removeWorkspaceFromRecord.called).to.be.false;
       expect(result).to.deep.equal(workspaceData);
     });
   });
@@ -760,7 +763,7 @@ describe('RDMPService', function () {
 
       const result = await firstValueFrom(RDMPService.queueTriggerCall('oid-1', record, options, {}));
 
-      expect(RDMPService.queueService.now.calledWith('testJob')).to.be.true;
+      expect(fixture.services.agendaqueueservice.now.calledWith('testJob')).to.be.true;
       expect(result).to.deep.equal(record);
     });
 
@@ -776,7 +779,7 @@ describe('RDMPService', function () {
 
       const result = await firstValueFrom(RDMPService.queueTriggerCall('oid-1', record, options, {}));
 
-      expect(RDMPService.queueService.now.called).to.be.true;
+      expect(fixture.services.agendaqueueservice.now.called).to.be.true;
     });
   });
 
@@ -873,7 +876,7 @@ describe('RDMPService', function () {
       };
 
       configureModelMethod(mockUser.find, [{ username: 'alias-user', email: 'alias@test.com', linkedPrimaryUserId: 'primary-1' }]);
-      (global as any).UsersService.getEffectiveUser = sinon.stub().returns(of({ username: 'primary-user', email: 'alias@test.com' }));
+      collaborators.UsersService.getEffectiveUser = sinon.stub().returns(of({ username: 'primary-user', email: 'alias@test.com' }));
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
 
@@ -900,7 +903,7 @@ describe('RDMPService', function () {
         { username: 'alias-user', email: 'duplicate@test.com', linkedPrimaryUserId: 'primary-1' },
         primaryUser
       ]);
-      (global as any).UsersService.getEffectiveUser = sinon.stub()
+      collaborators.UsersService.getEffectiveUser = sinon.stub()
         .onFirstCall().returns(of(primaryUser))
         .onSecondCall().returns(of(primaryUser));
 
@@ -928,7 +931,7 @@ describe('RDMPService', function () {
         { username: 'first-user', email: 'duplicate@test.com' },
         { username: 'second-user', email: 'duplicate@test.com' }
       ]);
-      (global as any).UsersService.getEffectiveUser = sinon.stub()
+      collaborators.UsersService.getEffectiveUser = sinon.stub()
         .onFirstCall().returns(of({ username: 'first-user', email: 'duplicate@test.com' }))
         .onSecondCall().returns(of({ username: 'second-user', email: 'duplicate@test.com' }));
 
@@ -954,7 +957,7 @@ describe('RDMPService', function () {
       const duplicateUser = { username: 'duplicate@test.com', email: 'duplicate@test.com' };
 
       configureModelMethod(mockUser.find, [duplicateUser, { ...duplicateUser }]);
-      (global as any).UsersService.getEffectiveUser = sinon.stub()
+      collaborators.UsersService.getEffectiveUser = sinon.stub()
         .onFirstCall().returns(of(duplicateUser))
         .onSecondCall().returns(of({ ...duplicateUser }));
 
@@ -983,7 +986,7 @@ describe('RDMPService', function () {
         { ...duplicateUser, linkedPrimaryUserId: 'primary-1' },
         duplicateUser
       ]);
-      (global as any).UsersService.getEffectiveUser = sinon.stub()
+      collaborators.UsersService.getEffectiveUser = sinon.stub()
         .onFirstCall().returns(of(duplicateUser))
         .onSecondCall().returns(of(duplicateUser));
 
@@ -1009,7 +1012,7 @@ describe('RDMPService', function () {
 
       configureModelMethod(mockUser.find, [{ username: 'editor-user', email: 'editor@test.com' }]);
       const getEffectiveUserStub = sinon.stub().returns(of({ username: 'editor-user', email: 'editor@test.com' }));
-      (global as any).UsersService.getEffectiveUser = getEffectiveUserStub;
+      collaborators.UsersService.getEffectiveUser = getEffectiveUserStub;
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
 
@@ -1036,7 +1039,7 @@ describe('RDMPService', function () {
 
       mockUser.find.onFirstCall().returns(createQueryObject([{ username: 'creator', email: 'creator@test.com' }]));
       mockUser.find.onSecondCall().returns(createQueryObject([{ username: 'viewer-user', email: 'viewer@test.com' }]));
-      (global as any).UsersService.getEffectiveUser = sinon.stub()
+      collaborators.UsersService.getEffectiveUser = sinon.stub()
         .onFirstCall().returns(of({ username: 'creator', email: 'creator@test.com' }))
         .onSecondCall().throws(new Error('lookup failed'));
 
@@ -1106,7 +1109,7 @@ describe('RDMPService', function () {
         { username: 'alias-user', email: 'duplicate@test.com', linkedPrimaryUserId: 'primary-1' },
         primaryUser
       ]);
-      (global as any).UsersService.getEffectiveUser = sinon.stub()
+      collaborators.UsersService.getEffectiveUser = sinon.stub()
         .onFirstCall().returns(of(primaryUser))
         .onSecondCall().returns(of(primaryUser));
 
@@ -1119,7 +1122,7 @@ describe('RDMPService', function () {
 
   describe('exports', function () {
     it('should export all public methods', function () {
-      const exported = RDMPService.exports();
+      const exported = RDMPService;
 
       expect(exported).to.have.property('assignPermissions');
       expect(exported).to.have.property('complexAssignPermissions');

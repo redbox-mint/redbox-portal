@@ -4,7 +4,7 @@ import { PersistenceError } from '../../src/persistence/errors';
 import { fixtureResult } from './serviceRepositories';
 /** Inject plain physical operations into the real Prisma journal protocol.
  * Physical codecs and client behavior have separate live-database coverage. */
-export function attachmentFixture() {
+export function attachmentFixture(audit: import('../../src/persistence/storage/PrismaAttachments').AttachmentAuditInput = { log: console }) {
   const repository: any = new Services.PrismaAttachmentRepository({
     orm: {
       attachmentmetadata: {
@@ -16,7 +16,7 @@ export function attachmentFixture() {
         }),
       },
     },
-  } as any);
+  } as any, audit);
   const metadata = () => repositoryFixtures.AttachmentMetadata;
   const translate = (v: any): any =>
     v?.toHexString

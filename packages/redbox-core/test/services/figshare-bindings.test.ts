@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 
 const testRequire = createRequire(__filename);
 const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
-const { evaluateBinding, resolveCrosswalkBinding } = testRequire('../../src/services/figshare-v2/bindings');
+const { evaluateBinding, resolveCrosswalkBinding } = testRequire('../../src/integrations/figshare/bindings');
 const { createBindingContext } = testRequire('../../src/services/figshare-v2/context');
 
 let expect!: Chai.ExpectStatic;

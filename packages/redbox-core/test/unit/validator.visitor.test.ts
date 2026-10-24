@@ -9,13 +9,21 @@ import {
   consoleLogger,
 } from '@researchdatabox/sails-ng-common';
 import { ConstructFormConfigVisitor, reusableFormDefinitions, ValidatorFormConfigVisitor } from '../../src';
-import Services from '../../src/services/DomSanitizerService';
+import { Services } from '../../src/services/DomSanitizerService';
 import * as _ from 'lodash';
 import { formConfigExample1 } from './example-data';
 import { createSinonStubLogger } from '../logger.test';
 import * as sinon from 'sinon';
 
-const DomSanitizerService = new Services.DomSanitizer();
+const DomSanitizerService = new Services.DomSanitizer({ get config() { return environment.config; }, log: consoleLogger });
+
+let environment: any = { config: {} };
+function createValidatorVisitor(log: any) {
+  return new ValidatorFormConfigVisitor(log, {
+    sanitizeWithProfile: (value, profile) => DomSanitizerService.sanitizeWithProfile(value, profile),
+    htmlSanitizationMode: () => environment.config.record?.form?.htmlSanitizationMode ?? 'sanitize',
+  });
+}
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
@@ -23,8 +31,6 @@ import('chai').then(mod => (expect = mod.expect));
 describe('Validator Visitor', async () => {
   before(() => {
     (global as any)._ = _;
-    (global as any).DomSanitizerService = DomSanitizerService;
-    (globalThis as any).DomSanitizerService = DomSanitizerService;
   });
   it('validates every repeatable elementTemplate row with indexed Angular and data lineage', async function () {
     const formConfig: FormConfigFrame = {
@@ -67,7 +73,7 @@ describe('Validator Visitor', async () => {
       formMode: 'edit',
       record: { contributors: [{ name: 'Ada' }, { name: '' }] },
     });
-    const actual = await new ValidatorFormConfigVisitor(consoleLogger).start({
+    const actual = await createValidatorVisitor(consoleLogger).start({
       form: constructed,
       enabledValidationGroups: [],
       validatorDefinitions: formValidatorsSharedDefinitions,
@@ -118,7 +124,7 @@ describe('Validator Visitor', async () => {
       record: { metadata: { workspaces: [] } },
     });
 
-    const actual = await new ValidatorFormConfigVisitor(consoleLogger).start({
+    const actual = await createValidatorVisitor(consoleLogger).start({
       form: constructed,
       validatorDefinitions: formValidatorsSharedDefinitions,
     });
@@ -164,7 +170,7 @@ describe('Validator Visitor', async () => {
 
     let failure: unknown;
     try {
-      await new ValidatorFormConfigVisitor(consoleLogger).startWithResult({
+      await createValidatorVisitor(consoleLogger).startWithResult({
         form: constructed,
         transformationOnly: true,
         checkDeadline: () => {
@@ -203,7 +209,7 @@ describe('Validator Visitor', async () => {
       record: { title: '' },
     });
 
-    const actual = await new ValidatorFormConfigVisitor(consoleLogger).start({
+    const actual = await createValidatorVisitor(consoleLogger).start({
       form: constructed,
       enabledValidationGroups: [],
       excludedOnlyValidationGroups: ['advisory'],
@@ -249,7 +255,7 @@ describe('Validator Visitor', async () => {
       throw new Error('invalid advisory JSONata');
     };
 
-    const blocking = await new ValidatorFormConfigVisitor(consoleLogger).start({
+    const blocking = await createValidatorVisitor(consoleLogger).start({
       form: constructed,
       enabledValidationGroups: ['base'],
       excludedOnlyValidationGroups: ['advisory'],
@@ -261,7 +267,7 @@ describe('Validator Visitor', async () => {
 
     let advisoryFailure: unknown;
     try {
-      await new ValidatorFormConfigVisitor(consoleLogger).start({
+      await createValidatorVisitor(consoleLogger).start({
         form: constructed,
         enabledValidationGroups: ['advisory'],
         validatorDefinitions: formValidatorsSharedDefinitions,
@@ -353,7 +359,7 @@ describe('Validator Visitor', async () => {
     const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['minimumCreate', 'minimumUpdate'],
@@ -448,7 +454,7 @@ describe('Validator Visitor', async () => {
     const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['transitionDraftToSubmitted'],
@@ -526,7 +532,7 @@ describe('Validator Visitor', async () => {
     const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({ data: formConfig, formMode: 'edit', record });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['all'],
@@ -700,7 +706,7 @@ describe('Validator Visitor', async () => {
       reusableFormDefs: reusableFormDefinitions,
     });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['all'],
@@ -732,7 +738,7 @@ describe('Validator Visitor', async () => {
       reusableFormDefs: reusableFormDefinitions,
     });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['all'],
@@ -765,7 +771,7 @@ describe('Validator Visitor', async () => {
       reusableFormDefs: reusableFormDefinitions,
     });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['all'],
@@ -797,7 +803,7 @@ describe('Validator Visitor', async () => {
       reusableFormDefs: reusableFormDefinitions,
     });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['all'],
@@ -810,7 +816,7 @@ describe('Validator Visitor', async () => {
   describe('HTML Sanitization', () => {
     const dirtyHtml = '<p>Safe</p><script>alert("xss")</script><img src="x" onerror="alert(1)">';
     const cleanHtml = '<p>Safe</p><img src="x">';
-    const buildSails = (mode: 'sanitize' | 'reject') => ({
+    const buildEnvironment = (mode: 'sanitize' | 'reject') => ({
       config: {
         record: { form: { htmlSanitizationMode: mode } },
         dompurify: {
@@ -854,11 +860,11 @@ describe('Validator Visitor', async () => {
         throw e;
       }
 
-      // Ensure sails.config is available for the test
-      (global as any).sails = buildSails('sanitize');
-      (globalThis as any).sails = (global as any).sails;
+      // Use the same explicit configuration for the sanitizer and visitor
+      environment = buildEnvironment('sanitize');
+      environment = environment;
 
-      const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+      const visitor = createValidatorVisitor(consoleLogger);
       const validation = await visitor.startWithResult({
         form: constructed,
         enabledValidationGroups: ['all'],
@@ -902,10 +908,10 @@ describe('Validator Visitor', async () => {
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
-      (global as any).sails = buildSails('sanitize');
-      (globalThis as any).sails = (global as any).sails;
+      environment = buildEnvironment('sanitize');
+      environment = environment;
 
-      const validation = await new ValidatorFormConfigVisitor(consoleLogger).startWithResult({
+      const validation = await createValidatorVisitor(consoleLogger).startWithResult({
         form: constructed,
         enabledValidationGroups: [],
         validatorDefinitions: formValidatorsSharedDefinitions,
@@ -940,10 +946,10 @@ describe('Validator Visitor', async () => {
       });
 
       // Set mode to reject
-      (global as any).sails = buildSails('reject');
-      (globalThis as any).sails = (global as any).sails;
+      environment = buildEnvironment('reject');
+      environment = environment;
 
-      const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+      const visitor = createValidatorVisitor(consoleLogger);
       const actual = await visitor.start({
         form: constructed,
         enabledValidationGroups: ['all'],
@@ -981,10 +987,10 @@ describe('Validator Visitor', async () => {
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      (global as any).sails = buildSails('sanitize');
-      (globalThis as any).sails = (global as any).sails;
+      environment = buildEnvironment('sanitize');
+      environment = environment;
 
-      const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+      const visitor = createValidatorVisitor(consoleLogger);
       const actual = await visitor.start({
         form: constructed,
         enabledValidationGroups: ['all'],
@@ -1077,7 +1083,7 @@ describe('Validator Visitor', async () => {
     const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['all'],
@@ -1161,7 +1167,7 @@ describe('Validator Visitor', async () => {
     const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
 
-    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const visitor = createValidatorVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
       enabledValidationGroups: ['all'],

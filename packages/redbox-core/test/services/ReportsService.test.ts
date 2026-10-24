@@ -1,20 +1,22 @@
+import { referenceFixtures } from '../helpers/serviceRepositories';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 import { DateTime } from 'luxon';
 
 describe('ReportsService', function () {
-  let mockSails: any;
+  let fixture: any;
   let ReportsService: any;
   let mockReport: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         search: {
@@ -48,12 +50,12 @@ describe('ReportsService', function () {
       destroyOne: sinon.stub().resolves({ id: 'report-1' }),
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.RBReport = mockReport;
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getFullPath: sinon.stub().returns('http://portal'),
     };
-    (global as any).NamedQueryService = {
+    collaborators.NamedQueryService = {
       getNamedQueryConfig: sinon.stub().resolves({}),
       performNamedQueryFromConfig: sinon.stub().resolves({
         summary: { numFound: 1, start: 0, page: 1 },
@@ -62,15 +64,15 @@ describe('ReportsService', function () {
     };
 
     const { Services } = require('../../src/services/ReportsService');
-    ReportsService = new Services.Reports();
-    ReportsService.searchService = mockSails.services.solrsearchservice;
+    ReportsService = new Services.Reports({ reports: referenceFixtures().reports, get namedQueries() { return collaborators.NamedQueryService; }, get search() { return fixture.services.solrsearchservice; }, config: fixture.config, log: fixture.log, portalUrl: parameters => collaborators.BrandingService.getFullPath(parameters.branding, parameters.portal) });
+    ReportsService.searchService = fixture.services.solrsearchservice;
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.RBReport;
-    delete (global as any).BrandingService;
-    delete (global as any).NamedQueryService;
+    delete collaborators.BrandingService;
+    delete collaborators.NamedQueryService;
     sinon.restore();
   });
 
@@ -264,7 +266,7 @@ describe('ReportsService', function () {
 
       const result = await ReportsService.createConfig(brand, databaseConfig);
 
-      expect((global as any).NamedQueryService.getNamedQueryConfig.calledWith(brand, 'testQuery')).to.be.true;
+      expect(collaborators.NamedQueryService.getNamedQueryConfig.calledWith(brand, 'testQuery')).to.be.true;
       expect(mockReport.create.calledOnce).to.be.true;
       expect(mockReport.create.firstCall.args[0]).to.deep.include({
         name: 'database-report',
@@ -287,7 +289,7 @@ describe('ReportsService', function () {
     });
 
     it('should validate required fields and named query existence before persisting', async function () {
-      (global as any).NamedQueryService.getNamedQueryConfig.resolves(null);
+      collaborators.NamedQueryService.getNamedQueryConfig.resolves(null);
 
       try {
         await ReportsService.createConfig(brand, { ...databaseConfig, databaseQuery: { queryName: 'missingQuery' } });
@@ -319,7 +321,7 @@ describe('ReportsService', function () {
     });
 
     it('should return not found before validating a missing report update body', async function () {
-      (global as any).NamedQueryService.getNamedQueryConfig.resolves(null);
+      collaborators.NamedQueryService.getNamedQueryConfig.resolves(null);
 
       try {
         await ReportsService.updateConfig(brand, 'missing-report', {
@@ -332,7 +334,7 @@ describe('ReportsService', function () {
         expect(error.message).to.equal("Report 'missing-report' not found");
       }
 
-      expect((global as any).NamedQueryService.getNamedQueryConfig.called).to.be.false;
+      expect(collaborators.NamedQueryService.getNamedQueryConfig.called).to.be.false;
       expect(mockReport.updateOne.called).to.be.false;
     });
 
@@ -405,14 +407,14 @@ describe('ReportsService', function () {
 
       const result = await ReportsService.previewConfig(brand, databaseConfig, req);
 
-      expect((global as any).NamedQueryService.performNamedQueryFromConfig.calledOnce).to.be.true;
-      expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[1]).to.deep.equal({
+      expect(collaborators.NamedQueryService.performNamedQueryFromConfig.calledOnce).to.be.true;
+      expect(collaborators.NamedQueryService.performNamedQueryFromConfig.firstCall.args[1]).to.deep.equal({
         dateFrom: '2024-01-01T00:00:00.000Z',
         dateTo: '2024-01-31T23:59:59.999Z',
         title: 'Test title',
       });
-      expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[3]).to.equal(0);
-      expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[4]).to.equal(100);
+      expect(collaborators.NamedQueryService.performNamedQueryFromConfig.firstCall.args[3]).to.equal(0);
+      expect(collaborators.NamedQueryService.performNamedQueryFromConfig.firstCall.args[4]).to.equal(100);
       expect(result.success).to.equal(true);
       expect(result.records).to.deep.equal([{ title: 'Record 1', id: '1' }]);
     });
@@ -444,7 +446,7 @@ describe('ReportsService', function () {
 
       const result = await ReportsService.getResults(brand, 'report-1', req);
 
-      expect((global as any).NamedQueryService.performNamedQueryFromConfig.called).to.be.true;
+      expect(collaborators.NamedQueryService.performNamedQueryFromConfig.called).to.be.true;
       expect(result.total).to.equal(1);
       expect(result.records).to.have.length(1);
     });
@@ -463,14 +465,14 @@ describe('ReportsService', function () {
       };
       mockReport.findOne.returns(createQueryObject(reportModel));
 
-      mockSails.services.solrsearchservice.searchAdvanced.resolves({
+      fixture.services.solrsearchservice.searchAdvanced.resolves({
         response: { numFound: 5, start: 0, docs: [{}, {}, {}, {}, {}] },
       });
 
       const result = await ReportsService.getResults(brand, 'report-1', req);
 
-      expect(mockSails.services.solrsearchservice.searchAdvanced.called).to.be.true;
-      const params = mockSails.services.solrsearchservice.searchAdvanced.firstCall.args[2] as URLSearchParams;
+      expect(fixture.services.solrsearchservice.searchAdvanced.called).to.be.true;
+      const params = fixture.services.solrsearchservice.searchAdvanced.firstCall.args[2] as URLSearchParams;
       expect(params.getAll('fq')).to.deep.equal(['metaMetadata_brandId:brand-1', 'metadata_title:research & data*']);
       expect(result.total).to.equal(5);
       expect(result.records).to.have.length(5);
@@ -599,7 +601,7 @@ describe('ReportsService', function () {
 
   describe('exports', function () {
     it('should export all public methods', function () {
-      const exported = ReportsService.exports();
+      const exported = ReportsService;
 
       expect(exported).to.have.property('bootstrapData');
       expect(exported).to.have.property('create');

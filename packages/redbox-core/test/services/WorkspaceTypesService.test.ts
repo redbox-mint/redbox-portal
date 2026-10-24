@@ -1,3 +1,4 @@
+import { referenceFixtures } from '../helpers/serviceRepositories';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {createSinonStubLogger} from "../logger.test";
 
@@ -5,15 +6,15 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture, createQueryObject } from './testHelper';
 
 describe('WorkspaceTypesService', function() {
-  let mockSails: any;
+  let fixture: any;
   let WorkspaceTypesService: any;
   let mockWorkspaceType: any;
 
   beforeEach(function() {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         workspacetype: {
@@ -47,16 +48,16 @@ describe('WorkspaceTypesService', function() {
       destroy: sinon.stub().returns(createQueryObject([]))
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.WorkspaceType = mockWorkspaceType;
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/WorkspaceTypesService');
-    WorkspaceTypesService = new Services.WorkspaceTypes();
+    WorkspaceTypesService = new Services.WorkspaceTypes({ references: referenceFixtures(), config: fixture.config, log: fixture.log, bootstrapProviders: [] });
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.WorkspaceType;
     sinon.restore();
   });
@@ -79,7 +80,7 @@ describe('WorkspaceTypesService', function() {
     });
 
     it('should handle empty workspace type configuration', function(done) {
-      mockSails.config.workspacetype = {};
+      fixture.config.workspacetype = {};
       const defBrand = { id: 'brand-1', name: 'default' };
 
       mockWorkspaceType.destroy.returns(createQueryObject([]));
@@ -207,7 +208,7 @@ describe('WorkspaceTypesService', function() {
 
   describe('exports', function() {
     it('should export all public methods', function() {
-      const exported = WorkspaceTypesService.exports();
+      const exported = WorkspaceTypesService;
 
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('create');

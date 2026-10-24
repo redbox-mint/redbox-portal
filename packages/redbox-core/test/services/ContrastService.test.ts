@@ -1,18 +1,20 @@
+
+let fixture: any;
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { Services } from '../../src/services/ContrastService';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures } from './testHelper';
 
 describe('ContrastService', function() {
   let service: Services.Contrast;
 
   beforeEach(function() {
-    setupServiceTestGlobals();
+    installRepositoryFixtures();
     service = new Services.Contrast();
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
   });
 
   describe('getLuminance', function() {

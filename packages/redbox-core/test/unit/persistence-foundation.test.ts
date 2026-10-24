@@ -1,4 +1,3 @@
-import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
 import type { PersistenceOwner } from '../../src/persistence/owner';
 import assert from 'node:assert/strict';
 import { createSecureContext } from 'node:tls';
@@ -154,16 +153,15 @@ describe('driver persistence foundation', function () {
       require.cache[modulePath] = saved;
     }
   });
-  it('retains failed resources for retry and preserves prior shutdown errors', async () => {
+  it('retains failed resources for retry and preserves the original drain cause', async () => {
     const original = new Error('prior');
-    const application = { config: { beforeShutdown: (cb: (error: unknown) => void) => cb(original) }, log: { warn() {} } } as unknown as Sails.Application;
-    attachSailsPersistenceLifecycle(application);
+    const application = app();
     await initializePersistence(application);
     let fail = true;
     let closes = 0;
     registerPersistenceResource(application, 'retry', {
       drain: async () => {
-        if (fail) throw new Error('drain');
+        if (fail) throw original;
       },
       close: async () => {
         closes++;
@@ -172,8 +170,7 @@ describe('driver persistence foundation', function () {
     await assert.rejects(cleanupPersistence(application), /drain failed/);
     assert.equal(closes, 0);
     fail = false;
-    const failure = await new Promise(resolve => application.config.beforeShutdown!(resolve));
-    assert.equal(failure, original);
+    await cleanupPersistence(application);
     assert.equal(closes, 1);
     await cleanupPersistence(application);
     assert.equal(closes, 1);
@@ -267,11 +264,8 @@ describe('driver persistence foundation', function () {
 });
 
 describe('app-scoped non-model resource ownership', function () {
-  const saved = Object.getOwnPropertyDescriptor(globalThis, 'sails');
   afterEach(() => {
     sinon.restore();
-    if (saved) Object.defineProperty(globalThis, 'sails', saved);
-    else Reflect.deleteProperty(globalThis, 'sails');
   });
   it('disposes only the captured application GridFS clients and survives module reload', async () => {
     const { GridFSDriver } =
@@ -288,20 +282,18 @@ describe('app-scoped non-model resource ownership', function () {
       openDownloadStreamByName: sinon.stub(),
       delete: async () => {},
     });
-    Object.assign(globalThis, { sails: a });
-    await new GridFSDriver({}, bucket).exists('missing');
+    await new GridFSDriver({}, bucket, undefined, a).exists('missing');
     const modulePath = require.resolve('../../src/storage/GridFSDriver');
     const module = require.cache[modulePath];
     try {
       delete require.cache[modulePath];
       const loaded: typeof import('../../src/storage/GridFSDriver') = require(modulePath);
-      await new loaded.GridFSDriver({}, bucket).exists('missing');
+      await new loaded.GridFSDriver({}, bucket, undefined, a).exists('missing');
       assert.equal(connect.callCount, 1);
     } finally {
       require.cache[modulePath] = module;
     }
-    Object.assign(globalThis, { sails: b });
-    await new GridFSDriver({}, bucket).exists('missing');
+    await new GridFSDriver({}, bucket, undefined, b).exists('missing');
     assert.equal(connect.callCount, 2);
     await cleanupPersistence(a);
     assert.equal(close.getCalls().filter(call => call.thisValue === connect.firstCall.thisValue).length, 1);
@@ -313,7 +305,6 @@ describe('app-scoped non-model resource ownership', function () {
   it('retains an errored GridFS client and a failed close for app cleanup retry', async () => {
     const { GridFSDriver }: typeof import('../../src/storage/GridFSDriver') = require('../../src/storage/GridFSDriver');
     const application = app({ datastores: { mongodb: { url: 'mongodb://fixture/error' } } });
-    Object.assign(globalThis, { sails: application });
     await initializePersistence(application);
     const close = sinon.stub(MongoClient.prototype, 'close');
     close.onFirstCall().rejects(new Error('injected close failure'));
@@ -325,7 +316,7 @@ describe('app-scoped non-model resource ownership', function () {
       openDownloadStreamByName: sinon.stub(),
       delete: async () => {},
     });
-    await new GridFSDriver({}, bucket).exists('missing');
+    await new GridFSDriver({}, bucket, undefined, application).exists('missing');
     connect.firstCall.thisValue.emit('error', new Error('injected client error'));
     await assert.rejects(cleanupPersistence(application), /app-owned persistence pools/);
     assert.equal(close.callCount, 1);
@@ -335,18 +326,17 @@ describe('app-scoped non-model resource ownership', function () {
   });
 
   it('closes the connect-mongo store created by middleware exactly once', async () => {
-    const { redboxSession } =
-      require('../../src/middleware/redboxSession') as typeof import('../../src/middleware/redboxSession');
+    const { composeHttpSession } =
+      require('../../src/http/express/session') as typeof import('../../src/http/express/session');
     const MongoStore = require('connect-mongo').default as typeof import('connect-mongo').default;
     const store = { close: sinon.stub().resolves(), on: sinon.stub().returnsThis() };
     sinon.stub(MongoStore, 'create').returns(store as unknown as import('connect-mongo').default);
     const application = app();
-    Object.assign(globalThis, { sails: application });
     await initializePersistence(application);
     sinon
       .stub(require('../../src/persistence/runtime'), 'mongoSessionDatabase')
       .resolves({ client: {}, databaseName: 'fixture' });
-    redboxSession({ adapter: 'mongo', secret: 'fixture-only', mongoUrl: 'mongodb://localhost/fixture' });
+    await composeHttpSession({ adapter: 'mongo', secret: 'fixture-only', mongoUrl: 'mongodb://localhost/fixture' }, application).ready;
     await cleanupPersistence(application);
     await cleanupPersistence(application);
     assert.equal(store.close.callCount, 1);

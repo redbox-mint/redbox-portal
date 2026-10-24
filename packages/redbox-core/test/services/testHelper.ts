@@ -10,6 +10,8 @@ let referenceStub: sinon.SinonStub | undefined;
 /**
  * Creates a mock sails object with common configurations
  */
+export const createDomainFixture = createMockSails;
+
 export function createMockSails(overrides: any = {}): any {
   const defaultSails = {
     config: {
@@ -108,6 +110,21 @@ export function createMockModel(name: string): any {
  */
 export function configureModelMethod(stub: sinon.SinonStub, result: any, error: any = null): void {
   stub.returns(createQueryObject(result, error));
+}
+
+/** Installs authored repository operation fixtures for focused domain tests. */
+export function installRepositoryFixtures(): void {
+  brandingStub?.restore();
+  brandingStub = sinon.stub(require('../../src/persistence/branding/runtime'), 'getBrandingRepository').callsFake(brandingFixtures);
+  configurationStub?.restore();
+  configurationStub = sinon.stub(require('../../src/persistence/configuration/runtime'), 'getConfigurationRepositories').callsFake(configurationFixtures);
+  referenceStub?.restore();
+  referenceStub = sinon.stub(require('../../src/persistence/reference/runtime'), 'getReferenceRepositories').callsFake(referenceFixtures);
+}
+export function restoreRepositoryFixtures(): void {
+  brandingStub?.restore(); brandingStub = undefined;
+  configurationStub?.restore(); configurationStub = undefined;
+  referenceStub?.restore(); referenceStub = undefined;
 }
 
 /**

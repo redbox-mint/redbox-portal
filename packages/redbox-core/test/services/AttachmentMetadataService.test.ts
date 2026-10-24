@@ -4,7 +4,7 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { inspect } from 'node:util';
-import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
+import { createDomainFixture, installRepositoryFixtures, restoreRepositoryFixtures } from './testHelper';
 
 describe('AttachmentMetadataService mutation journal', function () {
   let model: any;
@@ -19,7 +19,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       create: sinon.stub(),
       destroy: sinon.stub(),
     };
-    setupServiceTestGlobals(createMockSails({ services: {} }));
+    installRepositoryFixtures();
     repositoryFixtures.AttachmentMetadata = model;
     repositoryFixtures.AttachmentAccessAudit = {
       create: sinon.stub(),
@@ -31,7 +31,7 @@ describe('AttachmentMetadataService mutation journal', function () {
   afterEach(function () {
     delete repositoryFixtures.AttachmentMetadata;
     delete repositoryFixtures.AttachmentAccessAudit;
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     sinon.restore();
   });
 
@@ -768,7 +768,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       code: 121, errInfo: { document: 'private audit document' }, cause: new Error('private audit credentials'),
     });
     const logger = { error: sinon.spy(), verbose: sinon.spy() };
-    Object.defineProperty(service, 'logger', { value: logger });
+    service = attachmentFixture({ log: logger });
     const fetch = sinon.stub().rejects(failure);
     repositoryFixtures.AttachmentAccessAudit.create.returns({ fetch });
 

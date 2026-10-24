@@ -5,47 +5,40 @@ import { inspect } from 'node:util';
 import * as sinon from 'sinon';
 import { firstValueFrom, isObservable, of } from 'rxjs';
 import { QueueService } from '../../src/QueueService';
-import { Services } from '../../src/services/RDMPService';
+import { RecordTriggers } from '../../src/services/RDMPService';
+import { getIdentityRepositories } from '../../src/persistence/identity/runtime';
 import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
 import { runWithRequestChronicle } from '../../src/utilities/RequestChronicleContext';
 import { createSinonStubLogger } from '../logger.test';
 
-class TestRDMP extends Services.RDMPS {
+let selectedQueue: QueueService | undefined;
+class TestRDMP extends RecordTriggers {
   public useQueue(queue: QueueService): void {
-    this.queueService = queue;
+    selectedQueue = queue;
   }
 }
 
 describe('RDMP logging privacy', () => {
   let logger: ReturnType<typeof createSinonStubLogger>;
   let service: TestRDMP;
-  const globals = new Map<string, unknown>();
+  const operations = new Map<string, unknown>();
   const description = 'PRIVATE-RDMP-DESCRIPTION';
   const tokenHash = 'PRIVATE-STORED-TOKEN-HASH';
   const email = 'private-contributor@example.test';
 
   beforeEach(() => {
     installIdentityRepositoryMock();
-    for (const name of ['sails', 'UsersService', 'TranslationService'])
-      globals.set(name, Reflect.get(globalThis, name));
     logger = createSinonStubLogger(sinon);
-    Reflect.set(globalThis, 'sails', {
-      log: logger,
-      config: { record: { processRecordCountersLogLevel: 'verbose', maxUploadSize: 100 } },
-    });
     Reflect.set(repositoryFixtures, 'User', {
       find: () => ({ exec: (callback: (error: null, users: unknown[]) => void) => callback(null, []) }),
     });
-    Reflect.set(globalThis, 'UsersService', { getEffectiveUser: (user: unknown) => of(user) });
-    Reflect.set(globalThis, 'TranslationService', { t: () => '' });
-    service = new TestRDMP();
+    selectedQueue = undefined;
+    operations.clear();
+    service = new TestRDMP({ config: { processRecordCountersLogLevel: 'verbose', maxUploadSize: 100 } as any, log: logger,
+      identities: getIdentityRepositories(), counters: {} as any, get queue() { return selectedQueue!; }, effectiveUser: async user => user,
+      translate: () => '', interpolate: value => value, resolveHook: name => operations.get(name), workspaces: {} as any });
   });
-
-  afterEach(() => {
-    sinon.restore();
-    for (const [name, value] of globals) Reflect.set(globalThis, name, value);
-    globals.clear();
-  });
+  afterEach(() => { sinon.restore(); });
 
   function record() {
     return {
@@ -67,7 +60,7 @@ describe('RDMP logging privacy', () => {
   for (const context of ['http', 'background'] as const) {
     function run<T>(work: () => T): { result: T; helper?: RequestChronicleHelper } {
       const helper =
-        context === 'http' ? RequestChronicleHelper.fromReq(logger, { options: {} } as Sails.Req) : undefined;
+        context === 'http' ? RequestChronicleHelper.fromReq(logger, { options: {} } as any) : undefined;
       helper?.start();
       return { result: runWithRequestChronicle(helper, work), helper };
     }
@@ -204,7 +197,8 @@ describe('RDMP logging privacy', () => {
       const now = sinon.stub().resolves();
       service.useQueue({ now, every: () => {}, schedule: async () => undefined });
       const user = { username: 'admin', token: tokenHash };
-      const triggerConfiguration = { function: '(_oid, record) => Promise.resolve(record)', options: { description } };
+      operations.set('fixture-complete', (_oid, record) => Promise.resolve(record));
+      const triggerConfiguration = { function: 'fixture-complete', options: { description } };
       const { result, helper } = run(async () => {
         await firstValueFrom(
           service.queueTriggerCall('rdmp-oid', input, { jobName: 'test-job', triggerConfiguration }, user)
@@ -224,7 +218,7 @@ describe('RDMP logging privacy', () => {
         record: input,
         user: { token: tokenHash },
         triggerConfiguration: {
-          function: `({ private: '${description}' })`,
+          function: 'fixture-invalid',
         },
       };
       const { result, helper } = run(() =>

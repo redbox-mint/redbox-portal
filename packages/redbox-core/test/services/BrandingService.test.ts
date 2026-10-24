@@ -1,3 +1,9 @@
+import express from 'express';
+import supertest from 'supertest';
+import { createHttpPolicies, requestContext } from '../../src/http/express/policies';
+import { pageLocals } from '../../src/pages/locals';
+import { brandingExportedMethods } from '../../src/branding/Branding';
+import { brandingInput } from '../helpers/brandingInputs';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {createSinonStubLogger} from "../logger.test";
 
@@ -6,14 +12,14 @@ import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { stubCacheEntryRepository } from '../helpers/cacheRepository';
 import { of } from 'rxjs';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
 
 describe('BrandingService', function () {
-  let mockSails: any;
+  let fixture: any;
   let mockBrandingConfig: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         http: { rootContext: '' },
@@ -37,23 +43,17 @@ describe('BrandingService', function () {
       update: sinon.stub()
     };
 
-    setupServiceTestGlobals(mockSails);
     repositoryFixtures.BrandingConfig = mockBrandingConfig;
     repositoryFixtures.BrandingConfigHistory = {
       create: sinon.stub(),
       findOne: sinon.stub()
     };
     stubCacheEntryRepository();
-    (global as any).ContrastService = {
-      validate: sinon.stub().resolves({ violations: [] })
-    };
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
     delete repositoryFixtures.BrandingConfig;
     delete repositoryFixtures.BrandingConfigHistory;
-    delete (global as any).ContrastService;
     sinon.restore();
   });
 
@@ -97,7 +97,7 @@ describe('BrandingService', function () {
   describe('getBrand', function () {
     it('should return branding by name', function () {
       const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
+      const brandingService = new Services.Branding(brandingInput(fixture));
 
       brandingService.brandings = [
         { name: 'mybrand', id: '1' },
@@ -111,7 +111,7 @@ describe('BrandingService', function () {
 
     it('should return undefined for non-existent brand', function () {
       const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
+      const brandingService = new Services.Branding(brandingInput(fixture));
       brandingService.brandings = [];
 
       const result = brandingService.getBrand('nonexistent');
@@ -123,7 +123,7 @@ describe('BrandingService', function () {
   describe('getBrandById', function () {
     it('should return branding by id', function () {
       const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
+      const brandingService = new Services.Branding(brandingInput(fixture));
 
       brandingService.brandings = [
         { name: 'mybrand', id: '123' },
@@ -139,7 +139,7 @@ describe('BrandingService', function () {
   describe('getAvailable', function () {
     it('should return list of available branding names', function () {
       const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
+      const brandingService = new Services.Branding(brandingInput(fixture));
 
       brandingService.availableBrandings = ['default', 'mybrand'];
 
@@ -149,228 +149,75 @@ describe('BrandingService', function () {
     });
   });
 
-  describe('getBrandAndPortalPath', function () {
-    it('should return path without root context', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
+  describe('explicit page context after HTTP extraction', () => {
+    const locals = (root = '', brand = 'mybrand', portal = 'myportal', faviconUrl = '/mybrand/myportal/images/favicon') => pageLocals({
+      root, origin: 'http://localhost:1500', brand: { name: brand }, portal,
+      typeface: null, faviconUrl, settings: {}, config: {}, t: key => key,
+      param: () => undefined, bundleHash: () => '', hasRole: () => false,
+    }, {}).page;
 
-      // Set up mock brandings for the service to work
-      brandingService.availableBrandings = ['default'];
-      brandingService.brandings = [{ name: 'default' }];
-
-      const req = {
-        params: { branding: 'mybrand', portal: 'myportal' },
-        body: {},
-        session: {}
-      };
-
-      const result = brandingService.getBrandAndPortalPath(req);
-
-      expect(result).to.equal('/mybrand/myportal');
+    it('returns the brand and portal path without a root context', () => {
+      expect(locals().base).to.equal('/mybrand/myportal');
     });
-
-    it('should return path with root context when configured', function () {
-      mockSails.config.http.rootContext = 'redbox';
-
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const req = {
-        params: { branding: 'mybrand', portal: 'myportal' },
-        body: {},
-        session: {}
-      };
-
-      const result = brandingService.getBrandAndPortalPath(req);
-
-      expect(result).to.equal('/redbox/mybrand/myportal');
+    it('returns the brand and portal path with an explicit root context', () => {
+      expect(locals('/redbox').base).to.equal('/redbox/mybrand/myportal');
     });
-  });
-
-  describe('getFaviconUrl', function () {
-    it('should return a stable URL so the favicon endpoint can revalidate its ETag', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-      brandingService.brandings = [{
-        name: 'mybrand',
-        favicon: { sha256: 'favicon-hash' }
-      }];
-
-      const req = {
-        params: { branding: 'mybrand', portal: 'myportal' },
-        body: {},
-        session: {}
-      };
-
-      expect(brandingService.getFaviconUrl(req))
-        .to.equal('/mybrand/myportal/images/favicon');
+    it('retains the stable favicon URL for conditional revalidation', () => {
+      expect(locals().faviconUrl).to.equal('/mybrand/myportal/images/favicon');
     });
-
-    it('should use the unversioned URL when no custom favicon is configured', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-      brandingService.brandings = [{ name: 'mybrand' }];
-
-      const req = {
-        params: { branding: 'mybrand', portal: 'myportal' },
-        body: {},
-        session: {}
-      };
-
-      expect(brandingService.getFaviconUrl(req))
-        .to.equal('/mybrand/myportal/images/favicon');
+    it('retains the unversioned favicon URL with default typography', () => {
+      const page = locals();
+      expect(page.typeface).to.equal(null);
+      expect(page.faviconUrl).to.equal('/mybrand/myportal/images/favicon');
     });
-  });
-
-  describe('getBrandNameFromReq', function () {
-    it('should get branding from params', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const req = {
-        params: { branding: 'mybrand' },
-        body: {},
-        session: {}
-      };
-
-      const result = brandingService.getBrandNameFromReq(req);
-
-      expect(result).to.equal('mybrand');
+    function application() {
+      const app = express();
+      app.use(express.json());
+      const policies = createHttpPolicies({
+        branding: { getBrand: async ({ name }) => name === 'mybrand' ? { id: 'brand-1', name } : null },
+        pathRules: {} as any, portals: ['myportal'], defaultUnauthenticatedRole: () => undefined,
+        emitRequestFailure: async () => {}, authenticate: async () => false,
+      });
+      app.use((req, _res, next) => { req.session = { branding: 'mybrand', portal: 'myportal' } as any; next(); });
+      app.post('/resolve/:branding/:portal', policies.brandingandportal, (req, res) => res.json(requestContext(req)));
+      app.post('/resolve', policies.brandingandportal, (req, res) => res.json(requestContext(req)));
+      return supertest(app);
+    }
+    it('resolves the authoritative brand from path parameters', async () => {
+      const response = await application().post('/resolve/mybrand/myportal').expect(200);
+      expect(response.body.brand.name).to.equal('mybrand');
     });
-
-    it('should fallback to body when params is empty', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const req = {
-        params: {},
-        body: { branding: 'frombody' },
-        session: {}
-      };
-
-      const result = brandingService.getBrandNameFromReq(req);
-
-      expect(result).to.equal('frombody');
+    it('rejects body branding when the canonical path is absent', async () => {
+      await application().post('/resolve').send({ branding: 'mybrand', portal: 'myportal' }).expect(404);
     });
-
-    it('should fallback to session when body is empty', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const req = {
-        params: {},
-        body: {},
-        session: { branding: 'fromsession' }
-      };
-
-      const result = brandingService.getBrandNameFromReq(req);
-
-      expect(result).to.equal('fromsession');
+    it('rejects a stale session as the source of canonical brand context', async () => {
+      await application().post('/resolve').expect(404);
     });
-
-    it('should use default brand when all sources are empty', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const req = {
-        params: {},
-        body: {},
-        session: {}
-      };
-
-      const result = brandingService.getBrandNameFromReq(req);
-
-      expect(result).to.equal('default');
+    it('rejects an unknown brand instead of silently falling back', async () => {
+      await application().post('/resolve/unknown/myportal').expect(404);
     });
-  });
-
-  describe('getPortalFromReq', function () {
-    it('should get portal from params', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const req = {
-        params: { portal: 'myportal' },
-        body: {},
-        session: {}
-      };
-
-      const result = brandingService.getPortalFromReq(req);
-
-      expect(result).to.equal('myportal');
+    it('resolves the portal from path parameters', async () => {
+      const response = await application().post('/resolve/mybrand/myportal').expect(200);
+      expect(response.body.portal).to.equal('myportal');
     });
-
-    it('should use default portal when all sources are empty', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const req = {
-        params: {},
-        body: {},
-        session: {}
-      };
-
-      const result = brandingService.getPortalFromReq(req);
-
-      expect(result).to.equal('portal');
+    it('rejects an unconfigured portal instead of silently falling back', async () => {
+      await application().post('/resolve/mybrand/unknown').expect(404);
     });
-  });
-
-  describe('getFullPath', function () {
-    it('should return full URL with branding and portal', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const req = {
-        params: { branding: 'mybrand', portal: 'myportal' },
-        body: {},
-        session: {}
-      };
-
-      const result = brandingService.getFullPath(req);
-
-      expect(result).to.equal('http://localhost:1500/mybrand/myportal');
+    it('retains the explicit origin alongside the canonical page base', () => {
+      const page = locals();
+      expect(page.origin + page.base).to.equal('http://localhost:1500/mybrand/myportal');
     });
-  });
-
-  describe('getRootContext', function () {
-    it('should return empty string when no root context configured', function () {
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const result = brandingService.getRootContext();
-
-      expect(result).to.equal('');
+    it('retains an empty explicit root context', () => {
+      expect(locals().root).to.equal('');
     });
-
-    it('should return root context with leading slash', function () {
-      mockSails.config.http.rootContext = 'redbox';
-
-      const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-
-      const result = brandingService.getRootContext();
-
-      expect(result).to.equal('/redbox');
+    it('retains the normalized explicit root context', () => {
+      expect(locals('/redbox').root).to.equal('/redbox');
     });
-  });
-
-  describe('exports', function () {
-    it('should export all public methods', function () {
+    it('declares callable neutral domain methods without generated service exports', () => {
       const { Services } = require('../../src/services/BrandingService');
-      const brandingService = new Services.Branding();
-      const exported = brandingService.exports();
-
-      expect(exported).to.have.property('bootstrap');
-      expect(exported).to.have.property('loadAvailableBrands');
-      expect(exported).to.have.property('getDefault');
-      expect(exported).to.have.property('getBrand');
-      expect(exported).to.have.property('getAvailable');
-      expect(exported).to.have.property('getBrandAndPortalPath');
-      expect(exported).to.have.property('getFaviconUrl');
-      expect(exported).to.have.property('getBrandNameFromReq');
-      expect(exported).to.have.property('getBrandFromReq');
-      expect(exported).to.have.property('getPortalFromReq');
+      const service = new Services.Branding(brandingInput(fixture));
+      for (const method of brandingExportedMethods) expect(service[method], method).to.be.a('function');
+      expect(service.exports).to.equal(undefined);
     });
   });
 });

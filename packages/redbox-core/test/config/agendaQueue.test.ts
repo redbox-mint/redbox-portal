@@ -20,15 +20,13 @@ describe('Agenda queue branding typeface reconciliation', function () {
 
   it('invokes the tested reconciliation service method', function () {
     const { Services } = require('../../src/services/BrandingTypefaceService');
-    const service = new Services.BrandingTypeface();
-    expect(service.reconcileAssets).to.be.a('function');
-    const exported = service.exports();
-    expect(exported.reconcileAssets).to.be.a('function');
+    expect(Services.BrandingTypeface.prototype.reconcileAssets).to.be.a('function');
+    expect(Services.BrandingTypeface.prototype.exports).to.equal(undefined);
   });
 
   it('has no in-process timeout cleanup in the service', async function () {
     const source = require('fs').readFileSync(
-      require('path').join(__dirname, '..', '..', 'src', 'services', 'BrandingTypefaceService.ts'),
+      require('path').join(__dirname, '..', '..', 'src', 'branding', 'BrandingTypeface.ts'),
       'utf8'
     );
     expect(source).to.not.contain('setTimeout');

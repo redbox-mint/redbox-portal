@@ -1,3 +1,4 @@
+import { hasEditAccess as recordHasEditAccess } from '../../src/records/access';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import {
@@ -51,7 +52,7 @@ import {
   Services,
 } from '../../src/services/RecordSchemaService';
 import { issueInternalRecordSchemaAuthorizationCapability } from '../../src/services/internal-record-schema-authorization';
-import { RecordSchemaService, ServiceExports } from '../../src/services';
+import { RecordSchemaService } from '../../src/services';
 import { Services as RecordsServices } from '../../src/services/RecordsService';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import type { RecordContractUpdateContext } from '../../src/record-contract';
@@ -77,15 +78,6 @@ function zeroLengthArrayYielding(values: readonly unknown[]): unknown[] {
   return deceptive;
 }
 
-function ensureTestSails(): () => void {
-  const prior = Reflect.get(global, 'sails');
-  if (prior === undefined) Reflect.set(global, 'sails', { config: {}, services: {} });
-  return () => {
-    if (prior === undefined) Reflect.deleteProperty(global, 'sails');
-    else Reflect.set(global, 'sails', prior);
-  };
-}
-
 function completeStorageProvider(): Record<string, sinon.SinonStub> {
   return Object.fromEntries(RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS.map(method => [method, sinon.stub()]));
 }
@@ -107,15 +99,16 @@ function registeredComponentTypes(registry: RecordContractContributorRegistry): 
 
 function lifecycleService(overrides: RecordSchemaLifecycleOverrides = {}): Services.RecordSchema {
   const registry = coreRegistry();
-  return new Services.RecordSchema({
+  const dependencies = {
     getConfig: () => enabledConfig(),
     getStorageProvider: () => completeStorageProvider(),
     getContributorRegistry: () => registry,
     getContributorRegistrationIssues: () => [],
     getContributorComponentTypes: () => registeredComponentTypes(registry),
     getConfiguredFormCandidates: () => [],
-    ...overrides,
-  });
+  };
+  Object.defineProperties(dependencies, Object.getOwnPropertyDescriptors(overrides));
+  return new Services.RecordSchema(dependencies);
 }
 
 function captureLifecycleError(run: () => void): RecordSchemaLifecycleError {
@@ -702,43 +695,10 @@ describe('RecordSchemaService lifecycle checks', function () {
     expect(error.message).to.include('record-schema.artifact-not-found');
   });
 
-  it('uses the configured Sails storage service with explicit contributor state', function () {
-    const restoreSails = ensureTestSails();
-    const serviceName = 'recordSchemaLifecycleTestStorage';
-    const priorServices = sails.services;
-    const serviceRegistry = sails.services ?? {};
-    sails.services = serviceRegistry;
-    const originalRecordSchema = Reflect.get(sails.config, 'recordSchema');
-    const originalStorage = Reflect.get(sails.config, 'storage');
-    const originalStorageService = Reflect.get(serviceRegistry, serviceName);
-    const hadRecordSchema = Reflect.has(sails.config, 'recordSchema');
-    const hadStorage = Reflect.has(sails.config, 'storage');
-    const hadStorageService = Reflect.has(serviceRegistry, serviceName);
-
-    Reflect.set(sails.config, 'recordSchema', enabledConfig({ integrationPins: [validPin()] }));
-    Reflect.set(sails.config, 'storage', { serviceName });
-    Reflect.set(serviceRegistry, serviceName, completeStorageProvider());
-    try {
-      expect(() =>
-        new Services.RecordSchema({
-          getContributorRegistry: () => coreRegistry(),
-          getContributorRegistrationIssues: () => [],
-          getContributorComponentTypes: () => Object.keys(CORE_RECORD_CONTRACT_COMPONENT_INVENTORY),
-        }).init()
-      ).not.to.throw();
-    } finally {
-      hadRecordSchema
-        ? Reflect.set(sails.config, 'recordSchema', originalRecordSchema)
-        : Reflect.deleteProperty(sails.config, 'recordSchema');
-      hadStorage
-        ? Reflect.set(sails.config, 'storage', originalStorage)
-        : Reflect.deleteProperty(sails.config, 'storage');
-      hadStorageService
-        ? Reflect.set(serviceRegistry, serviceName, originalStorageService)
-        : Reflect.deleteProperty(serviceRegistry, serviceName);
-      sails.services = priorServices;
-      restoreSails();
-    }
+  it('uses the explicit storage provider with contributor state', function () {
+    expect(() => lifecycleService({ getConfig: () => enabledConfig({ integrationPins: [validPin()] }),
+      getStorageProvider: () => completeStorageProvider(),
+    }).init()).not.to.throw();
   });
 
   it('reports every invalid configuration setting without coercion', function () {
@@ -967,14 +927,14 @@ describe('RecordSchemaService lifecycle checks', function () {
 
   it('is exported through the existing service index', function () {
     expect(RecordSchemaService.Services.RecordSchema).to.equal(Services.RecordSchema);
-    expect(ServiceExports.RecordSchemaService).to.have.property('init').that.is.a('function');
-    expect(ServiceExports.RecordSchemaService).to.have.property('bootstrap').that.is.a('function');
-    expect(ServiceExports.RecordSchemaService).to.have.property('resolveCreate').that.is.a('function');
-    expect(ServiceExports.RecordSchemaService).to.have.property('resolveUpdate').that.is.a('function');
-    expect(ServiceExports.RecordSchemaService).to.have.property('resolveImmutable').that.is.a('function');
-    expect(ServiceExports.RecordSchemaService).to.have.property('persistSaveUsageReference').that.is.a('function');
-    expect(ServiceExports.RecordSchemaService).to.have.property('materializeIntegrationPins').that.is.a('function');
-    expect(ServiceExports.RecordSchemaService).to.have.property('reportRetention').that.is.a('function');
+    expect(Services.RecordSchema.prototype).to.have.property('init').that.is.a('function');
+    expect(Services.RecordSchema.prototype).to.have.property('bootstrap').that.is.a('function');
+    expect(Services.RecordSchema.prototype).to.have.property('resolveCreate').that.is.a('function');
+    expect(Services.RecordSchema.prototype).to.have.property('resolveUpdate').that.is.a('function');
+    expect(Services.RecordSchema.prototype).to.have.property('resolveImmutable').that.is.a('function');
+    expect(Services.RecordSchema.prototype).to.have.property('persistSaveUsageReference').that.is.a('function');
+    expect(Services.RecordSchema.prototype).to.have.property('materializeIntegrationPins').that.is.a('function');
+    expect(Services.RecordSchema.prototype).to.have.property('reportRetention').that.is.a('function');
   });
 });
 
@@ -1008,27 +968,22 @@ describe('RecordSchemaService create resolution', function () {
   });
 
   it('delegates current create ACL authorization to RecordsService before form construction', async function () {
-    const restoreSails = ensureTestSails();
     const context = createContext();
     const resolveContractContext = sinon.stub().resolves(context);
     const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
     const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
     const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
     const hasCreateAccess = sinon.stub().resolves(true);
-    const priorServices = sails.services;
-    const serviceRegistry = sails.services ?? {};
-    const priorRecordsService = serviceRegistry.recordsservice;
-    sails.services = serviceRegistry;
-    serviceRegistry.recordsservice = { hasCreateAccess };
     const service = new Services.RecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
       getContributorRegistry: () => coreRegistry(),
+      authorizeCreate: async (context, caller) => hasCreateAccess(caller.brand, caller.user, caller.user.roles, context.publicContext.recordType, context.publicContext.workflowStep),
       resolveContractContext,
       buildContractFormConfig,
     });
 
-    try {
+    
       const result = await service.resolveCreate(request);
 
       expect(result.kind).to.equal('resolved');
@@ -1042,15 +997,7 @@ describe('RecordSchemaService create resolution', function () {
         )
       ).to.equal(true);
       expect(hasCreateAccess.calledBefore(buildContractFormConfig)).to.equal(true);
-    } finally {
-      if (priorRecordsService === undefined) {
-        delete serviceRegistry.recordsservice;
-      } else {
-        serviceRegistry.recordsservice = priorRecordsService;
-      }
-      sails.services = priorServices;
-      restoreSails();
-    }
+    
   });
 
   it('accepts only an issued internal create capability after the normal save boundary authorizes', async function () {
@@ -1739,27 +1686,22 @@ describe('RecordSchemaService update resolution', function () {
   });
 
   it('delegates current edit authorization to RecordsService before form construction', async function () {
-    const restoreSails = ensureTestSails();
     const context = updateContext();
     const resolveContractContext = sinon.stub().resolves(context);
     const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
     const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
     const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
     const hasEditAccess = sinon.stub().returns(true);
-    const priorServices = sails.services;
-    const serviceRegistry = sails.services ?? {};
-    const priorRecordsService = serviceRegistry.recordsservice;
-    sails.services = serviceRegistry;
-    serviceRegistry.recordsservice = { hasEditAccess };
     const service = new Services.RecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
       getContributorRegistry: () => coreRegistry(),
+      authorizeUpdate: async (context, caller) => Boolean(caller.user.username) && context.resolution.actor.authenticated && hasEditAccess(caller.brand, caller.user, caller.user.roles, context.resolution.existingRecord),
       resolveContractContext,
       buildContractFormConfig,
     });
 
-    try {
+    
       const result = await service.resolveUpdate(request);
 
       expect(result.kind).to.equal('resolved');
@@ -1772,19 +1714,10 @@ describe('RecordSchemaService update resolution', function () {
         )
       ).to.equal(true);
       expect(hasEditAccess.calledBefore(buildContractFormConfig)).to.equal(true);
-    } finally {
-      if (priorRecordsService === undefined) {
-        delete serviceRegistry.recordsservice;
-      } else {
-        serviceRegistry.recordsservice = priorRecordsService;
-      }
-      sails.services = priorServices;
-      restoreSails();
-    }
+    
   });
 
   it('authorizes DOI, Workspace, and RAiD initiating actors through the real update resolver flow', async function () {
-    const restoreSails = ensureTestSails();
     const context = updateContext(
       'oid-1',
       {},
@@ -1799,24 +1732,18 @@ describe('RecordSchemaService update resolution', function () {
     const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
     const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
     const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
-    const recordsService = new RecordsServices.Records();
+    const recordsService = { hasEditAccess: recordHasEditAccess };
     const hasEditAccess = sinon.spy(recordsService, 'hasEditAccess');
-    const priorServices = sails.services;
-    const serviceRegistry = sails.services ?? {};
-    const priorRecordsService = serviceRegistry.recordsservice;
-    sails.services = serviceRegistry;
-    serviceRegistry.recordsservice = {
-      hasEditAccess: (...args: unknown[]) => Reflect.apply(recordsService.hasEditAccess, recordsService, args),
-    };
     const service = new Services.RecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
       getContributorRegistry: () => coreRegistry(),
+      authorizeUpdate: async (context, caller) => Boolean(caller.user.username) && context.resolution.actor.authenticated && hasEditAccess(caller.brand, caller.user, caller.user.roles, context.resolution.existingRecord),
       resolveContractContext,
       buildContractFormConfig,
     });
 
-    try {
+    
       for (const username of ['doi-owner', 'workspace-owner', 'raid-owner']) {
         const result = await service.resolveUpdate({
           ...request,
@@ -1841,15 +1768,7 @@ describe('RecordSchemaService update resolution', function () {
       expect(hasEditAccess.callCount).to.equal(4);
       expect(buildContractFormConfig.callCount).to.equal(3);
       expect(putRecordSchemaArtifact.callCount).to.equal(3);
-    } finally {
-      if (priorRecordsService === undefined) {
-        delete serviceRegistry.recordsservice;
-      } else {
-        serviceRegistry.recordsservice = priorRecordsService;
-      }
-      sails.services = priorServices;
-      restoreSails();
-    }
+    
   });
 
   it('returns typed denied and missing-OID outcomes without compiling or persisting', async function () {
@@ -3278,9 +3197,7 @@ describe('RecordSchemaService telemetry', function () {
     expect(JSON.stringify(telemetryLogger.error.args)).not.to.include(DIGEST);
   });
 
-  it('keeps typed results, lifecycle errors, and startup ordering when CoreService logger acquisition throws', async function () {
-    const restoreSails = ensureTestSails();
-    const testSails = Reflect.get(global, 'sails') as { config: Record<string, unknown> };
+  it('keeps typed results, lifecycle errors, and startup ordering when explicit logger acquisition throws', async function () {
     const safeLogger = { info: sinon.stub(), error: sinon.stub() };
     const secret = 'logger-factory private-oid raw-error-text';
     const saveRequest = {
@@ -3298,15 +3215,15 @@ describe('RecordSchemaService telemetry', function () {
         throw new Error(secret);
       },
     });
-    const priorLogConfig = Reflect.get(testSails.config, 'log');
-    Reflect.set(testSails.config, 'log', {});
-    try {
+    const throwingLoggerFactory = sinon.stub().throws(new Error(secret));
+    
       const baselineSave = new Services.RecordSchema({
         telemetryLogger: safeLogger,
         getConfig: () => enabledConfig(),
         getStorageProvider: storageFailure,
       });
       const throwingSave = new Services.RecordSchema({
+        get telemetryLogger() { return throwingLoggerFactory(); },
         getConfig: () => enabledConfig(),
         getStorageProvider: storageFailure,
       });
@@ -3317,13 +3234,15 @@ describe('RecordSchemaService telemetry', function () {
         },
       });
       const throwingLifecycle = lifecycleService({
+        get telemetryLogger() { return throwingLoggerFactory(); },
         getConfig: () => {
           throw new Error(secret);
         },
       });
-      const throwingSuccessfulLifecycle = lifecycleService();
+      const throwingSuccessfulLifecycle = lifecycleService({ get telemetryLogger() { return throwingLoggerFactory(); } });
       const startupEvents: string[] = [];
       const throwingStartup = lifecycleService({
+        get telemetryLogger() { return throwingLoggerFactory(); },
         getConfig: () => enabledConfig({ integrationPins: [validPin()] }),
         getStorageProvider: () => ({
           putRecordSchemaReference: async () => {
@@ -3334,12 +3253,6 @@ describe('RecordSchemaService telemetry', function () {
       });
 
       await new Promise<void>(resolve => setImmediate(resolve));
-      const throwingLoggerFactory = sinon.stub().throws(new Error(secret));
-      Reflect.set(testSails.config, 'log', {
-        createNamespaceLogger: throwingLoggerFactory,
-        // A pino-like parent logger, so the namespace logger factory is used.
-        customLogger: { level: 'info', child: sinon.stub(), info: sinon.stub() },
-      });
       const baselineResult = await baselineSave.persistSaveUsageReference(saveRequest);
       const throwingResult = await throwingSave.persistSaveUsageReference(saveRequest);
       expect(throwingResult).to.deep.equal(baselineResult);
@@ -3366,10 +3279,7 @@ describe('RecordSchemaService telemetry', function () {
         'Configured record schema integration pins were not materialized (record-schema.storage-unavailable).'
       );
       expect(throwingLoggerFactory.callCount).to.be.greaterThan(0);
-    } finally {
-      Reflect.set(testSails.config, 'log', priorLogConfig);
-      restoreSails();
-    }
+    
   });
 });
 

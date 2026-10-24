@@ -1,19 +1,20 @@
+import { brandingFixtures } from '../helpers/serviceRepositories';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import crypto from 'crypto';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/BrandingLogoService';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
 
 describe('BrandingLogoService', function() {
   let service: Services.BrandingLogo;
-  let mockSails: any;
+  let fixture: any;
   let mockPrimaryDisk: any;
+  let sanitizer: any;
 
   beforeEach(function() {
-    mockSails = createMockSails();
-    setupServiceTestGlobals(mockSails);
+    fixture = createDomainFixture();
 
     mockPrimaryDisk = {
       put: sinon.stub().resolves(),
@@ -21,27 +22,23 @@ describe('BrandingLogoService', function() {
       delete: sinon.stub().resolves(),
     };
 
-    (global as any).StorageManagerService = {
-      primaryDisk: sinon.stub().returns(mockPrimaryDisk),
-    };
 
     repositoryFixtures.BrandingConfig = {
       findOne: sinon.stub(),
       update: sinon.stub()
     };
 
-    (global as any).DomSanitizerService = {
+    sanitizer = {
       sanitize: sinon.stub()
     };
 
-    service = new Services.BrandingLogo();
+    service = new Services.BrandingLogo({ repository: brandingFixtures(), disk: () => mockPrimaryDisk,
+      legacyDatabase: async () => null, sanitize: (...args) => sanitizer.sanitize(...args),
+      get config() { return fixture.config.branding ?? {}; }, log: fixture.log });
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
     delete repositoryFixtures.BrandingConfig;
-    delete (global as any).DomSanitizerService;
-    delete (global as any).StorageManagerService;
     sinon.restore();
   });
 
@@ -65,7 +62,7 @@ describe('BrandingLogoService', function() {
     });
 
     it('should sanitize svg', async function() {
-      (global as any).DomSanitizerService.sanitize.resolves({ safe: true, sanitized: '<svg>safe</svg>', warnings: [] });
+      sanitizer.sanitize.resolves({ safe: true, sanitized: '<svg>safe</svg>', warnings: [] });
       const result = await service.sanitizeAndValidate(Buffer.from('<svg>bad</svg>'), 'image/svg+xml');
       expect(result.ok).to.be.true;
       expect(result.sanitizedBuffer!.toString()).to.equal('<svg>safe</svg>');
@@ -139,7 +136,7 @@ describe('BrandingLogoService', function() {
       const result = await service.getBinaryAsync('brand/portal/images/favicon.png', expectedHash);
 
       expect(result).to.be.null;
-      expect(mockSails.log.warn.calledWith(
+      expect(fixture.log.warn.calledWith(
         'BrandingLogoService.getBinaryAsync hash mismatch for brand/portal/images/favicon.png'
       )).to.be.true;
     });
@@ -284,7 +281,7 @@ describe('BrandingLogoService', function() {
       });
       await clock.tickAsync(24 * 60 * 60 * 1000);
 
-      expect(mockSails.log.warn.calledWith(
+      expect(fixture.log.warn.calledWith(
         `BrandingLogoService failed to remove superseded favicon ${previousStorageKey}:`,
         sinon.match.instanceOf(Error)
       )).to.be.true;
@@ -346,7 +343,7 @@ describe('BrandingLogoService', function() {
         expect(error instanceof Error ? error.message : String(error)).to.equal('database unavailable');
       }
 
-      expect(mockSails.log.warn.calledWith(
+      expect(fixture.log.warn.calledWith(
         sinon.match('BrandingLogoService failed to remove unreferenced favicon'),
         sinon.match.instanceOf(Error)
       )).to.be.true;
@@ -366,7 +363,7 @@ describe('BrandingLogoService', function() {
     it('should reject an oversized favicon', async function() {
       const brand = { id: 'brand1' };
       repositoryFixtures.BrandingConfig.findOne.resolves(brand);
-      mockSails.config.branding = { faviconMaxBytes: 10 };
+      fixture.config.branding = { faviconMaxBytes: 10 };
       try {
         await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.alloc(20, 0), contentType: 'image/png' });
         expect.fail('Should have thrown');

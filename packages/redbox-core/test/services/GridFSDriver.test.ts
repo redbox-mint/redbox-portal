@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 import * as runtime from '../../src/persistence/runtime';
 import { Readable, Writable } from 'node:stream';
 import { GridFSDriver } from '../../src/storage/GridFSDriver';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import { restoreRepositoryFixtures, createDomainFixture, installRepositoryFixtures } from './testHelper';
 
 type StoredFile = {
   _id: ObjectId;
@@ -88,7 +88,7 @@ class FakeGridFSBucket {
 }
 
 describe('GridFSDriver', function () {
-  let mockSails: any;
+  let fixture: any;
   let files: StoredFile[];
 
   before(async function () {
@@ -97,12 +97,12 @@ describe('GridFSDriver', function () {
 
   beforeEach(function () {
     files = [];
-    mockSails = createMockSails();
-    setupServiceTestGlobals(mockSails);
+    fixture = createDomainFixture();
+    installRepositoryFixtures();
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     sinon.restore();
   });
 
@@ -196,9 +196,9 @@ describe('GridFSDriver', function () {
     const shared = { databaseName: 'redbox-gridfs-test' };
     const acquire = sinon.stub(runtime, 'mongoDatabase').resolves(shared as any);
     const bucketFactory = sinon.stub().returns(new FakeGridFSBucket(files) as any);
-    const driver = new GridFSDriver({ datastore: 'mongodb', bucketName: 'fs' }, bucketFactory as any, undefined, mockSails);
+    const driver = new GridFSDriver({ datastore: 'mongodb', bucketName: 'fs' }, bucketFactory as any, undefined, fixture);
     await driver.exists('attachments/oid-1/file-1');
-    expect(acquire.calledOnceWithExactly(mockSails, 'mongodb')).to.equal(true);
+    expect(acquire.calledOnceWithExactly(fixture, 'mongodb')).to.equal(true);
     expect(bucketFactory.firstCall.args[0]).to.equal(shared);
   });
 
@@ -227,8 +227,8 @@ describe('GridFSDriver', function () {
         await held;
       });
       sinon.stub(runtime, 'mongoDatabase').resolves({} as any);
-      mockSails.config.datastores = { mongodb: { url: 'mongodb://localhost:27017/gridfs-drain' } };
-      const driver = new GridFSDriver({}, () => bucket, undefined, mockSails);
+      fixture.config.datastores = { mongodb: { url: 'mongodb://localhost:27017/gridfs-drain' } };
+      const driver = new GridFSDriver({}, () => bucket, undefined, fixture);
       const operation = driver[method](method === 'delete' ? 'attachments/file' : 'attachments/').then(
         () => undefined,
         error => error
@@ -236,7 +236,7 @@ describe('GridFSDriver', function () {
       await entered;
       expect(await operation).to.equal(failure);
       let disposed = false;
-      const disposal = GridFSDriver.dispose(mockSails).then(() => {
+      const disposal = GridFSDriver.dispose(fixture).then(() => {
         disposed = true;
       });
       try {
@@ -257,7 +257,7 @@ describe('GridFSDriver', function () {
           {},
           () => bucket,
           async () => ({}) as any,
-          mockSails
+          fixture
         );
         await driver.put('source', 'original');
         await driver.put('destination', 'previous');
@@ -271,7 +271,7 @@ describe('GridFSDriver', function () {
         );
         const stream = download.firstCall.returnValue;
         let disposed = false;
-        const disposal = GridFSDriver.dispose(mockSails).then(() => {
+        const disposal = GridFSDriver.dispose(fixture).then(() => {
           disposed = true;
         });
         try {
@@ -298,7 +298,7 @@ describe('GridFSDriver', function () {
         {},
         () => bucket,
         async () => ({}) as any,
-        mockSails
+        fixture
       );
       await driver.put('source', 'original');
       const stream = Readable.from([Buffer.from('original')]);
@@ -318,7 +318,7 @@ describe('GridFSDriver', function () {
       if (outcome === 'complete') download.resume();
       else download.destroy(outcome === 'error' ? marker : undefined);
       let disposed = false;
-      const disposal = GridFSDriver.dispose(mockSails).then(() => {
+      const disposal = GridFSDriver.dispose(fixture).then(() => {
         disposed = true;
       });
       try {
@@ -337,7 +337,8 @@ describe('GridFSDriver', function () {
   it('throws when GridFS is configured without a MongoDB URL', async function () {
     const driver = new GridFSDriver(
       { datastore: 'mongodb', bucketName: 'fs' },
-      () => new FakeGridFSBucket(files) as any
+      () => new FakeGridFSBucket(files) as any,
+      undefined, fixture
     );
 
     try {

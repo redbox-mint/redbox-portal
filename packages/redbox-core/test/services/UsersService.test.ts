@@ -1,12 +1,20 @@
+import { installOidcAuthentication } from '../../src/http/express/identityProviders';
+import { bootstrapDefaultAdministrator } from '../../src/identity/bootstrap';
+import { AuthenticationAccounts } from '../../src/authentication/Accounts';
+import { getIdentityRepositories } from '../../src/persistence/identity/runtime';
+import { getStorageRepositories } from '../../src/persistence/storage/runtime';
+import { recordServiceChronicle } from '../../src/utilities/serviceChronicle';
+const collaborators: any = {};
+const hooks = new Map<string, (...args: unknown[]) => unknown>();
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { installStorageRecordMock } from '../helpers/storageRecordMock';
 import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import * as sinon from 'sinon';
 import { of, throwError } from 'rxjs';
 import {
-  setupServiceTestGlobals,
-  cleanupServiceTestGlobals,
-  createMockSails,
+  installRepositoryFixtures,
+  restoreRepositoryFixtures,
+  createDomainFixture,
   createQueryObject,
   configureModelMethod,
 } from './testHelper';
@@ -15,7 +23,7 @@ import { createSinonStubLogger } from '../logger.test';
 let expect: Chai.ExpectStatic;
 
 describe('UsersService', function () {
-  let mockSails: any;
+  let fixture: any;
   let UsersService: any;
   let mockUser: any;
   let mockUserAudit: any;
@@ -31,7 +39,7 @@ describe('UsersService', function () {
   beforeEach(function () {
     installStorageRecordMock();
     installIdentityRepositoryMock();
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         auth: {
@@ -95,26 +103,26 @@ describe('UsersService', function () {
       }),
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.User = mockUser;
     repositoryFixtures.UserAudit = mockUserAudit;
     repositoryFixtures.UserLink = mockUserLink;
     repositoryFixtures.Record = mockRecord;
     repositoryFixtures.Role = mockRole;
-    (global as any).RolesService = {
+    collaborators.RolesService = {
       getRoleByName: sinon.stub().returns({ id: 'role-1', name: 'Admin' }),
       getAdminFromRoles: sinon.stub().returns({ id: 'role-admin', name: 'Admin', users: [] }),
       getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
       getDefAuthenticatedRole: sinon.stub().returns({ id: 'role-auth', name: 'Researcher' }),
       getNestedRoles: sinon.stub().returns([{ id: 'role-1' }]),
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default', roles: [] }),
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default', roles: [] }),
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandNameFromReq: sinon.stub().returns('default'),
     };
-    (global as any).ConfigService = {
+    collaborators.ConfigService = {
       getBrand: sinon.stub().returns({
         local: {
           usernameField: 'username',
@@ -133,7 +141,7 @@ describe('UsersService', function () {
         },
       }),
     };
-    (global as any).RecordsService = {
+    collaborators.RecordsService = {
       provideUserAccessAndRemovePendingAccess: sinon.stub().resolves({
         requestId: '00000000-0000-4000-8000-000000000001',
         wasPersisted: () => true,
@@ -144,29 +152,41 @@ describe('UsersService', function () {
         isComplete: () => true,
       }),
     };
-    (global as any).FormVocabularyService = {};
-    (global as any).SecurityEventService = {
+    collaborators.FormVocabularyService = {};
+    collaborators.SecurityEventService = {
       emitFromUserAudit: sinon.stub().resolves(null)
     };
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/UsersService');
-    UsersService = new Services.Users();
+    const accounts = new AuthenticationAccounts({ repository: getIdentityRepositories(), log: fixture.log,
+      get postLogoutRedirect() { return fixture.config.auth.postLogoutRedir; },
+      defaultBrand: () => collaborators.BrandingService.getDefault(), getBrand: name => collaborators.BrandingService.getBrand(name),
+      authConfig: name => collaborators.ConfigService.getBrand(name), defaultAuthenticatedRole: brand => collaborators.RolesService.getDefAuthenticatedRole(brand),
+      nestedRoles: (name, roles) => collaborators.RolesService.getNestedRoles(name, roles),
+      authorizedEmails: brand => fixture.config.brandingAware(brand)?.authorizedDomainsEmails ?? {}, resolveHook: name => hooks.get(name)!,
+      event: (info, errors, level) => recordServiceChronicle(fixture.log, info, errors, level),
+    });
+    UsersService = new Services.Users({ repository: getIdentityRepositories(), accounts, log: fixture.log,
+      defaultBrand: () => collaborators.BrandingService.getDefault(),
+      recordAccess: { storage: getStorageRepositories(), get records() { return collaborators.RecordsService; } },
+      emitSecurityEvent: (...args) => collaborators.SecurityEventService?.emitFromUserAudit(...args) ?? Promise.resolve(),
+    });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.User;
     delete repositoryFixtures.UserAudit;
     delete repositoryFixtures.UserLink;
     delete repositoryFixtures.Record;
     delete repositoryFixtures.Role;
-    delete (global as any).RolesService;
-    delete (global as any).BrandingService;
-    delete (global as any).ConfigService;
-    delete (global as any).RecordsService;
-    delete (global as any).FormVocabularyService;
-    delete (global as any).SecurityEventService;
+    delete collaborators.RolesService;
+    delete collaborators.BrandingService;
+    delete collaborators.ConfigService;
+    delete collaborators.RecordsService;
+    delete collaborators.FormVocabularyService;
+    delete collaborators.SecurityEventService;
     sinon.restore();
   });
 
@@ -270,7 +290,7 @@ describe('UsersService', function () {
     });
 
     it('should return true when authorization is disabled', function () {
-      mockSails.config.brandingAware.returns({
+      fixture.config.brandingAware.returns({
         authorizedDomainsEmails: {
           enabled: 'false',
         },
@@ -324,7 +344,7 @@ describe('UsersService', function () {
     });
 
     it('should return true when no domains or emails are configured', function () {
-      mockSails.config.brandingAware.returns({
+      fixture.config.brandingAware.returns({
         authorizedDomainsEmails: {
           enabled: 'true',
           domainsAaf: [],
@@ -341,10 +361,10 @@ describe('UsersService', function () {
   describe('OIDC authorization request parameters', function () {
     it('should generate a unique state while preserving default and configured parameters', async function () {
       const passportUse = sinon.stub();
-      mockSails.config.passport = {
+      fixture.config.passport = {
         use: passportUse,
       };
-      (global as any).ConfigService.getBrand.returns({
+      collaborators.ConfigService.getBrand.returns({
         active: ['oidc'],
         oidc: {
           discoverAttemptsMax: 1,
@@ -373,9 +393,7 @@ describe('UsersService', function () {
         },
       });
 
-      (UsersService as any).openIdConnectAuth();
-      expect(mockSails.on.calledOnceWith('ready')).to.be.true;
-      await mockSails.on.firstCall.args[1]();
+      await installOidcAuthentication({ passport: { use: passportUse }, accounts: UsersService.input.accounts, config: collaborators.ConfigService.getBrand('default'), brand: () => collaborators.BrandingService.getDefault() });
 
       expect(passportUse.calledOnce).to.be.true;
       const strategy = passportUse.firstCall.args[1];
@@ -508,7 +526,7 @@ describe('UsersService', function () {
       const result = await UsersService.findAndAssignAccessToRecords('pending@test.com', 'user-1');
 
       expect(mockRecord.find.called).to.be.true;
-      expect((global as any).RecordsService.provideUserAccessAndRemovePendingAccess.callCount).to.equal(2);
+      expect(collaborators.RecordsService.provideUserAccessAndRemovePendingAccess.callCount).to.equal(2);
       expect(result).to.equal(2);
     });
 
@@ -648,7 +666,7 @@ describe('UsersService', function () {
 
   describe('getLinkedAccounts (public service surface)', function () {
     it('should be exported on the public service surface', function () {
-      expect(UsersService.exports()).to.have.property('getLinkedAccounts');
+      expect(UsersService).to.have.property('getLinkedAccounts');
     });
 
     it('should return linked account data for a seeded primary user', async function () {
@@ -907,7 +925,7 @@ describe('UsersService', function () {
 
   describe('linkAccounts', function () {
     it('should create links and rewrite authorization references', async function () {
-      (global as any).RecordsService.mutateMetaInternal.resolves({
+      collaborators.RecordsService.mutateMetaInternal.resolves({
         outcome: 'saved-with-warnings',
         wasPersisted: () => true,
         isComplete: () => false,
@@ -970,7 +988,7 @@ describe('UsersService', function () {
       expect(mockUser.addToCollection.calledOnce).to.be.true;
       expect(mockUser.replaceCollection.calledOnce).to.be.true;
       expect(mockUser.update.called).to.be.true;
-      expect((global as any).RecordsService.mutateMetaInternal.calledOnce).to.be.true;
+      expect(collaborators.RecordsService.mutateMetaInternal.calledOnce).to.be.true;
       expect(result.impact?.rolesMerged).to.equal(1);
       expect(result.impact?.recordsRewritten).to.equal(1);
     });
@@ -1249,7 +1267,7 @@ describe('UsersService', function () {
     it('should execute hooks when configured', function () {
       const user = { username: 'test' };
       // Create a global function that the trigger can call
-      (global as any).testTriggerFunction = sinon.stub().returns(Promise.resolve({ success: true }));
+      hooks.set('testTriggerFunction', sinon.stub().resolves({ success: true }));
 
       const config = {
         hooks: {
@@ -1263,7 +1281,7 @@ describe('UsersService', function () {
         UsersService.triggerPostSaveTriggers(user, config, 'onUpdate');
       }).to.not.throw();
 
-      delete (global as any).testTriggerFunction;
+      hooks.delete('testTriggerFunction');
     });
   });
 
@@ -1281,10 +1299,11 @@ describe('UsersService', function () {
 
   describe('exports', function () {
     it('should export all public methods', function () {
-      const exported = UsersService.exports();
+      const exported = UsersService;
 
       expect(exported).to.have.property('hasRole');
-      expect(exported).to.have.property('bootstrap');
+      expect(exported).not.to.have.property('bootstrap');
+      expect(bootstrapDefaultAdministrator).to.be.a('function');
       expect(exported).to.have.property('updateUserRoles');
       expect(exported).to.have.property('updateUserDetails');
       expect(exported).to.have.property('getUserWithId');

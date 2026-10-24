@@ -1,13 +1,15 @@
+import { configurationFixtures } from '../helpers/serviceRepositories';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { CreateSecretCommand, GetSecretValueCommand, PutSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
-import { AppConfigSecrets } from '../../src/services/AppConfigSecrets';
-import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals, createBundleLockCollection } from './testHelper';
+import { AppConfigSecrets } from '../../src/configuration/AppConfigSecrets';
+import { createDomainFixture, createBundleLockCollection } from './testHelper';
 
 describe('AppConfigSecrets', function () {
   const config = { provider: 'aws-secrets-manager' as const, region: 'ap-southeast-2', namePrefix: 'test/appconfig' };
   const reference = (arn: string, key?: string) => ({ $appConfigSecret: { provider: 'aws-secrets-manager' as const, arn, ...(key === undefined ? {} : { key }) } });
+  let fixture: any;
   let store: AppConfigSecrets;
   let send: sinon.SinonStub;
   let awsSend: (command: CreateSecretCommand | GetSecretValueCommand | PutSecretValueCommand) => Promise<unknown>;
@@ -15,7 +17,7 @@ describe('AppConfigSecrets', function () {
   let locks: ReturnType<typeof createBundleLockCollection>;
 
   beforeEach(function () {
-    setupServiceTestGlobals(createMockSails());
+    fixture = createDomainFixture();
     secrets = new Map();
     locks = createBundleLockCollection();
     repositoryFixtures.secretLocks = locks;
@@ -43,12 +45,11 @@ describe('AppConfigSecrets', function () {
       throw new Error('Unexpected command');
     };
     send = sinon.stub(SecretsManagerClient.prototype, 'send').callsFake(awsSend);
-    store = new AppConfigSecrets(config);
+    store = new AppConfigSecrets(config, { leases: () => configurationFixtures().secretLeases, log: fixture.log });
   });
 
   afterEach(function () {
     sinon.restore();
-    cleanupServiceTestGlobals();
     delete repositoryFixtures.AppConfig;
   });
 
@@ -90,7 +91,7 @@ describe('AppConfigSecrets', function () {
 
   it('merges against AWS rather than a stale process cache and deletes cleared fields', async function () {
     const arn = (await store.storeBundle('brand1', new Map([['a', 'original']])))!;
-    const otherProcess = new AppConfigSecrets(config);
+    const otherProcess = new AppConfigSecrets(config, { leases: () => configurationFixtures().secretLeases, log: fixture.log });
     await otherProcess.storeBundle('brand1', new Map([['b', 'other-process']]));
     await store.storeBundle('brand1', new Map([['c', 'new'], ['a', null]]));
     expect(JSON.parse(secrets.get(arn)!.value).values).to.deep.equal({ b: 'other-process', c: 'new' });
@@ -107,7 +108,7 @@ describe('AppConfigSecrets', function () {
 
   it('clears a field added by another node after this node cached the bundle', async function () {
     const arn = (await store.storeBundle('brand1', new Map([['a', 'original']])))!;
-    const otherProcess = new AppConfigSecrets(config);
+    const otherProcess = new AppConfigSecrets(config, { leases: () => configurationFixtures().secretLeases, log: fixture.log });
     await otherProcess.storeBundle('brand1', new Map([['token', 'new-on-other-node']]));
     send.resetHistory();
     await store.storeBundle('brand1', new Map([['token', null]]));
@@ -118,7 +119,7 @@ describe('AppConfigSecrets', function () {
 
   it('reapplies an explicitly submitted value even when an old cache contains it', async function () {
     const arn = (await store.storeBundle('brand1', new Map([['token', 'original']])))!;
-    const otherProcess = new AppConfigSecrets(config);
+    const otherProcess = new AppConfigSecrets(config, { leases: () => configurationFixtures().secretLeases, log: fixture.log });
     await otherProcess.storeBundle('brand1', new Map([['token', 'new-on-other-node']]));
     send.resetHistory();
     await store.storeBundle('brand1', new Map([['token', 'original']]));
@@ -129,7 +130,7 @@ describe('AppConfigSecrets', function () {
 
   it('invalidates other nodes before a write that commits but returns an error', async function () {
     const arn = (await store.storeBundle('brand1', new Map([['token', 'original']])))!;
-    const otherProcess = new AppConfigSecrets(config);
+    const otherProcess = new AppConfigSecrets(config, { leases: () => configurationFixtures().secretLeases, log: fixture.log });
     await otherProcess.storeBundle('brand1', new Map([['token', 'original']]));
     send.callsFake(async command => {
       const result = await awsSend(command);
@@ -176,7 +177,7 @@ describe('AppConfigSecrets', function () {
     send.callsFake(async command => { await gate; return awsSend(command); });
     const first = store.storeBundle('brand1', new Map([['a', 'first']]));
     await new Promise(resolve => setImmediate(resolve));
-    const otherProcess = new AppConfigSecrets(config);
+    const otherProcess = new AppConfigSecrets(config, { leases: () => configurationFixtures().secretLeases, log: fixture.log });
     try { await otherProcess.storeBundle('brand1', new Map([['b', 'second']])); expect.fail('Expected rejection'); }
     catch (error) { expect(String(error)).to.contain('update is in progress'); }
     expect(send.callCount).to.equal(1);
@@ -200,7 +201,7 @@ describe('AppConfigSecrets', function () {
     expect(calls(CreateSecretCommand)).to.equal(0);
     expect(calls(PutSecretValueCommand)).to.equal(0);
     expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
-    expect(sails.log.error.called).to.equal(false);
+    expect(fixture.log.error.called).to.equal(false);
   });
 
   for (const stage of ['renewal', 'cache token']) for (const lost of [false, true]) {
@@ -222,7 +223,7 @@ describe('AppConfigSecrets', function () {
         expect(String(error)).to.contain(lost ? 'lease was lost' : 'Check MongoDB connectivity and retry');
         expect(String(error)).not.to.contain('private-credential');
       }
-      const logs = sails.log.error.getCalls().map(call => call.args.join(' ')).join('\n');
+      const logs = fixture.log.error.getCalls().map(call => call.args.join(' ')).join('\n');
       expect(logs).not.to.contain('Check AWS permissions');
       expect(logs).not.to.contain('private-credential');
       expect(calls(CreateSecretCommand)).to.equal(0);
@@ -242,7 +243,7 @@ describe('AppConfigSecrets', function () {
         await store.storeBundle('brand1', new Map([['token', 'value']]));
         expect.fail('Expected timeout');
       } catch (error) { expect(String(error)).to.equal('Error: AppConfig secret write timed out. Retry shortly.'); }
-      expect(sails.log.error.called).to.equal(false);
+      expect(fixture.log.error.called).to.equal(false);
       expect(calls(CreateSecretCommand)).to.equal(0);
       expect(calls(PutSecretValueCommand)).to.equal(0);
       expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
@@ -277,7 +278,7 @@ describe('AppConfigSecrets', function () {
     // The heartbeat renewed at 20s; an aborted writer stops renewing and its
     // last lease expires at 140s.
     await clock.tickAsync(110_000);
-    const recovered = new AppConfigSecrets(config);
+    const recovered = new AppConfigSecrets(config, { leases: () => configurationFixtures().secretLeases, log: fixture.log });
     await recovered.storeBundle('brand1', new Map([['token', 'recovered']]));
     expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
     clock.restore();
@@ -311,7 +312,7 @@ describe('AppConfigSecrets', function () {
         expect(send.called).to.equal(false);
       });
       expect([...locks.documents.values()][0].owner).to.equal('replacement');
-      expect(sails.log.error.called).to.equal(true);
+      expect(fixture.log.error.called).to.equal(true);
       expect(clock.countTimers()).to.equal(0);
     } finally { clock.restore(); }
   });

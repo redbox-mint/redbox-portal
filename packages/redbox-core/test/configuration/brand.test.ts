@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import { resolveBrandConfiguration } from '../../src/configuration';
-import { awaitLegacyConfigurationWork, trackLegacyConfigurationWork } from '../../src/compat/sails/configurationWork';
-import { cleanupPersistence } from '../../src/persistence/runtime';
+import { ApplicationRuntime } from '../../src/application';
 
-describe('dynamic brand settings and tracked comparison writes', () => {
+describe('dynamic brand settings and declared configuration writes', () => {
   it('reads invalidated dynamic state each time and retains false/null and startup defaults', () => {
     const defaults = Object.freeze({ feature: Object.freeze({ enabled: true }) });
     let current: unknown = { feature: { enabled: false } };
@@ -17,29 +16,28 @@ describe('dynamic brand settings and tracked comparison writes', () => {
     assert.equal(resolveBrandConfiguration('default', 'feature', input), defaults.feature);
     assert.equal(defaults.feature.enabled, true);
   });
-  it('awaits accepted legacy writes before readiness and cleanup, surfacing failure after siblings settle', async () => {
+  it('awaits declared configuration writes before readiness and cleanup and preserves their failure', async () => {
     const owner = { config: {}, log: { warn() {} } };
-    let done!: () => void;
-    const pending = new Promise<void>(resolve => {
-      done = resolve;
+    const failure = Error('private database failure');
+    let done!: () => void, entered!: () => void;
+    const pending = new Promise<void>(resolve => { done = resolve; });
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    const application = new ApplicationRuntime(owner, [], {
+      coreBootstrap: [{ name: 'configuration-write', run: async () => { entered(); await pending; throw failure; } }],
     });
-    trackLegacyConfigurationWork(owner, () => pending);
-    trackLegacyConfigurationWork(owner, () => Promise.reject(Error('private database failure')));
-    let settled = false;
-    const waiting = awaitLegacyConfigurationWork(owner).catch(error => {
-      settled = true;
-      throw error;
-    });
-    const rejection = assert.rejects(waiting, error => error instanceof Error && !error.message.includes('private'));
-    let closed = false;
-    const cleanup = cleanupPersistence(owner).then(() => {
-      closed = true;
-    });
+    let settled = false, closed = false;
+    const waiting = application.initialize().catch(error => { settled = true; throw error; });
+    const rejection = assert.rejects(waiting, error => error === failure);
+    await started;
+    const cleanup = application.stop().then(() => { closed = true; });
     await new Promise<void>(resolve => setImmediate(resolve));
-    assert.equal(settled, false);
-    assert.equal(closed, false);
+    assert.equal(application.status().ready, false);
+    assert.equal(settled, false); assert.equal(closed, false);
     done();
-    await rejection;
-    await cleanup;
+    await rejection; await cleanup;
+    assert.equal(application.status().state, 'failed');
+    assert.equal(application.status().cleanupPending, false);
+    assert.deepEqual(application.status().failure, { phase: 'initialize', module: undefined, stage: 'coreBootstrap:configuration-write' });
+    assert.equal(application.status().persistence.resources.length, 0);
   });
 });

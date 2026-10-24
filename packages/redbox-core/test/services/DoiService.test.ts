@@ -1,3 +1,5 @@
+import * as configuration from '../../src/integrations/doi/config';
+import { doiAudit } from '../../src/integrations/doi/audit';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
@@ -5,12 +7,13 @@ import { Buffer } from 'buffer';
 import _ from 'lodash';
 import { brandingConfigurationDefaults } from '../../src/config/brandingConfigurationDefaults.config';
 import { createDefaultBinding, type DoiProfile } from '../../src/configmodels/DoiPublishing';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import { createDomainFixture } from './testHelper';
 
 describe('DoiService', function () {
   let service: any;
-  let mockSails: any;
-  let runtime: typeof import('../../src/services/doi-v2/runtime');
+  let fixture: any;
+  let programs: any;
+  let collaborators: any;
   let originalEnv: NodeJS.ProcessEnv;
   let axios: typeof import('axios');
   let axiosGetStub: sinon.SinonStub;
@@ -89,7 +92,7 @@ describe('DoiService', function () {
 
   beforeEach(function () {
     originalEnv = { ...process.env };
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         auth: {
           defaultBrand: 'default',
@@ -110,54 +113,60 @@ describe('DoiService', function () {
         },
       },
     });
-    setupServiceTestGlobals(mockSails);
-    mockSails.config.brandingAware.withArgs('default').returns(mockSails.config.brandingConfigurationDefaults);
+    collaborators = {};
+    fixture.config.brandingAware.withArgs('default').returns(fixture.config.brandingConfigurationDefaults);
 
-    (global as any).TranslationService = {
+    collaborators.TranslationService = {
       t: sinon.stub().returnsArg(0),
     };
-    (global as any).RecordsService = {
+    collaborators.RecordsService = {
       updateMetaInternal: sinon.stub().resolves({ wasPersisted: () => true, isComplete: () => true }),
     };
-    (global as any).IntegrationAuditService = {
+    collaborators.IntegrationAuditService = {
       startAudit: sinon.stub().returns({}),
       completeAudit: sinon.stub(),
       failAudit: sinon.stub(),
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrand: sinon.stub().returns({}),
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
 
-    runtime = require('../../src/services/doi-v2/runtime');
+    programs = { create() {}, update() {}, delete() {}, changeState() {} };
     axios = require('axios').default;
     axiosGetStub = sinon.stub(axios, 'get');
-    sinon.stub(runtime, 'runCreateDoiProgram').resolves({
+    sinon.stub(programs, 'create').resolves({
       doi: '10.1234/5678',
       statusCode: 201,
       responseSummary: { id: '10.1234/5678' },
     });
-    sinon.stub(runtime, 'runUpdateDoiProgram').resolves({
+    sinon.stub(programs, 'update').resolves({
       doi: '10.1234/5678',
       statusCode: 200,
       responseSummary: { id: '10.1234/5678' },
     });
-    sinon.stub(runtime, 'runDeleteDoiProgram').resolves({
+    sinon.stub(programs, 'delete').resolves({
       statusCode: 204,
       responseSummary: {},
     });
 
     const { Services } = require('../../src/services/DoiService');
-    service = new Services.Doi();
+    const input = { configuration: name => fixture.config.brandingAware(name).doiPublishing,
+      brandById: id => collaborators.BrandingService.getBrandById(id), env: process.env };
+    service = new Services.Doi({ log: fixture.log, programs,
+      translate: key => collaborators.TranslationService.t(key), records: collaborators.RecordsService,
+      audit: doiAudit(collaborators.IntegrationAuditService), configuration: {
+        record: record => configuration.resolveDoiPublishingConfig(input, record),
+        brand: brand => configuration.resolveDoiPublishingConfigForBrand(input, brand),
+      } });
   });
 
   afterEach(function () {
     process.env = originalEnv;
-    cleanupServiceTestGlobals();
-    delete (global as any).TranslationService;
-    delete (global as any).RecordsService;
-    delete (global as any).IntegrationAuditService;
-    delete (global as any).BrandingService;
+    delete collaborators.TranslationService;
+    delete collaborators.RecordsService;
+    delete collaborators.IntegrationAuditService;
+    delete collaborators.BrandingService;
     sinon.restore();
   });
 
@@ -175,12 +184,12 @@ describe('DoiService', function () {
       const result = await service.publishDoi('oid1', record);
 
       expect(result).to.equal('10.1234/5678');
-      expect((runtime.runCreateDoiProgram as sinon.SinonStub).calledOnce).to.be.true;
-      const runtimeOptions = (runtime.runCreateDoiProgram as sinon.SinonStub).firstCall.args[3];
+      expect((programs.create as sinon.SinonStub).calledOnce).to.be.true;
+      const runtimeOptions = (programs.create as sinon.SinonStub).firstCall.args[3];
       expect(runtimeOptions.auditContext).to.exist;
       expect(runtimeOptions.requestSummary.action).to.equal('create');
-      expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
-      const auditDetails = (global as any).IntegrationAuditService.completeAudit.firstCall.args[1];
+      expect(collaborators.IntegrationAuditService.completeAudit.calledOnce).to.be.true;
+      const auditDetails = collaborators.IntegrationAuditService.completeAudit.firstCall.args[1];
       expect(auditDetails.requestSummary.event).to.equal('publish');
       expect(auditDetails.requestSummary.action).to.equal('create');
       expect(auditDetails.requestSummary.profile).to.equal('dataPublication');
@@ -202,7 +211,7 @@ describe('DoiService', function () {
       const result = await service.publishDoi('oid1', record, 'publish', 'update');
 
       expect(result).to.equal(null);
-      expect((runtime.runUpdateDoiProgram as sinon.SinonStub).called).to.be.false;
+      expect((programs.update as sinon.SinonStub).called).to.be.false;
     });
 
     it('updates DOI metadata without requesting a state transition', async function () {
@@ -219,7 +228,7 @@ describe('DoiService', function () {
       await service.publishDoi('oid1', record, 'publish', 'update', { metadataOnly: true });
       await service.publishDoi('oid1', record, 'publish', 'update', { metadataOnly: 'true' });
 
-      const updateCalls = (runtime.runUpdateDoiProgram as sinon.SinonStub).getCalls();
+      const updateCalls = (programs.update as sinon.SinonStub).getCalls();
       expect(updateCalls).to.have.length(2);
       for (const updateCall of updateCalls) {
         expect(updateCall.args[3].data.attributes).to.not.have.property('event');
@@ -240,9 +249,9 @@ describe('DoiService', function () {
 
       await service.publishDoi('oid1', record, 'draft', 'create', { metadataOnly: true });
 
-      const createCall = (runtime.runCreateDoiProgram as sinon.SinonStub).firstCall;
+      const createCall = (programs.create as sinon.SinonStub).firstCall;
       expect(createCall.args[2].data.attributes.event).to.equal('draft');
-      expect((mockSails.log.warn as sinon.SinonStub).calledWithMatch('Ignoring metadataOnly for oid oid1')).to.be.true;
+      expect((fixture.log.warn as sinon.SinonStub).calledWithMatch('Ignoring metadataOnly for oid oid1')).to.be.true;
     });
 
     it('keeps explicit and configured events on ordinary DOI updates', async function () {
@@ -255,19 +264,19 @@ describe('DoiService', function () {
           citation_publication_date: '2023-04-01',
         },
       });
-      mockSails.config.brandingConfigurationDefaults.doiPublishing.operations.updateEvent = 'draft';
+      fixture.config.brandingConfigurationDefaults.doiPublishing.operations.updateEvent = 'draft';
 
       await service.publishDoi('oid1', record, 'publish', 'update');
       await service.publishDoi('oid1', record, '', 'update');
 
-      const updateCalls = (runtime.runUpdateDoiProgram as sinon.SinonStub).getCalls();
+      const updateCalls = (programs.update as sinon.SinonStub).getCalls();
       expect(updateCalls).to.have.length(2);
       expect(updateCalls[0].args[3].data.attributes.event).to.equal('publish');
       expect(updateCalls[1].args[3].data.attributes.event).to.equal('draft');
     });
 
     it('should include the DOI request body in failure audits when the downstream create call fails', async function () {
-      (runtime.runCreateDoiProgram as sinon.SinonStub).rejects({
+      (programs.create as sinon.SinonStub).rejects({
         statusCode: 422,
         responseBody: {
           errors: [{ title: 'Bad request' }],
@@ -291,8 +300,8 @@ describe('DoiService', function () {
       }
 
       expect(thrown).to.exist;
-      expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
-      const auditDetails = (global as any).IntegrationAuditService.failAudit.firstCall.args[2];
+      expect(collaborators.IntegrationAuditService.failAudit.calledOnce).to.be.true;
+      const auditDetails = collaborators.IntegrationAuditService.failAudit.firstCall.args[2];
       expect(auditDetails.requestSummary.requestBody.data.type).to.equal('dois');
       expect(auditDetails.requestSummary.requestBody.data.attributes.titles[0].title).to.equal('My Title');
       expect(auditDetails.responseSummary.errors[0].title).to.equal('Bad request');
@@ -301,7 +310,7 @@ describe('DoiService', function () {
     it('should include the partial DOI request body in failure audits when payload validation fails', async function () {
       // Required-field validation only runs for findable ('publish') events, and the
       // require* flags default to off, so enable the title check explicitly here.
-      mockSails.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication.validation.requireTitles = true;
+      fixture.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication.validation.requireTitles = true;
       const record = withBrand({
         metadata: {
           creators: [{ given_name: 'First', family_name: 'Last' }],
@@ -318,9 +327,9 @@ describe('DoiService', function () {
       }
 
       expect(thrown).to.exist;
-      expect((runtime.runCreateDoiProgram as sinon.SinonStub).called).to.be.false;
-      expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
-      const auditDetails = (global as any).IntegrationAuditService.failAudit.firstCall.args[2];
+      expect((programs.create as sinon.SinonStub).called).to.be.false;
+      expect(collaborators.IntegrationAuditService.failAudit.calledOnce).to.be.true;
+      const auditDetails = collaborators.IntegrationAuditService.failAudit.firstCall.args[2];
       expect(auditDetails.requestSummary.event).to.equal('publish');
       expect(auditDetails.requestSummary.action).to.equal('create');
       expect(auditDetails.requestSummary.requestBody.data.type).to.equal('dois');
@@ -340,7 +349,7 @@ describe('DoiService', function () {
         statusCode: 502,
         cause: transportError,
       });
-      (runtime.runCreateDoiProgram as sinon.SinonStub).rejects(doiHttpError);
+      (programs.create as sinon.SinonStub).rejects(doiHttpError);
 
       const record = withBrand({
         metadata: {
@@ -359,8 +368,8 @@ describe('DoiService', function () {
       }
 
       expect(thrown).to.exist;
-      expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
-      const auditDetails = (global as any).IntegrationAuditService.failAudit.firstCall.args[2];
+      expect(collaborators.IntegrationAuditService.failAudit.calledOnce).to.be.true;
+      const auditDetails = collaborators.IntegrationAuditService.failAudit.firstCall.args[2];
       expect(auditDetails.requestSummary.requestBody.data.type).to.equal('dois');
       expect(auditDetails.responseSummary.errorType).to.equal('DoiHttpError');
       expect(auditDetails.responseSummary.message).to.equal('DOI HTTP request failed for post /dois');
@@ -604,7 +613,8 @@ describe('DoiService', function () {
     });
 
     it('exports lookupDataciteDois', function () {
-      const exported = service.exports();
+      const exported = service;
+      expect(service.exports).to.equal(undefined);
       expect(exported).to.have.property('lookupDataciteDois');
     });
   });
@@ -623,8 +633,8 @@ describe('DoiService', function () {
 
       await service.publishDoiTrigger('oid1', record, { forceRun: true }, user);
 
-      expect((global as any).RecordsService.updateMetaInternal.calledOnce).to.equal(true);
-      expect((global as any).RecordsService.updateMetaInternal.firstCall.args[0]).to.deep.include({
+      expect(collaborators.RecordsService.updateMetaInternal.calledOnce).to.equal(true);
+      expect(collaborators.RecordsService.updateMetaInternal.firstCall.args[0]).to.deep.include({
         user,
         metadataMode: 'pre-applied',
       });
@@ -643,22 +653,22 @@ describe('DoiService', function () {
 
       await service.publishDoiTrigger('oid1', record, { forceRun: true }, { username: 'owner' });
 
-      const writeback = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+      const writeback = collaborators.RecordsService.updateMetaInternal.firstCall.args[0];
       expect(writeback.record.metaMetadata.brandId).to.equal('brand-2');
       expect(writeback.authorization).to.deep.equal({ kind: 'service' });
     });
 
     it('should keep trigger and publish spans inside the same trace', async function () {
-      (global as any).RecordsService.updateMetaInternal.resolves({
+      collaborators.RecordsService.updateMetaInternal.resolves({
         outcome: 'saved-with-warnings',
         wasPersisted: () => true,
         isComplete: () => false,
       });
-      (global as any).IntegrationAuditService.startAudit.onFirstCall().returns({
+      collaborators.IntegrationAuditService.startAudit.onFirstCall().returns({
         traceId: 'trace-1',
         spanId: 'span-parent',
       });
-      (global as any).IntegrationAuditService.startAudit.onSecondCall().returns({
+      collaborators.IntegrationAuditService.startAudit.onSecondCall().returns({
         traceId: 'trace-1',
         spanId: 'span-child',
         parentSpanId: 'span-parent',
@@ -675,16 +685,16 @@ describe('DoiService', function () {
 
       await service.publishDoiTriggerSync('oid1', record, { forceRun: true });
 
-      expect((global as any).IntegrationAuditService.startAudit.calledTwice).to.be.true;
-      const childAuditOptions = (global as any).IntegrationAuditService.startAudit.secondCall.args[2];
+      expect(collaborators.IntegrationAuditService.startAudit.calledTwice).to.be.true;
+      const childAuditOptions = collaborators.IntegrationAuditService.startAudit.secondCall.args[2];
       expect(childAuditOptions.traceId).to.equal('trace-1');
       expect(childAuditOptions.parentSpanId).to.equal('span-parent');
       expect(childAuditOptions.traceId).to.equal(
-        (global as any).IntegrationAuditService.startAudit.firstCall.returnValue.traceId
+        collaborators.IntegrationAuditService.startAudit.firstCall.returnValue.traceId
       );
-      const runtimeOptions = (runtime.runCreateDoiProgram as sinon.SinonStub).firstCall.args[3];
+      const runtimeOptions = (programs.create as sinon.SinonStub).firstCall.args[3];
       expect(runtimeOptions.auditContext).to.equal(
-        (global as any).IntegrationAuditService.startAudit.secondCall.returnValue
+        collaborators.IntegrationAuditService.startAudit.secondCall.returnValue
       );
     });
   });
@@ -694,13 +704,13 @@ describe('DoiService', function () {
       const result = await service.deleteDoi({ id: 'brand-1', name: 'default' }, '10.1234/5678');
 
       expect(result).to.be.true;
-      expect((runtime.runDeleteDoiProgram as sinon.SinonStub).calledOnce).to.be.true;
+      expect((programs.delete as sinon.SinonStub).calledOnce).to.be.true;
     });
   });
 
   describe('changeDoiState', function () {
     it('should change DOI state through the v2 runtime for the provided brand', async function () {
-      sinon.stub(runtime, 'runChangeDoiStateProgram').resolves({
+      sinon.stub(programs, 'changeState').resolves({
         statusCode: 200,
         responseSummary: { changed: true, doi: '10.1234/5678', event: 'publish' },
       });
@@ -708,24 +718,24 @@ describe('DoiService', function () {
       const result = await service.changeDoiState({ id: 'brand-1', name: 'default' }, '10.1234/5678', 'publish');
 
       expect(result).to.be.true;
-      expect((runtime.runChangeDoiStateProgram as sinon.SinonStub).calledOnce).to.be.true;
-      expect(((global as any).IntegrationAuditService.startAudit as sinon.SinonStub).firstCall.args[0]).to.equal(
+      expect((programs.changeState as sinon.SinonStub).calledOnce).to.be.true;
+      expect((collaborators.IntegrationAuditService.startAudit as sinon.SinonStub).firstCall.args[0]).to.equal(
         '10.1234/5678'
       );
     });
 
     it('files the state change audit under the record oid when one is provided', async function () {
-      sinon.stub(runtime, 'runChangeDoiStateProgram').resolves({
+      sinon.stub(programs, 'changeState').resolves({
         statusCode: 200,
         responseSummary: { changed: true, doi: '10.1234/5678', event: 'register' },
       });
 
       await service.changeDoiState({ id: 'brand-1', name: 'default' }, '10.1234/5678', 'register', 'oid1');
 
-      const startAudit = (global as any).IntegrationAuditService.startAudit as sinon.SinonStub;
+      const startAudit = collaborators.IntegrationAuditService.startAudit as sinon.SinonStub;
       expect(startAudit.firstCall.args[0]).to.equal('oid1');
       expect(startAudit.firstCall.args[2].requestSummary).to.deep.equal({ doi: '10.1234/5678', event: 'register' });
-      expect((runtime.runChangeDoiStateProgram as sinon.SinonStub).firstCall.args[1].recordOid).to.equal('oid1');
+      expect((programs.changeState as sinon.SinonStub).firstCall.args[1].recordOid).to.equal('oid1');
     });
   });
 
@@ -747,7 +757,7 @@ describe('DoiService', function () {
     });
 
     it('should resolve the doiPublishing password from an env var when no password is stored', function () {
-      mockSails.config.brandingConfigurationDefaults.doiPublishing.connection.password = '';
+      fixture.config.brandingConfigurationDefaults.doiPublishing.connection.password = '';
       process.env.DOI_CONNECTION_PASSWORD = 'env-pwd';
 
       const result = service.getAuthenticationString(brandRecord());
@@ -757,7 +767,7 @@ describe('DoiService', function () {
     });
 
     it('should resolve the doiPublishing password from an explicit env var reference', function () {
-      mockSails.config.brandingConfigurationDefaults.doiPublishing.connection.password = '$DOI_PASSWORD_FROM_ENV';
+      fixture.config.brandingConfigurationDefaults.doiPublishing.connection.password = '$DOI_PASSWORD_FROM_ENV';
       process.env.DOI_PASSWORD_FROM_ENV = 'referenced-pwd';
       process.env.DOI_CONNECTION_PASSWORD = 'fallback-pwd';
 

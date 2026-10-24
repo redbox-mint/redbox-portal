@@ -5,7 +5,7 @@ import * as sinon from 'sinon';
 import type { OniPublishingSiteConfig } from '../../../src/configmodels/OniPublishing';
 import type { DatastreamService } from '../../../src/DatastreamService';
 import type { Services as StorageManagerServices } from '../../../src/services/StorageManagerService';
-import { createOniRepository } from '../../../src/services/oni-v2/repository';
+import { createOniRepository } from '../../../src/integrations/oni/repository';
 import type {
   OcflModuleAdapter,
   OniCrateBuildResult,
@@ -71,7 +71,7 @@ describe('Oni v2 OCFL repository', () => {
       getDatastream: sinon.stub(),
     } as unknown as DatastreamService;
     const loadOcflModule = sinon.stub().resolves(ocflModule);
-    const repository = createOniRepository(config, site, datastreamService, storageManager, loadOcflModule);
+    const repository = createOniRepository({ storageManager, log: { verbose() {} } }, config, site, datastreamService, loadOcflModule);
     return {
       repository,
       storage,
@@ -85,18 +85,7 @@ describe('Oni v2 OCFL repository', () => {
     };
   }
 
-  beforeEach(() => {
-    (global as unknown as { sails: unknown }).sails = {
-      log: { verbose: sinon.stub() },
-      config: {},
-      services: {},
-    };
-  });
-
-  afterEach(() => {
-    sinon.restore();
-    delete (global as unknown as { sails?: unknown }).sails;
-  });
+  afterEach(() => sinon.restore());
 
   it('rejects unsupported storage drivers before constructing a repository', () => {
     const invalidSite = {
@@ -104,7 +93,7 @@ describe('Oni v2 OCFL repository', () => {
     } as unknown as OniPublishingSiteConfig;
 
     expect(() =>
-      createOniRepository(config, invalidSite, {} as DatastreamService, {} as StorageManagerServices.StorageManager)
+      createOniRepository({ storageManager: {} as StorageManagerServices.StorageManager, log: { verbose() {} } }, config, invalidSite, {} as DatastreamService)
     ).to.throw("storage driver 'filesystem' is not supported");
   });
 

@@ -4,7 +4,10 @@ import { FigsharePublishing } from '../../../src/configmodels/FigsharePublishing
 import type { AxiosError } from 'axios';
 import { describeFigshareHttpFailure, FigshareClientTag, FigshareHttpError } from '../../../src/services/figshare-v2/http';
 import * as httpModule from '../../../src/services/figshare-v2/http';
-import { runBuildMetadataPayload } from '../../../src/services/figshare-v2/runtime';
+import { createFigshareRuntime } from '../../../src/integrations/figshare/runtime';
+
+import { createFigshareMetadata } from '../../../src/integrations/figshare/metadata';
+import { createFigshareBindings } from '../../../src/integrations/figshare/bindings';
 
 let expect: Chai.ExpectStatic;
 
@@ -77,6 +80,12 @@ describe('figshare-v2 runtime', function () {
       },
     } as any;
 
+    const log = { warn() {} };
+    const { runBuildMetadataPayload } = createFigshareRuntime({
+      brandName: () => 'default', clientLayer: httpModule.makeClientLayer,
+      metadata: createFigshareMetadata({ bindings: createFigshareBindings({ crosswalk: {}, log }),
+        bindingContext: record => ({ brandId: 'default', record }), licenseCache: new Map(), log }),
+    });
     let thrown: unknown;
     try {
       await runBuildMetadataPayload(config, {

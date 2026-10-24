@@ -1,8 +1,11 @@
+
+const collaborators: any = {};
+let fixture: any;
 import * as sinon from 'sinon';
 import { trace } from '@opentelemetry/api';
 import { Services } from '../../src/services/IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/storage/IntegrationAuditModel';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import { restoreRepositoryFixtures, createDomainFixture, installRepositoryFixtures } from './testHelper';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect!: Chai.ExpectStatic;
@@ -15,9 +18,9 @@ describe('IntegrationAuditService', function () {
   let originalSecurityEventService: unknown;
 
   beforeEach(function () {
-    originalSecurityEventService = Reflect.get(globalThis, 'SecurityEventService');
+    originalSecurityEventService = collaborators.SecurityEventService;
     securityEventEmitter = sinon.stub().resolves();
-    Reflect.set(globalThis, 'SecurityEventService', { emitFromIntegrationAudit: securityEventEmitter });
+    collaborators.SecurityEventService = { emitFromIntegrationAudit: securityEventEmitter };
     mockStorageService = {
       createIntegrationAudit: sinon.stub().resolves({ success: true, isSuccessful: () => true }),
       getIntegrationAudit: sinon.stub().resolves([{ redboxOid: 'oid-1' }]),
@@ -27,7 +30,7 @@ describe('IntegrationAuditService', function () {
       now: sinon.stub(),
     };
 
-    const mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         storage: { serviceName: 'mongostorageservice' },
         environment: 'development',
@@ -38,17 +41,17 @@ describe('IntegrationAuditService', function () {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
-    (global as any).AgendaQueueService = mockQueueService;
-    service = new Services.IntegrationAuditService();
-    service.getStorageService();
+    installRepositoryFixtures();
+    collaborators.AgendaQueueService = mockQueueService;
+    service = new Services.IntegrationAuditService({ storage: collaborators.RedboxJavaStorageService ?? fixture.services[fixture.config.storage?.serviceName], log: fixture.log, get environment() { return fixture.config.environment; }, enqueue: (name, entry) => collaborators.AgendaQueueService.now(name, entry), emitSecurityEvent: async entry => await collaborators.SecurityEventService?.emitFromIntegrationAudit(entry) });
+
   });
 
   afterEach(function () {
-    if (originalSecurityEventService === undefined) Reflect.deleteProperty(globalThis, 'SecurityEventService');
-    else Reflect.set(globalThis, 'SecurityEventService', originalSecurityEventService);
-    cleanupServiceTestGlobals();
-    delete (global as any).AgendaQueueService;
+    if (originalSecurityEventService === undefined) delete collaborators.SecurityEventService;
+    else collaborators.SecurityEventService = originalSecurityEventService;
+    restoreRepositoryFixtures();
+    delete collaborators.AgendaQueueService;
     sinon.restore();
   });
 
@@ -127,7 +130,7 @@ describe('IntegrationAuditService', function () {
   });
 
   it('persists directly in integrationtest and sanitizes failure details', function () {
-    (global as any).sails.config.environment = 'integrationtest';
+    fixture.config.environment = 'integrationtest';
     sinon.stub(trace, 'getActiveSpan').returns(undefined);
 
     const ctx = service.startAudit('oid-1', IntegrationAuditAction.publishAfterUploadFilesJob, {
@@ -146,7 +149,7 @@ describe('IntegrationAuditService', function () {
   });
 
   it('keeps safe nested responseSummary fields while redacting actual credentials', function () {
-    (global as any).sails.config.environment = 'integrationtest';
+    fixture.config.environment = 'integrationtest';
     sinon.stub(trace, 'getActiveSpan').returns(undefined);
 
     const ctx = service.startAudit('dc6e5dfa39304d6fad666cb3ce484caf', IntegrationAuditAction.publishDoi, {
@@ -175,7 +178,7 @@ describe('IntegrationAuditService', function () {
   });
 
   it('merges extra requestSummary details into the final audit row', function () {
-    (global as any).sails.config.environment = 'integrationtest';
+    fixture.config.environment = 'integrationtest';
     sinon.stub(trace, 'getActiveSpan').returns(undefined);
 
     const ctx = service.startAudit('oid-1', IntegrationAuditAction.publishDoi, {
@@ -228,7 +231,7 @@ describe('IntegrationAuditService', function () {
     });
 
     await new Promise((resolve) => setImmediate(resolve));
-    expect((global as any).sails.log.error.called).to.be.true;
+    expect(fixture.log.error.called).to.be.true;
   });
 
   it('swallows invalid queued payloads in storeIntegrationAudit', function () {
@@ -241,7 +244,7 @@ describe('IntegrationAuditService', function () {
     });
 
     expect(mockStorageService.createIntegrationAudit.called).to.be.false;
-    expect((global as any).sails.log.error.called).to.be.true;
+    expect(fixture.log.error.called).to.be.true;
   });
 
   it('normalizes null optional fields before persisting queued payloads', async function () {
@@ -290,7 +293,7 @@ describe('IntegrationAuditService', function () {
       isSuccessful: () => false,
     });
 
-    (global as any).sails.config.environment = 'integrationtest';
+    fixture.config.environment = 'integrationtest';
     sinon.stub(trace, 'getActiveSpan').returns(undefined);
 
     service.startAudit('oid-1', IntegrationAuditAction.publishDoiTriggerSync, {
@@ -299,15 +302,15 @@ describe('IntegrationAuditService', function () {
 
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect((global as any).sails.log.error.calledWithMatch(sinon.match('Storage response message: Invalid new record.'))).to.be.true;
-    expect((global as any).sails.log.error.calledWithMatch(sinon.match('Storage response details: "message cannot be null"'))).to.be.true;
+    expect(fixture.log.error.calledWithMatch(sinon.match('Storage response message: Invalid new record.'))).to.be.true;
+    expect(fixture.log.error.calledWithMatch(sinon.match('Storage response details: "message cannot be null"'))).to.be.true;
   });
 
   for (const response of [null, undefined, {}, { success: false }, { success: true, isSuccessful: () => false }]) {
     it(`does not notify or emit security events without confirmed persistence (${JSON.stringify(response)})`, async function () {
       mockStorageService.createIntegrationAudit.resolves(response);
       const logError = sinon.stub();
-      Reflect.set(sails.log, 'error', logError);
+      Reflect.set(fixture.log, 'error', logError);
       service.storeIntegrationAudit({
         attrs: {
           data: {
@@ -353,9 +356,9 @@ describe('IntegrationAuditService', function () {
   }
 
   it('retains stored audits and notifications when the optional security event service is absent', async function () {
-    Reflect.deleteProperty(globalThis, 'SecurityEventService');
+    delete collaborators.SecurityEventService;
     const logError = sinon.stub();
-    Reflect.set(sails.log, 'error', logError);
+    Reflect.set(fixture.log, 'error', logError);
     service.storeIntegrationAudit({
       attrs: {
         data: {
@@ -1040,7 +1043,7 @@ describe('IntegrationAuditService', function () {
         now: sinon.stub(),
       };
 
-      const mockSails = createMockSails({
+      fixture = createDomainFixture({
         config: {
           storage: { serviceName: 'mongostorageservice' },
           environment: 'development',
@@ -1051,15 +1054,15 @@ describe('IntegrationAuditService', function () {
         log: createSinonStubLogger(sinon),
       });
 
-      setupServiceTestGlobals(mockSails);
-      (global as any).AgendaQueueService = mockQueueService;
-      service = new Services.IntegrationAuditService();
-      service.getStorageService();
+      installRepositoryFixtures();
+      collaborators.AgendaQueueService = mockQueueService;
+      service = new Services.IntegrationAuditService({ storage: collaborators.RedboxJavaStorageService ?? fixture.services[fixture.config.storage?.serviceName], log: fixture.log, get environment() { return fixture.config.environment; }, enqueue: (name, entry) => collaborators.AgendaQueueService.now(name, entry), emitSecurityEvent: async entry => await collaborators.SecurityEventService?.emitFromIntegrationAudit(entry) });
+  
     });
 
     afterEach(function () {
-      cleanupServiceTestGlobals();
-      delete (global as any).AgendaQueueService;
+      restoreRepositoryFixtures();
+      delete collaborators.AgendaQueueService;
       sinon.restore();
     });
 
@@ -1129,7 +1132,7 @@ describe('IntegrationAuditService', function () {
       await new Promise(resolve => setImmediate(resolve));
 
       expect(mockStorageService.createIntegrationAudit.called).to.be.true;
-      expect((global as any).sails.log.error.called).to.be.true;
+      expect(fixture.log.error.called).to.be.true;
     });
 
     it('does not leak an unhandled rejection when enqueue rejects asynchronously', async function () {
@@ -1156,7 +1159,7 @@ describe('IntegrationAuditService', function () {
         await new Promise(resolve => setImmediate(resolve));
 
         expect(mockStorageService.createIntegrationAudit.called).to.be.true;
-        expect((global as any).sails.log.error.called).to.be.true;
+        expect(fixture.log.error.called).to.be.true;
         expect(unhandled).to.have.length(0);
       } finally {
         process.removeListener('unhandledRejection', onUnhandled);

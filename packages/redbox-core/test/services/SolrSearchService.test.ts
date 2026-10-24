@@ -1,13 +1,15 @@
+const collaborators: any = {};
+const hooks = new Map<string, unknown>();
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { solr } from '../../src/config/solr.config';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('SolrSearchService', function () {
-  let mockSails: any;
+  let fixture: any;
   let SolrSearchService: any;
   let mockQueueService: any;
 
@@ -16,7 +18,7 @@ describe('SolrSearchService', function () {
       now: sinon.stub(),
     };
 
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         solr: {
@@ -59,21 +61,21 @@ describe('SolrSearchService', function () {
       on: sinon.stub(),
     });
 
-    setupServiceTestGlobals(mockSails);
-    (global as any).RecordsService = {
+    installRepositoryFixtures();
+    collaborators.RecordsService = {
       getMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().returns(true),
     };
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/SolrSearchService');
-    SolrSearchService = new Services.SolrSearchService();
+    SolrSearchService = new Services.SolrSearchService({ config: fixture.config.solr, get queue() { return fixture.services?.agendaqueueservice; }, log: fixture.log, retainFollowup: work => work });
     SolrSearchService.queueService = mockQueueService;
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).RecordsService;
+    restoreRepositoryFixtures();
+    delete collaborators.RecordsService;
     sinon.restore();
   });
 
@@ -397,6 +399,7 @@ describe('SolrSearchService', function () {
     it('should run inline when queue service is unavailable', async function () {
       const solrAddOrUpdateStub = sinon.stub(SolrSearchService, 'solrAddOrUpdate').resolves();
       SolrSearchService.queueService = undefined;
+      fixture.services.agendaqueueservice = undefined;
       const data: any = {
         metadata: { title: 'Inline Test' },
       };
@@ -411,7 +414,7 @@ describe('SolrSearchService', function () {
       mockQueueService.now.rejects(new Error('queue unavailable'));
 
       expect(await SolrSearchService.index('record-123', { metadata: {} })).to.equal(false);
-      expect(mockSails.log.error.called).to.equal(true);
+      expect(fixture.log.error.called).to.equal(true);
     });
   });
 
@@ -433,6 +436,7 @@ describe('SolrSearchService', function () {
     it('should run delete inline when queue service is unavailable', function () {
       const solrDeleteStub = sinon.stub(SolrSearchService, 'solrDelete').resolves();
       SolrSearchService.queueService = undefined;
+      fixture.services.agendaqueueservice = undefined;
 
       SolrSearchService.remove('record-inline-delete');
 
@@ -513,7 +517,7 @@ describe('SolrSearchService', function () {
     });
 
     it('normalizes numbered date fields using the production default core configuration', function () {
-      mockSails.config.solr.cores.default = structuredClone(solr.cores.default);
+      fixture.config.solr.cores.default = structuredClone(solr.cores.default);
       const data = {
         redboxOid: 'record-123',
         metaMetadata: { createdOn: '2026-09-24T14:30:00+10:00' },
@@ -580,7 +584,7 @@ describe('SolrSearchService', function () {
     }
 
     it('normalizes dates produced by templates and special flattening', function () {
-      const preIndex = mockSails.config.solr.cores.default.preIndex;
+      const preIndex = fixture.config.solr.cores.default.preIndex;
       preIndex.template = [{ source: 'metadata.modified', dest: 'date_modified', template: '<%= data %>' }];
       preIndex.flatten.special = [
         {
@@ -604,7 +608,7 @@ describe('SolrSearchService', function () {
     });
 
     it('converts configured objects to JSON and removes empty keys', function () {
-      mockSails.config.solr.cores.default.preIndex.jsonString = [{ source: 'metadata.details', dest: 'details_json' }];
+      fixture.config.solr.cores.default.preIndex.jsonString = [{ source: 'metadata.details', dest: 'details_json' }];
 
       const result = SolrSearchService.preIndex({ metadata: { details: { title: 'Test' }, '': 'remove me' } });
 
@@ -632,8 +636,8 @@ describe('SolrSearchService', function () {
     };
 
     function prepareSchemaReconciliation(liveSchema: Record<string, unknown>) {
-      mockSails.config.solr.cores.default.schema = configuredSchema;
-      mockSails.config.solr.cores.default.initSchemaFlag = {
+      fixture.config.solr.cores.default.schema = configuredSchema;
+      fixture.config.solr.cores.default.initSchemaFlag = {
         name: 'schema_initialised',
         type: 'string',
         indexed: false,
@@ -701,7 +705,7 @@ describe('SolrSearchService', function () {
       expect(post.firstCall.args[1]['add-field']).to.deep.equal([
         { name: 'schema_initialised', type: 'string', indexed: false, stored: false },
       ]);
-      expect(mockSails.log.error.calledWithMatch('Solr schema definition conflict')).to.equal(true);
+      expect(fixture.log.error.calledWithMatch('Solr schema definition conflict')).to.equal(true);
     });
 
     it('does not duplicate initialization fields across reconciliations', async function () {
@@ -713,13 +717,13 @@ describe('SolrSearchService', function () {
       expect(
         post.firstCall.args[1]['add-field'].filter((field: { name: string }) => field.name === 'schema_initialised')
       ).to.have.length(1);
-      expect(mockSails.config.solr.cores.default.schema['add-field']).to.have.length(1);
+      expect(fixture.config.solr.cores.default.schema['add-field']).to.have.length(1);
     });
   });
 
   describe('clientSleep', function () {
     it('should resolve immediately when no sleep time configured', async function () {
-      mockSails.config.solr.clientSleepTimeMillis = undefined;
+      fixture.config.solr.clientSleepTimeMillis = undefined;
 
       const start = Date.now();
       await (SolrSearchService as any).clientSleep();
@@ -729,7 +733,7 @@ describe('SolrSearchService', function () {
     });
 
     it('should sleep for configured time', async function () {
-      mockSails.config.solr.clientSleepTimeMillis = 50;
+      fixture.config.solr.clientSleepTimeMillis = 50;
 
       const start = Date.now();
       await (SolrSearchService as any).clientSleep();
@@ -741,7 +745,7 @@ describe('SolrSearchService', function () {
 
   describe('exports', function () {
     it('should export all public methods', function () {
-      const exported = SolrSearchService.exports();
+      const exported = SolrSearchService;
 
       expect(exported).to.have.property('index');
       expect(exported).to.have.property('remove');
@@ -761,21 +765,21 @@ describe('SolrClient', function () {
 
   beforeEach(function () {
     // Access the SolrClient class through the module
-    const mockSails = createMockSails({});
-    setupServiceTestGlobals(mockSails);
-    (global as any).RecordsService = {};
+    const fixture = createDomainFixture({});
+    installRepositoryFixtures();
+    collaborators.RecordsService = {};
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).RecordsService;
+    restoreRepositoryFixtures();
+    delete collaborators.RecordsService;
     sinon.restore();
   });
 
   describe('constructor', function () {
     it('should create axios instance with correct base URL', function () {
       // Test through service initialization
-      const mockSails = createMockSails({
+      const fixture = createDomainFixture({
         config: {
           solr: {
             cores: {
@@ -795,10 +799,10 @@ describe('SolrClient', function () {
         },
         services: { agendaqueueservice: { now: sinon.stub() } },
       });
-      setupServiceTestGlobals(mockSails);
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/SolrSearchService');
-      const service = new Services.SolrSearchService();
+      const service = new Services.SolrSearchService({ config: fixture.config.solr, get queue() { return fixture.services?.agendaqueueservice; }, log: fixture.log, retainFollowup: work => work });
       (service as any).initClient();
 
       expect(service.clients.default).to.exist;

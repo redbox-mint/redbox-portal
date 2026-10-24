@@ -5,6 +5,8 @@ import path from 'path';
 import { z } from 'zod';
 import {
   ApiRouteDefinition,
+  ApiRequestInput,
+  ApiRouteConfiguration,
   buildApiBlueprint,
   buildCoreApiRouteConfig,
   buildCoreApiOpenApiDocument,
@@ -12,7 +14,7 @@ import {
   buildMergedApiBlueprint,
   buildMergedApiOpenApiDocument,
   buildOpenApiDocument,
-  buildSailsRouteConfig,
+  buildRouteMetadata,
   extractApiRequest,
   getMergedApiRoutes,
   registerCoreApiRoutes,
@@ -190,23 +192,13 @@ describe('API routes contract layer', function () {
   });
 
   it('should derive x-redbox-roles from runtime auth rules', function () {
-    const globalWithSails = globalThis as typeof globalThis & {
-      sails?: { config?: Record<string, unknown> };
-    };
-    const previousSails = globalWithSails.sails;
-    globalWithSails.sails = {
-      config: {
-        auth: {
-          rules: [
+    const rules = [
             { path: '/:branding/:portal/api/custom', role: 'Readers', can_read: true },
             { path: '/:branding/:portal/api/custom', role: 'Editors', can_update: true },
-          ],
-        },
-      },
-    };
+    ];
 
-    try {
-      const customRoute = apiRoute('get', '/:branding/:portal/api/custom', 'webservice/CustomController', 'show');
+    {
+      const customRoute = apiRoute('get', '/:branding/:portal/api/custom', 'webservice/CustomController', 'show', undefined, {}, rules);
 
       expect(customRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Readers', 'Editors']);
 
@@ -214,12 +206,6 @@ describe('API routes contract layer', function () {
       const operation = document.paths['/{branding}/{portal}/api/custom']?.get as Record<string, unknown>;
 
       expect(operation['x-redbox-roles']).to.deep.equal(['Readers', 'Editors']);
-    } finally {
-      if (previousSails === undefined) {
-        delete globalWithSails.sails;
-      } else {
-        globalWithSails.sails = previousSails;
-      }
     }
   });
 
@@ -244,22 +230,15 @@ describe('API routes contract layer', function () {
       summary: 'Hook example route',
     };
 
-    const globalWithSails = globalThis as typeof globalThis & {
-      sails?: { config?: Record<string, unknown> };
-    };
-    const previousSails = globalWithSails.sails;
-    const sailsConfig: Record<string, unknown> = {
+    const configuration: { apiRoutesHooks: Array<() => ApiRouteDefinition[]>; routes?: Record<string, unknown> } = {
       apiRoutesHooks: [() => [hookRoute]],
     };
-    globalWithSails.sails = {
-      config: sailsConfig,
-    };
 
-    try {
-      const mergedRouteConfig = buildMergedApiRouteConfig();
-      sailsConfig.routes = mergedRouteConfig;
+    {
+      const mergedRouteConfig = buildMergedApiRouteConfig(configuration);
+      configuration.routes = mergedRouteConfig;
 
-      const mergedDocument = buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
+      const mergedDocument = buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' }, configuration);
       expect(mergedDocument.paths).to.have.property('/default/rdmp/api/hooks/example');
       expect(
         (mergedDocument.paths['/default/rdmp/api/hooks/example']?.get as Record<string, unknown>)?.summary
@@ -268,23 +247,13 @@ describe('API routes contract layer', function () {
       const coreDocument = buildCoreApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
       expect(coreDocument.paths).to.not.have.property('/default/rdmp/api/hooks/example');
 
-      const blueprint = buildMergedApiBlueprint({ branding: 'default', portal: 'rdmp' });
+      const blueprint = buildMergedApiBlueprint({ branding: 'default', portal: 'rdmp' }, configuration);
       expect(blueprint).to.include('GET /default/rdmp/api/hooks/example');
       expect(blueprint).to.include('+ Summary: Hook example route');
-    } finally {
-      if (previousSails === undefined) {
-        delete globalWithSails.sails;
-      } else {
-        globalWithSails.sails = previousSails;
-      }
     }
   });
 
   it('should fail when the merged runtime route table includes an uncontracted legacy API route', function () {
-    const globalWithSails = globalThis as typeof globalThis & {
-      sails?: { config?: Record<string, unknown> };
-    };
-    const previousSails = globalWithSails.sails;
     const runtimeRoutes: Record<string, unknown> = {
       ...buildCoreApiRouteConfig(),
       '/:branding/:portal/api/hooks/legacy': {
@@ -293,26 +262,15 @@ describe('API routes contract layer', function () {
       },
     };
 
-    globalWithSails.sails = {
-      config: {
-        apiRoutesHooks: [],
-        routes: runtimeRoutes,
-      },
-    };
+    const configuration = { apiRoutesHooks: [], routes: runtimeRoutes };
 
-    try {
-      expect(() => getMergedApiRoutes()).to.throw(
+    {
+      expect(() => getMergedApiRoutes(configuration)).to.throw(
         'Legacy API route in merged runtime route table must declare an HTTP method'
       );
-      expect(() => buildMergedApiRouteConfig()).to.throw(
+      expect(() => buildMergedApiRouteConfig(configuration)).to.throw(
         'Legacy API route in merged runtime route table must declare an HTTP method'
       );
-    } finally {
-      if (previousSails === undefined) {
-        delete globalWithSails.sails;
-      } else {
-        globalWithSails.sails = previousSails;
-      }
     }
   });
 
@@ -333,15 +291,15 @@ describe('API routes contract layer', function () {
     ];
 
     expect(() => toRouteMap(duplicateRoutes)).to.throw('Duplicate API route detected');
-    expect(() => buildSailsRouteConfig(duplicateRoutes)).to.throw('Duplicate API route detected');
+    expect(() => buildRouteMetadata(duplicateRoutes)).to.throw('Duplicate API route detected');
     expect(() => buildOpenApiDocument(duplicateRoutes, { title: 'Duplicate routes', version: '1.0.0' })).to.throw(
       'Duplicate API route detected'
     );
     expect(() => buildApiBlueprint(duplicateRoutes)).to.throw('Duplicate API route detected');
   });
 
-  it('should order Sails routes by specificity', function () {
-    const routeConfig = buildSailsRouteConfig([
+  it('should order route metadata by specificity', function () {
+    const routeConfig = buildRouteMetadata([
       {
         method: 'get',
         path: '/api/widgets/:id*',
@@ -370,7 +328,7 @@ describe('API routes contract layer', function () {
   });
 
   it('should leave contract-first route auth to controller policies', function () {
-    const routeConfig = buildSailsRouteConfig([apiRoute('get', '/api/widgets', 'webservice/WidgetController', 'list')]);
+    const routeConfig = buildRouteMetadata([apiRoute('get', '/api/widgets', 'webservice/WidgetController', 'list')]);
 
     expect(routeConfig['get /api/widgets']).to.deep.equal({
       controller: 'webservice/WidgetController',
@@ -385,7 +343,7 @@ describe('API routes contract layer', function () {
       method: 'post',
       route: 'post /:branding/:portal/admin/report-config/preview',
       path: '/default/rdmp/admin/report-config/preview',
-    } as unknown as Sails.Req);
+    } as unknown as ApiRequestInput);
 
     expect(route?.path).to.equal('/:branding/:portal/api/report-config/preview');
     expect(route?.action).to.equal('previewConfig');
@@ -703,31 +661,17 @@ describe('API routes contract layer', function () {
       action: 'create',
     };
 
-    const globalWithSails = globalThis as typeof globalThis & {
-      sails?: { config?: Record<string, unknown> };
-    };
-    const previousSails = globalWithSails.sails;
-    globalWithSails.sails = {
-      config: {
-        apiRoutesHooks: [() => [hookRoute]],
-      },
-    };
+    const configuration = { apiRoutesHooks: [() => [hookRoute]] };
 
-    try {
-      expect(() => getMergedApiRoutes()).to.throw('Duplicate API route detected');
-      expect(() => buildMergedApiRouteConfig()).to.throw('Duplicate API route detected');
-      expect(() => buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' })).to.throw(
+    {
+      expect(() => getMergedApiRoutes(configuration)).to.throw('Duplicate API route detected');
+      expect(() => buildMergedApiRouteConfig(configuration)).to.throw('Duplicate API route detected');
+      expect(() => buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' }, configuration)).to.throw(
         'Duplicate API route detected'
       );
-      expect(() => buildMergedApiBlueprint({ branding: 'default', portal: 'rdmp' })).to.throw(
+      expect(() => buildMergedApiBlueprint({ branding: 'default', portal: 'rdmp' }, configuration)).to.throw(
         'Duplicate API route detected'
       );
-    } finally {
-      if (previousSails === undefined) {
-        delete globalWithSails.sails;
-      } else {
-        globalWithSails.sails = previousSails;
-      }
     }
   });
 
@@ -818,7 +762,7 @@ describe('API routes contract layer', function () {
           query: {},
           headers: {},
           body: {},
-        } as unknown as Sails.Req,
+        } as unknown as ApiRequestInput,
         route
       );
       expect(missing.valid).to.equal(true);
@@ -834,7 +778,7 @@ describe('API routes contract layer', function () {
           query: { operation: ' Submit.v2 ' },
           headers: {},
           body: {},
-        } as unknown as Sails.Req,
+        } as unknown as ApiRequestInput,
         route
       );
       expect(supplied.valid).to.equal(true);
@@ -851,7 +795,7 @@ describe('API routes contract layer', function () {
           query: { operation: 'bad operation with spaces' },
           headers: {},
           body: {},
-        } as unknown as Sails.Req,
+        } as unknown as ApiRequestInput,
         route
       );
       expect(malformed.valid).to.equal(false);
@@ -913,7 +857,7 @@ describe('API routes contract layer', function () {
       query: {},
       headers: { 'if-match': formatRecordEntityTag('record-1', 3) },
       body: {},
-    } as unknown as Sails.Req;
+    } as unknown as ApiRequestInput;
     const extracted = extractApiRequest(lowercaseRequest, updateMetaRoute.request);
     expect(extracted.headers).to.deep.include({ 'If-Match': formatRecordEntityTag('record-1', 3) });
 
@@ -971,7 +915,7 @@ describe('API routes contract layer', function () {
         query: {},
         headers: { [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: schemaIfMatch },
         body: {},
-      } as unknown as Sails.Req;
+      } as unknown as ApiRequestInput;
       const result = validateApiRouteRequest(request, route);
 
       expect(result.valid).to.equal(true);
@@ -998,7 +942,7 @@ describe('API routes contract layer', function () {
       query: {},
       headers: {},
       body: { title: 'Compatible update' },
-    } as unknown as Sails.Req;
+    } as unknown as ApiRequestInput;
     const result = validateApiRouteRequest(request, updateMetaRoute);
 
     expect(result.valid).to.equal(true);
@@ -1016,7 +960,7 @@ describe('API routes contract layer', function () {
           query: {},
           headers: { [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: [ifMatch, ifMatch] },
           body: {},
-        } as unknown as Sails.Req,
+        } as unknown as ApiRequestInput,
         route
       );
 
@@ -1072,12 +1016,7 @@ describe('API routes contract layer', function () {
 
   it('keeps OpenAPI 3.0.3 bounded and form-independent without embedding generated schemas', function () {
     this.timeout(20_000);
-    const globalWithSails = globalThis as typeof globalThis & {
-      sails?: { config?: Record<string, unknown> };
-    };
-    const previousSails = globalWithSails.sails;
-    const sailsConfig = { ...(previousSails?.config ?? {}) };
-    globalWithSails.sails = { ...(previousSails ?? {}), config: sailsConfig };
+    const configuration: Record<string, unknown> = {};
     const privateFormMarker = 'must-not-appear-in-static-openapi';
     const configuredForms = Object.fromEntries(
       Array.from({ length: 2_000 }, (_, index) => [
@@ -1089,12 +1028,12 @@ describe('API routes contract layer', function () {
       ])
     );
 
-    try {
-      Reflect.set(sailsConfig, 'form', { defaultForm: 'default', forms: {} });
+    {
+      Reflect.set(configuration, 'form', { defaultForm: 'default', forms: {} });
       const withoutConfiguredForms = buildCoreApiOpenApiDocument();
       const withoutConfiguredFormsJson = JSON.stringify(withoutConfiguredForms);
 
-      Reflect.set(sailsConfig, 'form', { defaultForm: 'default', forms: configuredForms });
+      Reflect.set(configuration, 'form', { defaultForm: 'default', forms: configuredForms });
       const withConfiguredForms = buildCoreApiOpenApiDocument();
       const withConfiguredFormsJson = JSON.stringify(withConfiguredForms);
 
@@ -1105,12 +1044,6 @@ describe('API routes contract layer', function () {
       expect(
         withConfiguredFormsJson.match(new RegExp(RECORD_SCHEMA_RESOLVER_OPENAPI_EXTENSION, 'g')) ?? []
       ).to.have.length(2);
-    } finally {
-      if (previousSails === undefined) {
-        delete globalWithSails.sails;
-      } else {
-        globalWithSails.sails = previousSails;
-      }
     }
   });
 
@@ -1644,7 +1577,7 @@ describe('API routes contract layer', function () {
         query: {},
         headers: {},
         body: { to: 'to@example.test', data: {} },
-      } as unknown as Sails.Req,
+      } as unknown as ApiRequestInput,
       sendNotificationRoute
     );
     expect(missingTemplateResult.valid).to.equal(true);
@@ -1678,7 +1611,7 @@ describe('API routes contract layer', function () {
         query: { name: 'dataset-draft', oid: 'oid-1', recordType: 'dataset', targetStep: 'review' },
         headers: {},
         body: {},
-      } as unknown as Sails.Req,
+      } as unknown as ApiRequestInput,
       getFormRoute
     );
     expect(valid.valid).to.equal(true);
@@ -1689,7 +1622,7 @@ describe('API routes contract layer', function () {
         query: { name: 'dataset-draft', oid: 42 },
         headers: {},
         body: {},
-      } as unknown as Sails.Req,
+      } as unknown as ApiRequestInput,
       getFormRoute
     );
     expect(invalid.valid).to.equal(false);
@@ -1836,7 +1769,7 @@ describe('API routes contract layer', function () {
       query: { id: 'query-id' },
       headers: {},
       body: { id: 'body-id' },
-    } as unknown as Sails.Req;
+    } as unknown as ApiRequestInput;
 
     const extracted = extractApiRequest(request, {
       params: objectField({ id: stringField() }, ['id']),
@@ -1869,7 +1802,7 @@ describe('API routes contract layer', function () {
       },
       headers: {},
       body: {},
-    } as unknown as Sails.Req;
+    } as unknown as ApiRequestInput;
 
     const result = validateApiRouteRequest(request, searchRecordsRoute);
 
@@ -1888,7 +1821,7 @@ describe('API routes contract layer', function () {
       query: { merge: 'false' },
       headers: {},
       body: { merge: 'true', datastreams: 'true' },
-    } as unknown as Sails.Req;
+    } as unknown as ApiRequestInput;
 
     const result = validateApiRequest(request, updateMetaRoute.request);
     const extracted = extractApiRequest(request, updateMetaRoute.request);
@@ -1908,7 +1841,7 @@ describe('API routes contract layer', function () {
       body: {
         multipartOnly: 'yes',
       },
-    } as unknown as Sails.Req;
+    } as unknown as ApiRequestInput;
 
     const apiRequest = {
       body: {
@@ -1946,7 +1879,7 @@ describe('API routes contract layer', function () {
         filterFields: 'title,creator',
         filter: 'alpha,beta',
       },
-    } as unknown as Sails.Req;
+    } as unknown as ApiRequestInput;
 
     const result = validateApiRequest(request, listRecordsRoute.request);
     const extracted = extractApiRequest(request, listRecordsRoute.request);
@@ -1965,7 +1898,7 @@ describe('API routes contract layer', function () {
       query: {},
       headers: {},
       body: {},
-    } as unknown as Sails.Req;
+    } as unknown as ApiRequestInput;
 
     const result = validateApiRouteRequest(
       request,

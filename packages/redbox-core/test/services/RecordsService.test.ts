@@ -1,3 +1,6 @@
+import { getStorageRepositories } from '../../src/persistence/storage/runtime';
+import { FigshareSourceIntents } from '../../src/records/FigshareSourceIntents';
+import { ApplicationRuntime } from '../../src/application';
 import { attachmentFixture } from '../helpers/attachmentFixture';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { installStorageRecordMock } from '../helpers/storageRecordMock';
@@ -57,19 +60,15 @@ import {
 } from '../../src/record-contract';
 import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
 import {
-  setupServiceTestGlobals,
-  cleanupServiceTestGlobals,
-  createMockSails,
+  createDomainFixture,
   createQueryObject,
   configureModelMethod,
 } from './testHelper';
 
-const { Services: RecordValidationServices } =
-  require('../../src/services/RecordValidationService') as typeof import('../../src/services/RecordValidationService');
+import { RecordValidation } from '../../src/services/RecordValidationService';
 const { Services: RecordSchemaServices } =
   require('../../src/services/RecordSchemaService') as typeof import('../../src/services/RecordSchemaService');
-const DomSanitizerServices = require('../../src/services/DomSanitizerService')
-  .default as typeof import('../../src/services/DomSanitizerService').default;
+const { Services: DomSanitizerServices } = require('../../src/services/DomSanitizerService');
 
 type FormsServiceStub = {
   getForm: sinon.SinonStub<
@@ -91,7 +90,10 @@ function assertUnknownRecord(value: unknown): asserts value is Record<string, un
 }
 
 describe('RecordsService', function () {
-  let mockSails: any;
+  let fixture: any;
+  let collaborators: any;
+  let hookFunctions: Map<string, unknown>;
+  const defineHook = (name: string, implementation: unknown) => { hookFunctions.set(name, implementation); return name; };
   let RecordsService: any;
   let mockRecord: any;
   let mockStorageService: any;
@@ -102,6 +104,23 @@ describe('RecordsService', function () {
   let mockRecordValidationService: {
     resolve: sinon.SinonStub<[request: RecordValidationRequest], Promise<RecordValidationResult>>;
   };
+
+  function htmlInput() {
+    return {
+      sanitizeWithProfile: (value: string, profile: 'html') => collaborators.DomSanitizerService.sanitizeWithProfile(value, profile),
+      htmlSanitizationMode: () => fixture.config.record?.form?.htmlSanitizationMode ?? 'sanitize',
+    };
+  }
+  function createValidation(dependencies: Partial<RecordValidationServiceDependencies>) {
+    return new RecordValidation({ log: fixture.log, config: fixture.config, readers: dependencies as any, html: htmlInput() }, dependencies);
+  }
+  function securityInput() {
+    return { repository: {} as any, log: fixture.log,
+      brand: (id: string) => collaborators.BrandingService.getBrandById(id),
+      configuration: () => ({ enabled: true }),
+      enqueue: (name: string, data: any) => collaborators.AgendaQueueService.now(name, data),
+      record: (oid: string) => mockStorageService.getMeta(oid) };
+  }
 
   beforeEach(function () {
     installStorageRecordMock();
@@ -176,7 +195,7 @@ describe('RecordsService', function () {
       removeDatastream: sinon.stub().resolves({ success: true }),
     };
 
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         record: {
@@ -232,7 +251,8 @@ describe('RecordsService', function () {
       destroy: sinon.stub(),
     };
 
-    setupServiceTestGlobals(mockSails);
+    collaborators = {};
+    hookFunctions = new Map();
     repositoryFixtures.Record = mockRecord;
     repositoryFixtures.RecordType = {
       findOne: sinon.stub().resolves({ name: 'rdmp', packageType: 'rdmp' }),
@@ -240,7 +260,7 @@ describe('RecordsService', function () {
     repositoryFixtures.WorkflowStep = {
       findOne: sinon.stub().resolves({ name: 'draft', config: {} }),
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
@@ -262,16 +282,16 @@ describe('RecordsService', function () {
         >()
         .returns(of(defaultForm)),
     };
-    Object.assign(globalThis, { FormsService: mockFormsService });
-    (global as any).RolesService = {
+    Object.assign(collaborators, { FormsService: mockFormsService });
+    collaborators.RolesService = {
       getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
       getRole: sinon.stub().returns(null),
     };
-    (global as any).UsersService = {
+    collaborators.UsersService = {
       hasRole: sinon.stub().returns(true),
       getUserWithUsername: sinon.stub().returns(of(null)),
     };
-    (global as any).WorkflowStepsService = {
+    collaborators.WorkflowStepsService = {
       getAllForRecordType: sinon.stub().returns(
         of([
           { name: 'draft', starting: true, config: { form: 'default-form' } },
@@ -299,7 +319,7 @@ describe('RecordsService', function () {
         })
       ),
     };
-    (global as any).RecordTypesService = {
+    collaborators.RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
     };
     const recordValidationResolve = sinon.stub<[request: RecordValidationRequest], Promise<RecordValidationResult>>();
@@ -312,20 +332,42 @@ describe('RecordsService', function () {
     mockRecordValidationService = {
       resolve: recordValidationResolve,
     };
-    (global as any).RecordValidationService = mockRecordValidationService;
-    mockSails.services.recordvalidationservice = mockRecordValidationService;
-    (global as any).TranslationService = {
+    collaborators.RecordValidationService = mockRecordValidationService;
+    fixture.services.recordvalidationservice = mockRecordValidationService;
+    collaborators.TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
-    (global as any).SecurityEventService = {
+    collaborators.SecurityEventService = {
       emitFromRecordAudit: sinon.stub().resolves(undefined)
     };
-    (global as any).RedboxJavaStorageService = mockStorageService;
-    (global as any).SolrSearchService = mockSearchService;
+    collaborators.RedboxJavaStorageService = mockStorageService;
+    collaborators.SolrSearchService = mockSearchService;
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/RecordsService');
-    RecordsService = new Services.Records();
+    const intents = new FigshareSourceIntents({ log: fixture.log,
+      config: record => fixture.config.brandingAware?.(collaborators.BrandingService.getBrandById(record.metaMetadata?.brandId)?.name ?? 'default')?.figsharePublishing ?? null });
+    RecordsService = new Services.Records({
+      get config() { return fixture.config; }, get log() { return fixture.log; },
+      get repository() { return getStorageRepositories(); },
+      storageService: mockStorageService, datastreamService: mockDatastreamService,
+      searchService: mockSearchService, queueService: mockQueueService,
+      get branding() { return collaborators.BrandingService; },
+      get recordTypes() { return collaborators.RecordTypesService; },
+      get workflows() { return collaborators.WorkflowStepsService; },
+      get forms() { return collaborators.FormsService; },
+      get users() { return collaborators.UsersService; },
+      get roles() { return collaborators.RolesService; },
+      get schema() { return fixture.services.recordschemaservice; },
+      get validation() { return fixture.services.recordvalidationservice ?? collaborators.RecordValidationService; },
+      get attachments() { return fixture.services.attachmentmetadataservice; },
+      get translation() { return collaborators.TranslationService; },
+      stagingDisk: () => collaborators.StorageManagerService.stagingDisk(),
+      resolveHook: name => hookFunctions.get(name),
+      prepareSourceIntent: (...args) => intents.prepareSourceIntent(...args),
+      wakeFigshareRecord: oid => collaborators.FigshareService.wakeFigshareRecord(oid),
+      emitSecurityEvent: record => collaborators.SecurityEventService?.emitFromRecordAudit(record) ?? Promise.resolve(),
+    });
     RecordsService.storageService = mockStorageService;
     RecordsService.searchService = mockSearchService;
     RecordsService.queueService = mockQueueService;
@@ -333,23 +375,22 @@ describe('RecordsService', function () {
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
     delete repositoryFixtures.Record;
     delete repositoryFixtures.RecordType;
     delete repositoryFixtures.WorkflowStep;
-    delete (global as any).BrandingService;
-    delete (global as any).FormsService;
-    delete (global as any).RolesService;
-    delete (global as any).UsersService;
-    delete (global as any).WorkflowStepsService;
-    delete (global as any).RecordTypesService;
-    delete (global as any).RecordValidationService;
-    delete (global as any).DomSanitizerService;
-    delete (global as any).TranslationService;
-    delete (global as any).SecurityEventService;
-    delete (global as any).RedboxJavaStorageService;
-    delete (global as any).SolrSearchService;
-    delete (globalThis as any).__w05Hooks;
+    delete collaborators.BrandingService;
+    delete collaborators.FormsService;
+    delete collaborators.RolesService;
+    delete collaborators.UsersService;
+    delete collaborators.WorkflowStepsService;
+    delete collaborators.RecordTypesService;
+    delete collaborators.RecordValidationService;
+    delete collaborators.DomSanitizerService;
+    delete collaborators.TranslationService;
+    delete collaborators.SecurityEventService;
+    delete collaborators.RedboxJavaStorageService;
+    delete collaborators.SolrSearchService;
+    delete collaborators.__w05Hooks;
     sinon.restore();
   });
 
@@ -441,7 +482,7 @@ describe('RecordsService', function () {
         authorization: {},
       };
       mockStorageService.getMeta.resolves(_.cloneDeep(record));
-      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+      collaborators.RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -467,16 +508,14 @@ describe('RecordsService', function () {
       expect(RecordsService.logHeader).to.equal('RecordsService::');
     });
 
-    it('registers detached-fiber teardown on the Sails lower lifecycle', function () {
-      const supervisor = (RecordsService as any).hookExecutionSupervisor;
+    it('interrupts detached hook work when its application module closes', async function () {
+      const supervisor = RecordsService.hookExecutionSupervisor;
       const interruptAll = sinon.spy(supervisor, 'interruptAll');
-      RecordsService.init();
-      const lowerRegistration = mockSails.on.getCalls().find((call: any) => call.args[0] === 'lower');
-
-      expect(lowerRegistration).to.not.equal(undefined);
-      lowerRegistration.args[1]();
+      const application = new ApplicationRuntime({ config: {}, log: fixture.log }, [{
+        name: 'records', create: () => ({ initialize: async () => {}, close: async () => RecordsService.close() }),
+      }]);
+      await application.initialize(); await application.stop();
       expect(interruptAll.calledOnce).to.equal(true);
-      interruptAll.restore();
     });
   });
 
@@ -523,15 +562,13 @@ describe('RecordsService', function () {
 
   describe('getStorageService', function () {
     it('should use configured storage service', function () {
-      RecordsService.getStorageService();
 
       expect(RecordsService.storageService).to.exist;
     });
 
-    it('should fallback to RedboxJavaStorageService when not configured', function () {
-      mockSails.config.storage = {};
+    it('retains the explicitly selected storage collaborator when configuration changes', function () {
+      fixture.config.storage = {};
 
-      RecordsService.getStorageService();
 
       expect(RecordsService.storageService).to.equal(mockStorageService);
     });
@@ -539,7 +576,6 @@ describe('RecordsService', function () {
 
   describe('getDatastreamService', function () {
     it('should use configured datastream service', function () {
-      RecordsService.getDatastreamService();
 
       expect(RecordsService.datastreamService).to.exist;
     });
@@ -579,10 +615,10 @@ describe('RecordsService', function () {
           viewRoles: ['Researcher'],
         },
       });
-      (global as any).UsersService.getUserWithUsername
+      collaborators.UsersService.getUserWithUsername
         .withArgs('editor')
         .returns(of({ name: 'Editor', email: 'editor@example.com' }));
-      (global as any).UsersService.getUserWithUsername
+      collaborators.UsersService.getUserWithUsername
         .withArgs('viewer')
         .returns(of({ name: 'Viewer', email: 'viewer@example.com' }));
 
@@ -610,7 +646,7 @@ describe('RecordsService', function () {
           viewRoles: [],
         },
       });
-      (global as any).UsersService.getUserWithUsername.withArgs('missing-user').returns(of(null));
+      collaborators.UsersService.getUserWithUsername.withArgs('missing-user').returns(of(null));
 
       const result = await RecordsService.getResolvedPermissionsSummary('record-123');
 
@@ -724,7 +760,7 @@ describe('RecordsService', function () {
       };
 
       // Mock RolesService.getRole to return the admin role
-      (global as any).RolesService.getRole = sinon.stub().returns(adminRole);
+      collaborators.RolesService.getRole = sinon.stub().returns(adminRole);
 
       const result = RecordsService.hasEditAccess(brand, user, [adminRole], record);
 
@@ -766,10 +802,10 @@ describe('RecordsService', function () {
       const viewerRole = { id: 'role-viewer', name: 'Viewer' };
       const creatorRole = { id: 'role-creator', name: 'Creator' };
       const user = { username: 'viewer', roles: [viewerRole] };
-      (global as any).RolesService.getRole = sinon
+      collaborators.RolesService.getRole = sinon
         .stub()
         .callsFake((_brand: unknown, name: string) => (name === 'Creator' ? creatorRole : viewerRole));
-      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+      collaborators.WorkflowStepsService.getFirst = sinon.stub().returns(
         of({
           name: 'draft',
           starting: true,
@@ -785,14 +821,14 @@ describe('RecordsService', function () {
     it('honours an unconditional built-in creator edit permission without trusting submitted authorization', async function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'researcher', roles: [] };
-      (global as any).RecordTypesService.get = sinon.stub().returns(
+      collaborators.RecordTypesService.get = sinon.stub().returns(
         of({
           name: 'rdmp',
           hooks: {
             onCreate: {
               pre: [
                 {
-                  function: 'sails.services.rdmpservice.assignPermissions',
+                  function: 'record.assignPermissions',
                   options: { recordCreatorPermissions: 'view&edit' },
                 },
               ],
@@ -800,8 +836,8 @@ describe('RecordsService', function () {
           },
         })
       );
-      (global as any).RolesService.getRole = sinon.stub().returns(null);
-      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+      collaborators.RolesService.getRole = sinon.stub().returns(null);
+      collaborators.WorkflowStepsService.getFirst = sinon.stub().returns(
         of({
           name: 'draft',
           starting: true,
@@ -817,14 +853,14 @@ describe('RecordsService', function () {
     it('does not infer creator access from a conditional permission hook', async function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'researcher', roles: [] };
-      (global as any).RecordTypesService.get = sinon.stub().returns(
+      collaborators.RecordTypesService.get = sinon.stub().returns(
         of({
           name: 'rdmp',
           hooks: {
             onCreate: {
               pre: [
                 {
-                  function: 'sails.services.rdmpservice.assignPermissions',
+                  function: 'record.assignPermissions',
                   options: {
                     recordCreatorPermissions: 'view&edit',
                     triggerCondition: '<%= record.workflow.stage == "draft" %>',
@@ -835,8 +871,8 @@ describe('RecordsService', function () {
           },
         })
       );
-      (global as any).RolesService.getRole = sinon.stub().returns(null);
-      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+      collaborators.RolesService.getRole = sinon.stub().returns(null);
+      collaborators.WorkflowStepsService.getFirst = sinon.stub().returns(
         of({
           name: 'draft',
           starting: true,
@@ -854,17 +890,17 @@ describe('RecordsService', function () {
       const adminRole = { id: 'role-admin', name: 'Admin' };
       const publisherRole = { id: 'role-publisher', name: 'Publisher' };
       const user = { username: 'admin', roles: [adminRole] };
-      (global as any).RolesService.getRole = sinon
+      collaborators.RolesService.getRole = sinon
         .stub()
         .callsFake((_brand: unknown, name: string) => (name === 'Admin' ? adminRole : publisherRole));
-      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+      collaborators.WorkflowStepsService.getFirst = sinon.stub().returns(
         of({
           name: 'draft',
           starting: true,
           config: { authorization: { editRoles: ['Admin'] } },
         })
       );
-      (global as any).WorkflowStepsService.get = sinon.stub().returns(
+      collaborators.WorkflowStepsService.get = sinon.stub().returns(
         of({
           name: 'published',
           config: {
@@ -885,17 +921,17 @@ describe('RecordsService', function () {
       const adminRole = { id: 'role-admin', name: 'Admin' };
       const publisherRole = { id: 'role-publisher', name: 'Publisher' };
       const user = { username: 'admin', roles: [adminRole] };
-      (global as any).RolesService.getRole = sinon
+      collaborators.RolesService.getRole = sinon
         .stub()
         .callsFake((_brand: unknown, name: string) => (name === 'Admin' ? adminRole : publisherRole));
-      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+      collaborators.WorkflowStepsService.getFirst = sinon.stub().returns(
         of({
           name: 'draft',
           starting: true,
           config: { authorization: { editRoles: ['Admin'] } },
         })
       );
-      (global as any).WorkflowStepsService.get = sinon.stub().returns(
+      collaborators.WorkflowStepsService.get = sinon.stub().returns(
         of({
           name: 'published',
           config: {
@@ -985,7 +1021,7 @@ describe('RecordsService', function () {
     });
 
     it('should not queue when auditing is disabled', function () {
-      mockSails.config.record.auditing.enabled = false;
+      fixture.config.record.auditing.enabled = false;
 
       RecordsService.auditRecord('record-123', {}, {}, 'updated');
 
@@ -1052,7 +1088,7 @@ describe('RecordsService', function () {
       const response = await RecordsService.createRecordAudit(recordAudit);
 
       expect((response as any).success).to.equal(true);
-      expect((global as any).SecurityEventService.emitFromRecordAudit.calledOnceWith(recordAudit)).to.be.true;
+      expect(collaborators.SecurityEventService.emitFromRecordAudit.calledOnceWith(recordAudit)).to.be.true;
     });
 
     it('should not emit a record audit security event after soft-failed storage', async function () {
@@ -1067,7 +1103,7 @@ describe('RecordsService', function () {
       const response = await RecordsService.createRecordAudit(recordAudit);
 
       expect(response).to.equal(failedResponse);
-      expect((global as any).SecurityEventService.emitFromRecordAudit.called).to.be.false;
+      expect(collaborators.SecurityEventService.emitFromRecordAudit.called).to.be.false;
     });
   });
 
@@ -1325,7 +1361,7 @@ describe('RecordsService', function () {
         findUnresolvedByOid: sinon.stub().resolves([]),
         markMutation: sinon.stub().resolves(true),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       const plan = [
@@ -1363,7 +1399,7 @@ describe('RecordsService', function () {
         findUnresolvedByOid: sinon.stub().resolves([]),
         markMutation: sinon.stub().rejects(new Error('journal unavailable')),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
       const plan = [
         {
@@ -1380,7 +1416,7 @@ describe('RecordsService', function () {
 
       expect(result[0].status).to.equal('incomplete');
       expect(result[0].code).to.equal('attachment-generation-not-current');
-      expect(mockSails.log.error.called).to.equal(true);
+      expect(fixture.log.error.called).to.equal(true);
       expect(
         (RecordsService as any).incompleteAttachmentItems(
           [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'completed' }],
@@ -1394,7 +1430,7 @@ describe('RecordsService', function () {
 
   describe('checkRedboxRunning', function () {
     it('should return true when storage plugin is configured', async function () {
-      mockSails.config.storage = { serviceName: 'mongostorageservice' };
+      fixture.config.storage = { serviceName: 'mongostorageservice' };
 
       const result = await RecordsService.checkRedboxRunning();
 
@@ -1408,13 +1444,13 @@ describe('RecordsService', function () {
         os.tmpdir(),
         `records-bootstrap-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`
       );
-      mockSails.config.bootstrap = { bootstrapDataPath: missingBootstrapPath };
+      fixture.config.bootstrap = { bootstrapDataPath: missingBootstrapPath };
       const createStub = sinon.stub(RecordsService, 'create');
 
       await RecordsService.bootstrapData();
 
       expect(createStub.called).to.be.false;
-      expect(mockSails.log.verbose.called).to.be.true;
+      expect(fixture.log.verbose.called).to.be.true;
     });
 
     it('should create records from record-type named file arrays', async function () {
@@ -1425,12 +1461,12 @@ describe('RecordsService', function () {
         path.join(recordsPath, 'party.json'),
         JSON.stringify([{ title: 'Party one' }, { title: 'Party two' }])
       );
-      mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
+      fixture.config.bootstrap = { bootstrapDataPath: bootstrapPath };
 
       mockRecord.find.onFirstCall().returns(createQueryObject([]));
       mockRecord.find.onSecondCall().returns(createQueryObject([]));
       const createStub = sinon.stub(RecordsService, 'create').resolves({ isSuccessful: () => true });
-      (global as any).RecordTypesService.get = sinon.stub().returns(of({ name: 'party', hooks: {} }));
+      collaborators.RecordTypesService.get = sinon.stub().returns(of({ name: 'party', hooks: {} }));
       try {
         await RecordsService.bootstrapData();
 
@@ -1451,12 +1487,12 @@ describe('RecordsService', function () {
     });
 
     it('seeds in shadow and enforce schema modes through a direct durable internal bypass audit', async function () {
-      mockSails.config.recordSchema = { enabled: true };
-      mockSails.config.record.auditing.enabled = false;
-      (global as any).RecordTypesService.get = sinon
+      fixture.config.recordSchema = { enabled: true };
+      fixture.config.record.auditing.enabled = false;
+      collaborators.RecordTypesService.get = sinon
         .stub()
         .returns(of({ name: 'party', hooks: {}, searchable: false }));
-      (global as any).RecordValidationService.resolve.resolves({
+      collaborators.RecordValidationService.resolve.resolves({
         status: 'unresolved',
         shouldBlock: true,
         mode: 'enforce',
@@ -1464,15 +1500,15 @@ describe('RecordsService', function () {
       });
       const resolveCreate = sinon.stub().rejects(new Error('structural schema resolution must be bypassed'));
       const validateResolvedArtifact = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
       for (const mode of ['shadow', 'enforce'] as const) {
         const bootstrapPath = await fs.mkdtemp(path.join(os.tmpdir(), `records-bootstrap-${mode}-`));
         const recordsPath = path.join(bootstrapPath, 'records');
         await fs.mkdir(recordsPath, { recursive: true });
         await fs.writeFile(path.join(recordsPath, 'party.json'), JSON.stringify([{ title: `${mode} seed` }]));
-        mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
-        mockSails.config.recordValidation = { mode };
+        fixture.config.bootstrap = { bootstrapDataPath: bootstrapPath };
+        fixture.config.recordValidation = { mode };
         mockRecord.find.reset();
         mockRecord.find.returns(createQueryObject([]));
         mockStorageService.create.resetHistory();
@@ -1482,7 +1518,7 @@ describe('RecordsService', function () {
           await RecordsService.bootstrapData();
 
           expect(mockStorageService.create.calledOnce, mode).to.equal(true);
-          expect((global as any).RecordValidationService.resolve.notCalled, mode).to.equal(true);
+          expect(collaborators.RecordValidationService.resolve.notCalled, mode).to.equal(true);
           expect(resolveCreate.notCalled, mode).to.equal(true);
           expect(validateResolvedArtifact.notCalled, mode).to.equal(true);
           expect(mockStorageService.createRecordAudit.calledOnce, mode).to.equal(true);
@@ -1507,7 +1543,7 @@ describe('RecordsService', function () {
       const recordsPath = path.join(bootstrapPath, 'records');
       await fs.mkdir(recordsPath, { recursive: true });
       await fs.writeFile(path.join(recordsPath, 'grant.json'), JSON.stringify([{ title: 'Grant one' }]));
-      mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
+      fixture.config.bootstrap = { bootstrapDataPath: bootstrapPath };
 
       mockRecord.find.returns(createQueryObject([{ redboxOid: 'bootstrap-grant-1' }]));
       const createStub = sinon.stub(RecordsService, 'create');
@@ -1562,7 +1598,7 @@ describe('RecordsService', function () {
         'record-123',
         false,
         { metadata: {} },
-        { hooks: { onDelete: { post: [{ function: '({ invalid: true })' }] } } },
+        { hooks: { onDelete: { post: [{ function: defineHook('fixture-hook-1', (({ invalid: true }))) }] } } },
         { username: 'admin' }
       );
 
@@ -1575,7 +1611,7 @@ describe('RecordsService', function () {
         RecordsService.triggerPostSaveTriggers(
           'record-123',
           { metadata: {} },
-          { hooks: { onDelete: { post: [{ function: '({ invalid: true })' }] } } },
+          { hooks: { onDelete: { post: [{ function: defineHook('fixture-hook-2', (({ invalid: true }))) }] } } },
           'onDelete',
           { username: 'admin' }
         )
@@ -1616,7 +1652,7 @@ describe('RecordsService', function () {
       mockStorageService.getCapabilities = sinon.stub().returns({
         recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode } })
       );
     };
@@ -1625,7 +1661,7 @@ describe('RecordsService', function () {
       it(`captures ${operation} ownership through the production worker after record removal`, async function () {
         setMode('observe');
         sinon.stub(RecordsService, 'hasEditAccess').returns(true);
-        mockSails.config.environment = 'production';
+        fixture.config.environment = 'production';
         const active = lifecycleRecord(7);
         mockStorageService.getMeta.resolves(active);
         mockStorageService.getTombstone.resolves({
@@ -1640,10 +1676,6 @@ describe('RecordsService', function () {
           mockStorageService.getTombstone.resolves(null);
           return { success: true, oid: 'record-123', applicationState: 'applied' };
         });
-        const originalGlobals = new Map([
-          'SecurityEventService', 'AppConfigService', 'AgendaQueueService',
-          'StorageManagerService', 'AttachmentMetadata', 'AttachmentAccessAudit',
-        ].map(key => [key, Reflect.get(globalThis, key)]));
         const emitted: Array<{ event: Record<string, unknown> }> = [];
         const attachmentAudits: Record<string, unknown>[] = [];
         const deleteFile = sinon.stub().callsFake(async () => {
@@ -1656,15 +1688,15 @@ describe('RecordsService', function () {
                 return data;
               },
             }),
-          }}), Object.assign(globalThis, {SecurityEventService: new SecurityServices.SecurityEventService(),AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },AgendaQueueService: { now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); } },StorageManagerService: {
+          }}), Object.assign(collaborators, {SecurityEventService: new SecurityServices.SecurityEventService(securityInput()),AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },AgendaQueueService: { now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); } },StorageManagerService: {
             primaryDisk: () => ({ delete: deleteFile }),
             getMergedStorageConfig: () => ({ keyPrefix: 'attachments/' }),
           }}));
         if (operation !== 'soft-delete') {
           if (operation === 'destroy-deleted') mockStorageService.getMeta.resolves(null);
           mockRecord.findOne.returns(createQueryObject(null));
-          mockSails.services.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService(attachmentFixture());
-          const datastreams = new DatastreamServices.StandardDatastream();
+          fixture.services.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService(attachmentFixture({ log: fixture.log, emitAccessEvent: event => collaborators.SecurityEventService.emitSecurityEvent({ ...event, eventType: `attachment.${event.action}`, category: 'attachment', source: 'AttachmentMetadataService' }) }));
+          const datastreams = new DatastreamServices.StandardDatastream({ disks: collaborators.StorageManagerService, forms: collaborators.FormsService, attachments: fixture.services.attachmentmetadataservice, log: fixture.log });
           mockDatastreamService.listDatastreams.onFirstCall().resolves([{ fileId: 'file-1' }]);
           mockDatastreamService.listDatastreams.onSecondCall().resolves([]);
           mockDatastreamService.removeDatastream.callsFake(
@@ -1692,7 +1724,6 @@ describe('RecordsService', function () {
           expect(attachmentAudits).to.have.length(operation === 'soft-delete' ? 0 : 1);
           expect(deleteFile.callCount).to.equal(operation === 'soft-delete' ? 0 : 1);
         } finally {
-          originalGlobals.forEach((value, key) => value === undefined ? Reflect.deleteProperty(globalThis, key) : Reflect.set(globalThis, key, value));
         }
       });
     }
@@ -1701,7 +1732,7 @@ describe('RecordsService', function () {
       setMode('observe');
       sinon.stub(RecordsService, 'hasEditAccess').returns(true);
       sinon.stub(RecordsService, 'hasViewAccess').returns(true);
-      mockSails.config.environment = 'production';
+      fixture.config.environment = 'production';
       const restored = lifecycleRecord(10);
       mockStorageService.getTombstone.resolves({
         redboxOid: 'record-123',
@@ -1715,12 +1746,9 @@ describe('RecordsService', function () {
         mockStorageService.getTombstone.resolves(null);
         return { success: true, oid: 'record-123', applicationState: 'applied' };
       });
-      const originalGlobals = new Map(
-        ['SecurityEventService', 'AppConfigService', 'AgendaQueueService'].map(key => [key, Reflect.get(globalThis, key)])
-      );
       const emitted: Array<{ event: Record<string, unknown> }> = [];
-      Object.assign(globalThis, {
-        SecurityEventService: new SecurityServices.SecurityEventService(),
+      Object.assign(collaborators, {
+        SecurityEventService: new SecurityServices.SecurityEventService(securityInput()),
         AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },
         AgendaQueueService: {
           now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); },
@@ -1753,9 +1781,6 @@ describe('RecordsService', function () {
         expect(emitted[0].event.brandId).to.equal('brand-1');
         expect(emitted[0].event.eventType).to.equal('record.restored');
       } finally {
-        originalGlobals.forEach((value, key) =>
-          value === undefined ? Reflect.deleteProperty(globalThis, key) : Reflect.set(globalThis, key, value)
-        );
       }
     });
 
@@ -1936,7 +1961,7 @@ describe('RecordsService', function () {
 
     it('uses the final authoritative active reload for restore response metadata and indexing', async function () {
       setMode('observe');
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: true, concurrentModification: { mode: 'observe' } })
       );
       const tombstone = {
@@ -2462,28 +2487,14 @@ describe('RecordsService', function () {
     });
 
     it('reuses the callable resolved during hook configuration validation', async function () {
-      (global as any).hookExpressionEvaluations = 0;
-      const recordType = {
-        hooks: {
-          onUpdate: {
-            pre: [
-              {
-                function: `(() => {
-                globalThis.hookExpressionEvaluations += 1;
-                return (_oid, record) => record;
-              })()`,
-              },
-            ],
-          },
-        },
-      };
-      try {
-        (RecordsService as any).validateHookConfiguration(recordType, ['onUpdate']);
-        await RecordsService.triggerPreSaveTriggers('record-123', { metadata: {} }, recordType, 'onUpdate', {});
-        expect((global as any).hookExpressionEvaluations).to.equal(1);
-      } finally {
-        delete (global as any).hookExpressionEvaluations;
-      }
+      const execute = sinon.stub().callsFake((_oid, record) => record);
+      defineHook('fixture-stable-operation', execute);
+      const resolve = sinon.spy(RecordsService.input, 'resolveHook');
+      const recordType = { hooks: { onUpdate: { pre: [{ function: 'fixture-stable-operation' }] } } };
+      RecordsService.validateHookConfiguration(recordType, ['onUpdate']);
+      await RecordsService.triggerPreSaveTriggers('record-123', { metadata: {} }, recordType, 'onUpdate', {});
+      expect(resolve.calledOnceWithExactly('fixture-stable-operation')).to.equal(true);
+      expect(execute.calledOnce).to.equal(true);
     });
   });
 
@@ -2496,12 +2507,12 @@ describe('RecordsService', function () {
           onCreate: {
             postSync: [
               {
-                function: `(_oid, hookRecord, _options, _user, response) => {
+                function: defineHook('fixture-hook-4', ((_oid, hookRecord, _options, _user, response) => {
                 response.workspaceOid = 'workspace-1';
                 response.workspaceData = { linked: true };
                 response.oid = 'tampered';
                 return { ...hookRecord, hookOnly: true };
-              }`,
+              })),
               },
             ],
           },
@@ -2525,19 +2536,19 @@ describe('RecordsService', function () {
 
     it('preserves standalone transition pre/postSync/post ordering and response projection', async function () {
       const events: string[] = [];
-      (globalThis as any).__effectTransitionEvents = events;
+      collaborators.__effectTransitionEvents = events;
       const recordType = {
         hooks: {
           onTransitionWorkflow: {
             pre: [
-              { function: '(_oid, record) => { globalThis.__effectTransitionEvents.push("pre"); return record; }' },
+              { function: defineHook('fixture-hook-5', ((_oid, record) => { collaborators.__effectTransitionEvents.push("pre"); return record; })) },
             ],
             postSync: [
               {
-                function: '(_oid, record) => { globalThis.__effectTransitionEvents.push("postSync"); return record; }',
+                function: defineHook('fixture-hook-6', ((_oid, record) => { collaborators.__effectTransitionEvents.push("postSync"); return record; })),
               },
             ],
-            post: [{ function: '() => { globalThis.__effectTransitionEvents.push("post"); }' }],
+            post: [{ function: defineHook('fixture-hook-7', (() => { collaborators.__effectTransitionEvents.push("post"); })) }],
           },
         },
       };
@@ -2563,13 +2574,13 @@ describe('RecordsService', function () {
         expect(response.oid).to.equal('record-123');
         expect(events).to.deep.equal(['pre', 'postSync', 'post']);
       } finally {
-        delete (globalThis as any).__effectTransitionEvents;
+        delete collaborators.__effectTransitionEvents;
       }
     });
 
     it('dispatches standalone transition post hooks after a postSync soft-failure response', async function () {
       const events: string[] = [];
-      (globalThis as any).__softTransitionEvents = events;
+      collaborators.__softTransitionEvents = events;
       const recordType = {
         hooks: {
           onTransitionWorkflow: {
@@ -2577,10 +2588,10 @@ describe('RecordsService', function () {
               {
                 options: { returnType: 'response' },
                 function:
-                  '() => { globalThis.__softTransitionEvents.push("postSync"); return { success: false, message: "soft failure" }; }',
+                  defineHook('fixture-hook-8', (() => { collaborators.__softTransitionEvents.push("postSync"); return { success: false, message: "soft failure" }; })),
               },
             ],
-            post: [{ function: '() => { globalThis.__softTransitionEvents.push("post"); }' }],
+            post: [{ function: defineHook('fixture-hook-9', (() => { collaborators.__softTransitionEvents.push("post"); })) }],
           },
         },
       };
@@ -2599,7 +2610,7 @@ describe('RecordsService', function () {
         expect(response.success).to.equal(false);
         expect(events).to.deep.equal(['postSync', 'post']);
       } finally {
-        delete (globalThis as any).__softTransitionEvents;
+        delete collaborators.__softTransitionEvents;
       }
     });
   });
@@ -2612,7 +2623,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.updateMeta.resolves({
@@ -2625,13 +2636,13 @@ describe('RecordsService', function () {
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
         metadata: { attachments: [] },
       });
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: { attachmentFields: ['attachments'] },
         })
       );
-      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+      collaborators.RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -2667,7 +2678,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.updateMeta.resolves({
@@ -2680,13 +2691,13 @@ describe('RecordsService', function () {
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
         metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'old-file', pending: false }] },
       });
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: { attachmentFields: ['attachments'] },
         })
       );
-      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+      collaborators.RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -2725,7 +2736,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.updateMeta.resolves({
@@ -2741,13 +2752,13 @@ describe('RecordsService', function () {
           attachments: [{ attachmentId: 'attachment-1', fileId: 'old-file', pending: false }],
         },
       });
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: { attachmentFields: ['attachments'] },
         })
       );
-      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+      collaborators.RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -2809,7 +2820,7 @@ describe('RecordsService', function () {
       mockStorageService.getCapabilities = sinon.stub().returns({
         recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks,
@@ -2842,7 +2853,7 @@ describe('RecordsService', function () {
       );
 
     it('enforces strict missing while observe and last-write-wins accept tokenless writes', async function () {
-      const validator = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const validator = collaborators.RecordValidationService.resolve as sinon.SinonStub;
 
       installMode('strict');
       mockStorageService.getMeta.resolves(record());
@@ -2887,7 +2898,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub(),
         markMutation: sinon.stub(),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
 
       const result = await update(record(3, 'Unauthorized', false), { expectedRevision: 3 });
 
@@ -2895,8 +2906,8 @@ describe('RecordsService', function () {
       expect(result.problems[0].kind).to.equal('authorization');
       expect(result.concurrency).to.equal(undefined);
       expect(JSON.stringify(result)).not.to.contain('Private');
-      expect((global as any).RecordTypesService.get.notCalled).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordTypesService.get.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(journal.findUnresolvedByOid.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
@@ -2907,7 +2918,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub(),
         markMutation: sinon.stub(),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       installMode('strict');
       mockStorageService.getMeta.resolves(record());
       mockDatastreamService.addDatastream = sinon.stub().resolves();
@@ -2936,7 +2947,7 @@ describe('RecordsService', function () {
       expect(fingerprint.problems[0].issues[0].code).to.equal('form-definition-changed');
       expect(fingerprint.concurrency?.formFingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
       expect(fingerprint.concurrency?.formFingerprint).not.to.equal(`sha256:${'0'.repeat(64)}`);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(journal.findUnresolvedByOid.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
       expect(mockDatastreamService.addDatastream.notCalled).to.equal(true);
@@ -2963,13 +2974,13 @@ describe('RecordsService', function () {
         branding: 'brand-1',
         configuration: { componentDefinitions: [] },
       };
-      (global as any).FormsService.getFormByName.returns(of(deliveredForm));
+      collaborators.FormsService.getFormByName.returns(of(deliveredForm));
       const issued = await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm);
       expect(issued).to.match(/^sha256:[0-9a-f]{64}$/);
 
       // Save recomputation resolves the same authoritative form identity and
       // contract again, producing exactly the value issued at delivery.
-      (global as any).FormsService.getFormByName.resetHistory();
+      collaborators.FormsService.getFormByName.resetHistory();
       const result = await update(record(4, 'Fingerprinted edit'), {
         expectedRevision: 4,
         formFingerprint: issued,
@@ -2977,7 +2988,7 @@ describe('RecordsService', function () {
 
       expect(result.outcome).to.equal('saved');
       expect(result.concurrency?.formFingerprint).to.equal(issued);
-      expect((global as any).FormsService.getFormByName.getCall(0).args.slice(0, 3)).to.deep.equal([
+      expect(collaborators.FormsService.getFormByName.getCall(0).args.slice(0, 3)).to.deep.equal([
         'default-form',
         true,
         'brand-1',
@@ -2998,25 +3009,25 @@ describe('RecordsService', function () {
       );
 
       expect(fingerprint).to.equal(undefined);
-      expect((global as any).FormsService.getFormByName.notCalled).to.equal(true);
+      expect(collaborators.FormsService.getFormByName.notCalled).to.equal(true);
     });
 
     it('binds workflow mappings into a stable fingerprint', async function () {
       installMode('strict');
       const stored = record();
       const recordType = { name: 'rdmp', hooks: {}, searchable: false };
-      (global as any).FormsService.getFormByName.callsFake((name: string) =>
+      collaborators.FormsService.getFormByName.callsFake((name: string) =>
         of({ id: `${name}-id`, name, branding: 'brand-1', configuration: { name } })
       );
 
       const current = await RecordsService.getRecordFormFingerprint(stored, recordType);
 
       expect(current).to.match(/^sha256:[0-9a-f]{64}$/);
-      expect((global as any).FormsService.getFormByName.alwaysCalledWith('default-form', true, 'brand-1')).to.equal(
+      expect(collaborators.FormsService.getFormByName.alwaysCalledWith('default-form', true, 'brand-1')).to.equal(
         true
       );
 
-      (global as any).WorkflowStepsService.getAllForRecordType.returns(
+      collaborators.WorkflowStepsService.getAllForRecordType.returns(
         of([
           { name: 'draft', starting: true, config: { form: 'default-form' } },
           { name: 'published', config: { form: 'changed-published-form' } },
@@ -3035,7 +3046,7 @@ describe('RecordsService', function () {
           attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
         },
       };
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: { attachmentFields: ['attachments'] },
@@ -3046,7 +3057,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onFirstCall().resolves(stored);
@@ -3059,7 +3070,7 @@ describe('RecordsService', function () {
       const reached = new Promise<void>(resolve => {
         validationReached = resolve;
       });
-      (global as any).RecordValidationService.resolve.callsFake(async () => {
+      collaborators.RecordValidationService.resolve.callsFake(async () => {
         validationReached();
         await barrier;
         return allowValidation();
@@ -3144,10 +3155,10 @@ describe('RecordsService', function () {
     });
 
     it('keeps completed attachment facts and stops post-sync after attachment-reference CAS loss', async function () {
-      (globalThis as any).__concurrencyPostSyncRan = false;
+      collaborators.__concurrencyPostSyncRan = false;
       installMode('strict', {
         onUpdate: {
-          postSync: [{ function: '() => { globalThis.__concurrencyPostSyncRan = true; return {}; }' }],
+          postSync: [{ function: defineHook('fixture-hook-10', (() => { collaborators.__concurrencyPostSyncRan = true; return {}; })) }],
         },
       });
       const stored = {
@@ -3160,7 +3171,7 @@ describe('RecordsService', function () {
           attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
         },
       };
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           id: 'form-1',
           name: 'default-form',
@@ -3173,7 +3184,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onFirstCall().resolves(stored);
@@ -3212,9 +3223,9 @@ describe('RecordsService', function () {
         requireRevision: true,
         expectedRevision: 5,
       });
-      expect((globalThis as any).__concurrencyPostSyncRan).to.equal(false);
+      expect(collaborators.__concurrencyPostSyncRan).to.equal(false);
       expect(mockStorageService.updateMeta.callCount).to.equal(2);
-      delete (globalThis as any).__concurrencyPostSyncRan;
+      delete collaborators.__concurrencyPostSyncRan;
     });
 
     it('holds completed physical work when attachment-reference persistence is unknown', async function () {
@@ -3226,7 +3237,7 @@ describe('RecordsService', function () {
           attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
         },
       };
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: { attachmentFields: ['attachments'] },
@@ -3237,7 +3248,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onFirstCall().resolves(stored);
@@ -3280,17 +3291,17 @@ describe('RecordsService', function () {
     });
 
     it('chains post-sync from the primary revision and reports a later CAS loss as a warning', async function () {
-      (globalThis as any).__concurrencyDetachedPostRan = false;
+      collaborators.__concurrencyDetachedPostRan = false;
       installMode('strict', {
         onUpdate: {
           postSync: [
             {
-              function: '(_oid, value) => ({ ...value, metadata: { title: "post-sync" } })',
+              function: defineHook('fixture-hook-11', ((_oid, value) => ({ ...value, metadata: { title: "post-sync" } }))),
             },
           ],
           post: [
             {
-              function: '() => { globalThis.__concurrencyDetachedPostRan = true; }',
+              function: defineHook('fixture-hook-12', (() => { collaborators.__concurrencyDetachedPostRan = true; })),
             },
           ],
         },
@@ -3324,8 +3335,8 @@ describe('RecordsService', function () {
         expectedRevision: 5,
       });
       expect(result.concurrency).to.include({ revision: 6, currentRevision: 6 });
-      expect((globalThis as any).__concurrencyDetachedPostRan).to.equal(false);
-      delete (globalThis as any).__concurrencyDetachedPostRan;
+      expect(collaborators.__concurrencyDetachedPostRan).to.equal(false);
+      delete collaborators.__concurrencyDetachedPostRan;
     });
 
     it('holds prepared attachments on an unknown primary result and performs no physical work', async function () {
@@ -3337,7 +3348,7 @@ describe('RecordsService', function () {
           attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
         },
       };
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: { attachmentFields: ['attachments'] },
@@ -3348,7 +3359,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.resolves(stored);
@@ -3384,7 +3395,7 @@ describe('RecordsService', function () {
           attachments: [{ attachmentId: 'attachment-1', fileId: 'stable-staged-file', pending: true }],
         },
       };
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: { attachmentFields: ['attachments'] },
@@ -3395,7 +3406,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onCall(0).resolves(initial);
@@ -3473,7 +3484,7 @@ describe('RecordsService', function () {
         ...record(5),
         metadata: { attachments: [pendingAttachment] },
       };
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: { attachmentFields: ['attachments'] },
@@ -3494,7 +3505,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onFirstCall().resolves(stored);
@@ -3591,8 +3602,8 @@ describe('RecordsService', function () {
               : []
           ),
       };
-      mockSails.services.attachmentmetadataservice = journal;
-      mockSails.config.record.attachments = { stagingExpiryMs: 60_000 };
+      fixture.services.attachmentmetadataservice = journal;
+      fixture.config.record.attachments = { stagingExpiryMs: 60_000 };
       mockStorageService.getMeta.callsFake(async (oid: string) =>
         oid === 'active-record'
           ? {
@@ -3631,8 +3642,8 @@ describe('RecordsService', function () {
         journal.authorizeStagingCleanup.firstCall.calledBefore(mockDatastreamService.removeStagedDatastream.firstCall)
       ).to.equal(true);
       const cleanupLogs = JSON.stringify([
-        ...mockSails.log.info.getCalls().map((call: sinon.SinonSpyCall) => call.args),
-        ...mockSails.log.warn.getCalls().map((call: sinon.SinonSpyCall) => call.args),
+        ...fixture.log.info.getCalls().map((call: sinon.SinonSpyCall) => call.args),
+        ...fixture.log.warn.getCalls().map((call: sinon.SinonSpyCall) => call.args),
       ]);
       expect(cleanupLogs).not.to.contain('private-provider-token');
       expect(cleanupLogs).not.to.contain('/private/provider/path');
@@ -3658,7 +3669,7 @@ describe('RecordsService', function () {
         recoverStagingCleanup: sinon.stub().resolves('retained'),
         findUnresolvedByStagingFileId: sinon.stub().resolves([]),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockStorageService.getMeta.resolves({ metadata: { partial: true } });
       mockDatastreamService.removeStagedDatastream = sinon.stub().resolves();
 
@@ -3674,33 +3685,23 @@ describe('RecordsService', function () {
   });
 
   describe('queued Figshare with typed save outcomes', function () {
-    let previousConfig: unknown;
-    let previousFigshare: unknown;
     const recordType = {
-      name: 'rdmp',
-      searchable: false,
-      hooks: { onCreate: { pre: [{ function: 'FigshareService.validateFigshareRecord' }] } },
+      name: 'rdmp', searchable: false,
+      hooks: { onCreate: { pre: [{ function: 'figshare.validateFigshareRecord' }] } },
     };
     beforeEach(function () {
-      previousConfig = Reflect.get(globalThis, 'AppConfigService');
-      previousFigshare = Reflect.get(globalThis, 'FigshareService');
       const { FigsharePublishing } = require('../../src/configmodels/FigsharePublishing');
       const config = new FigsharePublishing();
       config.enabled = true;
       config.processing.enabled = true;
-      Reflect.set(globalThis, 'AppConfigService', {
-        getAppConfigurationForBrand: () => ({ figsharePublishing: config }),
-      });
-      Reflect.set(globalThis, 'FigshareService', {
+      fixture.config.brandingAware = () => ({ figsharePublishing: config });
+      collaborators.FigshareService = {
         wakeFigshareRecord: sinon.stub().resolves(),
         validateFigshareRecord: (_oid: unknown, record: unknown) => record,
-      });
+      };
+      defineHook('figshare.validateFigshareRecord', collaborators.FigshareService.validateFigshareRecord);
       mockStorageService.readyFigshareIntent = sinon.stub().resolves(true);
       mockStorageService.abandonFigshareIntent = sinon.stub().resolves(true);
-    });
-    afterEach(function () {
-      Reflect.set(globalThis, 'AppConfigService', previousConfig);
-      Reflect.set(globalThis, 'FigshareService', previousFigshare);
     });
     it('commits an initialising intent with the primary create and readies only after save phases finish', async function () {
       const result = await RecordsService.create(
@@ -3897,7 +3898,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      mockSails.services.attachmentmetadataservice = journal;
+      fixture.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.create.resolves({
@@ -3915,11 +3916,11 @@ describe('RecordsService', function () {
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
         metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: false }] },
       });
-      (global as any).FormsService.getForm.resolves({
+      collaborators.FormsService.getForm.resolves({
         name: 'default-form',
         configuration: { attachmentFields: ['attachments'] },
       });
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({ name: 'default-form', configuration: { attachmentFields: ['attachments'] } })
       );
 
@@ -4110,7 +4111,7 @@ describe('RecordsService', function () {
         expect(mockSearchService.index.called, scenario.name).to.equal(scenario.called);
       }
       RecordsService.searchService = mockSearchService;
-      expect(JSON.stringify(mockSails.log.warn.args)).not.to.contain('private index failure');
+      expect(JSON.stringify(fixture.log.warn.args)).not.to.contain('private index failure');
     });
   });
 
@@ -4151,7 +4152,7 @@ describe('RecordsService', function () {
       const result = await RecordsService.create(
         { id: 'brand-1' },
         { metadata: {} },
-        { name: 'rdmp', hooks: { onCreate: { pre: [{ function: '({ invalid: true })' }] } }, searchable: false },
+        { name: 'rdmp', hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-13', (({ invalid: true }))) }] } }, searchable: false },
         { username: 'user-1' },
         false,
         false
@@ -4164,16 +4165,16 @@ describe('RecordsService', function () {
 
     it('stops before persistence when the attachment journal cannot be prepared', async function () {
       const markMutation = sinon.stub().resolves(true);
-      mockSails.services.attachmentmetadataservice = {
+      fixture.services.attachmentmetadataservice = {
         prepareMutations: sinon.stub().rejects(new Error('journal unavailable')),
         findUnresolvedByOid: sinon.stub().resolves([]),
         markMutation,
       };
-      (global as any).FormsService.getForm.resolves({
+      collaborators.FormsService.getForm.resolves({
         name: 'default-form',
         configuration: { attachmentFields: ['attachments'] },
       });
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({ name: 'default-form', configuration: { attachmentFields: ['attachments'] } })
       );
 
@@ -4206,10 +4207,10 @@ describe('RecordsService', function () {
         ...updateRecord(),
         revision: 1,
       });
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({ name: 'default-form', configuration: { attachmentFields: [] } })
       );
-      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+      collaborators.RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
     });
 
     it('returns not-saved when update persistence is explicitly rejected', async function () {
@@ -4243,7 +4244,7 @@ describe('RecordsService', function () {
     });
 
     it('returns a pre-save problem when update journal reconciliation cannot be read', async function () {
-      mockSails.services.attachmentmetadataservice = {
+      fixture.services.attachmentmetadataservice = {
         prepareMutations: sinon.stub().resolves(),
         findUnresolvedByOid: sinon.stub().rejects(new Error('journal read failed')),
       };
@@ -4262,13 +4263,13 @@ describe('RecordsService', function () {
     });
 
     it('reports a warning when physical attachment work fails after metadata commits', async function () {
-      mockSails.services.attachmentmetadataservice = {
+      fixture.services.attachmentmetadataservice = {
         prepareMutations: sinon.stub().resolves(),
         findUnresolvedByOid: sinon.stub().resolves([]),
         markMutation: sinon.stub().resolves(true),
       };
       mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({ name: 'default-form', configuration: { attachmentFields: ['attachments'] } })
       );
       mockStorageService.getMeta.resolves({
@@ -4346,10 +4347,10 @@ describe('RecordsService', function () {
 
     const authorizeCreateFromStartingStep = (roleName = 'Researcher') => {
       const role = { id: `role-${roleName.toLowerCase()}`, name: roleName };
-      (global as any).RolesService.getRole = sinon
+      collaborators.RolesService.getRole = sinon
         .stub()
         .callsFake((_brand: unknown, configuredName: string) => (configuredName === roleName ? role : null));
-      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+      collaborators.WorkflowStepsService.getFirst = sinon.stub().returns(
         of({
           name: 'draft',
           config: {
@@ -4474,8 +4475,8 @@ describe('RecordsService', function () {
     });
 
     const enableRecordSchema = () => {
-      mockSails.config.recordSchema = { enabled: 'true' };
-      mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
+      fixture.config.recordSchema = { enabled: 'true' };
+      fixture.config.auth = { ...fixture.config.auth, defaultPortal: 'portal' };
     };
 
     const enableInternalRecordMutationStorage = () => {
@@ -4565,8 +4566,8 @@ describe('RecordsService', function () {
         persistSaveUsageReference: sinon.stub(),
       };
       const schemaStorage = recordSchemaStorageSpies();
-      mockSails.config.recordSchema = { enabled: false };
-      mockSails.services.recordschemaservice = schemaService;
+      fixture.config.recordSchema = { enabled: false };
+      fixture.services.recordschemaservice = schemaService;
       Object.assign(mockStorageService, schemaStorage);
       return { schemaService, schemaStorage };
     };
@@ -4698,16 +4699,16 @@ describe('RecordsService', function () {
 
     const installGeneratedSchemaValidationPipeline = () => {
       const form = businessValidationForm();
-      mockSails.config.recordSchema = { ...recordSchema, enabled: true };
-      mockSails.config.recordValidation = {
+      fixture.config.recordSchema = { ...recordSchema, enabled: true };
+      fixture.config.recordValidation = {
         mode: 'enforce',
         timeoutMs: 5_000,
         allowedRequestParameters: [],
       };
-      mockSails.config.validators = {
+      fixture.config.validators = {
         definitions: formValidatorsSharedDefinitions,
       };
-      mockSails.config.reusableFormDefinitions = {};
+      fixture.config.reusableFormDefinitions = {};
 
       const validationDependencies: Partial<RecordValidationServiceDependencies> = {
         loadRecordType: async () => ({
@@ -4735,9 +4736,9 @@ describe('RecordsService', function () {
           return loadedForm;
         },
       };
-      const validationService = new RecordValidationServices.RecordValidation(validationDependencies);
+      const validationService = createValidation(validationDependencies);
       const businessValidation = sinon.spy(validationService, 'resolve');
-      mockSails.services.recordvalidationservice = validationService;
+      fixture.services.recordvalidationservice = validationService;
 
       const formRecord: FormAttributes = {
         id: 'form-default-form',
@@ -4795,7 +4796,7 @@ describe('RecordsService', function () {
       const resolveCreate = sinon.spy(schemaService, 'resolveCreate');
       const validateResolvedArtifact = sinon.spy(schemaService, 'validateResolvedArtifact');
       const persistSaveUsageReference = sinon.spy(schemaService, 'persistSaveUsageReference');
-      mockSails.services.recordschemaservice = schemaService;
+      fixture.services.recordschemaservice = schemaService;
 
       return {
         businessValidation,
@@ -4813,18 +4814,18 @@ describe('RecordsService', function () {
       executeValidators?: NonNullable<RecordValidationServiceDependencies['executeValidators']>,
       collectTransformations?: NonNullable<RecordValidationServiceDependencies['collectTransformations']>
     ) => {
-      mockSails.config.recordValidation = { mode, timeoutMs: 5_000, allowedRequestParameters: [] };
-      mockSails.config.record.form = { htmlSanitizationMode, returnMetadataOnSave: true };
-      mockSails.config.dompurify = {
+      fixture.config.recordValidation = { mode, timeoutMs: 5_000, allowedRequestParameters: [] };
+      fixture.config.record.form = { htmlSanitizationMode, returnMetadataOnSave: true };
+      fixture.config.dompurify = {
         profiles: {
           html: { USE_PROFILES: { html: true } },
           svg: { USE_PROFILES: { svg: true } },
         },
         defaultProfile: 'html',
       };
-      mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
-      mockSails.config.reusableFormDefinitions = {};
-      (global as any).DomSanitizerService = new DomSanitizerServices.DomSanitizer();
+      fixture.config.validators = { definitions: formValidatorsSharedDefinitions };
+      fixture.config.reusableFormDefinitions = {};
+      collaborators.DomSanitizerService = new DomSanitizerServices.DomSanitizer({ config: fixture.config, log: fixture.log });
       const dependencies: Partial<RecordValidationServiceDependencies> = {
         loadRecordType: async () => ({ id: 'record-type-1', name: 'rdmp', recordValidation: { mode } }),
         loadStartingWorkflowStep: async () => ({
@@ -4847,7 +4848,7 @@ describe('RecordsService', function () {
                 collectTransformations
                   ? await collectTransformations(form, checkDeadline)
                   : (
-                      await new ValidatorFormConfigVisitor(mockSails.log).startWithResult({
+                      await new ValidatorFormConfigVisitor(fixture.log, htmlInput()).startWithResult({
                         form,
                         transformationOnly: true,
                         checkDeadline,
@@ -4857,14 +4858,14 @@ describe('RecordsService', function () {
             }
           : {}),
       };
-      const validationService = new RecordValidationServices.RecordValidation(dependencies);
+      const validationService = createValidation(dependencies);
       const resolve = sinon.spy(validationService, 'resolve');
-      mockSails.services.recordvalidationservice = validationService;
-      (global as any).FormsService.getForm.resolves({
+      fixture.services.recordvalidationservice = validationService;
+      collaborators.FormsService.getForm.resolves({
         name: 'default-form',
         configuration: richHtmlForm(),
       });
-      (global as any).FormsService.getFormByName.callsFake((formName: string) =>
+      collaborators.FormsService.getFormByName.callsFake((formName: string) =>
         of({
           name: formName,
           configuration: richHtmlForm(formName),
@@ -4893,7 +4894,7 @@ describe('RecordsService', function () {
         expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
       }
       expect(preHook.notCalled).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.create.notCalled).to.equal(true);
     });
 
@@ -4913,7 +4914,7 @@ describe('RecordsService', function () {
 
       for (const mode of ['last-write-wins', 'observe'] as const) {
         mockStorageService.create.resetHistory();
-        (global as any).RecordValidationService.resolve.resetHistory();
+        collaborators.RecordValidationService.resolve.resetHistory();
         const result = await RecordsService.create(
           { id: 'brand-1' },
           candidate,
@@ -4933,7 +4934,7 @@ describe('RecordsService', function () {
       }
 
       mockStorageService.create.resetHistory();
-      (global as any).RecordValidationService.resolve.resetHistory();
+      collaborators.RecordValidationService.resolve.resetHistory();
       const strict = await RecordsService.create(
         { id: 'brand-1' },
         candidate,
@@ -4948,7 +4949,7 @@ describe('RecordsService', function () {
       expect(strict.outcome).to.equal('not-saved');
       expect(strict.problems[0].issues[0].code).to.equal('form-definition-changed');
       expect(strict.concurrency?.formFingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.create.notCalled).to.equal(true);
     });
 
@@ -4959,12 +4960,12 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      mockSails.services.attachmentmetadataservice = journal;
-      (global as any).FormsService.getForm.resolves({
+      fixture.services.attachmentmetadataservice = journal;
+      collaborators.FormsService.getForm.resolves({
         name: 'default-form',
         configuration: { attachmentFields: ['attachments'] },
       });
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
         expect(request.candidate.metadata.title).to.equal('Mutated by pre-hook');
         expect(request.writeKind).to.equal('create');
@@ -4981,7 +4982,7 @@ describe('RecordsService', function () {
               pre: [
                 {
                   function:
-                    '(_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Mutated by pre-hook" } })',
+                    defineHook('fixture-hook-14', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Mutated by pre-hook" } }))),
                 },
               ],
             },
@@ -5002,7 +5003,7 @@ describe('RecordsService', function () {
     it('runs create structural validation on the normalized operation and raw metadata in the exact save order', async function () {
       enableRecordSchema();
       const researcherRole = authorizeCreateFromStartingStep();
-      mockSails.config.recordValidation = { mode: 'shadow' };
+      fixture.config.recordValidation = { mode: 'shadow' };
       const rawMetadata = { title: 'Raw title', nested: { count: 1 } };
       const callerRecord = {
         metadata: structuredClone(rawMetadata),
@@ -5022,7 +5023,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -5031,7 +5032,7 @@ describe('RecordsService', function () {
       const transitionMetadata = sinon.spy(RecordsService as any, 'transitionWorkflowStepMetadata');
       const initializeMetadata = sinon.spy(RecordsService as any, 'initRecordMetaMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
-      const businessValidation = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const businessValidation = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       businessValidation.resolves(allowResult());
 
       const result = await RecordsService.create(
@@ -5084,8 +5085,8 @@ describe('RecordsService', function () {
       expect(authorize.calledBefore(resolveCreate)).to.equal(true);
       expect(resolveCreate.calledBefore(validateResolvedArtifact)).to.equal(true);
       expect(validateResolvedArtifact.calledBefore(transitionMetadata)).to.equal(true);
-      expect(transitionMetadata.calledBefore((global as any).FormsService.getForm)).to.equal(true);
-      expect((global as any).FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
+      expect(transitionMetadata.calledBefore(collaborators.FormsService.getForm)).to.equal(true);
+      expect(collaborators.FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
       expect(initializeMetadata.calledBefore(preSaveHook)).to.equal(true);
       expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
       expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
@@ -5141,10 +5142,10 @@ describe('RecordsService', function () {
       enableRecordSchema();
       const creatorRole = { id: 'role-creator', name: 'Creator' };
       const deniedRole = { id: 'role-denied', name: 'Denied' };
-      (global as any).RolesService.getRole = sinon
+      collaborators.RolesService.getRole = sinon
         .stub()
         .callsFake((_brand: unknown, name: string) => (name === 'Creator' ? creatorRole : null));
-      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+      collaborators.WorkflowStepsService.getFirst = sinon.stub().returns(
         of({
           name: 'draft',
           config: {
@@ -5155,7 +5156,7 @@ describe('RecordsService', function () {
       );
       const resolveCreate = sinon.stub().resolves(createSchemaResolution('resolved', 'enforce'));
       const putRecordSchemaReference = sinon.stub();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact: sinon.stub().returns({
           kind: 'validated',
@@ -5192,7 +5193,7 @@ describe('RecordsService', function () {
     it('keeps a confirmed create saved-with-warnings when its schema usage reference cannot be persisted', async function () {
       enableRecordSchema();
       const researcherRole = authorizeCreateFromStartingStep();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const resolveCreate = sinon.stub().resolves(createSchemaResolution('resolved', 'enforce'));
       const validateResolvedArtifact = sinon.stub().returns({
         kind: 'validated',
@@ -5208,12 +5209,12 @@ describe('RecordsService', function () {
         retryable: true,
         reference: recordedSchemaUsageResult(request).reference,
       }));
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
       };
-      mockSails.log.error.throws(new Error('diagnostic sink unavailable'));
+      fixture.log.error.throws(new Error('diagnostic sink unavailable'));
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.create(
@@ -5252,14 +5253,14 @@ describe('RecordsService', function () {
           ],
         },
       ]);
-      expect(mockSails.log.error.lastCall.args[1]).to.deep.equal({
+      expect(fixture.log.error.lastCall.args[1]).to.deep.equal({
         event: 'record_schema_save_usage_persistence_failed',
         schema_kind: 'create',
         result: 'write-failed',
         code: 'record-schema.storage-unavailable',
       });
-      expect(JSON.stringify(mockSails.log.error.lastCall.args)).not.to.include('Persisted before usage failure');
-      expect(JSON.stringify(mockSails.log.error.lastCall.args)).not.to.include('a'.repeat(64));
+      expect(JSON.stringify(fixture.log.error.lastCall.args)).not.to.include('Persisted before usage failure');
+      expect(JSON.stringify(fixture.log.error.lastCall.args)).not.to.include('a'.repeat(64));
     });
 
     it('normalizes a mismatched schema usage reference after persistence', async function () {
@@ -5271,7 +5272,7 @@ describe('RecordsService', function () {
           digest: 'b'.repeat(64),
         },
       }));
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveCreate: sinon.stub().resolves(createSchemaResolution('resolved', 'enforce')),
         validateResolvedArtifact: sinon.stub().returns({
           kind: 'validated',
@@ -5299,7 +5300,7 @@ describe('RecordsService', function () {
       expect(result.outcome).to.equal('saved-with-warnings');
       expect(result.wasPersisted()).to.equal(true);
       expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'post-save' });
-      expect(mockSails.log.error.lastCall.args[1]).to.deep.equal({
+      expect(fixture.log.error.lastCall.args[1]).to.deep.equal({
         event: 'record_schema_save_usage_persistence_failed',
         schema_kind: 'create',
         result: 'unavailable',
@@ -5372,7 +5373,7 @@ describe('RecordsService', function () {
             pre: [
               {
                 function:
-                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, runBeforeValidatorCount: (record.metadata.runBeforeValidatorCount ?? 0) + 1 } })',
+                  defineHook('fixture-hook-15', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, runBeforeValidatorCount: (record.metadata.runBeforeValidatorCount ?? 0) + 1 } }))),
               },
             ],
           },
@@ -5495,7 +5496,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -5507,7 +5508,7 @@ describe('RecordsService', function () {
             pre: [
               {
                 function:
-                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, updateRunBeforeValidatorCount: (record.metadata.updateRunBeforeValidatorCount ?? 0) + 1 } })',
+                  defineHook('fixture-hook-16', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, updateRunBeforeValidatorCount: (record.metadata.updateRunBeforeValidatorCount ?? 0) + 1 } }))),
               },
             ],
           },
@@ -5515,14 +5516,14 @@ describe('RecordsService', function () {
             pre: [
               {
                 function:
-                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, transitionRunBeforeValidatorCount: (record.metadata.transitionRunBeforeValidatorCount ?? 0) + 1 } })',
+                  defineHook('fixture-hook-17', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, transitionRunBeforeValidatorCount: (record.metadata.transitionRunBeforeValidatorCount ?? 0) + 1 } }))),
               },
             ],
           },
         },
         searchable: false,
       };
-      (global as any).RecordTypesService.get.returns(of(recordType));
+      collaborators.RecordTypesService.get.returns(of(recordType));
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
@@ -5689,10 +5690,10 @@ describe('RecordsService', function () {
 
     it('authorizes public no-ACL harvest creates from workflow roles in disabled, shadow, and enforce modes', async function () {
       const harvesterRole = { id: 'role-harvester', name: 'Harvester' };
-      (global as any).RolesService.getRole.callsFake((_brand: unknown, roleName: string) =>
+      collaborators.RolesService.getRole.callsFake((_brand: unknown, roleName: string) =>
         roleName === harvesterRole.name ? harvesterRole : null
       );
-      (global as any).WorkflowStepsService.getFirst.returns(
+      collaborators.WorkflowStepsService.getFirst.returns(
         of({
           name: 'draft',
           config: {
@@ -5710,22 +5711,22 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
       };
 
       for (const mode of ['disabled', 'shadow', 'enforce'] as const) {
-        mockSails.config.recordSchema = { enabled: mode !== 'disabled' };
-        mockSails.config.recordValidation = { mode: mode === 'disabled' ? 'shadow' : mode };
+        fixture.config.recordSchema = { enabled: mode !== 'disabled' };
+        fixture.config.recordValidation = { mode: mode === 'disabled' ? 'shadow' : mode };
         resolveCreate.resetHistory();
         if (mode !== 'disabled') {
           resolveCreate.resolves(createSchemaResolution('resolved', mode));
         }
         validateResolvedArtifact.resetHistory();
-        (global as any).RecordValidationService.resolve.resetHistory();
-        (global as any).RecordValidationService.resolve.resolves(
+        collaborators.RecordValidationService.resolve.resetHistory();
+        collaborators.RecordValidationService.resolve.resolves(
           allowResult({ mode: mode === 'disabled' ? 'shadow' : mode })
         );
         mockStorageService.create.resetHistory();
@@ -5763,10 +5764,10 @@ describe('RecordsService', function () {
 
     it('rejects unauthorized public no-ACL harvest creates before schema resolution in every mode', async function () {
       const harvesterRole = { id: 'role-harvester', name: 'Harvester' };
-      (global as any).RolesService.getRole.callsFake((_brand: unknown, roleName: string) =>
+      collaborators.RolesService.getRole.callsFake((_brand: unknown, roleName: string) =>
         roleName === harvesterRole.name ? harvesterRole : null
       );
-      (global as any).WorkflowStepsService.getFirst.returns(
+      collaborators.WorkflowStepsService.getFirst.returns(
         of({
           name: 'draft',
           config: {
@@ -5778,17 +5779,17 @@ describe('RecordsService', function () {
       );
       const resolveCreate = sinon.stub();
       const validateResolvedArtifact = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
       for (const mode of ['disabled', 'shadow', 'enforce'] as const) {
-        mockSails.config.recordSchema = { enabled: mode !== 'disabled' };
-        mockSails.config.recordValidation = { mode: mode === 'disabled' ? 'shadow' : mode };
+        fixture.config.recordSchema = { enabled: mode !== 'disabled' };
+        fixture.config.recordValidation = { mode: mode === 'disabled' ? 'shadow' : mode };
         resolveCreate.resetHistory();
         if (mode !== 'disabled') {
           resolveCreate.resolves(createSchemaResolution('resolved', mode));
         }
         validateResolvedArtifact.resetHistory();
-        (global as any).RecordValidationService.resolve.resetHistory();
+        collaborators.RecordValidationService.resolve.resetHistory();
         mockStorageService.create.resetHistory();
 
         const harvestRequest = {
@@ -5810,7 +5811,7 @@ describe('RecordsService', function () {
         expect(result.problems[0].issues[0].code, mode).to.equal('record-validation-edit-unauthorized');
         expect(resolveCreate.notCalled, mode).to.equal(true);
         expect(validateResolvedArtifact.notCalled, mode).to.equal(true);
-        expect((global as any).RecordValidationService.resolve.notCalled, mode).to.equal(true);
+        expect(collaborators.RecordValidationService.resolve.notCalled, mode).to.equal(true);
         expect(mockStorageService.create.notCalled, mode).to.equal(true);
         expect(harvestRequest, mode).to.deep.equal({
           harvestId: `unauthorized-${mode}`,
@@ -5837,7 +5838,7 @@ describe('RecordsService', function () {
             truncated: false,
           };
         });
-        mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+        fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
         const result = await RecordsService.create(
           { id: 'brand-1' },
@@ -5878,7 +5879,7 @@ describe('RecordsService', function () {
       });
       const resolveCreate = sinon.stub();
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -5890,9 +5891,9 @@ describe('RecordsService', function () {
         resolveCreate.resolves(createSchemaResolution('resolved', mode));
         validateResolvedArtifact.resetHistory();
         preSaveHook.resetHistory();
-        (global as any).FormsService.getForm.resetHistory();
-        (global as any).RecordValidationService.resolve.resetHistory();
-        (global as any).RecordValidationService.resolve.resolves(allowResult({ mode }));
+        collaborators.FormsService.getForm.resetHistory();
+        collaborators.RecordValidationService.resolve.resetHistory();
+        collaborators.RecordValidationService.resolve.resolves(allowResult({ mode }));
         mockStorageService.create.resetHistory();
 
         const result = await RecordsService.create(
@@ -5922,17 +5923,17 @@ describe('RecordsService', function () {
           },
         ]);
         expect(preSaveHook.called, mode).to.equal(mode === 'shadow');
-        expect((global as any).RecordValidationService.resolve.called, mode).to.equal(mode === 'shadow');
+        expect(collaborators.RecordValidationService.resolve.called, mode).to.equal(mode === 'shadow');
         expect(mockStorageService.create.called, mode).to.equal(mode === 'shadow');
         if (mode === 'enforce') {
-          expect((global as any).FormsService.getForm.notCalled).to.equal(true);
+          expect(collaborators.FormsService.getForm.notCalled).to.equal(true);
         }
       }
     });
 
     it('marks truncated schema diagnostics within the configured issue limit in shadow and enforce', async function () {
       enableRecordSchema();
-      mockSails.config.recordSchema.limits = { maxDiagnostics: 2 };
+      fixture.config.recordSchema.limits = { maxDiagnostics: 2 };
       const resolveCreate = sinon.stub();
       const validateResolvedArtifact = sinon.stub().returns({
         kind: 'validated',
@@ -5943,13 +5944,13 @@ describe('RecordsService', function () {
         ],
         truncated: true,
       });
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
       for (const mode of ['shadow', 'enforce'] as const) {
         resolveCreate.reset();
         resolveCreate.resolves(createSchemaResolution('resolved', mode));
-        (global as any).RecordValidationService.resolve.resetHistory();
-        (global as any).RecordValidationService.resolve.resolves(allowResult({ mode }));
+        collaborators.RecordValidationService.resolve.resetHistory();
+        collaborators.RecordValidationService.resolve.resolves(allowResult({ mode }));
         mockStorageService.create.resetHistory();
 
         const result = await RecordsService.create(
@@ -5977,7 +5978,7 @@ describe('RecordsService', function () {
             pointer: '',
           },
         ]);
-        expect(result.problems[0].issues).to.have.length.at.most(mockSails.config.recordSchema.limits.maxDiagnostics);
+        expect(result.problems[0].issues).to.have.length.at.most(fixture.config.recordSchema.limits.maxDiagnostics);
         expect(mockStorageService.create.called, mode).to.equal(mode === 'shadow');
       }
     });
@@ -5992,12 +5993,12 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
       };
-      (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+      collaborators.RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.create(
         { id: 'brand-1' },
@@ -6036,7 +6037,7 @@ describe('RecordsService', function () {
 
     it('applies the existing rollout precedence to unavailable create schemas using the normalized operation', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = {
+      fixture.config.recordValidation = {
         mode: 'enforce',
         operations: { publish: { mode: 'enforce' } },
       };
@@ -6046,7 +6047,7 @@ describe('RecordsService', function () {
         code: 'record-schema.unavailable',
       });
       const validateResolvedArtifact = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
       const context = recordSchemaContext({ validationOperation: '  publish  ' });
       const recordType = {
         name: 'rdmp',
@@ -6109,14 +6110,14 @@ describe('RecordsService', function () {
         diagnosticCodes: ['record-validation-operation-role-unauthorized'],
       });
       const validateResolvedArtifact = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       for (const mode of ['shadow', 'enforce'] as const) {
-        mockSails.config.recordValidation = { mode };
+        fixture.config.recordValidation = { mode };
         resolveCreate.resetHistory();
         preSaveHook.resetHistory();
-        (global as any).RecordValidationService.resolve.resetHistory();
+        collaborators.RecordValidationService.resolve.resetHistory();
         mockStorageService.create.resetHistory();
 
         const result = await RecordsService.create(
@@ -6135,7 +6136,7 @@ describe('RecordsService', function () {
         expect(result.problems[0].issues[0].code).to.equal('record-validation-operation-unauthorized');
         expect(validateResolvedArtifact.notCalled).to.equal(true);
         expect(preSaveHook.notCalled).to.equal(true);
-        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
         expect(mockStorageService.create.notCalled).to.equal(true);
       }
     });
@@ -6148,7 +6149,7 @@ describe('RecordsService', function () {
       const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
       const transitionHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
-      const businessValidation = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const businessValidation = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       businessValidation.resolves(allowResult());
 
       const result = await RecordsService.create(
@@ -6167,8 +6168,8 @@ describe('RecordsService', function () {
       expect(result.schemaOutcome).to.equal(undefined);
       expectDisabledRecordSchemaInert(schemaHarness);
       expectNoDisabledRecordSchemaDataPersisted(mockStorageService.create.firstCall.args[1]);
-      expect(transitionMetadata.calledBefore((global as any).FormsService.getForm)).to.equal(true);
-      expect((global as any).FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
+      expect(transitionMetadata.calledBefore(collaborators.FormsService.getForm)).to.equal(true);
+      expect(collaborators.FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
       expect(initializeMetadata.calledBefore(authorize)).to.equal(true);
       expect(authorize.calledBefore(transitionAuthorization)).to.equal(true);
       expect(transitionAuthorization.calledBefore(transitionHook)).to.equal(true);
@@ -6338,14 +6339,14 @@ describe('RecordsService', function () {
           },
         ],
       };
-      mockSails.config.recordValidation = {
+      fixture.config.recordValidation = {
         mode: 'enforce',
         timeoutMs: 5_000,
         allowedRequestParameters: [],
       };
-      mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
-      mockSails.config.reusableFormDefinitions = {};
-      const validationService = new RecordValidationServices.RecordValidation({
+      fixture.config.validators = { definitions: formValidatorsSharedDefinitions };
+      fixture.config.reusableFormDefinitions = {};
+      const validationService = createValidation({
         loadRecordType: async () => ({
           id: 'record-type-1',
           name: 'rdmp',
@@ -6369,7 +6370,7 @@ describe('RecordsService', function () {
         }),
       });
       const businessValidation = sinon.spy(validationService, 'resolve');
-      mockSails.services.recordvalidationservice = validationService;
+      fixture.services.recordvalidationservice = validationService;
       const formRecord: FormAttributes = {
         id: 'form-default-form',
         name: 'default-form',
@@ -6423,8 +6424,8 @@ describe('RecordsService', function () {
     });
 
     it('preserves schema-disabled hook failure precedence over transition authorization', async function () {
-      mockSails.config.recordSchema = { enabled: false };
-      const workflowStepsService = Reflect.get(globalThis, 'WorkflowStepsService') as {
+      fixture.config.recordSchema = { enabled: false };
+      const workflowStepsService = collaborators.WorkflowStepsService as {
         get: sinon.SinonStub;
       };
       workflowStepsService.get.returns(
@@ -6444,7 +6445,7 @@ describe('RecordsService', function () {
         { metadata: { title: 'Baseline precedence' } },
         {
           name: 'rdmp',
-          hooks: { onCreate: { pre: [{ function: '({ invalid: true })' }] } },
+          hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-18', (({ invalid: true }))) }] } },
           searchable: false,
         },
         { username: 'user-1', roles: [{ name: 'Researcher' }] },
@@ -6460,12 +6461,12 @@ describe('RecordsService', function () {
     });
 
     it('exposes current attachmentFields to create hooks and normalizes the final workflow form', async function () {
-      (globalThis as any).__createHookAttachmentFields = undefined;
-      (global as any).FormsService.getForm.resolves({
+      collaborators.__createHookAttachmentFields = undefined;
+      collaborators.FormsService.getForm.resolves({
         name: 'default-form',
         configuration: { attachmentFields: ['beforeHookAttachment'] },
       });
-      (global as any).FormsService.getFormByName.callsFake((formName: string) =>
+      collaborators.FormsService.getFormByName.callsFake((formName: string) =>
         of({
           name: formName,
           configuration: {
@@ -6473,7 +6474,7 @@ describe('RecordsService', function () {
           },
         })
       );
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
         expect(request.candidate.metaMetadata.form).to.equal('default-form');
         expect(request.candidate.metaMetadata.attachmentFields).to.deep.equal(['beforeHookAttachment']);
@@ -6491,7 +6492,7 @@ describe('RecordsService', function () {
                 pre: [
                   {
                     function:
-                      '(_oid, record) => { globalThis.__createHookAttachmentFields = [...record.metaMetadata.attachmentFields]; return { ...record, metaMetadata: { ...record.metaMetadata, form: "after-hook-form" } }; }',
+                      defineHook('fixture-hook-19', ((_oid, record) => { collaborators.__createHookAttachmentFields = [...record.metaMetadata.attachmentFields]; return { ...record, metaMetadata: { ...record.metaMetadata, form: "after-hook-form" } }; })),
                   },
                 ],
               },
@@ -6502,18 +6503,18 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('saved');
-        expect((globalThis as any).__createHookAttachmentFields).to.deep.equal(['beforeHookAttachment']);
+        expect(collaborators.__createHookAttachmentFields).to.deep.equal(['beforeHookAttachment']);
         expect(mockStorageService.create.firstCall.args[1].metaMetadata).to.deep.include({
           form: 'default-form',
           attachmentFields: ['beforeHookAttachment'],
         });
       } finally {
-        delete (globalThis as any).__createHookAttachmentFields;
+        delete collaborators.__createHookAttachmentFields;
       }
     });
 
     it('uses the requested target workflow and form for targeted create while preserving validationOperation', async function () {
-      (global as any).WorkflowStepsService.get.returns(
+      collaborators.WorkflowStepsService.get.returns(
         of({
           name: 'published',
           config: {
@@ -6524,11 +6525,11 @@ describe('RecordsService', function () {
         })
       );
       let formResolutionCandidate: any;
-      (global as any).FormsService.getForm.callsFake(async (...args: any[]) => {
+      collaborators.FormsService.getForm.callsFake(async (...args: any[]) => {
         formResolutionCandidate = structuredClone(args[4]);
         return { name: 'published-form', configuration: { attachmentFields: [] } };
       });
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
         expect(request.candidate.metadata.transitionHookSawStage).to.equal('published');
         return allowResult();
@@ -6545,7 +6546,7 @@ describe('RecordsService', function () {
               pre: [
                 {
                   function:
-                    '(_oid, record) => ({ ...record, workflow: { ...record.workflow, hookMarker: "create-preserved" }, metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage } })',
+                    defineHook('fixture-hook-20', ((_oid, record) => ({ ...record, workflow: { ...record.workflow, hookMarker: "create-preserved" }, metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage } }))),
                 },
               ],
             },
@@ -6566,7 +6567,7 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('saved');
-      expect((global as any).FormsService.getForm.firstCall.args[1]).to.equal('published-form');
+      expect(collaborators.FormsService.getForm.firstCall.args[1]).to.equal('published-form');
       expect(formResolutionCandidate.workflow.stage).to.equal('published');
       expect(formResolutionCandidate.metaMetadata.form).to.equal('published-form');
       const request = resolve.firstCall.args[0];
@@ -6593,18 +6594,18 @@ describe('RecordsService', function () {
       const recordType = {
         name: 'rdmp',
         hooks: {
-          onCreate: { pre: [{ function: '(_oid, record) => record' }] },
-          onTransitionWorkflow: { pre: [{ function: '(_oid, record) => record' }] },
+          onCreate: { pre: [{ function: defineHook('fixture-hook-21', ((_oid, record) => record)) }] },
+          onTransitionWorkflow: { pre: [{ function: defineHook('fixture-hook-22', ((_oid, record) => record)) }] },
         },
         recordValidation: { mode: 'enforce' },
         searchable: false,
       };
-      (global as any).WorkflowStepsService.get.returns(of(undefined));
+      collaborators.WorkflowStepsService.get.returns(of(undefined));
 
       for (const targetStep of ['../malformed', 'missing-step']) {
         mockStorageService.create.resetHistory();
-        (global as any).FormsService.getForm.resetHistory();
-        (global as any).RecordValidationService.resolve.resetHistory();
+        collaborators.FormsService.getForm.resetHistory();
+        collaborators.RecordValidationService.resolve.resetHistory();
         preHook.resetHistory();
 
         const result = await RecordsService.create(
@@ -6626,13 +6627,13 @@ describe('RecordsService', function () {
         expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
         expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
         expect(preHook.notCalled).to.equal(true);
-        expect((global as any).FormsService.getForm.notCalled).to.equal(true);
-        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(collaborators.FormsService.getForm.notCalled).to.equal(true);
+        expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
         expect(mockStorageService.create.notCalled).to.equal(true);
       }
 
-      expect((global as any).WorkflowStepsService.get.calledOnce).to.equal(true);
-      const targetLog = mockSails.log.warn
+      expect(collaborators.WorkflowStepsService.get.calledOnce).to.equal(true);
+      const targetLog = fixture.log.warn
         .getCalls()
         .map((call: sinon.SinonSpyCall) => call.args[1])
         .find(
@@ -6645,19 +6646,19 @@ describe('RecordsService', function () {
 
     it('normalizes deleted, blank, and malformed pre-create form references before validation and persistence', async function () {
       const mutations = [
-        'delete record.metaMetadata.form; return record;',
-        'record.metaMetadata.form = ""; return record;',
-        'record.metaMetadata.form = "../malformed-form"; return record;',
+        (_oid, record) => { delete record.metaMetadata.form; return record; },
+        (_oid, record) => { record.metaMetadata.form = ""; return record; },
+        (_oid, record) => { record.metaMetadata.form = "../malformed-form"; return record; },
       ];
       for (const mutation of mutations) {
         mockStorageService.create.resetHistory();
-        (global as any).RecordValidationService.resolve.resetHistory();
+        collaborators.RecordValidationService.resolve.resetHistory();
         const result = await RecordsService.create(
           { id: 'brand-1' },
           { metadata: { title: 'Normalized create form' } },
           {
             name: 'rdmp',
-            hooks: { onCreate: { pre: [{ function: `(_oid, record) => { ${mutation} }` }] } },
+            hooks: { onCreate: { pre: [{ function: defineHook('normalize-form', mutation) }] } },
             searchable: false,
           },
           { username: 'user-1' },
@@ -6666,7 +6667,7 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('saved');
-        expect((global as any).RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal(
+        expect(collaborators.RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal(
           'default-form'
         );
         expect(mockStorageService.create.firstCall.args[1].metaMetadata.form).to.equal('default-form');
@@ -6692,7 +6693,7 @@ describe('RecordsService', function () {
       expect(deniedCreate.outcome).to.equal('not-saved');
       expect(deniedCreate.problems[0].issues[0].code).to.equal('record-validation-edit-unauthorized');
       expect(mockStorageService.create.notCalled).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
 
       const stored = baseRecord();
       mockStorageService.getMeta.resolves(stored);
@@ -6726,7 +6727,7 @@ describe('RecordsService', function () {
         createRecordSaveContext({ routeFamily: 'api', operation: 'transition' })
       );
       expect(deniedTransition.problems[0].issues[0].code).to.equal('record-validation-edit-unauthorized');
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
     });
 
     it('rejects a stored record from another brand before type lookup, hooks, validation, or persistence', async function () {
@@ -6752,9 +6753,9 @@ describe('RecordsService', function () {
 
       expect(result.outcome).to.equal('not-saved');
       expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
-      expect((global as any).RecordTypesService.get.notCalled).to.equal(true);
+      expect(collaborators.RecordTypesService.get.notCalled).to.equal(true);
       expect(preHook.notCalled).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
@@ -6775,12 +6776,12 @@ describe('RecordsService', function () {
       expect(result.outcome).to.equal('not-saved');
       expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
       expect(preHook.notCalled).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
     it('keeps create identity separate from caller and adapter storage IDs through hooks', async function () {
-      (globalThis as any).__createIdentityFacts = undefined;
+      collaborators.__createIdentityFacts = undefined;
       mockStorageService.create.resolves({
         success: true,
         oid: 'conflicting-adapter-oid',
@@ -6802,8 +6803,8 @@ describe('RecordsService', function () {
           onCreate: {
             postSync: [
               {
-                function: `(_oid, record, _options, _user, response) => {
-                globalThis.__createIdentityFacts = {
+                function: defineHook('fixture-hook-23', ((_oid, record, _options, _user, response) => {
+                collaborators.__createIdentityFacts = {
                   oid: _oid,
                   recordOid: record.redboxOid,
                   recordId: record.id,
@@ -6813,7 +6814,7 @@ describe('RecordsService', function () {
                   responseMongoId: response._id,
                 };
                 return record;
-              }`,
+              })),
               },
             ],
           },
@@ -6846,7 +6847,7 @@ describe('RecordsService', function () {
         expect(mockStorageService.updateMeta.firstCall.args[2]).not.to.have.property('id');
         expect(mockStorageService.updateMeta.firstCall.args[2]).not.to.have.property('_id');
         expect(mockStorageService.getMeta.calledWith('explicit-create-oid')).to.equal(true);
-        expect((globalThis as any).__createIdentityFacts).to.deep.equal({
+        expect(collaborators.__createIdentityFacts).to.deep.equal({
           oid: 'explicit-create-oid',
           recordOid: 'explicit-create-oid',
           recordId: 'waterline-caller-id',
@@ -6856,12 +6857,12 @@ describe('RecordsService', function () {
           responseMongoId: 'mongo-adapter-id',
         });
       } finally {
-        delete (globalThis as any).__createIdentityFacts;
+        delete collaborators.__createIdentityFacts;
       }
     });
 
     it('binds an omitted pre-create hook OID back to the preselected public identity for every downstream effect', async function () {
-      (globalThis as any).__configuredCreateOids = [];
+      collaborators.__configuredCreateOids = [];
       mockStorageService.create.resolves({
         success: true,
         oid: 'redirecting-adapter-oid',
@@ -6879,26 +6880,26 @@ describe('RecordsService', function () {
           onCreate: {
             pre: [
               {
-                function: `(_oid, record) => {
-                globalThis.__configuredCreateOids.push(['pre', _oid, record.redboxOid]);
+                function: defineHook('fixture-hook-24', ((_oid, record) => {
+                collaborators.__configuredCreateOids.push(['pre', _oid, record.redboxOid]);
                 const { redboxOid: _discarded, ...replacement } = record;
                 return replacement;
-              }`,
+              })),
               },
             ],
             postSync: [
               {
-                function: `(_oid, record, _options, _user, response) => {
-                globalThis.__configuredCreateOids.push(['postSync', _oid, record.redboxOid, response.oid]);
+                function: defineHook('fixture-hook-25', ((_oid, record, _options, _user, response) => {
+                collaborators.__configuredCreateOids.push(['postSync', _oid, record.redboxOid, response.oid]);
                 return record;
-              }`,
+              })),
               },
             ],
             post: [
               {
-                function: `(_oid, record) => {
-                globalThis.__configuredCreateOids.push(['post', _oid, record.redboxOid]);
-              }`,
+                function: defineHook('fixture-hook-26', ((_oid, record) => {
+                collaborators.__configuredCreateOids.push(['post', _oid, record.redboxOid]);
+              })),
               },
             ],
           },
@@ -6924,20 +6925,20 @@ describe('RecordsService', function () {
         expect(mockStorageService.getMeta.calledWith('route-create-oid')).to.equal(true);
         expect(mockSearchService.index.calledWith('route-create-oid', sinon.match.object)).to.equal(true);
         expect(mockQueueService.now.firstCall.args[1].redboxOid).to.equal('route-create-oid');
-        expect((globalThis as any).__configuredCreateOids).to.deep.equal([
+        expect(collaborators.__configuredCreateOids).to.deep.equal([
           ['pre', 'route-create-oid', 'route-create-oid'],
           ['postSync', 'route-create-oid', 'route-create-oid', 'route-create-oid'],
           ['post', 'route-create-oid', 'route-create-oid'],
         ]);
       } finally {
-        delete (globalThis as any).__configuredCreateOids;
+        delete collaborators.__configuredCreateOids;
       }
     });
 
     it('rejects configured pre-create hook identity divergence before validation or downstream effects', async function () {
-      (globalThis as any).__configuredCreatePreOid = undefined;
+      collaborators.__configuredCreatePreOid = undefined;
       const attachmentJournal = { prepareMutations: sinon.stub() };
-      mockSails.services.attachmentmetadataservice = attachmentJournal;
+      fixture.services.attachmentmetadataservice = attachmentJournal;
       const recordType = {
         name: 'rdmp',
         searchable: true,
@@ -6945,10 +6946,10 @@ describe('RecordsService', function () {
           onCreate: {
             pre: [
               {
-                function: `(_oid, record) => {
-                globalThis.__configuredCreatePreOid = _oid;
+                function: defineHook('fixture-hook-27', ((_oid, record) => {
+                collaborators.__configuredCreatePreOid = _oid;
                 return { ...record, redboxOid: 'hook-redirect-oid' };
-              }`,
+              })),
               },
             ],
           },
@@ -6967,20 +6968,20 @@ describe('RecordsService', function () {
 
         expect(result.outcome).to.equal('not-saved');
         expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
-        expect((globalThis as any).__configuredCreatePreOid).to.equal('route-create-oid');
-        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(collaborators.__configuredCreatePreOid).to.equal('route-create-oid');
+        expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
         expect(attachmentJournal.prepareMutations.notCalled).to.equal(true);
         expect(mockStorageService.create.notCalled).to.equal(true);
         expect(mockStorageService.getMeta.notCalled).to.equal(true);
         expect(mockSearchService.index.notCalled).to.equal(true);
         expect(mockQueueService.now.notCalled).to.equal(true);
       } finally {
-        delete (globalThis as any).__configuredCreatePreOid;
+        delete collaborators.__configuredCreatePreOid;
       }
     });
 
     it('preserves distinct storage IDs through snapshots and hooks while stripping them from update writes', async function () {
-      (globalThis as any).__identitySeenAfterStorage = undefined;
+      collaborators.__identitySeenAfterStorage = undefined;
       const stored = { ...baseRecord(), id: 'waterline-storage-id', _id: 'mongo-storage-id' };
       const authoritativeStorage = installAuthoritativeStorage(stored);
       mockStorageService.updateMeta.callsFake(async (_brand: unknown, _oid: string, candidate: any) => {
@@ -6991,7 +6992,7 @@ describe('RecordsService', function () {
         delete candidate.redboxOid;
         return { success: true, oid: 'record-123', applicationState: 'applied' };
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           searchable: false,
@@ -7000,20 +7001,20 @@ describe('RecordsService', function () {
               postSync: [
                 {
                   function:
-                    '(_oid, record) => ({ ...record, metadata: { ...record.metadata, postSyncOid: record.redboxOid } })',
+                    defineHook('fixture-hook-28', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, postSyncOid: record.redboxOid } }))),
                 },
               ],
               post: [
                 {
                   function:
-                    '(_oid, record) => { globalThis.__identitySeenAfterStorage = { redboxOid: record.redboxOid, id: record.id, _id: record._id, postSyncOid: record.metadata.postSyncOid }; }',
+                    defineHook('fixture-hook-29', ((_oid, record) => { collaborators.__identitySeenAfterStorage = { redboxOid: record.redboxOid, id: record.id, _id: record._id, postSyncOid: record.metadata.postSyncOid }; })),
                 },
               ],
             },
           },
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       try {
         const result = await RecordsService.updateMeta(
@@ -7032,14 +7033,14 @@ describe('RecordsService', function () {
 
         expect(result.outcome).to.equal('saved');
         expect(mockStorageService.updateMeta.callCount).to.equal(2);
-        expect((globalThis as any).__identitySeenAfterStorage).to.deep.equal({
+        expect(collaborators.__identitySeenAfterStorage).to.deep.equal({
           redboxOid: 'record-123',
           id: 'waterline-storage-id',
           _id: 'mongo-storage-id',
           postSyncOid: 'record-123',
         });
       } finally {
-        delete (globalThis as any).__identitySeenAfterStorage;
+        delete collaborators.__identitySeenAfterStorage;
       }
     });
 
@@ -7050,18 +7051,18 @@ describe('RecordsService', function () {
         oid: 'record-123',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           searchable: false,
           hooks: {
             onUpdate: {
-              postSync: [{ function: '(_oid, record) => ({ ...record, redboxOid: "different-record" })' }],
+              postSync: [{ function: defineHook('fixture-hook-30', ((_oid, record) => ({ ...record, redboxOid: "different-record" }))) }],
             },
           },
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -7078,7 +7079,7 @@ describe('RecordsService', function () {
     });
 
     it('keeps the route OID authoritative when an update adapter returns a blank or wrong OID', async function () {
-      (globalThis as any).__routeOidEffects = [];
+      collaborators.__routeOidEffects = [];
       const stored = { ...baseRecord(), id: 'waterline-storage-id', _id: 'mongo-storage-id' };
       mockStorageService.getMeta.resolves(stored);
       mockStorageService.updateMeta.onFirstCall().resolves({
@@ -7091,7 +7092,7 @@ describe('RecordsService', function () {
         oid: '',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           searchable: false,
@@ -7099,24 +7100,24 @@ describe('RecordsService', function () {
             onUpdate: {
               postSync: [
                 {
-                  function: `(_oid, record, _options, _user, response) => {
-                globalThis.__routeOidEffects.push({ phase: 'postSync', oid: _oid, responseOid: response.oid });
+                  function: defineHook('fixture-hook-31', ((_oid, record, _options, _user, response) => {
+                collaborators.__routeOidEffects.push({ phase: 'postSync', oid: _oid, responseOid: response.oid });
                 return { ...record, metadata: { ...record.metadata, postSyncApplied: true } };
-              }`,
+              })),
                 },
               ],
               post: [
                 {
-                  function: `(_oid) => {
-                globalThis.__routeOidEffects.push({ phase: 'post', oid: _oid });
-              }`,
+                  function: defineHook('fixture-hook-32', ((_oid) => {
+                collaborators.__routeOidEffects.push({ phase: 'post', oid: _oid });
+              })),
                 },
               ],
             },
           },
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       try {
         const result = await RecordsService.updateMeta(
@@ -7136,13 +7137,13 @@ describe('RecordsService', function () {
           'record-123',
           'record-123',
         ]);
-        expect((globalThis as any).__routeOidEffects).to.deep.equal([
+        expect(collaborators.__routeOidEffects).to.deep.equal([
           { phase: 'postSync', oid: 'record-123', responseOid: 'record-123' },
           { phase: 'post', oid: 'record-123' },
         ]);
         expect(mockStorageService.getMeta.lastCall.args[0]).to.equal('record-123');
       } finally {
-        delete (globalThis as any).__routeOidEffects;
+        delete collaborators.__routeOidEffects;
       }
     });
 
@@ -7151,7 +7152,7 @@ describe('RecordsService', function () {
       const callerMetadata = { nested: { title: 'Caller-owned title' } };
       const callerSnapshot = structuredClone(callerMetadata);
       mockStorageService.getMeta.resolves(stored);
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           searchable: false,
@@ -7159,10 +7160,10 @@ describe('RecordsService', function () {
             onUpdate: {
               pre: [
                 {
-                  function: `(_oid, record) => {
+                  function: defineHook('fixture-hook-33', ((_oid, record) => {
                 record.metadata.nested.title = 'Mutated by hook';
                 throw new Error('pre-hook failure');
-              }`,
+              })),
                 },
               ],
             },
@@ -7209,9 +7210,9 @@ describe('RecordsService', function () {
 
       expect(result.outcome).to.equal('not-saved');
       expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
-      expect((global as any).RecordTypesService.get.notCalled).to.equal(true);
+      expect(collaborators.RecordTypesService.get.notCalled).to.equal(true);
       expect(preHook.notCalled).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
@@ -7235,7 +7236,7 @@ describe('RecordsService', function () {
       expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
       expect(result.problems[0].issues[0].code).to.equal('record-validation-snapshot-unavailable');
       expect(recordSaveFailureStatus(result)).to.equal(500);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
@@ -7250,14 +7251,14 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
             onTransitionWorkflow: {
               pre: [
                 {
-                  function: '(_oid, record) => ({ ...record, workflow: { stage: "rogue-stage" } })',
+                  function: defineHook('fixture-hook-34', ((_oid, record) => ({ ...record, workflow: { stage: "rogue-stage" } }))),
                 },
               ],
             },
@@ -7279,7 +7280,7 @@ describe('RecordsService', function () {
       expect(result.outcome).to.equal('not-saved');
       expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
       expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
@@ -7299,7 +7300,7 @@ describe('RecordsService', function () {
       ];
 
       for (const testCase of cases) {
-        (global as any).WorkflowStepsService.get.returns(
+        collaborators.WorkflowStepsService.get.returns(
           of({
             name: 'published',
             config: {
@@ -7310,7 +7311,7 @@ describe('RecordsService', function () {
           })
         );
         mockStorageService.create.resetHistory();
-        (global as any).RecordValidationService.resolve.resetHistory();
+        collaborators.RecordValidationService.resolve.resetHistory();
 
         const result = await RecordsService.create(
           { id: 'brand-1' },
@@ -7325,13 +7326,13 @@ describe('RecordsService', function () {
         expect(result.outcome).to.equal('not-saved');
         expect(result.problems[0]).to.deep.include({ kind: 'authorization', phase: 'pre-save' });
         expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
-        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
         expect(mockStorageService.create.notCalled).to.equal(true);
       }
     });
 
     it('keeps shadow validation failures response-neutral and preserves successful create', async function () {
-      (global as any).RecordValidationService.resolve.resolves(
+      collaborators.RecordValidationService.resolve.resolves(
         resolvedAllowResult(
           {
             metadata: { title: '' },
@@ -7367,7 +7368,7 @@ describe('RecordsService', function () {
           class: 'required',
         },
       ];
-      (global as any).RecordValidationService.resolve.resolves(
+      collaborators.RecordValidationService.resolve.resolves(
         resolvedAllowResult(
           {
             metadata: { title: 'Valid primary record' },
@@ -7443,7 +7444,7 @@ describe('RecordsService', function () {
         excludedOnlyValidationGroups,
         checkDeadline
       ) =>
-        await new ValidatorFormConfigVisitor(mockSails.log).startWithResult({
+        await new ValidatorFormConfigVisitor(fixture.log, htmlInput()).startWithResult({
           form,
           enabledValidationGroups: [...enabledValidationGroups],
           validatorDefinitionsMap,
@@ -7471,7 +7472,7 @@ describe('RecordsService', function () {
         metadata: { title: 'Original', description: '<p>Original</p>' },
       });
       mockStorageService.updateMeta.resetHistory();
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {},
@@ -7560,7 +7561,7 @@ describe('RecordsService', function () {
       for (const testCase of cases) {
         mockStorageService.create.resetHistory();
         const { resolve } = installRichHtmlValidation('shadow', 'sanitize', testCase.execute);
-        if (testCase.name === 'timeout') mockSails.config.recordValidation.timeoutMs = 10;
+        if (testCase.name === 'timeout') fixture.config.recordValidation.timeoutMs = 10;
         const callerRecord = { metadata: { description: dirtyHtml, retained: testCase.name } };
         const callerSnapshot = structuredClone(callerRecord);
 
@@ -7623,7 +7624,7 @@ describe('RecordsService', function () {
           metadata: { title: 'Original', description: '<p>Original</p>', retained: true },
         };
         mockStorageService.getMeta.resolves(stored);
-        (global as any).RecordTypesService.get.returns(
+        collaborators.RecordTypesService.get.returns(
           of({
             name: 'rdmp',
             hooks: {},
@@ -7677,7 +7678,7 @@ describe('RecordsService', function () {
     });
 
     it('persists and dispatches the sanitized candidate returned by postSync validation', async function () {
-      (globalThis as any).__sanitizedPostSyncRecord = undefined;
+      collaborators.__sanitizedPostSyncRecord = undefined;
       installAuthoritativeStorage();
       const { resolve } = installRichHtmlValidation('enforce');
       const recordType = {
@@ -7689,12 +7690,12 @@ describe('RecordsService', function () {
             postSync: [
               {
                 function:
-                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, description: "<p>Hook</p><script>alert(1)</script>" } })',
+                  defineHook('fixture-hook-35', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, description: "<p>Hook</p><script>alert(1)</script>" } }))),
               },
             ],
             post: [
               {
-                function: '(_oid, record) => { globalThis.__sanitizedPostSyncRecord = structuredClone(record); }',
+                function: defineHook('fixture-hook-36', ((_oid, record) => { collaborators.__sanitizedPostSyncRecord = structuredClone(record); })),
               },
             ],
           },
@@ -7722,9 +7723,9 @@ describe('RecordsService', function () {
         const persisted = mockStorageService.updateMeta.firstCall.args[2];
         expect(persisted.metadata).to.deep.equal(validationResult.transformedCandidate.metadata);
         expect(persisted.metadata.description).to.equal('<p>Hook</p>');
-        expect((globalThis as any).__sanitizedPostSyncRecord).to.deep.equal(persisted);
+        expect(collaborators.__sanitizedPostSyncRecord).to.deep.equal(persisted);
       } finally {
-        delete (globalThis as any).__sanitizedPostSyncRecord;
+        delete collaborators.__sanitizedPostSyncRecord;
       }
     });
 
@@ -7776,18 +7777,18 @@ describe('RecordsService', function () {
             configuration: authoritativeForm,
           }) as FormAttributes,
       };
-      mockSails.config.recordValidation = {
+      fixture.config.recordValidation = {
         mode: 'enforce',
         timeoutMs: 5_000,
         allowedRequestParameters: [],
       };
-      mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
-      mockSails.config.reusableFormDefinitions = {};
-      (global as any).FormsService.getForm.resolves({
+      fixture.config.validators = { definitions: formValidatorsSharedDefinitions };
+      fixture.config.reusableFormDefinitions = {};
+      collaborators.FormsService.getForm.resolves({
         name: 'default-form',
         configuration: authoritativeForm,
       });
-      (global as any).FormsService.getFormByName.returns(
+      collaborators.FormsService.getFormByName.returns(
         of({
           name: 'default-form',
           configuration: authoritativeForm,
@@ -7799,10 +7800,10 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      mockSails.services.attachmentmetadataservice = attachmentJournal;
-      const validationService = new RecordValidationServices.RecordValidation(dependencies);
+      fixture.services.attachmentmetadataservice = attachmentJournal;
+      const validationService = createValidation(dependencies);
       const resolve = sinon.spy(validationService, 'resolve');
-      mockSails.services.recordvalidationservice = validationService;
+      fixture.services.recordvalidationservice = validationService;
 
       const result = await RecordsService.create(
         { id: 'brand-1' },
@@ -7836,20 +7837,20 @@ describe('RecordsService', function () {
     it('preserves replacement semantics and validates the full update candidate after pre-hooks', async function () {
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'old' }, systemMarker: 'keep' };
       mockStorageService.getMeta.resolves(stored);
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
             onUpdate: {
               pre: [
-                { function: '(_oid, record) => ({ ...record, metadata: { ...record.metadata, hookValue: true } })' },
+                { function: defineHook('fixture-hook-37', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, hookValue: true } }))) },
               ],
             },
           },
           searchable: false,
         })
       );
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
         expect(request.candidate.metadata).to.deep.equal({ title: 'Replacement', hookValue: true });
         expect(request.candidate.systemMarker).to.equal('keep');
@@ -7873,23 +7874,23 @@ describe('RecordsService', function () {
     });
 
     it('rebinds the preselected create OID between sequential pre hooks', async function () {
-      (globalThis as any).__createSecondHookOid = undefined;
+      collaborators.__createSecondHookOid = undefined;
       const recordType = {
         name: 'rdmp',
         hooks: {
           onCreate: {
             pre: [
-              { function: '() => ({ metadata: { title: "First replacement" } })' },
+              { function: defineHook('fixture-hook-38', (() => ({ metadata: { title: "First replacement" } }))) },
               {
                 function:
-                  '(_oid, record) => { globalThis.__createSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; }',
+                  defineHook('fixture-hook-39', ((_oid, record) => { collaborators.__createSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; })),
               },
             ],
           },
         },
         searchable: false,
       };
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       try {
         const result = await RecordsService.create(
@@ -7902,26 +7903,26 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('saved');
-        expect((globalThis as any).__createSecondHookOid).to.equal('configured-create-oid');
+        expect(collaborators.__createSecondHookOid).to.equal('configured-create-oid');
         expect(mockStorageService.create.firstCall.args[1]).to.include({
           redboxOid: 'configured-create-oid',
           secondHook: true,
         });
       } finally {
-        delete (globalThis as any).__createSecondHookOid;
+        delete collaborators.__createSecondHookOid;
       }
     });
 
     it('rejects a conflicting create OID before the next pre hook or any save side effect', async function () {
-      (globalThis as any).__conflictingCreateSecondHookRan = false;
+      collaborators.__conflictingCreateSecondHookRan = false;
       const recordType = {
         name: 'rdmp',
         hooks: {
           onCreate: {
             pre: [
-              { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
+              { function: defineHook('fixture-hook-40', ((_oid, record) => ({ ...record, redboxOid: "redirected-record" }))) },
               {
-                function: '(_oid, record) => { globalThis.__conflictingCreateSecondHookRan = true; return record; }',
+                function: defineHook('fixture-hook-41', ((_oid, record) => { collaborators.__conflictingCreateSecondHookRan = true; return record; })),
               },
             ],
           },
@@ -7941,30 +7942,30 @@ describe('RecordsService', function () {
 
         expect(result.outcome).to.equal('not-saved');
         expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
-        expect((globalThis as any).__conflictingCreateSecondHookRan).to.equal(false);
-        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(collaborators.__conflictingCreateSecondHookRan).to.equal(false);
+        expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
         expect(mockStorageService.create.notCalled).to.equal(true);
         expect(mockStorageService.updateMeta.notCalled).to.equal(true);
         expect(mockSearchService.index.notCalled).to.equal(true);
         expect(mockQueueService.now.notCalled).to.equal(true);
       } finally {
-        delete (globalThis as any).__conflictingCreateSecondHookRan;
+        delete collaborators.__conflictingCreateSecondHookRan;
       }
     });
 
     it('rebinds the route OID between sequential update pre hooks', async function () {
-      (globalThis as any).__updateSecondHookOid = undefined;
+      collaborators.__updateSecondHookOid = undefined;
       mockStorageService.getMeta.resolves(baseRecord());
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
             onUpdate: {
               pre: [
-                { function: '() => ({ metadata: { title: "First update replacement" } })' },
+                { function: defineHook('fixture-hook-42', (() => ({ metadata: { title: "First update replacement" } }))) },
                 {
                   function:
-                    '(_oid, record) => { globalThis.__updateSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; }',
+                    defineHook('fixture-hook-43', ((_oid, record) => { collaborators.__updateSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; })),
                 },
               ],
             },
@@ -7972,7 +7973,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       try {
         const result = await RecordsService.updateMeta(
@@ -7985,28 +7986,28 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('saved');
-        expect((globalThis as any).__updateSecondHookOid).to.equal('record-123');
+        expect(collaborators.__updateSecondHookOid).to.equal('record-123');
         expect(mockStorageService.updateMeta.firstCall.args[2]).to.include({
           redboxOid: 'record-123',
           secondHook: true,
         });
       } finally {
-        delete (globalThis as any).__updateSecondHookOid;
+        delete collaborators.__updateSecondHookOid;
       }
     });
 
     it('rejects a conflicting route OID before the next update pre hook or persistence', async function () {
-      (globalThis as any).__conflictingUpdateSecondHookRan = false;
+      collaborators.__conflictingUpdateSecondHookRan = false;
       mockStorageService.getMeta.resolves(baseRecord());
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
             onUpdate: {
               pre: [
-                { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
+                { function: defineHook('fixture-hook-44', ((_oid, record) => ({ ...record, redboxOid: "redirected-record" }))) },
                 {
-                  function: '(_oid, record) => { globalThis.__conflictingUpdateSecondHookRan = true; return record; }',
+                  function: defineHook('fixture-hook-45', ((_oid, record) => { collaborators.__conflictingUpdateSecondHookRan = true; return record; })),
                 },
               ],
             },
@@ -8027,19 +8028,19 @@ describe('RecordsService', function () {
 
         expect(result.outcome).to.equal('not-saved');
         expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
-        expect((globalThis as any).__conflictingUpdateSecondHookRan).to.equal(false);
-        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(collaborators.__conflictingUpdateSecondHookRan).to.equal(false);
+        expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
         expect(mockStorageService.updateMeta.notCalled).to.equal(true);
         expect(mockSearchService.index.notCalled).to.equal(true);
         expect(mockQueueService.now.notCalled).to.equal(true);
       } finally {
-        delete (globalThis as any).__conflictingUpdateSecondHookRan;
+        delete collaborators.__conflictingUpdateSecondHookRan;
       }
     });
 
     it('validates matching and absent update preconditions before merge while preserving update and transition intent', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       mockStorageService.getMeta.resolves(stored);
       const resolution = updateSchemaResolution();
@@ -8051,7 +8052,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -8059,7 +8060,7 @@ describe('RecordsService', function () {
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const transitionHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
-      const businessValidation = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const businessValidation = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       const matchingEtag = `"sha256:${'b'.repeat(64)}"`;
       const publishedStep = {
         name: 'published',
@@ -8069,7 +8070,7 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
-      (global as any).WorkflowStepsService.get.returns(of(publishedStep));
+      collaborators.WorkflowStepsService.get.returns(of(publishedStep));
 
       for (const testCase of [
         { saveOperation: 'update' as const, ifMatch: matchingEtag, nextStep: {}, targetStep: undefined },
@@ -8084,7 +8085,7 @@ describe('RecordsService', function () {
         persistSaveUsageReference.resetHistory();
         businessValidation.resolves(allowResult({ mode: 'enforce' }));
         mockStorageService.updateMeta.resetHistory();
-        (global as any).RecordTypesService.get.resetHistory();
+        collaborators.RecordTypesService.get.resetHistory();
 
         const rawDelta = { title: `${testCase.saveOperation} title` };
         const user = { username: 'user-1', roles: [{ name: 'Publisher' }] };
@@ -8126,7 +8127,7 @@ describe('RecordsService', function () {
         });
         expect(validateResolvedArtifact.firstCall.args[0].document).to.equal(resolution.document);
         expect(authorize.calledBefore(resolveUpdate), testCase.saveOperation).to.equal(true);
-        expect((global as any).RecordTypesService.get.calledBefore(resolveUpdate), testCase.saveOperation).to.equal(
+        expect(collaborators.RecordTypesService.get.calledBefore(resolveUpdate), testCase.saveOperation).to.equal(
           true
         );
         expect(resolveUpdate.calledBefore(validateResolvedArtifact), testCase.saveOperation).to.equal(true);
@@ -8154,7 +8155,7 @@ describe('RecordsService', function () {
 
     it('rejects invalid structural operations on no-submission transitions before workflow mutation or hooks', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = baseRecord();
       mockStorageService.getMeta.resolves(stored);
       const publishedStep = {
@@ -8165,10 +8166,10 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
-      (global as any).WorkflowStepsService.get.returns(of(publishedStep));
+      collaborators.WorkflowStepsService.get.returns(of(publishedStep));
       const resolveUpdate = sinon.stub();
       const validateResolvedArtifact = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
       const transitionMetadata = sinon.spy(RecordsService, 'transitionWorkflowStepMetadata');
@@ -8199,7 +8200,7 @@ describe('RecordsService', function () {
         mockRecordValidationService.resolve.resetHistory();
         mockStorageService.getMeta.resetHistory();
         mockStorageService.updateMeta.resetHistory();
-        (global as any).RecordTypesService.get.resetHistory();
+        collaborators.RecordTypesService.get.resetHistory();
         resolveUpdate.resolves({
           kind: 'context-failed',
           failureKind: testCase.failureKind,
@@ -8230,7 +8231,7 @@ describe('RecordsService', function () {
         expect(mockStorageService.getMeta.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
         expect(authorize.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
         expect(transitionAuthorization.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
-        expect((global as any).RecordTypesService.get.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
+        expect(collaborators.RecordTypesService.get.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
         expect(validateResolvedArtifact.notCalled, testCase.diagnostic).to.equal(true);
         expect(transitionMetadata.notCalled, testCase.diagnostic).to.equal(true);
         expect(transitionHook.notCalled, testCase.diagnostic).to.equal(true);
@@ -8242,7 +8243,7 @@ describe('RecordsService', function () {
 
     it('blocks a stale update precondition before delta validation or any record mutation', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'shadow' };
+      fixture.config.recordValidation = { mode: 'shadow' };
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       const requestedRecord = structuredClone(stored);
       const rawDelta = { title: 'Must not merge' };
@@ -8254,7 +8255,7 @@ describe('RecordsService', function () {
         code: 'record-schema.precondition-failed',
       });
       const validateResolvedArtifact = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
@@ -8311,7 +8312,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -8320,7 +8321,7 @@ describe('RecordsService', function () {
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       for (const mode of ['shadow', 'enforce'] as const) {
-        mockSails.config.recordValidation = { mode };
+        fixture.config.recordValidation = { mode };
         resolveUpdate.reset();
         resolveUpdate.resolves(updateSchemaResolution(mode));
         validateResolvedArtifact.resetHistory();
@@ -8391,7 +8392,7 @@ describe('RecordsService', function () {
 
     it('accepts unknown update fields in allow mode and blocks them in declared mode', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       mockStorageService.getMeta.resolves(stored);
       const resolveUpdate = sinon.stub();
@@ -8405,7 +8406,7 @@ describe('RecordsService', function () {
         };
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -8455,7 +8456,7 @@ describe('RecordsService', function () {
 
     it('uses normalized validation-operation rollout precedence when update schema resolution is unavailable', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = {
+      fixture.config.recordValidation = {
         mode: 'enforce',
         operations: { publish: { mode: 'enforce' } },
       };
@@ -8468,7 +8469,7 @@ describe('RecordsService', function () {
           operations: { publish: { mode: 'shadow' } },
         },
       };
-      (global as any).RecordTypesService.get.returns(of(recordType));
+      collaborators.RecordTypesService.get.returns(of(recordType));
       const stored = baseRecord();
       mockStorageService.getMeta.resolves(stored);
       const resolveUpdate = sinon.stub().resolves({
@@ -8477,7 +8478,7 @@ describe('RecordsService', function () {
         code: 'record-schema.unavailable',
       });
       const validateResolvedArtifact = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult());
       const context = recordSchemaContext({
         routeFamily: 'api',
@@ -8524,7 +8525,7 @@ describe('RecordsService', function () {
 
     it('stops a structurally invalid browser merge delta before merge, hooks, business validation, or storage', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       const rawDelta = { title: 42 };
       mockStorageService.getMeta.resolves(stored);
@@ -8535,7 +8536,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.type', pointer: '/title', expected: { type: 'string' } }],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
@@ -8560,7 +8561,7 @@ describe('RecordsService', function () {
       expect(validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
       expect(mockStorageService.getMeta.calledBefore(validateResolvedArtifact)).to.equal(true);
       expect(authorize.calledBefore(validateResolvedArtifact)).to.equal(true);
-      expect((global as any).RecordTypesService.get.calledBefore(validateResolvedArtifact)).to.equal(true);
+      expect(collaborators.RecordTypesService.get.calledBefore(validateResolvedArtifact)).to.equal(true);
       expect(applySubmission.notCalled).to.equal(true);
       expect(preSaveHook.notCalled).to.equal(true);
       expect(mockRecordValidationService.resolve.notCalled).to.equal(true);
@@ -8570,7 +8571,7 @@ describe('RecordsService', function () {
 
     it('validates an empty standalone-upload merge delta without revalidating complete stored metadata', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = {
         ...baseRecord(),
         metadata: { title: 42, legacyUndeclared: { retained: true } },
@@ -8581,7 +8582,7 @@ describe('RecordsService', function () {
         expect(request.input).to.deep.equal({});
         return { kind: 'validated', valid: true, issues: [], truncated: false };
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.updateMeta(
@@ -8604,7 +8605,7 @@ describe('RecordsService', function () {
 
     it('orders an internal pre-applied delta through authorization, schema, hooks, validation, storage, and usage', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = {
         ...baseRecord(),
         revision: 1,
@@ -8637,7 +8638,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      mockSails.services.recordschemaservice = {
+      fixture.services.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -8682,7 +8683,7 @@ describe('RecordsService', function () {
     it('propagates service authorization through enabled schema validation when no user is supplied', async function () {
       enableRecordSchema();
       enableInternalRecordMutationStorage();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = { ...baseRecord(), revision: 1, metadata: { title: 'Stored' } };
       const candidate = { ...structuredClone(stored), metadata: { title: 'Service update' } };
       mockStorageService.getMeta.resolves(stored);
@@ -8703,7 +8704,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.updateMetaInternal({
@@ -8729,7 +8730,7 @@ describe('RecordsService', function () {
 
     it('derives pre-applied validation from the persisted candidate and safely retries a stale mismatch', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = {
         ...baseRecord(),
         metadata: { title: 'Current', retained: 'concurrent-value' },
@@ -8759,7 +8760,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const staleResult = await RecordsService.updateMeta(
@@ -8805,7 +8806,7 @@ describe('RecordsService', function () {
 
     it('does not let an omitted submission bypass schema validation for changed legacy metadata', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = {
         ...baseRecord(),
         metadata: {
@@ -8823,7 +8824,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.array-item', pointer: '/nested/values/0' }],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       const result = await RecordsService.updateMeta(
@@ -8847,7 +8848,7 @@ describe('RecordsService', function () {
 
     it('retains an empty own __proto__ value in a derived legacy delta and validates it before hooks or storage', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = { ...baseRecord(), metadata: { title: 'Original' } };
       const requestedRecord = structuredClone(stored);
       Object.defineProperty(requestedRecord.metadata, '__proto__', {
@@ -8864,7 +8865,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.type', pointer: '/__proto__', expected: { type: 'object' } }],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       const result = await RecordsService.updateMeta(
@@ -8896,7 +8897,7 @@ describe('RecordsService', function () {
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       const rawDelta = { title: 'Merged' };
       mockStorageService.getMeta.resolves(stored);
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
         expect(request.candidate.metadata).to.deep.equal({ title: 'Merged', retained: 'keep' });
         return blockingResult();
@@ -8956,8 +8957,8 @@ describe('RecordsService', function () {
         values: [{ id: 'stored' }, { id: 'incoming' }],
       };
       mockStorageService.getMeta.resolves(stored);
-      (globalThis as Record<string, unknown>).__recordContractMergeHookInput = undefined;
-      (global as any).RecordTypesService.get.returns(
+      collaborators.__recordContractMergeHookInput = undefined;
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
@@ -8965,7 +8966,7 @@ describe('RecordsService', function () {
               pre: [
                 {
                   function:
-                    '(_oid, record) => { globalThis.__recordContractMergeHookInput = structuredClone(record.metadata); return record; }',
+                    defineHook('fixture-hook-46', ((_oid, record) => { collaborators.__recordContractMergeHookInput = structuredClone(record.metadata); return record; })),
                 },
               ],
             },
@@ -8973,7 +8974,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       try {
         const result = await RecordsService.updateMeta(
@@ -8989,7 +8990,7 @@ describe('RecordsService', function () {
         );
 
         expect(result.wasPersisted()).to.equal(true);
-        expect((globalThis as Record<string, unknown>).__recordContractMergeHookInput).to.deep.equal(
+        expect(collaborators.__recordContractMergeHookInput).to.deep.equal(
           expectedMergedMetadata
         );
         expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(expectedMergedMetadata);
@@ -9004,13 +9005,13 @@ describe('RecordsService', function () {
           values: [{ id: 'incoming' }],
         });
       } finally {
-        delete (globalThis as Record<string, unknown>).__recordContractMergeHookInput;
+        delete collaborators.__recordContractMergeHookInput;
       }
     });
 
     it('preserves browser recursive merge with array replacement after raw delta validation', async function () {
       enableRecordSchema();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const stored = {
         ...baseRecord(),
         metadata: {
@@ -9052,10 +9053,10 @@ describe('RecordsService', function () {
         });
         return { kind: 'validated', valid: true, issues: [], truncated: false };
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
-      const businessValidation = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const businessValidation = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       businessValidation.callsFake(async (request: any) => {
         expect(request.candidate.metadata).to.deep.equal(expectedMergedMetadata);
         return allowResult({ mode: 'enforce' });
@@ -9113,7 +9114,7 @@ describe('RecordsService', function () {
         values: [{ id: 'incoming' }],
       };
       mockStorageService.getMeta.resolves(stored);
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
       const structuralValidation = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
 
       const result = await RecordsService.updateMeta(
@@ -9141,14 +9142,14 @@ describe('RecordsService', function () {
     });
 
     it('resolves brand and record type from the stored snapshot after object-metadata replacement', async function () {
-      mockSails.config.recordtype = { rdmp: { recordValidation: { mode: 'enforce' } } };
+      fixture.config.recordtype = { rdmp: { recordValidation: { mode: 'enforce' } } };
       const stored = baseRecord();
       mockStorageService.getMeta.resolves(stored);
       const replacement = {
         ...baseRecord('Replacement object metadata'),
         metaMetadata: { sourceMetadata: 'replacement' },
       };
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
         expect(request.candidate.metaMetadata).to.deep.include({
           brandId: 'brand-1',
@@ -9183,7 +9184,7 @@ describe('RecordsService', function () {
             pre: [
               {
                 function:
-                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, authoritativeHookRan: true } })',
+                  defineHook('fixture-hook-47', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, authoritativeHookRan: true } }))),
               },
             ],
           },
@@ -9194,12 +9195,12 @@ describe('RecordsService', function () {
         name: 'other-type',
         hooks: {
           onUpdate: {
-            pre: [{ function: '() => { throw new Error("wrong-type hook ran"); }' }],
+            pre: [{ function: defineHook('fixture-hook-48', (() => { throw new Error("wrong-type hook ran"); })) }],
           },
         },
         searchable: false,
       };
-      (global as any).RecordTypesService.get.callsFake((_brand: unknown, name: string) =>
+      collaborators.RecordTypesService.get.callsFake((_brand: unknown, name: string) =>
         of(name === 'rdmp' ? authoritativeType : wrongType)
       );
       const triggerPreSave = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
@@ -9221,15 +9222,15 @@ describe('RecordsService', function () {
 
       expect(divergent.outcome).to.equal('not-saved');
       expect(divergent.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
-      expect((global as any).RecordTypesService.get.calledOnce).to.equal(true);
-      expect((global as any).RecordTypesService.get.firstCall.args[1]).to.equal('rdmp');
+      expect(collaborators.RecordTypesService.get.calledOnce).to.equal(true);
+      expect(collaborators.RecordTypesService.get.firstCall.args[1]).to.equal('rdmp');
       expect(triggerPreSave.notCalled).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
 
-      (global as any).RecordTypesService.get.resetHistory();
+      collaborators.RecordTypesService.get.resetHistory();
 
-      (global as any).RecordValidationService.resolve.callsFake(async (request: any) => {
+      collaborators.RecordValidationService.resolve.callsFake(async (request: any) => {
         expect(request.candidate.metaMetadata.type).to.equal('rdmp');
         expect(request.candidate.metadata.authoritativeHookRan).to.equal(true);
         return allowResult();
@@ -9250,15 +9251,15 @@ describe('RecordsService', function () {
       );
 
       expect(authoritative.wasPersisted()).to.equal(true);
-      expect((global as any).RecordTypesService.get.calledOnce).to.equal(true);
-      expect((global as any).RecordTypesService.get.firstCall.args[1]).to.equal('rdmp');
+      expect(collaborators.RecordTypesService.get.calledOnce).to.equal(true);
+      expect(collaborators.RecordTypesService.get.firstCall.args[1]).to.equal('rdmp');
       expect(triggerPreSave.calledOnce).to.equal(true);
       expect(triggerPreSave.firstCall.args[2]).to.equal(authoritativeType);
       expect(mockStorageService.updateMeta.firstCall.args[2].metadata.authoritativeHookRan).to.equal(true);
     });
 
     it('requires authoritative validation when the pre-update snapshot throws or is unusable', async function () {
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(blockingResult());
       const snapshotSetups = [
         () => mockStorageService.getMeta.rejects(new Error('snapshot unavailable')),
@@ -9291,7 +9292,7 @@ describe('RecordsService', function () {
     });
 
     it('keeps currentStep identical when the stored snapshot is unavailable', async function () {
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(allowResult());
 
       mockStorageService.getMeta.resolves(baseRecord());
@@ -9321,7 +9322,7 @@ describe('RecordsService', function () {
     });
 
     it('normalizes explicit null users into an unauthenticated validation actor', async function () {
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(allowResult());
 
       const createResult = await RecordsService.create(
@@ -9351,8 +9352,8 @@ describe('RecordsService', function () {
       const requested = baseRecord('Caller mutation') as any;
       delete requested.storageOnly;
       mockStorageService.getMeta.resolves(stored);
-      (globalThis as any).__partialUpdateHookInput = undefined;
-      (global as any).RecordTypesService.get.returns(
+      collaborators.__partialUpdateHookInput = undefined;
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
@@ -9360,7 +9361,7 @@ describe('RecordsService', function () {
               pre: [
                 {
                   function:
-                    '(_oid, record) => { globalThis.__partialUpdateHookInput = structuredClone(record); return { ...record, hookOwned: true }; }',
+                    defineHook('fixture-hook-49', ((_oid, record) => { collaborators.__partialUpdateHookInput = structuredClone(record); return { ...record, hookOwned: true }; })),
                 },
               ],
             },
@@ -9368,7 +9369,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
         expect(request.candidate.storageOnly).to.deep.equal({ revision: 17 });
         expect(request.candidate.hookOwned).to.equal(true);
@@ -9386,20 +9387,20 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('saved');
-        expect((globalThis as any).__partialUpdateHookInput).not.to.have.property('storageOnly');
+        expect(collaborators.__partialUpdateHookInput).not.to.have.property('storageOnly');
         const persistedMutation = mockStorageService.updateMeta.firstCall.args[2];
         expect(persistedMutation.storageOnly).to.deep.equal({ revision: 17 });
         expect(persistedMutation.hookOwned).to.equal(true);
       } finally {
-        delete (globalThis as any).__partialUpdateHookInput;
+        delete collaborators.__partialUpdateHookInput;
       }
     });
 
     it('exposes current attachmentFields to update hooks and refreshes them after a form change', async function () {
       const stored = baseRecord();
       mockStorageService.getMeta.resolves(stored);
-      (globalThis as any).__updateHookAttachmentFields = undefined;
-      (global as any).FormsService.getFormByName.callsFake((formName: string) =>
+      collaborators.__updateHookAttachmentFields = undefined;
+      collaborators.FormsService.getFormByName.callsFake((formName: string) =>
         of({
           name: formName,
           configuration: {
@@ -9408,7 +9409,7 @@ describe('RecordsService', function () {
           },
         })
       );
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
@@ -9416,7 +9417,7 @@ describe('RecordsService', function () {
               pre: [
                 {
                   function:
-                    '(_oid, record) => { globalThis.__updateHookAttachmentFields = [...record.metaMetadata.attachmentFields]; return { ...record, metaMetadata: { ...record.metaMetadata, form: "after-update-hook-form" } }; }',
+                    defineHook('fixture-hook-50', ((_oid, record) => { collaborators.__updateHookAttachmentFields = [...record.metaMetadata.attachmentFields]; return { ...record, metaMetadata: { ...record.metaMetadata, form: "after-update-hook-form" } }; })),
                 },
               ],
             },
@@ -9424,7 +9425,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       try {
         const result = await RecordsService.updateMeta(
@@ -9437,20 +9438,20 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('saved');
-        expect((globalThis as any).__updateHookAttachmentFields).to.deep.equal(['beforeUpdateAttachment']);
+        expect(collaborators.__updateHookAttachmentFields).to.deep.equal(['beforeUpdateAttachment']);
         expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata).to.deep.include({
           form: 'after-update-hook-form',
           attachmentFields: ['afterUpdateAttachment'],
         });
       } finally {
-        delete (globalThis as any).__updateHookAttachmentFields;
+        delete collaborators.__updateHookAttachmentFields;
       }
     });
 
     it('skips authoritative validation for authorization-only writes but validates form-context changes', async function () {
       const stored = baseRecord();
       mockStorageService.getMeta.resolves(stored);
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
 
       const authorizationCandidate = structuredClone(stored);
       authorizationCandidate.authorization.edit.push('editor-2');
@@ -9486,7 +9487,7 @@ describe('RecordsService', function () {
       const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
       const stored = baseRecord();
       mockStorageService.getMeta.resolves(stored);
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       const classifications = [
         {
           name: 'authorization-only',
@@ -9581,13 +9582,13 @@ describe('RecordsService', function () {
       );
 
       expect(result.wasPersisted()).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
     });
 
     it('keeps soft delete and restore on their dedicated lifecycle CAS boundaries', async function () {
       enableLifecycleStorage();
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       const record = baseRecord();
 
       const deleteResult = await RecordsService.delete(
@@ -9606,7 +9607,7 @@ describe('RecordsService', function () {
         lifecycleState: 'deleted',
         deletedRecordMetadata: { ...record, revision: undefined },
       });
-      (global as any).BrandingService.getBrandById = sinon.stub().resolves({ id: 'brand-1' });
+      collaborators.BrandingService.getBrandById = sinon.stub().resolves({ id: 'brand-1' });
       const restoreResult = await RecordsService.restoreRecord('record-123', { username: 'user-1' });
 
       expect(restoreResult.success).to.equal(true);
@@ -9632,9 +9633,9 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
-      (global as any).WorkflowStepsService.get.returns(of(nextStep));
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
-      (global as any).RecordTypesService.get.returns(
+      collaborators.WorkflowStepsService.get.returns(of(nextStep));
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
@@ -9642,7 +9643,7 @@ describe('RecordsService', function () {
               pre: [
                 {
                   function:
-                    '(_oid, record) => ({ ...record, workflow: { ...record.workflow, hookMarker: "update-preserved" }, metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage } })',
+                    defineHook('fixture-hook-51', ((_oid, record) => ({ ...record, workflow: { ...record.workflow, hookMarker: "update-preserved" }, metadata: { ...record.metadata, transitionHookSawStage: record.workflow.stage } }))),
                 },
               ],
             },
@@ -9696,9 +9697,9 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: [] },
         },
       };
-      (global as any).WorkflowStepsService.get.returns(of(canonicalStep));
+      collaborators.WorkflowStepsService.get.returns(of(canonicalStep));
       const canonicalRecordType = { name: 'rdmp', hooks: {}, searchable: false };
-      (global as any).RecordTypesService.get.returns(of(canonicalRecordType));
+      collaborators.RecordTypesService.get.returns(of(canonicalRecordType));
       const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
       const preTransitionHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
 
@@ -9714,13 +9715,13 @@ describe('RecordsService', function () {
 
       expect(result.outcome).to.equal('not-saved');
       expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
-      expect((global as any).WorkflowStepsService.get.calledOnceWithExactly(canonicalRecordType, 'published')).to.equal(
+      expect(collaborators.WorkflowStepsService.get.calledOnceWithExactly(canonicalRecordType, 'published')).to.equal(
         true
       );
       expect(transitionAuthorization.calledOnce).to.equal(true);
       expect(transitionAuthorization.firstCall.args[0]).to.equal(canonicalStep);
       expect(preTransitionHook.notCalled).to.equal(true);
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
@@ -9729,8 +9730,8 @@ describe('RecordsService', function () {
         const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
         const stored = baseRecord();
         mockStorageService.getMeta.resolves(stored);
-        mockSails.config.recordtype = { rdmp: { recordValidation: { mode: 'enforce' } } };
-        (global as any).WorkflowStepsService.get.returns(of(null));
+        fixture.config.recordtype = { rdmp: { recordValidation: { mode: 'enforce' } } };
+        collaborators.WorkflowStepsService.get.returns(of(null));
         const triggerPreSave = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
         const result = await RecordsService.updateMeta(
@@ -9753,11 +9754,11 @@ describe('RecordsService', function () {
         expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
         expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
         expect(triggerPreSave.notCalled).to.equal(true);
-        expect((global as any).RecordTypesService.get.calledOnce).to.equal(true);
-        expect((global as any).WorkflowStepsService.get.calledOnce).to.equal(true);
-        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(collaborators.RecordTypesService.get.calledOnce).to.equal(true);
+        expect(collaborators.WorkflowStepsService.get.calledOnce).to.equal(true);
+        expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
         expect(mockStorageService.updateMeta.notCalled).to.equal(true);
-        const targetLog = mockSails.log.warn
+        const targetLog = fixture.log.warn
           .getCalls()
           .map((call: sinon.SinonSpyCall) => call.args[1])
           .find((details: any) => details?.event === 'record_validation_workflow_target_rejected');
@@ -9785,19 +9786,19 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
-      (global as any).WorkflowStepsService.get.returns(of(nextStep));
-      (global as any).RecordTypesService.get.returns(
+      collaborators.WorkflowStepsService.get.returns(of(nextStep));
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
             onTransitionWorkflow: {
-              pre: [{ function: '(_oid, record) => { delete record.metaMetadata.form; return record; }' }],
+              pre: [{ function: defineHook('fixture-hook-52', ((_oid, record) => { delete record.metaMetadata.form; return record; })) }],
             },
           },
           searchable: false,
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -9810,7 +9811,7 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('saved');
-      expect((global as any).RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal(
+      expect(collaborators.RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal(
         'published-form'
       );
       expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata.form).to.equal('published-form');
@@ -9827,7 +9828,7 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'] },
         },
       };
-      (global as any).WorkflowStepsService.get.returns(of(nextStep));
+      collaborators.WorkflowStepsService.get.returns(of(nextStep));
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -9842,28 +9843,28 @@ describe('RecordsService', function () {
       expect(result.outcome).to.equal('not-saved');
       expect(result.problems[0]).to.deep.include({ kind: 'authorization', phase: 'pre-save' });
       expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
     it('uses one complete candidate for create postSync validation, persistence, and detached hooks', async function () {
-      (globalThis as any).__createPartialPostRecord = undefined;
+      collaborators.__createPartialPostRecord = undefined;
       installAuthoritativeStorage();
       const recordType = {
         name: 'rdmp',
         hooks: {
           onCreate: {
-            postSync: [{ function: '() => ({ metadata: { title: "Partial create postSync" } })' }],
+            postSync: [{ function: defineHook('fixture-hook-53', (() => ({ metadata: { title: "Partial create postSync" } }))) }],
             post: [
               {
-                function: '(_oid, record) => { globalThis.__createPartialPostRecord = structuredClone(record); }',
+                function: defineHook('fixture-hook-54', ((_oid, record) => { collaborators.__createPartialPostRecord = structuredClone(record); })),
               },
             ],
           },
         },
         searchable: false,
       };
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(allowResult());
 
       try {
@@ -9892,14 +9893,14 @@ describe('RecordsService', function () {
         });
         expect(persisted.workflow).to.deep.equal({ stage: 'draft' });
         expect(persisted.systemMarker).to.deep.equal({ retained: true });
-        expect((globalThis as any).__createPartialPostRecord).to.deep.equal(persisted);
+        expect(collaborators.__createPartialPostRecord).to.deep.equal(persisted);
       } finally {
-        delete (globalThis as any).__createPartialPostRecord;
+        delete collaborators.__createPartialPostRecord;
       }
     });
 
     it('uses one complete candidate for targeted-create transition postSync processing', async function () {
-      (globalThis as any).__createTransitionPartialPostRecord = undefined;
+      collaborators.__createTransitionPartialPostRecord = undefined;
       installAuthoritativeStorage();
       const targetStep = {
         name: 'published',
@@ -9909,23 +9910,23 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
-      (global as any).WorkflowStepsService.get.returns(of(targetStep));
+      collaborators.WorkflowStepsService.get.returns(of(targetStep));
       const recordType = {
         name: 'rdmp',
         hooks: {
           onTransitionWorkflow: {
-            postSync: [{ function: '() => ({ metadata: { title: "Partial transition postSync" } })' }],
+            postSync: [{ function: defineHook('fixture-hook-55', (() => ({ metadata: { title: "Partial transition postSync" } }))) }],
             post: [
               {
                 function:
-                  '(_oid, record) => { globalThis.__createTransitionPartialPostRecord = structuredClone(record); }',
+                  defineHook('fixture-hook-56', ((_oid, record) => { collaborators.__createTransitionPartialPostRecord = structuredClone(record); })),
               },
             ],
           },
         },
         searchable: false,
       };
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(allowResult());
 
       try {
@@ -9957,9 +9958,9 @@ describe('RecordsService', function () {
         });
         expect(persisted.workflow).to.deep.equal({ stage: 'published' });
         expect(persisted.systemMarker).to.deep.equal({ retained: true });
-        expect((globalThis as any).__createTransitionPartialPostRecord).to.deep.equal(persisted);
+        expect(collaborators.__createTransitionPartialPostRecord).to.deep.equal(persisted);
       } finally {
-        delete (globalThis as any).__createTransitionPartialPostRecord;
+        delete collaborators.__createTransitionPartialPostRecord;
       }
     });
 
@@ -9972,7 +9973,7 @@ describe('RecordsService', function () {
         persistedCandidates.push(structuredClone(candidate));
         return { success: true, oid: 'record-123', applicationState: 'applied' };
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
@@ -9980,7 +9981,7 @@ describe('RecordsService', function () {
               postSync: [
                 {
                   function:
-                    '(_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Invalid secondary" } })',
+                    defineHook('fixture-hook-57', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Invalid secondary" } }))),
                 },
               ],
             },
@@ -9988,7 +9989,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.onFirstCall().resolves(allowResult());
       resolve.onSecondCall().resolves(blockingResult());
 
@@ -10010,18 +10011,18 @@ describe('RecordsService', function () {
     });
 
     it('persists the complete authoritative candidate validated after a partial postSync replacement', async function () {
-      (globalThis as any).__updatePartialPostRecord = undefined;
+      collaborators.__updatePartialPostRecord = undefined;
       const stored = baseRecord();
       installAuthoritativeStorage(stored);
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
             onUpdate: {
-              postSync: [{ function: '() => ({ metadata: { title: "Partial postSync" } })' }],
+              postSync: [{ function: defineHook('fixture-hook-58', (() => ({ metadata: { title: "Partial postSync" } }))) }],
               post: [
                 {
-                  function: '(_oid, record) => { globalThis.__updatePartialPostRecord = structuredClone(record); }',
+                  function: defineHook('fixture-hook-59', ((_oid, record) => { collaborators.__updatePartialPostRecord = structuredClone(record); })),
                 },
               ],
             },
@@ -10029,7 +10030,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(allowResult());
 
       const result = await RecordsService.updateMeta(
@@ -10055,34 +10056,34 @@ describe('RecordsService', function () {
       expect(persisted.workflow).to.deep.equal({ stage: 'draft' });
       expect(persisted.authorization.edit).to.deep.equal(['user-1']);
       await new Promise(resolveImmediate => setImmediate(resolveImmediate));
-      expect((globalThis as any).__updatePartialPostRecord).to.deep.equal(persisted);
-      delete (globalThis as any).__updatePartialPostRecord;
+      expect(collaborators.__updatePartialPostRecord).to.deep.equal(persisted);
+      delete collaborators.__updatePartialPostRecord;
     });
 
     it('rebinds the route OID between sequential postSync hooks and before detached hooks', async function () {
-      (globalThis as any).__postSyncSecondHookOid = undefined;
-      (globalThis as any).__postSyncDetachedHookOid = undefined;
+      collaborators.__postSyncSecondHookOid = undefined;
+      collaborators.__postSyncDetachedHookOid = undefined;
       mockStorageService.getMeta.resolves(baseRecord());
       mockStorageService.updateMeta.resolves({
         success: true,
         oid: 'adapter-storage-id',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
             onUpdate: {
               postSync: [
-                { function: '() => ({ metadata: { title: "First postSync replacement" } })' },
+                { function: defineHook('fixture-hook-60', (() => ({ metadata: { title: "First postSync replacement" } }))) },
                 {
                   function:
-                    '(_oid, record) => { globalThis.__postSyncSecondHookOid = record.redboxOid; return { ...record, secondPostSync: true }; }',
+                    defineHook('fixture-hook-61', ((_oid, record) => { collaborators.__postSyncSecondHookOid = record.redboxOid; return { ...record, secondPostSync: true }; })),
                 },
               ],
               post: [
                 {
-                  function: '(_oid, record) => { globalThis.__postSyncDetachedHookOid = record.redboxOid; }',
+                  function: defineHook('fixture-hook-62', ((_oid, record) => { collaborators.__postSyncDetachedHookOid = record.redboxOid; })),
                 },
               ],
             },
@@ -10090,7 +10091,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       try {
         const result = await RecordsService.updateMeta(
@@ -10105,8 +10106,8 @@ describe('RecordsService', function () {
 
         expect(result.outcome).to.equal('saved');
         expect(result.oid).to.equal('record-123');
-        expect((globalThis as any).__postSyncSecondHookOid).to.equal('record-123');
-        expect((globalThis as any).__postSyncDetachedHookOid).to.equal('record-123');
+        expect(collaborators.__postSyncSecondHookOid).to.equal('record-123');
+        expect(collaborators.__postSyncDetachedHookOid).to.equal('record-123');
         expect(mockStorageService.updateMeta.callCount).to.equal(2);
         expect(mockStorageService.updateMeta.secondCall.args[1]).to.equal('record-123');
         expect(mockStorageService.updateMeta.secondCall.args[2]).to.include({
@@ -10114,35 +10115,35 @@ describe('RecordsService', function () {
           secondPostSync: true,
         });
       } finally {
-        delete (globalThis as any).__postSyncSecondHookOid;
-        delete (globalThis as any).__postSyncDetachedHookOid;
+        delete collaborators.__postSyncSecondHookOid;
+        delete collaborators.__postSyncDetachedHookOid;
       }
     });
 
     it('rejects a conflicting postSync OID before later hooks, secondary persistence, or detached effects', async function () {
-      (globalThis as any).__conflictingPostSyncSecondHookRan = false;
-      (globalThis as any).__conflictingPostSyncDetachedHookRan = false;
+      collaborators.__conflictingPostSyncSecondHookRan = false;
+      collaborators.__conflictingPostSyncDetachedHookRan = false;
       mockStorageService.getMeta.resolves(baseRecord());
       mockStorageService.updateMeta.resolves({
         success: true,
         oid: 'adapter-storage-id',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
             onUpdate: {
               postSync: [
-                { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
+                { function: defineHook('fixture-hook-63', ((_oid, record) => ({ ...record, redboxOid: "redirected-record" }))) },
                 {
                   function:
-                    '(_oid, record) => { globalThis.__conflictingPostSyncSecondHookRan = true; return record; }',
+                    defineHook('fixture-hook-64', ((_oid, record) => { collaborators.__conflictingPostSyncSecondHookRan = true; return record; })),
                 },
               ],
               post: [
                 {
-                  function: '() => { globalThis.__conflictingPostSyncDetachedHookRan = true; }',
+                  function: defineHook('fixture-hook-65', (() => { collaborators.__conflictingPostSyncDetachedHookRan = true; })),
                 },
               ],
             },
@@ -10150,7 +10151,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
 
       try {
         const result = await RecordsService.updateMeta(
@@ -10164,21 +10165,21 @@ describe('RecordsService', function () {
         await new Promise(resolveImmediate => setImmediate(resolveImmediate));
 
         expect(result.outcome).to.equal('saved-with-warnings');
-        expect((globalThis as any).__conflictingPostSyncSecondHookRan).to.equal(false);
-        expect((globalThis as any).__conflictingPostSyncDetachedHookRan).to.equal(false);
+        expect(collaborators.__conflictingPostSyncSecondHookRan).to.equal(false);
+        expect(collaborators.__conflictingPostSyncDetachedHookRan).to.equal(false);
         expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
-        expect((global as any).RecordValidationService.resolve.calledOnce).to.equal(true);
+        expect(collaborators.RecordValidationService.resolve.calledOnce).to.equal(true);
         expect(mockSearchService.index.notCalled).to.equal(true);
       } finally {
-        delete (globalThis as any).__conflictingPostSyncSecondHookRan;
-        delete (globalThis as any).__conflictingPostSyncDetachedHookRan;
+        delete collaborators.__conflictingPostSyncSecondHookRan;
+        delete collaborators.__conflictingPostSyncDetachedHookRan;
       }
     });
 
     it('preserves an actionable post-save validation cause and phase for secondary candidates', async function () {
       const { RECORD_VALIDATION_DIAGNOSTIC_CODES } = require('../../src/services/RecordValidationService');
       mockStorageService.getMeta.resolves(baseRecord());
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
@@ -10186,7 +10187,7 @@ describe('RecordsService', function () {
               postSync: [
                 {
                   function:
-                    '(_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Timed out secondary" } })',
+                    defineHook('fixture-hook-66', ((_oid, record) => ({ ...record, metadata: { ...record.metadata, title: "Timed out secondary" } }))),
                 },
               ],
             },
@@ -10194,7 +10195,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.onFirstCall().resolves(allowResult());
       resolve.onSecondCall().resolves({
         status: 'unresolved',
@@ -10226,14 +10227,14 @@ describe('RecordsService', function () {
 
     it('dispatches transition post hooks only after awaited secondary persistence', async function () {
       const events: string[] = [];
-      (globalThis as any).__transitionPersistenceOrder = events;
+      collaborators.__transitionPersistenceOrder = events;
       const stored = baseRecord();
       mockStorageService.getMeta.resolves(stored);
       mockStorageService.updateMeta.callsFake(async () => {
         events.push(mockStorageService.updateMeta.callCount === 1 ? 'primary' : 'secondary');
         return { success: true, oid: 'record-123', applicationState: 'applied' };
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
@@ -10241,12 +10242,12 @@ describe('RecordsService', function () {
               postSync: [
                 {
                   function:
-                    '(_oid, record) => { globalThis.__transitionPersistenceOrder.push("postSync"); return { ...record, metadata: { ...record.metadata, transitioned: true } }; }',
+                    defineHook('fixture-hook-67', ((_oid, record) => { collaborators.__transitionPersistenceOrder.push("postSync"); return { ...record, metadata: { ...record.metadata, transitioned: true } }; })),
                 },
               ],
               post: [
                 {
-                  function: '() => { globalThis.__transitionPersistenceOrder.push("post"); }',
+                  function: defineHook('fixture-hook-68', (() => { collaborators.__transitionPersistenceOrder.push("post"); })),
                 },
               ],
             },
@@ -10254,7 +10255,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
       const nextStep = {
         name: 'published',
         config: {
@@ -10279,7 +10280,7 @@ describe('RecordsService', function () {
         expect(result.outcome).to.equal('saved');
         expect(events).to.deep.equal(['primary', 'postSync', 'secondary', 'post']);
       } finally {
-        delete (globalThis as any).__transitionPersistenceOrder;
+        delete collaborators.__transitionPersistenceOrder;
       }
     });
 
@@ -10291,7 +10292,7 @@ describe('RecordsService', function () {
         oid: 'record-123',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           hooks: {
@@ -10299,7 +10300,7 @@ describe('RecordsService', function () {
               postSync: [
                 {
                   function:
-                    '(_oid, record) => ({ ...record, metaMetadata: { ...record.metaMetadata, form: "../malformed" } })',
+                    defineHook('fixture-hook-69', ((_oid, record) => ({ ...record, metaMetadata: { ...record.metaMetadata, form: "../malformed" } }))),
                 },
               ],
             },
@@ -10307,7 +10308,7 @@ describe('RecordsService', function () {
           searchable: false,
         })
       );
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      collaborators.RecordValidationService.resolve.resolves(allowResult());
       const nextStep = {
         name: 'published',
         config: {
@@ -10335,10 +10336,10 @@ describe('RecordsService', function () {
 
     it('requires detached post-hook writes to enter RecordsService validation independently', async function () {
       installAuthoritativeStorage();
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(allowResult());
       let detachedWrite: Promise<any> | undefined;
-      (globalThis as any).__detachedValidatedWrite = (oid: string) => {
+      collaborators.__detachedValidatedWrite = (oid: string) => {
         detachedWrite = RecordsService.updateMeta(
           { id: 'brand-1' },
           oid,
@@ -10355,7 +10356,7 @@ describe('RecordsService', function () {
           { metadata: { title: 'Created' } },
           {
             name: 'rdmp',
-            hooks: { onCreate: { post: [{ function: '(oid) => globalThis.__detachedValidatedWrite(oid)' }] } },
+            hooks: { onCreate: { post: [{ function: defineHook('fixture-hook-70', ((oid) => collaborators.__detachedValidatedWrite(oid))) }] } },
             searchable: false,
           },
           { username: 'user-1' }
@@ -10368,13 +10369,13 @@ describe('RecordsService', function () {
         expect(resolve.secondCall.args[0].writeKind).to.equal('update');
         expect(resolve.secondCall.args[0].candidate.metadata.title).to.equal('Detached mutation');
       } finally {
-        delete (globalThis as any).__detachedValidatedWrite;
+        delete collaborators.__detachedValidatedWrite;
       }
     });
 
     it('validates internal writes by default and accepts only an audited complete internal bypass', async function () {
       const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(blockingResult());
 
       const strictResult = await RecordsService.create(
@@ -10427,7 +10428,7 @@ describe('RecordsService', function () {
       expect(audit.record.validationBypass.recordContext.oid).to.be.a('string').and.not.be.empty;
       expect(JSON.stringify(audit)).not.to.include('sensitive-record-value');
       expect(JSON.stringify(audit)).not.to.include('secret-token');
-      const bypassLogCall = mockSails.log.warn
+      const bypassLogCall = fixture.log.warn
         .getCalls()
         .find((call: any) => call.args[1]?.event === 'record_validation_bypassed');
       expect(bypassLogCall?.args[1]).to.deep.include({
@@ -10519,7 +10520,7 @@ describe('RecordsService', function () {
       expect(unauditable.outcome).to.equal('not-saved');
       expect(unauditable.problems[0].issues[0].code).to.equal('record-validation-bypass-audit-failed');
       expect(JSON.stringify(unauditable)).not.to.include('secret audit backend failure');
-      expect(JSON.stringify(mockSails.log.error.args)).not.to.include('secret audit backend failure');
+      expect(JSON.stringify(fixture.log.error.args)).not.to.include('secret audit backend failure');
       expect(mockStorageService.create.notCalled).to.equal(true);
 
       mockStorageService.createRecordAudit.resetBehavior();
@@ -10545,7 +10546,7 @@ describe('RecordsService', function () {
     });
 
     it('does not accept bypass-shaped HTTP record data as a validation capability', async function () {
-      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const resolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(blockingResult());
 
       const result = await RecordsService.create(
@@ -10588,7 +10589,7 @@ describe('RecordsService', function () {
           RecordsService.create(
             { id: 'brand-1' },
             { metadata: { title: 'Rejected create' } },
-            { name: 'rdmp', hooks: { onCreate: { pre: [{ function: '(_oid, record) => record' }] } } },
+            { name: 'rdmp', hooks: { onCreate: { pre: [{ function: defineHook('fixture-hook-71', ((_oid, record) => record)) }] } } },
             { username: 'user-1' },
             true,
             true,
@@ -10823,7 +10824,7 @@ describe('RecordsService', function () {
 
       for (const testCase of cases) {
         mockStorageService.create.resetHistory();
-        (global as any).RecordValidationService.resolve.resolves(testCase.result);
+        collaborators.RecordValidationService.resolve.resolves(testCase.result);
         const result = await RecordsService.create(
           { id: 'brand-1' },
           { metadata: { title: 'private payload' } },
@@ -10837,27 +10838,27 @@ describe('RecordsService', function () {
         expect(JSON.stringify(result), testCase.name).not.to.include('secret');
         expect(JSON.stringify(result), testCase.name).not.to.include('private payload');
         expect(mockStorageService.create.notCalled, testCase.name).to.equal(true);
-        (global as any).RecordValidationService.resolve.reset();
+        collaborators.RecordValidationService.resolve.reset();
       }
     });
 
     it('keeps unexpected validation failures response-neutral in shadow and fails closed in enforce', async function () {
       const failures = [
-        () => (global as any).RecordValidationService.resolve.throws(new Error('secret synchronous failure')),
+        () => collaborators.RecordValidationService.resolve.throws(new Error('secret synchronous failure')),
         () =>
-          (global as any).RecordValidationService.resolve.callsFake(() =>
+          collaborators.RecordValidationService.resolve.callsFake(() =>
             Promise.reject(new Error('secret rejected validation failure'))
           ),
         () =>
-          (global as any).RecordValidationService.resolve.callsFake(() => Promise.reject('secret string rejection')),
+          collaborators.RecordValidationService.resolve.callsFake(() => Promise.reject('secret string rejection')),
         () =>
-          (global as any).RecordValidationService.resolve.callsFake(() =>
+          collaborators.RecordValidationService.resolve.callsFake(() =>
             Promise.reject({ secret: 'secret object rejection' })
           ),
       ];
       for (const configureFailure of failures) {
         configureFailure();
-        mockSails.config.recordValidation = { mode: 'shadow' };
+        fixture.config.recordValidation = { mode: 'shadow' };
         const shadowResult = await RecordsService.create(
           { id: 'brand-1' },
           { metadata: { title: 'private payload' } },
@@ -10867,7 +10868,7 @@ describe('RecordsService', function () {
         expect(shadowResult.outcome).to.equal('saved');
         expect(shadowResult.problems).to.deep.equal([]);
 
-        mockSails.config.recordValidation = { mode: 'enforce' };
+        fixture.config.recordValidation = { mode: 'enforce' };
         mockStorageService.create.resetHistory();
         const enforceResult = await RecordsService.create(
           { id: 'brand-1' },
@@ -10879,18 +10880,18 @@ describe('RecordsService', function () {
         expect(enforceResult.problems[0].issues[0].code).to.equal('record-validation-configuration-failed');
         expect(JSON.stringify(enforceResult)).not.to.include('secret');
         expect(mockStorageService.create.notCalled).to.equal(true);
-        (global as any).RecordValidationService.resolve.reset();
+        collaborators.RecordValidationService.resolve.reset();
       }
-      expect(JSON.stringify(mockSails.log.error.args)).not.to.match(/secret|private payload/);
-      expect(JSON.stringify(mockSails.log.warn.args)).not.to.match(/secret|private payload/);
+      expect(JSON.stringify(fixture.log.error.args)).not.to.match(/secret|private payload/);
+      expect(JSON.stringify(fixture.log.warn.args)).not.to.match(/secret|private payload/);
       await new Promise(resolveImmediate => setImmediate(resolveImmediate));
     });
 
     it('handles an unavailable validation service by the effective shadow/enforce rollout mode', async function () {
-      delete (global as any).RecordValidationService;
-      delete mockSails.services.recordvalidationservice;
+      delete collaborators.RecordValidationService;
+      delete fixture.services.recordvalidationservice;
 
-      mockSails.config.recordValidation = { mode: 'shadow' };
+      fixture.config.recordValidation = { mode: 'shadow' };
       const shadowResult = await RecordsService.create(
         { id: 'brand-1' },
         { metadata: { title: 'Shadow write' } },
@@ -10900,7 +10901,7 @@ describe('RecordsService', function () {
       expect(shadowResult.outcome).to.equal('saved');
       expect(shadowResult.problems).to.deep.equal([]);
 
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       mockStorageService.create.resetHistory();
       const enforceResult = await RecordsService.create(
         { id: 'brand-1' },
@@ -10915,9 +10916,9 @@ describe('RecordsService', function () {
     });
 
     it('uses a validation service that becomes available after RecordsService initialization', async function () {
-      delete (global as any).RecordValidationService;
-      delete mockSails.services.recordvalidationservice;
-      mockSails.config.recordValidation = { mode: 'shadow' };
+      delete collaborators.RecordValidationService;
+      delete fixture.services.recordvalidationservice;
+      fixture.config.recordValidation = { mode: 'shadow' };
 
       const beforeRegistration = await RecordsService.create(
         { id: 'brand-1' },
@@ -10928,7 +10929,7 @@ describe('RecordsService', function () {
       expect(beforeRegistration.outcome).to.equal('saved');
 
       const lateService = { resolve: sinon.stub().resolves(blockingResult()) };
-      mockSails.services.recordvalidationservice = lateService;
+      fixture.services.recordvalidationservice = lateService;
       mockStorageService.create.resetHistory();
       const afterRegistration = await RecordsService.create(
         { id: 'brand-1' },
@@ -10944,9 +10945,9 @@ describe('RecordsService', function () {
 
     it('uses record-type and operation rollout overrides when validation resolution is unavailable', async function () {
       const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
-      delete (global as any).RecordValidationService;
-      delete mockSails.services.recordvalidationservice;
-      mockSails.config.recordValidation = {
+      delete collaborators.RecordValidationService;
+      delete fixture.services.recordvalidationservice;
+      fixture.config.recordValidation = {
         mode: 'shadow',
         operations: { publish: { mode: 'enforce' } },
       };
@@ -10964,7 +10965,7 @@ describe('RecordsService', function () {
       expect(operationOverride.outcome).to.equal('not-saved');
 
       mockStorageService.create.resetHistory();
-      mockSails.config.recordValidation = { mode: 'shadow' };
+      fixture.config.recordValidation = { mode: 'shadow' };
       const recordTypeOverride = await RecordsService.create(
         { id: 'brand-1' },
         { metadata: { title: 'Record type override' } },
@@ -10978,8 +10979,8 @@ describe('RecordsService', function () {
     it('keeps append/remove structural validation active while authorizing the initiating actor', async function () {
       enableRecordSchema();
       enableInternalRecordMutationStorage();
-      mockSails.config.recordValidation = { mode: 'enforce' };
-      (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+      fixture.config.recordValidation = { mode: 'enforce' };
+      collaborators.RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
       const resolveUpdate = sinon.stub().callsFake(async (request: any) => {
         expect(request.caller.user).to.deep.include({ username: 'owner' });
         return updateSchemaResolution('enforce');
@@ -10990,7 +10991,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
 
       const appendStored = {
@@ -11037,7 +11038,7 @@ describe('RecordsService', function () {
     it('detaches append/remove candidates, exposes scalar deletions, and retries without duplicate mutation', async function () {
       enableRecordSchema();
       enableInternalRecordMutationStorage();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const actor = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
       const stored = {
         ...baseRecord(),
@@ -11072,7 +11073,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.type', pointer: '/title' }],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
 
       const rejectedAppend = await RecordsService.appendToRecord(
         'record-123',
@@ -11121,7 +11122,7 @@ describe('RecordsService', function () {
     it('resolves a brandless internal write against the stored non-default brand schema', async function () {
       enableRecordSchema();
       enableInternalRecordMutationStorage();
-      mockSails.config.recordValidation = { mode: 'enforce' };
+      fixture.config.recordValidation = { mode: 'enforce' };
       const brand = { id: 'brand-2', name: 'faculty' };
       const stored = {
         ...baseRecord(),
@@ -11130,7 +11131,7 @@ describe('RecordsService', function () {
       };
       const candidate = structuredClone(stored);
       candidate.metadata.title = 'DOI writeback';
-      (global as any).BrandingService.getBrandById.withArgs('brand-2').returns(brand);
+      collaborators.BrandingService.getBrandById.withArgs('brand-2').returns(brand);
       mockStorageService.getMeta.resolves(stored);
       const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
       const validateResolvedArtifact = sinon.stub().returns({
@@ -11139,7 +11140,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.updateMetaInternal({
@@ -11160,15 +11161,15 @@ describe('RecordsService', function () {
     });
 
     it('resolves authoritative brand and fails closed for append/remove when validation is unavailable', async function () {
-      mockSails.config.recordValidation = { mode: 'shadow' };
+      fixture.config.recordValidation = { mode: 'shadow' };
       mockStorageService.getCapabilities = sinon.stub().returns({
         recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } })
       );
-      delete (global as any).RecordValidationService;
-      delete mockSails.services.recordvalidationservice;
+      delete collaborators.RecordValidationService;
+      delete fixture.services.recordvalidationservice;
 
       const appendStored = { ...baseRecord(), revision: 1 };
       mockStorageService.getMeta.resolves(appendStored);
@@ -11182,12 +11183,12 @@ describe('RecordsService', function () {
 
       expect(appendResult.outcome).to.equal('not-saved');
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
-      expect((global as any).BrandingService.getBrandById.calledWith('brand-1')).to.equal(true);
-      expect((global as any).RecordTypesService.get.calledWithMatch({ id: 'brand-1' }, 'rdmp')).to.equal(true);
-      expect((global as any).RecordTypesService.get.firstCall.args[0]).to.deep.include({ id: 'brand-1' });
+      expect(collaborators.BrandingService.getBrandById.calledWith('brand-1')).to.equal(true);
+      expect(collaborators.RecordTypesService.get.calledWithMatch({ id: 'brand-1' }, 'rdmp')).to.equal(true);
+      expect(collaborators.RecordTypesService.get.firstCall.args[0]).to.deep.include({ id: 'brand-1' });
 
       const rejectingService = { resolve: sinon.stub().rejects(new Error('validation unavailable')) };
-      mockSails.services.recordvalidationservice = rejectingService;
+      fixture.services.recordvalidationservice = rejectingService;
       mockStorageService.updateMeta.resetHistory();
       const removeStored = {
         ...baseRecord(),
@@ -11241,7 +11242,7 @@ describe('RecordsService', function () {
 
     it('preserves create ordering and keeps execution metadata out of the business record', async function () {
       const order: string[] = [];
-      (globalThis as any).__effectHookOrder = order;
+      collaborators.__effectHookOrder = order;
       mockStorageService.create.callsFake(async (_brand: unknown, candidate: any) => {
         order.push('persistence');
         const oid = String(candidate.redboxOid);
@@ -11255,11 +11256,11 @@ describe('RecordsService', function () {
       });
       const recordType = recordTypeWithHooks({
         onCreate: {
-          pre: [{ function: '(_oid, record) => { globalThis.__effectHookOrder.push("pre"); return record; }' }],
+          pre: [{ function: defineHook('fixture-hook-72', ((_oid, record) => { collaborators.__effectHookOrder.push("pre"); return record; })) }],
           postSync: [
-            { function: '(_oid, record) => { globalThis.__effectHookOrder.push("postSync"); return record; }' },
+            { function: defineHook('fixture-hook-73', ((_oid, record) => { collaborators.__effectHookOrder.push("postSync"); return record; })) },
           ],
-          post: [{ function: '() => { globalThis.__effectHookOrder.push("post"); }' }],
+          post: [{ function: defineHook('fixture-hook-74', (() => { collaborators.__effectHookOrder.push("post"); })) }],
         },
       });
 
@@ -11287,7 +11288,7 @@ describe('RecordsService', function () {
           auditSummary.actions.some((action: any) => action.phase === 'post' && action.status === 'succeeded')
         ).to.equal(true);
       } finally {
-        delete (globalThis as any).__effectHookOrder;
+        delete collaborators.__effectHookOrder;
       }
     });
 
@@ -11297,7 +11298,7 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Rejected' } },
         recordTypeWithHooks({
-          onCreate: { pre: [{ function: '() => { throw new Error("secret pre failure"); }' }] },
+          onCreate: { pre: [{ function: defineHook('fixture-hook-75', (() => { throw new Error("secret pre failure"); })) }] },
         }),
         { username: 'user-1' }
       );
@@ -11315,7 +11316,7 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Warning' } },
         recordTypeWithHooks({
-          onCreate: { postSync: [{ function: '() => null' }] },
+          onCreate: { postSync: [{ function: defineHook('fixture-hook-76', (() => null)) }] },
         }),
         { username: 'user-1' }
       );
@@ -11341,16 +11342,16 @@ describe('RecordsService', function () {
           onCreate: {
             pre: [
               {
-                function: `(() => {
-                globalThis.__effectRetryAttempts = 0;
+                function: defineHook('fixture-hook-77', ((() => {
+                collaborators.__effectRetryAttempts = 0;
                 return (_oid, record) => {
-                  globalThis.__effectRetryAttempts += 1;
-                  if (globalThis.__effectRetryAttempts === 1) {
+                  collaborators.__effectRetryAttempts += 1;
+                  if (collaborators.__effectRetryAttempts === 1) {
                     throw Object.assign(new Error('transient secret'), { _tag: 'ActionTransientFailure', code: 'temporary' });
                   }
                   return record;
                 };
-              })()`,
+              })())),
                 execution: {
                   retry: { maxAttempts: 2, retryOn: ['transient'], idempotent: true },
                 },
@@ -11362,12 +11363,12 @@ describe('RecordsService', function () {
       );
 
       try {
-        expect((globalThis as any).__effectRetryAttempts).to.equal(2);
+        expect(collaborators.__effectRetryAttempts).to.equal(2);
         expect(mockStorageService.create.calledOnce).to.equal(true);
         expect(result.outcome).to.equal('saved');
         expect(result.problems).to.deep.equal([]);
       } finally {
-        delete (globalThis as any).__effectRetryAttempts;
+        delete collaborators.__effectRetryAttempts;
       }
     });
 
@@ -11377,7 +11378,7 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Pre timeout' } },
         recordTypeWithHooks({
-          onCreate: { pre: [{ function: '() => new Promise(() => undefined)', execution: { timeoutMs: 10 } }] },
+          onCreate: { pre: [{ function: defineHook('fixture-hook-78', (() => new Promise(() => undefined))), execution: { timeoutMs: 10 } }] },
         }),
         { username: 'user-1' }
       );
@@ -11388,7 +11389,7 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Post timeout' } },
         recordTypeWithHooks({
-          onCreate: { postSync: [{ function: '() => new Promise(() => undefined)', execution: { timeoutMs: 10 } }] },
+          onCreate: { postSync: [{ function: defineHook('fixture-hook-79', (() => new Promise(() => undefined))), execution: { timeoutMs: 10 } }] },
         }),
         { username: 'user-1' }
       );
@@ -11397,12 +11398,12 @@ describe('RecordsService', function () {
     });
 
     it('does not alter a successful response when a detached hook fails afterward', async function () {
-      mockSails.log.error.resetHistory();
+      fixture.log.error.resetHistory();
       const result = await RecordsService.create(
         { id: 'brand-1' },
         { metadata: { title: 'Detached' } },
         recordTypeWithHooks({
-          onCreate: { post: [{ function: '() => { throw new Error("detached secret"); }' }] },
+          onCreate: { post: [{ function: defineHook('fixture-hook-80', (() => { throw new Error("detached secret"); })) }] },
         }),
         { username: 'user-1' }
       );
@@ -11410,8 +11411,8 @@ describe('RecordsService', function () {
 
       expect(result.outcome).to.equal('saved');
       expect(result.problems).to.deep.equal([]);
-      expect(mockSails.log.error.calledWithMatch('record_hook_detached_action_failed')).to.equal(true);
-      expect(JSON.stringify(mockSails.log.error.args)).not.to.include('detached secret');
+      expect(fixture.log.error.calledWithMatch('record_hook_detached_action_failed')).to.equal(true);
+      expect(JSON.stringify(fixture.log.error.args)).not.to.include('detached secret');
     });
 
     it('queues the terminal detached outcome instead of a dispatch-only audit result', async function () {
@@ -11420,7 +11421,7 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         { metadata: { title: 'Detached audit' } },
         recordTypeWithHooks({
-          onCreate: { post: [{ function: '() => { throw new Error("detached audit secret"); }' }] },
+          onCreate: { post: [{ function: defineHook('fixture-hook-81', (() => { throw new Error("detached audit secret"); })) }] },
         }),
         { username: 'user-1' }
       );
@@ -11439,8 +11440,8 @@ describe('RecordsService', function () {
     it('finalizes a detached audit after a bounded grace period and does so exactly once', async function () {
       const clock = sinon.useFakeTimers();
       mockQueueService.now.resetHistory();
-      mockSails.log.info.resetHistory();
-      (globalThis as any).__resolvePendingDetached = undefined;
+      fixture.log.info.resetHistory();
+      collaborators.__resolvePendingDetached = undefined;
       try {
         const result = await RecordsService.create(
           { id: 'brand-1' },
@@ -11448,9 +11449,9 @@ describe('RecordsService', function () {
           recordTypeWithHooks({
             onCreate: {
               post: [
-                { function: '() => undefined' },
+                { function: defineHook('fixture-hook-82', (() => undefined)) },
                 {
-                  function: '() => new Promise(resolve => { globalThis.__resolvePendingDetached = resolve; })',
+                  function: defineHook('fixture-hook-83', (() => new Promise(resolve => { collaborators.__resolvePendingDetached = resolve; }))),
                 },
               ],
             },
@@ -11478,10 +11479,10 @@ describe('RecordsService', function () {
         expect(summary.counts.dispatched).to.equal(1);
         expect(summary.actions.map((action: any) => action.status)).to.deep.equal(['succeeded', 'dispatched']);
 
-        const completedEvents = mockSails.log.info
+        const completedEvents = fixture.log.info
           .getCalls()
           .filter((call: any) => String(call.args[0]).includes('record_hook_operation_completed'));
-        const dispatchedEvents = mockSails.log.info
+        const dispatchedEvents = fixture.log.info
           .getCalls()
           .filter((call: any) => String(call.args[0]).includes('record_hook_operation_dispatched'));
         expect(dispatchedEvents).to.have.length(1);
@@ -11489,20 +11490,20 @@ describe('RecordsService', function () {
 
         // A terminal result arriving after finalization remains observable at
         // action level but cannot enqueue a second audit document.
-        (globalThis as any).__resolvePendingDetached?.();
+        collaborators.__resolvePendingDetached?.();
         await Promise.resolve();
         await Promise.resolve();
         expect(mockQueueService.now.calledOnce).to.equal(true);
         expect(completedEvents).to.have.length(1);
       } finally {
-        delete (globalThis as any).__resolvePendingDetached;
+        delete collaborators.__resolvePendingDetached;
         clock.restore();
       }
     });
 
     it('does not let malformed detached post configuration block persistence', async function () {
       const calls: string[] = [];
-      (globalThis as any).__effectDetachedCompatibility = calls;
+      collaborators.__effectDetachedCompatibility = calls;
       try {
         const result = await RecordsService.create(
           { id: 'brand-1' },
@@ -11510,8 +11511,8 @@ describe('RecordsService', function () {
           recordTypeWithHooks({
             onCreate: {
               post: [
-                { function: '({ invalid: true })' },
-                { function: '() => { globalThis.__effectDetachedCompatibility.push("valid"); }' },
+                { function: defineHook('fixture-hook-84', (({ invalid: true }))) },
+                { function: defineHook('fixture-hook-85', (() => { collaborators.__effectDetachedCompatibility.push("valid"); })) },
               ],
             },
           }),
@@ -11523,20 +11524,20 @@ describe('RecordsService', function () {
         expect(result.outcome).to.equal('saved');
         expect(calls).to.deep.equal(['valid']);
       } finally {
-        delete (globalThis as any).__effectDetachedCompatibility;
+        delete collaborators.__effectDetachedCompatibility;
       }
     });
 
     it('preserves the trigger-flag asymmetry: disabled pre hooks do not disable post hooks', async function () {
       const calls: string[] = [];
-      (globalThis as any).__effectFlagCalls = calls;
+      collaborators.__effectFlagCalls = calls;
       const recordType = recordTypeWithHooks({
         onUpdate: {
-          pre: [{ function: '(_oid, record) => { globalThis.__effectFlagCalls.push("pre"); return record; }' }],
-          post: [{ function: '() => { globalThis.__effectFlagCalls.push("post"); }' }],
+          pre: [{ function: defineHook('fixture-hook-86', ((_oid, record) => { collaborators.__effectFlagCalls.push("pre"); return record; })) }],
+          post: [{ function: defineHook('fixture-hook-87', (() => { collaborators.__effectFlagCalls.push("post"); })) }],
         },
       });
-      (globalThis as any).RecordTypesService.get.returns(of(recordType));
+      collaborators.RecordTypesService.get.returns(of(recordType));
       try {
         const result = await RecordsService.updateMeta(
           { id: 'brand-1' },
@@ -11550,7 +11551,7 @@ describe('RecordsService', function () {
         expect(result.wasPersisted()).to.equal(true);
         expect(calls).to.deep.equal(['post']);
       } finally {
-        delete (globalThis as any).__effectFlagCalls;
+        delete collaborators.__effectFlagCalls;
       }
     });
 
@@ -11585,9 +11586,9 @@ describe('RecordsService', function () {
       class ExtendedRecords extends CoreRecords {
         public extensionMarker = true;
       }
-      const extended = new ExtendedRecords();
+      const extended = new ExtendedRecords(RecordsService.input);
       const recordType = recordTypeWithHooks({
-        onCreate: { pre: [{ function: '(_oid, record) => ({ ...record, extended: true })' }] },
+        onCreate: { pre: [{ function: defineHook('fixture-hook-88', ((_oid, record) => ({ ...record, extended: true }))) }] },
       });
       const result = await extended.triggerPreSaveTriggers('record-123', {}, recordType, 'onCreate', {});
 
@@ -11604,23 +11605,23 @@ describe('RecordsService', function () {
     it('threads a postSync replacement to detached hooks without mutating the caller-owned record', async function () {
       const callerRecord = { metadata: { title: 'Original' } };
       const callerSnapshot = structuredClone(callerRecord);
-      (globalThis as any).__deletePostRecord = undefined;
+      collaborators.__deletePostRecord = undefined;
       const recordType = {
         name: 'rdmp',
         searchable: false,
         hooks: {
           onDelete: {
-            postSync: [{ function: '(_oid, record) => ({ ...record, hookReplacement: true })' }],
+            postSync: [{ function: defineHook('fixture-hook-89', ((_oid, record) => ({ ...record, hookReplacement: true }))) }],
             post: [
               {
                 function:
-                  '(_oid, record) => { globalThis.__deletePostRecord = structuredClone(record); return undefined; }',
+                  defineHook('fixture-hook-90', ((_oid, record) => { collaborators.__deletePostRecord = structuredClone(record); return undefined; })),
               },
             ],
           },
         },
       };
-      (globalThis as any).RecordTypesService.get.returns(of(recordType));
+      collaborators.RecordTypesService.get.returns(of(recordType));
 
       try {
         const result = await RecordsService.delete('record-123', false, callerRecord, recordType, {
@@ -11630,9 +11631,9 @@ describe('RecordsService', function () {
 
         expect(result.success).to.equal(true);
         expect(callerRecord).to.deep.equal(callerSnapshot);
-        expect((globalThis as any).__deletePostRecord).to.deep.include({ hookReplacement: true });
+        expect(collaborators.__deletePostRecord).to.deep.include({ hookReplacement: true });
       } finally {
-        delete (globalThis as any).__deletePostRecord;
+        delete collaborators.__deletePostRecord;
       }
     });
 
@@ -11643,8 +11644,8 @@ describe('RecordsService', function () {
         searchable: false,
         hooks: {
           onDelete: {
-            pre: [{ function: '(_oid, record) => record' }],
-            post: [{ function: '() => undefined' }],
+            pre: [{ function: defineHook('fixture-hook-91', ((_oid, record) => record)) }],
+            post: [{ function: defineHook('fixture-hook-92', (() => undefined)) }],
           },
         },
       };
@@ -11771,12 +11772,12 @@ describe('RecordsService', function () {
       expect(result.metadata).to.equal(null);
       expect(result.data).to.equal(undefined);
       expect(result.problems[0].issues[0].code).to.equal('record-post-commit-reconciliation-deferred');
-      const deferredLog = mockSails.log.warn
+      const deferredLog = fixture.log.warn
         .getCalls()
         .find((call: any) => call.args[1]?.event === 'record_post_commit_reconciliation_deferred');
       expect(deferredLog).not.to.equal(undefined);
       expect(deferredLog!.args[1]).to.deep.include({ handoff: 'unknown', error_type: 'Error' });
-      expect(JSON.stringify(mockSails.log.warn.args)).not.to.contain('private queue failure');
+      expect(JSON.stringify(fixture.log.warn.args)).not.to.contain('private queue failure');
     });
 
     it('dispatches save-owned detached hooks only after reload and with the authoritative record', async function () {
@@ -12021,7 +12022,7 @@ describe('RecordsService', function () {
       mockStorageService.getCapabilities = sinon.stub().returns({
         recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
-      (global as any).RecordTypesService.get.returns(
+      collaborators.RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: true, concurrentModification: { mode } })
       );
     };
@@ -12097,9 +12098,8 @@ describe('RecordsService', function () {
         current.metadata.workspaces = null;
         const { Services } =
           require('../../src/services/WorkspaceService') as typeof import('../../src/services/WorkspaceService');
-        const workspaceService = new Services.WorkspaceService();
-        const previousRecordsService = Reflect.get(globalThis, 'RecordsService');
-        Object.assign(globalThis, { RecordsService });
+        const workspaceService = new Services.WorkspaceService({ records: RecordsService, identities: {} as any, log: fixture.log });
+        Object.assign(collaborators, { RecordsService });
         try {
           const first = await workspaceService.addWorkspaceToRecord(current.redboxOid, firstWorkspace.id, {
             reference: firstWorkspace.reference,
@@ -12114,8 +12114,7 @@ describe('RecordsService', function () {
             workspaces: [firstWorkspace, secondWorkspace],
           });
         } finally {
-          if (previousRecordsService === undefined) Reflect.deleteProperty(globalThis, 'RecordsService');
-          else Object.assign(globalThis, { RecordsService: previousRecordsService });
+          delete collaborators.RecordsService;
         }
       });
 
@@ -12295,16 +12294,16 @@ describe('RecordsService', function () {
         pre: sinon.stub().callsFake((_oid, record) => record),
         post: sinon.stub(),
       };
-      (globalThis as any).__w05Hooks = hooks;
-      (global as any).RecordTypesService.get.returns(
+      collaborators.__w05Hooks = hooks;
+      collaborators.RecordTypesService.get.returns(
         of({
           name: 'rdmp',
           searchable: true,
           concurrentModification: { mode: 'observe' },
           hooks: {
             onUpdate: {
-              pre: [{ function: 'globalThis.__w05Hooks.pre' }],
-              post: [{ function: 'globalThis.__w05Hooks.post' }],
+              pre: [{ function: defineHook('internal-pre', hooks.pre) }],
+              post: [{ function: defineHook('internal-post', hooks.post) }],
             },
           },
         })
@@ -12330,7 +12329,7 @@ describe('RecordsService', function () {
       expect(hooks.post.notCalled).to.equal(true);
       expect(mockSearchService.index.notCalled).to.equal(true);
       expect(mockQueueService.now.notCalled).to.equal(true);
-      delete (globalThis as any).__w05Hooks;
+      delete collaborators.__w05Hooks;
     });
 
     it('reloads and recomputes a declared mutation once per bounded retry with fresh request linkage', async function () {
@@ -12426,14 +12425,14 @@ describe('RecordsService', function () {
     it('durably audits the v1 direct-storage bypass and never reports the batch as validated', async function () {
       const records = [{ title: 'Rec 1' }, { title: 'Rec 2' }];
       const storageResult = { accepted: 2 };
-      mockSails.config.record.auditing.enabled = false;
+      fixture.config.record.auditing.enabled = false;
       mockStorageService.createBatch.resolves(storageResult);
 
       const result = await RecordsService.createBatch('rdmp', records, 'harvestId');
 
       expect(result).to.equal(storageResult);
       expect(mockStorageService.createBatch.calledWith('rdmp', records, 'harvestId')).to.be.true;
-      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(collaborators.RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
       const audit = mockStorageService.createRecordAudit.firstCall.args[0];
       expect(audit.action).to.equal('batch-validation-bypassed');
@@ -12515,7 +12514,8 @@ describe('RecordsService', function () {
 
   describe('exports', function () {
     it('should export all public methods', function () {
-      const exported = RecordsService.exports();
+      const exported = RecordsService;
+      expect(RecordsService.exports).to.equal(undefined);
 
       expect(exported).to.have.property('create');
       expect(exported).to.have.property('updateMeta');

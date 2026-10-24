@@ -1,20 +1,21 @@
+import { referenceFixtures } from '../helpers/serviceRepositories';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
-import { RecordTypeRecordSchemaConfigurationError, Services } from '../../src/services/RecordTypesService';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { RecordTypeRecordSchemaConfigurationError, RecordTypes } from '../../src/services/RecordTypesService';
+import { createDomainFixture } from './testHelper';
 import { firstValueFrom, of } from 'rxjs';
 import { RecordTypeResponseModel } from '../../src/model/RecordTypeResponseModel';
 import { RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } from '../../src/RecordStorageConcurrency';
 
 describe('RecordTypesService', function () {
-  let service: Services.RecordTypes;
-  let mockSails: any;
+  let service: RecordTypes;
+  let fixture: any;
 
   beforeEach(function () {
-    mockSails = createMockSails();
-    mockSails.config.recordtype = {
+    fixture = createDomainFixture();
+    fixture.config.recordtype = {
       dataset: {
         packageType: 'pt',
         searchCore: 'sc',
@@ -34,15 +35,14 @@ describe('RecordTypesService', function () {
         recordSchema: { unknownProperties: 'declared' },
       },
     };
-    mockSails.config.appmode = { bootstrapAlways: false };
-    mockSails.config.storage = { serviceName: 'teststorage' };
-    mockSails.services.teststorage = {
+    fixture.config.appmode = { bootstrapAlways: false };
+    fixture.config.storage = { serviceName: 'teststorage' };
+    fixture.services.teststorage = {
       getCapabilities: () => ({
         recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       }),
     };
 
-    setupServiceTestGlobals(mockSails);
 
     // `.create()` only resolves to the created record when `.fetch()` is
     // chained, so the deferred mock mirrors that chain.
@@ -61,11 +61,10 @@ describe('RecordTypesService', function () {
       findOne: sinon.stub().returns(mockDeferred({})),
     };
 
-    service = new Services.RecordTypes();
+    service = new RecordTypes({ repository: referenceFixtures().recordTypes, config: fixture.config, log: fixture.log, storageCapability: () => fixture.services.teststorage });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
     delete repositoryFixtures.RecordType;
     sinon.restore();
   });
@@ -118,7 +117,7 @@ describe('RecordTypesService', function () {
     });
 
     it('should destroy and recreate if bootstrapAlways is true', async function () {
-      mockSails.config.appmode.bootstrapAlways = true;
+      fixture.config.appmode.bootstrapAlways = true;
       const brand = { id: 'brand1' };
 
       repositoryFixtures.RecordType.find.resolves([{ name: 'old' }]);
@@ -138,14 +137,14 @@ describe('RecordTypesService', function () {
     });
 
     it('rejects an unsupported configured record-schema override before persistence when enabled', async function () {
-      mockSails.config.recordSchema = { enabled: true };
-      mockSails.config.recordtype = {
+      fixture.config.recordSchema = { enabled: true };
+      fixture.config.recordtype = {
         valid: {
-          ...mockSails.config.recordtype.dataset,
+          ...fixture.config.recordtype.dataset,
           recordSchema: { unknownProperties: 'declared' },
         },
         dataset: {
-          ...mockSails.config.recordtype.dataset,
+          ...fixture.config.recordtype.dataset,
           recordSchema: { unknownProperties: 'strip' },
         },
       };
@@ -170,7 +169,7 @@ describe('RecordTypesService', function () {
     });
 
     it('rejects an unsupported persisted record-schema override during enabled startup', async function () {
-      mockSails.config.recordSchema = { enabled: 'true' };
+      fixture.config.recordSchema = { enabled: 'true' };
       repositoryFixtures.RecordType.find.resolves([
         { name: 'dataset', branding: 'brand1', recordSchema: { unknownProperties: 'strip' } },
       ]);
@@ -277,7 +276,7 @@ describe('RecordTypesService', function () {
 
       // Neither request/config candidates nor the record carry a copied mode;
       // changing the authoritative type therefore applies on the next lookup.
-      mockSails.config.recordtype.dataset.concurrentModification = { mode: 'strict' };
+      fixture.config.recordtype.dataset.concurrentModification = { mode: 'strict' };
       storedRecordType = {
         name: 'dataset',
         concurrentModification: { mode: 'last-write-wins' },
@@ -314,7 +313,7 @@ describe('RecordTypesService', function () {
     });
 
     it('fails closed at runtime when a strict policy uses an unsupported adapter', async function () {
-      mockSails.services.teststorage = {};
+      fixture.services.teststorage = {};
       repositoryFixtures.RecordType.findOne.returns({
         exec: (callback: (error: unknown, result: unknown) => void) =>
           callback(null, {
@@ -335,7 +334,7 @@ describe('RecordTypesService', function () {
 
   describe('storage capability startup gate', function () {
     it('rejects an existing strict type when the adapter declaration is absent', async function () {
-      mockSails.services.teststorage = {};
+      fixture.services.teststorage = {};
       repositoryFixtures.RecordType.find.resolves([
         {
           name: 'dataset',
@@ -375,9 +374,9 @@ describe('RecordTypesService', function () {
     });
   });
 
-  describe('exports', function () {
-    it('should export all public methods', function () {
-      const exported = service.exports();
+  describe('public operations', function () {
+    it('should expose all required domain operations', function () {
+      const exported = service;
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('create');
       expect(exported).to.have.property('get');

@@ -9,9 +9,9 @@ import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/st
 import { buildOniRoCrate, getPerson, getSelectedAttachments } from '../../src/services/oni-v2/crate';
 import { validateHandlebarsTemplate } from '../../src/services/oni-v2/bindings';
 import { mapDatasetFields, mapGraphEntities, validateMappedDataset } from '../../src/services/oni-v2/mapping';
-import { getBrandName, resolveOniPublishingConfig, resolveOniSite } from '../../src/services/oni-v2/config';
+import { getBrandName, resolveOniPublishingConfig, resolveOniSite } from '../../src/integrations/oni/config';
 import { createStorageManagerOcflStoreClass } from '../../src/services/oni-v2/flydriveOcflStore';
-import { runPublishDatasetProgram } from '../../src/services/oni-v2/runtime';
+import { runPublishDatasetProgram } from '../../src/integrations/oni/runtime';
 import * as ingestionModule from '../../src/services/oni-v2/ingestion';
 import { ingestOniRepository } from '../../src/services/oni-v2/ingestion';
 import type { Services as StorageManagerServices } from '../../src/services/StorageManagerService';
