@@ -19,10 +19,13 @@ release acceptance. See [final P8 evidence](evidence/p8-retirement.md#final-qual
 and [exact artifacts/results](evidence/p8-artifacts.json).
 
 [Final-gate review round 1](evidence/final-review-r1.md) records subsequent
-runtime/test fixes and current mounted-source/compiled-tree targeted verification.
-The `5088f4a7a` immutable-artifact/full-suite results above remain historical;
-no replacement immutable images were built in that review. SR-005/045/049/055's
-accepted institution gaps and checkboxes remain unchanged.
+runtime/test fixes and targeted verification. [Round 2](evidence/final-review-r2.md)
+records further corrections and full current mounted-source/compiled-tree suites
+at code/test commit `97155ef9a`, including real-service, browser, Bruno, PDF,
+typecheck/lint/docs and retirement inventory/closure checks. The `5088f4a7a`
+immutable-artifact results above remain historical; neither review built replacement
+immutable images. SR-005/045/049/055's accepted institution gaps and checkboxes
+remain unchanged.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -869,9 +872,10 @@ Read the [design](design.md) for behavior and the
   therefore remain unmet. No P8 local gate remained unrun at that checkpoint and
   no stand-in is counted as an institution.
   [Final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition).
-  [Round-1 corrections and verification](evidence/final-review-r1.md) postdate
-  those frozen images; current targeted mounted/compiled verification is recorded
-  separately and does not claim a replacement immutable-artifact qualification.
+  [Round-1 corrections and verification](evidence/final-review-r1.md) and
+  [round-2 corrections/full suites](evidence/final-review-r2.md) postdate those frozen
+  images. Current mounted/compiled qualification is recorded separately and does
+  not claim replacement immutable images or a newly repeated topology matrix.
 
   **Depends on:** SR-052, SR-053, SR-054, SR-049, SR-050.
 
