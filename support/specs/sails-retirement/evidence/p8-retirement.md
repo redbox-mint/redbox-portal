@@ -1391,3 +1391,41 @@ including all8 existing Bruno permission mutations/16 assertions. At completion
 there were no active sockets/requests; inspector diagnosis found31 outstanding
 300000ms one-shot timers. Natural process termination is checked separately;
 assertion completion alone is not claimed as full lifecycle qualification.
+
+### PDF/storage package test and development-tool retirement
+
+PDF tests now pass explicit configuration, logger, datastream, brand, staging,
+audit and accepted-work ports; no global installation or comparison dependency
+module remains. All75 existing cases execute. The old lower monkey-patch case now
+holds the real owned close behind PDF cleanup and verifies that close cannot
+complete early. The missing-global audit case removes the optional input instead.
+Config assertions inspect the actual neutral declaration and declared queue merge.
+The PDF integration record-type fixture uses the finite registered operation names.
+
+The first public test:unit command failed because the compiler wrapper restricted
+its type roots to empty nested directories after npm hoisted Mocha/Chai types.
+The wrapper now resolves the actual installed type-package directories through its
+own package resolver. npm --prefix packages/redbox-dev-tools run build exit0;
+npm --prefix packages/sails-hook-redbox-pdfgen run test:unit:
+**75 passing/0 pending/0 failing**,1s, exit0 (pdf46-second.log). No dependency
+change or test bypass was needed.
+
+Storage tests construct plain PersistenceOwner and StorageCollaborators inputs;
+local form/type/disk ports replace globals. Export page size is supplied per
+fixture. Native Mongo/Prisma codecs and physical collection behavior are unchanged.
+Subclass tests instantiate the actual owned PrismaStorage class; declaration tests
+verify the module/migration/configuration and offline registration, replacing
+obsolete shim-export assertions. First run293/9/2: concurrency URL was omitted and
+two obsolete entrypoint assertions failed. Corrected the declarations and supplied
+both MONGO_TEST_URL and MONGO_CONCURRENCY_TEST_URL=mongodb://127.0.0.1:29511.
+Explicit runner from the package, TS_NODE_PROJECT=test/tsconfig.json,
+node --no-experimental-strip-types ../../node_modules/mocha/bin/mocha.js
+--no-config --require chai --require ts-node/register/transpile-only
+--require test/setup.ts --timeout30000 --recursive --extension ts test
+(space between --timeout and30000): **304 passing/0 pending/0 failing**,47s,
+exit0, storage46-second.log. This includes real3068-record pagination/exports and
+all9 actual shared-Mongo concurrency scenarios. Same Docker Mongo8/nofile pins
+as the preceding browser check. No test was skipped or assertion weakened.
+
+The browser real-Mongo runner subsequently terminated naturally with exit0;
+its one-shot timer diagnosis is retained above for transparency.

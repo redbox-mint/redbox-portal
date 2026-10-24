@@ -1,3 +1,4 @@
+import { storageFixture } from '../helpers/storageFixture';
 const { expect } = require('chai');
 const sinon = require('sinon');
 const { RECORD_CONTRACT_FORMAT_V1, RECORD_SCHEMA_PROBLEM_CODES } = require('@researchdatabox/redbox-core');
@@ -268,20 +269,12 @@ describe('MongoStorageService record-schema persistence', function () {
       error: sinon.stub(),
       trace: sinon.stub(),
     };
-    Reflect.set(global, 'sails', {
-      log: logger,
-      on: sinon.stub(),
-      emit: sinon.stub(),
-      config: {
-        log: {
-          createNamespaceLogger: () => logger,
-          customLogger: logger,
-        },
-      },
-    });
     artifacts = new FakeCollection([], 'digest');
     references = new FakeCollection([], 'referenceKey');
-    service = new (require('../../src/persistence/PrismaStorage').PrismaStorage)(sails);
+    service = new (require('../../src/persistence/PrismaStorage').PrismaStorage)(
+      { config: {}, log: logger },
+      { ...storageFixture(), log: logger }
+    );
     Reflect.set(service, 'schemaArtifactRepository', () => artifacts);
     Reflect.set(service, 'schemaReferenceRepository', () => references);
     Reflect.set(service, 'recordSchemaArtifactCol', artifacts);

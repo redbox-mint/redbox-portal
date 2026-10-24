@@ -15,9 +15,10 @@ function toPosixPath(value: string): string {
 }
 
 function getPackageRequire(packageName: string): PackageRequire {
-  const packageJsonPath = packageName === '@researchdatabox/redbox-dev-tools'
-    ? path.resolve(__dirname, '..', '..', 'package.json')
-    : require.resolve(`${packageName}/package.json`);
+  const packageJsonPath =
+    packageName === '@researchdatabox/redbox-dev-tools'
+      ? path.resolve(__dirname, '..', '..', 'package.json')
+      : require.resolve(`${packageName}/package.json`);
 
   return createRequire(packageJsonPath);
 }
@@ -72,13 +73,22 @@ function getHookCompilerOptions(projectDir: string, projectTsconfig: string): Ho
       '@researchdatabox/sails-ng-common': collectPathEntries(projectDir, sailsNgCommonDirs),
       axios: collectPathEntries(projectDir, axiosDirs),
       rxjs: collectPathEntries(projectDir, rxjsDirs),
-      'rxjs/*': collectPathEntries(projectDir, rxjsDirs.map(entry => entry ? path.join(entry, '*') : null)),
+      'rxjs/*': collectPathEntries(
+        projectDir,
+        rxjsDirs.map(entry => (entry ? path.join(entry, '*') : null))
+      ),
       lodash: collectPathEntries(projectDir, lodashDirs),
     },
     typeRoots: [
       fs.existsSync(localNodeTypes) ? toPosixPath(path.relative(projectDir, localNodeTypes)) : null,
       fs.existsSync(devToolsNodeTypes) ? toPosixPath(path.relative(projectDir, devToolsNodeTypes)) : null,
-    ].filter((entry): entry is string => Boolean(entry)),
+      ...['@types/node', '@types/mocha', '@types/chai'].map(name => {
+        const directory = resolvePackageDir(redboxDevToolsRequire, name);
+        return directory ? toPosixPath(path.relative(projectDir, path.dirname(directory))) : null;
+      }),
+    ]
+      .filter((entry): entry is string => Boolean(entry))
+      .filter((entry, index, all) => all.indexOf(entry) === index),
   };
 }
 
@@ -104,7 +114,9 @@ export function createHookTsConfig(projectPath: string): string {
     compilerOptions: {
       baseUrl: toPosixPath(path.relative(tempDir, projectDir)) || '.',
       paths: compilerOptions.paths,
-      typeRoots: compilerOptions.typeRoots.map(entry => toPosixPath(path.relative(tempDir, path.resolve(projectDir, entry)))),
+      typeRoots: compilerOptions.typeRoots.map(entry =>
+        toPosixPath(path.relative(tempDir, path.resolve(projectDir, entry)))
+      ),
     },
   };
 

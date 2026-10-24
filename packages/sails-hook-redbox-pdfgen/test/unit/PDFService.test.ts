@@ -1,31 +1,24 @@
 const { Cause, Effect } = require('effect');
 const sinon = require('sinon');
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
-const {
-  clearPdfgenTestGlobals,
-  installPdfgenTestGlobals,
-  waitForAssertion,
-  navigationResponse,
-  navigationRequest,
-} = require('../support/globals');
-
-const globalAny = global as any;
+const { pdfDependencies, waitForAssertion, navigationResponse, navigationRequest } = require('../support/pdfFixture');
 
 describe('PDFService Unit Tests', () => {
   let pdfService: any;
+  let input: any;
   let mockPage: any;
   let mockBrowser: any;
   let storageDiskPutStub: any;
   let storageDiskDeleteStub: any;
   let addDatastreamStub: any;
 
-  beforeEach(function () {
+  beforeEach(async function () {
     this.timeout(10000);
-    installPdfgenTestGlobals();
-    const stagingDisk = globalAny.sails.services.storagemanagerservice.stagingDisk();
+    input = pdfDependencies();
+    const stagingDisk = input.stagingDisk();
     storageDiskPutStub = stagingDisk.put;
     storageDiskDeleteStub = stagingDisk.delete;
-    addDatastreamStub = globalAny.sails.services.standarddatastreamservice.addDatastream;
+    addDatastreamStub = input.datastreams.addDatastream;
 
     const compiledServicePath = require.resolve('../../dist/api/services/PDFService.js');
     const requireCache = (require as NodeJS.Require & { cache?: Record<string, unknown> }).cache;
@@ -33,11 +26,9 @@ describe('PDFService Unit Tests', () => {
       delete requireCache[compiledServicePath];
     }
     const compiledService = require(compiledServicePath);
-    pdfService = new compiledService.Services.PDF(Object.assign(
-      require('../../dist/compat/dependencies').legacyPDFDependencies(),
-      { runAcceptedWork: (operation: () => Promise<unknown>) => operation() }
-    ));
-    pdfService.DatastreamService = globalAny.sails.services.standarddatastreamservice;
+    pdfService = new compiledService.Services.PDF(input);
+    await pdfService.initialize();
+    await pdfService.activate();
 
     mockPage = {
       setRequestInterception: sinon.stub().resolves(),
@@ -64,7 +55,6 @@ describe('PDFService Unit Tests', () => {
   afterEach(async () => {
     await pdfService?.shutdownPDFRetries();
     sinon.restore();
-    clearPdfgenTestGlobals();
   });
 
   it('should accept an assertion that passes on the final retry', async () => {
@@ -84,8 +74,7 @@ describe('PDFService Unit Tests', () => {
   });
 
   it('should fail fast if required services are missing', async () => {
-    delete globalAny.sails.services.storagemanagerservice;
-    delete globalAny.StorageManagerService;
+    input.stagingDisk.throws(new Error('Missing staging disk'));
 
     const service: any = pdfService;
     const exit = await Effect.runPromiseExit(
@@ -96,36 +85,25 @@ describe('PDFService Unit Tests', () => {
     expect((exit as any).cause).to.exist;
   });
 
-  it('should await PDF cleanup before delegating to sails.lower', async () => {
+  it('should await PDF cleanup before completing owned close', async () => {
     let finishCleanup!: () => void;
-    const cleanup = new Promise<void>((resolve) => {
+    const cleanup = new Promise<void>(resolve => {
       finishCleanup = resolve;
     });
-    const originalLower = sinon.stub();
-    const lowerOptions = { hardShutdown: true };
-    const lowerCallback = sinon.stub();
-    globalAny.sails.lower = originalLower;
-    sinon.stub(pdfService, 'registerSailsHook');
     const shutdownStub = sinon.stub(pdfService, 'shutdownPDFRetries').returns(cleanup);
-
-    pdfService.init();
-    globalAny.sails.lower(lowerOptions, lowerCallback);
-
-    await waitForAssertion(() => expect(shutdownStub.calledOnce).to.be.true);
-    expect(originalLower.called).to.be.false;
-
-    finishCleanup();
-    await waitForAssertion(() => {
-      expect(originalLower.calledOnce).to.be.true;
-      expect(originalLower.firstCall.args[0]).to.equal(lowerOptions);
-      expect(originalLower.firstCall.args[1]).to.be.a('function');
+    let closed = false;
+    const closing = pdfService.close().then(() => {
+      closed = true;
     });
-    originalLower.firstCall.args[1]();
-    await waitForAssertion(() => expect(lowerCallback.calledOnce).to.be.true);
+    await waitForAssertion(() => expect(shutdownStub.calledOnce).to.be.true);
+    expect(closed).to.be.false;
+    finishCleanup();
+    await closing;
+    expect(closed).to.be.true;
   });
 
   it('should return the record and log in the background when its brand cannot be resolved', async () => {
-    globalAny.BrandingService.getBrandById.returns(null);
+    input.brandById.returns(null);
     const record = { metaMetadata: { brandId: 404 } };
 
     let observable: any;
@@ -139,7 +117,7 @@ describe('PDFService Unit Tests', () => {
 
     expect(result).to.equal(record);
     await waitForAssertion(() => {
-      expect(globalAny.sails.log.error.calledWithMatch(/Background PDF generation failed/)).to.be.true;
+      expect(input.log.error.calledWithMatch(/Background PDF generation failed/)).to.be.true;
     });
     expect(mockPage.goto.called).to.be.false;
   });
@@ -150,10 +128,11 @@ describe('PDFService Unit Tests', () => {
 
     await Effect.runPromise(service.attemptPDFGeneration('oid-branded', record, {}, { name: 'research' }, 1));
 
-    expect(mockPage.goto.calledWith(
-      'http://localhost:1500/research/rdmp/record/view/oid-branded',
-      { waitUntil: 'domcontentloaded' }
-    )).to.be.true;
+    expect(
+      mockPage.goto.calledWith('http://localhost:1500/research/rdmp/record/view/oid-branded', {
+        waitUntil: 'domcontentloaded',
+      })
+    ).to.be.true;
   });
 
   it('rejects a login redirect even when the final page returns HTTP 200', async () => {
@@ -206,9 +185,7 @@ describe('PDFService Unit Tests', () => {
     const intermediateUrl = 'http://localhost:1500/default/rdmp/record/resolve/oid-redirected';
     mockPage.goto.resolves(navigationResponse(recordUrl, 200, [recordUrl, intermediateUrl]));
 
-    await Effect.runPromise(
-      pdfService.attemptPDFGeneration('oid-redirected', {}, {}, { name: 'default' }, 1)
-    );
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-redirected', {}, {}, { name: 'default' }, 1));
 
     expect(mockPage.pdf.calledOnce).to.be.true;
     expect(storageDiskPutStub.calledOnce).to.be.true;
@@ -228,7 +205,9 @@ describe('PDFService Unit Tests', () => {
       const failure = Cause.failureOption(exit.cause);
       expect(failure._tag).to.equal('Some');
       expect(failure.value._tag).to.equal('BrowserError');
-      expect(failure.value.cause.message).to.equal(`Record navigation contained an invalid redirect URL: ${redirectUrl}`);
+      expect(failure.value.cause.message).to.equal(
+        `Record navigation contained an invalid redirect URL: ${redirectUrl}`
+      );
       expect(mockPage.waitForNetworkIdle.called).to.be.false;
       expect(mockPage.pdf.called).to.be.false;
       expect(storageDiskPutStub.called).to.be.false;
@@ -324,9 +303,7 @@ describe('PDFService Unit Tests', () => {
   });
 
   it('renders a successful same-origin record response', async () => {
-    await Effect.runPromise(
-      pdfService.attemptPDFGeneration('oid-success', {}, {}, { name: 'default' }, 1)
-    );
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-success', {}, {}, { name: 'default' }, 1));
 
     expect(mockPage.pdf.calledOnce).to.be.true;
     expect(storageDiskPutStub.calledOnce).to.be.true;
@@ -423,9 +400,7 @@ describe('PDFService Unit Tests', () => {
       request.response.returns(navigationResponse(recordUrl));
     });
 
-    await Effect.runPromise(
-      pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
-    );
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1));
 
     expect(mockPage.pdf.calledOnce).to.be.true;
     expect(storageDiskPutStub.calledOnce).to.be.true;
@@ -439,14 +414,16 @@ describe('PDFService Unit Tests', () => {
         const onRequest = mockPage.on.withArgs('request').firstCall.args[1];
         onRequest(navigationRequest(recordUrl, mockPage.mainFrame(), navigationResponse(recordUrl)));
         onRequest({
-          ...navigationRequest(recordUrl, kind === 'iframe' ? {} : mockPage.mainFrame(), navigationResponse(recordUrl, 500)),
+          ...navigationRequest(
+            recordUrl,
+            kind === 'iframe' ? {} : mockPage.mainFrame(),
+            navigationResponse(recordUrl, 500)
+          ),
           isNavigationRequest: () => kind === 'iframe',
         });
       });
 
-      await Effect.runPromise(
-        pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
-      );
+      await Effect.runPromise(pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1));
 
       expect(mockPage.pdf.calledOnce).to.be.true;
       expect(storageDiskPutStub.calledOnce).to.be.true;
@@ -455,8 +432,7 @@ describe('PDFService Unit Tests', () => {
   }
 
   it('blocks off-origin navigation and keeps the bearer token on portal requests', async () => {
-    const handler = () => mockPage.on.getCalls()
-      .find((call: any) => call.args[0] === 'request')?.args[1];
+    const handler = () => mockPage.on.getCalls().find((call: any) => call.args[0] === 'request')?.args[1];
     const portalRequest = {
       url: () => 'http://localhost:1500/default/rdmp/record/view/oid-redirect',
       isNavigationRequest: () => true,
@@ -508,7 +484,7 @@ describe('PDFService Unit Tests', () => {
     await Effect.runPromise(service.attemptPDFGeneration('oid-1', record, options, { name: 'default' }, 1));
 
     expect(mockPage.waitForNetworkIdle.called).to.be.true;
-    expect(globalAny.sails.log.warn.calledWithMatch(/Unknown readinessStrategy/)).to.be.true;
+    expect(input.log.warn.calledWithMatch(/Unknown readinessStrategy/)).to.be.true;
   });
 
   it('should use selector strategy', async () => {
@@ -688,7 +664,7 @@ describe('PDFService Unit Tests', () => {
 
     expect(mockBrowser.newPage.calledOnce).to.be.true;
     expect(mockPage.goto.called).to.be.false;
-    expect(globalAny.sails.log.warn.calledWithMatch(/already in progress/)).to.be.true;
+    expect(input.log.warn.calledWithMatch(/already in progress/)).to.be.true;
 
     releaseHeaders?.();
     await firstGeneration;
@@ -758,10 +734,13 @@ describe('PDFService Unit Tests', () => {
       markNavigationStarted = resolve;
     });
 
-    mockPage.goto.callsFake((url: string) => new Promise(resolve => {
-      markNavigationStarted?.();
-      releaseNavigation = () => resolve(navigationResponse(url));
-    }));
+    mockPage.goto.callsFake(
+      (url: string) =>
+        new Promise(resolve => {
+          markNavigationStarted?.();
+          releaseNavigation = () => resolve(navigationResponse(url));
+        })
+    );
 
     const observable = pdfService.createPDF('oid-1', record, {}, {});
     const result = await new Promise((resolve, reject) => {
@@ -793,7 +772,7 @@ describe('PDFService Unit Tests', () => {
     });
 
     await waitForAssertion(() => {
-      expect(globalAny.sails.log.warn.calledWithMatch(/Retry scheduled: true/)).to.be.true;
+      expect(input.log.warn.calledWithMatch(/Retry scheduled: true/)).to.be.true;
     });
 
     const secondObservable = pdfService.createPDF('oid-1', record, options, {});

@@ -1,7 +1,7 @@
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
 const { PDFGenConfig, PDFGEN_CONFIG_MODEL, PDFGEN_CONFIG_SCHEMA } = require('../../dist/api/configmodels/PDFGenConfig');
 const { agendaQueue, mergeAgendaQueueJobs } = require('../../dist/config/agendaQueue');
-const hookFactory = require('../../dist/index.js');
+const { registerRedboxExtension } = require('../../dist/index.js');
 const { pdfgen } = require('../../dist/config/pdfgen');
 const packageJson = require('../../package.json');
 
@@ -92,45 +92,23 @@ describe('Config exports', () => {
     expect(PDFGEN_CONFIG_SCHEMA.properties.sourceUrlBase).to.not.have.property('default');
   });
 
-  it('registerRedboxConfig only exports non-array config', () => {
-    expect(hookFactory.registerRedboxConfig()).to.deep.equal({
+  it('exports PDF options as neutral non-array configuration', () => {
+    expect(registerRedboxExtension().config).to.deep.equal({
       pdfgen,
     });
   });
 
-  it('adds the PDF queue job during runtime initialization without replacing existing jobs', async () => {
+  it('adds the declared PDF queue job without replacing existing jobs', () => {
     const existingJobs = {
-      'SolrSearchService-CreateOrUpdateIndex': {
-        fnName: 'solrsearchservice.createOrUpdateIndex',
-      },
+      'SolrSearchService-CreateOrUpdateIndex': { fnName: 'solrsearchservice.createOrUpdateIndex' },
     };
-    const sails = {
-      config: {
-        agendaQueue: {
-          options: {
-            backend: 'mongodb',
-          },
-          jobs: existingJobs,
-        },
-      },
-      services: {
-        configservice: {
-          mergeHookConfig: () => {},
-        },
-      },
-      after: () => {},
-      log: {
-        warn: () => {},
-        error: () => {},
-      },
-    };
-
-    await hookFactory(sails).initialize();
-
-    expect(Object.keys(sails.config.agendaQueue.jobs)).to.deep.equal([
+    const extension = registerRedboxExtension();
+    expect(Object.keys(mergeAgendaQueueJobs(existingJobs, extension.jobs))).to.deep.equal([
       'SolrSearchService-CreateOrUpdateIndex',
       'PDFService-CreatePDF',
     ]);
+    expect(extension.modules[0].name).to.equal('pdf');
+    expect(extension.modules[0].requires).to.deep.equal(['storage']);
   });
 
   it('defines renderable nested controls for Puppeteer PDF options', () => {
