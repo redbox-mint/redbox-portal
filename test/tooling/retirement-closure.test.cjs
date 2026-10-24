@@ -33,3 +33,23 @@ for (const [name, declaration, violations] of [
     }
   });
 }
+
+for (const [label, source, count] of [
+  ['queued legacy data', "const data = { function: 'sails.services.pdfservice.createPDF' };", 0],
+  ['live queue service access', 'sails.services.pdfservice.createPDF();', 1],
+]) {
+  test(`retirement audit classifies ${label} without exempting executable identifiers`, () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-queue-audit-'));
+    try {
+      const fixture = path.join(directory, 'packages/redbox-core/test/queues');
+      fs.mkdirSync(fixture, { recursive: true });
+      fs.writeFileSync(path.join(fixture, 'QueueMongo.test.ts'), source);
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
+      const audit = JSON.parse(result.stdout);
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}

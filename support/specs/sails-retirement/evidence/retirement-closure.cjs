@@ -122,7 +122,7 @@ if (!tree) {
   walk(tree);
   read = file => fs.readFileSync(path.join(tree, file), 'utf8');
 }
-const fixtureFiles = new Set(['record-hook-names.cjs', 'persisted-record-hooks.cjs']);
+const fixtureFiles = new Set(['record-hook-names.cjs', 'persisted-record-hooks.cjs', 'portal-reference.cjs']);
 const doc = file => /(^|\/)(?:support\/(?:specs|wiki|docs)\/|skills\/)/.test(file) || /\.md(?:\.hbs)?$/.test(file);
 for (const file of files) {
   const source = read(file);
@@ -262,6 +262,14 @@ for (const file of files) {
         classify(node, 'Finite persisted-declaration conversion key or rejected legacy prefix; never evaluated');
       else if (/\/test\/qualification\//.test(file) && fixtureFiles.has(path.basename(file)))
         classify(node, 'Persisted conversion fixture/opaque-value preservation and rejection assertions');
+      else if (
+        /\/redbox-core\/test\/queues\/QueueMongo\.test\.ts$/.test(file) &&
+        ts.isStringLiteralLike(node) &&
+        /^sails\.services\.[A-Za-z][A-Za-z0-9_.]*$/.test(node.text)
+      )
+        classify(node, 'Persisted queue migration fixture/opaque-value preservation and rejection assertions');
+      else if (/(^|\/)test\/tooling\/retirement-closure\.test\.cjs$/.test(file) && ts.isStringLiteralLike(node))
+        classify(node, 'Auditor positive/negative control source strings; never imported by the application');
       else if (
         /\/test\/qualification\/(?:portal-application|workflow-triggers)\.cjs$/.test(file) &&
         (assertion(node).includes('assert.throws') || node.text === 'sails.services.synthetic.unregistered')
