@@ -1,5 +1,6 @@
 x-rbportal-env: &rbportal-env
-  NODE_ENV: development
+  # Build mode runs the rehearsal target's installed production graph.
+  NODE_ENV: production
   REDBOX_APPLICATION_CONFIG: /deployment/application.cjs
   REDBOX_PORT: 1500
   REDBOX_HOSTNAME: 0.0.0.0
@@ -56,6 +57,10 @@ services:
   rbportal-mount:
     <<: *rbportal-service
     profiles: [mount]
+    environment:
+      <<: *rbportal-env
+      # The mounted workspace includes its development dependencies/hooks.
+      NODE_ENV: development
     image: ${RBPORTAL_IMAGE:-redbox-portal:dev}
     build:
       context: ../..

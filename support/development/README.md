@@ -5,6 +5,10 @@ mount and build modes use the `rehearsal` image target: it installs the bundled
 demo and PDF hooks in the production dependency graph. The pristine production
 `runtime` target continues to omit demo hooks.
 
+Build mode uses `NODE_ENV=production` for that installed graph. Mount mode uses
+`NODE_ENV=development` and discovers the workspace's installed development hooks;
+compile/install the workspace dependencies before starting it.
+
 ```sh
 # From the repository root, with Node 26.11.1 / npm 11.20.0 selected:
 npm run compile:all
