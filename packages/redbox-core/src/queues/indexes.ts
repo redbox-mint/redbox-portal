@@ -6,11 +6,12 @@ import type { AgendaQueueConfig, AgendaQueueOptions } from '../config/agendaQueu
 
 /** Maintenance inspects only backends selected by the effective job configuration. */
 export function selectedAgendaMongoOptions(config: AgendaQueueConfig): AgendaQueueOptions | undefined {
+  const options = config.options ?? {};
   const jobs = Object.values(config.jobs);
   const usesMongo = jobs.length
-    ? jobs.some(job => (job.backend ?? config.options.backend ?? 'mongodb') === 'mongodb')
-    : (config.options.backend ?? 'mongodb') === 'mongodb';
-  return usesMongo ? config.options : undefined;
+    ? jobs.some(job => (job.backend ?? options.backend ?? 'mongodb') === 'mongodb')
+    : (options.backend ?? 'mongodb') === 'mongodb';
+  return usesMongo ? options : undefined;
 }
 
 const definitions = [

@@ -8,7 +8,7 @@ import type { AgendaQueueConfig } from '../../src/config/agendaQueue.config';
 
 describe('executable maintenance backend selection', () => {
   for (const mode of ['inspect', 'ensure']) {
-    for (const selection of ['sqs-only', 'mongo-override', 'empty-mongo', 'empty-sqs']) {
+    for (const selection of ['sqs-only', 'mongo-override', 'empty-mongo', 'empty-sqs', 'implicit-mongo']) {
       it(`${mode} selects Agenda Mongo only when required (${selection})`, async () => {
         const agendaQueue: AgendaQueueConfig = {
           options: {
@@ -19,6 +19,10 @@ describe('executable maintenance backend selection', () => {
             ? {}
             : { custom: { fnName: 'configured.job', backend: selection === 'mongo-override' ? 'mongodb' : 'sqs' } },
         };
+        if (selection === 'implicit-mongo') {
+          delete agendaQueue.options;
+          agendaQueue.jobs = { custom: { fnName: 'configured.job' } };
+        }
         const completed = Promise.withResolvers<void>();
         let selected: unknown;
         let calls = 0;
@@ -64,9 +68,13 @@ describe('executable maintenance backend selection', () => {
         });
         await completed.promise;
         assert.equal(calls, 1);
-        assert.equal(
+        assert.deepEqual(
           selected,
-          selection === 'mongo-override' || selection === 'empty-mongo' ? agendaQueue.options : undefined
+          selection === 'implicit-mongo'
+            ? {}
+            : selection === 'mongo-override' || selection === 'empty-mongo'
+              ? agendaQueue.options
+              : undefined
         );
       });
     }
