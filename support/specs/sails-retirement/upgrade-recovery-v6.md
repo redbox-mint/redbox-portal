@@ -193,7 +193,9 @@ again before ending maintenance.
 
 The following command uses new, explicitly guarded `sr-p7-upgrade-*` Docker
 resources, the sanitized released-v5 fixture, synthetic credentials, split MongoDB
-8.0.34 servers, the released v5.0.4 image and bundled Mongo storage migration.
+8.0.34 servers, the released v5.0.4 image and the qualified local v6 candidate
+with bundled hooks. It initializes the installed candidate, exercises fresh login
+and retained records/forms/workflows, then checks restart and graceful stop.
 It deliberately changes both databases and files after taking the checkpoint,
 then restores the entire checkpoint and restarts the released source. It never
 connects to an institution database. Keep at least 6 GiB free in the scratch root:
@@ -201,6 +203,8 @@ connects to an institution database. Keep at least 6 GiB free in the scratch roo
 ```sh
 export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
 export SR_P7_SCRATCH_ROOT=/path/to/disposable/scratch
+# Immutable image ID from the clean SR-047 build; use the bundled-hook stand-in.
+export SR_P7_CANDIDATE_IMAGE="$(docker image inspect sr-p7-v6-candidate:local --format '{{.Id}}')"
 bash support/integration-testing/rehearse-sails-retirement-recovery.sh
 ```
 

@@ -201,6 +201,15 @@ RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
 USER node
 
+# Local upgrade-rehearsal artifact: the bundled development forms act as the
+# institution stand-in, installed in the production graph with the PDF hook.
+# It intentionally retains the runtime dependency tree, never the builder's dev tree.
+FROM runtime_pdfgen AS rehearsal
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
+RUN npm install --omit=dev --ignore-scripts --save-prod --strict-peer-deps --legacy-peer-deps=false --no-audit \
+    ./packages/redbox-hook-dev
+RUN node -e "require('@researchdatabox/redbox-core/portal'); require('redbox-hook-dev/extension'); require('@researchdatabox/sails-hook-redbox-pdfgen/extension')"
+
 # Optional test/demo image: layers the development hook (redbox-hook-dev: demo
 # record types, workflows, dashboards and forms) on top of the otherwise pristine
 # runtime. Built with `--target test` and used by the integration test suites.

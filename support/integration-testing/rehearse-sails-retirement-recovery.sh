@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Destructive only to this script's new, guarded disposable rehearsal resources.
-# Exercises released-v5 recovery and v6 persistence components, not a full upgrade.
+# Exercises released-v5, installed v6 cutover/restart/stop and complete recovery.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 task_root=$PWD
@@ -11,6 +11,9 @@ mkdir -p "$task_logs" "$task_state/state/attachments/primary" "$task_state/state
 printf '%s\n' "$task_state" > "$task_logs/scratch-path.txt"
 task_image=qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9
 task_mongo=mongo:8.0.34@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907
+task_candidate=${SR_P7_CANDIDATE_IMAGE:?Set the qualified immutable local candidate image ID (with bundled hooks)}
+[[ "$task_candidate" =~ ^sha256:[a-f0-9]{64}$ ]]
+docker image inspect "$task_candidate" --format '{{.Id}} {{json .RepoDigests}}' > "$task_logs/candidate-image.txt"
 task_network=sr-p7-upgrade
 task_containers=()
 docker network create "$task_network" >/dev/null
@@ -19,6 +22,7 @@ cleanup() {
   # Stop the portal before its dependencies, including on a failed probe.
   for ((task_index=${#task_containers[@]}-1;task_index>=0;task_index--)); do
     container=${task_containers[$task_index]}
+    docker logs --tail 200 "$container" > "$task_logs/$container-tail.log" 2>&1 || true
     timeout 75 docker stop --timeout 60 "$container" >/dev/null || task_status=1
     timeout 45 docker rm -v "$container" >/dev/null || task_status=1
   done
@@ -120,6 +124,57 @@ set -e
 fixture review-source-index "$task_logs/index-before.json" > "$task_logs/review-source-index.log" 2>&1
 node packages/redbox-core/bin/persistence-indexes.cjs --ensure --config "$task_state/deployment.cjs" > "$task_logs/index-ensure.json" 2> "$task_logs/index-ensure-error.log"
 node packages/redbox-core/bin/persistence-indexes.cjs --inspect --config "$task_state/deployment.cjs" > "$task_logs/index-after.json" 2> "$task_logs/index-after-error.log"
+# Run the same installed candidate commands as the operator procedure. Each
+# maintenance process exits before the next starts; the sole portal owns signals.
+cat > "$task_state/state/configuration/v6.cjs" <<'CONFIG'
+module.exports = {
+  server: { hostname: '0.0.0.0', port: 1500, publicUrl: 'http://127.0.0.1:18508' },
+  datastores: { mongodb: { url: 'mongodb://mongodb/redbox-portal' }, redboxStorage: { url: 'mongodb://storage-mongodb/redbox-storage' } },
+  agendaQueue: { options: { db: 'mongodb://mongodb/redbox-portal', collection: 'agendaJobs' } },
+  redboxSession: { mongoUrl: 'mongodb://mongodb/redbox-portal', collection: 'sessions_v6', cookie: { secure: false } },
+  storage: { disks: {
+    primary: { driver: 'fs', config: { root: '/attachments/primary' } },
+    staging: { driver: 'fs', config: { root: '/attachments/staging' } },
+    'figshare-staging': { driver: 'fs', config: { root: '/attachments/figshare' } },
+  } },
+  bootstrap: { bootstrapDataPath: 'bootstrap-data' },
+  brandingConfigurationDefaults: { auth: { active: ['local'] } },
+  vocab: { bootstrapRvaImports: false, bootstrapFigshareImports: false },
+  solr: { clientSleepTimeMillis: 0, cores: { default: { options: { host: 'solr', port: 8983, core: 'redbox' } } } },
+  i18n: { next: { init: { debug: false } } },
+  csp: { extras: [] },
+};
+CONFIG
+candidate_options=(--network "$task_network" --memory=1536m
+  -v "$task_state/state/configuration/v6.cjs:/deployment.cjs:ro"
+  -v "$task_state/state/attachments:/attachments"
+  -e NODE_ENV=integrationtest -e REDBOX_APPLICATION_CONFIG=/deployment.cjs
+  -e REDBOX_SESSION_SECRET=rehearsal-only-session-secret-at-least-32)
+for operation in --maintenance=indexes:ensure --maintenance=indexes:inspect --initialize-only; do
+  label=${operation//[^a-zA-Z0-9]/-}
+  docker run --rm --init "${candidate_options[@]}" "$task_candidate" node app.express.cjs "$operation" > "$task_logs/candidate$label.log" 2>&1
+done
+for label in candidate candidate-restarted; do
+  task_started=$SECONDS
+  docker run -d --init --name sr-p7-upgrade-v6 -p 127.0.0.1:18508:1500 "${candidate_options[@]}" "$task_candidate" node app.express.cjs > "$task_logs/$label-container.txt"
+  task_containers+=(sr-p7-upgrade-v6)
+  for attempt in {1..180}; do
+    if curl -fsS --max-time 2 -o /dev/null http://127.0.0.1:18508/readyz 2>/dev/null; then break; fi
+    if [[ "$attempt" == 180 ]]; then docker logs sr-p7-upgrade-v6 > "$task_logs/$label-portal.log" 2>&1; exit 1; fi
+    sleep 1
+  done
+  printf '%s startupSeconds=%s\n' "$label" "$((SECONDS-task_started))" > "$task_logs/$label-timing.log"
+  fixture probe-v6 > "$task_logs/$label-probe.log" 2>&1
+  docker stats --no-stream --format '{{.Name}} {{.MemUsage}} {{.CPUPerc}}' sr-p7-upgrade-v6 > "$task_logs/$label-memory.log"
+  task_started=$SECONDS
+  timeout 75 docker stop --timeout 60 sr-p7-upgrade-v6 > "$task_logs/$label-stop.log"
+  [[ "$(docker inspect sr-p7-upgrade-v6 --format '{{.State.ExitCode}}')" == 0 ]]
+  docker inspect sr-p7-upgrade-v6 --format '{{json .State}}' > "$task_logs/$label-stop.json"
+  docker logs sr-p7-upgrade-v6 > "$task_logs/$label-portal.log" 2>&1
+  printf '%s stopSeconds=%s\n' "$label" "$((SECONDS-task_started))" >> "$task_logs/$label-timing.log"
+  docker rm -v sr-p7-upgrade-v6 >/dev/null
+  unset 'task_containers[-1]'
+done
 fixture upgrade-components > "$task_logs/upgrade-components.log" 2>&1
 # Emulate an interrupted cutover affecting databases, bytes and config. Never run
 # the old image over this changed state: restore the complete checkpoint first.
@@ -137,4 +192,4 @@ docker image load -i "$task_state/checkpoint/released-image.tar" > "$task_logs/i
 fixture verify "$task_state/checkpoint/database-manifest.json" > "$task_logs/restore-verification.log" 2>&1
 start_v5 "$task_state/restored" recovered
 stop_v5 recovered
-printf 'Released-v5 complete checkpoint restored; full v6 portal upgrade remains unqualified.\n'
+printf 'Installed v6 cutover/restart/stop and released-v5 complete checkpoint recovery passed. Institution designation remains external.\n'

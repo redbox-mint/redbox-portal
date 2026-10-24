@@ -9,6 +9,9 @@ task_containers=()
 cleanup() {
   task_status=$?
   if ((${#task_containers[@]})); then
+    for task_container in "${task_containers[@]}"; do
+      docker logs --tail 200 "$task_container" > "$task_logs/$task_container-tail.log" 2>&1 || true
+    done
     timeout 90 docker stop --timeout 30 "${task_containers[@]}" > "$task_logs/container-stop.log" 2>&1 || task_status=1
     timeout 90 docker rm -f -v "${task_containers[@]}" > "$task_logs/container-remove.log" 2>&1 || task_status=1
   fi
@@ -79,5 +82,13 @@ for major in 8 9; do
         npm run test:lifecycle:mongo
       ' > "$task_logs/${major}-${topology}-regression.log" 2>&1
     tail -8 "$task_logs/${major}-${topology}-regression.log"
+    # Keep both three-member datastores live for the entire row, then release
+    # only that row before creating the next topology/version.
+    for task_container in "${row_containers[@]}"; do
+      docker logs --tail 200 "$task_container" > "$task_logs/$task_container-tail.log" 2>&1 || true
+    done
+    timeout 90 docker stop --timeout 30 "${row_containers[@]}" > "$task_logs/${major}-${topology}-stop.log" 2>&1
+    timeout 90 docker rm -v "${row_containers[@]}" > "$task_logs/${major}-${topology}-remove.log" 2>&1
+    task_containers=()
   done
 done

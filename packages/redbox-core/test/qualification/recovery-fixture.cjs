@@ -1,4 +1,4 @@
-// Disposable released-v5 checkpoint rehearsal. This is not a portal composition.
+// Guarded released-v5 checkpoint and full candidate HTTP rehearsal.
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const { createHash } = require('node:crypto');
@@ -21,21 +21,53 @@ async function main() {
     for (const url of urls) clients.push(await new MongoClient(url).connect());
     const databases = clients.map(client => client.db());
     const mode = process.argv[2];
-    if (mode === 'probe') {
-      const base = 'http://127.0.0.1:18507';
+    if (mode === 'probe' || mode === 'probe-v6') {
+      const v6 = mode === 'probe-v6';
+      const base = v6 ? 'http://127.0.0.1:18508' : 'http://127.0.0.1:18507';
       const headers = {
         Authorization: 'Bearer d077835a-696b-4728-85cf-3ffd57152b1e',
         Accept: 'application/json',
       };
       assert.equal((await fetch(base + '/default/rdmp/home')).status, 200);
+      const csrf = v6 ? await fetch(base + '/csrfToken') : undefined;
+      if (csrf) assert.equal(csrf.status, 200);
+      const cookie = csrf?.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+      const token = csrf ? (await csrf.json())._csrf : undefined;
       const login = await fetch(base + '/user/login_local', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Source': 'jsclient' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Source': 'jsclient', ...(cookie ? { Cookie: cookie, 'X-CSRF-Token': token } : {}) },
         redirect: 'manual',
         body: JSON.stringify({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' }),
       });
       assert.equal(login.status, 200);
       assert.equal((await login.json()).user.username, 'admin');
+      let records = 0, forms = 0, workflows = 0;
+      if (v6) {
+        assert.equal((await fetch(base + '/healthz')).status, 200);
+        assert.equal((await fetch(base + '/readyz')).status, 200);
+        const loginCookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+        assert(loginCookie.includes('redbox.v6.sid='));
+        const browser = { Cookie: loginCookie };
+        const response = await fetch(base + '/default/rdmp/user/info', { headers: browser });
+        assert.equal(response.status, 200);
+        assert.equal((await response.json()).user.username, 'admin');
+        for (const record of await databases[1].collection('record').find().toArray()) {
+          const read = await fetch(base + '/default/rdmp/api/records/metadata/' + record.redboxOid, { headers });
+          assert.equal(read.status, 200, 'released record metadata');
+          assert(JSON.stringify(await read.json()).includes(record.metadata.title));
+          records++;
+          const form = await fetch(base + '/default/rdmp/api/forms/get?name=' + encodeURIComponent(record.metaMetadata.form), { headers });
+          assert.equal(form.status, 200, 'released form');
+          forms++;
+          const workflow = await fetch(base + '/default/rdmp/record/wfSteps/' + encodeURIComponent(record.metaMetadata.type), { headers: browser });
+          assert.equal(workflow.status, 200, 'released workflow');
+          assert((await workflow.json()).length > 0);
+          workflows++;
+          const page = await fetch(base + '/default/rdmp/record/edit/' + record.redboxOid, { headers: browser });
+          assert.equal(page.status, 200, 'released form page');
+          assert((await page.text()).includes('form'));
+        }
+      }
       const times = [];
       for (let index = 0; index < 20; index++) {
         const started = performance.now();
@@ -51,6 +83,7 @@ async function main() {
           home: 200,
           localLogin: 200,
           formsRequests: times.length,
+          ...(v6 ? { health: 200, ready: 200, freshCsrfLogin: true, sessionVersion: 6, records, forms, workflows, pages: records } : {}),
           formsLatencyMs: { p50: times[9], p95: times[18], max: times[19] },
         })
       );
@@ -220,7 +253,7 @@ async function main() {
             preservedRoles: user.roles.length,
             localPassword: true,
             partialFailure: true,
-            limitation: 'Component upgrade only; no production Express portal composition is available.',
+            scope: 'Bundled storage migrations and deliberate partial-failure injection after the full candidate HTTP cutover.',
           })
         );
       } finally {
