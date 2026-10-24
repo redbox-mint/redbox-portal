@@ -1,4 +1,5 @@
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { assertJsonValue } from '../../src/persistence/cache/validation';
 import * as persistence from '../../src/persistence/runtime';
 let migrationExecuted: sinon.SinonStub;
 let expect: Chai.ExpectStatic;
@@ -492,6 +493,21 @@ describe('DashboardConfigService', function () {
       const { input } = await service.captureLegacyInput(brand);
 
       expect(input.overrides?.recordTypes?.rdmp?.default?.dashboardType).to.equal('newer-profile');
+    });
+
+    it('captures absent optional declarations as plain JSON for the persisted recovery snapshot', async function () {
+      mockSails.config.dashboardtype = { standard: { formatRules: { filterBy: {} } } };
+      repositoryFixtures.WorkflowStep.find = sinon.stub().resolves([{ name: 'draft' }]);
+      repositoryFixtures.AppConfig.create = sinon.stub().callsFake(async (value: unknown) => {
+        assertJsonValue(value);
+        return {};
+      });
+
+      const { raw } = await service.captureLegacyInput(brand);
+      assertJsonValue(raw);
+      await service.migrateLegacyConfiguration();
+      expect(repositoryFixtures.AppConfig.create.calledOnce).to.equal(true);
+      expect(store.docs).to.have.length(1);
     });
 
     it('snapshots, converts and publishes once; reruns leave published settings alone', async function () {

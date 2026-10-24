@@ -1182,7 +1182,7 @@ export namespace Services {
             recordType: recordType.name,
             name: s.name,
             hidden: s.hidden === true,
-            config: s.config,
+            ...(s.config === undefined ? {} : { config: s.config }),
           }))
         );
         recordTypes.push({
@@ -1202,9 +1202,9 @@ export namespace Services {
         (this.input.config.dashboardtype ?? {}) as unknown as Record<string, AnyRecord>
       ).map(([name, def]) => ({
         name,
-        formatRules: def.formatRules,
-        tableConfig: def.tableConfig,
-        searchable: def.searchable as boolean | undefined,
+        ...(def.formatRules === undefined ? {} : { formatRules: def.formatRules }),
+        ...(def.tableConfig === undefined ? {} : { tableConfig: def.tableConfig }),
+        ...(def.searchable === undefined ? {} : { searchable: def.searchable as boolean }),
       }));
       const dashboardTypes = profileRows.length
         ? profileRows.map(p => ({

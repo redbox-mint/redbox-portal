@@ -722,3 +722,33 @@ Bruno and root integration runs exercise the public record create/read/update
 paths instead. No missing-environment real-Mongo skip remains. The initial
 acceptance paragraph incorrectly categorized these seven as publisher cases;
 the classification above corrects it without changing the measured counts.
+
+## Released-checkpoint dashboard snapshot regression
+
+The first complete installed cutover of clean artifact `d82dc4f86` stopped in
+`20260925T000000-dashboard-stage-configuration`, exit **1**. Its failed lifecycle
+reported **0 pools / 0 Prisma clients**, no retained cleanup. A diagnostic over
+an isolated restoration of the same complete checkpoint reproduced
+`invalid-configuration`: `captureLegacyInput` introduced `undefined` for absent
+`configuredDashboardTypes[*].tableConfig/searchable`. Strict configuration JSON
+validation correctly refused the new recovery snapshot. This was application
+snapshot construction, not unsupported BSON in the released fixture.
+
+The added service case asserts the actual JSON boundary for captured data and
+the migration's snapshot write, including a workflow declaration without its
+optional config. Command (Node 26.11.1, standard core ts-node/Mocha setup):
+
+```sh
+TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only packages/redbox-core/node_modules/mocha/bin/mocha.js \
+  --no-config --require chai --require packages/redbox-core/test/setup.ts --timeout 10000 \
+  packages/redbox-core/test/services/DashboardConfigService.test.ts
+```
+
+Before repair: **38 passing / 1 failing**, `InvalidCacheEntryError` in the new
+case (`dashboard-snapshot-red.log`). After repair: **39 passing / 0 failing /
+0 pending**, exit **0** (`dashboard-snapshot-green.log`). The snapshot builder
+omits only absent optional fields it introduces. No persistence validator,
+existing test/assertion, timeout or supported BSON rule changes. The installed
+cutover must be repeated using a clean corrected artifact; this focused result
+alone does not close recovery acceptance.
