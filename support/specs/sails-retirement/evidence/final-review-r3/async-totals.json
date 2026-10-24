@@ -1,0 +1,60 @@
+{
+  "revision": "04455647e5a9cdb0b2f5340a4e77abcdd4fcbbff",
+  "sourceFiles": 1221,
+  "roots": 33,
+  "finalPrimaryCandidates": 389,
+  "finalPrimarySites": 360,
+  "explicitExclusions": 29,
+  "finalPrimaryKinds": {
+    "subscribe": 60,
+    "fire-and-forget-promise": 145,
+    "promise-chain": 102,
+    "timer": 68,
+    "event-subscription": 64,
+    "observable-timer": 1,
+    "effect-run": 19,
+    "detached-async-callback": 1
+  },
+  "unclassified": 0,
+  "supplementalReviewSnapshot": {
+    "rows": 35,
+    "byKind": {
+      "registration-extra": 16,
+      "event-property": 2,
+      "implicit-owner": 6,
+      "embedded-setTimeout": 2,
+      "embedded-event-subscription": 1,
+      "embedded-promise-chain": 2,
+      "socket-middleware-subscription": 1,
+      "native-request-listener": 2,
+      "destroy-subscription": 2,
+      "implicit-channel": 1
+    }
+  },
+  "promiseCrosscheckReviewSnapshot": {
+    "rows": 516,
+    "coveredByPrimary": 165,
+    "byDisposition": {
+      "aggregate-child": 64,
+      "covered-by-primary-callsite": 165,
+      "argument-to-caller-or-owner": 57,
+      "cached-local-or-owned-lifetime": 192,
+      "conditional-value-returned-or-owned": 32,
+      "actual-followup-retained-with-admission-gap-R3-S4": 3,
+      "actual-upload-escapes-on-abort-R3-S6": 1,
+      "actual-launch-escapes-startup-R3-S5": 2
+    }
+  },
+  "callbackCrosscheckReviewSnapshot": {
+    "rows": 62,
+    "discardedPromiseCallbacks": 5
+  },
+  "declarative": {
+    "externalHtmlFiles": 80,
+    "parsedTemplates": 131,
+    "parserErrors": 0,
+    "eventSites": 914,
+    "parserDuplicateRowsRemoved": 11
+  },
+  "note": "Primary sites re-extracted on final code; fixed owner contracts replace original gap annotations. Crosscheck/supplement tables retain original source spans and defect classifications; final dispositions are in review.md. Counts overlap and must not be summed."
+}

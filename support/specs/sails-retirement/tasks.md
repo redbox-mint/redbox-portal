@@ -22,8 +22,11 @@ and [exact artifacts/results](evidence/p8-artifacts.json).
 runtime/test fixes and targeted verification. [Round 2](evidence/final-review-r2.md)
 records further corrections and full current mounted-source/compiled-tree suites
 at code/test commit `97155ef9a`, including real-service, browser, Bruno, PDF,
-typecheck/lint/docs and retirement inventory/closure checks. The `5088f4a7a`
-immutable-artifact results above remain historical; neither review built replacement
+typecheck/lint/docs and retirement inventory/closure checks. [Round 3](evidence/final-review-r3.md)
+records the enumerated authority/storage/async audit, 14 verified corrections and
+final mounted-source/compiled-tree qualification through `454eee512`, with Bruno-only
+fixture correction `ff7e2314d`. The `5088f4a7a`
+immutable-artifact results above remain historical; the reviews did not build replacement
 immutable images. SR-005/045/049/055's accepted institution gaps and checkboxes
 remain unchanged.
 
@@ -873,7 +876,8 @@ Read the [design](design.md) for behavior and the
   no stand-in is counted as an institution.
   [Final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition).
   [Round-1 corrections and verification](evidence/final-review-r1.md) and
-  [round-2 corrections/full suites](evidence/final-review-r2.md) postdate those frozen
+  [round-2 corrections/full suites](evidence/final-review-r2.md) and
+  [round-3 enumerated review/corrections/full suites](evidence/final-review-r3.md) postdate those frozen
   images. Current mounted/compiled qualification is recorded separately and does
   not claim replacement immutable images or a newly repeated topology matrix.
 

@@ -1,0 +1,17 @@
+id	file	line	mount	gate / ownership contract
+M01	packages/redbox-core/src/http/express/ExpressHost.ts	65	GET /healthz	Public boolean health only; no domain identifiers or detailed configuration
+M02	packages/redbox-core/src/http/express/ExpressHost.ts	68	GET /readyz	Public readiness boolean only
+M03	packages/redbox-core/src/http/express/ExpressHost.ts	70	all requests before readiness	503 before application admission; no domain lookup
+M04	packages/redbox-core/src/http/express/ExpressHost.ts	109	configured rootContext router	Normalized trusted root path; beginHttpRequest + runAcceptedPersistenceWork own every dispatched request
+M05	packages/redbox-core/src/http/express/ExpressHost.ts	110	unmatched request	Bounded 404; no domain lookup
+M06	packages/redbox-core/src/http/express/pageAssets.ts	176	GET/HEAD static artifact fallback	Manifest-contained artifact paths and symlink checks; public immutable artifact headers/cookie suppression; registered after dynamic routes
+M07	packages/redbox-core/src/http/express/companion.ts	274	all configured Companion base and subtree	Trusted session/deployment brand selection, pilot chain + configured policy + CSRF; pinned provider subtree behind this gate
+M08	packages/redbox-core/src/http/express/companion.ts	294	Companion POST url/meta and url/get	URL mode disabled explicitly; provider URLs come through configured source handlers
+M09	packages/redbox-core/src/http/express/companion.ts	302	Companion GET provider/send-token override	Same outer auth policies; trusted configured app origin; bounded provider allowlist; escaped JSON and restrictive page headers
+M10	packages/redbox-core/src/http/express/companion.ts	112	Companion socket upload /api/:token	Existing tracked transfer capability + exact allowed Origin + readiness; token issued to authenticated request; dedicated server/socket ownership
+M11	packages/redbox-core/src/http/express/companion.ts	117	Companion socket /api2/auth-callback/token/:token	Pinned provider OAuth callback capability and exact trusted Origin; bounded callback token syntax; provider performs token validation; drain closes dedicated sockets
+M12	packages/redbox-core/src/http/express/progressSockets.ts	46	configured progress socket path	Exact Origin allowlist; one-use short-lived grant; fresh actor/session/bearer reauth; signed room authority checked on reconnect
+M13	packages/redbox-core/src/http/express/progressSockets.ts	78	progress socket subscribe / unsubscribe	Room authorization reloaded by stored brand + creator or record ACL; unsubscribe only own connection; pending actions retained
+M14	packages/redbox-core/src/application/portal/application.ts	460	extension beforeRoutes declarations	Selected offline handler/policy registry, validated route declarations, declared public or explicit policy list; no request-selected service dispatch
+M15	packages/redbox-core/src/application/portal/application.ts	469	extension afterRoutes declarations	Same validated extension contract and bound policy chain; default bundled graph adds no arbitrary entity route
+M16	packages/redbox-core/src/http/express/resumableUploads.ts	214	all methods on four manifest tus paths	Already enumerated R routes; extra verbs still pass policy/CSRF and tus method validation. No unauthenticated alternate mount

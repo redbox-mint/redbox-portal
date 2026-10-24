@@ -1,0 +1,32 @@
+{
+  "revision": "04455647e5a9cdb0b2f5340a4e77abcdd4fcbbff",
+  "routeManifestDeclarations": 338,
+  "uniqueManifestRoutes": 335,
+  "apiRoutes": 152,
+  "missingApiRoutes": 0,
+  "extraApiRoutes": 0,
+  "serverPackageSourceFiles": 935,
+  "allNamedCallableDeclarations": 7158,
+  "identifierDomainAndAdapterCandidates": 2484,
+  "byTrust": {
+    "queue-domain": 5,
+    "provider-client": 132,
+    "data-or-internal-helper": 363,
+    "composition-or-cli": 177,
+    "authentication-domain": 19,
+    "branding-domain": 109,
+    "brand-qualified-domain": 110,
+    "form-projection": 165,
+    "transport-binding": 92,
+    "identity-domain": 96,
+    "integration-domain": 268,
+    "storage-domain": 81,
+    "privileged-adapter": 309,
+    "progress-domain": 3,
+    "query-domain": 93,
+    "record-domain": 349,
+    "vocabulary-domain": 91,
+    "workspace-domain": 22
+  },
+  "note": "Conservative candidates include pure helpers, transport bindings and raw internal adapter capabilities. These are not all independently authorizing public domain operations. Each row records its caller/capability contract; no inference from regex alone."
+}
