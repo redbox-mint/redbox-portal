@@ -100,6 +100,7 @@ RUN apt-get update \
 
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/package*.json ./
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.js ./app.js
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.express.cjs ./app.express.cjs
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
