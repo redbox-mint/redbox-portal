@@ -505,8 +505,7 @@ export class AgendaQueue implements QueueService {
         } else {
           agenda.define(job.name, handler, job.options as Parameters<Agenda['define']>[2]);
         }
-        this.input.log.verbose(`AgendaQueue:: Defined job:`);
-        this.input.log.verbose(JSON.stringify(job));
+        this.input.log.verbose(`AgendaQueue:: Defined job: ${job.name}`);
       }
     });
   }

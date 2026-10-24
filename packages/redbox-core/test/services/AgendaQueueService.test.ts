@@ -127,6 +127,30 @@ describe('AgendaQueueService', function () {
     return { service, agenda, backend, repository };
   }
 
+  it('defines scheduled jobs without logging their configured payloads', function () {
+    const service = createQueue();
+    const agenda = createAgendaStub();
+    Reflect.set(service, 'agendas', { mongodb: agenda });
+    const secret = 'private-scheduled-provider-token';
+    const job = {
+      name: 'scheduled-fixture',
+      fnName: 'fixture.noop',
+      schedule: {
+        method: 'every' as const,
+        intervalOrSchedule: '1 minute',
+        data: { authorization: secret, record: { privateTitle: 'private-scheduled-record' } },
+      },
+    };
+    service.defineJobs([job]);
+    assert.equal(agenda.define.firstCall.args[0], job.name);
+    assert.equal(typeof agenda.define.firstCall.args[1], 'function');
+    assert.equal(job.schedule.data.authorization, secret);
+    const diagnostics = JSON.stringify(environment.log.verbose.args);
+    assert(diagnostics.includes(job.name));
+    assert.equal(diagnostics.includes(secret), false);
+    assert.equal(diagnostics.includes('private-scheduled-record'), false);
+  });
+
   it('serializes SQS renewal before release and refuses a later touch of that delivery', async function () {
     const entered = deferred(), reply = deferred();
     const events: string[] = [];
