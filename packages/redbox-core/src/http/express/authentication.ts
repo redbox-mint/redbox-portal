@@ -66,7 +66,7 @@ export function createHttpAuthentication(identity: HttpIdentity) {
     passport,
     initialize: passport.initialize() as RequestHandler,
     session: trackedSession(passport.session() as RequestHandler),
-    /** For an explicit login adapter. Browser flows and CSRF remain P6. */
+    /** For the explicit browser login adapter and its CSRF/session boundary. */
     local: ((req, res, next) => {
       const work = new Promise<void>((resolve, reject) => {
         const middleware: RequestHandler = passport.authenticate('local', (error: unknown, user: unknown) => {

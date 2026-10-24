@@ -39,7 +39,7 @@ interface PdfOwner {
   createPDF(oid: string, record: unknown, options: Record<string, unknown>, user: unknown): Observable<unknown>;
 }
 // Load the compiled extension entrypoint in this source-checkout fixture without
-// importing its emitted comparison declarations into the source-only core typecheck.
+// importing its emitted declarations into the source-only core typecheck.
 const {
   Services: Pdf,
 }: {

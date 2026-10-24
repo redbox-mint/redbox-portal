@@ -97,9 +97,9 @@ Missing policies are an error, not an implicit public route. Method/path aliases
 and unintended duplicates fail during resolution; named replacement is explicit.
 Handler execution sits behind the existing host's inactive/activation gate.
 
-The generated handler is a small demonstration. Legacy parameter precedence,
-branding/auth context and portal API conversion remain the P4/P5/P6 tasks; this
-phase does not mount legacy controllers or redirect missing routes to Sails.
+The generated handler is a small demonstration. The production Express host
+binds request parameters, branding, authentication and portal API routes explicitly.
+Convert custom handlers to these owned inputs; legacy controllers are not mounted.
 
 ## Configuration, forms, contributors, views and assets
 
@@ -187,8 +187,9 @@ the sample's injected operation must implement the deployment's upsert policy.
 Migrations keep stable, lexically ordered names and the existing ledger. Preserve
 existing migration names when porting an institution. Rename the scaffold's
 sample migration before first release. These declarations provide no transaction,
-rollback, or exactly-once guarantee. P3 owns their execution stages and activation;
-the P2 tests explicitly invoke fixture operations only to check the declared seam.
+rollback, or exactly-once guarantee. The application awaits migrations and
+bootstrap before activating workers and HTTP. A failed operation prevents readiness;
+the ledger records completed named migrations for restart.
 
 ## Verification and remaining rollout
 
@@ -196,13 +197,15 @@ The development hook, core, storage/PDF hooks and dev-tools are packed with real
 `npm pack`. The isolated production consumer loads declarations with network
 connect/listen disabled and no global Sails, then generates and compiles a v6
 hook against the installed public types. It exercises activation/drain/close
-with an actual file, and separately starts the partial Express host with the
-format/precedence fixtures. Commands, artifacts and limits are in
-[P2 evidence](evidence/p2-extensions.md).
+with an actual file. The historical [P2 evidence](evidence/p2-extensions.md)
+records that phase's format/precedence checks; the completed production composition,
+packed extension fresh/restart and browser/API gates are recorded in
+[P8 evidence](evidence/p8-retirement.md) and [artifact results](evidence/p8-artifacts.json).
 
-Institution designation remains SR-005. Full config orchestration, queues,
-authenticated/public portal coverage and final application packaging remain the
-later tasks; none is implied by a successful offline extension import.
+Institution designation remains SR-005. Internal production-composition, queue,
+authenticated/public portal and packaging checks are complete for the recorded
+artifacts. They do not qualify an undesignated institution or replace its hook,
+configuration, topology and recovery rehearsal.
 
 ## Record hooks, configured actions and progress clients
 

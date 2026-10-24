@@ -230,6 +230,6 @@ export const pilotPolicyChain = [
   'checkAuth',
 ] as const;
 
-/** Retained pilot entry names; both hosts bind the same policy implementation. */
+/** Retained pilot entry names for the owned Express policy implementation. */
 export const createPilotPolicies = createHttpPolicies;
 export type PilotPolicyInput = HttpPolicyInput;

@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-/** The explicit, request-scoped template API, shared by both host adapters. */
+/** The explicit, request-scoped template API, used by the Express host. */
 export interface PageLocalsInput {
   root: string;
   origin: string;
