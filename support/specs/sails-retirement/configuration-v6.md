@@ -121,6 +121,9 @@ CLI accepts only `--port=`, `--hostname=`, `--public-url=`, `--root-context=`,
 absent. Defaults: port 1500, hostname 0.0.0.0, root empty, trust proxy false,
 stop deadline 30000 ms. `publicUrl` is explicit and must include the deployment
 root path; it does not change implicitly when a listen port is overridden.
+PDF and provider callbacks receive this canonical application URL. Browser client
+`baseUrl` and template `appUrl` receive its origin because their page root is
+provided separately and appended once.
 
 `convertLegacyEnvironment` is an explicit preparation helper. It converts
 `sails_port/host/appUrl`, `sails_http__rootContext/trustProxy`,

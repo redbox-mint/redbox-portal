@@ -349,7 +349,7 @@ export class PortalHttp implements ApplicationModule {
       languages: brand => ref.entries.get().listLanguages(ref.branding.get().getBrandById(brand.id)!),
       translate: (brand, language, key, values) => ref.translation.get().t(key, values, language, brand),
       typeface: name => ref.branding.get().getActiveTypefaceFontInfo(name),
-      templateConfig: { ...config, appUrl: config.server.publicUrl + rootContext, rootContext },
+      templateConfig: { ...config, appUrl: this.origin, rootContext },
     };
     http.mountPageRoot(router, rootContext, config.page.landingPath);
     http.mountRecordTypeRoutes(router, {
@@ -544,7 +544,7 @@ export class PortalHttp implements ApplicationModule {
         ...shared,
         uploads: this.companion,
         path: config.companion.route,
-        appUrl: config.server.publicUrl + rootContext,
+        appUrl: config.server.publicUrl,
         context: req => ({
           branding: req.session.branding ?? config.auth.defaultBrand,
           portal: config.auth.defaultPortal,
@@ -578,7 +578,7 @@ export class PortalHttp implements ApplicationModule {
       ...pages,
       defaultBrand: config.auth.defaultBrand,
       defaultPortal: config.auth.defaultPortal,
-      config: { ...config, appUrl: config.server.publicUrl + rootContext },
+      config: { ...config, appUrl: this.origin },
       forms: ref.forms.get(),
       dashboards: ref.dashboards.get(),
       reports: ref.reports.get(),

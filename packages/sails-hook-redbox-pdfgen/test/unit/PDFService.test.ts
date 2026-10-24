@@ -135,6 +135,12 @@ describe('PDFService Unit Tests', () => {
     ).to.be.true;
   });
 
+  it('navigates once through the canonical deployment root', async () => {
+    input.config.appUrl = 'http://localhost:1500/research';
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-root', {}, {}, { name: 'default' }, 1));
+    expect(mockPage.goto.firstCall.args[0]).to.equal('http://localhost:1500/research/default/rdmp/record/view/oid-root');
+  });
+
   it('rejects a login redirect even when the final page returns HTTP 200', async () => {
     const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-login';
     const loginUrl = 'http://localhost:1500/default/rdmp/user/login';

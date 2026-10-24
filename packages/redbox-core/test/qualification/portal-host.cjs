@@ -17,6 +17,8 @@ test(
   { timeout: 120000 },
   async () => {
     assert.equal(process.version, 'v26.11.1');
+    const rootContext = process.env.SR_PORTAL_ROOT_CONTEXT ?? '';
+    assert(['', '/research'].includes(rootContext));
     const url = process.env.SR_PORTAL_MONGO_URL;
     assert(url, 'SR_PORTAL_MONGO_URL is required');
     assert.equal(new URL(url).pathname, '/sr_p7_portal_http');
@@ -66,7 +68,7 @@ test(
         applicationFile,
         'module.exports = ' +
           JSON.stringify({
-            server: { port: 18517, hostname: '127.0.0.1', publicUrl: 'http://127.0.0.1:18517' },
+            server: { port: 18517, hostname: '127.0.0.1', rootContext, publicUrl: 'http://127.0.0.1:18517' + rootContext },
             i18n: { next: { init: { debug: false } } },
             datastores: {
               mongodb: { url },
@@ -126,7 +128,12 @@ test(
       } finally {
         await runtime.cleanupPersistence(maintenance);
       }
+      const pdfFactory = portal.resolved.modules.find(item => item.declaration.name === 'pdf').declaration;
+      const constructPdf = pdfFactory.create;
+      let pdfUrl;
+      pdfFactory.create = input => { pdfUrl = input.config.appUrl; return constructPdf(input); };
       await portal.host.initialize();
+      assert.equal(pdfUrl, 'http://127.0.0.1:18517' + rootContext);
       const origin = 'http://127.0.0.1:18517';
       const readyBefore = await fetch(origin + '/readyz');
       assert.equal(readyBefore.status, 503);
@@ -134,12 +141,20 @@ test(
       await portal.host.activate();
       assert.equal((await fetch(origin + '/readyz')).status, 200);
       const request = async (path, options = {}, expectedStatus = 200) => {
-        const response = await fetch(origin + path, { redirect: 'manual', ...options });
+        const response = await fetch(origin + rootContext + path, { redirect: 'manual', ...options });
         const text = await response.text();
         assert.equal(response.status, expectedStatus, path + ': ' + text.slice(0, 500));
         return { response, text };
       };
-      await request('/default/rdmp/home');
+      const home = await request('/default/rdmp/home');
+      assert(home.text.includes(`href="${rootContext}/default/rdmp/styles/style.min.css"`));
+      if (rootContext) assert(!home.text.includes(rootContext + rootContext));
+      assert(home.text.includes(`rootContext="${rootContext}"`));
+      const client = JSON.parse((await request('/default/rdmp/dynamic/apiClientConfig.json')).text);
+      assert.equal(client.baseUrl, origin);
+      // HttpClientService receives the page root independently through APP_BASE_HREF.
+      const angularApi = `${client.baseUrl}${rootContext}/${client.branding}/${client.portal}/api/recordtypes`;
+      assert.equal(angularApi, origin + rootContext + '/default/rdmp/api/recordtypes');
       await request('/default/rdmp/styles/style.min.css');
       const namespace = await request('/default/rdmp/locales/en/translation.json', {
         headers: { Authorization: 'Bearer portal-host-qualification-token' },
@@ -150,6 +165,9 @@ test(
         Accept: 'application/json',
         'X-Source': 'jsclient',
       };
+      const angularResponse = await fetch(angularApi, { headers });
+      assert.equal(angularResponse.status, 200);
+      await angularResponse.text();
       await request('/default/rdmp/admin/vocabulary/manager', { headers });
       for (const path of ['/api/recordtypes', '/api/forms', '/api/forms/get?name=dataPublication-1.0-draft'])
         await request('/default/rdmp' + path, { headers });
@@ -209,7 +227,7 @@ test(
         },
         201
       );
-      const denied = await fetch(origin + '/default/rdmp/api/recordtypes', {
+      const denied = await fetch(origin + rootContext + '/default/rdmp/api/recordtypes', {
         redirect: 'manual',
         headers: { Accept: 'application/json' },
       });

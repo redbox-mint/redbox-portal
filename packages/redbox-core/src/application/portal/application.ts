@@ -269,7 +269,7 @@ export async function createPortalApplication(options: PortalApplicationOptions)
       create = () => {
         const construct = registration.declaration.create as (input: PortalPdfInput) => PortalPdfModule;
         const module = construct({
-          config: { appUrl: config.server.publicUrl + config.server.rootContext, loginPath: config.auth.loginPath },
+          config: { appUrl: config.server.publicUrl, loginPath: config.auth.loginPath },
           log: options.log,
           runAcceptedWork: operation => persistence.runAcceptedPersistenceWork(owner, operation),
           datastreams: { addDatastream: (...args) => data.datastream.get().addDatastream(...args) },
