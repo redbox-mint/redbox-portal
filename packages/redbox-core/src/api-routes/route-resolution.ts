@@ -2,17 +2,7 @@ import type { ApiRequestInput } from './types';
 import UrlPattern from 'url-pattern';
 
 import { getMatchedRoutePath, normalizeMethod, routeKey } from './helpers';
-import { getMergedApiRoutes } from './route-registry';
 import { ApiRouteDefinition } from './types';
-
-let cachedRoutes: readonly ApiRouteDefinition[] | null = null;
-
-function getCachedRoutes(): readonly ApiRouteDefinition[] {
-  if (cachedRoutes == null) {
-    cachedRoutes = getMergedApiRoutes();
-  }
-  return cachedRoutes;
-}
 
 function matchRoutePath(routePath: string, requestPath: string): boolean {
   return new UrlPattern(routePath).match(requestPath) != null;
@@ -24,10 +14,6 @@ function getContractAliasPath(routePath: string): string | undefined {
     return routePath.replace('/admin/report-config', '/api/report-config');
   }
   return undefined;
-}
-
-export function resetResolvedApiRouteCache(): void {
-  cachedRoutes = null;
 }
 
 /** Per-composition resolution; no process cache or implicit runtime configuration. */
@@ -74,9 +60,4 @@ export function createApiRouteResolver(routes: readonly ApiRouteDefinition[]) {
 
     return undefined;
   };
-}
-
-/** Temporary legacy host convenience; standalone compositions use createApiRouteResolver. */
-export function resolveApiRouteForRequest(req: ApiRequestInput): ApiRouteDefinition | undefined {
-  return createApiRouteResolver(getCachedRoutes())(req);
 }

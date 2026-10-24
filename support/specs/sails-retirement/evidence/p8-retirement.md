@@ -878,3 +878,36 @@ intentional v6 method/socket/session changes.
 Node 26.11.1 explicit core runner: `pages26-fourth.log` **25 passing / 0 pending /
 0 failing** including the preceding 14 page scenarios. All 11 method/socket cases
 execute, no skips or failures. No production change was needed for this slice.
+
+### Final policy consumer retirement and composition-scoped API resolution
+
+The remaining three policy files retain their 30 scenarios using actual Express
+Chronicle, Companion/resumable route mounts, neutral API contracts and the owned
+HTTP error boundary. The 12 shared-secret scenarios now assert the deliberate v6
+actor requirement for absent/wrong/correct secret, public/local/private/proxied/
+IPv4-mapped/RFC7239 peers, PATCH/HEAD resume and unrelated DELETE. Authenticated
+brand members dispatch exactly once; missing brand membership returns 403; no
+legacy bypass flag is installed. The four Chronicle privacy scenarios keep raw
+preview tokens out of diagnostics while leaving the request path unchanged.
+
+The 14 API-validation scenarios retain independent params/query/body/file checks,
+operation redaction, repeated If-Match refusal, raw schema Problem Details/cache/
+Vary in both versions, route identity and sanitized unexpected failures. Missing
+routes now use the actual router's 404 (the retired policy's 500 was a framework
+resolution artifact); unknown paths do not generate private-identifier logs.
+Unexpected validation exceptions are handled by the real generic HTTP error
+boundary rather than the deleted policy's logger. Neutral validation returns its
+normalized value directly instead of mutating req.apiRequest. The sole remaining
+unit consumer now creates its own resolver; unused process-level route cache and
+legacy convenience exports are removed from source.
+
+Node 26.11.1 explicit core Mocha runner: `policies27-first.log` **4/0/0**;
+`policies27-second.log` **16/0/0**. Initial combined run `policies27-third.log`
+**78 passing/1 failing**: the fault-injection fixture's getter-only req.params
+prevented Express restoring router state and kept a listener open. Stopped that
+specific test process and made the fixture property writable through a restoring
+setter. `policies27-fourth.log`: **79 passing / 0 pending / 0 failing** (17s), all
+three files plus the existing 49 API-route cases. No production workaround, test
+skip or weakened security assertion was introduced. Full artifact gates remain.
+Source `tsc --noEmit --incremental false`: **exit 0**, `policies27-tsc.log`.
+Pinned Prettier and git diff --check pass.

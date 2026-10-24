@@ -22,8 +22,7 @@ import {
   RECORD_SCHEMA_RESOLVER_OPENAPI_EXTENSION,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
   RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
-  resetResolvedApiRouteCache,
-  resolveApiRouteForRequest,
+  createApiRouteResolver,
   searchRecordsRoute,
   toRouteMap,
   validateApiRequest,
@@ -193,12 +192,20 @@ describe('API routes contract layer', function () {
 
   it('should derive x-redbox-roles from runtime auth rules', function () {
     const rules = [
-            { path: '/:branding/:portal/api/custom', role: 'Readers', can_read: true },
-            { path: '/:branding/:portal/api/custom', role: 'Editors', can_update: true },
+      { path: '/:branding/:portal/api/custom', role: 'Readers', can_read: true },
+      { path: '/:branding/:portal/api/custom', role: 'Editors', can_update: true },
     ];
 
     {
-      const customRoute = apiRoute('get', '/:branding/:portal/api/custom', 'webservice/CustomController', 'show', undefined, {}, rules);
+      const customRoute = apiRoute(
+        'get',
+        '/:branding/:portal/api/custom',
+        'webservice/CustomController',
+        'show',
+        undefined,
+        {},
+        rules
+      );
 
       expect(customRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Readers', 'Editors']);
 
@@ -338,8 +345,7 @@ describe('API routes contract layer', function () {
   });
 
   it('should resolve admin report config routes against the API contract', function () {
-    resetResolvedApiRouteCache();
-    const route = resolveApiRouteForRequest({
+    const route = createApiRouteResolver(registerCoreApiRoutes())({
       method: 'post',
       route: 'post /:branding/:portal/admin/report-config/preview',
       path: '/default/rdmp/admin/report-config/preview',
@@ -347,7 +353,6 @@ describe('API routes contract layer', function () {
 
     expect(route?.path).to.equal('/:branding/:portal/api/report-config/preview');
     expect(route?.action).to.equal('previewConfig');
-    resetResolvedApiRouteCache();
   });
 
   it('should include the legacy integration audit endpoint in generated routes', function () {
@@ -1542,7 +1547,8 @@ describe('API routes contract layer', function () {
     for (const { path, method } of routeSpecs) {
       const operation = document.paths[path]?.[method] as globalThis.Record<string, unknown> | undefined;
       const responses = operation?.responses as
-        globalThis.Record<string, globalThis.Record<string, unknown>> | undefined;
+        | globalThis.Record<string, globalThis.Record<string, unknown>>
+        | undefined;
 
       expect(responses, `${method.toUpperCase()} ${path}`).to.exist;
       expect(responses, `${method.toUpperCase()} ${path}`).to.not.deep.equal({ 200: { description: 'Success' } });
@@ -1900,15 +1906,11 @@ describe('API routes contract layer', function () {
       body: {},
     } as unknown as ApiRequestInput;
 
-    const result = validateApiRouteRequest(
-      request,
-      brandingApiRoutes.find(route => route.action === 'logo')!,
-      {
-        files: {
-          logo: [{ size: 1024 * 1024, type: 'image/gif' }],
-        },
-      }
-    );
+    const result = validateApiRouteRequest(request, brandingApiRoutes.find(route => route.action === 'logo')!, {
+      files: {
+        logo: [{ size: 1024 * 1024, type: 'image/gif' }],
+      },
+    });
 
     expect(result.valid).to.equal(false);
     if (result.valid) {
