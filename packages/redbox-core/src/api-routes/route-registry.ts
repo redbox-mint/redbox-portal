@@ -1,9 +1,8 @@
 import { buildApiBlueprint } from './apib';
 import { buildOpenApiDocument } from './openapi';
 import {
-  buildSailsRouteConfig,
+  buildRouteMetadata,
   ensureUniqueApiRoutes,
-  isRecord,
   toRouteMap,
   validateApiRouteConsistency,
 } from './helpers';
@@ -70,11 +69,7 @@ export interface ApiRouteConfiguration {
 }
 
 export function registerHookApiRoutes(configuration?: ApiRouteConfiguration): ApiRouteDefinition[] {
-  const sailsConfig =
-    typeof sails === 'undefined' ? {} : ((sails as unknown as { config?: Record<string, unknown> }).config ?? {});
-  const hookProviders = configuration
-    ? configuration.apiRoutesHooks
-    : (sailsConfig['apiRoutesHooks'] as ApiRouteProvider[] | undefined);
+  const hookProviders = configuration?.apiRoutesHooks;
   if (!Array.isArray(hookProviders)) {
     return [];
   }
@@ -90,13 +85,6 @@ export function registerHookApiRoutes(configuration?: ApiRouteConfiguration): Ap
   return [...ensureUniqueApiRoutes(routes, 'hook API routes')];
 }
 
-function getRuntimeRouteTable(): Record<string, unknown> | undefined {
-  const sailsConfig =
-    typeof sails === 'undefined' ? {} : ((sails as unknown as { config?: Record<string, unknown> }).config ?? {});
-  const runtimeRoutes = sailsConfig['routes'];
-  return isRecord(runtimeRoutes) ? runtimeRoutes : undefined;
-}
-
 export function getMergedApiRoutes(configuration?: ApiRouteConfiguration): ApiRouteDefinition[] {
   const routes = [
     ...ensureUniqueApiRoutes(
@@ -104,7 +92,7 @@ export function getMergedApiRoutes(configuration?: ApiRouteConfiguration): ApiRo
       'merged API routes'
     ),
   ];
-  const runtimeRoutes = configuration ? configuration.routes : getRuntimeRouteTable();
+  const runtimeRoutes = configuration?.routes;
   if (runtimeRoutes) {
     validateApiRouteConsistency(routes, runtimeRoutes, 'merged runtime route table');
   }
@@ -116,11 +104,11 @@ export function getCoreApiRouteMap() {
 }
 
 export function buildCoreApiRouteConfig() {
-  return buildSailsRouteConfig(registerCoreApiRoutes());
+  return buildRouteMetadata(registerCoreApiRoutes());
 }
 
-export function buildMergedApiRouteConfig() {
-  return buildSailsRouteConfig(getMergedApiRoutes());
+export function buildMergedApiRouteConfig(configuration?: ApiRouteConfiguration) {
+  return buildRouteMetadata(getMergedApiRoutes(configuration));
 }
 
 function buildApiOpenApiDocumentForRoutes(
@@ -141,14 +129,14 @@ export function buildCoreApiOpenApiDocument(options: { branding?: string; portal
   return buildApiOpenApiDocumentForRoutes(registerCoreApiRoutes(), options);
 }
 
-export function buildMergedApiOpenApiDocument(options: { branding?: string; portal?: string } = {}) {
-  return buildApiOpenApiDocumentForRoutes(getMergedApiRoutes(), options);
+export function buildMergedApiOpenApiDocument(options: { branding?: string; portal?: string } = {}, configuration?: ApiRouteConfiguration) {
+  return buildApiOpenApiDocumentForRoutes(getMergedApiRoutes(configuration), options);
 }
 
 export function buildCoreApiBlueprint(options: { branding?: string; portal?: string } = {}) {
   return buildApiBlueprintForRoutes(registerCoreApiRoutes(), options);
 }
 
-export function buildMergedApiBlueprint(options: { branding?: string; portal?: string } = {}) {
-  return buildApiBlueprintForRoutes(getMergedApiRoutes(), options);
+export function buildMergedApiBlueprint(options: { branding?: string; portal?: string } = {}, configuration?: ApiRouteConfiguration) {
+  return buildApiBlueprintForRoutes(getMergedApiRoutes(configuration), options);
 }

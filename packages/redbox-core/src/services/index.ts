@@ -1,362 +1,46 @@
-import { sailsAsynchsExports } from '../compat/sails/asynchs';
-import { sailsBrandingLogoExports } from '../compat/sails/brandingLogo';
-import { sailsSiemForwardingExports } from '../compat/sails/siemForwarding';
-import { sailsFormVocabularyExports } from '../compat/sails/formVocabulary';
-import { sailsEmailExports } from '../compat/sails/email';
-import { sailsFigshareVocabularyExports } from '../compat/sails/figshareVocabulary';
-import { sailsBrandingThemeCssExports } from '../compat/sails/brandingThemeCss';
-import { sailsBrandingTypefaceExports } from '../compat/sails/brandingTypeface';
-import { sailsBrandingExports } from '../compat/sails/branding';
-import { sailsHarvestRunsExports } from '../compat/sails/harvestRuns';
-import { sailsStandardDatastreamExports } from '../compat/sails/standardDatastream';
-import { sailsStorageManagerExports } from '../compat/sails/storageManager';
-import { sailsSolrExports } from '../compat/sails/solr';
-import { sailsRvaImportExports } from '../compat/sails/rvaImport';
-import { sailsRolesExports } from '../compat/sails/roles';
-import { sailsUsersExports } from '../compat/sails/users';
-import { sailsIntegrationAuditExports } from '../compat/sails/integrationAudits';
-import { sailsNamedQueryServiceExports } from '../compat/sails/namedQueries';
-import { sailsReportsExports } from '../compat/sails/reports';
-import { sailsFormPayloadPrehydrateExports } from '../compat/sails/formPayloadPrehydrate';
-import { sailsVocabularyExports } from '../compat/sails/vocabulary';
-import { sailsDomSanitizerExports } from '../compat/sails/domSanitizer';
-import { sailsRecordSchemaExports } from '../compat/sails/recordSchema';
-import { sailsTranslationExports } from '../compat/sails/translation';
-import { sailsDashboardTypesExports } from '../compat/sails/dashboardTypes';
-import { sailsDashboardConfigExports } from '../compat/sails/dashboardConfig';
-import { sailsWorkspaceTypesExports } from '../compat/sails/workspaceTypes';
-import { sailsWorkflowStepsExports } from '../compat/sails/workflowSteps';
-import { sailsRecordValidationExports } from '../compat/sails/recordValidation';
-import { sailsTranslationEntriesExports } from '../compat/sails/translationEntries';
-import { sailsFormsExports } from '../compat/sails/forms';
-import { sailsAppConfigsExports } from '../compat/sails/appConfigs';
-import { sailsRecordTypesExports } from '../compat/sails/recordTypes';
-/**
- * Services index - exports all service classes and creates ServiceExports object
- * for consumption by the redbox-core loader shim generation
- */
-
-// Import all service modules and re-export
-import * as AgendaQueueServiceModule from './AgendaQueueService';
-import * as AttachmentMetadataServiceModule from './AttachmentMetadataService';
-import * as AppConfigServiceModule from './AppConfigService';
-import * as AsynchsServiceModule from './AsynchsService';
-import * as BrandingLogoServiceModule from './BrandingLogoService';
-import * as BrandingServiceModule from './BrandingService';
-import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
-import * as BrandingTypefaceServiceModule from './BrandingTypefaceService';
-import * as CacheServiceModule from './CacheService';
-import * as ConfigServiceModule from './ConfigService';
-import * as ContrastServiceModule from './ContrastService';
-import * as DashboardConfigServiceModule from './DashboardConfigService';
-import * as DashboardTypesServiceModule from './DashboardTypesService';
-import * as DoiServiceModule from './DoiService';
-import * as EmailServiceModule from './EmailService';
-import * as FigshareServiceModule from './FigshareService';
-import * as FigshareVocabularyServiceModule from './FigshareVocabularyService';
-import * as FormVocabularyServiceModule from './FormVocabularyService';
-import * as FormRecordConsistencyServiceModule from './FormRecordConsistencyService';
-import * as FormPayloadPrehydrateServiceModule from './FormPayloadPrehydrateService';
-import * as FormsServiceModule from './FormsService';
-import * as HarvestRunServiceModule from './HarvestRunService';
-import * as IntegrationAuditServiceModule from './IntegrationAuditService';
-import * as IntegrationNotificationServiceModule from './IntegrationNotificationService';
-import * as I18nEntriesServiceModule from './I18nEntriesService';
-import * as NamedQueryServiceModule from './NamedQueryService';
-import * as NavigationServiceModule from './NavigationService';
-import * as OniServiceModule from './OniService';
-import * as OrcidServiceModule from './OrcidService';
-import * as PathRulesServiceModule from './PathRulesService';
-import * as RaidServiceModule from './RaidService';
-import * as RDMPServiceModule from './RDMPService';
-import { sailsRecordsExports } from '../compat/sails/records';
-import * as RecordsServiceModule from './RecordsService';
-import * as RecordTypesServiceModule from './RecordTypesService';
-import * as RecordSchemaServiceModule from './RecordSchemaService';
-import * as RecordValidationServiceModule from './RecordValidationService';
-import * as ReportsServiceModule from './ReportsService';
-import * as RolesServiceModule from './RolesService';
-import * as SassCompilerServiceModule from './SassCompilerService';
-import * as SolrSearchServiceModule from './SolrSearchService';
-import * as DomSanitizerServiceModule from './DomSanitizerService';
-import * as TemplateServiceModule from './TemplateService';
-import * as TranslationServiceModule from './TranslationService';
-import * as TriggerServiceModule from './TriggerService';
-import * as UsersServiceModule from './UsersService';
-import * as ViewUtilsServiceModule from './ViewUtilsService';
-import * as VocabularyServiceModule from './VocabularyService';
-import * as WorkflowStepsServiceModule from './WorkflowStepsService';
-import * as WorkspaceAsyncServiceModule from './WorkspaceAsyncService';
-import * as WorkspaceServiceModule from './WorkspaceService';
-import * as WorkspaceTypesServiceModule from './WorkspaceTypesService';
-import * as RvaImportServiceModule from './RvaImportService';
-import * as StorageManagerServiceModule from './StorageManagerService';
-import * as StandardDatastreamServiceModule from './StandardDatastreamService';
-import * as SecurityEventServiceModule from './SecurityEventService';
-import * as SiemForwardingServiceModule from './SiemForwardingService';
-
-// Re-export all service namespaces
-export { AgendaQueueServiceModule as AgendaQueueService };
-export { AttachmentMetadataServiceModule as AttachmentMetadataService };
-export { AppConfigServiceModule as AppConfigService };
-export { AsynchsServiceModule as AsynchsService };
-export { BrandingLogoServiceModule as BrandingLogoService };
-export { BrandingServiceModule as BrandingService };
-export { BrandingThemeCssServiceModule as BrandingThemeCssService };
-export { BrandingTypefaceServiceModule as BrandingTypefaceService };
-export { CacheServiceModule as CacheService };
-export { ConfigServiceModule as ConfigService };
-export { ContrastServiceModule as ContrastService };
-export { DashboardConfigServiceModule as DashboardConfigService };
-export { DashboardTypesServiceModule as DashboardTypesService };
-export { DoiServiceModule as DoiService };
-export { EmailServiceModule as EmailService };
-export { FigshareServiceModule as FigshareService };
-export { FigshareVocabularyServiceModule as FigshareVocabularyService };
-export { FormVocabularyServiceModule as FormVocabularyService };
-export { FormRecordConsistencyServiceModule as FormRecordConsistencyService };
-export { FormPayloadPrehydrateServiceModule as FormPayloadPrehydrateService };
-export { FormsServiceModule as FormsService };
-export { HarvestRunServiceModule as HarvestRunService };
-export { IntegrationAuditServiceModule as IntegrationAuditService };
-export { IntegrationNotificationServiceModule as IntegrationNotificationService };
-export { I18nEntriesServiceModule as I18nEntriesService };
-export { NamedQueryServiceModule as NamedQueryService };
-export { NavigationServiceModule as NavigationService };
-export { OniServiceModule as OniService };
-export { OrcidServiceModule as OrcidService };
-export { PathRulesServiceModule as PathRulesService };
-export { RaidServiceModule as RaidService };
-export { RDMPServiceModule as RDMPService };
-export { RecordsServiceModule as RecordsService };
-export { RecordTypesServiceModule as RecordTypesService };
-export { RecordSchemaServiceModule as RecordSchemaService };
-export { RecordValidationServiceModule as RecordValidationService };
-export { ReportsServiceModule as ReportsService };
-export { RolesServiceModule as RolesService };
-export { SassCompilerServiceModule as SassCompilerService };
-export { SolrSearchServiceModule as SolrSearchService };
-export { DomSanitizerServiceModule as DomSanitizerService };
-export { TemplateServiceModule as TemplateService };
-export { TranslationServiceModule as TranslationService };
-export { TriggerServiceModule as TriggerService };
-export { UsersServiceModule as UsersService };
-export { ViewUtilsServiceModule as ViewUtilsService };
-export { VocabularyServiceModule as VocabularyService };
-export { WorkflowStepsServiceModule as WorkflowStepsService };
-export { WorkspaceAsyncServiceModule as WorkspaceAsyncService };
-export { WorkspaceServiceModule as WorkspaceService };
-export { WorkspaceTypesServiceModule as WorkspaceTypesService };
-export { RvaImportServiceModule as RvaImportService };
-export { StorageManagerServiceModule as StorageManagerService };
-export { StandardDatastreamServiceModule as StandardDatastreamService };
-export { SecurityEventServiceModule as SecurityEventService };
-export { SiemForwardingServiceModule as SiemForwardingService };
-
-/**
- * ServiceExports - Object containing lazy-instantiated service exports for use by the redbox-core loader
- * This follows the same registration pattern as Policies and Controllers.
- *
- * Each service is instantiated via `new ServiceClass().exports()` which provides
- * the method binding and exported method filtering that Sails services expect.
- *
- * Using getters for lazy instantiation to avoid issues during testing and before
- * sails globals are available.
- */
-// Unconverted services retain legacy process ownership until their assigned slices.
-// RecordTypes is application-owned and deliberately bypasses this cache.
-const serviceCache: Record<string, unknown> = {};
-
-function getOrCreateService(name: string, factory: () => unknown): unknown {
-  if (!serviceCache[name]) {
-    serviceCache[name] = factory();
-  }
-  return serviceCache[name];
-}
-
-export const ServiceExports = {
-  get AgendaQueueService() {
-    return getOrCreateService('AgendaQueueService', () =>
-      new AgendaQueueServiceModule.Services.AgendaQueue().exports()
-    );
-  },
-  get AttachmentMetadataService() {
-    return getOrCreateService('AttachmentMetadataService', () =>
-      new AttachmentMetadataServiceModule.Services.AttachmentMetadataService().exports()
-    );
-  },
-  get AppConfigService() {
-    return sailsAppConfigsExports();
-  },
-  get AsynchsService() {
-    return sailsAsynchsExports();
-  },
-  get BrandingLogoService() {
-    return sailsBrandingLogoExports();
-  },
-  get BrandingService() {
-    return sailsBrandingExports();
-  },
-  get BrandingThemeCssService() {
-    return sailsBrandingThemeCssExports();
-  },
-  get BrandingTypefaceService() {
-    return sailsBrandingTypefaceExports();
-  },
-  get CacheService() {
-    return getOrCreateService('CacheService', () => new CacheServiceModule.Services.Cache().exports());
-  },
-  get ConfigService() {
-    return getOrCreateService('ConfigService', () => new ConfigServiceModule.Services.Config().exports());
-  },
-  get ContrastService() {
-    return getOrCreateService('ContrastService', () => new ContrastServiceModule.Services.Contrast().exports());
-  },
-  get DashboardConfigService() {
-    return sailsDashboardConfigExports();
-  },
-  get DashboardTypesService() {
-    return sailsDashboardTypesExports();
-  },
-  get DoiService() {
-    return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
-  },
-  get EmailService() {
-    return sailsEmailExports();
-  },
-  get FigshareService() {
-    return getOrCreateService('FigshareService', () => new FigshareServiceModule.Services.FigshareService().exports());
-  },
-  get FigshareVocabularyService() {
-    return sailsFigshareVocabularyExports();
-  },
-  get FormVocabularyService() {
-    return sailsFormVocabularyExports();
-  },
-  get IntegrationAuditService() {
-    return sailsIntegrationAuditExports();
-  },
-  get IntegrationNotificationService() {
-    return getOrCreateService('IntegrationNotificationService', () =>
-      new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports()
-    );
-  },
-  get FormRecordConsistencyService() {
-    return getOrCreateService('FormRecordConsistencyService', () =>
-      new FormRecordConsistencyServiceModule.Services.FormRecordConsistency().exports()
-    );
-  },
-  get FormPayloadPrehydrateService() {
-    return sailsFormPayloadPrehydrateExports();
-  },
-  get FormsService() {
-    return sailsFormsExports();
-  },
-  get HarvestRunService() {
-    return sailsHarvestRunsExports();
-  },
-  get I18nEntriesService() {
-    return sailsTranslationEntriesExports();
-  },
-  get NamedQueryService() {
-    return sailsNamedQueryServiceExports();
-  },
-  get NavigationService() {
-    return getOrCreateService('NavigationService', () => new NavigationServiceModule.Services.Navigation().exports());
-  },
-  get OniService() {
-    return getOrCreateService('OniService', () => new OniServiceModule.Services.OniService().exports());
-  },
-  get OrcidService() {
-    return getOrCreateService('OrcidService', () => new OrcidServiceModule.Services.Orcids().exports());
-  },
-  get PathRulesService() {
-    return getOrCreateService('PathRulesService', () => new PathRulesServiceModule.Services.PathRules().exports());
-  },
-  get RaidService() {
-    return getOrCreateService('RaidService', () => new RaidServiceModule.Services.Raid().exports());
-  },
-  get RDMPService() {
-    return getOrCreateService('RDMPService', () => new RDMPServiceModule.Services.RDMPS().exports());
-  },
-  get RecordsService() {
-    return sailsRecordsExports();
-  },
-  get RecordTypesService() {
-    return sailsRecordTypesExports();
-  },
-  get RecordSchemaService() {
-    return sailsRecordSchemaExports();
-  },
-  get RecordValidationService() {
-    return sailsRecordValidationExports();
-  },
-  get ReportsService() {
-    return sailsReportsExports();
-  },
-  get RolesService() {
-    return sailsRolesExports();
-  },
-  get SassCompilerService() {
-    return getOrCreateService('SassCompilerService', () =>
-      new SassCompilerServiceModule.Services.SassCompiler().exports()
-    );
-  },
-  get SolrSearchService() {
-    return sailsSolrExports();
-  },
-  get DomSanitizerService() {
-    return sailsDomSanitizerExports();
-  },
-  get TemplateService() {
-    return getOrCreateService('TemplateService', () => new TemplateServiceModule.Services.Template().exports());
-  },
-  get TranslationService() {
-    return sailsTranslationExports();
-  },
-  get TriggerService() {
-    return getOrCreateService('TriggerService', () => new TriggerServiceModule.Services.Trigger().exports());
-  },
-  get UsersService() {
-    return sailsUsersExports();
-  },
-  get ViewUtilsService() {
-    return getOrCreateService('ViewUtilsService', () => new ViewUtilsServiceModule.Services.ViewUtils().exports());
-  },
-  get VocabularyService() {
-    return sailsVocabularyExports();
-  },
-  get RvaImportService() {
-    return sailsRvaImportExports();
-  },
-  get WorkflowStepsService() {
-    return sailsWorkflowStepsExports();
-  },
-  get WorkspaceAsyncService() {
-    return getOrCreateService('WorkspaceAsyncService', () =>
-      new WorkspaceAsyncServiceModule.Services.WorkspaceAsyncService().exports()
-    );
-  },
-  get WorkspaceService() {
-    return getOrCreateService('WorkspaceService', () =>
-      new WorkspaceServiceModule.Services.WorkspaceService().exports()
-    );
-  },
-  get WorkspaceTypesService() {
-    return sailsWorkspaceTypesExports();
-  },
-  get StorageManagerService() {
-    return sailsStorageManagerExports();
-  },
-  get StandardDatastreamService() {
-    return sailsStandardDatastreamExports();
-  },
-  get SecurityEventService() {
-    return getOrCreateService('SecurityEventService', () =>
-      new SecurityEventServiceModule.Services.SecurityEventService().exports()
-    );
-  },
-  get SiemForwardingService() {
-    return sailsSiemForwardingExports();
-  },
-};
+// Domain construction belongs to application composition; no singleton registry.
+export * as AgendaQueueService from './AgendaQueueService';
+export * as AppConfigService from './AppConfigService';
+export * as AsynchsService from './AsynchsService';
+export * as BrandingService from './BrandingService';
+export * as BrandingThemeCssService from './BrandingThemeCssService';
+export * as BrandingTypefaceService from './BrandingTypefaceService';
+export * as DashboardConfigService from './DashboardConfigService';
+export * as DashboardTypesService from './DashboardTypesService';
+export * as DoiService from './DoiService';
+export * as DomSanitizerService from './DomSanitizerService';
+export * as EmailService from './EmailService';
+export * as FigshareService from './FigshareService';
+export * as FigshareVocabularyService from './FigshareVocabularyService';
+export * as FormPayloadPrehydrateService from './FormPayloadPrehydrateService';
+export * as FormVocabularyService from './FormVocabularyService';
+export * as FormsService from './FormsService';
+export * as HarvestRunService from './HarvestRunService';
+export * as I18nEntriesService from './I18nEntriesService';
+export * as IntegrationAuditService from './IntegrationAuditService';
+export * as IntegrationNotificationService from './IntegrationNotificationService';
+export * as NamedQueryService from './NamedQueryService';
+export * as OniService from './OniService';
+export * as OrcidService from './OrcidService';
+export * as RDMPService from './RDMPService';
+export * as RaidService from './RaidService';
+export * as RecordSchemaService from './RecordSchemaService';
+export * as RecordTypesService from './RecordTypesService';
+export * as RecordValidationService from './RecordValidationService';
+export * as RecordsService from './RecordsService';
+export * as ReportsService from './ReportsService';
+export * as RolesService from './RolesService';
+export * as RvaImportService from './RvaImportService';
+export * as SecurityEventService from './SecurityEventService';
+export * as SiemForwardingService from './SiemForwardingService';
+export * as SolrSearchService from './SolrSearchService';
+export * as StandardDatastreamService from './StandardDatastreamService';
+export * as StorageManagerService from './StorageManagerService';
+export * as TranslationService from './TranslationService';
+export * as TriggerService from './TriggerService';
+export * as UsersService from './UsersService';
+export * as VocabularyService from './VocabularyService';
+export * as WorkflowStepsService from './WorkflowStepsService';
+export * as WorkspaceAsyncService from './WorkspaceAsyncService';
+export * as WorkspaceService from './WorkspaceService';
+export * as WorkspaceTypesService from './WorkspaceTypesService';

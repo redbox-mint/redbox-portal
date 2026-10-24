@@ -4,8 +4,7 @@ import { convertBuiltinRecordTypeHooks } from '@researchdatabox/redbox-core/reco
 
 export function registerRedboxExtension(): RedboxExtension {
   const { config, forms } = getDevelopmentRegistration();
-  // Convert the two data-only host settings deliberately. The comparison
-  // registration retains its original Sails spelling.
+  // Convert development page declarations to the host configuration contract.
   const { routes, views, ...domains } = config;
   const landingPath: unknown = Reflect.get(routes, '/');
   if (typeof landingPath !== 'string' || !/^\/(?!\/)/.test(landingPath))

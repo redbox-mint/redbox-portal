@@ -11,7 +11,6 @@
     "@researchdatabox/sails-hook-redbox-storage-mongo": "file:packages/sails-hook-redbox-storage-mongo",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
     "@tsconfig/node24": "24.0.4",
-    "@uppy/companion": "7.0.2",
     "bootstrap": "5.3.8",
     "compression": "1.8.1",
     "connect-mongo": "6.0.0",
@@ -19,7 +18,6 @@
     "express-session": "1.19.0",
     "fs-extra": "11.3.5",
     "handlebars": "4.7.9",
-    "include-all": "4.0.3",
     "jquery": "4.0.0",
     "lodash": "4.18.1",
     "lodash-es": "4.18.1",
@@ -29,13 +27,9 @@
     "mongodb": "7.7.0",
     "numeral": "2.0.6",
     "pino": "10.3.1",
-    "rc": "1.2.8",
     "rxjs": "7.8.2",
-    "sails": "1.5.17",
-    "sails-hook-sockets": "3.0.2",
     "ts-node": "10.9.2",
-    "typescript": "5.9.3",
-    "typescript-require": "0.3.0"
+    "typescript": "5.9.3"
   },
   "scripts": {
     "debug": "node --inspect app.express.cjs",
@@ -87,12 +81,11 @@
     "docs:test": "tsc --outDir .tmp/documentation-tests --rootDir support/documentation --project support/documentation/tsconfig.json && mocha .tmp/documentation-tests/test/**/*.test.js",
     "validate:api-routes": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register --require test/setup.ts test/unit/api-routes.test.ts",
     "doc:api": "npm --prefix packages/redbox-core run doc:api --",
-    "compile:sails": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc",
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
     "compile:ng": "npm run compile:ng-apps",
     "compile:core": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
-    "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails",
-    "compile:all": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails && npm run compile:ng && npm run webpack",
+    "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:host",
+    "compile:all": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:host && npm run compile:ng && npm run webpack",
     "compile:core:prod": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:clean && npm run compile && cd ../../",
     "compile:raido": "cd ./packages/raido && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
@@ -105,7 +98,7 @@
     "dev:run": "docker compose --profile mount -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
     "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --build --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
     "dev:run:clean": "docker compose --profile '*' -f ./support/development/docker-compose.yml down",
-    "dev:all": "npm run compile:core && npm run compile:sails && npm run compile:ng && npm run dev:run",
+    "dev:all": "npm run compile:core && npm run compile:host && npm run compile:ng && npm run dev:run",
     "package:pages": "node packages/redbox-core/scripts/package-pages.cjs views .tmp/public .tmp/page-artifacts",
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node packages/redbox-dev-tools/bin/wrapper-webpack.js",
     "dev:prepare": "./support/development/prepareLocalDev.sh",
@@ -113,8 +106,7 @@
     "nvm:install-all": "bash ./support/development/installAllNvmrc.sh",
     "persistence:indexes": "node node_modules/@researchdatabox/redbox-core/bin/persistence-indexes.cjs",
     "check:prisma": "npm --prefix packages/redbox-core run check:prisma",
-    "start:sails:comparison": "node app.js",
-    "debug:sails:comparison": "node --inspect app.js"
+    "compile:host": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc"
   },
   "main": "app.express.cjs",
   "repository": {
@@ -141,9 +133,6 @@
           }
         }
       }
-    },
-    "@sailshq/router": {
-      "path-to-regexp": "0.2.5"
     },
     "@researchdatabox/redbox-core": {
       "@tus/server": {

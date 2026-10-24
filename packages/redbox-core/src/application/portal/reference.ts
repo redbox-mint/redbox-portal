@@ -1,3 +1,4 @@
+import { getBrandingPositiveInt } from '../../config/branding.config';
 import { validators } from '../../config/validators.config';
 import path from 'node:path';
 import { firstValueFrom } from 'rxjs';
@@ -77,12 +78,8 @@ export function portalReferencePlan(
   const refs = () => getReferenceRepositories(owner);
   const brands = () => getBrandingRepository(owner);
   const rootContext = config.server.rootContext.replace(/^\//, '');
-  const positiveInt = (key: keyof typeof config.branding, fallback: number): number => {
-    const value = config.branding[key];
-    if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value;
-    log.warn(`Invalid branding config '${key}', falling back to default ${fallback}`);
-    return fallback;
-  };
+  const positiveInt = (key: keyof typeof config.branding, fallback: number): number =>
+    getBrandingPositiveInt(config.branding, log, key, fallback);
   const typeface = portalDomain(
     'brandingTypeface',
     ['storageDisks'],

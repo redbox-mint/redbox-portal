@@ -10,7 +10,7 @@ import { jsonld } from './config/jsonld';
 import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { getPlaywrightRegistration } from './playwright/registration';
 
-/** Both hosts consume the same demo/scenario declarations; neither path writes data. */
+/** The host consumes these demo/scenario declarations; neither path writes data. */
 export function getDevelopmentRegistration(env: NodeJS.ProcessEnv = process.env) {
   const scenario = getPlaywrightRegistration(env);
   return {

@@ -552,7 +552,7 @@ export namespace Services {
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
-   * @extensionPoint Register a subclass as `RecordsService` from a hook to replace or extend record behaviour while preserving the exported-method contract.
+   * @extensionPoint Bind a replacement records factory through the selected application; preserve authorization, validation, schema, concurrency, audit and partial-save contracts. Inject concrete collaborators and retain accepted work through shutdown.
    * @remarks This service depends on repositories and storage services after Sails bootstrap; replacements must preserve authorization-before-disclosure, exact public preconditions, storage CAS, permanent OID incarnation ownership, and value-free concurrency observability.
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Concurrent-Record-Modifications

@@ -44,6 +44,6 @@ export { metTriggerCondition } from '../utilities/metTriggerCondition';
 
 export type { RecordTypes } from '../recordTypes';
 import type { Services as StorageManagerServices } from '../services/StorageManagerService';
-import type { Services as FormsServices } from '../services/FormsService';
+import type { Forms } from '../forms/Forms';
 export type StorageDisks = Pick<StorageManagerServices.StorageManager, 'disk' | 'stagingDisk'>;
-export type StorageFormReader = Pick<FormsServices.Forms, 'getFormByName'>;
+export type StorageFormReader = Pick<Forms, 'getFormByName'>;

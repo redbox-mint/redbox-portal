@@ -1,1 +1,1 @@
-export { LegacyInlineVocabulary as VocabInlineFormConfigVisitor } from '../compat/sails/inlineVocabulary';
+export * from '../forms/VocabInlineFormConfigVisitor';

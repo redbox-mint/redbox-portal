@@ -18,13 +18,12 @@ import { cachePersistenceFailureForLog } from '../persistence/cache/errors';
 export { isPinoLogger } from '../utilities/PinoLoggerUtils';
 
 // Declare global sails type for namespace logger
-declare const sails: Sails.Application;
 
 /**
  * The sails log levels.
  * Retained for compatibility; equivalent to {@link AvailableLogLevels}.
  */
-export type SailsLogLevel = AvailableLogLevels;
+export type ApplicationLogLevel = AvailableLogLevels;
 
 const initialLogLevel = 'verbose' as const;
 
@@ -44,7 +43,7 @@ const customLevelMap: Record<'blank' | 'crit' | 'log' | 'verbose' | 'silly', num
 export interface LogConfig {
   custom: ILogger; // Use ILogger instead of custom interface
   inspect: boolean;
-  level: SailsLogLevel;
+  level: ApplicationLogLevel;
   customLogger: ILogger;
   createNamespaceLogger: typeof createNamespaceLogger;
   createPinoLogger: typeof createPinoLogger;
@@ -134,10 +133,7 @@ function createNamespaceLogger(
     );
   }
 
-  let calcLevel: string | null = level ?? null;
-  if (!calcLevel && typeof sails !== 'undefined') {
-    calcLevel = sails.config?.lognamespace?.[name] ?? calcLevel;
-  }
+  const calcLevel: string | null = level ?? null;
 
   const bindings = { name: name };
   const options: Record<string, unknown> = {};

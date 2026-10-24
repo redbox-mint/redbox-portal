@@ -4,7 +4,7 @@ module.exports = {
   extension: ['ts'],
   spec: ['test/**/*.test.ts'],
   // These real-Mongo fixtures use isolated commands with required URLs; see test:*:mongo.
-  // Standalone tests and the compiled legacy host cannot share the global legacy setup.
+  // Real-service suites require the dedicated commands and disposable database URLs.
   ignore: [
     'test/http/PagesMongo.test.ts',
     'test/http/RecordMutationsMongo.test.ts',
@@ -31,7 +31,7 @@ module.exports = {
     'test/application/InitializationMongo.test.ts',
     'test/application/ApplicationMongo.test.ts',
     'test/recordTypes/RecordTypesMongo.test.ts',
-    'test/compat/SailsRecordTypesMongo.test.ts',
+    'test/recordTypes/CompiledRecordTypesMongo.test.ts',
   ],
   // Native TypeScript stripping (including Node 26) conflicts with ts-node's CommonJS
   // loader. Preload Chai as well so legacy fire-and-forget dynamic imports do

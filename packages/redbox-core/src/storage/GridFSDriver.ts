@@ -6,7 +6,6 @@ import {
   persistenceReady,
   drainAcceptedPersistenceWork,
 } from '../persistence/runtime';
-/// <reference path="../sails.ts" />
 import { createHash } from 'node:crypto';
 import { basename, posix } from 'node:path';
 import { Readable, type Writable } from 'node:stream';
@@ -119,7 +118,7 @@ export class GridFSDriver {
     options: GridFSDriverOptions = {},
     bucketFactory: GridFSBucketFactory = (db, bucketOptions) => new GridFSBucket(db, bucketOptions),
     dbFactory: MongoDbFactory = resolvedOptions => GridFSDriver.connectDb(resolvedOptions, this.state, this.app),
-    private readonly app: PersistenceOwner | undefined = typeof sails === 'undefined' ? undefined : sails
+    private readonly app: PersistenceOwner | undefined = undefined
   ) {
     this.options = GridFSDriver.resolveOptions(options);
     this.bucketFactory = bucketFactory;

@@ -73,6 +73,6 @@ export function assertPersistenceConfiguration(config: { persistence?: unknown; 
   )
     throw new PersistenceError(
       'configuration',
-      'Remove the ORM hook override. Sails must run with hooks.orm=false. See Persistence-Migration.md.'
+      'Remove the retired ORM hook override. The v6 host owns persistence. See Persistence-Migration.md.'
     );
 }

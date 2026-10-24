@@ -1,3 +1,4 @@
+import './http/express/sessionData';
 export type { ILogger } from '@researchdatabox/sails-ng-common';
 export type {
   JsonValue,
@@ -7,10 +8,8 @@ export type {
 } from './persistence/cache/CacheEntryRepository';
 export { assertJsonValue, assertCacheEntryWrite, InvalidCacheEntryError } from './persistence/cache/validation';
 export { getCacheEntryRepository } from './persistence/cache/runtime';
-import './sails';
 
 export { Attachment } from './Attachment';
-export { Controllers } from './CoreController';
 export { Services } from './CoreService';
 export { Datastream } from './Datastream';
 export { StorageServiceResponse, StorageMutationResponse } from './StorageServiceResponse';
@@ -162,27 +161,6 @@ export * from './decorator';
 export { buildInvalidNewRecordError, buildInvalidUpdateRecordError } from './persistence/validationErrors';
 export type * from './persistence/rows';
 
-export {
-  compareHookPrecedence,
-  discoverRedboxHookPackages,
-  getHookPrecedenceOrder,
-  getHookProcessingOrder,
-  readHookLoadPriority,
-} from './hooks/hookDiscovery';
-export type {
-  RedboxHookDiscoveryOptions,
-  RedboxHookOrderConfig,
-  RedboxHookPackageMetadata,
-} from './hooks/hookDiscovery';
-export {
-  discoverRedboxHookResources,
-  getHookAssetRoots,
-  getHookViewRoots,
-  resolveHookAssetFile,
-  resolveHookViewFile,
-} from './hooks/hookResources';
-export type { RedboxHookResource, ResolvedHookFile } from './hooks/hookResources';
-
 export * from './transformers/ExportJSONTransformer';
 
 export * from './configmodels/ConfigModels';
@@ -229,50 +207,18 @@ export * from './configmodels/AppConfig.interface';
 export * from './configmodels/AuthorizedDomainsEmails';
 export * from './configmodels/SystemMessage';
 
-export { Policies } from './policies';
-
 export { FormConfigExports } from './form-config';
-
-import * as Middleware from './middleware/redboxSession';
-export { Middleware };
-
-import * as Responses from './responses';
-export { Responses };
 
 // Config types and default values
 export * from './config';
 export * from './action-execution';
-export { Config, SailsConfig } from './config';
-
-// Bootstrap functions
-export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
-export { initializeCachePersistence, cleanupCachePersistence } from './persistence/cache/runtime';
-export { inspectCachePersistence, ensureCachePersistenceIndex } from './persistence/cache/preflight';
-export type { CacheIndexInspection } from './persistence/cache/preflight';
-export { CachePersistenceError, DuplicateCacheEntryError } from './persistence/cache/errors';
-export type { ApplicationMigration as RedboxMigration } from './application/migrations';
-export { createGeneratedBootstrap } from './loader/bootstrapShimRuntime';
-export type { GeneratedHookBootstrap } from './loader/bootstrapShimRuntime';
-export { runPendingMigrations } from './loader/MigrationRunner';
+export { Config } from './config';
 
 // Shims for backward compatibility
 export * from './shims';
 
-// Sails hooks
-export * from './hooks';
-
 // Services
-export { ServiceExports } from './services';
 export * from './services';
-
-// Controllers
-export {
-  ControllerExports,
-  WebserviceControllerExports,
-  ControllerNames,
-  WebserviceControllerNames,
-} from './controllers';
-export * from './controllers';
 
 // Visitors
 export * from './visitor/attachment-fields.visitor';

@@ -98,14 +98,6 @@ function isAuthRuleLike(rule: unknown): rule is AuthRuleLike {
 }
 
 function getAuthRules(): AuthRuleLike[] {
-  const globalWithSails = globalThis as typeof globalThis & {
-    sails?: { config?: Record<string, unknown> };
-  };
-  const runtimeRules = globalWithSails.sails?.config?.auth;
-  if (isRecord(runtimeRules) && Array.isArray(runtimeRules.rules)) {
-    return runtimeRules.rules.filter(isAuthRuleLike);
-  }
-
   return defaultAuthConfig.rules.filter(isAuthRuleLike);
 }
 
@@ -256,7 +248,7 @@ export function validateApiRouteConsistency(
   runtimeRoutes: Record<string, unknown>,
   context = 'merged runtime route table'
 ): void {
-  const expectedRoutes = buildSailsRouteConfig(contractRoutes);
+  const expectedRoutes = buildRouteMetadata(contractRoutes);
   const runtimeApiRoutes = new Map<string, unknown>();
   const runtimeApiPathsWithoutMethod = new Set<string>();
   const issues: string[] = [];
@@ -392,7 +384,7 @@ export function getMatchedRoutePath(req: ApiRequestInput): string | undefined {
   return path;
 }
 
-export function buildSailsRouteConfig(routes: readonly ApiRouteDefinition[]): ApiRouteMap {
+export function buildRouteMetadata(routes: readonly ApiRouteDefinition[]): ApiRouteMap {
   const sortedRoutes = [...ensureUniqueApiRoutes(routes, 'Sails route config')].sort(compareRouteSpecificity);
   return sortedRoutes.reduce((acc, route) => {
     acc[routeKey(route.method, route.path)] = buildSailsRouteEntry(route);

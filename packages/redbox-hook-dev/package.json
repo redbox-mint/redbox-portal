@@ -23,12 +23,6 @@
     "dist",
     "README.md"
   ],
-  "sails": {
-    "isHook": true,
-    "hookName": "redbox-hook-dev",
-    "hasConfig": true,
-    "hasFormConfigs": true
-  },
   "redbox": {
     "extension": "./extension"
   },

@@ -1,3 +1,4 @@
+import './sessionData';
 import { finished } from 'node:stream';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { initializePersistence, registerPersistenceResource, mongoSessionDatabase } from '../../persistence/runtime';
@@ -29,11 +30,9 @@ export function buildRedboxSessionOptions(
   };
 
   // set the isSessionDisabled function as a property of the defaultSessionConfig object before merging with caller-supplied config
-  defaultSessionConfig.isSessionDisabled = function (req: { path: string; _sails?: { LOOKS_LIKE_ASSET_RX?: RegExp } }) {
+  defaultSessionConfig.isSessionDisabled = function (req: { path: string }) {
     const path = req.path || '';
-    const looksLikeAssetRx = req._sails?.LOOKS_LIKE_ASSET_RX;
     return (
-      (!!looksLikeAssetRx && looksLikeAssetRx.test(path)) ||
       /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(path) ||
       /^\/(?:apple-touch-icon|favicon-|site\.webmanifest)/.test(path)
     );

@@ -120,20 +120,6 @@ export interface AgendaQueueConfig {
 export { RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME, BRANDING_TYPEFACE_RECONCILE_JOB_NAME } from './agendaQueueJobs';
 
 export const agendaQueue: AgendaQueueConfig = {
-  options: {
-    backend:
-      parseAgendaQueueBackend(
-        process.env['sails__agendaQueue_options_backend'],
-        'sails__agendaQueue_options_backend'
-      ) ?? agendaQueueDefaultOptions.backend,
-    db: process.env['sails__agendaQueue_options_db'] ?? agendaQueueDefaultOptions.db,
-    collection: process.env['sails__agendaQueue_options_collection'] ?? agendaQueueDefaultOptions.collection,
-    processEvery: process.env['sails__agendaQueue_options_processEvery'] ?? agendaQueueDefaultOptions.processEvery,
-    historyRetentionHours:
-      parseAgendaHistoryRetentionHours(
-        process.env['sails__agendaQueue_options_historyRetentionHours'],
-        'sails__agendaQueue_options_historyRetentionHours'
-      ) ?? agendaQueueDefaultOptions.historyRetentionHours,
-  },
+  options: { ...agendaQueueDefaultOptions },
   jobs: agendaQueueDefaultJobs,
 };

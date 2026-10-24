@@ -4,9 +4,8 @@ import { PortalHttp, type PortalHttpOptions } from './http';
 
 /** One production runtime, listener and signal boundary. Construction performs no acquisition. */
 export async function createPortalHost(options: PortalApplicationOptions & PortalHttpOptions) {
-  let portal: Awaited<ReturnType<typeof createPortalApplication>>;
   let http: PortalHttp;
-  portal = await createPortalApplication({
+  const portal = await createPortalApplication({
     ...options,
     hostModules: [
       ...(options.hostModules ?? []),

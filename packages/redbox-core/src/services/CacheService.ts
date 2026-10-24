@@ -18,8 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { defer, Observable, of } from 'rxjs';
+import * as _ from 'lodash';
 import type { CacheEntryRepository } from '../persistence/cache/CacheEntryRepository';
-import { getCacheEntryRepository } from '../persistence/cache/runtime';
+import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { assertCacheEntryWrite } from '../persistence/cache/validation';
 import { cacheOperationFailureForLog } from '../persistence/cache/errors';
 import { mergeMap as flatMap } from 'rxjs/operators';
@@ -38,8 +39,14 @@ export namespace Services {
   export class Cache extends services.Core.Service {
     protected override _exportedMethods: string[] = ['bootstrap', 'get', 'set', 'getNgAppFileHash'];
 
-    constructor(private readonly cacheEntries: () => CacheEntryRepository = () => getCacheEntryRepository()) {
-      super();
+    constructor(
+      private readonly input: {
+        entries(): CacheEntryRepository;
+        config: { custom_cache: { cacheExpiry: number; checkPeriod?: number }; appPath: string };
+        log: ILogger;
+      }
+    ) {
+      super(input.log);
     }
 
     protected cache!: NodeCache;
@@ -47,11 +54,11 @@ export namespace Services {
 
     public async bootstrap() {
       const cacheOpts = {
-        stdTTL: sails.config.custom_cache.cacheExpiry,
-        checkperiod: sails.config.custom_cache.checkPeriod ? sails.config.custom_cache.checkPeriod : 600,
+        stdTTL: this.input.config.custom_cache.cacheExpiry,
+        checkperiod: this.input.config.custom_cache.checkPeriod ? this.input.config.custom_cache.checkPeriod : 600,
       };
-      sails.log.verbose(`Using node cache options: `);
-      sails.log.verbose(cacheOpts);
+      this.input.log.verbose(`Using node cache options: `);
+      this.input.log.verbose(cacheOpts);
       this.cache = new NodeCache(cacheOpts);
       await this.buildNgAppFileHash();
     }
@@ -63,24 +70,24 @@ export namespace Services {
           if (data) {
             return of(data);
           } else {
-            sails.log.verbose(`Getting DB cache entry for name: ${name}`);
-            return defer(() => this.cacheEntries().findByName(name)).pipe(
+            this.input.log.verbose(`Getting DB cache entry for name: ${name}`);
+            return defer(() => this.input.entries().findByName(name)).pipe(
               flatMap(dbData => {
                 if (dbData) {
-                  sails.log.verbose(`Got DB cache entry`);
+                  this.input.log.verbose(`Got DB cache entry`);
                   // check if entry is expired...
                   if (
                     Math.floor(DateTime.local().toSeconds()) - (dbData.ts_added ?? 0) >
-                    sails.config.custom_cache.cacheExpiry
+                    this.input.config.custom_cache.cacheExpiry
                   ) {
-                    sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
+                    this.input.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
                     return of(null);
                   } else {
                     this.cache.set(name, dbData.data);
                     return of(dbData.data ?? null);
                   }
                 }
-                sails.log.verbose(`No DB cache entry for: ${name}`);
+                this.input.log.verbose(`No DB cache entry for: ${name}`);
                 return of(null);
               })
             );
@@ -89,11 +96,11 @@ export namespace Services {
       );
     }
 
-    public set(name: string, data: unknown, expiry = sails.config.custom_cache.cacheExpiry): void {
+    public set(name: string, data: unknown, expiry = this.input.config.custom_cache.cacheExpiry): void {
       // update local cache then persist to DB...
-      sails.log.verbose(`Setting cache for entry: ${name}...`);
+      this.input.log.verbose(`Setting cache for entry: ${name}...`);
       this.cache.set(name, data, expiry);
-      defer(() => this.cacheEntries().findByName(name))
+      defer(() => this.input.entries().findByName(name))
         .pipe(
           flatMap(dbData => {
             const entry = {
@@ -104,11 +111,11 @@ export namespace Services {
             // Validation stays in the asynchronous error path, after the local write.
             assertCacheEntryWrite(entry);
             if (dbData) {
-              sails.log.verbose(`Updating entry name: ${name}`);
-              return defer(() => this.cacheEntries().updateByName(name, entry));
+              this.input.log.verbose(`Updating entry name: ${name}`);
+              return defer(() => this.input.entries().updateByName(name, entry));
             } else {
-              sails.log.verbose(`Creating entry name: ${name}`);
-              return defer(() => this.cacheEntries().create(entry));
+              this.input.log.verbose(`Creating entry name: ${name}`);
+              return defer(() => this.input.entries().create(entry));
             }
           }),
           flatMap(dbData => {
@@ -117,34 +124,34 @@ export namespace Services {
         )
         .subscribe(
           _data => {
-            sails.log.verbose(`Saved local and remote cache for entry:${name}`);
+            this.input.log.verbose(`Saved local and remote cache for entry:${name}`);
           },
           error => {
-            sails.log.error(`Error updating cache for entry ${name}:`);
-            sails.log.error(cacheOperationFailureForLog(error));
+            this.input.log.error(`Error updating cache for entry ${name}:`);
+            this.input.log.error(cacheOperationFailureForLog(error));
           }
         );
     }
 
     public async buildNgAppFileHash() {
       this.ngFileAppHash = {};
-      const ngRootPath = `${sails.config.appPath}/assets/angular/`;
+      const ngRootPath = `${this.input.config.appPath}/assets/angular/`;
       try {
         await access(ngRootPath);
       } catch (_error) {
-        sails.log.verbose(`Angular app asset directory not found: ${ngRootPath}`);
-        sails.log.verbose(JSON.stringify(this.ngFileAppHash));
+        this.input.log.verbose(`Angular app asset directory not found: ${ngRootPath}`);
+        this.input.log.verbose(JSON.stringify(this.ngFileAppHash));
         return;
       }
       const ngAppDirs = await readdir(ngRootPath);
       const targetFilesPrefix = ['runtime', 'polyfills', 'main', 'styles'];
       for (const appName of ngAppDirs) {
-        let ngPath = `${sails.config.appPath}/assets/angular/${appName}`;
+        let ngPath = `${this.input.config.appPath}/assets/angular/${appName}`;
         try {
           await access(`${ngPath}/browser`);
           ngPath = `${ngPath}/browser`;
         } catch (_error) {
-          sails.log.verbose(`Detected legacy angular app: ${ngPath}`);
+          this.input.log.verbose(`Detected legacy angular app: ${ngPath}`);
           continue;
         }
         const ngFiles = await readdir(ngPath);
@@ -167,7 +174,7 @@ export namespace Services {
           _.set(this.ngFileAppHash, `${appName}.${fileNamePrefix}`, appHash);
         }
       }
-      sails.log.verbose(JSON.stringify(this.ngFileAppHash));
+      this.input.log.verbose(JSON.stringify(this.ngFileAppHash));
     }
 
     public getNgAppFileHash(
@@ -184,8 +191,4 @@ export namespace Services {
       return appHash;
     }
   }
-}
-
-declare global {
-  let CacheService: Services.Cache;
 }

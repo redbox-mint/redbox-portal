@@ -3,7 +3,11 @@ import type { RequestHandler } from 'express';
 export type { RequestHandler } from 'express';
 import type { ApplicationModule } from '../application';
 
-/** Factories accept their own concrete input type, never a default container. */
+/**
+ * Offline factory declaration with a concrete, application-bound input.
+ * @extensionPoint Register a named module or handler factory; declare requires and replaces explicitly. The selected application supplies each concrete dependency.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
+ */
 export interface ExtensionFactory<Input = never, Output = ApplicationModule> {
   readonly name: string;
   readonly requires?: readonly string[];
@@ -12,6 +16,10 @@ export interface ExtensionFactory<Input = never, Output = ApplicationModule> {
   create(input: Input): Output;
 }
 
+/**
+ * Explicit HTTP route declaration with mandatory access policy.
+ * @extensionPoint Register routes with selected handler names and public or named access policies. The host owns the listener and policy binding.
+ */
 export interface ExtensionRoute {
   readonly name: string;
   readonly method: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options';
@@ -21,11 +29,18 @@ export interface ExtensionRoute {
   readonly replaces?: true;
 }
 
-/** The host supplies its one server. Integrations never listen or install signals. */
+/**
+ * Owned integration with the host's single HTTP server.
+ * @extensionPoint Supply prepare and application lifecycle methods; never listen independently or install process signals.
+ */
 export interface ExtensionHostIntegration extends ApplicationModule {
   prepare(server: Server): Promise<void>;
 }
 
+/**
+ * Named, awaited startup or ledger migration work.
+ * @extensionPoint Register ordered work with concrete inputs bound by the application. Migrations must tolerate replay after a partial failure.
+ */
 export interface ExtensionWork {
   readonly name: string;
   readonly requires?: readonly string[];
@@ -33,7 +48,11 @@ export interface ExtensionWork {
   run(input: never): Promise<void>;
 }
 
-/** Offline declaration only: importing/registering must not acquire resources. */
+/**
+ * Versioned v6 extension declaration, safe for offline import and inspection.
+ * @extensionPoint Export registerRedboxExtension returning apiVersion 1. Contribute factories, routes and data; acquisition belongs to the awaited application lifecycle.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader
+ */
 export interface RedboxExtension {
   readonly apiVersion: 1;
   readonly config?: Readonly<Record<string, unknown>>;

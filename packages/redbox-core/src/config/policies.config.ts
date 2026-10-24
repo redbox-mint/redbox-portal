@@ -1,6 +1,6 @@
 /**
  * Policies Config Interface
- * (sails.config.policies)
+ * Owned policy configuration
  *
  * Policy mapping configuration for controller actions.
  */

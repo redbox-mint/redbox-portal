@@ -42,7 +42,6 @@
     "test:persistence-indexes": "npm run test:persistence",
     "test:record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/recordTypes/RecordTypesMongo.test.ts",
     "test:http-host": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 10000 test/http/ExpressHost.test.ts",
-    "test:sails-record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/compat/SailsRecordTypesMongo.test.ts",
     "test:lifecycle:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/application/InitializationMongo.test.ts test/queues/QueueMongo.test.ts",
     "test:http-pilot:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/http/IdentityMongo.test.ts test/http/MiddlewareMongo.test.ts test/http/RecordTypesMongo.test.ts test/http/PilotFailuresMongo.test.ts test/http/CompiledPilotMongo.test.ts",
     "test:http-bruno:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/BrunoPilotMongo.test.ts",
@@ -51,7 +50,8 @@
     "test:http-csrf:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/CsrfMongo.test.ts",
     "test:http-pages:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/PagesMongo.test.ts",
     "generate:portal-config": "node scripts/portal-configuration-schema.cjs",
-    "check:portal-config": "node scripts/portal-configuration-schema.cjs --check"
+    "check:portal-config": "node scripts/portal-configuration-schema.cjs --check",
+    "test:compiled-record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/recordTypes/CompiledRecordTypesMongo.test.ts"
   },
   "author": "",
   "license": "ISC",
@@ -134,11 +134,8 @@
     "resolve-url-loader": "5.0.0",
     "ro-crate": "3.7.2",
     "rxjs": "7.8.2",
-    "sails": "1.5.18",
     "sass": "1.105.1",
     "sass-loader": "17.0.1",
-    "skipper": "0.9.8",
-    "skipper-gridfs": "1.0.2",
     "socket.io": "4.8.4",
     "typescript": "5.9.3",
     "typescript-json-schema": "0.68.0",
@@ -249,10 +246,6 @@
       "types": "./dist/http/express/index.d.ts",
       "default": "./dist/http/express/index.js"
     },
-    "./compat/sails": {
-      "types": "./dist/compat/sails/index.d.ts",
-      "default": "./dist/compat/sails/index.js"
-    },
     "./dist": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
@@ -269,17 +262,9 @@
       "types": "./dist/application/index.d.ts",
       "default": "./dist/application/index.js"
     },
-    "./dist/compat/sails": {
-      "types": "./dist/compat/sails/index.d.ts",
-      "default": "./dist/compat/sails/index.js"
-    },
     "./dist/config": {
       "types": "./dist/config/index.d.ts",
       "default": "./dist/config/index.js"
-    },
-    "./dist/controllers": {
-      "types": "./dist/controllers/index.d.ts",
-      "default": "./dist/controllers/index.js"
     },
     "./dist/decorator": {
       "types": "./dist/decorator/index.d.ts",
@@ -293,17 +278,9 @@
       "types": "./dist/form-config/index.d.ts",
       "default": "./dist/form-config/index.js"
     },
-    "./dist/hooks": {
-      "types": "./dist/hooks/index.d.ts",
-      "default": "./dist/hooks/index.js"
-    },
     "./dist/http/express": {
       "types": "./dist/http/express/index.d.ts",
       "default": "./dist/http/express/index.js"
-    },
-    "./dist/loader": {
-      "types": "./dist/loader/index.d.ts",
-      "default": "./dist/loader/index.js"
     },
     "./dist/model/api": {
       "types": "./dist/model/api/index.d.ts",
@@ -325,10 +302,6 @@
       "types": "./dist/persistence/rows/index.d.ts",
       "default": "./dist/persistence/rows/index.js"
     },
-    "./dist/policies": {
-      "types": "./dist/policies/index.d.ts",
-      "default": "./dist/policies/index.js"
-    },
     "./dist/record-contract": {
       "types": "./dist/record-contract/index.d.ts",
       "default": "./dist/record-contract/index.js"
@@ -337,17 +310,9 @@
       "types": "./dist/recordTypes/index.d.ts",
       "default": "./dist/recordTypes/index.js"
     },
-    "./dist/responses": {
-      "types": "./dist/responses/index.d.ts",
-      "default": "./dist/responses/index.js"
-    },
     "./dist/services": {
       "types": "./dist/services/index.d.ts",
       "default": "./dist/services/index.js"
-    },
-    "./dist/shims": {
-      "types": "./dist/shims/index.d.ts",
-      "default": "./dist/shims/index.js"
     },
     "./dist/*.js": "./dist/*.js",
     "./dist/*.json": "./dist/*.json",

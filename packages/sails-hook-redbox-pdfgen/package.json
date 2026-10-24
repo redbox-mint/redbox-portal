@@ -9,11 +9,6 @@
     "src/api/configmodels",
     "README.md"
   ],
-  "sails": {
-    "isHook": true,
-    "hasServices": true,
-    "hasConfig": true
-  },
   "scripts": {
     "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
     "prepack": "npm run compile",

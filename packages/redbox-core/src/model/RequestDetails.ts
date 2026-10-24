@@ -1,4 +1,4 @@
-import type { Application } from 'express';
+import type { Application, Request } from 'express';
 
 export class RequestDetails {
   brandId: string | undefined;
@@ -17,7 +17,7 @@ export class RequestDetails {
   params: Record<string, string | string[]>;
   path: string;
   protocol: string;
-  query: Record<string, string | undefined>;
+  query: Request['query'];
   secure: boolean;
   route: unknown;
   stale: boolean;
@@ -27,9 +27,9 @@ export class RequestDetails {
   url: string;
   rawHeaders: string[];
 
-  constructor(req: Sails.Req) {
-    this.brandId = BrandingService.getBrandFromReq(req)?.id;
-    this.portalId = BrandingService.getPortalFromReq(req);
+  constructor(req: Request, context: { brandId?: string; portalId: string }) {
+    this.brandId = context.brandId;
+    this.portalId = context.portalId;
     this.userAgent = req.headers?.['user-agent'];
     this.app = req.app;
     this.baseUrl = req.baseUrl;

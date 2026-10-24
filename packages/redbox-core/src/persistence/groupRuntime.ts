@@ -40,11 +40,18 @@ function guarded<T extends object>(
     const value: unknown = Reflect.get(owner, name);
     if (typeof value === 'function')
       Object.defineProperty(result, name, {
-        enumerable: true, configurable: true, writable: true,
+        enumerable: true,
+        configurable: true,
+        writable: true,
         value: (...args: unknown[]) => run(() => Reflect.apply(value, owner, args), name),
       });
     else if (value && typeof value === 'object' && Object.getPrototypeOf(owner) === Object.prototype)
-      Object.defineProperty(result, name, { enumerable: true, configurable: true, writable: true, value: guarded(value, run) });
+      Object.defineProperty(result, name, {
+        enumerable: true,
+        configurable: true,
+        writable: true,
+        value: guarded(value, run),
+      });
   }
   return result;
 }
@@ -94,7 +101,7 @@ export function definePersistenceGroup<T extends object>(
       }
     },
     get(app) {
-      const application = app ?? (typeof sails === 'undefined' ? undefined : sails);
+      const application = app;
       const state = application && stateFor(application, name);
       if (!application || !state?.repository || state.starting || !persistenceReady(application))
         throw new PersistenceError(

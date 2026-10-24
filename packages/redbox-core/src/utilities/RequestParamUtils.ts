@@ -3,6 +3,6 @@ export function toParamString(value: string | string[] | undefined, fallback = '
   return value ?? fallback;
 }
 
-export function getRouteParam(req: Sails.Req, name: string, fallback = ''): string {
+export function getRouteParam(req: Pick<import('express').Request, 'params'>, name: string, fallback = ''): string {
   return toParamString(req.params[name], fallback);
 }

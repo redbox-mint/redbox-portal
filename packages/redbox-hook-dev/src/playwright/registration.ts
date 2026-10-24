@@ -1,4 +1,3 @@
-import type { HookRegistrationMap } from '@researchdatabox/redbox-core';
 import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { recordtype } from '../config/recordtype';
 import { workflow } from '../config/workflow';
@@ -10,7 +9,9 @@ import type { ScenarioRegistration } from './types';
 import { playwrightScenariosEnabled } from './environment';
 export { playwrightScenariosEnabled } from './environment';
 
-export function getPlaywrightRegistration(env: NodeJS.ProcessEnv = process.env): HookRegistrationMap & ScenarioRegistration {
+export function getPlaywrightRegistration(
+  env: NodeJS.ProcessEnv = process.env
+): ScenarioRegistration & { csp?: { directives: Record<string, string[]> } } {
   if (!playwrightScenariosEnabled(env)) {
     return { recordtype, workflow, forms: FormConfigExports };
   }
@@ -20,7 +21,15 @@ export function getPlaywrightRegistration(env: NodeJS.ProcessEnv = process.env):
     recordtype: { ...recordtype, ...scenarios.recordtype },
     workflow: { ...workflow, ...scenarios.workflow },
     forms: { ...FormConfigExports, ...scenarios.forms },
-    csp: { directives: { 'img-src': ["'self'", 'data:', new URL(env.PLAYWRIGHT_BROWSER_STUB_URL ?? 'http://playwright-stubs:8787').origin] } },
+    csp: {
+      directives: {
+        'img-src': [
+          "'self'",
+          'data:',
+          new URL(env.PLAYWRIGHT_BROWSER_STUB_URL ?? 'http://playwright-stubs:8787').origin,
+        ],
+      },
+    },
   };
 }
 
