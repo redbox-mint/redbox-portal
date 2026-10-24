@@ -102,11 +102,11 @@ Some packages have their own independent test suites.
 ## Continuous Integration
 Tests are automatically run in CircleCI on every push. API route validation and OpenAPI generation now run in a dedicated `generate-api-docs` job that builds redbox-core first, while the main build job stays focused on linting and runtime image packaging. See `.circleci/config.yml` for the full pipeline definition.
 
-For multipart upload fixtures, put optimistic-concurrency text fields
-(such as `expectedDraftRevision`) **before** the file part. The file upload
-callback can complete before trailing text fields are available, producing a
-revision conflict before the intended validation. Keep the same order in local
-Bruno collections copied for targeted runs.
+The owned multipart parser waits for all fields and staged writes before
+finalization. Optimistic-concurrency text fields such as `expectedDraftRevision`
+may appear before or after the file part. The real-HTTP
+`StreamingMultipart.test.ts` suite verifies fields on both sides of a file,
+backpressure, cancellation and cleanup.
 
 ### 6. Playwright regression suite
 
