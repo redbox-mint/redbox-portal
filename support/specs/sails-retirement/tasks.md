@@ -5,8 +5,9 @@ production-source designation. P7 is in progress. The installed production Expre
 composition now runs the selected domains, bootstrap, pages, APIs and providers.
 Production matrix retries have not yet completed all four rows: a queue-drain
 regression, Docker reclamation and a replica-portal aggregate timeout are
-recorded; the complete serial production rerun remains required. Existing Playwright completed
-114 passing / 10 failing / 0 skipped; fixes and fresh-assets reruns are in progress.
+recorded; the complete serial production rerun remains required. The complete existing Playwright rerun now passes 124/124 with no failures or
+skips; dedicated OIDC passes 13 requests/17 checks. General route ordering and
+S3 qualification remain open.
 Root Mocha now passes against the compiled Express host: 422 passing / 10
 unchanged pending / 0 failing. Full browser/provider qualification is in progress.
 Earlier full-core regression remains 4481 passing / 7 unchanged explicitly
@@ -703,7 +704,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-046 — Run broad API, domain and browser regression.**
 
-  **Status:** partial; existing core regression passes 4481/7 unchanged pending/0 failing. The actual production Express portal ran full Playwright (114 passing/10 failing/0 skipped) and compiled-source root Mocha (422 passing/10 unchanged pending/0 failing). Browser corrections and reruns are in progress. Full general/OIDC/S3 Compose execution, clean production artifacts and complete cutover remain open; [integration evidence](evidence/p7-production-composition.md).
+  **Status:** partial; existing core regression passes 4481/7 unchanged pending/0 failing. The actual production Express portal passes full Playwright (124 passing/0 failing/0 skipped), dedicated OIDC (13 requests/17 checks/0 failures or skips), and compiled-source root Mocha (422 passing/10 unchanged pending/0 failing). General failed one route-order case and needs its full corrected rerun; S3, clean production artifacts and complete cutover remain open; [integration evidence](evidence/p7-production-composition.md).
 
   **Depends on:** SR-003, SR-037, SR-044.
 

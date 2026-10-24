@@ -509,3 +509,54 @@ metadata before pages, while retaining literal vocabulary pages before
 parameterized vocabulary API aliases. No test or policy changes. The complete
 collection rerun is required after compilation; the active full browser process
 keeps its original compiled tree until it exits.
+
+### Completed full browser and dedicated OIDC regression
+
+Compiled application source **`2aae5ba50`**, Node **26.11.1**, Playwright
+**1.64.0**, existing `playwright.config.ts`, actual production `app.express.cjs`:
+
+```sh
+NODE_ENV=integrationtest RBPORTAL_PLAYWRIGHT_SCENARIOS=true \
+PLAYWRIGHT_BROWSER_STUB_URL=http://playwright-stubs:8787 \
+REDBOX_APPLICATION_CONFIG="$PWD/.tmp/sails-retirement/p7/regression-playwright.cjs" \
+REDBOX_SESSION_SECRET=<synthetic-fixture-secret> node app.express.cjs
+PLAYWRIGHT_BASE_URL=http://redboxportal:1504 PLAYWRIGHT_HOST_BROWSER=true \
+PLAYWRIGHT_API_TOKEN=d077835a-696b-4728-85cf-3ffd57152b1e \
+PLAYWRIGHT_STUB_URL=http://127.0.0.1:8787 \
+PLAYWRIGHT_BROWSER_STUB_URL=http://playwright-stubs:8787 \
+  node node_modules/@playwright/test/cli.js test
+```
+
+Full run seven exited **0**: **124 passing / 0 failing / 0 skipped**, **20.6
+minutes**. Counts: **apps 60 / forms 41 / smoke 23**. Log:
+`.tmp/sails-retirement/p7/playwright-production-seventh.log`. The original full
+suite remains enabled; no case was excluded. The existing local RVA/tile stubs
+and scenario opt-in were retained. Fresh compiled Angular assets resolved the
+stale generated-tree failures; the retained search `page` resolved A19; F09's
+record-missing diagnostic conversion retains its recovery assertions. All ten
+original full-run failures now pass in the complete rerun. SIGTERM of the actual
+portal process exited **0** and logged `Express host stopped.`
+
+The dedicated existing OIDC Compose profile also completed its collection:
+**13/13 requests, 17/17 tests, 0 failures, 0 skips, 29.410 s**. It used the
+unchanged `run-bruno-oidc.sh` and collections 5/6, the Express override and the
+same pinned Keycloak **26.5.6**, MongoDB **9.0.4**, Solr and Mailpit definitions.
+Both allowed and denied real provider flows executed. Invocation:
+
+```sh
+RBPORTAL_EXPRESS_TEST_PROFILE=oidc DOCKER_HOST=unix:///run/sr-p7-engine.sock \
+  docker compose -p sr-p7-oidc --profile mount \
+    -f support/integration-testing/docker-compose.bruno.oidc.yml \
+    -f support/integration-testing/docker-compose.express.yml \
+    -f .tmp/sails-retirement/p7/profile-network.yml \
+    up --menu=false --abort-on-container-exit --exit-code-from bruno-mount
+```
+
+The pinned providers were prestarted until their original health checks passed;
+no health/test timeout was relaxed. Logs/JUnit:
+`bruno-oidc-compose-first.{log,xml}` under `.tmp/sails-retirement/p7/`. All six
+owned profile containers and its Mailpit volume were removed. The local external
+network override only supplies connectivity for the owned Docker daemon with
+iptables disabled; it does not replace a service. General's full green rerun and
+S3 remain open at this point. The subsequent route-order-only correction
+`11e6f6277` still needs its full general rerun and affected browser checks.
