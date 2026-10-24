@@ -148,7 +148,7 @@ CONFIG
 candidate_options=(--network "$task_network" --memory=1536m
   -v "$task_state/state/configuration/v6.cjs:/deployment.cjs:ro"
   -v "$task_state/state/attachments:/attachments"
-  -e NODE_ENV=integrationtest -e REDBOX_APPLICATION_CONFIG=/deployment.cjs
+  -e NODE_ENV=production -e REDBOX_APPLICATION_CONFIG=/deployment.cjs
   -e REDBOX_SESSION_SECRET=rehearsal-only-session-secret-at-least-32)
 for operation in --maintenance=indexes:ensure --maintenance=indexes:inspect --initialize-only; do
   label=${operation//[^a-zA-Z0-9]/-}

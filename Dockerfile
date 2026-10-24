@@ -193,7 +193,7 @@ USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
-RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --no-audit \
+RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --strict-peer-deps --legacy-peer-deps=false --no-audit \
     ./packages/sails-hook-redbox-pdfgen
 RUN node -e "require('@researchdatabox/redbox-core'); require('@researchdatabox/sails-hook-redbox-pdfgen')"
 USER root
