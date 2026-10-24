@@ -157,6 +157,12 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run: &usePatchedNode
+          name: Use patched Node.js from .nvmrc
+          command: |
+            nvm install
+            nvm use
+            printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
       - attach_workspace:
           at: /tmp
       - run:
@@ -239,6 +245,7 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -295,6 +302,7 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -351,6 +359,7 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -411,6 +420,7 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -468,6 +478,7 @@ jobs:
     resource_class: large
     steps:
       - checkout
+      - run: *usePatchedNode
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -507,6 +518,7 @@ jobs:
     resource_class: large
     steps:
       - checkout
+      - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -549,6 +561,7 @@ jobs:
       FIGSHARE_TEST_MONGO_URI: mongodb://127.0.0.1:27028
     steps:
       - checkout
+      - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -682,6 +695,7 @@ jobs:
     resource_class: medium
     steps:
       - checkout
+      - run: *usePatchedNode
       - run:
           <<: *installCodecov
       - run:
@@ -946,6 +960,7 @@ jobs:
     resource_class: arm.medium
     steps:
       - checkout
+      - run: *usePatchedNode
       - run:
           name: Publish arm64 runtime image
           no_output_timeout: 30m
@@ -967,6 +982,7 @@ jobs:
     resource_class: arm.medium
     steps:
       - checkout
+      - run: *usePatchedNode
       - run:
           name: Publish arm64 runtime pdfgen image
           no_output_timeout: 30m
@@ -994,6 +1010,7 @@ jobs:
     resource_class: arm.medium
     steps:
       - checkout
+      - run: *usePatchedNode
       - run:
           name: Build and push arm64 runtime image
           no_output_timeout: 30m
@@ -1004,6 +1021,7 @@ jobs:
     resource_class: arm.medium
     steps:
       - checkout
+      - run: *usePatchedNode
       - run:
           name: Build and push arm64 pdfgen image
           no_output_timeout: 30m
@@ -1034,6 +1052,7 @@ jobs:
           fingerprints:
             - '50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff'
       - checkout
+      - run: *usePatchedNode
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
