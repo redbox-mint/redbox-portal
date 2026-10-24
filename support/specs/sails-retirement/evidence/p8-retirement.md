@@ -1759,3 +1759,28 @@ Logs: `closure65-controls.log`, `runtime-closure65-module-export-red.json`,
 `runtime-closure66.log`, `packed-content-closure66.log`. Compact results and
 executed auditor digest are in [p8-artifacts.json](p8-artifacts.json).
 The installed packed-consumer graph and other image targets remain unaccepted.
+
+
+### Final fixture preparation and extra consumer prerequisite
+
+The core regression fixture is recreated as real MongoDB8.0.34 in Docker with
+`--memory=768m --tmpfs /data/db:rw,size=768m --ulimit nofile=64000:64000`,
+port29513 and WiredTiger0.25GiB, matching the accepted P7 core fixture. Its
+readiness command exits0; full tests remain pending. The independent matrix and
+production/recovery Mongo fixtures remain disk-backed. This changes no test
+assertion/deadline and is not power-loss durability evidence. Exact inspect output
+is `core-mongo-final-inspect.json`; prior disposable fixture state was removed.
+
+An additional packed-installed audit was attempted early in the completed slim
+runtime image. npm exits254 (`spawn git ENOENT`), before any installed scan: the
+production runtime intentionally omits Git, while the original planned builder
+consumer has it. The passing20 packed checks used that complete build environment.
+This extra attempt is not accepted graph proof; repeat it in the prepared clean
+builder image. Log: `packed-installed-runtime69-missing-git.log`. No dependency,
+image or test change is made to bypass this installation prerequisite.
+
+The new stand-in recovery scratch parent is the existing user-owned network mount
+`/home/andrew/.npm/_redbox-sails-retirement-p8` (7.2TiB available when checked),
+to preserve the full source-image archive without competing with local Docker
+space. No institution data is used; existing P7 checkpoints remain untouched.
+The actual unique checkpoint path will be recorded by the recovery driver.
