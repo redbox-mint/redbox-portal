@@ -1867,3 +1867,9 @@ test/tooling/retirement-closure.test.cjs`. Logs: `source-inventory74.json`,
 `source-closure74.json`, `inventory-reconciliation74.json`,
 `runtime-closure74.{json,log}`, `packed-content-closure74.{json,log}`,
 `closure74-controls.log`. Compact manifest now records the canonical digest.
+
+The final design§1.3 cross-check additionally makes reporting/history/audit/log
+and integration-permission diagnostics explicit in the client table: stored brand
+checks apply, and integration audit/permission diagnostics need the owning brand's
+Admin role. This avoids leaving the stricter role requirement implicit in the
+general read/admin rows. No application or generated-contract change.
