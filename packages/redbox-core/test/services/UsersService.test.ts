@@ -1494,6 +1494,31 @@ describe('UsersService', function () {
       expect(result.records).to.deep.equal([]);
     });
 
+    it('scopes shared-account history before truncation and omits rows without a trusted brand', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser' });
+      const event = (id: string, context: unknown, time: number) => ({
+        id,
+        action: 'login',
+        user: { id: 'user-1', username: 'testuser' },
+        additionalContext: typeof context === 'string' ? context : JSON.stringify(context),
+        createdAt: new Date(time).toISOString(),
+      });
+      mockUserAudit.find
+        .onFirstCall()
+        .returns(
+          createQueryObject([
+            event('own', { brandId: 'brand-1' }, 0),
+            ...Array.from({ length: 101 }, (_, index) => event(`foreign-${index}`, { brandId: 'brand-2' }, index + 1)),
+            event('old', {}, 1000),
+            event('invalid', '{broken', 1001),
+          ])
+        );
+      mockUserAudit.find.onSecondCall().returns(createQueryObject([]));
+      const result = await UsersService.getUserAudit('user-1', 'brand-1');
+      expect(result.records.map(record => record.id)).to.deep.equal(['own']);
+      expect(result.summary).to.deep.equal({ returnedCount: 1, truncated: false });
+    });
+
     it('should truncate to the newest 100 rows', async function () {
       configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser' });
       const directRows = Array.from({ length: 101 }, (_unused, index) => ({

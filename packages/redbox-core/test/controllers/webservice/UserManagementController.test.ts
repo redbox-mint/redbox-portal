@@ -132,7 +132,7 @@ describe('Webservice UserManagementController', () => {
       await request('getUserAudit', req);
 
       expect(users.getUserWithId.calledWith('111111111111111111111111')).to.be.true;
-      expect(users.getUserAudit.calledWith('111111111111111111111111')).to.be.true;
+      expect(users.getUserAudit.calledWithExactly('111111111111111111111111', 'brand-1')).to.be.true;
       expect(response.headers.get('Content-Type')).to.contain('json');
       expect(response.body.data?.user?.password).to.be.undefined;
       expect(response.body.data?.user?.token).to.be.undefined;

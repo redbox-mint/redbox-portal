@@ -668,7 +668,7 @@ export namespace Services {
       }
     }
 
-    public async getUserAudit(userId: string): Promise<UserAuditResponse> {
+    public async getUserAudit(userId: string, brandId?: string): Promise<UserAuditResponse> {
       const selectedUser = await this.input.repository.one('user', { id: userId });
       if (selectedUser == null) {
         throw new Error('User not found');
@@ -712,7 +712,20 @@ export namespace Services {
       const mergedRows = _.values(
         _.keyBy([...matchingDirectRows, ...matchingAdminRows], (row: UserAuditRow) => String(row.id ?? ''))
       );
-      const sortedRows = _.orderBy(mergedRows, (row: UserAuditRow) => this.timestampSortValue(row), 'desc');
+      // Shared accounts do not grant one brand access to another brand's history.
+      // Old or malformed rows without a trusted brand remain unavailable over HTTP.
+      const scopedRows =
+        brandId === undefined
+          ? mergedRows
+          : mergedRows.filter(row => {
+              const context =
+                row.auditContext ?? this.parseUserAuditContext(String(row.action ?? ''), row.additionalContext);
+              return (
+                _.isPlainObject(context.parsedAdditionalContext) &&
+                (context.parsedAdditionalContext as AnyRecord).brandId === brandId
+              );
+            });
+      const sortedRows = _.orderBy(scopedRows, (row: UserAuditRow) => this.timestampSortValue(row), 'desc');
       const maxRows = 100;
       const truncated = sortedRows.length > maxRows;
       const limitedRows = sortedRows.slice(0, maxRows);

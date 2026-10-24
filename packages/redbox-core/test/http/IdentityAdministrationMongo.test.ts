@@ -28,6 +28,7 @@ import { bindExtensionFactory } from '../../src/extensions/composition';
 import { pilotPolicyChain } from '../../src/http/express/policies';
 import { createHttpCsrf, mountCsrfTokenRoute } from '../../src/http/express/csrf';
 import { mountIdentityAdministrationRoutes } from '../../src/http/express/identityAdministration';
+import { mountIdentityLinkRoutes } from '../../src/http/express/identityLinks';
 import { mountQueryWriteRoutes } from '../../src/http/express/queryWrites';
 import { pilotFixture } from './pilotFixture';
 
@@ -230,6 +231,13 @@ async function administrationFixture(denyAlias = false, failPreparation = false)
         policies,
         log: nothingLogger,
       });
+      mountIdentityLinkRoutes(router, {
+        users,
+        csrf,
+        policyConfiguration,
+        policies,
+        log: nothingLogger,
+      });
       mountQueryWriteRoutes(router, {
         queries,
         reports,
@@ -352,6 +360,47 @@ describe('owned identity and query administration on Mongo HTTP', function () {
     await f?.close();
   });
   const session = () => ({ Cookie: cookie, 'X-CSRF-Token': token });
+  it('returns only the requested brand audit events for a shared user through both aliases', async () => {
+    const target = { id: targetId, username: 'managed' };
+    const own = await f.identities.create('useraudit', {
+      user: target,
+      action: 'login',
+      additionalContext: JSON.stringify({ brandId: f.brand.id }),
+    });
+    const foreign = await f.identities.create('useraudit', {
+      user: target,
+      action: 'login',
+      additionalContext: JSON.stringify({ brandId: f.otherBrand.id, detail: 'FOREIGN LOGIN' }),
+    });
+    const foreignAdmin = await f.identities.create('useraudit', {
+      user: { username: 'foreign-admin' },
+      action: 'disable-user',
+      additionalContext: JSON.stringify({ userId: targetId, brandId: f.otherBrand.id, detail: 'FOREIGN ADMIN' }),
+    });
+    const unscoped = await f.identities.create('useraudit', {
+      user: target,
+      action: 'login',
+      additionalContext: JSON.stringify({ detail: 'UNKNOWN BRAND' }),
+    });
+    for (const prefix of ['/api', '/admin']) {
+      const response = await fetch(f.url + base + prefix + '/users/' + targetId + '/audit', { headers: f.headers });
+      assert.equal(response.status, 200);
+      const text = await response.text();
+      const data = JSON.parse(text);
+      assert.deepEqual(
+        data.records.map((row: { id: string }) => row.id),
+        [own.id]
+      );
+      assert.deepEqual(data.summary, { returnedCount: 1, truncated: false });
+      assert.deepEqual(
+        data.user.roles.map((role: { id: string }) => role.id),
+        [f.reader.id]
+      );
+      for (const value of [foreign.id, foreignAdmin.id, unscoped.id, 'FOREIGN LOGIN', 'FOREIGN ADMIN', 'UNKNOWN BRAND'])
+        assert(!text.includes(value));
+    }
+    for (const id of [own.id, foreign.id, foreignAdmin.id, unscoped.id]) await f.identities.remove('useraudit', { id });
+  });
   async function request(
     route: string,
     body: unknown = {},

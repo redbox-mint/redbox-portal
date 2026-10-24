@@ -114,13 +114,14 @@ export function mountIdentityLinkRoutes(router: Router, input: IdentityLinksHttp
             delete copy.password;
             delete copy.token;
             if (Array.isArray(copy.roles))
-              copy.roles = copy.roles.filter(
-                role =>
-                  role &&
-                  typeof role === 'object' &&
-                  (Reflect.get(role, 'branding') === brand.id ||
-                    (Reflect.get(role, 'branding') && Reflect.get(Reflect.get(role, 'branding'), 'id') === brand.id))
-              );
+              copy.roles = copy.roles.filter(role => {
+                if (!role || typeof role !== 'object') return false;
+                const branding = Reflect.get(role, 'branding');
+                return (
+                  (typeof branding === 'object' && branding !== null ? Reflect.get(branding, 'id') : branding) ===
+                  brand.id
+                );
+              });
             return copy;
           };
           let data: unknown;
@@ -149,7 +150,7 @@ export function mountIdentityLinkRoutes(router: Router, input: IdentityLinksHttp
             case 'getUserAudit': {
               const id = text(req.params.id),
                 user = await requireTarget(id);
-              data = { user: sanitize(user), ...(await input.users.getUserAudit(id)) };
+              data = { user: sanitize(user), ...(await input.users.getUserAudit(id, brand.id)) };
               break;
             }
             default: {
