@@ -67,7 +67,25 @@ export function mountBrandingOperationRoutes(router: Router, input: BrandingOper
           sendApiErrors(req, res, 403, [{ detail: 'Access Denied' }]);
           return;
         }
-        const validated = validateApiRouteRequest(req, route);
+        // The legacy read-only preview alias has no revision argument. Resolve
+        // its current draft only after the owning administrator has authorized.
+        const previewAlias =
+          route.action === 'createPreview' &&
+          (req.body === undefined || (req.body !== null && typeof req.body === 'object' && !Array.isArray(req.body)));
+        const validated = validateApiRouteRequest(
+          previewAlias
+            ? {
+                params: req.params,
+                query: req.query,
+                headers: req.headers,
+                body: {
+                  expectedDraftRevision: (await input.branding.getAdminState(brand.name ?? '')).draft.revision,
+                  ...req.body,
+                },
+              }
+            : req,
+          route
+        );
         if (!validated.valid) {
           sendApiErrors(
             req,

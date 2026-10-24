@@ -263,3 +263,31 @@ permission to skip requests or accept successful unauthorized writes:
 The environment file is restored after runs; runtime IDs/cookies are not committed.
 These converted existing requests still require a complete passing run before
 SR-046 acceptance.
+
+
+### Continuing the existing-suite qualification
+
+The fourth recursive general run at `d61741042` executed **309 requests,
+302 passed / 7 failed; 544/553 tests; 3/3 assertions; 75,729 ms; exit 1**.
+No bail or skips. Remaining failures were the nested vocabulary request running
+before the folder's login, attachment save/download, reused account-link fixture
+state, and the bodyless preview alias requiring an API-only revision argument.
+The alias now resolves the current revision after Admin authorization; explicit
+API preview concurrency remains required. Final acceptance requires its rerun.
+
+The nested vocabulary case now supplies the existing Admin bearer, because the
+recursive folder order visits it before login. Upload metadata bodies now use
+`{{host}}{{attachmentLocation}}` (and the S3 equivalent), matching the already
+converted tus follow-up URL. The original save/download assertions are unchanged.
+The actual existing S3 collection against the production Express host with real
+S3Mock passed **7/7 requests, 12/12 tests, 0 assertions, 17,508 ms**, exit 0;
+`bruno-s3-production-first.{log,json}`. This local run does not yet count as the
+requested Compose-profile execution.
+
+The full existing Playwright run discovered stale prebuilt Angular assets calling
+the retired dashboard `/info` endpoint and using old template keys; current
+source calls `/targets` and uses fingerprinted keys. A clean asset rebuild is
+required before qualification. The local-auth test's logout locator is converted
+from a link to the actual CSRF-protected POST form button required by v6. Login,
+invalid-login and post-logout assertions remain unchanged. No browser test is
+skipped or allowed to ignore unexpected diagnostics.
