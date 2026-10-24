@@ -451,3 +451,52 @@ fixtures; the original boundary was restored, the run interrupted and its
 disposable database dropped. A first compiled provider run found a pure helper
 importing comparison configuration through the service barrel. Publish/writeback
 now import the neutral config directly. Those failed runs are not qualification.
+
+## Workspace and ORCID providers (2026-10-24)
+
+The actual workspace association/HTTP, asynchronous job and ORCID algorithms now
+live in `workspaces/{Workspaces,WorkspaceAsync}.ts` and `integrations/Orcid.ts`.
+The original services delegate through comparison adapters. The owned worker
+retains the admitted operation through all completion-status writes and supplies
+explicit initialize/quiesce/drain/close operations. Dynamic service lookup and
+Sails shutdown chaining remain only in the comparison adapter. Workspace request
+logging no longer emits the entire configuration/header object. No dependencies
+or existing tests changed.
+
+Node **26.11.1**, real Mongo **8.0.34** on port **29511** (digest recorded above).
+From `packages/redbox-core`, with the qualified Node directory on PATH:
+
+```sh
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js \
+  --no-config --require chai --require test/setup.ts --timeout 15000 \
+  test/services/WorkspaceService.test.ts test/services/WorkspaceAsyncService.test.ts \
+  test/services/OrcidService.test.ts test/extensions/*.test.ts
+# From repository root, following the successful core TypeScript build:
+SR_WORKSPACE_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_workspace \
+  node --test packages/redbox-core/test/qualification/workspace-orcid.cjs
+```
+
+The unchanged selected existing suite passes **35 / 0 failing / 3 unchanged
+pending** (Workspace 10/3 pending; WorkspaceAsync 8; ORCID 6; Extensions 11),
+exit **0** (`workspaces-existing-final.log`). The three HTTP cases already use
+`it.skip`; they are not qualification evidence. The separate compiled real
+Mongo/HTTP aggregate passes **1 / 0 failing / 0 skipped**, exit **0**, body
+**5594.020255 ms**, total **6452.031484 ms** (`workspaces-real-third.log`).
+It executes **5 actual HTTP requests** (workspace POST/GET/PUT, paged ORCID
+mapping, async work), persisted user/workspace association CRUD and population,
+cold single-promise repeat behavior and association removal. Held async HTTP
+keeps stop pending; status/message/time are persisted before pools close. The
+compiled import graph has no Sails/comparison modules. Disposable state and HTTP
+server are cleaned in finally. Record association CAS still needs the integrated
+production-root run.
+
+A first aggregate failed because its new user fixture omitted required email;
+the fixture was corrected. The second exposed a real optional-argument defect:
+`WorkspaceAsync.start` persisted omitted args as undefined into required J1 data.
+It now normalizes `args ?? []`; the final qualifier retains omitted args. Earlier
+compile errors on unknown actor inputs were fixed with an object-shape guard at
+the typed Records boundary. Those failed attempts do not count as passes.
+Core TypeScript build (`portal-data-build-second.log`), focused lint (**0 errors /
+0 warnings**, `workspaces-data-lint.log`), format and diff checks pass. This is a
+provider prerequisite, not a completed production host or SR-046 acceptance.
