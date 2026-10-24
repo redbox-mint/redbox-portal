@@ -475,3 +475,15 @@ the response before rejecting the hook, awaits the promise and checks the
 original late-failure logging/redaction. This implements v6 ownership instead
 of the deleted adapter's detached undefined return. No skips were introduced.
 Full-core/artifact qualification remains outstanding.
+
+### Build correction for page language inputs
+
+`core-build-audit.log` exposed a TypeScript error in the earlier page-language
+change: templateConfig's open dictionary did not declare the nested i18n input.
+PagesHttpInput now describes the optional lng/fallbackLng data explicitly;
+runtime selection and existing language behavior are unchanged. The same build
+also caught the newly added authentication event helper missing from the HTTP
+barrel; that export is included with its audit fix below.
+`core-build-audit-second.log` completes Prisma generation/schema checks,
+TypeScript 5.9.3 compilation and Prisma artifact copy with **exit 0** on Node
+26.11.1. This is an incremental source build, not clean-package qualification.

@@ -113,7 +113,10 @@ export interface PagesHttpInput {
   languages(brand: { id: string; name?: string }): Promise<{ code: string; displayName: string }[]>;
   translate(brand: string, language: string, key: string, context?: Record<string, unknown>): string;
   typeface(brand: string): { regularUrl: string } | null;
-  readonly templateConfig: Record<string, unknown> & { appmode?: Record<string, unknown> };
+  readonly templateConfig: Record<string, unknown> & {
+    appmode?: Record<string, unknown>;
+    i18n?: { next?: { init?: { lng?: unknown; fallbackLng?: unknown } } };
+  };
   readonly loginView?: string;
 }
 
@@ -278,13 +281,21 @@ export async function preparePage(req: Request, res: Response, input: PagesHttpI
   const settings = await input.settings(brand);
   const languages = await input.languages(brand);
   const languageConfig = input.templateConfig.i18n?.next?.init;
-  const configuredFallbacks = typeof languageConfig?.fallbackLng === 'string'
-    ? [languageConfig.fallbackLng]
-    : Array.isArray(languageConfig?.fallbackLng) ? languageConfig.fallbackLng : [];
+  const configuredFallbacks =
+    typeof languageConfig?.fallbackLng === 'string'
+      ? [languageConfig.fallbackLng]
+      : Array.isArray(languageConfig?.fallbackLng)
+        ? languageConfig.fallbackLng
+        : [];
   const language =
-    ([req.query.lng, Reflect.get(req.session, 'langCode'), languageConfig?.lng, ...configuredFallbacks, 'en', languages[0]?.code].find(
-      value => typeof value === 'string' && languages.some(l => l.code === value)
-    ) as string) || 'en';
+    ([
+      req.query.lng,
+      Reflect.get(req.session, 'langCode'),
+      languageConfig?.lng,
+      ...configuredFallbacks,
+      'en',
+      languages[0]?.code,
+    ].find(value => typeof value === 'string' && languages.some(l => l.code === value)) as string) || 'en';
   Reflect.set(req.session, 'langCode', language);
   const t = (key: string, values?: Record<string, unknown>) => input.translate(brand.name!, language, key, values);
   const hasRole = (name: string) => actor?.roles.some(role => role.brandId === brand.id && role.name === name) === true;
