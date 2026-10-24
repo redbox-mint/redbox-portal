@@ -582,3 +582,35 @@ without executing its module; legacy persistence configuration remains rejected.
 These changes replace removed runtime generation/startup deletion conventions
 with their implemented v6 contracts; no runtime compatibility facade or skip was
 introduced. The whole core suite still needs the remaining consumer migrations.
+
+### Async loading, configuration and contributor fixture migration
+
+`loader17-first.log`: **41 passing / 0 pending / 0 failing** (171ms), Node
+26.11.1, explicit core Mocha runner, loader/{loader,
+record-contract-contributor-loader}. Real installed temporary packages execute
+native async registration; no factory or migration acquires resources offline.
+
+Preserved assertions include branding-array privilege displacement, named Agenda
+job/options merging, scoped dotted package names, priorities and intentional
+factory replacements, ordered config/bootstrap/routes, independent lexical
+migration ordering/attribution, invalid exports, duplicate migrations and sanitized
+internal import/registration errors. V6 accepts awaited async registration and
+rejects missing installed dependencies and ambiguous duplicates in every
+execution mode. Local migration directories are not implicitly executed.
+
+Deleted generation/write helpers are tested through actual conservative offline
+reconciliation (missing/edited/exact content and unchanged inspection timestamp)
+and actual extension loading (no output under development/production, empty
+folders or legacy marker; authored files/markers remain). Generated bootstrap,
+config/migration/API-route and form source-text assertions become checks of real
+resolved declarations plus absence of generated files. Core's read-only form is
+always available; demo forms require explicit extension declarations independently
+of the retired LOAD_DEFAULT_FORMS switch. This is the current implemented v6
+contract, not an assertion change to bypass a failure.
+
+Contributor discovery now uses neutral declarations and explicitly bound
+implementations. Core coverage, deterministic component ordering, package
+attribution, duplicate diagnostics, malformed/throwing registrations and implementation
+identity remain. Invalid/unbound registrations fail closed without generating a
+RecordSchemaService shim; v6 does not continue startup with invalid declarations.
+No tests are skipped. Whole-suite and installed-artifact verification remain open.
