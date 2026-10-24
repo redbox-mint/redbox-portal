@@ -1031,3 +1031,34 @@ unexpected provider/native messages remain sanitized. `formvocabulary31-fixed.lo
 Source `tsc --noEmit --incremental false`: **exit 0**, `formvocabulary31-tsc.log`.
 Pinned Prettier passes. No scenario removed or skipped. Full suites and final
 artifact qualification remain outstanding.
+
+### Figshare administration consumers and numeric HTTP boundary
+
+Both deleted Figshare controller suites retain **64 scenarios** using actual
+Figshare HTTP mounts and selected actor/brand ports. All list envelopes, page
+calculations, filters, revision mappings, typed 404/409/410/422/502 failures,
+preview/clone/crosswalk payloads and bodyless 204 remain asserted. Actual dispatch
+exposed six numeric-port discrepancies: query strings were cast to numbers only
+in TypeScript, permitting domain parseInt to accept malformed values. The HTTP
+owner now converts bounded safe integers and refuses malformed/negative/zero-limit
+pagination or revisions before any domain access. One additional scenario checks
+six malformed numeric requests. Source/runtime uses no implicit framework ports.
+
+Intentional v6 fixture conversions: authoritative actors replace request-user/
+empty-brand fallbacks; unknown brand is 404 and absent actor 401, with no domain
+call. Missing identifiers, required scope/body fields and malformed arrays are
+refused before execution; valid explicit empty collections/defaulted optional
+fields and mapping normalization are separately verified. Unexpected errors and
+non-Error rejections are sanitized 500, while owned vocabulary errors keep their
+mapped statuses/details. Real HTTP uses shared private/no-cache headers instead of
+stubbed controller headers. Valid 24-hex resource ids replace synthetic path ids.
+
+`figshare32-second.log`: **29 passing / 0 pending / 35 failing**, including fixture
+assumptions plus numeric-port discrepancies. `figshare32-third.log`: **63/0/1**;
+the remaining failure was an overbroad migration-script assertion applied to the
+valid unrecognized-op case. Corrected that fixture. `figshare32-final.log`:
+**65 passing / 0 pending / 0 failing** (1s). The eager rejected-promise fixture now
+rejects when invoked, removing an unhandled-rejection warning without altering
+its non-Error failure. `figshare32-tsc.log`: source TypeScript **exit 0**.
+Node 26.11.1 explicit core runner; pinned Prettier and git diff --check pass.
+No scenario removed or skipped; artifact gates remain outstanding.

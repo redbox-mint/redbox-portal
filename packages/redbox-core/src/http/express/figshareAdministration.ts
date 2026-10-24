@@ -74,6 +74,23 @@ export function mountFigshareAdministrationRoutes(router: Router, input: Figshar
           sendApiErrors(req, res, 400, [{ detail: 'Invalid resource identifier' }]);
           return;
         }
+        const paging: Record<string, number | undefined> = {};
+        for (const key of ['limit', 'offset', 'revision']) {
+          const value = query[key];
+          if (value === undefined) continue;
+          const parsed = Number(value);
+          if (
+            typeof value !== 'string' ||
+            !/^\d+$/.test(value) ||
+            !Number.isSafeInteger(parsed) ||
+            parsed < (key === 'limit' ? 1 : 0) ||
+            parsed > 1000000
+          ) {
+            sendApiErrors(req, res, 400, [{ detail: 'Invalid pagination or revision parameter' }]);
+            return;
+          }
+          paging[key] = parsed;
+        }
         const context = { brandId: brand.id, userId: actor.username };
         try {
           const perform = async (): Promise<{ data?: unknown; status?: number }> => {
@@ -85,8 +102,8 @@ export function mountFigshareAdministrationRoutes(router: Router, input: Figshar
                     status: query.status as string | undefined,
                     localVocabularyId: query.localVocabularyId as string | undefined,
                     sourceId: query.sourceId as string | undefined,
-                    limit: query.limit as unknown as number | undefined,
-                    offset: query.offset as unknown as number | undefined,
+                    limit: paging.limit,
+                    offset: paging.offset,
                   },
                   context
                 );
@@ -118,9 +135,9 @@ export function mountFigshareAdministrationRoutes(router: Router, input: Figshar
                   {
                     q: query.q as string | undefined,
                     mapped: query.mapped as string | undefined,
-                    revision: query.revision == null ? undefined : Number(query.revision),
-                    limit: query.limit as unknown as number | undefined,
-                    offset: query.offset as unknown as number | undefined,
+                    revision: paging.revision,
+                    limit: paging.limit,
+                    offset: paging.offset,
                   },
                   context
                 );
@@ -132,9 +149,9 @@ export function mountFigshareAdministrationRoutes(router: Router, input: Figshar
                   {
                     status: query.status as string | undefined,
                     q: query.q as string | undefined,
-                    revision: query.revision == null ? undefined : Number(query.revision),
-                    limit: query.limit as unknown as number | undefined,
-                    offset: query.offset as unknown as number | undefined,
+                    revision: paging.revision,
+                    limit: paging.limit,
+                    offset: paging.offset,
                   },
                   context
                 );
@@ -189,8 +206,8 @@ export function mountFigshareAdministrationRoutes(router: Router, input: Figshar
                   {
                     q: query.q as string | undefined,
                     scope: query.scope as string | undefined,
-                    limit: query.limit as unknown as number | undefined,
-                    offset: query.offset as unknown as number | undefined,
+                    limit: paging.limit,
+                    offset: paging.offset,
                   },
                   context
                 );
@@ -207,8 +224,8 @@ export function mountFigshareAdministrationRoutes(router: Router, input: Figshar
                     q: query.q as string | undefined,
                     includeHistorical: String(query.includeHistorical ?? '') === 'true',
                     selectableOnly: String(query.selectableOnly ?? '') === 'true',
-                    limit: query.limit as unknown as number | undefined,
-                    offset: query.offset as unknown as number | undefined,
+                    limit: paging.limit,
+                    offset: paging.offset,
                   },
                   context
                 );
@@ -251,8 +268,8 @@ export function mountFigshareAdministrationRoutes(router: Router, input: Figshar
                 const result = await input.vocabulary.listSyncRuns(
                   {
                     sourceId: query.sourceId as string | undefined,
-                    limit: query.limit as unknown as number | undefined,
-                    offset: query.offset as unknown as number | undefined,
+                    limit: paging.limit,
+                    offset: paging.offset,
                   },
                   context
                 );
@@ -286,8 +303,8 @@ export function mountFigshareAdministrationRoutes(router: Router, input: Figshar
                     q: query.q as string | undefined,
                     unresolvedOnly: String(query.unresolvedOnly ?? '') === 'true',
                     historicalOnly: String(query.historicalOnly ?? '') === 'true',
-                    limit: query.limit as unknown as number | undefined,
-                    offset: query.offset as unknown as number | undefined,
+                    limit: paging.limit,
+                    offset: paging.offset,
                   },
                   context
                 );

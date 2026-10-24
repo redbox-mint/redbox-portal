@@ -1,5 +1,9 @@
 import * as sinon from 'sinon';
-import { Controllers } from '../../../src/controllers/webservice/FigshareVocabularyController';
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import {
+  mountFigshareAdministrationRoutes,
+  figshareAdministrationRoutes,
+} from '../../../src/http/express/figshareAdministration';
 import {
   CatalogueInvalidError,
   CrosswalkRevisionError,
@@ -13,137 +17,145 @@ import {
 
 let expect: Chai.ExpectStatic;
 
-function makeReq(req: Record<string, unknown> = {}): Sails.Req {
-  return {
-    ...req,
-    apiRequest: {
-      params: (req.params ?? {}) as Record<string, unknown>,
-      query: (req.query ?? {}) as Record<string, unknown>,
-      body: req.body,
-      files: {},
-    },
-  } as unknown as Sails.Req;
-}
-
 describe('Webservice FigshareVocabularyController', () => {
-  let controller: Controllers.FigshareVocabulary;
+  let fixture: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let response: Awaited<ReturnType<typeof fixture.request>>;
+  const makeReq = (value: any = {}) => value;
+  async function request(action: string, value: any) {
+    const route = figshareAdministrationRoutes.find(route => route.action === action)!;
+    const params = { branding: 'default', portal: 'portal', ...value.params };
+    const path = route.path.replace(/:([A-Za-z]+)/g, (_match, key) => encodeURIComponent(params[key] ?? 'missing'));
+    const query = new URLSearchParams(Object.entries(value.query ?? {}).map(([key, value]) => [key, String(value)]));
+    if (value.user)
+      fixture.authenticate.resolves({
+        ...fixture.actor,
+        ...value.user,
+        id: String(value.user.id),
+        username: value.user.username ?? String(value.user.id),
+        roles: [{ brandId: fixture.brand.id, name: 'Admin' }],
+      });
+    response = await fixture.request(path + '?' + query, {
+      method: route.method.toUpperCase(),
+      body: value.body,
+      headers: { 'X-ReDBox-Api-Version': '2.0' },
+    });
+  }
   let service: Record<string, sinon.SinonStub>;
-  let sendResp: sinon.SinonStub;
-  const res = {} as Sails.Res;
 
   before(async () => {
     const chai = await import('chai');
     expect = chai.expect;
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     service = {
       discoverTaxonomies: sinon.stub().resolves([{ taxonomyId: 't1' }]),
-      listSources: sinon.stub().resolves({ data: [{ id: 's1' }], meta: { total: 3, limit: 10, offset: 20 } }),
-      getSource: sinon.stub().resolves({ id: 's1', scope: 'institution', taxonomyId: 't1' }),
+      listSources: sinon
+        .stub()
+        .resolves({ data: [{ id: '333333333333333333333333' }], meta: { total: 3, limit: 10, offset: 20 } }),
+      getSource: sinon.stub().resolves({ id: '333333333333333333333333', scope: 'institution', taxonomyId: 't1' }),
       listSourceCategories: sinon.stub().resolves({ data: [{ id: 'c1' }], meta: { total: 1, limit: 25, offset: 0 } }),
       cloneMirror: sinon.stub().resolves({ id: 'v-clone' }),
       listSyncRuns: sinon.stub().resolves({ data: [{ id: 'r1' }], meta: { total: 1, limit: 0, offset: 0 } }),
-      createPreview: sinon.stub().resolves({ runId: 'run-1' }),
-      getPreview: sinon.stub().resolves({ runId: 'run-1', proposals: [] }),
-      applyPreview: sinon.stub().resolves({ runId: 'run-1', applied: 2 }),
+      createPreview: sinon.stub().resolves({ runId: '222222222222222222222222' }),
+      getPreview: sinon.stub().resolves({ runId: '222222222222222222222222', proposals: [] }),
+      applyPreview: sinon.stub().resolves({ runId: '222222222222222222222222', applied: 2 }),
     };
 
-    (global as any).sails = { log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() } };
-    (global as any).FigshareVocabularyService = service;
-    (global as any).BrandingService = {
-      getBrandNameFromReq: sinon.stub().returns('default'),
-      getBrand: sinon.stub().returns({ id: 'brand-1' }),
-    };
-
-    controller = new Controllers.FigshareVocabulary();
-    sendResp = sinon.stub(controller as any, 'sendResp');
-    sinon.stub(controller as any, 'getNoCacheHeaders').returns({ 'Cache-Control': 'no-store' });
+    fixture = await httpRouteFixture((router, input) =>
+      mountFigshareAdministrationRoutes(router, {
+        ...input,
+        vocabulary: service as any,
+        audit: sinon.stub().resolves(),
+      })
+    );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await fixture.close();
     sinon.restore();
-    delete (global as any).FigshareVocabularyService;
-    delete (global as any).BrandingService;
-    delete (global as any).sails;
   });
 
   describe('listCatalogues', () => {
     it('passes the requested scope through to the service', async () => {
-      await controller.listCatalogues(makeReq({ query: { scope: 'institution' } }), res);
+      await request('listCatalogues', makeReq({ query: { scope: 'institution' } }));
 
       expect(service.discoverTaxonomies.calledOnce).to.be.true;
       expect(service.discoverTaxonomies.firstCall.args[0]).to.deep.equal({ scope: 'institution' });
-      expect(sendResp.firstCall.args[2]?.data).to.deep.equal([{ taxonomyId: 't1' }]);
-      expect(sendResp.firstCall.args[2]?.headers).to.deep.equal({ 'Cache-Control': 'no-store' });
+      expect(response.body.data).to.deep.equal([{ taxonomyId: 't1' }]);
+      expect(response.headers.get('Cache-Control')).to.equal('no-cache, private');
     });
 
-    it('coerces a missing scope to an empty string', async () => {
-      await controller.listCatalogues(makeReq(), res);
-
-      expect(service.discoverTaxonomies.firstCall.args[0]).to.deep.equal({ scope: '' });
+    it('requires a catalogue scope before domain access', async () => {
+      await request('listCatalogues', makeReq());
+      expect(response.status).to.equal(400);
+      expect(service.discoverTaxonomies.notCalled).to.equal(true);
     });
 
     it('maps service errors to an error response', async () => {
       service.discoverTaxonomies.rejects(new CatalogueInvalidError('bad catalogue'));
 
-      await controller.listCatalogues(makeReq({ query: { scope: 'group' } }), res);
+      await request('listCatalogues', makeReq({ query: { scope: 'group' } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(422);
-      expect(sendResp.firstCall.args[2]?.displayErrors).to.deep.equal([
-        { title: 'Unprocessable request', detail: 'bad catalogue' },
-      ]);
+      expect(response.status).to.equal(422);
+      expect(response.body.errors).to.deep.equal([{ title: 'Unprocessable request', detail: 'bad catalogue' }]);
     });
 
     it('falls back to 400 for an unrecognised vocabulary error code', async () => {
       service.discoverTaxonomies.rejects(new FigshareVocabularyError('something-new' as any, 'unhandled'));
 
-      await controller.listCatalogues(makeReq({ query: {} }), res);
+      await request('listCatalogues', makeReq({ query: { scope: 'institution' } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
-      expect(sendResp.firstCall.args[2]?.displayErrors).to.deep.equal([{ title: 'Bad request', detail: 'unhandled' }]);
+      expect(response.status).to.equal(400);
+      expect(response.body.errors).to.deep.equal([{ title: 'Bad request', detail: 'unhandled' }]);
     });
 
-    it('stringifies a non-Error rejection', async () => {
-      service.discoverTaxonomies.returns(Promise.reject('plain failure'));
+    it('sanitizes a non-Error rejection', async () => {
+      service.discoverTaxonomies.callsFake(async () => {
+        throw 'plain failure';
+      });
 
-      await controller.listCatalogues(makeReq({ query: {} }), res);
+      await request('listCatalogues', makeReq({ query: { scope: 'institution' } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+      expect(response.status).to.equal(500);
     });
   });
 
   describe('actor context', () => {
     it('prefers the username over the numeric id', async () => {
-      const req = makeReq({ query: {} });
+      const req = makeReq({ query: { scope: 'institution' } });
       (req as any).user = { id: 42, username: 'jane' };
 
-      await controller.listCatalogues(req, res);
+      await request('listCatalogues', req);
 
       expect(service.discoverTaxonomies.firstCall.args[1]).to.deep.equal({ brandId: 'brand-1', userId: 'jane' });
     });
 
     it('falls back to the user id when no username is present', async () => {
-      const req = makeReq({ query: {} });
+      const req = makeReq({ query: { scope: 'institution' } });
       (req as any).user = { id: 42 };
 
-      await controller.listCatalogues(req, res);
+      await request('listCatalogues', req);
 
       expect(service.discoverTaxonomies.firstCall.args[1]).to.deep.equal({ brandId: 'brand-1', userId: '42' });
     });
 
-    it('falls back to unknown actor and empty brand when neither resolves', async () => {
-      (global as any).BrandingService.getBrand.returns(undefined);
-
-      await controller.listCatalogues(makeReq({ query: {} }), res);
-
-      expect(service.discoverTaxonomies.firstCall.args[1]).to.deep.equal({ brandId: '', userId: 'unknown' });
+    it('refuses unresolved brand and anonymous actor', async () => {
+      fixture.getBrand.resolves(undefined);
+      await request('listCatalogues', makeReq({ query: { scope: 'institution' } }));
+      expect(response.status).to.equal(404);
+      expect(service.discoverTaxonomies.notCalled).to.equal(true);
+      fixture.getBrand.resolves(fixture.brand);
+      fixture.authenticate.resolves(undefined);
+      await request('listCatalogues', makeReq({ query: { scope: 'institution' } }));
+      expect(response.status).to.equal(401);
+      expect(service.discoverTaxonomies.notCalled).to.equal(true);
     });
   });
 
   describe('listSources', () => {
     it('forwards the filter and paging options', async () => {
-      await controller.listSources(makeReq({ query: { q: 'anzsrc', scope: 'group', limit: 10, offset: 20 } }), res);
+      await request('listSources', makeReq({ query: { q: 'anzsrc', scope: 'group', limit: 10, offset: 20 } }));
 
       expect(service.listSources.firstCall.args[0]).to.deep.equal({
         q: 'anzsrc',
@@ -154,10 +166,10 @@ describe('Webservice FigshareVocabularyController', () => {
     });
 
     it('wraps the result in a list response with a computed page number', async () => {
-      await controller.listSources(makeReq({ query: {} }), res);
+      await request('listSources', makeReq({ query: {} }));
 
-      const data = sendResp.firstCall.args[2]?.data;
-      expect(data.records).to.deep.equal([{ id: 's1' }]);
+      const data = response.body.data;
+      expect(data.records).to.deep.equal([{ id: '333333333333333333333333' }]);
       expect(data.summary.numFound).to.equal(3);
       expect(data.summary.start).to.equal(20);
       expect(data.summary.page).to.equal(3);
@@ -166,45 +178,45 @@ describe('Webservice FigshareVocabularyController', () => {
     it('maps service errors to an error response', async () => {
       service.listSources.rejects(new Error('boom'));
 
-      await controller.listSources(makeReq({ query: {} }), res);
+      await request('listSources', makeReq({ query: {} }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+      expect(response.status).to.equal(500);
     });
   });
 
   describe('getSource', () => {
     it('returns the requested source', async () => {
-      await controller.getSource(makeReq({ params: { sourceId: 's1' } }), res);
+      await request('getSource', makeReq({ params: { sourceId: '333333333333333333333333' } }));
 
-      expect(service.getSource.firstCall.args[0]).to.equal('s1');
-      expect(sendResp.firstCall.args[2]?.data).to.deep.include({ id: 's1' });
+      expect(service.getSource.firstCall.args[0]).to.equal('333333333333333333333333');
+      expect(response.body.data).to.deep.include({ id: '333333333333333333333333' });
     });
 
-    it('coerces a missing source id to an empty string', async () => {
-      await controller.getSource(makeReq({ params: {} }), res);
-
-      expect(service.getSource.firstCall.args[0]).to.equal('');
+    it('refuses an absent source identifier before domain access', async () => {
+      await request('getSource', makeReq({ params: {} }));
+      expect(response.status).to.equal(400);
+      expect(service.getSource.notCalled).to.equal(true);
     });
 
     it('returns 404 when the source crosses a relationship boundary', async () => {
       service.getSource.rejects(new RelationshipBoundaryError('not yours'));
 
-      await controller.getSource(makeReq({ params: { sourceId: 's1' } }), res);
+      await request('getSource', makeReq({ params: { sourceId: '333333333333333333333333' } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(404);
+      expect(response.status).to.equal(404);
     });
   });
 
   describe('listSourceCategories', () => {
     it('converts the string flags to booleans', async () => {
       const req = makeReq({
-        params: { sourceId: 's1' },
+        params: { sourceId: '333333333333333333333333' },
         query: { q: 'bio', includeHistorical: 'true', selectableOnly: 'true', limit: 25, offset: 0 },
       });
 
-      await controller.listSourceCategories(req, res);
+      await request('listSourceCategories', req);
 
-      expect(service.listSourceCategories.firstCall.args[0]).to.equal('s1');
+      expect(service.listSourceCategories.firstCall.args[0]).to.equal('333333333333333333333333');
       expect(service.listSourceCategories.firstCall.args[1]).to.deep.equal({
         q: 'bio',
         includeHistorical: true,
@@ -215,7 +227,7 @@ describe('Webservice FigshareVocabularyController', () => {
     });
 
     it('defaults the flags to false when absent', async () => {
-      await controller.listSourceCategories(makeReq({ params: { sourceId: 's1' }, query: {} }), res);
+      await request('listSourceCategories', makeReq({ params: { sourceId: '333333333333333333333333' }, query: {} }));
 
       expect(service.listSourceCategories.firstCall.args[1]).to.deep.include({
         includeHistorical: false,
@@ -226,34 +238,34 @@ describe('Webservice FigshareVocabularyController', () => {
     it('maps service errors to an error response', async () => {
       service.listSourceCategories.rejects(new SnapshotTooLargeError('too big'));
 
-      await controller.listSourceCategories(makeReq({ params: { sourceId: 's1' }, query: {} }), res);
+      await request('listSourceCategories', makeReq({ params: { sourceId: '333333333333333333333333' }, query: {} }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(422);
-      expect(sendResp.firstCall.args[2]?.displayErrors[0].title).to.equal('Catalogue too large');
+      expect(response.status).to.equal(422);
+      expect(response.body.errors[0].title).to.equal('Catalogue too large');
     });
   });
 
   describe('createSourcePreview', () => {
     it('derives the scope and taxonomy from the stored source', async () => {
       const req = makeReq({
-        params: { sourceId: 's1' },
-        body: { crosswalkId: 'cw-1', localVocabularyId: 'v-1' },
+        params: { sourceId: '333333333333333333333333' },
+        body: { crosswalkId: '111111111111111111111111', localVocabularyId: 'v-1' },
       });
 
-      await controller.createSourcePreview(req, res);
+      await request('createSourcePreview', req);
 
       expect(service.createPreview.firstCall.args[0]).to.deep.equal({
         scope: 'institution',
         taxonomyId: 't1',
-        sourceId: 's1',
-        crosswalkId: 'cw-1',
+        sourceId: '333333333333333333333333',
+        crosswalkId: '111111111111111111111111',
         localVocabularyId: 'v-1',
       });
-      expect(sendResp.firstCall.args[2]?.status).to.equal(201);
+      expect(response.status).to.equal(201);
     });
 
     it('leaves the optional identifiers undefined when not supplied', async () => {
-      await controller.createSourcePreview(makeReq({ params: { sourceId: 's1' }, body: {} }), res);
+      await request('createSourcePreview', makeReq({ params: { sourceId: '333333333333333333333333' }, body: {} }));
 
       expect(service.createPreview.firstCall.args[0]).to.deep.include({
         crosswalkId: undefined,
@@ -262,7 +274,10 @@ describe('Webservice FigshareVocabularyController', () => {
     });
 
     it('treats a non-object body as an empty payload', async () => {
-      await controller.createSourcePreview(makeReq({ params: { sourceId: 's1' }, body: ['nope'] }), res);
+      await request(
+        'createSourcePreview',
+        makeReq({ params: { sourceId: '333333333333333333333333' }, body: ['nope'] })
+      );
 
       expect(service.createPreview.firstCall.args[0]).to.deep.include({ crosswalkId: undefined });
     });
@@ -270,27 +285,33 @@ describe('Webservice FigshareVocabularyController', () => {
     it('maps service errors to an error response', async () => {
       service.createPreview.rejects(new FigshareTransportError('figshare down', 503));
 
-      await controller.createSourcePreview(makeReq({ params: { sourceId: 's1' }, body: {} }), res);
+      await request('createSourcePreview', makeReq({ params: { sourceId: '333333333333333333333333' }, body: {} }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(502);
-      expect(sendResp.firstCall.args[2]?.displayErrors[0].title).to.equal('Figshare unavailable');
+      expect(response.status).to.equal(502);
+      expect(response.body.errors[0].title).to.equal('Figshare unavailable');
     });
   });
 
   describe('cloneSource', () => {
     it('creates the mirror clone and returns 201', async () => {
-      const req = makeReq({ params: { sourceId: 's1' }, body: { name: 'Local ANZSRC', slug: 'local-anzsrc' } });
+      const req = makeReq({
+        params: { sourceId: '333333333333333333333333' },
+        body: { name: 'Local ANZSRC', slug: 'local-anzsrc' },
+      });
 
-      await controller.cloneSource(req, res);
+      await request('cloneSource', req);
 
-      expect(service.cloneMirror.firstCall.args[0]).to.equal('s1');
+      expect(service.cloneMirror.firstCall.args[0]).to.equal('333333333333333333333333');
       expect(service.cloneMirror.firstCall.args[1]).to.deep.equal({ name: 'Local ANZSRC', slug: 'local-anzsrc' });
-      expect(sendResp.firstCall.args[2]?.status).to.equal(201);
-      expect(sendResp.firstCall.args[2]?.data).to.deep.equal({ id: 'v-clone' });
+      expect(response.status).to.equal(201);
+      expect(response.body.data).to.deep.equal({ id: 'v-clone' });
     });
 
     it('omits the slug when it is not supplied', async () => {
-      await controller.cloneSource(makeReq({ params: { sourceId: 's1' }, body: { name: 'Local' } }), res);
+      await request(
+        'cloneSource',
+        makeReq({ params: { sourceId: '333333333333333333333333' }, body: { name: 'Local' } })
+      );
 
       expect(service.cloneMirror.firstCall.args[1]).to.deep.equal({ name: 'Local', slug: undefined });
     });
@@ -298,32 +319,39 @@ describe('Webservice FigshareVocabularyController', () => {
     it('maps service errors to an error response', async () => {
       service.cloneMirror.rejects(new Error('duplicate slug'));
 
-      await controller.cloneSource(makeReq({ params: { sourceId: 's1' }, body: { name: 'Local' } }), res);
+      await request(
+        'cloneSource',
+        makeReq({ params: { sourceId: '333333333333333333333333' }, body: { name: 'Local' } })
+      );
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
-      expect(sendResp.firstCall.args[2]?.displayErrors[0].detail).to.equal('duplicate slug');
+      expect(response.status).to.equal(500);
+      expect(response.body.errors[0].detail).to.equal('Review current state before retrying.');
     });
   });
 
   describe('listSyncRuns', () => {
     it('forwards the source filter and paging', async () => {
-      await controller.listSyncRuns(makeReq({ query: { sourceId: 's1', limit: 5, offset: 5 } }), res);
+      await request('listSyncRuns', makeReq({ query: { sourceId: '333333333333333333333333', limit: 5, offset: 5 } }));
 
-      expect(service.listSyncRuns.firstCall.args[0]).to.deep.equal({ sourceId: 's1', limit: 5, offset: 5 });
+      expect(service.listSyncRuns.firstCall.args[0]).to.deep.equal({
+        sourceId: '333333333333333333333333',
+        limit: 5,
+        offset: 5,
+      });
     });
 
     it('reports page 1 when the service returns a zero page size', async () => {
-      await controller.listSyncRuns(makeReq({ query: {} }), res);
+      await request('listSyncRuns', makeReq({ query: {} }));
 
-      expect(sendResp.firstCall.args[2]?.data.summary.page).to.equal(1);
+      expect(response.body.data.summary.page).to.equal(1);
     });
 
     it('maps service errors to an error response', async () => {
       service.listSyncRuns.rejects(new Error('nope'));
 
-      await controller.listSyncRuns(makeReq({ query: {} }), res);
+      await request('listSyncRuns', makeReq({ query: {} }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+      expect(response.status).to.equal(500);
     });
   });
 
@@ -333,8 +361,8 @@ describe('Webservice FigshareVocabularyController', () => {
         body: {
           scope: 'group',
           taxonomyId: 't9',
-          sourceId: 's1',
-          crosswalkId: 'cw-1',
+          sourceId: '333333333333333333333333',
+          crosswalkId: '111111111111111111111111',
           localVocabularyId: 'v-1',
           createLocalClone: true,
           localCloneName: 'Clone',
@@ -342,27 +370,27 @@ describe('Webservice FigshareVocabularyController', () => {
         },
       });
 
-      await controller.createPreview(req, res);
+      await request('createPreview', req);
 
       expect(service.createPreview.firstCall.args[0]).to.deep.equal({
         scope: 'group',
         taxonomyId: 't9',
-        sourceId: 's1',
-        crosswalkId: 'cw-1',
+        sourceId: '333333333333333333333333',
+        crosswalkId: '111111111111111111111111',
         localVocabularyId: 'v-1',
         createLocalClone: true,
         localCloneName: 'Clone',
         localCloneSlug: 'clone',
       });
-      expect(sendResp.firstCall.args[2]?.status).to.equal(201);
+      expect(response.status).to.equal(201);
     });
 
-    it('defaults every optional field when the body is empty', async () => {
-      await controller.createPreview(makeReq({ body: {} }), res);
+    it('defaults every optional field with required scope and taxonomy', async () => {
+      await request('createPreview', makeReq({ body: { scope: 'institution', taxonomyId: 't1' } }));
 
       expect(service.createPreview.firstCall.args[0]).to.deep.equal({
-        scope: '',
-        taxonomyId: '',
+        scope: 'institution',
+        taxonomyId: 't1',
         sourceId: undefined,
         crosswalkId: undefined,
         localVocabularyId: undefined,
@@ -375,16 +403,16 @@ describe('Webservice FigshareVocabularyController', () => {
     it('maps service errors to an error response', async () => {
       service.createPreview.rejects(new CatalogueInvalidError('empty catalogue'));
 
-      await controller.createPreview(makeReq({ body: {} }), res);
+      await request('createPreview', makeReq({ body: { scope: 'institution', taxonomyId: 't1' } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(422);
+      expect(response.status).to.equal(422);
     });
   });
 
   describe('getPreview', () => {
     it('honours the diff view and filters', async () => {
       const req = makeReq({
-        params: { runId: 'run-1' },
+        params: { runId: '222222222222222222222222' },
         query: {
           view: 'diff',
           changeClass: 'added',
@@ -397,9 +425,9 @@ describe('Webservice FigshareVocabularyController', () => {
         },
       });
 
-      await controller.getPreview(req, res);
+      await request('getPreview', req);
 
-      expect(service.getPreview.firstCall.args[0]).to.equal('run-1');
+      expect(service.getPreview.firstCall.args[0]).to.equal('222222222222222222222222');
       expect(service.getPreview.firstCall.args[1]).to.deep.equal({
         view: 'diff',
         changeClass: 'added',
@@ -413,7 +441,10 @@ describe('Webservice FigshareVocabularyController', () => {
     });
 
     it('falls back to the proposals view and false flags', async () => {
-      await controller.getPreview(makeReq({ params: { runId: 'run-1' }, query: { view: 'anything' } }), res);
+      await request(
+        'getPreview',
+        makeReq({ params: { runId: '222222222222222222222222' }, query: { view: 'anything' } })
+      );
 
       expect(service.getPreview.firstCall.args[1]).to.deep.include({
         view: 'proposals',
@@ -425,17 +456,17 @@ describe('Webservice FigshareVocabularyController', () => {
     it('returns 410 once the preview has expired', async () => {
       service.getPreview.rejects(new PreviewExpiredError());
 
-      await controller.getPreview(makeReq({ params: { runId: 'run-1' }, query: {} }), res);
+      await request('getPreview', makeReq({ params: { runId: '222222222222222222222222' }, query: {} }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(410);
-      expect(sendResp.firstCall.args[2]?.displayErrors[0].title).to.equal('Preview expired');
+      expect(response.status).to.equal(410);
+      expect(response.body.errors[0].title).to.equal('Preview expired');
     });
   });
 
   describe('applyPreview', () => {
     it('normalises the approved proposals and manual mappings', async () => {
       const req = makeReq({
-        params: { runId: 'run-1' },
+        params: { runId: '222222222222222222222222' },
         body: {
           remoteHash: 'hash-1',
           expectedRevision: '4',
@@ -448,9 +479,14 @@ describe('Webservice FigshareVocabularyController', () => {
         },
       });
 
-      await controller.applyPreview(req, res);
+      await request('applyPreview', req);
+      expect(response.status).to.equal(400);
+      expect(service.applyPreview.notCalled).to.equal(true);
+      req.body.approvedProposalIds = ['p1', '2'];
+      req.body.manualMappings = [{ localEntryId: 'e1', localEntryKey: 'key-1', figshareSourceIds: ['f1', '2'] }, {}];
+      await request('applyPreview', req);
 
-      expect(service.applyPreview.firstCall.args[0]).to.equal('run-1');
+      expect(service.applyPreview.firstCall.args[0]).to.equal('222222222222222222222222');
       expect(service.applyPreview.firstCall.args[1]).to.deep.equal({
         remoteHash: 'hash-1',
         expectedRevision: 4,
@@ -458,17 +494,19 @@ describe('Webservice FigshareVocabularyController', () => {
         manualMappings: [
           { localEntryId: 'e1', localEntryKey: 'key-1', figshareSourceIds: ['f1', '2'] },
           { localEntryId: undefined, localEntryKey: undefined, figshareSourceIds: [] },
-          { localEntryId: undefined, localEntryKey: undefined, figshareSourceIds: [] },
         ],
       });
-      expect(sendResp.firstCall.args[2]?.data).to.deep.equal({ runId: 'run-1', applied: 2 });
+      expect(response.body.data).to.deep.equal({ runId: '222222222222222222222222', applied: 2 });
     });
 
     it('defaults the collections to empty arrays', async () => {
-      await controller.applyPreview(makeReq({ params: { runId: 'run-1' }, body: {} }), res);
+      await request(
+        'applyPreview',
+        makeReq({ params: { runId: '222222222222222222222222' }, body: { remoteHash: 'hash' } })
+      );
 
       expect(service.applyPreview.firstCall.args[1]).to.deep.equal({
-        remoteHash: '',
+        remoteHash: 'hash',
         expectedRevision: undefined,
         approvedProposalIds: [],
         manualMappings: [],
@@ -478,18 +516,24 @@ describe('Webservice FigshareVocabularyController', () => {
     it('returns 409 when the preview is stale', async () => {
       service.applyPreview.rejects(new StalePreviewError());
 
-      await controller.applyPreview(makeReq({ params: { runId: 'run-1' }, body: {} }), res);
+      await request(
+        'applyPreview',
+        makeReq({ params: { runId: '222222222222222222222222' }, body: { remoteHash: 'hash' } })
+      );
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(409);
+      expect(response.status).to.equal(409);
     });
 
     it('returns 409 when the crosswalk revision moved', async () => {
       service.applyPreview.rejects(new CrosswalkRevisionError());
 
-      await controller.applyPreview(makeReq({ params: { runId: 'run-1' }, body: {} }), res);
+      await request(
+        'applyPreview',
+        makeReq({ params: { runId: '222222222222222222222222' }, body: { remoteHash: 'hash' } })
+      );
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(409);
-      expect(sendResp.firstCall.args[2]?.displayErrors[0].title).to.equal('Conflict');
+      expect(response.status).to.equal(409);
+      expect(response.body.errors[0].title).to.equal('Conflict');
     });
   });
 });
