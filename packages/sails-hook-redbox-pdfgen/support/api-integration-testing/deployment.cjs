@@ -16,10 +16,10 @@ module.exports = {
     },
   },
   brandingConfigurationDefaults: {
+    // The native browser uses this brand's disposable authenticated API actor.
+    pdfgen: { token: '6b088b4d-d54c-470c-8568-2f2695fcdab9' },
     auth: { active: ['local'], local: { default: { token: '6b088b4d-d54c-470c-8568-2f2695fcdab9' } } },
   },
-  // The native browser authenticates as the same disposable fixture API actor.
-  pdfgen: { token: '6b088b4d-d54c-470c-8568-2f2695fcdab9' },
   recordtype: require('./recordtype.config.js').recordtype,
   bootstrap: { bootstrapDataPath: 'bootstrap-data' },
   vocab: { bootstrapRvaImports: false, bootstrapFigshareImports: false },
