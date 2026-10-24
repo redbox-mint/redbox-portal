@@ -245,8 +245,12 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
             if (!type) throw new RecordMutationError(400, 'Record Type provided is not valid');
             const raw = _.cloneDeep(browser ? body : body.metadata == null ? body : object(body.metadata));
             if (!browser && body.metadata == null && !input.schemaEnabled) raw.authorization = [];
+            // Raw v5 metadata may contain an empty authorization field; only
+            // an object ACL (or an explicit metadata envelope) supplies permissions.
+            const legacyAuthorization =
+              body.metadata == null && Array.isArray(body.authorization) && body.authorization.length === 0;
             const authorization =
-              !browser && body.authorization != null
+              !browser && body.authorization != null && !legacyAuthorization
                 ? object(body.authorization)
                 : { edit: [user.username], view: [user.username] };
             result = await input.records.create(

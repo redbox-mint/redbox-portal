@@ -49,6 +49,23 @@ describe('owned record mutation pipeline on real Mongo Solr HTTP', function () {
       await delay(25);
     }
   });
+  it('accepts the legacy raw empty authorization field without treating it as an ACL envelope', async () => {
+    const created = await request('POST', '/api/records/metadata/dataRecord', {
+      title: 'Legacy raw API metadata',
+      authorization: [],
+    });
+    assert.equal(created.response.status, 201, JSON.stringify(created.body));
+    const saved = await f.storage.getMeta(created.body.data.oid);
+    assert.deepEqual(saved.metadata.authorization, []);
+    assert(saved.authorization.edit.includes('pilot-admin'));
+    assert(saved.authorization.view.includes('pilot-admin'));
+    for (const invalid of [['someone-else'], []]) {
+      const body = invalid.length
+        ? { title: 'invalid', authorization: invalid }
+        : { metadata: { title: 'invalid' }, authorization: invalid };
+      assert.equal((await request('POST', '/api/records/metadata/dataRecord', body)).response.status, 400);
+    }
+  });
   it('replaces and merges metadata, preserves API negotiation and monotonic revisions', async () => {
     const replaced = await request('PUT', '/api/records/metadata/' + oid, { title: 'Updated', preserved: true });
     assert.equal(replaced.response.status, 200, JSON.stringify(replaced.body));

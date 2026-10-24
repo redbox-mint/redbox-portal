@@ -91,7 +91,9 @@ class QueryInputError extends Error {
 }
 function integer(value: unknown, fallback: number, minimum = 1, maximum = Number.MAX_SAFE_INTEGER): number {
   if (value === undefined || value === '') return fallback;
-  if (typeof value !== 'string' || !/^\d+$/.test(value)) throw new QueryInputError('Invalid pagination parameter.');
+  // API contract validation normalizes integer query strings before dispatch.
+  if (typeof value !== 'number' && (typeof value !== 'string' || !/^\d+$/.test(value)))
+    throw new QueryInputError('Invalid pagination parameter.');
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum)
     throw new QueryInputError('Invalid pagination parameter.');

@@ -88,6 +88,14 @@ describe('owned query reads on Mongo and Solr', () => {
     assert.equal((await read('/api/siem/delivery-status')).body.total, 0);
     assert.equal((await read('/api/siem/config')).response.status, 200);
   });
+  it('accepts validated numeric pagination while retaining bounds on SIEM requests', async () => {
+    for (const route of ['/api/siem/events', '/api/siem/delivery-status']) {
+      const page = await read(route + '?limit=1&offset=0');
+      assert.equal(page.response.status, 200, JSON.stringify(page.body));
+      assert.equal((await read(route + '?limit=0')).response.status, 400);
+      assert.equal((await read(route + '?offset=-1')).response.status, 400);
+    }
+  });
   it('reads real audit snapshots diffs permissions and integration history', async () => {
     const audit = await read('/record/viewAudit/read-record/audit');
     assert.equal(audit.response.status, 200, JSON.stringify(audit.body));

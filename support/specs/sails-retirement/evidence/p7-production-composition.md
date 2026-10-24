@@ -113,3 +113,32 @@ without writes, converted three definitions, retried two interrupted writes and
 proved idempotency. The production application result above exercised both ledger
 entries. No existing test expectation was relaxed.
 
+
+## Broad-run regressions and client conversion
+
+The first existing full Bruno diagnostic (`bruno-production-first.log/json`)
+executed **329 requests**, **143 passing / 173 failing / 13 request errors**,
+**279/567 tests**, **3/3 assertions**, exit **1**, **44388 ms**. No bail/skip was
+used. OIDC, Companion and S3 profile configuration was absent in that diagnostic;
+its failures are retained and do not count as qualification.
+
+The exact existing raw create body contained `authorization: []`. The adapter
+misinterpreted that metadata field as an ACL envelope. It now recognizes only
+this empty-array raw compatibility case; explicit envelopes and nonempty arrays
+remain validated. The real Mongo/Solr regression first failed **400 versus 201**
+(`legacy-record-auth-red-second.log`), then the whole suite passed **13/13**,
+**0 pending/failing**, exit **0** (`legacy-record-auth-green.log`), including eight
+unchanged existing Bruno permission requests with **16/16** assertions. The added
+case checks persisted metadata and authenticated-user permissions, and rejects
+malformed explicit/nonempty array ACLs. An earlier harness attempt incorrectly
+loaded `test/setup.ts`, which installs a Sails global forbidden by this standalone
+fixture; it failed setup and is not counted.
+
+Existing SIEM requests exposed a second adapter bug: contract validation returns
+numbers, but dispatch accepted pagination strings only. The new real-Mongo/Solr
+case failed **400 versus 200** (`query-pagination-red-third.log`); dispatch now
+accepts safe integer numbers while preserving all bounds/type checks. The complete
+suite passed **16/16**, zero pending/failing, exit **0**
+(`query-pagination-green.log`), including its unchanged two-request Bruno fixture.
+An attempt while the compiled dependency graph was being rebuilt failed module
+loading; this harness ordering error is not counted as a behavior result.
