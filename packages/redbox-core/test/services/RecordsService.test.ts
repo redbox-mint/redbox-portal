@@ -508,15 +508,67 @@ describe('RecordsService', function () {
       expect(RecordsService.logHeader).to.equal('RecordsService::');
     });
 
-    it('interrupts detached hook work when its application module closes', async function () {
-      const supervisor = RecordsService.hookExecutionSupervisor;
-      const interruptAll = sinon.spy(supervisor, 'interruptAll');
-      const application = new ApplicationRuntime({ config: {}, log: fixture.log }, [{
-        name: 'records', create: () => ({ initialize: async () => {}, close: async () => RecordsService.close() }),
-      }]);
-      await application.initialize(); await application.stop();
-      expect(interruptAll.calledOnce).to.equal(true);
-    });
+    for (const timeoutMs of [undefined, 5])
+      it(`retains a detached Promise (timeout ${timeoutMs}) through failed stop and retry`, async function () {
+        const entered = Promise.withResolvers<void>(),
+          release = Promise.withResolvers<void>();
+        let completed = false;
+        const hook = async () => {
+          entered.resolve();
+          await release.promise;
+          completed = true;
+        };
+        const resolve = sinon.stub(RecordsService.input, 'resolveHook').returns(hook);
+        const closeStorage = sinon.spy();
+        const application = new ApplicationRuntime({ config: {}, log: fixture.log }, [
+          {
+            name: 'storage',
+            create: () => ({
+              initialize: async () => {},
+              close: async () => {
+                closeStorage();
+              },
+            }),
+          },
+          {
+            name: 'records',
+            create: () => ({
+              initialize: async () => {},
+              drain: () => RecordsService.drain(),
+              close: () => RecordsService.close(),
+            }),
+          },
+        ]);
+        await application.initialize();
+        try {
+          RecordsService.triggerPostSaveTriggers(
+            'record-123',
+            {},
+            {
+              hooks: {
+                onUpdate: {
+                  post: [{ function: 'test.slow', ...(timeoutMs === undefined ? {} : { execution: { timeoutMs } }) }],
+                },
+              },
+            },
+          );
+          await entered.promise;
+          await new Promise((done) => setTimeout(done, 20));
+          await rejects(application.stop({ deadlineMs: 20 }), /deadline|drain/i);
+          expect(completed).to.equal(false);
+          expect(closeStorage.called).to.equal(false);
+          expect(application.status().cleanupPending).to.equal(true);
+          release.resolve();
+          await application.stop({ deadlineMs: 1000 });
+          expect(completed).to.equal(true);
+          expect(closeStorage.calledOnce).to.equal(true);
+          expect(application.status().cleanupPending).to.equal(false);
+        } finally {
+          release.resolve();
+          resolve.restore();
+          await application.stop();
+        }
+      });
   });
 
   describe('getDeletedRecordMeta', function () {

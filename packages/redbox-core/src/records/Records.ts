@@ -613,8 +613,12 @@ export namespace Services {
     protected sleep(ms: number): Promise<void> {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
-    public close(): void {
-      this.hookExecutionSupervisor?.interruptAll?.();
+    public async drain(): Promise<void> {
+      await this.hookExecutionSupervisor?.drain?.();
+    }
+
+    public async close(): Promise<void> {
+      await this.drain();
     }
 
     private hookExecutionDependencies(): ActionExecutionDependencies {
@@ -3587,7 +3591,27 @@ export namespace Services {
           displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
         });
       }
-      const fn = evaluated as (...args: unknown[]) => unknown;
+      const invoke = evaluated as (...args: unknown[]) => unknown;
+      const fn = (...args: unknown[]): unknown => {
+        const result = invoke(...args);
+        if (
+          result &&
+          (typeof result === 'object' || typeof result === 'function') &&
+          typeof Reflect.get(result, 'then') === 'function'
+        ) {
+          const work = Promise.resolve(result);
+          this.hookExecutionSupervisor?.track?.(work);
+          // Keep an admitted request's persistence scope alive even when a hook
+          // times out: cancelling a fiber cannot cancel an opaque Promise.
+          this.input.retainFollowup?.(
+            work.then(
+              () => {},
+              () => {}
+            )
+          );
+        }
+        return result;
+      };
       this.configuredHookFunctions.set(hook, { expression, fn });
       return fn;
     }

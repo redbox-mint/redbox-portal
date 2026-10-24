@@ -200,7 +200,7 @@ export function portalDataPlan(
     'records',
     ['storage', 'datastream', 'search', 'users', 'recordSchema'],
     input => new Records.Records(input),
-    value => ({ initialize: async () => {}, close: async () => value.close() }),
+    value => ({ initialize: async () => {}, drain: () => value.drain(), close: () => value.close() }),
     (value): value is Records.Records => value instanceof Records.Records,
     () => ({
       config,

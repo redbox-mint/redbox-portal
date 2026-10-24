@@ -119,6 +119,8 @@ export interface ActionExecutionLogger {
 export interface ActionExecutionSupervisor {
   register?: (fiber: Fiber<unknown, unknown>) => void;
   interruptAll?: () => void;
+  track?: (work: Promise<unknown>) => void;
+  drain?: () => Promise<void>;
 }
 
 export interface ActionExecutionAction<A = unknown> {

@@ -1,6 +1,6 @@
 import * as Effect from 'effect/Effect';
 import * as Cause from 'effect/Cause';
-import type * as Fiber from 'effect/Fiber';
+import * as Fiber from 'effect/Fiber';
 import { randomUUID } from 'node:crypto';
 import { ActionInterruptedFailure, ActionTimeoutFailure, normalizeActionFailure } from './failure';
 import { retryDelayMs, validateActionExecutionPolicy } from './policy';
@@ -339,15 +339,27 @@ export function createActionExecutionOperation(
 
 /**
  * Owns detached fibers for the lifetime of a service. Application drain can
- * interrupt the set so shutdown does not leave post-save work running against
- * a closed datastore.
+ * join fibers and opaque Promise lifetimes before closing their datastores.
  */
 export function createActionExecutionSupervisor(): ActionExecutionDependencies['supervisor'] {
   const fibers = new Set<Fiber.Fiber<unknown, unknown>>();
+  const promises = new Set<Promise<unknown>>();
   return {
     register(fiber): void {
       fibers.add(fiber);
       fiber.addObserver(() => fibers.delete(fiber));
+    },
+    track(work): void {
+      promises.add(work);
+      void work.then(
+        () => promises.delete(work),
+        () => promises.delete(work)
+      );
+    },
+    async drain(): Promise<void> {
+      while (fibers.size || promises.size) {
+        await Promise.allSettled([...promises, ...Array.from(fibers, fiber => Effect.runPromise(Fiber.await(fiber)))]);
+      }
     },
     interruptAll(): void {
       const active = Array.from(fibers);
