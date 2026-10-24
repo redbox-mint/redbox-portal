@@ -45,9 +45,10 @@ built all packages/Angular/shared assets, twelve tarballs and the pristine runti
 image. Twenty packed production/offline/scaffold checks pass. The additional
 test/rehearsal/builder image targets and full regression/recovery/installed-graph
 qualification remain in progress. Earlier P7 broad-suite results are historical
-inputs, not post-removal proof. Only SR-051 is accepted at this point.
+inputs, not post-removal proof. SR-051/052 are accepted; remaining P8 tasks await their complete entrypoint/suite/
+recovery qualification.
 
-## SR-052 — Runtime and dependency removal (not yet accepted)
+## SR-052 — Runtime and dependency removal (accepted)
 
 The comparison host, `src/compat/sails`, generated-controller implementations,
 loader/lift/bootstrap/policy/response adapters, ambient framework declarations,
@@ -81,9 +82,10 @@ loader types; it now declares its own inferred route/view/scenario data. A clean
 rebuild of the final complete tree remains required.
 
 `npm run lint`: latest execution **0 errors, 0 warnings**, including the
-cross-package import-boundary check. This is source/build evidence only. Existing
-node_modules directories still contain old packages; installed/packed/image graph
-closure has **not** been established.
+cross-package import-boundary check. This is source/build evidence only. The shared checkout
+still has ignored old node_modules directories; they are not the qualified
+application graph. The clean installed runtime and packed-consumer closure is
+accepted in the final SR-052 section below.
 
 ## SR-053 — Consumer and test conversion (in progress)
 
@@ -1784,3 +1786,46 @@ The new stand-in recovery scratch parent is the existing user-owned network moun
 to preserve the full source-image archive without competing with local Docker
 space. No institution data is used; existing P7 checkpoints remain untouched.
 The actual unique checkpoint path will be recorded by the recovery driver.
+
+
+### SR-052 strict installed packed graph acceptance
+
+The additional consumer is now installed successfully in the clean Dockerfile
+`base` target (Git/build tools, no application dependencies), built from the same
+853d0039d archive. All application dependencies and overrides come from the twelve
+SHA256-verified tarballs, including the packed core manifest; no source or emitted
+application mount is used. TypeScript5.9.3 is supplied outside the consumer as an
+auditor-only tool. Git2.39.5, Node26.11.1, npm11.20.0.
+
+`npm install --prefer-offline --omit=dev --ignore-scripts --strict-peer-deps
+--legacy-peer-deps=false --no-audit --no-fund` exits0: **1194packages added in2m**.
+The installed owned graph scan examines2191files, recursively checks installed
+package manifests, and exits0 with **0 executable violations / 0 forbidden
+dependency entries**. The isolated temporary consumer is removed, and its Docker
+container cleanup exits0. npm reports existing upstream deprecation advisories;
+no dependency selection or peer bypass is added.
+
+This completes SR-052: committed source, all nine compiled owned package payloads,
+the pristine installed runtime graph and a fresh installed graph from all twelve
+real packs have no required Sails path. The three explicitly documented historical
+published package names are retained. The dependency ledger records every removed/
+changed declared dependency and lock entry; exact pins are unchanged apart from
+the recorded removals. Final test/rehearsal/builder image/suite/recovery proof
+remains SR-053/055; it is not claimed by these scans.
+
+Commands:
+
+```sh
+docker build --network host --target base --iidfile "$logs/consumer-base.iid" "$clean_context"
+docker run --rm --init --network host --user root -e NODE_ENV=production \
+  -e PUPPETEER_SKIP_DOWNLOAD=true -e NODE_PATH=/audit/node_modules \
+  -e SR_P8_SOURCE_COMMIT=853d0039df1164beaa4098a8dba9c7984e498147 \
+  -v "$packed:/packed:ro" -v "$audit_tools:/audit:ro" \
+  -v "$PWD/node_modules/typescript:/audit/node_modules/typescript:ro" \
+  "$consumer_base_image" node /audit/install-packed.cjs
+```
+
+Logs: `consumer-base-build.log`, `consumer-base-inspect.json`,
+`packed-installed-closure.{json,log}`. Image ID, versions and compact closure
+results are in [p8-artifacts.json](p8-artifacts.json). The earlier missing-Git
+probe is superseded by this actual successful installation, not suppressed.

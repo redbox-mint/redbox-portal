@@ -94,7 +94,6 @@
     "compiledScaffold": true
   },
   "closure": {
-    "auditorSha256": "d407e82fc053751816a8afb15a2e9da39113023288de0f7440eb6493baf9bbb7",
     "typescript": "5.9.3",
     "runtime": {
       "image": "sha256:771ebe39b424ae38dd7d3b876a4371d6c0cfd5865e80e3b5855fafab9b485b72",
@@ -107,6 +106,19 @@
       "scannedFiles": 2191,
       "executableViolations": 0,
       "forbiddenDependencyEntries": 0
+    },
+    "runtimeAndPackedContentAuditorSha256": "d407e82fc053751816a8afb15a2e9da39113023288de0f7440eb6493baf9bbb7",
+    "installedPackedConsumer": {
+      "toolImage": "sha256:733b974d57895dbcfd61578f3729b62d99e221534a4edeb7f83452fd1ea271f2",
+      "manifestSource": "hash-verified-packed-core",
+      "node": "v26.11.1",
+      "npm": "11.20.0",
+      "git": "git version 2.39.5",
+      "installedPackages": 1194,
+      "scannedFiles": 2191,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "auditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c"
     }
   }
 }

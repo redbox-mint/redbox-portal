@@ -10,10 +10,10 @@ artifacts pass 20 checks. Installed production images, full released-v5 stand-in
 cutover/restart/stop, operational comparisons and complete offline-capable
 checkpoint recovery pass. SR-045/049 remain partial only for the undesignated
 institution/source/topology. Internal-default promotion SR-050 is complete; its
-actual Docker/npm/dev workflows pass. P8 is in progress: SR-051 is accepted after clean packed/runtime builds and
-236-path shim absence proof. Runtime adapter/dependency removal, consumer and
-documentation changes are implemented; final installed-graph/suite/recovery
-qualification remains underway. The P7
+actual Docker/npm/dev workflows pass. P8 is in progress: SR-051/052 are accepted after exact shim reconciliation,
+clean packed/runtime builds and source/built/installed dependency closure.
+Consumer and documentation changes are implemented; final test/deployment
+entrypoint, image, full-suite and recovery qualification remains underway. The P7
 counts above are historical; the P8 tree is not yet qualified. See
 [P8 evidence](evidence/p8-retirement.md).
 
@@ -799,7 +799,13 @@ Read the [design](design.md) for behavior and the
   institution customizations are not indiscriminately deleted; new hook entrypoints
   use neutral registration rather than a hidden legacy generation path.
 
-- [ ] **SR-052 — Remove executable Sails dependencies and compatibility adapters.**
+- [x] **SR-052 — Remove executable Sails dependencies and compatibility adapters.**
+
+  **Status:** done; source, compiled owned packs, installed runtime and1194-package
+  strict packed consumer report0 executable violations/0 forbidden dependency
+  entries. Exact dependency/lock removal ledger and historical package-name
+  classifications are recorded.
+  [P8 evidence](evidence/p8-retirement.md#sr-052-strict-installed-packed-graph-acceptance).
 
   **Depends on:** SR-051, SR-044, SR-050.
 
