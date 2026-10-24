@@ -377,7 +377,15 @@ export namespace Services {
       // Validate each caller before joining another actor's in-flight promotion.
       // Reads cannot bind pending-record uploads; only an authorized save may do so.
       if (!requestContext?.actorId || !requestContext.brandId) return false;
-      await this.assertStagingOwnership(oid, fileId, this.input.disks.stagingDisk(), requestContext, false);
+      try {
+        await this.assertStagingOwnership(oid, fileId, this.input.disks.stagingDisk(), requestContext, false);
+      } catch (error) {
+        // Another authorized reader can finish promotion and consume the tus
+        // sidecars after our initial absence probe. Durable primary reads need
+        // no staging adoption; never join an in-flight promotion on this path.
+        if ((await this.checkPrimaryObject(this.input.disks.primaryDisk(), destKey)).available) return true;
+        throw error;
+      }
       const inFlightPromotion = this.promotionGuards.get(destKey);
       if (inFlightPromotion) {
         return inFlightPromotion;

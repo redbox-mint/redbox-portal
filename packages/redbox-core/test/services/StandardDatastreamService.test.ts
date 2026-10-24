@@ -808,6 +808,44 @@ describe('StandardDatastreamService', function () {
       expect(result).to.have.property('size', 0);
     });
 
+    it('reads durable primary bytes when another reader consumes tus sidecars during an absence probe', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, forms: collaborators.FormsService, log: fixture.log });
+      const observed = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<void>();
+      let primary = false, sidecars = true, probes = 0;
+      const missing = () => Object.assign(new Error('not found'), { code: 'ENOENT' });
+      mockPrimaryDisk.exists.callsFake(async () => {
+        const available = primary;
+        if (++probes === 1) { observed.resolve(); await release.promise; }
+        return available;
+      });
+      mockPrimaryDisk.getMetaData.callsFake(async () => { if (!primary) throw missing(); return { contentLength: 4 }; });
+      mockPrimaryDisk.putStream.callsFake(async (_key: string, stream: Readable) => {
+        for await (const _chunk of stream) { /* Consume the real tus concatenation stream. */ }
+        primary = true;
+      });
+      mockStagingDisk.exists.callsFake(async (key: string) => sidecars && key.endsWith('/info.json'));
+      mockStagingDisk.get.callsFake(async () => {
+        if (!sidecars) throw missing();
+        return JSON.stringify({ id: 'file', size: 4, offset: 4, metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'record' } });
+      });
+      mockStagingDisk.listAll.callsFake(async (prefix: string) => ({ objects: sidecars && prefix === '.tus/file/parts/' ? [{ key: prefix + '00000000000000000000' }] : [] }));
+      mockStagingDisk.getStream.callsFake(async () => Readable.from(Buffer.from('body')));
+      mockStagingDisk.getMetaData.resolves({ contentLength: 4 });
+      mockStagingDisk.deleteAll.callsFake(async () => { sidecars = false; });
+      const authority = { actorId: 'actor', brandId: 'brand' };
+      const slow = service.getDatastream('record', 'file', authority);
+      try {
+        await observed.promise;
+        const fast = await service.getDatastream('record', 'file', authority);
+        expect(fast).to.have.property('readstream');
+        expect(sidecars).to.equal(false);
+      } finally { release.resolve(); }
+      expect(await slow).to.have.property('readstream');
+      expect(mockPrimaryDisk.putStream.calledOnce).to.equal(true);
+    });
+
     it('coalesces concurrent staging promotions for the same file', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
