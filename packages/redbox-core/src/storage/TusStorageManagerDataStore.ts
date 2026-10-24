@@ -104,7 +104,7 @@ export class TusStorageManagerDataStore extends DataStore {
           `TusStorageManagerDataStore: wrote part id='${id}' newOffset=${newOffset} infoKey='${this.infoKey(id)}'`
         );
       } catch (error) {
-        this.logger?.error(`TusStorageManagerDataStore: failed writing upload '${id}'`, error);
+        this.logger?.error(`TusStorageManagerDataStore: failed writing upload '${id}'`);
         throw ERRORS.FILE_WRITE_ERROR;
       }
 
@@ -119,10 +119,7 @@ export class TusStorageManagerDataStore extends DataStore {
           try {
             await this.writeUploadInfo(id, upload);
           } catch (rollbackError) {
-            this.logger?.error(
-              `TusStorageManagerDataStore: failed rolling back upload '${id}' after compose failure`,
-              rollbackError
-            );
+            this.logger?.error(`TusStorageManagerDataStore: failed rolling back upload '${id}' after compose failure`);
           }
           throw error;
         }
@@ -271,7 +268,7 @@ export class TusStorageManagerDataStore extends DataStore {
         );
       }
     } catch (error) {
-      this.logger?.error(`TusStorageManagerDataStore: failed composing upload '${id}'`, error);
+      this.logger?.error(`TusStorageManagerDataStore: failed composing upload '${id}'`);
       throw ERRORS.FILE_WRITE_ERROR;
     }
   }

@@ -106,7 +106,7 @@ export namespace Services {
         load: 'all' as const,
       };
 
-      this.input.log.debug(`Final init config: ${JSON.stringify(initConfig, null, 2)}`);
+      this.input.log.debug('Translation initialization configuration prepared.');
 
       await i18nextInstance.init(initConfig);
 
@@ -138,7 +138,7 @@ export namespace Services {
             if (keys.length > 0) {
               const testKey = keys[0]; // Use first available key
               const translation = i18nextInstance.getFixedT(lng)(testKey);
-              this.input.log.debug(`Test translation for ${lng}: '${testKey}' = '${translation}'`);
+              this.input.log.debug('Translation lookup succeeded.');
             } else {
               this.input.log.debug(`No keys found for ${lng} in namespace ${ns}`);
             }
@@ -228,12 +228,7 @@ export namespace Services {
             resources[lng][ns] = data || {};
           } catch {
             // Note: Keeping this as verbose since it's already a low-level diagnostic message
-            this.input.log.verbose(
-              '[TranslationService] Failed to load bundle',
-              brandingId,
-              lng,
-              ns
-            );
+            this.input.log.verbose('[TranslationService] Failed to load bundle', brandingId, lng, ns);
             resources[lng][ns] = {};
           }
         }

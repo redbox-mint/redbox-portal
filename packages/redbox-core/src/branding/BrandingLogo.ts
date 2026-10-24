@@ -101,7 +101,7 @@ export namespace Services {
             // captured the superseded metadata before cleanup can still complete.
             this.setCache(storageKey, retainedBytes);
           } catch (error) {
-            this.input.log.warn(`BrandingLogoService failed to remove superseded favicon ${storageKey}:`, error);
+            this.input.log.warn(`BrandingLogoService failed to remove superseded favicon ${storageKey}:`);
           }
         })();
         this.active.add(pending);
@@ -312,7 +312,7 @@ export namespace Services {
           await this.input.disk().delete(storageKey);
           delete this._binaryById[storageKey];
         } catch (cleanupError) {
-          this.input.log.warn(`BrandingLogoService failed to remove unreferenced favicon ${storageKey}:`, cleanupError);
+          this.input.log.warn(`BrandingLogoService failed to remove unreferenced favicon ${storageKey}:`);
         }
         throw error;
       }
@@ -349,7 +349,7 @@ export namespace Services {
         return buf;
       } catch (error) {
         if (!this.isStorageNotFoundError(error)) {
-          this.input.log.warn('BrandingLogoService.getBinaryAsync storage read failed:', error);
+          this.input.log.warn('BrandingLogoService.getBinaryAsync storage read failed:');
         }
         if (this.isLegacyGridFsObjectId(id)) {
           return this.getLegacyGridFsBinary(id);

@@ -159,7 +159,7 @@ export namespace Services {
         const sanitized = this.getPurifier().sanitize(content, config);
         return String(sanitized);
       } catch (error) {
-        this.input.log.error(`DomSanitizerService: Error sanitizing content with profile '${profileName}':`, error);
+        this.input.log.error(`DomSanitizerService: Error sanitizing content with profile '${profileName}':`);
         throw error;
       }
     }
@@ -392,7 +392,7 @@ export namespace Services {
       } catch (error) {
         // Handle any DOMPurify errors
         errors.push('sanitization-error');
-        this.input.log.error('SVG sanitization error:', error);
+        this.input.log.error('SVG sanitization error:');
 
         return {
           safe: false,

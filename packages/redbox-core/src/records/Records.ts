@@ -667,8 +667,7 @@ export namespace Services {
           );
         } catch (error) {
           this.logger.error(
-            `Invalid post-save trigger configuration for ${dispatch.mode}; skipping fire-and-forget hook`,
-            error
+            `Invalid post-save trigger configuration for ${dispatch.mode}; skipping fire-and-forget hook`
           );
         }
       }
@@ -2824,12 +2823,12 @@ export namespace Services {
             await this.storageService.readyFigshareIntent!(oid, intent.saveToken);
             await this.input
               .wakeFigshareRecord(oid)
-              .catch(error => this.logger.error('Figshare wake-up failed; dispatcher will recover', error));
+              .catch(error => this.logger.error('Figshare wake-up failed; dispatcher will recover'));
           } else {
             await this.storageService.abandonFigshareIntent!(oid, intent.saveToken);
           }
         } catch (error) {
-          this.logger.error('Figshare intent finalisation failed; dispatcher will recover', error);
+          this.logger.error('Figshare intent finalisation failed; dispatcher will recover');
         }
       }
       if (!tracker.result.wasPersisted() || !oid) {
@@ -2950,7 +2949,7 @@ export namespace Services {
             )
           )
           .catch((error: unknown) => {
-            this.logger.error(`${this.logHeader} persistence audit submission failed`, error);
+            this.logger.error(`${this.logHeader} persistence audit submission failed`);
           });
       };
       if (operation && (operation.detachedPending ?? 0) > 0) {
@@ -3245,8 +3244,7 @@ export namespace Services {
               // Both durable generations remain visible for reconciliation.
             }
             this.logger.error(
-              `${this.logHeader} attachment journal supersession failed for ${item.attachmentId}`,
-              error
+              `${this.logHeader} attachment journal supersession failed for ${item.attachmentId}`
             );
             items.push({
               field: item.field,
@@ -3271,8 +3269,7 @@ export namespace Services {
           } catch (error) {
             journalStateKnown = false;
             this.logger.error(
-              `${this.logHeader} attachment journal pending update failed for ${item.attachmentId}`,
-              error
+              `${this.logHeader} attachment journal pending update failed for ${item.attachmentId}`
             );
           }
         }
@@ -3302,8 +3299,7 @@ export namespace Services {
             } catch (error) {
               journalStateKnown = false;
               this.logger.error(
-                `${this.logHeader} attachment journal applied update failed for ${item.attachmentId}`,
-                error
+                `${this.logHeader} attachment journal applied update failed for ${item.attachmentId}`
               );
             }
           }
@@ -3333,7 +3329,7 @@ export namespace Services {
               );
             }
           }
-          this.logger.error(`${this.logHeader} attachment operation failed for ${item.attachmentId}`, error);
+          this.logger.error(`${this.logHeader} attachment operation failed for ${item.attachmentId}`);
           items.push({
             field: item.field,
             attachmentId: item.attachmentId,
@@ -3369,8 +3365,7 @@ export namespace Services {
           await journal.markMutation(oid, item.attachmentId, item.generation, state, code, item.fileId);
         } catch (error) {
           this.logger.error(
-            `${this.logHeader} attachment journal ${state} update failed for ${item.attachmentId}`,
-            error
+            `${this.logHeader} attachment journal ${state} update failed for ${item.attachmentId}`
           );
         }
       }
@@ -3650,7 +3645,7 @@ export namespace Services {
           this.logger.verbose(`Records bootstrap data path not found: ${bootstrapPath}`);
           return;
         }
-        this.logger.error(`Failed to read records bootstrap data path: ${bootstrapPath}`, error);
+        this.logger.error(`Failed to read records bootstrap data path: ${bootstrapPath}`);
         return;
       }
 
@@ -3683,7 +3678,7 @@ export namespace Services {
           const content = await fs.readFile(filePath, 'utf8');
           parsed = JSON.parse(content);
         } catch (error) {
-          this.logger.error(`Failed to read records bootstrap file: ${fileName}`, error);
+          this.logger.error(`Failed to read records bootstrap file: ${fileName}`);
           continue;
         }
 
@@ -3745,7 +3740,7 @@ export namespace Services {
               this.logger.error(`Failed to create records bootstrap entry: ${redboxOid}`);
             }
           } catch (error) {
-            this.logger.error(`Failed to create records bootstrap entry: ${redboxOid}`, error);
+            this.logger.error(`Failed to create records bootstrap entry: ${redboxOid}`);
           }
         }
       }
@@ -4988,7 +4983,7 @@ export namespace Services {
           this.logger.warn(`${this.logHeader} pre-update snapshot was unusable; validation will be required`);
         }
       } catch (error) {
-        this.logger.warn(`${this.logHeader} unable to load pre-update snapshot; validation will be required`, error);
+        this.logger.warn(`${this.logHeader} unable to load pre-update snapshot; validation will be required`);
       }
       const storedMetadataSnapshot = _.cloneDeep(originalRecord?.metadata);
       const storedBrandId = String(this.recordObject(originalRecord?.metaMetadata).brandId ?? '').trim();
@@ -7889,16 +7884,9 @@ export namespace Services {
     async createRecordAudit(record: AnyRecord | RecordAuditModel): Promise<StorageServiceResponse> {
       if (!this.storageService?.createRecordAudit) throw new Error('Durable record audit storage is unavailable.');
       const response = await this.storageService.createRecordAudit(record);
-      const responseObj = response;
       const persisted = this.auditPersistenceSucceeded(response);
       if (!persisted) {
         this.logger.error(`${this.logHeader} Failed to persist record audit.`);
-        if (!_.isEmpty(responseObj?.message)) {
-          this.logger.error(`${this.logHeader} Storage response message: ${responseObj?.message}`);
-        }
-        if (!_.isNil(responseObj?.details)) {
-          this.logger.error(`${this.logHeader} Storage response details: ${JSON.stringify(responseObj?.details)}`);
-        }
         return response;
       }
       // Optional emission cannot change an already persisted audit outcome.
@@ -8168,7 +8156,7 @@ export namespace Services {
           this.completeHookOperation(execution);
         }
       } catch (error) {
-        this.logger.error(`Invalid post-save trigger configuration for ${mode}; skipping fire-and-forget hook`, error);
+        this.logger.error(`Invalid post-save trigger configuration for ${mode}; skipping fire-and-forget hook`);
       }
     }
 

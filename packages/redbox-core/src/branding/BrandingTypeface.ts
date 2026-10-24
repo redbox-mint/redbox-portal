@@ -273,7 +273,7 @@ export namespace Services {
         stored = Buffer.from(await this.input.disk().getBytes(key));
       } catch (error) {
         if (!isStorageNotFoundError(error)) {
-          this.input.log.warn(`BrandingTypefaceService storage read failed for brand ${brandingId}:`, error);
+          this.input.log.warn(`BrandingTypefaceService storage read failed for brand ${brandingId}:`);
         }
         throw new BrandingTypefaceError('typeface-not-found', 'Font not found');
       }
@@ -398,10 +398,7 @@ export namespace Services {
             continue;
           }
           result.failures += 1;
-          this.input.log.warn(
-            `BrandingTypefaceService reconciliation metadata failed for brand ${parsed.brandingId}:`,
-            error
-          );
+          this.input.log.warn(`BrandingTypefaceService reconciliation metadata failed for brand ${parsed.brandingId}:`);
           continue;
         }
         if (now - lastModified.getTime() < graceMs) {
@@ -415,10 +412,7 @@ export namespace Services {
           }
         } catch (error) {
           result.failures += 1;
-          this.input.log.warn(
-            `BrandingTypefaceService reconciliation recheck failed for brand ${parsed.brandingId}:`,
-            error
-          );
+          this.input.log.warn(`BrandingTypefaceService reconciliation recheck failed for brand ${parsed.brandingId}:`);
           continue;
         }
         try {
@@ -429,10 +423,7 @@ export namespace Services {
             continue;
           }
           result.failures += 1;
-          this.input.log.warn(
-            `BrandingTypefaceService reconciliation delete failed for brand ${parsed.brandingId}:`,
-            error
-          );
+          this.input.log.warn(`BrandingTypefaceService reconciliation delete failed for brand ${parsed.brandingId}:`);
         }
       }
       this.input.log.info(

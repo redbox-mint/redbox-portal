@@ -852,7 +852,7 @@ export namespace Services {
           await this.input.repository.removeVocabulary(vocabularyId);
         }
       } catch (cleanupError) {
-        this.input.log.error('Figshare vocabulary apply compensation failed', cleanupError);
+        this.input.log.error('Figshare vocabulary apply compensation failed');
       }
     }
 
@@ -2207,7 +2207,7 @@ export namespace Services {
           this.input.log.verbose(`Figshare vocabulary bootstrap file not found: ${filePath}`);
           return;
         }
-        this.input.log.error(`Failed to read Figshare vocabulary bootstrap file: ${FIGSHARE_IMPORTS_FILE}`, error);
+        this.input.log.error(`Failed to read Figshare vocabulary bootstrap file: ${FIGSHARE_IMPORTS_FILE}`);
         return;
       }
 
@@ -2282,7 +2282,7 @@ export namespace Services {
         );
         this.input.log.verbose(`Imported Figshare bootstrap vocabulary: ${label}`);
       } catch (error) {
-        this.input.log.error(`Failed Figshare bootstrap import: ${label}`, error);
+        this.input.log.error(`Failed Figshare bootstrap import: ${label}`);
       }
     }
 

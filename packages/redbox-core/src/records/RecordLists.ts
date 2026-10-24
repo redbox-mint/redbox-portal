@@ -222,7 +222,6 @@ export class RecordLists {
       fieldNames,
       filterString
     );
-    this.input.log.debug(results);
     const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
     const totalItems = results.totalItems;
     const startIndex = start as number;
@@ -293,7 +292,6 @@ export class RecordLists {
       fieldNames,
       filterString
     );
-    this.input.log.debug(results);
     const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
     const totalItems = results.totalItems;
     const startIndex = start as number;

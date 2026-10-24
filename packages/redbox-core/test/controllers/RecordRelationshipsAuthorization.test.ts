@@ -86,7 +86,8 @@ describe('Record relationship authorization', () => {
     sinon.assert.calledOnceWithExactly(getMeta, 'root');
     assert.equal(response.status, 500);
     assert.ok(!response.text.includes(storageError.message));
-    sinon.assert.calledWith(f.log.error, storageError);
+    sinon.assert.calledWithExactly(f.log.error, 'Record read failed');
+    assert.ok(!JSON.stringify(f.log.error.args).includes(storageError.message));
     assert.equal(response.body.data, undefined);
     sinon.assert.notCalled(getRelatedRecords);
   });

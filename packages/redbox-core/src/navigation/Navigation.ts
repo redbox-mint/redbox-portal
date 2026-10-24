@@ -145,7 +145,7 @@ export namespace Services {
           showSearch: menuConfig.showSearch !== false,
         };
       } catch (error) {
-        this.input.log.error('[NavigationService] Error resolving menu:', error);
+        this.input.log.error('[NavigationService] Error resolving menu:');
         // Return minimal menu on error
         return {
           items: [],
@@ -187,8 +187,7 @@ export namespace Services {
           panels: resolvedPanels,
         };
       } catch (error) {
-        console.error('[NavigationService] Error resolving home panels:', error);
-        this.input.log.error('[NavigationService] Error resolving home panels:', error);
+        this.input.log.error('[NavigationService] Error resolving home panels:');
         // Return empty panels on error
         return {
           panels: [],
@@ -247,7 +246,7 @@ export namespace Services {
           footerLinks: resolvedFooterLinks,
         };
       } catch (error) {
-        this.input.log.error('[NavigationService] Error resolving admin sidebar:', error);
+        this.input.log.error('[NavigationService] Error resolving admin sidebar:');
         // Return minimal sidebar on error
         return {
           header: {
@@ -648,7 +647,7 @@ export namespace Services {
       try {
         return this.input.translate(key);
       } catch (error) {
-        this.input.log.warn(`[NavigationService] Translation failed for key: ${key}`, error);
+        this.input.log.warn(`[NavigationService] Translation failed for key: ${key}`);
         return key;
       }
     }

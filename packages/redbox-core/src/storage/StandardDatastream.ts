@@ -185,7 +185,7 @@ export namespace Services {
       try {
         await metadataService.upsert(row);
       } catch (err) {
-        this.logger.error(`${this.logHeader} metadata upsert failed for ${row.storageKey}`, err);
+        this.logger.error(`${this.logHeader} metadata upsert failed for ${row.storageKey}`);
       }
     }
 
@@ -197,7 +197,7 @@ export namespace Services {
       try {
         await metadataService.deleteByStorageKey(storageKey);
       } catch (err) {
-        this.logger.error(`${this.logHeader} metadata delete failed for ${storageKey}`, err);
+        this.logger.error(`${this.logHeader} metadata delete failed for ${storageKey}`);
       }
     }
 
@@ -217,10 +217,7 @@ export namespace Services {
       try {
         await metadataService.recordAccess(event);
       } catch (err) {
-        this.logger.error(
-          `${this.logHeader} access audit failed for ${event.action} ${event.storageKey ?? event.oid}`,
-          err
-        );
+        this.logger.error(`${this.logHeader} access audit failed for ${event.action} ${event.storageKey ?? event.oid}`);
       }
     }
 
@@ -360,7 +357,7 @@ export namespace Services {
         // before staging/TUS promotion; callers decide whether absence is fatal
         // after checking staging and TUS parts.
         if (!this.isStorageNotFoundError(err)) {
-          this.logger.warn(`${this.logHeader} primary object metadata check failed for ${destKey}`, err);
+          this.logger.warn(`${this.logHeader} primary object metadata check failed for ${destKey}`);
         }
         return {
           available: false,
@@ -437,7 +434,7 @@ export namespace Services {
           const metadataRow = await this.buildMetadataRow(oid, fileId, destKey);
           await this.safelyUpsertMetadata(metadataRow);
         } catch (err) {
-          this.logger.error(`${this.logHeader} promoteFromStaging() metadata sync failed for ${destKey}`, err);
+          this.logger.error(`${this.logHeader} promoteFromStaging() metadata sync failed for ${destKey}`);
         }
         await this.safelyRecordAccess({ oid, fileId, storageKey: destKey, action: 'upload' });
       }
@@ -851,7 +848,7 @@ export namespace Services {
         const metadataRow = await this.buildMetadataRow(oid, fileId, destKey, datastream.metadata);
         await this.safelyUpsertMetadata(metadataRow);
       } catch (err) {
-        this.logger.error(`${this.logHeader} addDatastream() metadata sync failed for ${destKey}`, err);
+        this.logger.error(`${this.logHeader} addDatastream() metadata sync failed for ${destKey}`);
       }
       await this.safelyRecordAccess({
         oid,

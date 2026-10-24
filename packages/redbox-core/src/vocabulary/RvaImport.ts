@@ -157,7 +157,7 @@ export namespace Services {
       try {
         await updaterQuery;
       } catch (error) {
-        this.input.log.error('RVA sync failed after entry upsert; retry may be required.', error);
+        this.input.log.error('RVA sync failed after entry upsert; retry may be required.');
         throw new Error(`Sync failed after updating entries: ${String(error)}`);
       }
 

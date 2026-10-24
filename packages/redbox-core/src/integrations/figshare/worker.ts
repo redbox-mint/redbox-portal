@@ -139,7 +139,7 @@ export function createFigshareWorker(input: FigshareWorkerInput) {
           const config = resolveFigsharePublishingConfig(record, { requireToken: false });
           if (config?.processing?.enabled && !config.processingError) await importRecordIntent(store, record);
         } catch (error) {
-          input.log.error(`Figshare intent import failed for ${record.redboxOid}; pending work is retained`, error);
+          input.log.error(`Figshare intent import failed for ${record.redboxOid}; pending work is retained`);
         }
       }
       if (page.length < 100) break;
@@ -164,7 +164,7 @@ export function createFigshareWorker(input: FigshareWorkerInput) {
           }
           await input.queue.now('Figshare-SyncRecord', { oid: due.oid, brandId: due.brandId });
         } catch (error) {
-          input.log.error('Figshare delivery failed; durable work remains due', error);
+          input.log.error('Figshare delivery failed; durable work remains due');
         }
       }
     }

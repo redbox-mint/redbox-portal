@@ -921,7 +921,7 @@ export class Forms {
       try {
         return String(this.input.translate?.(key, brandingName) ?? key);
       } catch (error) {
-        this.logger.warn(`Failed to translate form config value '${key}': ${(error as Error)?.message}`);
+        this.logger.warn('Failed to translate form config value.');
         return key;
       }
     };
@@ -939,7 +939,7 @@ export class Forms {
     const constructedForm = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
     const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger, this.input.vocabulary);
     await vocabVisitor.resolveVocabs(constructedForm, undefined, {
-      includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
+      includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
     });
     const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
     await contextVariablesVisitor.applyContextVariables(constructedForm);
@@ -957,7 +957,7 @@ export class Forms {
     form.behaviours = rawBehaviours;
 
     const visitor = new TemplateFormConfigVisitor(this.logger);
-    return await visitor.start({form});
+    return await visitor.start({ form });
   }
 
   /**

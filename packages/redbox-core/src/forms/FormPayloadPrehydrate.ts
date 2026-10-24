@@ -61,7 +61,7 @@ export namespace Services {
         const vocabTrees = await this.resolveVocabTrees(branding, checkboxTrees);
         return _.isEmpty(vocabTrees) ? undefined : { vocabTrees };
       } catch (error) {
-        this.logger.warn('Failed to build form prehydrate payload', error);
+        this.logger.warn('Failed to build form prehydrate payload');
         return undefined;
       }
     }
@@ -183,8 +183,7 @@ export namespace Services {
             }
           } catch (error) {
             this.logger.warn(
-              `Failed to prehydrate vocab tree selection '${selected.notation}' for '${target.vocabRef}'`,
-              error
+              `Failed to prehydrate vocab tree selection '${selected.notation}' for '${target.vocabRef}'`
             );
           }
         }

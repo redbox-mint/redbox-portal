@@ -960,7 +960,7 @@ export namespace Services {
       }
       const value = this.describeFields(brand, info, workflowStage, options).catch(error => {
         this.fieldCatalogueCache.delete(key);
-        this.input.log.warn('DashboardConfigService: could not describe record fields', error);
+        this.input.log.warn('DashboardConfigService: could not describe record fields');
         return this.unavailableCatalogue(info, 'unavailable', workflowStage);
       });
       this.fieldCatalogueCache.set(key, { expires: now + FIELD_CATALOGUE_TTL_MS, value });

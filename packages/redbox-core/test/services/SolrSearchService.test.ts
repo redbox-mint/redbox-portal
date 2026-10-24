@@ -82,6 +82,22 @@ describe('SolrSearchService', function () {
     expect(calls.some((call) => call.args.some((arg) => String(arg).includes(secret)))).to.equal(false);
   });
 
+  for (const operation of ['add', 'delete', 'commit']) {
+    it(`bounds native Solr ${operation} failure diagnostics and preserves rejection`, async function () {
+      const secret = 'private-solr-write-provider-credential';
+      const failure = Object.assign(new Error(secret), { config: { headers: { Authorization: secret } } });
+      const consoleError = sinon.stub(console, 'error');
+      SolrSearchService.initClient();
+      const client = SolrSearchService.clients.default;
+      sinon.stub(client.axios, 'post').rejects(failure);
+      let caught: unknown;
+      try { await client[operation]('id', 'test'); } catch (error) { caught = error; }
+      expect(caught).to.equal(failure);
+      expect(consoleError.calledOnce).to.equal(true);
+      expect(JSON.stringify(consoleError.args)).not.to.include(secret);
+    });
+  }
+
   afterEach(function () {
     restoreRepositoryFixtures();
     delete collaborators.RecordsService;

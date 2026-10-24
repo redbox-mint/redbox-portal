@@ -282,8 +282,7 @@ describe('BrandingLogoService', function() {
       await clock.tickAsync(24 * 60 * 60 * 1000);
 
       expect(fixture.log.warn.calledWith(
-        `BrandingLogoService failed to remove superseded favicon ${previousStorageKey}:`,
-        sinon.match.instanceOf(Error)
+        `BrandingLogoService failed to remove superseded favicon ${previousStorageKey}:`
       )).to.be.true;
     });
 
@@ -344,8 +343,7 @@ describe('BrandingLogoService', function() {
       }
 
       expect(fixture.log.warn.calledWith(
-        sinon.match('BrandingLogoService failed to remove unreferenced favicon'),
-        sinon.match.instanceOf(Error)
+        sinon.match('BrandingLogoService failed to remove unreferenced favicon')
       )).to.be.true;
     });
 

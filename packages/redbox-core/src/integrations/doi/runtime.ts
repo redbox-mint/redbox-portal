@@ -70,7 +70,6 @@ function extractDoiId(
 
   if (statusCode >= 200 && statusCode < 300) {
     input.log.warn(`${operationName} returned a successful response without a DOI id.`);
-    input.log.warn(responseSummary);
   }
 
   return null;

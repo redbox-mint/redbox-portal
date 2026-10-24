@@ -81,6 +81,17 @@ describe('NavigationService', function () {
     sinon.restore();
   });
 
+  for (const method of ['resolveMenu', 'resolveHomePanels', 'resolveAdminSidebar']) {
+    it(`bounds ${method} failure diagnostics without leaking provider credentials`, async function () {
+      const secret = 'private-navigation-provider-credential';
+      const consoleError = sinon.stub(console, 'error');
+      fixture.config.brandingAware = sinon.stub().throws(Object.assign(new Error(secret), { credentials: secret }));
+      await NavigationService[method]();
+      expect(fixture.log.error.calledOnce).to.equal(true);
+      expect(JSON.stringify([...fixture.log.error.args, ...consoleError.args])).not.to.include(secret);
+    });
+  }
+
   describe('getDefaultMenuConfig', function () {
     it('should return the default menu configuration', function () {
       const config = NavigationService.getDefaultMenuConfig();
@@ -191,7 +202,8 @@ describe('NavigationService', function () {
 
         expect(result.panels).to.be.an('array');
         expect(result.panels).to.have.lengthOf(0);
-        expect(consoleErrorStub.calledWithMatch(/Error resolving home panels/)).to.be.true;
+        expect(fixture.log.error.calledWithMatch(/Error resolving home panels/)).to.be.true;
+        expect(consoleErrorStub.called).to.be.false;
       } finally {
         consoleErrorStub.restore();
       }

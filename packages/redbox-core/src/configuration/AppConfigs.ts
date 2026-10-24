@@ -822,7 +822,7 @@ export class AppConfigs {
         });
       } catch (e: unknown) {
         const err = e instanceof Error ? e.message : String(e);
-        this.input.log.warn(`registerConfigModel: could not instantiate default for ${info.key}: ${err}`);
+        this.input.log.warn(`registerConfigModel: could not instantiate default for ${info.key}.`);
       }
     }
   }

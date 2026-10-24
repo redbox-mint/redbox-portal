@@ -382,7 +382,7 @@ export namespace Services {
           false,
           error instanceof Error ? error.message : 'Failed to update meta'
         );
-        this.logger.error(`${this.logHeader} Failed to update harvest record ${oid}`, error);
+        this.logger.error(`${this.logHeader} Failed to update harvest record ${oid}`);
         return result;
       }
     }
@@ -423,7 +423,7 @@ export namespace Services {
             );
             this.input.records.setWorkflowStepRelatedMetadata(request, wfStep as AnyRecord);
           } catch (error) {
-            this.logger.warn(`${this.logHeader} Failed to resolve workflow step ${String(workflowStage)}`, error);
+            this.logger.warn(`${this.logHeader} Failed to resolve workflow step ${String(workflowStage)}`);
           }
         }
 
@@ -434,7 +434,7 @@ export namespace Services {
         this.logger.error(`${this.logHeader} Record creation failed for harvestId ${harvestId}`);
         return new APIHarvestResponse(harvestId, '', false, 'Record creation failed');
       } catch (error) {
-        this.logger.error(`${this.logHeader} Exception creating harvest record ${harvestId}`, error);
+        this.logger.error(`${this.logHeader} Exception creating harvest record ${harvestId}`);
         return new APIHarvestResponse(harvestId, '', false, String(error));
       }
     }

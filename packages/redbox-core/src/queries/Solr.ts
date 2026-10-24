@@ -95,7 +95,7 @@ class SolrClient {
         await this.commit();
       }
     } catch (err) {
-      console.error('Failed to add document to Solr:', err);
+      console.error('Failed to add document to Solr:');
       throw err;
     }
   }
@@ -108,7 +108,7 @@ class SolrClient {
         await this.commit();
       }
     } catch (err) {
-      console.error('Failed to delete document from Solr:', err);
+      console.error('Failed to delete document from Solr:');
       throw err;
     }
   }
@@ -117,7 +117,7 @@ class SolrClient {
     try {
       await this.axios.post('/update', { commit: {} });
     } catch (err) {
-      console.error('Failed to commit changes to Solr:', err);
+      console.error('Failed to commit changes to Solr:');
       throw err;
     }
   }

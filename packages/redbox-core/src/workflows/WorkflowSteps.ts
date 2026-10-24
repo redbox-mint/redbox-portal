@@ -138,7 +138,7 @@ export namespace Services {
       try {
         await this.input.initialiseDashboardSettings(recordType);
       } catch (error) {
-        this.input.log.error('Could not initialise dashboard settings for a new workflow stage', error);
+        this.input.log.error('Could not initialise dashboard settings for a new workflow stage');
       }
     }
 

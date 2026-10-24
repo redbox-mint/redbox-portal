@@ -164,7 +164,7 @@ export namespace Services {
           this.input.log.verbose(`Named query bootstrap data path not found: ${bootstrapPath}`);
           return;
         }
-        this.input.log.error(`Failed to read named query bootstrap data path: ${bootstrapPath}`, error);
+        this.input.log.error(`Failed to read named query bootstrap data path: ${bootstrapPath}`);
         return;
       }
 
@@ -193,7 +193,7 @@ export namespace Services {
           await this.create(defBrand, name, definition);
           this.input.log.verbose(`Bootstrapped named query: ${name}`);
         } catch (error) {
-          this.input.log.error(`Failed to bootstrap named query from file: ${fileName}`, error);
+          this.input.log.error(`Failed to bootstrap named query from file: ${fileName}`);
         }
       }
     }
@@ -212,7 +212,7 @@ export namespace Services {
         const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
         return JSON.parse(content) as T;
       } catch (error) {
-        this.input.log.error(`Failed to read named query bootstrap file: ${path.basename(filePath)}`, error);
+        this.input.log.error(`Failed to read named query bootstrap file: ${path.basename(filePath)}`);
         return null;
       }
     }

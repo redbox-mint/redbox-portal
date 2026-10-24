@@ -1134,6 +1134,17 @@ describe('RecordsService', function () {
   });
 
   describe('createRecordAudit', function () {
+    it('bounds soft-failed audit diagnostics while retaining the storage outcome', async function () {
+      const secret = 'private-record-audit-provider-credential';
+      const failed = { success: false, message: secret, details: { authorization: secret }, isSuccessful: () => false };
+      mockStorageService.createRecordAudit.resolves(failed);
+      const result = await RecordsService.createRecordAudit({ action: 'updated' });
+      expect(result).to.equal(failed);
+      expect(fixture.log.error.calledOnce).to.equal(true);
+      expect(JSON.stringify(fixture.log.error.args)).not.to.include(secret);
+      expect(collaborators.SecurityEventService.emitFromRecordAudit.notCalled).to.equal(true);
+    });
+
     it('should emit a record audit security event after successful storage', async function () {
       const recordAudit = { id: 'record-123', action: 'updated' };
 

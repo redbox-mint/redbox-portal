@@ -114,8 +114,7 @@ export function createFigshareAssets(input: FigshareAssetsInput) {
       // 'figshare-staging' disk. Fall back to the configured staging disk rather
       // than failing the upload before staging starts.
       input.log.warn(
-        `FigService - staging disk '${diskName}' is not registered; falling back to the default staging disk`,
-        error
+        `FigService - staging disk '${diskName}' is not registered; falling back to the default staging disk`
       );
       return input.disks.stagingDisk();
     }
@@ -273,7 +272,7 @@ export function createFigshareAssets(input: FigshareAssetsInput) {
       if (shouldDelete) {
         await disk
           .delete(stagingKey)
-          .catch(error => input.log.warn(`FigService - failed to delete staged object '${stagingKey}'`, error));
+          .catch(error => input.log.warn(`FigService - failed to delete staged object '${stagingKey}'`));
       }
     }
   }

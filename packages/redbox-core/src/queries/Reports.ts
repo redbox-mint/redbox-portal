@@ -142,7 +142,7 @@ export namespace Services {
           this.input.log.verbose(`Report bootstrap data path not found: ${bootstrapPath}`);
           return;
         }
-        this.input.log.error(`Failed to read report bootstrap data path: ${bootstrapPath}`, error);
+        this.input.log.error(`Failed to read report bootstrap data path: ${bootstrapPath}`);
         return;
       }
 
@@ -169,7 +169,7 @@ export namespace Services {
           await firstValueFrom(this.create(defBrand, name, definition as unknown as ReportConfig));
           this.input.log.verbose(`Bootstrapped report: ${name}`);
         } catch (error) {
-          this.input.log.error(`Failed to bootstrap report from file: ${fileName}`, error);
+          this.input.log.error(`Failed to bootstrap report from file: ${fileName}`);
         }
       }
     }
@@ -188,7 +188,7 @@ export namespace Services {
         const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
         return JSON.parse(content) as T;
       } catch (error) {
-        this.input.log.error(`Failed to read report bootstrap file: ${path.basename(filePath)}`, error);
+        this.input.log.error(`Failed to read report bootstrap file: ${path.basename(filePath)}`);
         return null;
       }
     }
@@ -729,7 +729,7 @@ export namespace Services {
         }
         return templateRes;
       } catch (error) {
-        this.input.log.error(`ReportsService: Error running template: ${error}`);
+        this.input.log.error('ReportsService: Error running template.');
         return '';
       }
     }

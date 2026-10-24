@@ -128,7 +128,7 @@ describe('RvaImportService', () => {
     expect(writes).to.deep.equal(['entries', 'metadata']);
     sinon.assert.calledOnce(upsert);
     sinon.assert.calledWithExactly(environment.log.error,
-      'RVA sync failed after entry upsert; retry may be required.', failure);
+      'RVA sync failed after entry upsert; retry may be required.');
     sinon.assert.notCalled(environment.log.warn);
   });
 

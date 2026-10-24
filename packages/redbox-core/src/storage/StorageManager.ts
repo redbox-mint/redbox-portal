@@ -136,7 +136,7 @@ export namespace Services {
         }
       } catch (err) {
         this._DiskConstructor = null;
-        this.logger.error(`${this.logHeader} Failed to import flydrive module`, err);
+        this.logger.error(`${this.logHeader} Failed to import flydrive module`);
       }
       // Use variables for subpath imports to prevent TypeScript from trying to resolve
       // them at compile-time (flydrive uses package.json exports which require moduleResolution: nodenext)
