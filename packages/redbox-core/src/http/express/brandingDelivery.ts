@@ -22,6 +22,7 @@ const parameter = (req: DeliveryRequest, name: string): string | undefined => {
   return typeof value === 'string' ? value : undefined;
 };
 export interface BrandingDeliveryInput {
+  apiConfiguration?: import('../../api-routes').ApiRouteConfiguration;
   repository(): Pick<BrandingRepository, 'getBrand'>;
   theme: Pick<Theme.BrandingThemeCss, 'generate'>;
   typeface: Pick<Typeface.BrandingTypeface, 'readFace'>;
@@ -322,10 +323,13 @@ export class BrandingDelivery {
   public renderApiB(req: DeliveryRequest, res: Response) {
     res.contentType('text/plain');
     return res.send(
-      buildMergedApiBlueprint({
-        branding: parameter(req, 'branding') as string | undefined,
-        portal: parameter(req, 'portal') as string | undefined,
-      })
+      buildMergedApiBlueprint(
+        {
+          branding: parameter(req, 'branding') as string | undefined,
+          portal: parameter(req, 'portal') as string | undefined,
+        },
+        this.input.apiConfiguration
+      )
     );
   }
 
@@ -333,10 +337,13 @@ export class BrandingDelivery {
     res.contentType('application/json');
     return res.send(
       JSON.stringify(
-        buildMergedApiOpenApiDocument({
-          branding: parameter(req, 'branding') as string | undefined,
-          portal: parameter(req, 'portal') as string | undefined,
-        }),
+        buildMergedApiOpenApiDocument(
+          {
+            branding: parameter(req, 'branding') as string | undefined,
+            portal: parameter(req, 'portal') as string | undefined,
+          },
+          this.input.apiConfiguration
+        ),
         null,
         2
       )
@@ -347,10 +354,13 @@ export class BrandingDelivery {
     res.contentType('application/x-yaml');
     return res.send(
       yaml.dump(
-        buildMergedApiOpenApiDocument({
-          branding: parameter(req, 'branding') as string | undefined,
-          portal: parameter(req, 'portal') as string | undefined,
-        }),
+        buildMergedApiOpenApiDocument(
+          {
+            branding: parameter(req, 'branding') as string | undefined,
+            portal: parameter(req, 'portal') as string | undefined,
+          },
+          this.input.apiConfiguration
+        ),
         { lineWidth: -1 }
       )
     );

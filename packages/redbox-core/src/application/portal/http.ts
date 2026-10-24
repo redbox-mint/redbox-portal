@@ -566,6 +566,7 @@ export class PortalHttp implements ApplicationModule {
         logos: this.logos,
         log,
         staticAssets: config.static_assets,
+        apiConfiguration: config,
       },
     });
     invalidateAssets = () => brandingDelivery.invalidate();

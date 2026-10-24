@@ -57,10 +57,10 @@ function dispatchedReport(
 
 describe('Effect action execution', function () {
   it('derives stable bounded IDs without including the function expression', function () {
-    const id = deriveActionId('onCreate', 'pre', 0, 'sails.services.example.run');
+    const id = deriveActionId('onCreate', 'pre', 0, 'example.run');
     expect(id).to.match(/^onCreate\.pre\.0\.[a-f0-9]{12}$/);
     expect(id).not.to.include('sails');
-    expect(deriveActionId('onCreate', 'pre', 0, 'sails.services.example.run')).to.equal(id);
+    expect(deriveActionId('onCreate', 'pre', 0, 'example.run')).to.equal(id);
   });
 
   it('validates bounded retry policies and requires idempotency acknowledgement', function () {
@@ -76,40 +76,42 @@ describe('Effect action execution', function () {
     const values: unknown[] = [];
     const operation = createActionExecutionOperation('onCreate', 'request-1');
     const context = createPhaseContext(operation, 'pre');
-    const outcome = await Effect.runPromise(runSequentialActionPlan(
-      [
-        {
-          actionId: 'first',
-          mode: 'onCreate',
-          phase: 'pre',
-          index: 0,
-          policy: { retry: { maxAttempts: 2, retryOn: ['transient'], idempotent: true } },
-          invoke: () =>
-            Effect.sync(() => {
-              attempts += 1;
-              if (attempts === 1) throw new ActionTransientFailure('temporary');
-              return { value: 1 };
-            }),
-        },
-        {
-          actionId: 'second',
-          mode: 'onCreate',
-          phase: 'pre',
-          index: 1,
-          invoke: () => Effect.fail(new Error('stop')),
-        },
-        {
-          actionId: 'never',
-          mode: 'onCreate',
-          phase: 'pre',
-          index: 2,
-          invoke: () => Effect.succeed({ value: 3 }),
-        },
-      ],
-      context,
-      {},
-      value => values.push(value)
-    ));
+    const outcome = await Effect.runPromise(
+      runSequentialActionPlan(
+        [
+          {
+            actionId: 'first',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 0,
+            policy: { retry: { maxAttempts: 2, retryOn: ['transient'], idempotent: true } },
+            invoke: () =>
+              Effect.sync(() => {
+                attempts += 1;
+                if (attempts === 1) throw new ActionTransientFailure('temporary');
+                return { value: 1 };
+              }),
+          },
+          {
+            actionId: 'second',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 1,
+            invoke: () => Effect.fail(new Error('stop')),
+          },
+          {
+            actionId: 'never',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 2,
+            invoke: () => Effect.succeed({ value: 3 }),
+          },
+        ],
+        context,
+        {},
+        value => values.push(value)
+      )
+    );
 
     expect(attempts).to.equal(2);
     expect(values).to.deep.equal([{ value: 1 }]);
@@ -166,20 +168,22 @@ describe('Effect action execution', function () {
   it('reports an opaque Promise timeout as non-cooperative', async function () {
     const operation = createActionExecutionOperation('onCreate');
     const cancellation = { value: true };
-    const outcome = await Effect.runPromise(runSequentialActionPlan(
-      [
-        {
-          actionId: 'promise-timeout',
-          mode: 'onCreate',
-          phase: 'pre',
-          index: 0,
-          policy: { timeoutMs: 5 },
-          cooperativeCancellation: () => cancellation.value,
-          invoke: () => legacyHookToEffect(() => new Promise(() => undefined), cancellation),
-        },
-      ],
-      createPhaseContext(operation, 'pre')
-    ));
+    const outcome = await Effect.runPromise(
+      runSequentialActionPlan(
+        [
+          {
+            actionId: 'promise-timeout',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 0,
+            policy: { timeoutMs: 5 },
+            cooperativeCancellation: () => cancellation.value,
+            invoke: () => legacyHookToEffect(() => new Promise(() => undefined), cancellation),
+          },
+        ],
+        createPhaseContext(operation, 'pre')
+      )
+    );
     expect(outcome.report.actions[0].status).to.equal('timed_out');
     expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(false);
   });
@@ -194,16 +198,19 @@ describe('Effect action execution', function () {
     });
     const operation = createActionExecutionOperation('onCreate');
     const outcome = await Effect.runPromise(
-      runSequentialActionPlan([
-        {
-          actionId: 'observable-timeout',
-          mode: 'onCreate',
-          phase: 'pre',
-          index: 0,
-          policy: { timeoutMs: 5 },
-          invoke: () => legacyHookToEffect(() => observable),
-        },
-      ], createPhaseContext(operation, 'pre'))
+      runSequentialActionPlan(
+        [
+          {
+            actionId: 'observable-timeout',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 0,
+            policy: { timeoutMs: 5 },
+            invoke: () => legacyHookToEffect(() => observable),
+          },
+        ],
+        createPhaseContext(operation, 'pre')
+      )
     );
 
     expect(activeSubscriptions).to.equal(0);
@@ -215,27 +222,29 @@ describe('Effect action execution', function () {
     let invocations = 0;
     const operation = createActionExecutionOperation('onCreate');
     const cancellation = { value: true };
-    const outcome = await Effect.runPromise(runSequentialActionPlan(
-      [
-        {
-          actionId: 'promise-timeout-retry',
-          mode: 'onCreate',
-          phase: 'pre',
-          index: 0,
-          policy: {
-            timeoutMs: 5,
-            retry: { maxAttempts: 2, retryOn: ['timeout'], idempotent: true },
+    const outcome = await Effect.runPromise(
+      runSequentialActionPlan(
+        [
+          {
+            actionId: 'promise-timeout-retry',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 0,
+            policy: {
+              timeoutMs: 5,
+              retry: { maxAttempts: 2, retryOn: ['timeout'], idempotent: true },
+            },
+            cooperativeCancellation: () => cancellation.value,
+            invoke: () =>
+              legacyHookToEffect(() => {
+                invocations += 1;
+                return new Promise(() => undefined);
+              }, cancellation),
           },
-          cooperativeCancellation: () => cancellation.value,
-          invoke: () =>
-            legacyHookToEffect(() => {
-              invocations += 1;
-              return new Promise(() => undefined);
-            }, cancellation),
-        },
-      ],
-      createPhaseContext(operation, 'pre')
-    ));
+        ],
+        createPhaseContext(operation, 'pre')
+      )
+    );
 
     expect(invocations).to.equal(1);
     expect(outcome.report.actions[0].attempts).to.equal(1);
@@ -398,20 +407,22 @@ describe('Effect action execution', function () {
     }).pipe(Effect.provideService(service, { value: 4 }));
     const operation = createActionExecutionOperation('onCreate');
     const values: unknown[] = [];
-    const outcome = await Effect.runPromise(runSequentialActionPlan(
-      [
-        {
-          actionId: 'native-layered',
-          mode: 'onCreate',
-          phase: 'pre',
-          index: 0,
-          invoke: () => legacyHookToEffect(() => nativeAction),
-        },
-      ],
-      createPhaseContext(operation, 'pre'),
-      {},
-      value => values.push(value)
-    ));
+    const outcome = await Effect.runPromise(
+      runSequentialActionPlan(
+        [
+          {
+            actionId: 'native-layered',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 0,
+            invoke: () => legacyHookToEffect(() => nativeAction),
+          },
+        ],
+        createPhaseContext(operation, 'pre'),
+        {},
+        value => values.push(value)
+      )
+    );
 
     expect(values).to.deep.equal([5]);
     expect(outcome.report.actions[0].status).to.equal('succeeded');
@@ -420,25 +431,27 @@ describe('Effect action execution', function () {
   it('logs starts at debug and keeps payloads out of info/warn fields', async function () {
     const logs: Array<{ level: string; name: string; fields?: Record<string, unknown> }> = [];
     const operation = createActionExecutionOperation('onCreate');
-    await Effect.runPromise(runSequentialActionPlan(
-      [
+    await Effect.runPromise(
+      runSequentialActionPlan(
+        [
+          {
+            actionId: 'redacted-payload',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 0,
+            invoke: () => Effect.succeed({ token: 'secret-token', options: { password: 'secret-password' } }),
+          },
+        ],
+        createPhaseContext(operation, 'pre'),
         {
-          actionId: 'redacted-payload',
-          mode: 'onCreate',
-          phase: 'pre',
-          index: 0,
-          invoke: () => Effect.succeed({ token: 'secret-token', options: { password: 'secret-password' } }),
-        },
-      ],
-      createPhaseContext(operation, 'pre'),
-      {
-        logger: {
-          debug: (name, fields) => logs.push({ level: 'debug', name, fields }),
-          info: (name, fields) => logs.push({ level: 'info', name, fields }),
-          warn: (name, fields) => logs.push({ level: 'warn', name, fields }),
-        },
-      }
-    ));
+          logger: {
+            debug: (name, fields) => logs.push({ level: 'debug', name, fields }),
+            info: (name, fields) => logs.push({ level: 'info', name, fields }),
+            warn: (name, fields) => logs.push({ level: 'warn', name, fields }),
+          },
+        }
+      )
+    );
 
     expect(logs.some(log => log.level === 'debug' && log.name === 'record_hook_action_started')).to.equal(true);
     expect(logs.some(log => log.level === 'debug' && log.name === 'record_hook_action_attempt_succeeded')).to.equal(

@@ -73,7 +73,9 @@ describe('owned EJS pages on Mongo Express', function () {
     });
     assert.equal(result.status, 201, await result.clone().text());
     const oid = (await result.json()).data.oid;
-    assert.equal((await get('/default/rdmp/record/view-orig/' + oid, f.headers)).status, 500);
+    const originalView = await get('/default/rdmp/record/view-orig/' + oid, f.headers);
+    assert.equal(originalView.status, 200);
+    assert.match(await originalView.text(), /Persisted page \| Portal/);
     const edit = await get('/default/rdmp/record/edit/' + oid, f.headers);
     assert.equal(edit.status, 200, await edit.clone().text());
     assert.match(await edit.text(), /Persisted page \| Portal/);

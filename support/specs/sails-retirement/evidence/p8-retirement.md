@@ -1429,3 +1429,33 @@ as the preceding browser check. No test was skipped or assertion weakened.
 
 The browser real-Mongo runner subsequently terminated naturally with exit0;
 its one-shot timer diagnosis is retained above for transparency.
+
+### Response, visitor and API-documentation consumer closure
+
+Migrated the last core response/visitor/admin-documentation global fixtures.
+The retired framework response helpers no longer exist:21 replacement actual
+HTTP checks cover200/201 JSON, both API-version error envelopes400/403/404/500,
+actual branded403/404/500 HTML/JSON, scoped title, cache headers, explicit page
+routing and safe immediate/chronicle failure reporting. Implicit framework view
+selection and custom response method calls are retired; owned explicit routing
+and renderer behavior are exercised. Unexpected failures remain sanitized per
+design1.3. Inline-vocabulary tests retain their paging/tree/historical cases via
+explicit vocabulary inputs; migration verification needs no global service setup.
+
+Preserved runtime role metadata in generated JSON/YAML/Blueprint by passing
+ApiRouteConfiguration explicitly through the transport/builders. The production
+composition binds actual auth/extension configuration. The offline generator
+accepts supplied configuration without reading/mutating an application global;
+form-independent deterministic output and custom role metadata assertions remain.
+
+Initial full-core loading exposed the obsolete Responses import; initial focused
+loading then exposed the removed routes.config import. Fixed both consumers.
+The first actual HTTP response run used the wrong fixture portal ('rdmp' rather
+than its declared 'portal'), yielding404; fixed fixture URLs. The next run97/0/1
+expected a translation key from the static404 artifact; it now checks the actual
+Page Not Found heading while retaining status, content type and scoped title.
+consumers47-final.log: **98 passing/0 pending/0 failing**,6s, explicit core runner.
+Source TypeScript exit0, consumers47-tsc-final.log; a first source check correctly
+reported a callback narrowing error, corrected by binding the validated rule array.
+The affected real PagesMongo view-orig assertion now requires200 and the persisted
+record title, replacing its former assertion that a missing template produced500.
