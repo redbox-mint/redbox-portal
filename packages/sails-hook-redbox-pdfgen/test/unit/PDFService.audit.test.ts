@@ -83,6 +83,38 @@ describe('PDFService Integration Audit', () => {
     sinon.restore();
   });
 
+  it('bounds browser diagnostics without logging page messages, errors or URLs', async () => {
+    const secret = 'private-browser-provider-credential';
+    await Effect.runPromise(
+      pdfService.attemptPDFGeneration('oid-logs', {}, { enableChromeLogging: true }, { name: 'default' }, 1)
+    );
+    const callbacks = Object.fromEntries(mockPage.on.getCalls().map((call: any) => call.args));
+    callbacks.console({ text: () => secret });
+    callbacks.pageerror(new Error(secret));
+    callbacks.response({ status: () => 200, url: () => `https://example.invalid/?token=${secret}` });
+    callbacks.requestfailed({
+      failure: () => ({ errorText: secret }),
+      url: () => `https://example.invalid/?token=${secret}`,
+    });
+    expect(JSON.stringify(Object.values(input.log).flatMap((stub: any) => stub.args))).not.to.include(secret);
+  });
+
+  it('bounds failed retry diagnostics while finalizing the parent audit', async () => {
+    const secret = 'private-pdf-retry-provider-credential';
+    mockPage.goto.rejects(Object.assign(new Error(secret), { headers: { authorization: secret } }));
+    await new Promise((resolve, reject) =>
+      pdfService
+        .createPDF('oid-private-failure', { metaMetadata: { brandId: 1 } }, { maxRetries: 1, retryDelayMs: 1 }, {})
+        .subscribe({ next: resolve, error: reject })
+    );
+    await waitForAssertion(() =>
+      expect(
+        auditStub.failAudit.getCalls().some((call: any) => call.args[0]?.integrationAction === 'generatePdfTrigger')
+      ).to.equal(true)
+    );
+    expect(JSON.stringify(Object.values(input.log).flatMap((stub: any) => stub.args))).not.to.include(secret);
+  });
+
   it('records a startAudit + completeAudit pair on successful PDF generation', async () => {
     const record = { metaMetadata: { brandId: 1 } };
     const options = {};

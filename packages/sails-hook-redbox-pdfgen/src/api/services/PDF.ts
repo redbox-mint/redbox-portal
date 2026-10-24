@@ -136,27 +136,21 @@ export namespace Services {
       task.interruptReason = 'superseded';
       if (task.fiber != null) {
         Effect.runPromise(Fiber.interrupt(task.fiber)).catch(error => {
-          this.dependencies.log.warn('PDFService::Failed to interrupt superseded PDF retry task.', error);
+          this.dependencies.log.warn('PDFService::Failed to interrupt superseded PDF retry task.');
         });
       }
     }
 
-    private logWarn(message: string, ...args: Array<unknown>) {
-      return Effect.sync(() => this.dependencies.log.warn(message, ...args)).pipe(
-        Effect.zipRight(Effect.logWarning(message))
-      );
+    private logWarn(message: string) {
+      return Effect.sync(() => this.dependencies.log.warn(message)).pipe(Effect.zipRight(Effect.logWarning(message)));
     }
 
-    private logError(message: string, ...args: Array<unknown>) {
-      return Effect.sync(() => this.dependencies.log.error(message, ...args)).pipe(
-        Effect.zipRight(Effect.logError(message))
-      );
+    private logError(message: string) {
+      return Effect.sync(() => this.dependencies.log.error(message)).pipe(Effect.zipRight(Effect.logError(message)));
     }
 
-    private logDebug(message: string, ...args: Array<unknown>) {
-      return Effect.sync(() => this.dependencies.log.debug(message, ...args)).pipe(
-        Effect.zipRight(Effect.logDebug(message))
-      );
+    private logDebug(message: string) {
+      return Effect.sync(() => this.dependencies.log.debug(message)).pipe(Effect.zipRight(Effect.logDebug(message)));
     }
 
     private isRetryable(error: PDFError): boolean {
@@ -353,7 +347,7 @@ export namespace Services {
                   if (requestUrl.origin !== expectedUrl.origin) {
                     blockedNavigationUrl = request.url();
                     void request.abort('blockedbyclient').catch((error: unknown) => {
-                      this.dependencies.log.warn('PDFService::Failed to block off-origin navigation.', error);
+                      this.dependencies.log.warn('PDFService::Failed to block off-origin navigation.');
                     });
                     return;
                   }
@@ -369,7 +363,7 @@ export namespace Services {
                   headers['Authorization'] = `Bearer ${token}`;
                 }
                 void request.continue({ headers }).catch((error: unknown) => {
-                  this.dependencies.log.warn('PDFService::Failed to continue PDF page request.', error);
+                  this.dependencies.log.warn('PDFService::Failed to continue PDF page request.');
                 });
               });
               await page.setRequestInterception(true);
@@ -380,23 +374,17 @@ export namespace Services {
           const enableLogging = this.getOption(brand, options, 'enableChromeLogging');
           if (enableLogging === true || enableLogging === 'true') {
             yield* Effect.sync(() => {
-              page.on('console', msg => {
-                this.dependencies.log.verbose(`PDFService::Chrome Console:${msg.text()}`);
+              page.on('console', () => {
+                this.dependencies.log.verbose('PDFService::Chrome console activity.');
               });
-              page.on('pageerror', error => {
-                this.dependencies.log.error(
-                  `PDFService::Chrome Page Error: ${error instanceof Error ? error.message : String(error)}`
-                );
+              page.on('pageerror', () => {
+                this.dependencies.log.error('PDFService::Chrome page error.');
               });
               page.on('response', response => {
-                this.dependencies.log.verbose(
-                  `PDFService::Chrome Response: ${response.status()}, URL:${response.url()}`
-                );
+                this.dependencies.log.verbose(`PDFService::Chrome response status: ${response.status()}`);
               });
-              page.on('requestfailed', request => {
-                this.dependencies.log.error(
-                  `PDFService::Chrome Error: ${request.failure()?.errorText}, URL: ${request.url()}`
-                );
+              page.on('requestfailed', () => {
+                this.dependencies.log.error('PDFService::Chrome request failed.');
               });
             });
           }
@@ -774,14 +762,13 @@ export namespace Services {
                 onFailure: (error: PDFError) => {
                   if (this.isRetryable(error)) {
                     if (remainingRetries === 1) {
-                      return this.logError(
-                        `PDFService::Max retries exhausted for ${oid} or non-retryable error.`,
-                        error
-                      ).pipe(Effect.zipRight(Effect.sync(() => closeParent('failed', error))));
+                      return this.logError(`PDFService::Max retries exhausted for ${oid} or non-retryable error.`).pipe(
+                        Effect.zipRight(Effect.sync(() => closeParent('failed', error)))
+                      );
                     }
                     return runBackgroundRetries(retryToken, remainingRetries - 1, nextAttempt + 1);
                   }
-                  return this.logWarn(`PDFService::non-retryable failure, skipping`, error).pipe(
+                  return this.logWarn(`PDFService::non-retryable failure, skipping`).pipe(
                     Effect.zipRight(Effect.sync(() => closeParent('failed', error)))
                   );
                 },
@@ -805,10 +792,7 @@ export namespace Services {
               if (this.isRetryable(error)) {
                 if (maxRetries <= 0) {
                   return Effect.sync(() => {
-                    this.dependencies.log.error(
-                      `PDFService::Max retries exhausted for ${oid}, no remaining retries.`,
-                      error
-                    );
+                    this.dependencies.log.error(`PDFService::Max retries exhausted for ${oid}, no remaining retries.`);
                     closeParent('failed', error);
                   });
                 }
@@ -850,7 +834,7 @@ export namespace Services {
                         else await Effect.runPromise(Fiber.interrupt(fiber));
                         await Effect.runPromise(Fiber.await(fiber));
                       })
-                      .catch(error => this.dependencies.log.error('PDFService::Retry ownership failed.', error));
+                      .catch(error => this.dependencies.log.error('PDFService::Retry ownership failed.'));
                   });
                 });
               }
@@ -880,9 +864,7 @@ export namespace Services {
         .runAcceptedWork(async () => {
           const generationFiber = Effect.runFork(
             effect.pipe(
-              Effect.catchAllCause(cause =>
-                this.logError(`PDFService::Background PDF generation failed for ${oid}.`, Cause.squash(cause))
-              ),
+              Effect.catchAllCause(cause => this.logError(`PDFService::Background PDF generation failed for ${oid}.`)),
               Effect.asVoid
             )
           );
@@ -893,7 +875,7 @@ export namespace Services {
             this.generationTasks.delete(generationFiber);
           }
         })
-        .catch(error => this.dependencies.log.error('PDFService::Generation ownership failed.', error));
+        .catch(error => this.dependencies.log.error('PDFService::Generation ownership failed.'));
 
       return of(record);
     }
