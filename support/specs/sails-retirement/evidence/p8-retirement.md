@@ -535,3 +535,23 @@ Executed results:
 
 All use the explicit core Mocha runner above. These checks do not yet prove the
 final installed production composition, whole core suite or clean artifact.
+
+### Explicit migration and build-command fixtures
+
+Node 26.11.1/npm 11.20.0, source following `df28923bc`. The existing migration
+runner fixture now invokes runApplicationMigrations with local ledger, logger,
+context and version inputs. Ordering, metadata, progress, executed-name exclusion,
+failure halting and down forwarding remain covered. The former optional
+REDBOX_SKIP_MIGRATIONS bypass case now proves that mandatory v6 migrations cannot
+be bypassed by that retired variable. `migrations15-first.log`: **10 passing**.
+
+Webpack fixtures invoke the actual explicit development build runner, exported
+from wrapper-webpack.js. Development builds execute; only WEBPACK_SKIP=true
+skips explicitly. Configuration validation happens before acquisition; authored
+options remain unchanged; compilation is awaited and the compiler always closes.
+The retired framework-global/environment skip conventions are replaced by these
+implemented command contracts. Invalid options, four CSS-minification values,
+compiler/stats/cleanup failures and pending compilation are exercised.
+`tooling15-first.log`: **23 passing / 0 pending / 0 failing** (135ms), migration
+and build-command suites together, using the explicit core Mocha command above.
+This is source-level incremental evidence, not final clean-artifact proof.

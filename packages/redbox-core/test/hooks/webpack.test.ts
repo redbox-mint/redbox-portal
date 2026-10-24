@@ -1,202 +1,59 @@
-import {createSinonStubLogger} from "../logger.test";
-
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { defineWebpackHook } from '../../src/hooks/webpack';
-const noop = () => { };
+const { runWebpack } = require('../../../redbox-dev-tools/bin/wrapper-webpack.js');
 
-describe('Webpack Hook', () => {
-    let sailsMock: any;
-    let webpackMock: any;
-    let webpackCompilerMock: any;
-    let originalEnv: NodeJS.ProcessEnv;
-
-    beforeEach(() => {
-        originalEnv = { ...process.env };
-
-        // Default env for tests to allow running
-        process.env.NODE_ENV = 'docker';
-        process.env.WEBPACK_SKIP = 'false';
-        delete process.env.WEBPACK_CSS_MINI;
-
-        sailsMock = {
-            config: {
-                webpack: {
-                    config: [{
-                        optimization: {
-                            minimize: false
-                        }
-                    }]
-                }
-            },
-            log: createSinonStubLogger(sinon),
-        };
-
-        webpackCompilerMock = {
-            run: sinon.stub()
-        };
-
-        webpackMock = sinon.stub().returns(webpackCompilerMock);
-
-        // Reset global isSailsScriptEnv if it exists/was modified
-        (global as any).isSailsScriptEnv = undefined;
-        (global as any).sails = sailsMock;
+describe('Explicit webpack build command', () => {
+  let compiler: any, webpack: sinon.SinonStub, options: any, log: any;
+  beforeEach(() => {
+    compiler = { run: sinon.stub().callsFake(done => done(null, { toString: () => 'compiled', hasErrors: () => false })), close: sinon.stub().yields() };
+    webpack = sinon.stub().returns(compiler);
+    options = { config: [{ optimization: { minimize: false, concatenateModules: true } }] };
+    log = { log: sinon.stub() };
+  });
+  afterEach(() => sinon.restore());
+  for (const invalid of [undefined, {}, { config: [] }]) {
+    it(`fails before acquiring a compiler for invalid configuration ${JSON.stringify(invalid)}`, async () => {
+      try { await runWebpack(webpack, invalid, {}, log); expect.fail('Expected failure'); }
+      catch (error) { expect(String(error)).to.contain('explicit nonempty config array'); }
+      sinon.assert.notCalled(webpack);
     });
-
-    afterEach(() => {
-        process.env = originalEnv;
-        sinon.restore();
-        delete (global as any).sails;
+  }
+  it('builds in development without an implicit runtime environment gate', async () => {
+    await runWebpack(webpack, options, { NODE_ENV: 'development' }, log);
+    sinon.assert.calledOnce(compiler.run); sinon.assert.calledOnce(compiler.close);
+  });
+  it('honors the explicit WEBPACK_SKIP command option', async () => {
+    await runWebpack(webpack, options, { WEBPACK_SKIP: 'true' }, log);
+    sinon.assert.notCalled(webpack);
+  });
+  for (const value of [undefined, 'false', '0', 'true']) {
+    it(`sets CSS minification only for the explicit true option (${value})`, async () => {
+      await runWebpack(webpack, options, { WEBPACK_CSS_MINI: value }, log);
+      expect(webpack.firstCall.args[0][0].optimization).to.deep.equal({ minimize: value === 'true', concatenateModules: true });
+      expect(options.config[0].optimization.minimize).to.equal(false);
     });
-
-    describe('Configuration Validation', () => {
-        it('should return empty object and warn if sails.config.webpack is missing', () => {
-            delete sailsMock.config.webpack;
-            const result = defineWebpackHook(sailsMock, webpackMock);
-            expect(result).to.deep.equal({});
-            expect(sailsMock.log.warn.calledWithMatch(/No Webpack options have been defined/)).to.be.true;
-        });
-
-        it('should return empty object and warn if sails.config.webpack.config is missing', () => {
-            delete sailsMock.config.webpack.config;
-            const result = defineWebpackHook(sailsMock, webpackMock);
-            expect(result).to.deep.equal({});
-            expect(sailsMock.log.warn.calledWithMatch(/Configure your config\/webpack.js file/)).to.be.true;
-        });
-    });
-
-    describe('Environment Checks', () => {
-        it('should skip if NODE_ENV is not docker', () => {
-            process.env.NODE_ENV = 'development';
-            const result = defineWebpackHook(sailsMock, webpackMock);
-            expect(result).to.deep.equal({});
-            expect(sailsMock.log.warn.calledWithMatch(/Configured to skip webpack/)).to.be.true;
-        });
-
-        it('should skip if WEBPACK_SKIP is true', () => {
-            process.env.WEBPACK_SKIP = 'true';
-            const result = defineWebpackHook(sailsMock, webpackMock);
-            expect(result).to.deep.equal({});
-            expect(sailsMock.log.warn.calledWithMatch(/Configured to skip webpack/)).to.be.true;
-        });
-    });
-
-    describe('Initialization', () => {
-        it('should skip if isSailsScriptEnv global is true', async () => {
-            (global as any).isSailsScriptEnv = true;
-            const hook = defineWebpackHook(sailsMock, webpackMock);
-            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
-            const done = sinon.spy();
-
-            await initialize(done);
-
-            expect(done.calledOnce).to.be.true;
-            expect(webpackMock.called).to.be.false;
-        });
-
-        [
-            {
-                title: 'should enable CSS minimization if WEBPACK_CSS_MINI is true',
-                envVar: 'WEBPACK_CSS_MINI',
-                envValue: 'true',
-                expectsProductionMode: false
-            },
-            {
-                title: 'should enable production asset output if REDBOX_ASSET_MODE is production',
-                envVar: 'REDBOX_ASSET_MODE',
-                envValue: 'production',
-                expectsProductionMode: true
-            }
-        ].forEach(({ title, envVar, envValue, expectsProductionMode }) => {
-            it(title, async () => {
-                process.env[envVar] = envValue;
-                const hook = defineWebpackHook(sailsMock, webpackMock);
-                const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
-
-                webpackCompilerMock.run.yields(null, {
-                    hasErrors: () => false,
-                    toString: () => 'stats'
-                });
-
-                await initialize(noop);
-
-                expect(sailsMock.config.webpack.config[0].optimization.minimize).to.be.true;
-                if (expectsProductionMode) {
-                    expect(sailsMock.config.webpack.config[0].mode).to.equal('production');
-                    expect(sailsMock.config.webpack.config[0].devtool).to.equal(false);
-                } else {
-                    expect(sailsMock.config.webpack.config[0].mode).to.be.undefined;
-                    expect(sailsMock.config.webpack.config[0].devtool).to.be.undefined;
-                }
-                expect(sailsMock.log.info.calledWithMatch(/enabled minimization/)).to.be.true;
-                delete process.env[envVar];
-            });
-        });
-
-        it('should compile successfully', async () => {
-            const hook = defineWebpackHook(sailsMock, webpackMock);
-            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
-            const done = sinon.spy();
-
-            const statsMock = {
-                hasErrors: () => false,
-                toString: () => 'Build success'
-            };
-            webpackCompilerMock.run.yields(null, statsMock);
-
-            await initialize(done);
-
-            expect(webpackMock.calledOnce).to.be.true;
-            expect(webpackCompilerMock.run.calledOnce).to.be.true;
-            expect(sailsMock.log.info.calledWithMatch(/Build success/)).to.be.true;
-            expect(done.calledOnce).to.be.true;
-        });
-
-        it('should handle compilation errors', async () => {
-            const hook = defineWebpackHook(sailsMock, webpackMock);
-            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
-            const done = sinon.spy();
-
-            const error = new Error('Build failed');
-            const statsMock = {
-                hasErrors: () => true,
-                toString: () => 'Error details'
-            };
-
-            // The hook implementation throws when there is an error
-            webpackCompilerMock.run.yields(error, statsMock);
-
-            try {
-                await initialize(done);
-                expect.fail('Should have thrown error');
-            } catch (e: any) {
-                expect(e.message).to.equal('sails-hook-webpack failed');
-                expect(sailsMock.log.error.calledWith(error)).to.be.true;
-                expect(done.called).to.be.false;
-            }
-        });
-
-        it('should handle compilation stats errors', async () => {
-            const hook = defineWebpackHook(sailsMock, webpackMock);
-            const initialize = (hook as any).initialize as (done: () => void) => Promise<void>;
-            const done = sinon.spy();
-
-            const statsMock = {
-                hasErrors: () => true,
-                toString: () => 'Compilation errors'
-            };
-
-            webpackCompilerMock.run.yields(null, statsMock);
-
-            try {
-                await initialize(done);
-                expect.fail('Should have thrown error');
-            } catch (e: any) {
-                expect(e.message).to.equal('sails-hook-webpack failed');
-                expect(sailsMock.log.error.calledWithMatch(/Compilation errors/)).to.be.true;
-                expect(done.called).to.be.false;
-            }
-        });
-    });
+  }
+  it('awaits compilation and closes the compiler on success', async () => {
+    let done: any; compiler.run.callsFake(callback => { done = callback; });
+    let settled = false; const work = runWebpack(webpack, options, {}, log).then(() => { settled = true; });
+    await Promise.resolve(); expect(settled).to.equal(false); sinon.assert.notCalled(compiler.close);
+    done(null, { toString: () => 'compiled', hasErrors: () => false }); await work;
+    sinon.assert.calledOnce(compiler.close); sinon.assert.calledOnceWithExactly(log.log, 'compiled');
+  });
+  it('propagates a compiler error and closes the compiler', async () => {
+    const error = new Error('compile failure'); compiler.run.yields(error);
+    let caught: unknown; try { await runWebpack(webpack, options, {}, log); } catch (failure) { caught = failure; }
+    expect(caught).to.equal(error); sinon.assert.calledOnce(compiler.close);
+  });
+  it('fails on compilation statistics errors and closes the compiler', async () => {
+    compiler.run.yields(null, { toString: () => 'errors', hasErrors: () => true });
+    try { await runWebpack(webpack, options, {}, log); expect.fail('Expected failure'); }
+    catch (error) { expect(String(error)).to.contain('Webpack compilation failed'); }
+    sinon.assert.calledOnce(compiler.close);
+  });
+  it('reports compiler cleanup failure', async () => {
+    const error = new Error('close failure'); compiler.close.yields(error);
+    let caught: unknown; try { await runWebpack(webpack, options, {}, log); } catch (failure) { caught = failure; }
+    expect(caught).to.equal(error);
+  });
 });
