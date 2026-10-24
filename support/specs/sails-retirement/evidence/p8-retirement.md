@@ -1539,3 +1539,15 @@ The original inventory now accepts git-grep exit1 for zero matches/generated
 headers; genuine git errors still fail. Its source/candidate/owner method is
 otherwise unchanged. The final committed/artifact scan and complete baseline
 reconciliation are still required below; this method section is not a pass claim.
+
+The committed closure scan at2e7da7a08 reports **0 executable violations /
+0 forbidden dependency entries**,1046 candidate/manifest files. The original
+SR-001 rerun finds1020 matched files. All1261 baseline entries reconcile:
+136 removed,361 retained without candidates,18 structural dependency metadata
+checks,746 explicitly classified remaining files. This is source-only proof.
+
+The next lint invocation exposed an unused caught error in the sanitized RVA
+HTTP failure branch. Removed that unused binding; behavior and assertions are
+unchanged. `npm run lint` now exits0 with0 warnings/errors. The first archived
+artifact build started from2e7da7a08 before this lint-only correction; a final
+source archive/image rebuild is required before accepting SR-055.

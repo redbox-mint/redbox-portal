@@ -86,7 +86,7 @@ export function mountVocabularyIntegrationRoutes(router: Router, input: Vocabula
             vocabularyId,
           });
           sendApiData(req, res, result);
-        } catch (error) {
+        } catch {
           recordHttpFailure(req, input.log, 'Vocabulary import or sync failed');
           // Existing provider errors are 400; keep credentials and native database details private.
           sendApiErrors(req, res, 400, [
