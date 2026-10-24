@@ -1626,3 +1626,12 @@ actual global assignment and required framework dependency still makes the audit
 fail, with1 executable violation and1 forbidden dependency entry. Logs are
 `closure55-{installed-fixture-red,installed-fixture-green,active-control-red}.json`.
 This is audit tooling only; the853d0039d application archive is unchanged.
+
+
+The dependency closure also rejects all other `sails-*` framework adapters/helpers
+and already-retired `waterline`/`waterline-*`, in addition to framework/socket/
+Skipper/@sailshq entries. The three documented historical own package names stay
+explicitly allowed. A temporary manifest control accepts those names and rejects
+`sails-mongo`, `waterline` and `waterline-utils` (3 forbidden entries); the actual
+committed tree remains0/0. Logs: `closure56-{source,installed-fixture,
+package-control-red}.json`. No package dependency or runtime artifact changes.

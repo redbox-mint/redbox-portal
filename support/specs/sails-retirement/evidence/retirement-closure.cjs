@@ -26,6 +26,7 @@ const forbidden = name => {
   if (!name) return false;
   const leaf = name.split('/').at(-1);
   const historical = new Set([
+    '@researchdatabox/sails-ng-common',
     '@researchdatabox/sails-hook-redbox-storage-mongo',
     '@researchdatabox/sails-hook-redbox-pdfgen',
   ]);
@@ -35,7 +36,9 @@ const forbidden = name => {
     leaf === 'sails.io.js' ||
     leaf === 'skipper' ||
     leaf.startsWith('skipper-') ||
-    (leaf.startsWith('sails-hook-') && !historical.has(name))
+    (leaf.startsWith('sails-') && !historical.has(name)) ||
+    leaf === 'waterline' ||
+    leaf.startsWith('waterline-')
   );
 };
 let files, read;
