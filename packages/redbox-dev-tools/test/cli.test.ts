@@ -98,4 +98,30 @@ describe('cli smoke test', function () {
     expect(result.status).to.equal(0, result.stderr);
     expect(result.stdout).to.contain('Hook dependency contract looks good');
   });
+  it('pins historical ranges when migrating shared hook dependencies', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-pins-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name: 'redbox-hook-demo',
+      peerDependencies: { '@researchdatabox/redbox-core': '*' },
+      devDependencies: { '@researchdatabox/redbox-core': '^4.5.1', '@researchdatabox/redbox-dev-tools': '~4.5.1' },
+    }));
+    const result = runCli(['migrate-hook-dependencies'], tempRoot);
+    expect(result.status).to.equal(0, result.stderr);
+    const migrated = JSON.parse(fs.readFileSync(path.join(tempRoot, 'package.json'), 'utf8'));
+    expect(migrated.peerDependencies['@researchdatabox/redbox-core']).to.equal(require('@researchdatabox/redbox-core/package.json').version);
+    expect(migrated.devDependencies['@researchdatabox/redbox-core']).to.equal(require('@researchdatabox/redbox-core/package.json').version);
+    expect(migrated.devDependencies['@researchdatabox/redbox-dev-tools']).to.equal(require('../package.json').version);
+    expect(runCli(['check'], tempRoot).status).to.equal(0);
+  });
+
+  it('rejects nonexact custom dependency versions in the hook check', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-range-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name: 'redbox-hook-demo', dependencies: { 'example-hook-dependency': '^1.2.3' },
+    }));
+    const result = runCli(['check'], tempRoot);
+    expect(result.status).to.equal(1);
+    expect(result.stderr).to.contain('exact version required');
+  });
+
 });

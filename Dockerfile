@@ -215,7 +215,7 @@ RUN node -e "require('@researchdatabox/redbox-core/portal'); require('redbox-hoo
 # runtime. Built with `--target test` and used by the integration test suites.
 # The vanilla runtime image never includes it, so published/client images stay
 # pristine. Restore the compiled hook and development dependencies directly
-# from the unpruned builder, then link the hook for redbox-loader discovery.
+# from the unpruned builder, then link the extension for package discovery.
 FROM runtime AS test
 USER root
 # Mounted regression preparation uses the same pinned Angular build Node as

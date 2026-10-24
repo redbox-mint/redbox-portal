@@ -5,15 +5,15 @@ const {
   migrateBrandingTypefaces,
 } = require('@researchdatabox/redbox-core/dist/branding/typefaceMigration');
 
-// Temporary comparison adapter; the standalone application binds the same conversion directly.
+// Historical migration entry; the v6 application binds this same conversion directly.
 module.exports = {
   name: BRANDING_TYPEFACE_MIGRATION_NAME,
-  up: async ({ context: sails } = {}) => {
-    if (!sails) throw new Error('branding-typeface-backfill-models-unavailable');
+  up: async ({ context: owner } = {}) => {
+    if (!owner) throw new Error('branding-typeface-backfill-models-unavailable');
     await migrateBrandingTypefaces({
-      repository: getBrandingRepository(sails),
-      historyMaxVersions: sails.config?.branding?.historyMaxVersions,
-      log: sails.log,
+      repository: getBrandingRepository(owner),
+      historyMaxVersions: owner.config?.branding?.historyMaxVersions,
+      log: owner.log,
     });
   },
 };

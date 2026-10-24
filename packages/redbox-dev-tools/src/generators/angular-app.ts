@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { Project, SyntaxKind } from 'ts-morph';
+import { Project } from 'ts-morph';
 import { Generator, GeneratorOptions } from '../utils/generator';
 import { RedboxPaths } from '../utils/paths';
 import { updateRoutes, updateAuth } from '../utils/config-helper';
@@ -257,15 +257,15 @@ export class ${this.toClassName(this.name)}Component {
   <div class="col-md-9 col-lg-10 admin-main-content">
     <${this.name} <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
       <div class="col-xs-12">
-        <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+        <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
       </div>
     </${this.name}>
   </div>
 </div>
 
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+<script src="<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
    type="module"></script>
-<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
+<link rel="stylesheet" href="<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css">
 `;
 
     this.writeFile(viewPath, content);
@@ -275,35 +275,13 @@ export class ${this.toClassName(this.name)}Component {
     const route = `/:branding/:portal/admin/${this.name}`; // Defaulting to admin path
     const safeViewName = this.getSafeEjsViewName();
     
-    // We can't use updateRoutes directly because it assumes a controller.action string
-    // But here we want a RouteTargetObject with locals.view
-    
-    const routesPath = path.join(this.paths.coreTypes, 'src', 'config', 'routes.config.ts');
-    if (!fs.existsSync(routesPath)) return;
-
-    const sourceFile = this.project.addSourceFileAtPath(routesPath);
-    const routesVar = sourceFile.getVariableDeclaration('routes');
-    if (!routesVar) return;
-
-    const initializer = routesVar.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
-    if (!initializer) return;
-
-    if (!initializer.getProperty(`'${route}'`) && !initializer.getProperty(`"${route}"`)) {
-        initializer.addPropertyAssignment({
-            name: `'${route}'`,
-            initializer: `{
-                controller: 'RenderViewController',
-                action: 'render',
-                locals: { 'view': 'admin/${safeViewName}' }
-            }`
-        });
-    }
-
-    sourceFile.formatText();
-    if (!this.dryRun) {
-        await sourceFile.save();
-        console.log(`  [UPDATE] ${path.relative(this.root, routesPath)}`);
-    }
+    // The named page handler must be bound by the selected extension factory
+    // with request locals and installed PageArtifacts for admin/${safeViewName}.
+    await updateRoutes({
+      project: this.project, paths: this.paths, root: this.root,
+      route: `get ${route}`, controllerName: 'page', action: `admin.${safeViewName}`,
+      webservice: false, dryRun: this.dryRun,
+    });
   }
 
   private async updateAuthConfig(): Promise<void> {

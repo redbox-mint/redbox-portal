@@ -30,9 +30,7 @@ export class ServiceGenerator extends Generator {
 
   public async generate(): Promise<void> {
     const serviceName = this.name.endsWith('Service') ? this.name : `${this.name}Service`;
-    const className = this.name.endsWith('Service')
-      ? this.name.replace(/Service$/, '')
-      : this.name;
+    const className = this.name.endsWith('Service') ? this.name.replace(/Service$/, '') : this.name;
 
     const serviceDir = path.join(this.paths.coreTypes, 'src', 'services');
     const servicePath = path.join(serviceDir, `${serviceName}.ts`);
@@ -47,43 +45,27 @@ export class ServiceGenerator extends Generator {
         root: this.root,
         serviceName: serviceName,
         className: className,
-        dryRun: this.dryRun
+        dryRun: this.dryRun,
       });
     }
   }
 
   private generateServiceContent(className: string, serviceName: string): string {
-    const methodsCode = this.methods.map(method => `
-    public async ${method}(..._args: unknown[]): Promise<Record<string, unknown>> {
-      sails.log.verbose(\`\${this.logHeader} ${method} called\`);
-      return { message: 'Method ${method} in ${serviceName}' };
-    }`).join('\n');
+    const methodsCode = this.methods
+      .map(
+        method => `
+  public async ${method}(..._args: unknown[]): Promise<Record<string, unknown>> {
+    this.log.debug('${serviceName}.${method} called');
+    return { message: 'Method ${method} in ${serviceName}' };
+  }`
+      )
+      .join('\n');
+    return `import type { ILogger } from '@researchdatabox/sails-ng-common';
 
-    const exportedMethods = ['init', ...this.methods].map(m => `'${m}'`).join(',\n      ');
-
-    return `import { Services as services } from '../CoreService';
-
-export namespace Services {
-  export class ${className}Service extends services.Core.Service {
-
-    constructor() {
-      super();
-      this.logHeader = "${serviceName}::";
-    }
-
-    protected override _exportedMethods: string[] = [
-      ${exportedMethods}
-    ];
-
-    public init(): void {
-      // Initialize service here
-    }
+/** Construct in the application's selected factory; inject each collaborator explicitly. */
+export class ${className}Service {
+  constructor(private readonly log: ILogger) {}
 ${methodsCode}
-  }
-}
-
-declare global {
-  let ${className}Service: Services.${className}Service;
 }
 `;
   }

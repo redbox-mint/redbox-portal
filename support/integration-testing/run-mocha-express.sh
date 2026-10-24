@@ -5,6 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 export NODE_ENV=integrationtest TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=true
 export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node","esModuleInterop":true}'
+node app.express.cjs --maintenance=indexes:ensure
 if [[ $# == 0 ]]; then set -- 'test/integration/**/*.test.ts'; fi
 exec node --no-experimental-strip-types -r ts-node/register -r ./test/helpers/compiledCore.cjs \
   node_modules/mocha/bin/mocha.js --config test/integration/.mocharc.js \

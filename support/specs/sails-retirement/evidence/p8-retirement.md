@@ -244,3 +244,25 @@ preceding targeted config/model/persistence run had **68 passing / 1 failing**
 (the new expected diagnostic path was `root`, actual rejected key was `responses`).
 That diagnostic assertion now checks the real selected-source/key diagnostic.
 No test exclusions or skips have been added.
+
+### Continued SR-053 checks after `aff0dbf84`
+
+- Root integration command, with disposable `sr_p8_regression13*` stores and real
+  Mongo 8.0.34/Solr 10/Keycloak/Mailpit:
+  `REDBOX_APPLICATION_CONFIG=.tmp/sails-retirement/p8/regression13-mocha.cjs REDBOX_SESSION_SECRET=<disposable> bash support/integration-testing/run-mocha-express.sh`.
+  Result: **422 passing, 10 unchanged pending, 0 failures** (24 seconds). All
+  application-owned resources, operations, Prisma clients and pools drain to zero.
+  The former multipart timeout was a test import of the removed root
+  `RequestChronicleHelper` export. The fixture now imports its explicit module;
+  the streamed 1 MiB request and all chronicle/redaction assertions pass. No
+  production upload behavior or test assertion was relaxed.
+- Core lifecycle/cache/provider subset: package-local Mocha, the existing
+  configuration brand/cache-runtime cases and `test/services/*-v2/*.test.ts`:
+  **92 passing, 0 pending, 0 failures**. Configuration, DOI audit/client layers,
+  Figshare bindings/metadata and RAiD token-cache ownership are explicit inputs.
+- Final consumer lint: `npm run lint`, **0 warnings/errors**, 933 source files.
+- Seven standalone integration Compose files pass `config --quiet`. The two
+  overlay files fail intentionally when used without their documented base;
+  each Express overlay/base general/OIDC/S3 pair and the Playwright/browser
+  overlay/base pair then pass. These are configuration checks, not execution
+  proof; real final suites and clean generated-app/artifact acceptance remain open.

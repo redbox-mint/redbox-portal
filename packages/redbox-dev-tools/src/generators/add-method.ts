@@ -3,7 +3,16 @@ import * as fs from 'fs';
 import { Project, QuoteKind, SyntaxKind, ClassDeclaration, Scope } from 'ts-morph';
 import { Generator, GeneratorOptions } from '../utils/generator';
 import { RedboxPaths } from '../utils/paths';
-import { updateRoutes, updateAuth, updateControllerIndex, updateServiceIndex, updateNavigationConfig, updateLanguageDefaults, NavigationMapping, LanguageDefaultEntry } from '../utils/config-helper';
+import {
+  updateRoutes,
+  updateAuth,
+  updateControllerIndex,
+  updateServiceIndex,
+  updateNavigationConfig,
+  updateLanguageDefaults,
+  NavigationMapping,
+  LanguageDefaultEntry,
+} from '../utils/config-helper';
 
 export interface AddMethodGeneratorOptions extends GeneratorOptions {
   file: string;
@@ -88,7 +97,7 @@ export class AddMethodGenerator extends Generator {
           controllerName: fileName,
           className: className,
           webservice: this.filePath.includes(path.join('controllers', 'webservice')),
-          dryRun: this.dryRun
+          dryRun: this.dryRun,
         });
       } else {
         await updateServiceIndex({
@@ -97,7 +106,7 @@ export class AddMethodGenerator extends Generator {
           root: this.root,
           serviceName: fileName,
           className: className,
-          dryRun: this.dryRun
+          dryRun: this.dryRun,
         });
       }
     }
@@ -120,7 +129,7 @@ export class AddMethodGenerator extends Generator {
         controllerName: controllerName,
         action: this.method,
         webservice: webservice,
-        dryRun: this.dryRun
+        dryRun: this.dryRun,
       });
 
       if (this.auth && this.auth.length > 0) {
@@ -130,7 +139,7 @@ export class AddMethodGenerator extends Generator {
           root: this.root,
           route: trimmedRoute,
           auth: this.auth,
-          dryRun: this.dryRun
+          dryRun: this.dryRun,
         });
       }
 
@@ -142,7 +151,9 @@ export class AddMethodGenerator extends Generator {
         for (const nav of this.navigation) {
           const actionName = nav.action || this.method;
           if (actionName !== this.method) {
-            console.warn(`  [NAV] Navigation mapping action '${actionName}' does not match method '${this.method}'. Skipping.`);
+            console.warn(
+              `  [NAV] Navigation mapping action '${actionName}' does not match method '${this.method}'. Skipping.`
+            );
             continue;
           }
           await updateNavigationConfig({
@@ -151,9 +162,9 @@ export class AddMethodGenerator extends Generator {
             root: this.root,
             mapping: {
               ...nav,
-              href: routePath
+              href: routePath,
             },
-            dryRun: this.dryRun
+            dryRun: this.dryRun,
           });
         }
       }
@@ -163,7 +174,7 @@ export class AddMethodGenerator extends Generator {
       await updateLanguageDefaults({
         root: this.root,
         entries: this.languageDefaults,
-        dryRun: this.dryRun
+        dryRun: this.dryRun,
       });
     }
   }
@@ -178,10 +189,10 @@ export class AddMethodGenerator extends Generator {
           isAsync: true,
           returnType: 'Promise<unknown>',
           parameters: [
-            { name: 'req', type: 'Sails.Req' },
-            { name: 'res', type: 'Sails.Res' }
+            { name: 'req', type: 'import("express").Request' },
+            { name: 'res', type: 'import("express").Response' },
           ],
-          statements: `return this.sendResp(req, res, { data: { message: 'Action ${this.method} in ${klass.getName()}' } });`
+          statements: `return res.json({ message: 'Action ${this.method} in ${klass.getName()}' });`,
         });
       } else {
         klass.addMethod({
@@ -189,37 +200,10 @@ export class AddMethodGenerator extends Generator {
           scope: Scope.Public,
           isAsync: true,
           returnType: 'Promise<Record<string, unknown>>',
-          parameters: [
-            { name: '..._args', type: 'unknown[]' }
-          ],
-          statements: [
-            `sails.log.verbose(\`\${this.logHeader} ${this.method} called\`);`,
-            `return { message: 'Method ${this.method} in ${klass.getName()}' };`
-          ]
+          parameters: [{ name: '..._args', type: 'unknown[]' }],
+          statements: [`return { message: 'Method ${this.method} in ${klass.getName()}' };`],
         });
       }
-    }
-
-    // 2. Update _exportedMethods
-    const exportedMethodsProp = klass.getProperty('_exportedMethods');
-    if (exportedMethodsProp) {
-      const initializer = exportedMethodsProp.getInitializerIfKind(SyntaxKind.ArrayLiteralExpression);
-      if (initializer) {
-        if (!initializer.getElements().some((e: any) => e.getText().replace(/['"]/g, '') === this.method)) {
-          initializer.addElement(`'${this.method}'`);
-        }
-      }
-    } else {
-      // Create _exportedMethods if missing
-      const hasInit = !!klass.getMethod('init');
-      const methods = hasInit ? ['init', this.method] : [this.method];
-      klass.addProperty({
-        name: '_exportedMethods',
-        scope: Scope.Protected,
-        hasOverrideKeyword: true,
-        type: 'string[]',
-        initializer: `[${methods.map(m => `'${m}'`).join(', ')}]`
-      });
     }
   }
 }

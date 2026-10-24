@@ -21,33 +21,7 @@ describe('ControllerGenerator', () => {
     // Create mock index.ts
     fs.writeFileSync(
       path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'),
-      `
-import * as ActionControllerModule from './ActionController';
-
-const controllerCache: Record<string, any> = {};
-function getOrCreate(name: string, factory: () => any): any {
-    if (!controllerCache[name]) controllerCache[name] = factory();
-    return controllerCache[name];
-}
-
-export const ControllerExports: Record<string, any> = {
-    get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
-};
-
-export const ControllerNames = [
-    'ActionController',
-];
-`
-    );
-
-    // Create mock routes.config.ts
-    fs.writeFileSync(
-      path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'),
-      `
-export const routes: any = {
-    '/': 'RenderViewController.render',
-};
-`
+      `export const existingDeclaration = true;`
     );
 
     // Create mock auth.config.ts
@@ -85,18 +59,18 @@ export const auth: any = {
     expect(fs.existsSync(controllerPath)).to.be.true;
 
     const content = fs.readFileSync(controllerPath, 'utf-8');
-    expect(content).to.contain('class Test extends controllers.Core.Controller');
+    expect(content).to.contain('class Test');
     expect(content).to.contain('public async index');
     expect(content).to.contain('public async save');
-    expect(content).to.contain("'index'");
-    expect(content).to.contain("'save'");
+    expect(content).to.contain('Request, Response');
+    expect(content).not.to.contain('_exportedMethods');
 
     const indexContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'), 'utf-8');
     // console.log('INDEX CONTENT:', indexContent);
-    expect(indexContent).to.contain("import * as TestControllerModule from './TestController'");
+    expect(indexContent).to.contain("export * from './TestController'");
     expect(indexContent).to.contain('TestController');
-    expect(indexContent).to.contain("getOrCreate('TestController'");
-    expect(indexContent).to.contain("'TestController'");
+    expect(indexContent).not.to.contain('getOrCreate');
+    expect(indexContent).not.to.contain('ControllerExports');
   });
 
   it('should update routes and auth', async () => {
@@ -112,8 +86,10 @@ export const auth: any = {
 
     await generator.generate();
 
-    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'), 'utf-8');
-    expect(routesContent).to.contain("'get /test-route': 'TestController.index'");
+    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
+    expect(routesContent).to.contain('path: "/test-route"');
+    expect(routesContent).to.contain('handler: "TestController.index"');
+    expect(routesContent).to.contain("access: ['authenticated']");
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
     expect(authContent).to.contain("{ path: '/test-route', role: 'Admin', can_read: true }");
@@ -122,14 +98,6 @@ export const auth: any = {
 
   it('should handle webservice controllers', async () => {
     fs.mkdirSync(path.join(coreTypesRoot, 'src', 'controllers', 'webservice'), { recursive: true });
-    // Add WebserviceControllerExports to index.ts
-    fs.appendFileSync(
-      path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'),
-      `
-export const WebserviceControllerExports: Record<string, any> = {};
-export const WebserviceControllerNames: string[] = [];
-`
-    );
 
     const paths = pathsModule.resolvePaths({ root: tempRoot });
     const generator = new controllerGeneratorModule.ControllerGenerator({
@@ -148,13 +116,13 @@ export const WebserviceControllerNames: string[] = [];
     expect(fs.existsSync(controllerPath)).to.be.true;
 
     const indexContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'), 'utf-8');
-    expect(indexContent).to.contain("import * as WSTestControllerModule from './webservice/TestController'");
+    expect(indexContent).to.contain("export * from './webservice/TestController'");
     expect(indexContent).to.contain('TestController');
-    expect(indexContent).to.contain("getOrCreate('WS_TestController'");
+    expect(indexContent).not.to.contain('getOrCreate');
 
-    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'), 'utf-8');
+    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
     expect(routesContent).to.contain(
-      "'post /api/test': { controller: 'webservice/TestController', action: 'index', csrf: false }"
+      'handler: "api.TestController.index"'
     );
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
@@ -163,13 +131,6 @@ export const WebserviceControllerNames: string[] = [];
 
   it('should support multiple action-to-route mappings', async () => {
     fs.mkdirSync(path.join(coreTypesRoot, 'src', 'controllers', 'webservice'), { recursive: true });
-    fs.appendFileSync(
-      path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'),
-      `
-export const WebserviceControllerExports: Record<string, any> = {};
-export const WebserviceControllerNames: string[] = [];
-`
-    );
 
     const paths = pathsModule.resolvePaths({ root: tempRoot });
     const generator = new controllerGeneratorModule.ControllerGenerator({
@@ -209,21 +170,21 @@ export const WebserviceControllerNames: string[] = [];
     expect(content).to.contain('public async updateDashboard');
     expect(content).to.contain('public async deleteDashboard');
 
-    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'), 'utf-8');
+    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
     expect(routesContent).to.contain(
-      "'get /:branding/:portal/api/dashboards': { controller: 'webservice/DashboardController', action: 'listDashboards', csrf: false }"
+      'handler: "api.DashboardController.listDashboards"'
     );
     expect(routesContent).to.contain(
-      "'get /:branding/:portal/api/dashboards/:id': { controller: 'webservice/DashboardController', action: 'getDashboard', csrf: false }"
+      'handler: "api.DashboardController.getDashboard"'
     );
     expect(routesContent).to.contain(
-      "'post /:branding/:portal/api/dashboards': { controller: 'webservice/DashboardController', action: 'createDashboard', csrf: false }"
+      'handler: "api.DashboardController.createDashboard"'
     );
     expect(routesContent).to.contain(
-      "'put /:branding/:portal/api/dashboards/:id': { controller: 'webservice/DashboardController', action: 'updateDashboard', csrf: false }"
+      'handler: "api.DashboardController.updateDashboard"'
     );
     expect(routesContent).to.contain(
-      "'delete /:branding/:portal/api/dashboards/:id': { controller: 'webservice/DashboardController', action: 'deleteDashboard', csrf: false }"
+      'handler: "api.DashboardController.deleteDashboard"'
     );
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');

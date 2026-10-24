@@ -113,14 +113,16 @@ else
   verify_bundles
 fi
 
-# Redoc is only needed to build the browser bundle. Remove it before Sails
-# boots so moduleloader does not scan its transitive `should` package.
+# Redoc is needed only while building the browser bundle.
 rm -rf node_modules/redoc
 
 export RBPORTAL_COVERAGE_DIR="${RBPORTAL_COVERAGE_DIR:-/tmp/coverage/playwright}"
 export NYC_OUTPUT="${NYC_OUTPUT:-/tmp/nyc_output_playwright}"
 mkdir -p "$RBPORTAL_COVERAGE_DIR" "$NYC_OUTPUT" .tmp/playwright/logs
 chmod 777 "$RBPORTAL_COVERAGE_DIR" "$NYC_OUTPUT" .tmp/playwright/logs || true
+
+# Disposable integration configuration only: prepare indexes explicitly before serving.
+node app.express.cjs --maintenance=indexes:ensure
 
 exec node_modules/.bin/nyc --no-clean \
   --temp-dir "$NYC_OUTPUT" \

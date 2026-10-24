@@ -22,24 +22,13 @@ describe('AddMethodGenerator', () => {
     fs.writeFileSync(
       path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'),
       `
-export const ControllerExports: Record<string, any> = {};
-export const ControllerNames: string[] = [];
+export const existingDeclaration = true;
 `
     );
     fs.writeFileSync(
       path.join(coreTypesRoot, 'src', 'services', 'index.ts'),
       `
-export const ServiceExports: Record<string, any> = {};
-`
-    );
-
-    // Create mock routes.config.ts
-    fs.writeFileSync(
-      path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'),
-      `
-export const routes: any = {
-    '/': 'RenderViewController.render',
-};
+export const existingDeclaration = true;
 `
     );
 
@@ -69,10 +58,7 @@ export const auth: any = {
       controllerPath,
       `
 export namespace Controllers {
-  export class Test extends controllers.Core.Controller {
-    protected override _exportedMethods: string[] = [
-      'init'
-    ];
+  export class Test {
     public init(): void {}
   }
 }
@@ -94,16 +80,16 @@ export namespace Controllers {
     const content = fs.readFileSync(controllerPath, 'utf-8');
     // console.log('CONTENT:', content);
     expect(content).to.contain('newMethod');
-    expect(content).to.contain('this.sendResp(req, res');
+    expect(content).to.contain('return res.json(');
 
-    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'), 'utf-8');
-    expect(routesContent).to.contain("'get /new-route': 'TestController.newMethod'");
+    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
+    expect(routesContent).to.contain('handler: "TestController.newMethod"');
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
     expect(authContent).to.contain("{ path: '/new-route', role: 'Admin', can_read: true }");
 
     const indexContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'), 'utf-8');
-    expect(indexContent).to.contain("import * as TestControllerModule from './TestController'");
+    expect(indexContent).to.contain("export * from './TestController'");
   });
 
   it('should add a method to an existing service', async () => {
@@ -112,10 +98,7 @@ export namespace Controllers {
       servicePath,
       `
 export namespace Services {
-  export class Test extends services.Core.Service {
-    protected override _exportedMethods: string[] = [
-      'init'
-    ];
+  export class Test {
     public init(): void {}
   }
 }
@@ -134,9 +117,10 @@ export namespace Services {
 
     const content = fs.readFileSync(servicePath, 'utf-8');
     expect(content).to.contain('newServiceMethod');
-    expect(content).to.contain('sails.log.verbose');
+    expect(content).to.contain("return { message: 'Method newServiceMethod in Test' }");
+    expect(content).not.to.contain('_exportedMethods');
 
     const indexContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'services', 'index.ts'), 'utf-8');
-    expect(indexContent).to.contain("import * as TestServiceModule from './TestService'");
+    expect(indexContent).to.contain("export * from './TestService'");
   });
 });

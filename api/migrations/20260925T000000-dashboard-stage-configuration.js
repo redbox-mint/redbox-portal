@@ -12,10 +12,10 @@
  */
 module.exports = {
   name: '20260925T000000-dashboard-stage-configuration',
-  up: async ({ context: sails } = {}) => {
-    const service = sails && sails.services && sails.services.dashboardconfigservice;
+  up: async ({ context: owner } = {}) => {
+    const service = owner && owner.dashboardConfig;
     if (!service || typeof service.migrateLegacyConfiguration !== 'function') {
-      throw new Error('DashboardConfigService is not available; regenerate shims before migrating.');
+      throw new Error('DashboardConfigService is not available; supply the initialized dashboardConfig dependency.');
     }
     await service.migrateLegacyConfiguration();
   }

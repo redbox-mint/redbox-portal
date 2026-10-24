@@ -35,7 +35,6 @@ services:
     volumes:
        - "../..:/opt/redbox-portal"
        - "../../.tmp/attachments:/attachments"
-       - "../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
       interval: '10s'
@@ -55,27 +54,24 @@ services:
        - "1500"
     environment:
       - NODE_ENV=integrationtest
+      - RBPORTAL_EXPRESS_TEST_PROFILE=general
+      - REDBOX_APPLICATION_CONFIG=/opt/redbox-portal/support/integration-testing/express-integration.config.cjs
+      - REDBOX_SESSION_SECRET=integrationtest-only-v6-session-secret-at-least-32
       - PORT=1500
       - NODE_OPTIONS=--max-old-space-size=1024
-      - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
-      - sails_record__baseUrl_redbox=http://redbox:9000/redbox
-      - sails_record__baseUrl_mint=http://203.101.226.160/mint
       - LOAD_DEFAULT_FORMS=true
-      # - sails_log__level=verbose
-      - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
-      - sails_recordSchema__enabled=true
-      - sails_recordSchema__unknownProperties=allow
-      - sails_recordValidation__mode=shadow
-      - sails_recordtype__dataPublication__recordValidation__mode=enforce
-      - sails_security__csrf=false
     networks:
      main:
        aliases:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' for debugging locally
     init: true
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
+    entrypoint: [bash, /opt/redbox-portal/support/integration-testing/run-bruno-general-redbox.sh]
   mongodb:
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
     volumes:
       - '../resources/mongodb-persistence-indexes.js:/docker-entrypoint-initdb.d/20-persistence-indexes.js:ro'
     image: mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8

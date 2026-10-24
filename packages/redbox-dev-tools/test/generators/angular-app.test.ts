@@ -29,16 +29,6 @@ describe('AngularAppGenerator', () => {
       })
     );
 
-    // Create mock routes.config.ts
-    fs.writeFileSync(
-      path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'),
-      `
-export const routes: any = {
-    '/': 'RenderViewController.render',
-};
-`
-    );
-
     // Create mock auth.config.ts
     fs.writeFileSync(
       path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'),
@@ -93,11 +83,14 @@ export const auth: any = {
     expect(viewContent).to.contain('<test-app');
     expect(viewContent).not.to.contain('/browser/polyfills');
     expect(viewContent).to.contain('/browser/main');
+    expect(viewContent).to.contain('page.bundleHash');
+    expect(viewContent).to.contain('page.t');
+    expect(viewContent).not.to.match(/BrandingService|TranslationService|CacheService/);
 
     // Check routes
-    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'), 'utf-8');
-    expect(routesContent).to.contain("'/:branding/:portal/admin/test-app'");
-    expect(routesContent).to.contain("'view': 'admin/testView'");
+    const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
+    expect(routesContent).to.contain('path: "/:branding/:portal/admin/test-app"');
+    expect(routesContent).to.contain('handler: "page.admin.testView"');
 
     // Check auth
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');

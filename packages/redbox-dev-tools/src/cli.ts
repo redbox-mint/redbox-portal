@@ -61,12 +61,16 @@ function migrateHookDependencyContract(pkg: any): any {
     delete nextPkg.peerDependencies[depName];
   }
 
+  const exactOrInstalled = (version: unknown, installed: string): string =>
+    typeof version === 'string' && /^(?:\d+\.\d+\.\d+(?:-[\w.-]+)?$|file:|workspace:)/.test(version)
+      ? version : installed;
+  const coreVersion = readPackageJson(require.resolve('@researchdatabox/redbox-core/package.json')).version;
   nextPkg.peerDependencies['@researchdatabox/redbox-core'] =
-    nextPkg.peerDependencies['@researchdatabox/redbox-core'] ?? '*';
+    exactOrInstalled(nextPkg.peerDependencies['@researchdatabox/redbox-core'], coreVersion);
   nextPkg.devDependencies['@researchdatabox/redbox-core'] =
-    nextPkg.devDependencies['@researchdatabox/redbox-core'] ?? nextPkg.peerDependencies['@researchdatabox/redbox-core'];
+    exactOrInstalled(nextPkg.devDependencies['@researchdatabox/redbox-core'], coreVersion);
   nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] =
-    nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] ?? '*';
+    exactOrInstalled(nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'], packageJson.version!);
 
   return nextPkg;
 }
@@ -79,6 +83,8 @@ function findForbiddenHookDeps(pkg: any): string[] {
     const deps = pkg[section] ?? {};
 
     for (const depName of Object.keys(deps)) {
+      if (!/^(?:\d+\.\d+\.\d+(?:-[\w.-]+)?$|file:|workspace:)/.test(deps[depName]))
+        findings.push(`${section}.${depName}: exact version required`);
       if (isForbiddenSharedHookDep(section, depName)) {
         findings.push(`${section}.${depName}`);
       }
@@ -130,13 +136,13 @@ registerSyncTranslationCommand(program);
 
 program
   .command('init [name]')
-  .description('Initialize a ReDBox hook project (standard comparison or initial v6 extension)')
-  .option('--template <template>', 'Archetype template: standard or v6', 'standard')
+  .description('Initialize a ReDBox v6 extension project')
+  .option('--template <template>', 'Archetype template: v6', 'v6')
   .option('--description <description>', 'Project description')
   .option('--force', 'Overwrite existing archetype files', false)
   .action((name: string | undefined, options: { template: string; description?: string; force?: boolean }) => {
-    if (!['standard', 'v6'].includes(options.template)) {
-      console.error(`❌ Unsupported template: ${options.template}. Supported templates: standard, v6`);
+    if (options.template !== 'v6') {
+      console.error(`❌ Unsupported template: ${options.template}. Supported template: v6`);
       process.exit(1);
     }
 
@@ -164,14 +170,8 @@ program
     console.log('\n✨ Archetype ready!\n');
     console.log('Next steps:');
     console.log('  1. Install dependencies: npm install');
-    if (options.template === 'v6') {
-      console.log('  2. Compile TypeScript: npm run build');
-      console.log('  3. Bind concrete factory inputs in your application; see README.md\n');
-      return;
-    }
-    console.log('  2. Compile TypeScript: npm run compile');
-    console.log('  3. Run unit tests: npm run test:unit');
-    console.log('  4. Start tailoring the hook in src/, test/, and support/\n');
+    console.log('  2. Compile TypeScript: npm run build');
+    console.log('  3. Bind concrete factory inputs in your application; see README.md\n');
   });
 
 program
