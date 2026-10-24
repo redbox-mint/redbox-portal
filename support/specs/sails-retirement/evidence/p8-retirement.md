@@ -377,3 +377,30 @@ instead of its lease-bearing result, corrected); `figshare8-first.log` 78 passin
 4 failing and `figshare8-second.log` 107 passing/2 failing (missing explicit
 inputs/old shim calls). All passed in the reruns above. Final artifact/full suite
 acceptance remains outstanding.
+
+### Queue lifecycle fixture migration
+
+`agenda9-fifth.log`: **59 passing / 0 pending / 0 failing** (2s), using the
+explicit core Mocha command above on Node 26.11.1 and source based on `d91c29b7a`.
+The real Agenda processor/SQS HTTP receipt fixtures now construct the actual
+v6 AgendaQueue, register owned resources explicitly, initialize and activate
+separately, and stop through the real persistence resource lifecycle. Finite
+authored named handlers replace global dotted-service lookup. HTTP completion
+scenarios use composeHttpSession with their explicit owner.
+
+Justified lifecycle assertion updates: processors stay stopped until index
+validation completes; startup index failure admits no workers or completion
+submissions. These replace assertions about the retired adapter's early processor
+start. During drain, readiness closes immediately while resources remain owned;
+tests check both closed admission and retained resources, then still verify
+accepted writes, retry, bounded deadlines, release/acknowledgement and detached
+caller refusal. Sanitized PersistenceError(code=cleanup) replaces exposure of
+native unlock messages. Routing-only fixtures explicitly supply the already-active
+state with their authored Agenda maps. No production behavior was stubbed to
+restore the comparison adapter, and no skips were added.
+
+Earlier `agenda9-first.log` failed to load the deleted session wrapper;
+`agenda9-second.log` failed on the removed namespace export. `agenda9-third.log`
+failed 39 cases; `agenda9-fourth.log` had 49 passing/10 failing while the old
+readiness/start-order expectations were being migrated. The fifth run passes
+all 59. These remain incremental checks, not full-core/artifact acceptance.
