@@ -26,6 +26,8 @@ export async function httpRouteFixture(
   const log = createSinonStubLogger(sinon);
   const permit: RequestHandler = (_req, _res, next) => next();
   const app = express();
+  // Only representation owners may emit validators (record CAS requires strong tags).
+  app.disable('etag');
   app.set('query parser', 'extended');
   app.use(httpBodyParser());
   const router = express.Router();

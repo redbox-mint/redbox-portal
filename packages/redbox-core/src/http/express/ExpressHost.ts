@@ -53,6 +53,8 @@ export class ExpressHost {
     )
       throw new TypeError('Host stopDeadlineMs must be a positive timer interval.');
     const app = express();
+    // Only representation owners may emit validators (record CAS requires strong tags).
+    app.disable('etag');
     if (options.rootContext && !/^\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+$/.test(options.rootContext))
       throw new TypeError('Express rootContext must be a normalized absolute path.');
     app.disable('x-powered-by');

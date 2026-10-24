@@ -1312,3 +1312,34 @@ hooknames43-dev-build.log). node --test packages/redbox-core/test/qualification/
 record-hook-names.cjs: **3 passing/0 skipped/0 failing**, 54 inspected bundled
 declarations (hooknames43-qualification.log). This incremental build is not the
 clean final artifact.
+
+### Record API transport consumer retirement
+
+All81 scenarios in the retired webservice/RecordController suite now dispatch real
+HTTP in recordApiMutations (60), recordApiReads (8), recordHarvestDelegation (4)
+and recordDatastreamContracts (9). Mutation ports independently inspect validated
+submissions/trusted contexts; reads use actual current grants and complete branded
+relationship graphs. Uploads use actual FormData/streaming multipart and physical
+filesystem staging, including post-upload reload/CAS/authority and cleanup.
+
+Fixed production regressions: permission/update/object-metadata v1 failure literals;
+typed v1 transition conflicts retain the legacy result; malformed concurrency
+headers retain versioned code/header diagnostics; revoked view access clears
+projected metadata and concurrency. Disabled Express automatic weak entity tags
+in the production host (and matching local fixture); record validators remain
+owned strong revision tags. Source TypeScript exit0 (recordapi44-tsc.log).
+
+recordapi44-first/second logs:10/0/6 then15/0/1, as previously described by the
+fixture-path and failure-literal/weak-tag findings. recordapi44-third:60/0/0.
+Initial reads/harvest:11/0/1 because the old relationship fixture omitted sourceOid;
+the actual v6 graph requires both endpoints and branded grants. Corrected the
+fixture rather than relaxing filtering. Upload run9/0/0. Final combined
+recordapi44-final.log: **81 passing/0 pending/0 failing**, Node26.11.1, explicit
+core runner, 2s. No scenario removed or skipped. The obsolete req.apiRequest
+forged-context test now submits body-forged ifMatch without the validated header;
+actual header/body ownership is asserted. Storage failures return sanitized500
+over HTTP rather than escaping as native controller exceptions (design§1.3).
+
+The chronicle baseline fixture listener was closed in finally after a failed
+privacy assertion; only its task-owned diagnostic Mocha process was stopped.
+These focused checks do not qualify a final packed artifact or full application.

@@ -215,7 +215,17 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
           const concurrency = parsePublicRecordConcurrencyRequest(req.headers, action === 'create' ? undefined : oid, {
             formBacked: browser && ['create', 'updateMeta', 'transitionWorkflow'].includes(action),
           });
-          if (!concurrency.valid) throw new RecordMutationError(400, concurrency.code);
+          if (!concurrency.valid) {
+            res
+              .set(apiNoCacheHeaders)
+              .status(400)
+              .json(
+                apiVersion(req) === '1.0'
+                  ? { message: 'Invalid record concurrency request.' }
+                  : { errors: [{ code: concurrency.code, source: { header: concurrency.header } }], meta: {} }
+              );
+            return;
+          }
           const schemaIfMatch = req.headers[RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()];
           if (schemaIfMatch !== undefined && typeof schemaIfMatch !== 'string')
             throw new RecordMutationError(400, 'record-schema.invalid-request');
@@ -347,8 +357,18 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
                 user.roles.map(role => ({ ...role })),
                 latest
               )
-            )
-              throw new RecordMutationError(403, 'Access Denied');
+            ) {
+              result.concurrency = undefined;
+              res
+                .set(apiNoCacheHeaders)
+                .status(403)
+                .json(
+                  apiVersion(req) === '1.0'
+                    ? { message: 'Not authorised.' }
+                    : { errors: [{ code: 'not-authorised' }], meta: {} }
+                );
+              return;
+            }
             if (
               !input.records.hasEditAccess(
                 brand,
@@ -395,7 +415,17 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
               .status(v1 && !isRecordConflictStatus(status) && !schemaStatus ? 500 : status)
               .json(
                 v1
-                  ? { message: 'Record save failed' }
+                  ? action === 'transitionWorkflow'
+                    ? legacySaveBody(result)
+                    : {
+                        message: permission
+                          ? `Failed to update record with oid ${oid}.`
+                          : action === 'updateMeta'
+                            ? 'Update Metadata failed'
+                            : action === 'updateObjectMeta'
+                              ? 'Update Object Metadata failed'
+                              : 'Record save failed',
+                      }
                   : { errors: recordSaveDisplayErrors(result, 'Record save failed'), meta: { ...result } }
               );
             return;
