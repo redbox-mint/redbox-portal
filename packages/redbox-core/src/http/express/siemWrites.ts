@@ -10,6 +10,7 @@ import {
   normalizeSiemConfiguration,
   normalizeSiemDestination,
   normalizeSiemRedaction,
+  SiemConfigurationError,
 } from '../../configmodels/SiemConfiguration';
 import type { AppConfigs } from '../../configuration/AppConfigs';
 import { BrandingModel } from '../../model/storage/BrandingModel';
@@ -92,8 +93,16 @@ export function mountSiemWriteRoutes(router: Router, input: SiemWritesHttpInput)
           sendApiData(req, res, result);
         } catch (_error) {
           input.log.error('SIEM administration request failed');
-          sendApiErrors(req, res, 400, [
-            { detail: 'SIEM operation failed. Review configuration and delivery state before retrying.' },
+          const status = route.action === 'testDestination' || _error instanceof SiemConfigurationError ? 400 : 500;
+          sendApiErrors(req, res, status, [
+            {
+              detail:
+                status === 500
+                  ? 'Internal server error'
+                  : _error instanceof SiemConfigurationError
+                    ? _error.message
+                    : 'SIEM operation failed. Review configuration and delivery state before retrying.',
+            },
           ]);
         }
       })

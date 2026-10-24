@@ -911,3 +911,44 @@ three files plus the existing 49 API-route cases. No production workaround, test
 skip or weakened security assertion was introduced. Full artifact gates remain.
 Source `tsc --noEmit --incremental false`: **exit 0**, `policies27-tsc.log`.
 Pinned Prettier and git diff --check pass.
+
+### SIEM HTTP ownership and controlled query failure boundaries
+
+The SIEM suite's 93 scenarios now use neutral contract inputs and actual owned
+query/SIEM HTTP mounts. Existing redaction, masking, target-change refusal,
+page-two brand isolation, date bounds, page limits, failed-state extraction,
+configuration defaults and operation-failure assertions remain. Its 20 obsolete
+session-brand scenarios become explicit missing/unknown/blank/numeric route-brand
+refusals (404 before domain access). Strict query validation now rejects malformed
+blank/non-string filter requests before querying, then separately verifies default
+pagination on a valid empty query. Valid enum filters are sent in canonical form;
+request validation still checks malformed inputs. Response assertions use actual
+wire data and selected context rather than a stubbed controller BuildResponse.
+
+Five real production failures are isolated after correcting two fixture-shape
+assumptions (BrandingModel instance versus plain value, and getBrand's typed
+lookup signature). `siem28-regression-confirmed.log`: **88 passing / 0 pending /
+5 failing**. Three query-read failures leaked unexpected backend messages; two
+SIEM save outages incorrectly returned 400. Query reads now admit public status/
+messages only from owned QueryInputError, AuditReadError or ReportConfigServiceError
+with a 4xx status. All other failures are sanitized 500, including spoofed status
+properties and non-Error rejections. The report-results failure envelope retains
+its existing 200/status:false shape with a sanitized message. SIEM save outages
+are 500; controlled SiemConfigurationError retains actionable 400 messages;
+collector diagnostics remain sanitized 400. No raw backend text becomes a response.
+
+The generic AppConfig suite retains 17 scenarios with an actual explicitly
+constructed AppConfigs and repository ports. REST and browser-form writes use
+actual configuration routes and the same service. All nine reserved own header
+names, literal dotted-secret header masking/restoration, changed masked target,
+invalid budget, and sanitized storage outage cases execute without globals.
+Seven focused query-error cases additionally cover v1/v2 sanitation, spoofed
+status, string rejection, controlled audit/report 403/404 and report-result shape.
+
+Node 26.11.1 explicit core runner: `siem28-fixed.log` **125 passing / 0 pending /
+0 failing** (SIEM plus named-query/integration-audit/harvest/search suites);
+`siem28-final.log` **100/0/0** (SIEM plus query-error cases);
+`siem28-appconfig.log` **17/0/0**. `tsc --noEmit --incremental false`: **exit 0**,
+`siem28-tsc.log`. Pinned Prettier passes. Earlier `siem28-regression.log` included
+two fixture errors alongside the five confirmed production failures. No skips.
+Whole-suite and final artifact qualifications remain outstanding.

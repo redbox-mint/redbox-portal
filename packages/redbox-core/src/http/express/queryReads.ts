@@ -2,7 +2,7 @@ import { ReportConfig } from '../../model/config/ReportConfig';
 import type { RequestHandler, Router } from 'express';
 import type { PoliciesConfig } from '../../config/policies.config';
 import type { Services as NamedQueries } from '../../queries/NamedQueries';
-import type { Services as Reports, ReportConfigDto } from '../../queries/Reports';
+import { Services as Reports, type ReportConfigDto } from '../../queries/Reports';
 import type { HarvestHistory } from '../../queries/HarvestHistory';
 import type { SiemReads } from '../../queries/SiemReads';
 import { AuditReadError, type RecordAuditViews } from '../../queries/RecordAuditViews';
@@ -88,6 +88,19 @@ export interface QueryReadHttpInput {
 }
 class QueryInputError extends Error {
   public readonly status = 400;
+}
+/** Only domain-owned validation/refusal errors carry public diagnostics. */
+function queryFailure(error: unknown): { status: number; message: string } {
+  if (
+    (error instanceof QueryInputError ||
+      error instanceof AuditReadError ||
+      error instanceof Reports.ReportConfigServiceError) &&
+    Number.isInteger(error.status) &&
+    error.status >= 400 &&
+    error.status < 500
+  )
+    return { status: error.status, message: error.message };
+  return { status: 500, message: 'Internal server error' };
 }
 function integer(value: unknown, fallback: number, minimum = 1, maximum = Number.MAX_SAFE_INTEGER): number {
   if (value === undefined || value === '') return fallback;
@@ -207,7 +220,7 @@ export function mountQueryReadRoutes(router: Router, input: QueryReadHttpInput):
                 };
               } catch (error) {
                 if (error instanceof QueryInputError) throw error;
-                result = { status: false, message: error instanceof Error ? error.message : String(error) };
+                result = { status: false, message: queryFailure(error).message };
               }
               break;
             case 'downloadCSV': {
@@ -376,13 +389,7 @@ export function mountQueryReadRoutes(router: Router, input: QueryReadHttpInput):
           // The SIEM controller shares getConfig's name with report configuration.
           sendApiData(req, res, result);
         } catch (error) {
-          const status =
-            error instanceof AuditReadError
-              ? error.status
-              : error && typeof error === 'object' && typeof Reflect.get(error, 'status') === 'number'
-                ? Number(Reflect.get(error, 'status'))
-                : 500;
-          const message = error instanceof Error ? error.message : String(error);
+          const { status, message } = queryFailure(error);
           if (browserReport)
             sendApiData(req, res, { status: false, message }, route.action === 'downloadCSV' ? 200 : status);
           else sendApiErrors(req, res, status, [{ detail: message }]);
