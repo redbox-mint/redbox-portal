@@ -148,6 +148,48 @@ describe('StandardDatastreamService', function () {
   });
 
   describe('staging completion', function () {
+    it('accepts durable bytes when a reader consumes tus sidecars during a save ownership check', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, forms: {}, log: fixture.log });
+      const observed = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<void>();
+      let primary = false, sidecars = true, reads = 0;
+      const missing = () => Object.assign(new Error('not found'), { code: 'ENOENT' });
+      mockPrimaryDisk.exists.callsFake(async () => primary);
+      mockPrimaryDisk.getMetaData.callsFake(async () => {
+        if (!primary) throw missing();
+        return { contentLength: 4 };
+      });
+      mockPrimaryDisk.putStream.callsFake(async (_key: string, stream: Readable) => {
+        for await (const _chunk of stream) { /* Consume the actual concatenation stream. */ }
+        primary = true;
+      });
+      mockStagingDisk.exists.callsFake(async (key: string) => sidecars && key.endsWith('/info.json'));
+      mockStagingDisk.get.callsFake(async () => {
+        if (++reads === 1) { observed.resolve(); await release.promise; }
+        if (!sidecars) throw missing();
+        return JSON.stringify({ id: 'file', size: 4, offset: 4, metadata: {
+          redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'record',
+        } });
+      });
+      mockStagingDisk.listAll.callsFake(async (prefix: string) => ({ objects:
+        sidecars && prefix === '.tus/file/parts/' ? [{ key: prefix + '00000000000000000000' }] : [],
+      }));
+      mockStagingDisk.getStream.callsFake(async () => Readable.from(Buffer.from('body')));
+      mockStagingDisk.deleteAll.callsFake(async () => { sidecars = false; });
+      const authority = { actorId: 'actor', brandId: 'brand' };
+      const save = service.addDatastream('record', new Datastream({ fileId: 'file' }), undefined, authority);
+      // Observe the rejection immediately while the competing reader runs.
+      void save.catch(() => {});
+      try {
+        await observed.promise;
+        expect(await service.getDatastream('record', 'file', authority)).to.have.property('readstream');
+        expect(sidecars).to.equal(false);
+      } finally { release.resolve(); }
+      expect(await save).to.deep.equal({ success: true, key: 'attachments/record/file' });
+      expect(mockPrimaryDisk.putStream.calledOnce).to.equal(true);
+    });
+
     for (const progress of [
       { size: 9, offset: 3 },
       { offset: 3 },

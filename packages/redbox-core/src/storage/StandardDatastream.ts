@@ -763,7 +763,15 @@ export namespace Services {
           await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
           return { success: true, key: destKey };
         }
-        await this.assertStagingOwnership(oid, fileId, effectiveStagingDisk, requestContext, true);
+        try {
+          await this.assertStagingOwnership(oid, fileId, effectiveStagingDisk, requestContext, true);
+        } catch (error) {
+          // A concurrent authorized reader/save can consume the tus sidecars.
+          // Repair only independently confirmed durable bytes at this record key.
+          if (!(await this.checkPrimaryObject(primaryDisk, destKey)).available) throw error;
+          await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
+          return { success: true, key: destKey };
+        }
       }
       const existsInStaging = await effectiveStagingDisk.exists(fileId);
       if (!existsInStaging) {
