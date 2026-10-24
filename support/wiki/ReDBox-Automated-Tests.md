@@ -153,7 +153,10 @@ P8 must rerun every existing core/root Mocha suite, full Playwright, general/OID
 Bruno, packed consumers and MongoDB 8/9 standalone and independent replica-set
 matrix against a clean committed artifact. Baseline pending cases remain visible;
 missing-provider skips never qualify a path. Mongo containers require the recorded
-`nofile=64000:64000` limit. Qualification scripts are under
+`nofile=64000:64000` limit. The attachment staging filesystem must have more
+free space than the upload length plus `record.diskSpaceThreshold` (default
+10 GiB). Use a sufficiently sized disposable volume; a low-space refusal is not
+a passing upload check. Qualification scripts are under
 `support/integration-testing/qualify-sails-retirement-*.sh`; commands, exact image
 IDs, counts and failures belong in [P8 evidence](../specs/sails-retirement/evidence/p8-retirement.md).
 Historical P7 results are not proof of the final artifact.

@@ -40,3 +40,9 @@ Startup reads explicit configuration modules and v6 declarations. It never
 creates service/controller/config shims. Run `redbox-dev-tools init NAME --template v6`
 for a new extension. Consult [Services Architecture](Services-Architecture.md),
 [Configuration](Configuration-Guide.md) and [client changes](V6-Client-Compatibility.md).
+
+Set the public URL to the actual development origin, including its protocol and
+port. Page and static responses enable opener isolation for configured HTTPS
+origins; plain HTTP omits that HTTPS-only header. Forwarded protocol headers do
+not select this policy. In containers, `REDBOX_PORT` also selects the port checked
+by the image's native readiness probe.

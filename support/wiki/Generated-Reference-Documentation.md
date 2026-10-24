@@ -67,9 +67,11 @@ Run both `npm run doc:api` and `npm run docs:generate` after changing public
 transport or extension contracts, then `npm run docs:audit` and `npm run docs:test`.
 The validated hook example uses `RedboxExtension` and concrete application inputs;
 the contributor example exports a contributor for explicit binding. The catalogue
-includes offline factories/routes/work, host integrations and `ApplicationModule`
-without requiring an application global. Advisory findings remain visible and do
-not constitute runtime qualification. Record generation counts/source SHA with
+includes offline factories/routes/work and host integrations; its validated hook
+example uses `ApplicationModule` without an application global. `ApplicationModule`
+still has an advisory missing lifecycle classification and is not published as a
+separate surface. Advisory findings remain visible and do not constitute runtime
+qualification. Record generation counts/source SHA with
 [P8 evidence](../specs/sails-retirement/evidence/p8-retirement.md).
 
 Operators/API clients must also review [all intentional v6 behavior changes](V6-Client-Compatibility.md).

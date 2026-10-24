@@ -22,6 +22,8 @@ Use explicit deployment modules and real secrets as described in
 [Configuration](Configuration-Guide.md). Serve the configured public URL/root
 context through the approved reverse proxy and configure trusted proxies and
 browser origins explicitly. Readiness is `/readyz`; liveness is `/healthz`.
+Set `REDBOX_PORT` when selecting a nondefault container port; the image's native
+readiness check uses that value (default 1500).
 
 ## Existing installation upgrade
 

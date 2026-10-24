@@ -73,6 +73,18 @@ Configuration lives under `configuration.pdfgen` and is branding aware, so each 
 per-trigger options  >  branding-aware configuration.pdfgen  >  built-in default
 ```
 
+For v6 deployment modules, supply brand defaults under
+`brandingConfigurationDefaults.pdfgen`. Hydrated brand configuration includes the
+PDF model defaults; a top-level extension `pdfgen.token` does not replace its
+empty brand token. The credential must authenticate an actor allowed to view the
+record in that brand. Stored brand settings and per-trigger options retain their
+precedence.
+
+For the current Angular record form, selector readiness can wait for
+`redbox-form .rb-form-components:not([aria-hidden="true"])`. The form removes
+`aria-hidden` after its components and form group initialize. The legacy
+`div#loading.hidden` marker is no longer emitted.
+
 The same settings are editable in the portal admin UI under **PDF Generation Config** (config key `pdfgen`); `token` is registered as a secret field so it is masked there.
 
 ### Core settings
