@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
     steps:
       - checkout
@@ -50,7 +50,7 @@ jobs:
             - docker-images/redbox-portal-test.tar
   generate-api-docs:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
     steps:
       - checkout
@@ -93,7 +93,7 @@ jobs:
             - ~/.npm
   refresh-dependabot-package-locks:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     steps:
       - add_ssh_keys:
           fingerprints:
@@ -130,7 +130,7 @@ jobs:
             git push origin "HEAD:${CIRCLE_BRANCH}"
   build-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
     steps:
       - checkout
@@ -160,6 +160,12 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run: &selectPatchedNode
+          name: Select patched Node.js from .nvmrc
+          command: |
+            nvm install
+            nvm use
+            printf 'export PATH="%s:$PATH"\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
       - attach_workspace:
           at: /tmp
       - run:
@@ -241,6 +247,8 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -297,6 +305,8 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -353,6 +363,8 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -431,6 +443,8 @@ jobs:
       RBPORTAL_IMAGE: redbox-portal:test
     steps:
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -488,6 +502,8 @@ jobs:
     resource_class: large
     steps:
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -527,6 +543,8 @@ jobs:
     resource_class: large
     steps:
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -571,6 +589,8 @@ jobs:
       SIEM_TEST_MONGO_URL: mongodb://127.0.0.1:27028
     steps:
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - attach_workspace:
           at: /tmp
       - run:
@@ -624,7 +644,7 @@ jobs:
           path: packages/redbox-core/support/junit
   test-agenda-sqs-backend:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: medium
     steps:
       - checkout
@@ -662,7 +682,7 @@ jobs:
             - ~/.npm
   test-rva-registry:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: medium
     steps:
       - checkout
@@ -704,6 +724,8 @@ jobs:
     resource_class: medium
     steps:
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - run:
           <<: *installCodecov
       - run:
@@ -756,7 +778,7 @@ jobs:
           path: packages/redbox-dev-tools/support/junit
   test-storage-mongo:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
       - image: mongo:7.0
     resource_class: medium
     environment:
@@ -808,7 +830,7 @@ jobs:
             - ~/.npm
   lint-redbox-core:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: medium
     steps:
       - checkout
@@ -897,7 +919,7 @@ jobs:
         type: string
         default: 'latest'
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: medium
     steps:
       - checkout
@@ -925,7 +947,7 @@ jobs:
             bash support/build/npm-publish-backend-packages.sh
   deploy:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     steps:
       - checkout
       - setup_remote_docker
@@ -953,7 +975,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
   publish-runtime-amd64:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
     steps:
       - checkout
@@ -969,12 +991,14 @@ jobs:
     steps:
       - checkout
       - run:
+          <<: *selectPatchedNode
+      - run:
           name: Publish arm64 runtime image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
   publish-runtime-pdfgen-amd64:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
     steps:
       - checkout
@@ -990,12 +1014,14 @@ jobs:
     steps:
       - checkout
       - run:
+          <<: *selectPatchedNode
+      - run:
           name: Publish arm64 runtime pdfgen image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
   deploy-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     steps:
       - checkout
       - setup_remote_docker
@@ -1017,6 +1043,8 @@ jobs:
     steps:
       - checkout
       - run:
+          <<: *selectPatchedNode
+      - run:
           name: Build and push arm64 runtime image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
@@ -1027,12 +1055,14 @@ jobs:
     steps:
       - checkout
       - run:
+          <<: *selectPatchedNode
+      - run:
           name: Build and push arm64 pdfgen image
           no_output_timeout: 30m
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
   publish-manifest:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     steps:
       - checkout
       - setup_remote_docker
@@ -1041,7 +1071,7 @@ jobs:
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh
   publish-runtime-pdfgen-manifest:
     docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     steps:
       - checkout
       - setup_remote_docker
@@ -1056,6 +1086,8 @@ jobs:
           fingerprints:
             - '50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff'
       - checkout
+      - run:
+          <<: *selectPatchedNode
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -1093,7 +1125,7 @@ jobs:
             - ~/.npm
   publish-wiki:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.22.1'
     steps:
       - add_ssh_keys:
           fingerprints:
