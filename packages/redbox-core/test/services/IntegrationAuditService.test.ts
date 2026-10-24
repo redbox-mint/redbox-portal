@@ -1056,7 +1056,7 @@ describe('IntegrationAuditService', function () {
       installRepositoryFixtures();
       collaborators.AgendaQueueService = mockQueueService;
       service = new Services.IntegrationAuditService({ storage: collaborators.RedboxJavaStorageService ?? fixture.collaborators[fixture.config.storage?.serviceName], log: fixture.log, get environment() { return fixture.config.environment; }, enqueue: (name, entry) => collaborators.AgendaQueueService.now(name, entry), emitSecurityEvent: async entry => await collaborators.SecurityEventService?.emitFromIntegrationAudit(entry) });
-  
+
     });
 
     afterEach(function () {

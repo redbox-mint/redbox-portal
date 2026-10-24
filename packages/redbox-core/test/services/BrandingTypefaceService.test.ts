@@ -126,7 +126,7 @@ describe('BrandingTypefaceService', function () {
         error: () => undefined,
       },
     };
-    
+
     disk = new FakeDisk();
     repositoryFixtures.BrandingConfig = { find: async () => [], findOne: async () => null };
     repositoryFixtures.BrandingConfigHistory = { find: async () => [] };

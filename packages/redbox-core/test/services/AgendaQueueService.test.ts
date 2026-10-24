@@ -1243,7 +1243,7 @@ describe('AgendaQueueService', function () {
         it('preserves explicit zero lock lifetime and processEvery values in agenda options', function () {
           const service = createQueue();
           const agendaOptions = { backend: undefined };
-      
+
           (service as any).applyCommonAgendaOptions(agendaOptions, {
             defaultLockLifetime: 0,
             processEvery: '5 seconds'

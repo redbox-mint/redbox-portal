@@ -983,7 +983,7 @@ describe('RecordSchemaService create resolution', function () {
       buildContractFormConfig,
     });
 
-    
+
       const result = await service.resolveCreate(request);
 
       expect(result.kind).to.equal('resolved');
@@ -997,7 +997,7 @@ describe('RecordSchemaService create resolution', function () {
         )
       ).to.equal(true);
       expect(hasCreateAccess.calledBefore(buildContractFormConfig)).to.equal(true);
-    
+
   });
 
   it('accepts only an issued internal create capability after the normal save boundary authorizes', async function () {
@@ -1701,7 +1701,7 @@ describe('RecordSchemaService update resolution', function () {
       buildContractFormConfig,
     });
 
-    
+
       const result = await service.resolveUpdate(request);
 
       expect(result.kind).to.equal('resolved');
@@ -1714,7 +1714,7 @@ describe('RecordSchemaService update resolution', function () {
         )
       ).to.equal(true);
       expect(hasEditAccess.calledBefore(buildContractFormConfig)).to.equal(true);
-    
+
   });
 
   it('authorizes DOI, Workspace, and RAiD initiating actors through the real update resolver flow', async function () {
@@ -1743,7 +1743,7 @@ describe('RecordSchemaService update resolution', function () {
       buildContractFormConfig,
     });
 
-    
+
       for (const username of ['doi-owner', 'workspace-owner', 'raid-owner']) {
         const result = await service.resolveUpdate({
           ...request,
@@ -1768,7 +1768,7 @@ describe('RecordSchemaService update resolution', function () {
       expect(hasEditAccess.callCount).to.equal(4);
       expect(buildContractFormConfig.callCount).to.equal(3);
       expect(putRecordSchemaArtifact.callCount).to.equal(3);
-    
+
   });
 
   it('returns typed denied and missing-OID outcomes without compiling or persisting', async function () {
@@ -3216,7 +3216,7 @@ describe('RecordSchemaService telemetry', function () {
       },
     });
     const throwingLoggerFactory = sinon.stub().throws(new Error(secret));
-    
+
       const baselineSave = new Services.RecordSchema({
         telemetryLogger: safeLogger,
         getConfig: () => enabledConfig(),
@@ -3279,7 +3279,7 @@ describe('RecordSchemaService telemetry', function () {
         'Configured record schema integration pins were not materialized (record-schema.storage-unavailable).'
       );
       expect(throwingLoggerFactory.callCount).to.be.greaterThan(0);
-    
+
   });
 });
 

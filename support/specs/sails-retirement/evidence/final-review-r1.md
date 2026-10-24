@@ -210,6 +210,12 @@ The source closure is rerun after committing this evidence. The immutable baseli
 inventory and historical P8 artifact ledger are preserved rather than rewritten
 to imply a fresh artifact build.
 
+The closing whole-feature `git diff --check a49366803..HEAD` also found twelve
+whitespace-only blank lines in five migrated test fixtures. They were removed;
+`git diff --ignore-all-space` confirmed no executable tokens/assertions changed.
+The changed-Markdown audit checks 8 files/108 relative links with 0 missing
+targets, and confirms the four accepted institution task checkboxes are unchanged.
+
 ## Reviewed areas without additional defects
 
 - Express admission/start/stop/deadlines/retry, parser/middleware ordering,

@@ -85,7 +85,7 @@ describe('FigshareVocabularyService bootstrap data', function () {
     // Each suite constructs its own explicit domain environment.
     environment = createDomainFixture();
 
-    
+
     savedVocabConfig = environment.config.vocab;
     savedBootstrapConfig = environment.config.bootstrap;
     savedServices = environment.collaborators;
