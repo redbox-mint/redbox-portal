@@ -74,7 +74,8 @@ export class StreamingMultipart {
     const keys: string[] = [];
     let failure: Error | undefined;
     const fail = (error: Error) => {
-      failure ??= error;
+      if (failure) return;
+      failure = error;
       request.unpipe(parser);
       request.resume();
       for (const stream of streams) stream.destroy(error);
@@ -84,7 +85,13 @@ export class StreamingMultipart {
     request.once('aborted', abort);
     request.once('error', abort);
     const completed = new Promise<void>((resolve, reject) => {
-      parser.once('error', reject);
+      // Busboy can report a malformed body before a staged write rejects.
+      // Keep observing subsequent errors and cancel the remaining streams once.
+      parser.on('error', () => {
+        const error = failure ?? new MultipartError(400, 'Invalid multipart request');
+        fail(error);
+        reject(error);
+      });
       parser.once('finish', resolve);
       parser.on('filesLimit', () => fail(new MultipartError(413, 'Too many files')));
       parser.on('fieldsLimit', () => fail(new MultipartError(413, 'Too many fields')));

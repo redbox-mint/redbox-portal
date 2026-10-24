@@ -122,6 +122,30 @@ describe('owned streaming multipart with real HTTP and disk', function () {
     assert.equal((await fetch(url, { method: 'POST', body: many })).status, 413);
     assert.deepEqual(await readdir(directory), []);
   });
+  it('rejects truncated multipart bodies, cleans staging and serves the next upload', async () => {
+    let finalized = false;
+    const consume = finalize;
+    finalize = async result => {
+      finalized = true;
+      return consume(result);
+    };
+    const boundary = 'owned-truncated';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary },
+      body: '--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="f"\r\n\r\ncontents',
+    });
+    await response.text();
+    assert.equal(response.status, 400);
+    await uploads.drain();
+    assert.equal(finalized, false);
+    assert.deepEqual(await readdir(directory), []);
+    const next = await fetch(url, { method: 'POST', body: form() });
+    assert.equal(next.status, 200);
+    assert.deepEqual((await next.json()).bytes, ['contents']);
+    assert.equal(finalized, true);
+    assert.deepEqual(await readdir(directory), []);
+  });
   it('backpressures the HTTP input while the staging disk is stalled', async () => {
     limits.fileSize = 4 * 1024 * 1024;
     const bytes = 'x'.repeat(2 * 1024 * 1024);
@@ -212,7 +236,7 @@ describe('owned streaming multipart with real HTTP and disk', function () {
     assert.equal(finalized, false);
     assert.deepEqual(await readdir(directory), []);
   });
-  for (const failure of ['abort', 'limit'] as const) {
+  for (const failure of ['abort', 'limit', 'truncation'] as const) {
     it(`joins the actual disk write after ${failure} before cleanup and drain`, async () => {
       const entered = Promise.withResolvers<void>(),
         release = Promise.withResolvers<void>();
@@ -235,7 +259,8 @@ describe('owned streaming multipart with real HTTP and disk', function () {
       );
       await started.promise;
       if (failure === 'abort') req.destroy();
-      else req.end('x'.repeat(limits.fileSize) + '\r\n--' + boundary + '--\r\n');
+      else if (failure === 'limit') req.end('x'.repeat(limits.fileSize) + '\r\n--' + boundary + '--\r\n');
+      else req.end();
       try {
         await entered.promise;
         let drained = false;
