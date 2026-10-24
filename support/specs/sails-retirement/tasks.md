@@ -10,8 +10,10 @@ artifacts pass 20 checks. Installed production images, full released-v5 stand-in
 cutover/restart/stop, operational comparisons and complete offline-capable
 checkpoint recovery pass. SR-045/049 remain partial only for the undesignated
 institution/source/topology. Internal-default promotion SR-050 is complete; its
-actual Docker/npm/dev workflows pass. P8 is in progress: shim output is reconciled;
-runtime adapter/dependency removal and consumer migration are underway. The P7
+actual Docker/npm/dev workflows pass. P8 is in progress: SR-051 is accepted after clean packed/runtime builds and
+236-path shim absence proof. Runtime adapter/dependency removal, consumer and
+documentation changes are implemented; final installed-graph/suite/recovery
+qualification remains underway. The P7
 counts above are historical; the P8 tree is not yet qualified. See
 [P8 evidence](evidence/p8-retirement.md).
 
@@ -781,7 +783,12 @@ Read the [design](design.md) for behavior and the
 
 ## P8 — Retirement and final release evidence
 
-- [ ] **SR-051 — Retire shim generation and reconcile owned generated files.**
+- [x] **SR-051 — Retire shim generation and reconcile owned generated files.**
+
+  **Status:** done; exact 236-file removal preserves nine application-owned paths,
+  edited/symlink safeguards pass, twelve clean packs pass20 consumer/scaffold
+  checks and the installed runtime contains none of the236 shims.
+  [P8 evidence](evidence/p8-retirement.md#sr-051-clean-installation-and-emitted-artifact-acceptance).
 
   **Depends on:** SR-050, SR-037, SR-018.
 

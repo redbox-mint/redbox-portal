@@ -5,7 +5,7 @@ No worktree, branch switch, push or publication. Wiki is an ordinary tracked
 snapshot on this branch; the user explicitly confirmed that it must stay so.
 SR-005/045/049's institution designation gap remains unchanged.
 
-## SR-051 — Generated-file reconciliation (in progress)
+## SR-051 — Generated-file reconciliation (accepted)
 
 The SR-001 `app-shims-before.json` was compared against the actual working tree:
 245 files, all 236 generated files match their recorded SHA256 exactly; nine
@@ -35,13 +35,17 @@ Core clean build: Node **26.11.1**, npm **11.20.0**, Prisma generation/schema
 verification/TypeScript/copy **exit 0**. Shim generator, generation templates,
 public loader export and former entrypoint generation calls have been removed.
 `app.js` and `app.integrationtest.js` delegate to the sole Express executable.
-Consumer tests/tooling conversion remains in progress; no P8 checkbox is claimed.
+The subsequent clean artifact checks below complete this task; broader consumer
+qualification remains SR-053/055.
 
 ## Qualification status
 
-No final P8 artifact or broad-suite result has yet been obtained. Earlier P7
-results are historical inputs, not post-removal proof. Runtime, test/tooling,
-documentation and final clean-artifact closure are still in progress.
+The clean application archive `853d0039df1164beaa4098a8dba9c7984e498147` has
+built all packages/Angular/shared assets, twelve tarballs and the pristine runtime
+image. Twenty packed production/offline/scaffold checks pass. The additional
+test/rehearsal/builder image targets and full regression/recovery/installed-graph
+qualification remain in progress. Earlier P7 broad-suite results are historical
+inputs, not post-removal proof. Only SR-051 is accepted at this point.
 
 ## SR-052 — Runtime and dependency removal (not yet accepted)
 
@@ -1635,3 +1639,44 @@ explicitly allowed. A temporary manifest control accepts those names and rejects
 `sails-mongo`, `waterline` and `waterline-utils` (3 forbidden entries); the actual
 committed tree remains0/0. Logs: `closure56-{source,installed-fixture,
 package-control-red}.json`. No package dependency or runtime artifact changes.
+
+
+### SR-051 clean installation and emitted artifact acceptance
+
+The clean `git archive` of853d0039d contains no ignored/local output.
+`qualify-sails-retirement-packages.sh` builds all nine owned packages,20Angular
+applications/two libraries, shared webpack assets and API descriptors, then
+exports twelve real `npm pack` archives. All20 existing packed checks pass,
+including online strict production install, offline `npm ci`, ESM-only/top-level
+await, CommonJS registration, isolated offline discovery and compiling an actual
+v6-generated hook. Node26.11.1/npm11.20.0. No framework/shim generator is invoked.
+The archive hashes and check flags are in [p8-artifacts.json](p8-artifacts.json).
+
+The pristine runtime image built from that same archive is
+`sha256:771ebe39b424ae38dd7d3b876a4371d6c0cfd5865e80e3b5855fafab9b485b72`.
+A network-disabled `docker run` mounts only the SR-001 digest manifest as data
+and checks every generated path inside the installed artifact: **236 absent**,
+exit0 (`runtime-shims56.log`). Earlier reconciliation preserves all nine
+application-owned paths and rejects edits/symlinks. This completes SR-051's clean
+build/install and edited-customization acceptance. It does not complete the
+remaining image/suite/installed-graph gates of SR-052–055.
+
+Commands:
+
+```sh
+git archive 853d0039df1164beaa4098a8dba9c7984e498147 | tar -x -C "$clean_context"
+SR_P7_CLEAN_CONTEXT="$clean_context" SR_P7_PACKED_OUTPUT="$packed_output" \
+  bash support/integration-testing/qualify-sails-retirement-packages.sh
+docker build --network host --target runtime --iidfile "$logs/runtime.iid" "$clean_context"
+docker run --rm --network none \
+  -v "$PWD/support/specs/sails-retirement/evidence/app-shims-before.json:/audit-manifest.json:ro" \
+  "$(cat "$logs/runtime.iid")" node -e '
+  const assert=require("node:assert/strict"), fs=require("node:fs");
+  const generated=require("/audit-manifest.json").files.filter(f=>f.generatedHeader);
+  assert.equal(generated.length,236);
+  for(const entry of generated) assert.equal(fs.existsSync(entry.file),false,entry.file);
+  console.log(JSON.stringify({generatedShimsAbsent:generated.length,node:process.version}));'
+```
+
+Logs: `packed-final-build.log`, `runtime-build.log`,
+`packed-853d0039d/result.json`, `runtime-shims56.log`.

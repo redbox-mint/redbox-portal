@@ -1,0 +1,96 @@
+{
+  "sourceCommit": "853d0039df1164beaa4098a8dba9c7984e498147",
+  "node": "v26.11.1",
+  "npm": "11.20.0",
+  "artifacts": [
+    {
+      "name": "@researchdatabox/sails-ng-common",
+      "filename": "researchdatabox-sails-ng-common-0.2.1.tgz",
+      "sha256": "6d23632ef3a9f4c59637fc9e8ca44e480e7c87d6218132bf3ca81289c9442a72",
+      "files": 568
+    },
+    {
+      "name": "@researchdatabox/agenda-sqs-backend",
+      "filename": "researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+      "sha256": "76d426e7ab5d9c71af1fff96e528bf800970132eb5ea4431eb7d9a87c2a3720f",
+      "files": 20
+    },
+    {
+      "name": "@researchdatabox/raido-openapi-generated-node",
+      "filename": "researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+      "sha256": "d40363198433495e887285046e26e5a7067917b7e690540e2ccb57ec48d30adf",
+      "files": 12
+    },
+    {
+      "name": "@researchdatabox/rva-registry-openapi-generated-node",
+      "filename": "researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+      "sha256": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d",
+      "files": 11
+    },
+    {
+      "name": "@researchdatabox/redbox-core",
+      "filename": "researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+      "sha256": "f1204948a9c3dd2d18a2733d9776feb769f1b67495716ca86121c539c01503e3",
+      "files": 2015
+    },
+    {
+      "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+      "filename": "researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+      "sha256": "bd52140007cb7d41ed0f5cc8b9b3c198be342ee883565521cec47275db1b5f80",
+      "files": 42
+    },
+    {
+      "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+      "filename": "researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+      "sha256": "233112cbca0a6862f3ef913079f010d835c133f0ff22f867072fd83ee45dcb40",
+      "files": 36
+    },
+    {
+      "name": "redbox-hook-dev",
+      "filename": "redbox-hook-dev-1.0.0.tgz",
+      "sha256": "8da96cff08682b094af044fd131d439dc99983479fcb3ff063dc4319846fcb7a",
+      "files": 108
+    },
+    {
+      "name": "@researchdatabox/redbox-dev-tools",
+      "filename": "researchdatabox-redbox-dev-tools-4.5.1.tgz",
+      "sha256": "1cd5d04bcc2185799dcbf7315434bc73ac4c9c1db50033fc18ea02e3d8dba482",
+      "files": 86
+    },
+    {
+      "name": "sr-esm-only",
+      "filename": "sr-esm-only-1.0.0.tgz",
+      "sha256": "e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89",
+      "files": 2
+    },
+    {
+      "name": "sr-esm-hook",
+      "filename": "sr-esm-hook-1.0.0.tgz",
+      "sha256": "89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21",
+      "files": 2
+    },
+    {
+      "name": "sr-commonjs-hook",
+      "filename": "sr-commonjs-hook-1.0.0.tgz",
+      "sha256": "60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e",
+      "files": 2
+    }
+  ],
+  "result": {
+    "checks": 20,
+    "providers": [
+      "@researchdatabox/sails-hook-redbox-pdfgen",
+      "@researchdatabox/sails-hook-redbox-storage-mongo",
+      "redbox-hook-dev",
+      "sr-esm-hook",
+      "sr-commonjs-hook"
+    ],
+    "esmOnly": true,
+    "topLevelAwait": true,
+    "offline": true,
+    "isolated": true,
+    "expressHost": true,
+    "development": true,
+    "compiledScaffold": true
+  }
+}
