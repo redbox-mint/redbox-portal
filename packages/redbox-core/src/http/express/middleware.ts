@@ -42,32 +42,74 @@ export interface HttpMiddlewareInput {
   readonly parserExclusions?: readonly string[];
 }
 
-export async function prepareHttpMiddleware(router: Router, input: HttpMiddlewareInput) {
-  router.use((req, res, next) => {
-    const chronicle = RequestChronicleHelper.fromReq(input.log, req, {
-      settings:
-        (typeof input.logSettings === 'function' ? input.logSettings() : input.logSettings) ??
-        defaultRequestChronicleSettings,
-    });
-    chronicle.start();
-    chronicle.updateReq(req);
-    const finish = () => {
-      if (chronicle.finish(res)) chronicle.log(input.log);
-    };
-    res.once('finish', finish);
-    res.once('close', finish);
-    runWithRequestChronicle(chronicle, next);
-  });
+/** Observability failures must not alter request dispatch or escape response events. */
+export function httpRequestChronicle(log: ILogger, settings?: HttpMiddlewareInput['logSettings']): RequestHandler {
+  const warn = (message: string) => {
+    try {
+      log.warn(message);
+    } catch {
+      /* A failed log transport cannot break HTTP. */
+    }
+  };
+  return (req, res, next) => {
+    let chronicle: RequestChronicleHelper | undefined;
+    try {
+      chronicle = RequestChronicleHelper.fromReq(log, req, {
+        settings: (typeof settings === 'function' ? settings() : settings) ?? defaultRequestChronicleSettings,
+      });
+      chronicle.start();
+      chronicle.updateReq(req);
+      const helper = chronicle;
+      const finish = () => {
+        try {
+          if (helper.finish(res)) helper.log(log);
+        } catch {
+          warn('Request chronicle: could not complete the request chronicle.');
+        }
+      };
+      res.once('finish', finish);
+      res.once('close', finish);
+    } catch {
+      chronicle = undefined;
+      warn('Request chronicle: could not start the request chronicle.');
+    }
+    // Keep downstream dispatch outside the observation catch; never invoke it twice.
+    if (chronicle) runWithRequestChronicle(chronicle, next);
+    else next();
+  };
+}
+
+/** Parser errors cross the extension boundary without raw body fragments or nested causes. */
+export function httpBodyParser(parserExclusions?: readonly string[]): RequestHandler {
   const parsers = [express.json({ limit: '1mb' }), express.urlencoded({ extended: true, limit: '1mb' })];
-  const exclusions = input.parserExclusions?.map(path => path.toLowerCase());
-  router.use((req, res, next) => {
+  const exclusions = parserExclusions?.map(path => path.toLowerCase());
+  return (req, res, next) => {
     const requestPath = req.path.toLowerCase();
     if (exclusions?.some(path => requestPath === path || requestPath.startsWith(path + '/'))) {
       next();
       return;
     }
-    parsers[0](req, res, error => (error ? next(error) : parsers[1](req, res, next)));
-  });
+    const complete = (error?: unknown) => {
+      if (!error) {
+        next();
+        return;
+      }
+      const type = typeof error === 'object' ? Reflect.get(error, 'type') : undefined;
+      const status = typeof error === 'object' ? Reflect.get(error, 'status') : undefined;
+      next(
+        Object.assign(new Error('Invalid request'), {
+          ...(typeof type === 'string' ? { type } : {}),
+          ...(typeof status === 'number' ? { status } : {}),
+        })
+      );
+    };
+    parsers[0](req, res, error => (error ? complete(error) : parsers[1](req, res, complete)));
+  };
+}
+
+export async function prepareHttpMiddleware(router: Router, input: HttpMiddlewareInput) {
+  router.use(httpRequestChronicle(input.log, input.logSettings));
+  router.use(httpBodyParser(input.parserExclusions));
   if (input.session.adapter === 'mongo') {
     const reports = await prepareSessionIndexes(input.owner, input.session, 'inspect');
     if (reports.some(report => report.index !== 'ready'))
@@ -132,7 +174,11 @@ export function httpErrorHandler(log: ILogger): ErrorRequestHandler {
     }
     const type = error && typeof error === 'object' ? Reflect.get(error, 'type') : undefined;
     const status =
-      type === 'entity.too.large' ? 413 : type === 'entity.parse.failed' || error instanceof URIError ? 400 : 500;
+      type === 'entity.too.large' || type === 'parameters.too.many'
+        ? 413
+        : type === 'entity.parse.failed' || error instanceof URIError
+          ? 400
+          : 500;
     try {
       sendApiErrors(req, res, status, [{ detail: status === 500 ? 'Internal server error' : 'Invalid request' }]);
     } catch {

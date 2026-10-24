@@ -756,3 +756,40 @@ failing**. `policies23-first.log` failed to load due to fixture syntax; correcte
 converted to actual PathRules. `policies23-third.log`: all nine files together,
 **91 passing / 0 pending / 0 failing** (222ms). No production failure was bypassed
 and no skip introduced. Formatting uses pinned Prettier. Full-suite gates remain.
+
+### Chronicle observer isolation and parser boundary regression fixes
+
+A bounded reproduction compiles the committed Express middleware from `dcb47adaa`
+in memory (original relative module resolution), supplies its real router and
+injects a failing Chronicle.finish. `chronicle24-regression.log`: **exit 1**,
+`Got unwanted exception: observer failed` escaped the response event. The same
+reproduction against the working implementation passes **exit 0**,
+`chronicle24-fixed.log`. Earlier reproduction setup errors were corrected before
+this result; they do not count as observed production failures.
+
+The actual Express owner now installs explicit httpRequestChronicle and
+httpBodyParser middleware. Chronicle start/completion/transport errors cannot
+break dispatch or escape finish/close; downstream dispatch remains outside the
+observer catch and runs once. Parser errors retain only status/type and a generic
+message before extension middleware can see them; raw bodies/excerpts/causes
+cannot leak through a later fallback logger. URL-encoded parameter overflow now
+returns 413 (matching byte overflow), rather than generic 500. Malformed JSON is
+400. No parser/error response returns private content.
+
+The two retired middleware suites retain all 18 scenarios using the real Express
+owner, recordServiceChronicle, direct owned error handler and StreamingMultipart
+with actual temporary files. Buffered/streamed/authored callback bridges still
+prove exact bytes, async context, service/controller error deduplication, staged
+cleanup, no private-body capture, simultaneous request isolation, aborts and
+observer failure isolation. The removed framework process-event registration
+scenario becomes the actual pre-routing Express error path: repeated capture is
+deduplicated and raw error text is excluded. Framework fallback 500 assertions
+become deliberate v6 parser 400/413 responses; Skipper callback registration
+becomes awaited streaming finalization. No scenario was skipped.
+
+Node 26.11.1, explicit core runner: `chronicle24-first.log` **15 passing/0 pending/0
+failing** (chronicle + existing HTTP middleware); `chronicle24-second.log` adds
+both parser and full existing StreamingMultipart suites: **29 passing / 0 pending
+/ 0 failing** (1s). `tsc --noEmit --incremental false`: **exit 0**,
+`chronicle24-tsc.log`. Pinned Prettier and git diff --check pass. Whole-suite and
+clean-artifact gates remain open.
