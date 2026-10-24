@@ -100,7 +100,7 @@ export namespace Services {
             // Keep a fresh in-process copy for another full TTL so a request that
             // captured the superseded metadata before cleanup can still complete.
             this.setCache(storageKey, retainedBytes);
-          } catch (error) {
+          } catch (_error) {
             this.input.log.warn(`BrandingLogoService failed to remove superseded favicon ${storageKey}:`);
           }
         })();
@@ -311,7 +311,7 @@ export namespace Services {
         try {
           await this.input.disk().delete(storageKey);
           delete this._binaryById[storageKey];
-        } catch (cleanupError) {
+        } catch (_cleanupError) {
           this.input.log.warn(`BrandingLogoService failed to remove unreferenced favicon ${storageKey}:`);
         }
         throw error;

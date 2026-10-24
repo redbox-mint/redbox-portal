@@ -8,7 +8,7 @@ import * as os from 'node:os';
 import * as path from 'path';
 import { Datastream, DatastreamService } from '@researchdatabox/redbox-core/extensions/storage';
 import type { BrandingModel } from '@researchdatabox/redbox-core/extensions/storage';
-import { Cause, Duration, Effect, Fiber } from 'effect';
+import { Duration, Effect, Fiber } from 'effect';
 import type { PdfgenConfig, PdfgenPDFOptions } from '../../config/pdfgen';
 import {
   BrowserError,
@@ -135,7 +135,7 @@ export namespace Services {
       }
       task.interruptReason = 'superseded';
       if (task.fiber != null) {
-        Effect.runPromise(Fiber.interrupt(task.fiber)).catch(error => {
+        Effect.runPromise(Fiber.interrupt(task.fiber)).catch(_error => {
           this.dependencies.log.warn('PDFService::Failed to interrupt superseded PDF retry task.');
         });
       }
@@ -346,7 +346,7 @@ export namespace Services {
                   latestNavigationRequest = request;
                   if (requestUrl.origin !== expectedUrl.origin) {
                     blockedNavigationUrl = request.url();
-                    void request.abort('blockedbyclient').catch((error: unknown) => {
+                    void request.abort('blockedbyclient').catch((_error: unknown) => {
                       this.dependencies.log.warn('PDFService::Failed to block off-origin navigation.');
                     });
                     return;
@@ -362,7 +362,7 @@ export namespace Services {
                 if (requestUrl.origin === expectedUrl.origin) {
                   headers['Authorization'] = `Bearer ${token}`;
                 }
-                void request.continue({ headers }).catch((error: unknown) => {
+                void request.continue({ headers }).catch((_error: unknown) => {
                   this.dependencies.log.warn('PDFService::Failed to continue PDF page request.');
                 });
               });
@@ -834,7 +834,7 @@ export namespace Services {
                         else await Effect.runPromise(Fiber.interrupt(fiber));
                         await Effect.runPromise(Fiber.await(fiber));
                       })
-                      .catch(error => this.dependencies.log.error('PDFService::Retry ownership failed.'));
+                      .catch(_error => this.dependencies.log._error('PDFService::Retry ownership failed.'));
                   });
                 });
               }
@@ -864,7 +864,7 @@ export namespace Services {
         .runAcceptedWork(async () => {
           const generationFiber = Effect.runFork(
             effect.pipe(
-              Effect.catchAllCause(cause => this.logError(`PDFService::Background PDF generation failed for ${oid}.`)),
+              Effect.catchAllCause(_cause => this.logError(`PDFService::Background PDF generation failed for ${oid}.`)),
               Effect.asVoid
             )
           );
@@ -875,7 +875,7 @@ export namespace Services {
             this.generationTasks.delete(generationFiber);
           }
         })
-        .catch(error => this.dependencies.log.error('PDFService::Generation ownership failed.'));
+        .catch(_error => this.dependencies.log._error('PDFService::Generation ownership failed.'));
 
       return of(record);
     }

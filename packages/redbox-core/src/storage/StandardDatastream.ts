@@ -185,7 +185,7 @@ export namespace Services {
       }
       try {
         await metadataService.upsert(row);
-      } catch (err) {
+      } catch (_err) {
         this.logger.error(`${this.logHeader} metadata upsert failed for ${row.storageKey}`);
       }
     }
@@ -197,7 +197,7 @@ export namespace Services {
       }
       try {
         await metadataService.deleteByStorageKey(storageKey);
-      } catch (err) {
+      } catch (_err) {
         this.logger.error(`${this.logHeader} metadata delete failed for ${storageKey}`);
       }
     }
@@ -217,7 +217,7 @@ export namespace Services {
       }
       try {
         await metadataService.recordAccess(event);
-      } catch (err) {
+      } catch (_err) {
         this.logger.error(`${this.logHeader} access audit failed for ${event.action} ${event.storageKey ?? event.oid}`);
       }
     }
@@ -434,7 +434,7 @@ export namespace Services {
         try {
           const metadataRow = await this.buildMetadataRow(oid, fileId, destKey);
           await this.safelyUpsertMetadata(metadataRow);
-        } catch (err) {
+        } catch (_err) {
           this.logger.error(`${this.logHeader} promoteFromStaging() metadata sync failed for ${destKey}`);
         }
         await this.safelyRecordAccess({ oid, fileId, storageKey: destKey, action: 'upload' });
@@ -876,7 +876,7 @@ export namespace Services {
       try {
         const metadataRow = await this.buildMetadataRow(oid, fileId, destKey, datastream.metadata);
         await this.safelyUpsertMetadata(metadataRow);
-      } catch (err) {
+      } catch (_err) {
         this.logger.error(`${this.logHeader} addDatastream() metadata sync failed for ${destKey}`);
       }
       await this.safelyRecordAccess({

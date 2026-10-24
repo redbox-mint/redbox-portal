@@ -422,7 +422,7 @@ export namespace Services {
               this.input.workflows.get(recordTypeModel, String(workflowStage)) as Observable<unknown>
             );
             this.input.records.setWorkflowStepRelatedMetadata(request, wfStep as AnyRecord);
-          } catch (error) {
+          } catch (_error) {
             this.logger.warn(`${this.logHeader} Failed to resolve workflow step ${String(workflowStage)}`);
           }
         }

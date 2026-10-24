@@ -851,7 +851,7 @@ export namespace Services {
           await this.input.repository.removeVocabularyEntries(vocabularyId);
           await this.input.repository.removeVocabulary(vocabularyId);
         }
-      } catch (cleanupError) {
+      } catch (_cleanupError) {
         this.input.log.error('Figshare vocabulary apply compensation failed');
       }
     }
@@ -2281,7 +2281,7 @@ export namespace Services {
           `Figshare vocabulary import ${label}`
         );
         this.input.log.verbose(`Imported Figshare bootstrap vocabulary: ${label}`);
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error(`Failed Figshare bootstrap import: ${label}`);
       }
     }

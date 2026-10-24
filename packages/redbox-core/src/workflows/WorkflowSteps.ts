@@ -137,7 +137,7 @@ export namespace Services {
     private async initialiseDashboardSettings(recordType: RecordTypeLike): Promise<void> {
       try {
         await this.input.initialiseDashboardSettings(recordType);
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error('Could not initialise dashboard settings for a new workflow stage');
       }
     }

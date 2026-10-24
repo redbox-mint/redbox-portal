@@ -958,7 +958,7 @@ export namespace Services {
       if (cached && cached.expires > now) {
         return cached.value;
       }
-      const value = this.describeFields(brand, info, workflowStage, options).catch(error => {
+      const value = this.describeFields(brand, info, workflowStage, options).catch(_error => {
         this.fieldCatalogueCache.delete(key);
         this.input.log.warn('DashboardConfigService: could not describe record fields');
         return this.unavailableCatalogue(info, 'unavailable', workflowStage);

@@ -920,7 +920,7 @@ export class Forms {
     return (key: string): string => {
       try {
         return String(this.input.translate?.(key, brandingName) ?? key);
-      } catch (error) {
+      } catch (_error) {
         this.logger.warn('Failed to translate form config value.');
         return key;
       }

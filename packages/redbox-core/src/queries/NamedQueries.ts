@@ -192,7 +192,7 @@ export namespace Services {
 
           await this.create(defBrand, name, definition);
           this.input.log.verbose(`Bootstrapped named query: ${name}`);
-        } catch (error) {
+        } catch (_error) {
           this.input.log.error(`Failed to bootstrap named query from file: ${fileName}`);
         }
       }
@@ -211,7 +211,7 @@ export namespace Services {
       try {
         const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
         return JSON.parse(content) as T;
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error(`Failed to read named query bootstrap file: ${path.basename(filePath)}`);
         return null;
       }

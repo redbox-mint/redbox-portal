@@ -272,7 +272,7 @@ export function createFigshareAssets(input: FigshareAssetsInput) {
       if (shouldDelete) {
         await disk
           .delete(stagingKey)
-          .catch(error => input.log.warn(`FigService - failed to delete staged object '${stagingKey}'`));
+          .catch(_error => input.log.warn(`FigService - failed to delete staged object '${stagingKey}'`));
       }
     }
   }

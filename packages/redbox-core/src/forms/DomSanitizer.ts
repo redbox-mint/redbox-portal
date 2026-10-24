@@ -389,7 +389,7 @@ export namespace Services {
           warnings,
           info: { originalBytes, sanitizedBytes },
         };
-      } catch (error) {
+      } catch (_error) {
         // Handle any DOMPurify errors
         errors.push('sanitization-error');
         this.input.log.error('SVG sanitization error:');

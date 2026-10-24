@@ -134,7 +134,7 @@ export namespace Services {
         } else {
           this.logger.verbose(`${this.logHeader} Flydrive module missing Disk export`);
         }
-      } catch (err) {
+      } catch (_err) {
         this._DiskConstructor = null;
         this.logger.error(`${this.logHeader} Failed to import flydrive module`);
       }

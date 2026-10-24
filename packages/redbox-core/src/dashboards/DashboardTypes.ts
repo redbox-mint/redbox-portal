@@ -438,7 +438,7 @@ export namespace Services {
 
         const dashboardConfig = _.get(recType, 'dashboard', {}) as RecordTypeDashboardConfig;
         return dashboardConfig;
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error(`Error getting record type dashboard config for ${recordType}:`);
         return null;
       }

@@ -681,7 +681,7 @@ export namespace Services {
             dispatch.mode,
             dispatch.user
           );
-        } catch (error) {
+        } catch (_error) {
           this.logger.error(
             `Invalid post-save trigger configuration for ${dispatch.mode}; skipping fire-and-forget hook`
           );
@@ -2839,11 +2839,11 @@ export namespace Services {
             await this.storageService.readyFigshareIntent!(oid, intent.saveToken);
             await this.input
               .wakeFigshareRecord(oid)
-              .catch(error => this.logger.error('Figshare wake-up failed; dispatcher will recover'));
+              .catch(_error => this.logger._error('Figshare wake-up failed; dispatcher will recover'));
           } else {
             await this.storageService.abandonFigshareIntent!(oid, intent.saveToken);
           }
-        } catch (error) {
+        } catch (_error) {
           this.logger.error('Figshare intent finalisation failed; dispatcher will recover');
         }
       }
@@ -2968,7 +2968,7 @@ export namespace Services {
               }
             )
           )
-          .catch((error: unknown) => {
+          .catch((_error: unknown) => {
             this.logger.error(`${this.logHeader} persistence audit submission failed`);
           })
           .finally(() => auditCompletion.resolve());
@@ -3253,7 +3253,7 @@ export namespace Services {
               });
               continue;
             }
-          } catch (error) {
+          } catch (_error) {
             try {
               await journal.markMutation(
                 oid,
@@ -3287,7 +3287,7 @@ export namespace Services {
               'pending',
               item.fileId
             );
-          } catch (error) {
+          } catch (_error) {
             journalStateKnown = false;
             this.logger.error(`${this.logHeader} attachment journal pending update failed for ${item.attachmentId}`);
           }
@@ -3319,7 +3319,7 @@ export namespace Services {
               journalStateKnown =
                 (await journal.markMutation(oid, item.attachmentId, item.generation, 'applied', item.fileId)) &&
                 journalStateKnown;
-            } catch (error) {
+            } catch (_error) {
               journalStateKnown = false;
               this.logger.error(`${this.logHeader} attachment journal applied update failed for ${item.attachmentId}`);
             }
@@ -3332,7 +3332,7 @@ export namespace Services {
             status: journalStateKnown ? 'completed' : 'unknown',
             ...(journalStateKnown ? {} : { code: 'attachment-journal-failed' }),
           });
-        } catch (error) {
+        } catch (_error) {
           if (journal) {
             try {
               await journal.markMutation(
@@ -3384,7 +3384,7 @@ export namespace Services {
       for (const item of plan) {
         try {
           await journal.markMutation(oid, item.attachmentId, item.generation, state, code, item.fileId);
-        } catch (error) {
+        } catch (_error) {
           this.logger.error(`${this.logHeader} attachment journal ${state} update failed for ${item.attachmentId}`);
         }
       }
@@ -3695,7 +3695,7 @@ export namespace Services {
         try {
           const content = await fs.readFile(filePath, 'utf8');
           parsed = JSON.parse(content);
-        } catch (error) {
+        } catch (_error) {
           this.logger.error(`Failed to read records bootstrap file: ${fileName}`);
           continue;
         }
@@ -3757,7 +3757,7 @@ export namespace Services {
             } else {
               this.logger.error(`Failed to create records bootstrap entry: ${redboxOid}`);
             }
-          } catch (error) {
+          } catch (_error) {
             this.logger.error(`Failed to create records bootstrap entry: ${redboxOid}`);
           }
         }
@@ -5000,7 +5000,7 @@ export namespace Services {
         } else {
           this.logger.warn(`${this.logHeader} pre-update snapshot was unusable; validation will be required`);
         }
-      } catch (error) {
+      } catch (_error) {
         this.logger.warn(`${this.logHeader} unable to load pre-update snapshot; validation will be required`);
       }
       const storedMetadataSnapshot = _.cloneDeep(originalRecord?.metadata);
@@ -8173,7 +8173,7 @@ export namespace Services {
         if (operation === undefined) {
           this.completeHookOperation(execution);
         }
-      } catch (error) {
+      } catch (_error) {
         this.logger.error(`Invalid post-save trigger configuration for ${mode}; skipping fire-and-forget hook`);
       }
     }

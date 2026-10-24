@@ -144,7 +144,7 @@ export namespace Services {
           items: resolvedItems,
           showSearch: menuConfig.showSearch !== false,
         };
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error('[NavigationService] Error resolving menu:');
         // Return minimal menu on error
         return {
@@ -186,7 +186,7 @@ export namespace Services {
         return {
           panels: resolvedPanels,
         };
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error('[NavigationService] Error resolving home panels:');
         // Return empty panels on error
         return {
@@ -245,7 +245,7 @@ export namespace Services {
           sections: resolvedSections,
           footerLinks: resolvedFooterLinks,
         };
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error('[NavigationService] Error resolving admin sidebar:');
         // Return minimal sidebar on error
         return {
@@ -646,7 +646,7 @@ export namespace Services {
     private translateLabel(key: string): string {
       try {
         return this.input.translate(key);
-      } catch (error) {
+      } catch (_error) {
         this.input.log.warn(`[NavigationService] Translation failed for key: ${key}`);
         return key;
       }

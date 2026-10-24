@@ -294,7 +294,7 @@ export namespace Services {
         if (userObj != null) {
           try {
             await this.recordPublicationError(oid, recordObj, userObj, err, previousMetadata);
-          } catch (persistError) {
+          } catch (_persistError) {
             this.input.log.error(`${this.logHeader} failed to persist Oni publication error for '${oid}'`);
           }
         }

@@ -138,7 +138,7 @@ export function createFigshareWorker(input: FigshareWorkerInput) {
         try {
           const config = resolveFigsharePublishingConfig(record, { requireToken: false });
           if (config?.processing?.enabled && !config.processingError) await importRecordIntent(store, record);
-        } catch (error) {
+        } catch (_error) {
           input.log.error(`Figshare intent import failed for ${record.redboxOid}; pending work is retained`);
         }
       }
@@ -163,7 +163,7 @@ export function createFigshareWorker(input: FigshareWorkerInput) {
             continue;
           }
           await input.queue.now('Figshare-SyncRecord', { oid: due.oid, brandId: due.brandId });
-        } catch (error) {
+        } catch (_error) {
           input.log.error('Figshare delivery failed; durable work remains due');
         }
       }

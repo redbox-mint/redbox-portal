@@ -410,7 +410,7 @@ export namespace Services {
           if (await this.isKeyReferenced(parsed.brandingId, parsed.sha256)) {
             continue;
           }
-        } catch (error) {
+        } catch (_error) {
           result.failures += 1;
           this.input.log.warn(`BrandingTypefaceService reconciliation recheck failed for brand ${parsed.brandingId}:`);
           continue;

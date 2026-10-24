@@ -1154,7 +1154,7 @@ export namespace Services {
       try {
         const created = await this.create(createPayload);
         this.input.log.verbose(`Created vocabulary bootstrap data: ${slug} (${String(created.id)})`);
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error(`Failed to create vocabulary from bootstrap file: ${fileName}`);
       }
     }
@@ -1202,7 +1202,7 @@ export namespace Services {
         try {
           await this.importRvaBootstrapVocabulary(rvaImportService, rvaId, versionId, defaultBranding, sourceKey);
           this.input.log.verbose(`Imported RVA bootstrap vocabulary: ${sourceKey}`);
-        } catch (error) {
+        } catch (_error) {
           this.input.log.error(`Failed RVA bootstrap import: ${sourceKey}`);
         }
       }
@@ -1294,7 +1294,7 @@ export namespace Services {
       try {
         const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
         return JSON.parse(content) as T;
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error(`Failed to read vocabulary bootstrap file: ${path.basename(filePath)}`);
         return null;
       }

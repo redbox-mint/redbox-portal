@@ -91,7 +91,7 @@ export namespace Services {
         // Return the expression string for client-side compilation
         // The client will call jsonata(expression).evaluate(context)
         return expression;
-      } catch (error) {
+      } catch (_error) {
         this.log.error('Could not compile client JSONata expression.');
         return null;
       }
@@ -107,7 +107,7 @@ export namespace Services {
     public buildClientHandlebars(template: string): string | null {
       try {
         return handlebarsPrecompile(template)?.toString();
-      } catch (error) {
+      } catch (_error) {
         this.log.error('Could not build client Handlebars template.');
         return null;
       }

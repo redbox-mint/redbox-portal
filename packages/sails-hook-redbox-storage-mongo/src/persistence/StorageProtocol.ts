@@ -1378,7 +1378,7 @@ export class PrismaStorage implements StorageService, DatastreamService {
       dispatch: () => this.commitRecordSave(collection, selector, candidate, options),
       classify: () => this.classifyActiveNoMatch(brand, oid, expectedRevision),
       expectedRevision,
-      onDispatchError: err => {
+      onDispatchError: _err => {
         this.collaborators.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}.`);
       },
     });
@@ -1410,7 +1410,7 @@ export class PrismaStorage implements StorageService, DatastreamService {
     }
     try {
       return this.notApplied(response, await classify());
-    } catch (err) {
+    } catch (_err) {
       this.collaborators.log.error(
         `${this.logHeader} could not classify a certified no-match for oid ${response.oid}.`
       );
@@ -2723,7 +2723,7 @@ export class PrismaStorage implements StorageService, DatastreamService {
       this.collaborators.log.verbose(JSON.stringify(fileDoc));
       try {
         await this.gridFsBucket.delete(fileDoc._id);
-      } catch (err) {
+      } catch (_err) {
         this.collaborators.log.error(`Error deleting: ${fileDoc._id}`);
       }
       this.collaborators.log.verbose(`${this.logHeader} removeDatastream() -> Delete successful.`);

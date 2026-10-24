@@ -820,8 +820,7 @@ export class AppConfigs {
           }
           this.brandingAppConfigMap[brandName] = brandConfig;
         });
-      } catch (e: unknown) {
-        const err = e instanceof Error ? e.message : String(e);
+      } catch {
         this.input.log.warn(`registerConfigModel: could not instantiate default for ${info.key}.`);
       }
     }

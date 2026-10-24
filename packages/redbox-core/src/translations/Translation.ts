@@ -137,7 +137,7 @@ export namespace Services {
             const keys = Object.keys(resources[lng][ns] || {});
             if (keys.length > 0) {
               const testKey = keys[0]; // Use first available key
-              const translation = i18nextInstance.getFixedT(lng)(testKey);
+              i18nextInstance.getFixedT(lng)(testKey);
               this.input.log.debug('Translation lookup succeeded.');
             } else {
               this.input.log.debug(`No keys found for ${lng} in namespace ${ns}`);

@@ -168,7 +168,7 @@ export namespace Services {
 
           await firstValueFrom(this.create(defBrand, name, definition as unknown as ReportConfig));
           this.input.log.verbose(`Bootstrapped report: ${name}`);
-        } catch (error) {
+        } catch (_error) {
           this.input.log.error(`Failed to bootstrap report from file: ${fileName}`);
         }
       }
@@ -187,7 +187,7 @@ export namespace Services {
       try {
         const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
         return JSON.parse(content) as T;
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error(`Failed to read report bootstrap file: ${path.basename(filePath)}`);
         return null;
       }
@@ -728,7 +728,7 @@ export namespace Services {
           return JSON.parse(templateRes);
         }
         return templateRes;
-      } catch (error) {
+      } catch (_error) {
         this.input.log.error('ReportsService: Error running template.');
         return '';
       }
