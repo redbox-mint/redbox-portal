@@ -276,3 +276,51 @@ replaced by their implemented v6 contracts, not dropped to reduce the suite.
 Other root cases bind the real selected domain instances and typed repository
 owners through `test/helpers/portalFixture.cjs`; form projection and validation
 helpers receive explicit collaborators. The full count remains 422/10/0.
+
+
+### Core fixture migration checkpoint: records, validation and page languages
+
+On the working tree based on `20fad0b3c`, Node `26.11.1` / npm
+`11.20.0`, migrated domain fixtures construct the real plain implementations
+with explicit repositories, configuration, logging, authorization, HTML sanitation,
+and named operation callbacks. The 92 formerly evaluated record-hook expressions
+are authored closures in a local operation map; no evaluator or comparison host
+was reintroduced. The callable-reuse scenario now spies on actual named-operation
+resolution and execution. Records/validation/schema cases retain their ACL,
+revision/CAS, partial-save, schema, timeout and privacy assertions.
+
+Commands (from `packages/redbox-core`, with the recorded Node toolchain on PATH):
+
+```sh
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  node_modules/mocha/bin/mocha.js --no-config \
+  --require ts-node/register/transpile-only --require ./node_modules/chai \
+  --require ./test/setup.ts --timeout 10000 <explicit suite paths>
+```
+
+- `records-validation-second.log`: 512 passing / 4 failing. All four failures
+  were missing fixture inputs for attachment security auditing or the exact
+  Figshare named-operation key; corrected without changing the assertions.
+- `domains-checkpoint.log`: 1,136 passing / 5 existing pending / 2 failing
+  across 31 existing service suites. The two Solr inline-fallback fixtures
+  now explicitly remove the injected queue as well as the mutable queue override.
+- `users-second.log`: 162 passing / 0 pending / 0 failing across Users,
+  Solr and Validator Visitor. OIDC parameter/state tests call the real explicit
+  provider installer; HTML tests supply the real sanitizer and mode inputs.
+- `core-build-page-language.log`: complete core build passed, including Prisma
+  contract verification and portal configuration schema checks.
+
+The page-language fixture exposed a production regression: sorting available
+languages could select German before the configured/default English language.
+The Express page owner now selects valid query/session language, configured
+language/fallbacks, English, then the first available language. Existing page
+language scenarios exercise that owner. Translation lifecycle methods remain on
+its domain; request language/locals belong to the HTTP renderer. Cookie-specific
+legacy assertions were replaced by checking the session's actual `langCode` and
+rendered locals, which are the implemented v6 request contract. The shared page
+preparation function is exported from its implementation module for focused
+verification; it is not added to the package extension barrel.
+
+These are incremental source checks, **not** the final full-core or clean-artifact
+qualification. Core adapter/controller/policy fixtures and final matrix remain
+outstanding; P8 acceptance boxes remain unchecked.

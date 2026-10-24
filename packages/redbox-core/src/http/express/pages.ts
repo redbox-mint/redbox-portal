@@ -271,14 +271,18 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
 }
 
 /** Request locals and direct EJS rendering, shared by pages and their error responses. */
-async function preparePage(req: Request, res: Response, input: PagesHttpInput) {
+export async function preparePage(req: Request, res: Response, input: PagesHttpInput) {
   const { brand, portal, actor } = requestContext(req);
   req.session.branding = brand.name;
   req.session.portal = portal;
   const settings = await input.settings(brand);
   const languages = await input.languages(brand);
+  const languageConfig = input.templateConfig.i18n?.next?.init;
+  const configuredFallbacks = typeof languageConfig?.fallbackLng === 'string'
+    ? [languageConfig.fallbackLng]
+    : Array.isArray(languageConfig?.fallbackLng) ? languageConfig.fallbackLng : [];
   const language =
-    ([req.query.lng, Reflect.get(req.session, 'langCode'), languages[0]?.code, 'en'].find(
+    ([req.query.lng, Reflect.get(req.session, 'langCode'), languageConfig?.lng, ...configuredFallbacks, 'en', languages[0]?.code].find(
       value => typeof value === 'string' && languages.some(l => l.code === value)
     ) as string) || 'en';
   Reflect.set(req.session, 'langCode', language);
