@@ -210,30 +210,18 @@ RUN npm install --omit=dev --ignore-scripts --save-prod --strict-peer-deps --leg
     ./packages/redbox-hook-dev
 RUN node -e "require('@researchdatabox/redbox-core/portal'); require('redbox-hook-dev/extension'); require('@researchdatabox/sails-hook-redbox-pdfgen/extension')"
 
-# Optional test/demo image: layers the development hook (redbox-hook-dev: demo
-# record types, workflows, dashboards and forms) on top of the otherwise pristine
-# runtime. Built with `--target test` and used by the integration test suites.
-# The vanilla runtime image never includes it, so published/client images stay
-# pristine. Restore the compiled hook and development dependencies directly
-# from the unpruned builder, then link the extension for package discovery.
-FROM runtime AS test
-USER root
-# Mounted regression preparation uses the same pinned Angular build Node as
-# the builder. Keep it out of every published runtime target.
-COPY --from=builder /root/.nvm/versions/node /opt/redbox-build-node
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
-COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/raido/node_modules ./packages/raido/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/rva-registry/node_modules ./packages/rva-registry/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-ng-common/node_modules ./packages/sails-ng-common/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/node_modules ./packages/sails-hook-redbox-storage-mongo/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-dev-tools/node_modules ./packages/redbox-dev-tools/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/agenda-sqs-backend/node_modules ./packages/agenda-sqs-backend/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen/node_modules ./packages/sails-hook-redbox-pdfgen/node_modules
-RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
- && chown -h node:node node_modules/redbox-hook-dev
-USER node
+# Development/test artifact. Reuse the clean builder's dependency layers instead
+# of copying and chowning the complete development graph into a second tree.
+# This target includes build tools and runs as root for the existing mounted CI
+# workflows; release qualification separately exercises the node-user runtime.
+FROM builder AS test
+ENV NODE_ENV=development
+ENV TZ=Australia/Brisbane
+RUN ln -s /root/.nvm/versions/node /opt/redbox-build-node
+EXPOSE 1500
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
+  CMD ["sh", "-c", "curl -fsS \"http://localhost:${REDBOX_PORT:-1500}/readyz\" >/dev/null"]
+CMD ["node", "app.express.cjs"]
 
 # Keep the vanilla (pristine) runtime image as the default build target.
 FROM runtime

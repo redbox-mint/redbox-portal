@@ -1941,3 +1941,40 @@ of test files is ignored by repository patterns and is not counted as coverage.
 This executable template change supersedes853d0039d for final SR-053/055
 qualification. Earlier source/pack/runtime closure remains real historical
 evidence; corrected clean packs and all final images/suites must be rebuilt.
+
+
+### Build storage incident and test-image layer ownership
+
+At2026-10-24T10:31Z, while no final suite is running, both idle disk-backed
+Mongo fixtures hit actual `No space left on device` writes (WiredTiger/FTDC).
+`sr-p8-mocha-mongo` exits134; `sr-p8-foundation-mongo` exits139; neither is
+OOM-killed. The Mongo8 tmpfs core fixture remains running. The instruction
+refresh interrupts the unified build process during test-image unpack: all
+COPY/RUN steps and593.5s layer export had completed, but no successful final
+build exit/iid is recorded. It is not accepted as a final artifact.
+
+Docker's previous test stage copied and chowned the entire builder development
+graph into a second layer tree over runtime, including two large Prisma CLI
+dependency trees. Test now inherits the clean builder layers directly, retaining
+all build/test dependencies and the compiled application. The existing mounted
+CI profiles already run as root; this dedicated development target now states
+that default explicitly by inheritance. The Angular build-Node path is a symlink
+to the existing builder toolchain. CMD/port/readiness health remain aligned.
+The separate production runtime still uses its strict pruned graph and node user
+and receives its own installed-artifact qualification. No test/deadline changes.
+
+`docker builder prune --force --filter until=15m` exits0 and reclaims1.134GB.
+The interrupted unaccepted test tag
+`redbox-portal:sr-p8-853d0039d-test`
+(ID43749fe87597c7f45d027f40406ee89586b75ee5b2cad9c34677cebe7c9a7e4f)
+is removed after retaining inspect output; P7 images/checkpoints and the accepted
+P8 runtime are preserved. Disk remains constrained, so obsolete unused copied
+cache will be reclaimed while the new build protects its active dependencies.
+Timed suites wait for builds/GC to finish and the disposable disk fixtures to be
+recreated with their exact images and nofile64000 limits.
+
+Logs: `foundation79-enospc.log`, `mocha-mongo79-enospc.log`,
+`prune79-unused-build-cache.log`, `test-interrupted84-inspect.json`,
+`test-interrupted84-remove.log`, `images83-space-inventory.txt`. Corrected clean
+build and final suite results remain pending; this records the incident and
+implemented build change rather than a successful qualification.

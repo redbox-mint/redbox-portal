@@ -164,3 +164,25 @@ is retained only as historical retirement evidence. The full current Playwright
 collection and assertions remain unchanged. PDF integration/development profiles
 load explicit fixture configuration and the locally built `rehearsal` image;
 they prepare disposable indexes before starting the sole Express executable.
+
+A freshly generated hook is also exercised in the production portal composition
+by `packages/redbox-core/test/qualification/generated-institution.cjs`. Run it
+inside the clean test image with a real disposable
+`SR_GENERATED_APP_MONGO_URL` ending in `/sr_p8_generated_institution` and a running
+Solr selected by `SR_PORTAL_SOLR_PORT`:
+
+```sh
+node --test --test-force-exit packages/redbox-core/test/qualification/generated-institution.cjs
+```
+
+The check compiles/packs the generated hook, binds concrete module/HTTP/repository
+operations, verifies persisted migration/bootstrap writes, serves its public route,
+then restarts and checks drain/zero pools. The force-exit flag matches the other
+production-host qualifiers because the accepted Companion cleanup cron has process
+lifetime; owned stop assertions still run and must pass. It uses a synthetic
+institution application and does not fill the representative-institution gap.
+
+The development `test` Docker target reuses the builder's complete toolchain and
+dependency layers and runs the existing mounted CI workflows as root. It is not a
+release target. The `runtime` target retains its separate strict production graph
+and node user; final startup/health/restart/stop checks exercise that artifact.
