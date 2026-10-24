@@ -1,10 +1,10 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { csrf } from '../../helpers/csrf';
 import { fixtureCreate, fixtureRemove } from '../../helpers/persistenceFixtures';
 import { Observable, of } from 'rxjs';
 import supertest from 'supertest';
 import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../../../packages/redbox-core/test/fixtures/metadata-projection.fixtures';
 import {
-  FormRecordConsistencyService as FormRecordConsistencyModule,
   FormsService as FormsModule,
 } from '@researchdatabox/redbox-core';
 import {
@@ -13,15 +13,14 @@ import {
   FormConfigFrame,
   FormValidatorSummaryErrors,
 } from '@researchdatabox/sails-ng-common';
-import BasicRedboxRecord = FormRecordConsistencyModule.Services.BasicRedboxRecord;
+type BasicRedboxRecord = Parameters<import('../../../packages/redbox-core/src/forms/FormProjection').FormProjection['compareRecords']>[0];
+import { validateFormRecordValues } from '../../helpers/formValidation';
 import { FormModel } from '@researchdatabox/redbox-core';
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 
-declare const FormRecordConsistencyService: FormRecordConsistencyModule.Services.FormRecordConsistency;
-type FormRecordConsistencyChange = FormRecordConsistencyModule.Services.FormRecordConsistencyChange;
-declare const FormsService: FormsModule.Services.Forms;
+type FormRecordConsistencyChange = import('@researchdatabox/sails-ng-common').RecordValueChange;
 
 describe('The FormRecordConsistencyService', function () {
   const formConfigStandard: FormConfigFrame = {
@@ -55,7 +54,7 @@ describe('The FormRecordConsistencyService', function () {
   };
 
   it("returns permitted Data Locations and Data Manager from the browser metadata endpoint", async function () {
-    const agent = supertest.agent(sails.hooks.http.app);
+    const agent = supertest.agent(fixture.server);
     const loginCsrf = await csrf(agent);
     await agent
       .post("/user/login_local")
@@ -69,9 +68,9 @@ describe('The FormRecordConsistencyService', function () {
       })
       .expect(200);
 
-    const brand = BrandingService.getDefault();
+    const brand = fixture.services.BrandingService.getDefault();
     const oid = `data-location-projection-${Date.now()}`;
-    const getFormByName = FormsService.getFormByName;
+    const getFormByName = fixture.services.FormsService.getFormByName;
     try {
       await fixtureCreate("Record", {
         redboxOid: oid,
@@ -91,7 +90,7 @@ describe('The FormRecordConsistencyService', function () {
           viewRoles: [],
         },
       });
-      FormsService.getFormByName = function (formName, ...args) {
+      fixture.services.FormsService.getFormByName = function (formName, ...args) {
         return formName === dataRecordProjectionForm.name
           ? of({ configuration: dataRecordProjectionForm })
           : getFormByName.call(this, formName, ...args);
@@ -104,7 +103,7 @@ describe('The FormRecordConsistencyService', function () {
 
       expect(response.body).to.deep.equal(dataRecordProjectedMetadata);
     } finally {
-      FormsService.getFormByName = getFormByName;
+      fixture.services.FormsService.getFormByName = getFormByName;
       await fixtureRemove("Record", { redboxOid: oid });
     }
   });
@@ -169,7 +168,7 @@ describe('The FormRecordConsistencyService', function () {
         changed: undefined,
       },
     ];
-    const outcome = FormRecordConsistencyService.compareRecords(original, changed);
+    const outcome = fixture.projection.compareRecords(original, changed);
     expect(outcome).to.eql(expected);
   });
 
@@ -385,7 +384,7 @@ describe('The FormRecordConsistencyService', function () {
           enabledValidationGroups: ['all'],
           componentDefinitions: args.componentDefinitions ?? [],
         };
-        const result = await FormRecordConsistencyService.mergeRecordClientFormConfig(
+        const result = await fixture.projection.mergeRecordClientFormConfig(
           args.original,
           args.changed,
           clientFormConfig,
@@ -399,7 +398,7 @@ describe('The FormRecordConsistencyService', function () {
       const record = { prop1: 'value1' };
       const permittedChanges = { prop1: { prop2: { prop3: 'value1' } } };
       const func = function () {
-        FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, []);
+        fixture.projection.mergeRecordMetadataPermitted(record, record, permittedChanges, []);
       };
       expect(func).to.throw(Error, 'all definitions must have a property that is one');
     });
@@ -407,7 +406,7 @@ describe('The FormRecordConsistencyService', function () {
       const record = { prop1: 'value1' };
       const permittedChanges = { properties: { prop1: { wrong: 'wrong' } } };
       const func = function () {
-        FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, []);
+        fixture.projection.mergeRecordMetadataPermitted(record, record, permittedChanges, []);
       };
       expect(func).to.throw(Error, 'elements');
     });
@@ -466,7 +465,7 @@ describe('The FormRecordConsistencyService', function () {
         ],
       };
 
-      const projected = await FormRecordConsistencyService.projectMetadataClientFormConfig(
+      const projected = await fixture.projection.projectMetadataClientFormConfig(
         {
           parent: {
             visible: 'included',
@@ -667,7 +666,7 @@ describe('The FormRecordConsistencyService', function () {
         },
         repeatable_1: [{ text_group_repeatable_1: 'hello world from repeating groups' }],
       };
-      const result = await FormRecordConsistencyService.buildDataModelDefaultForFormConfig(formConfig, 'edit');
+      const result = await fixture.projection.buildDataModelDefaultForFormConfig(formConfig, 'edit');
       expect(result).to.eql(expected);
     });
   });
@@ -852,14 +851,14 @@ describe('The FormRecordConsistencyService', function () {
       const expected = [];
 
       let actual = null;
-      const oldFormServiceGetFormByName = FormsService.getFormByName;
+      const oldFormServiceGetFormByName = fixture.services.FormsService.getFormByName;
       try {
-        FormsService.getFormByName = function (formName, editMode): Observable<any> {
+        fixture.services.FormsService.getFormByName = function (formName, editMode): Observable<any> {
           return of({ configuration: formConfig });
         };
-        actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
+        actual = await validateFormRecordValues(fixture, record);
       } finally {
-        FormsService.getFormByName = oldFormServiceGetFormByName;
+        fixture.services.FormsService.getFormByName = oldFormServiceGetFormByName;
       }
 
       expect(actual).to.eql(expected);
@@ -1160,14 +1159,14 @@ describe('The FormRecordConsistencyService', function () {
       ];
 
       let actual = null;
-      const oldFormServiceGetFormByName = FormsService.getFormByName;
+      const oldFormServiceGetFormByName = fixture.services.FormsService.getFormByName;
       try {
-        FormsService.getFormByName = function (formName, editMode): Observable<any> {
+        fixture.services.FormsService.getFormByName = function (formName, editMode): Observable<any> {
           return of({ configuration: formConfig });
         };
-        actual = await FormRecordConsistencyService.validateRecordValuesForFormConfig(record);
+        actual = await validateFormRecordValues(fixture, record);
       } finally {
-        FormsService.getFormByName = oldFormServiceGetFormByName;
+        fixture.services.FormsService.getFormByName = oldFormServiceGetFormByName;
       }
 
       const normalizeErrorResults = (results: any[]) => {
@@ -1383,7 +1382,7 @@ describe('The FormRecordConsistencyService', function () {
         },
       };
 
-      const actual = await FormRecordConsistencyService.buildSchemaForFormConfig(formConfig, 'edit');
+      const actual = await fixture.projection.buildSchemaForFormConfig(formConfig, 'edit');
       expect(actual).to.eql(expected);
     });
   });

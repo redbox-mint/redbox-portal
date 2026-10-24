@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRow, fixtureCreate, fixtureRemove, fixturePatch } from '../../helpers/persistenceFixtures';
 import { randomUUID } from 'node:crypto';
 import { expect } from 'chai';
@@ -19,13 +20,13 @@ describe('SIEM authenticated HTTP API', function () {
   // Keep failed monitoring fixtures out of the live retry worker's eligible set.
   const nextEligibleAt = new Date(Date.now() + 86400000).toISOString();
   let token: string;
-  let brand: ReturnType<typeof BrandingService.getDefault>;
+  let brand: ReturnType<typeof fixture.services.BrandingService.getDefault>;
   let originalConfig: ReturnType<typeof normalizeSiemConfiguration>;
   let adminId: string;
   let originalAdminToken: string | null;
 
   async function request(path: string, method = 'GET', body?: unknown) {
-    const response = await fetch(`http://127.0.0.1:${sails.config.port}/default/rdmp/api/siem/${path}`, {
+    const response = await fetch(`http://127.0.0.1:${fixture.config.port}/default/rdmp/api/siem/${path}`, {
       method,
       headers: { Authorization: `Bearer ${token}`, 'X-ReDBox-Api-Version': '2.0', 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -36,20 +37,20 @@ describe('SIEM authenticated HTTP API', function () {
   }
 
   before(async function () {
-    brand = BrandingService.getDefault();
-    const config = AppConfigService.getAppConfigurationForBrand(brand.name);
+    brand = fixture.services.BrandingService.getDefault();
+    const config = fixture.services.AppConfigService.getAppConfigurationForBrand(brand.name);
     originalConfig = normalizeSiemConfiguration(Reflect.get(config, 'siem') ?? {});
     // Integration bootstrap supplies its token in legacy auth, which the modern
     // branding auth defaults shadow. Install it using the real bearer-key service.
-    const configuredToken: unknown = _.get(sails.config.auth, [brand.name, 'local', 'default', 'token']);
+    const configuredToken: unknown = _.get(config.auth, 'local.default.token');
     if (typeof configuredToken !== 'string' || !configuredToken) throw new Error('Missing integration admin token');
-    const adminUsername: unknown = _.get(ConfigService.getBrand(brand.name, 'auth'), 'local.default.adminUser');
+    const adminUsername: unknown = _.get(fixture.services.AppConfigService.getAppConfigurationForBrand(brand.name).auth, 'local.default.adminUser');
     if (typeof adminUsername !== 'string' || !adminUsername) throw new Error('Missing configured admin username');
     const admin = await fixtureRow("User", { username: adminUsername });
     if (!admin) throw new Error('Missing bootstrapped integration admin');
     adminId = admin.id;
     originalAdminToken = admin.token ?? null;
-    await firstValueFrom(UsersService.setUserKey(adminId, configuredToken));
+    await firstValueFrom(fixture.services.UsersService.setUserKey(adminId, configuredToken));
     token = configuredToken;
     for (const [index, eventId] of eventIds.entries()) {
       await fixtureCreate("SecurityEvent", {
@@ -90,7 +91,7 @@ describe('SIEM authenticated HTTP API', function () {
     try {
       await fixtureRemove("SecurityEvent", { eventId: [...eventIds, `${prefix}-foreign`] });
       await fixtureRemove("SiemDeliveryAttempt", { eventId: eventIds[0] });
-      await AppConfigService.createOrUpdateConfig(brand, 'siem', { ...originalConfig });
+      await fixture.services.AppConfigService.createOrUpdateConfig(brand, 'siem', { ...originalConfig });
     } finally {
       if (adminId !== undefined) {
         // The stored value is already hashed; restore it without hashing it again.
@@ -100,7 +101,7 @@ describe('SIEM authenticated HTTP API', function () {
   });
 
   it('denies HTTP API access without a bearer token', async function () {
-    const response = await fetch(`http://127.0.0.1:${sails.config.port}/default/rdmp/api/siem/config`, {
+    const response = await fetch(`http://127.0.0.1:${fixture.config.port}/default/rdmp/api/siem/config`, {
       headers: { 'X-ReDBox-Api-Version': '2.0', 'Content-Type': 'application/json' },
     });
     expect(response.status).to.equal(401);

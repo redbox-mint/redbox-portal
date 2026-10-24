@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRows, fixtureRemove, fixtureRow, fixtureCreate, fixtureCount } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
@@ -9,7 +10,7 @@ describe('Vocabulary bootstrap data integration', function () {
   let originalBootstrapRvaImports: boolean | undefined;
 
   const getVocabularyService = (): { bootstrapData: () => Promise<void> } => {
-    return sails.services.vocabularyservice as { bootstrapData: () => Promise<void> };
+    return fixture.services.VocabularyService as { bootstrapData: () => Promise<void> };
   };
 
   const cleanupBootstrapVocabularies = async (): Promise<void> => {
@@ -30,17 +31,17 @@ describe('Vocabulary bootstrap data integration', function () {
     this.timeout(60000);
     await cleanupBootstrapVocabularies();
 
-    // The service reads sails.config.bootstrap.bootstrapDataPath and appends 'vocabularies'
-    // itself; the previous sails.config.vocab.bootstrapDataPath override was never consulted.
-    originalBootstrapPath = sails.config.bootstrap?.bootstrapDataPath;
-    originalBootstrapRvaImports = sails.config.vocab.bootstrapRvaImports;
-    sails.config.bootstrap = {
-      ...(sails.config.bootstrap ?? {}),
+    // The service reads fixture.config.bootstrap.bootstrapDataPath and appends 'vocabularies'
+    // itself; the previous fixture.config.vocab.bootstrapDataPath override was never consulted.
+    originalBootstrapPath = fixture.config.bootstrap?.bootstrapDataPath;
+    originalBootstrapRvaImports = fixture.config.vocab.bootstrapRvaImports;
+    fixture.config.bootstrap = {
+      ...(fixture.config.bootstrap ?? {}),
       bootstrapDataPath: path.resolve(process.cwd(), 'bootstrap-data')
     };
-    sails.config.vocab.bootstrapRvaImports = true;
+    fixture.config.vocab.bootstrapRvaImports = true;
 
-    importStub = sinon.stub(sails.services.rvaimportservice, 'importRvaVocabulary').callsFake(
+    importStub = sinon.stub(fixture.services.RvaImportService, 'importRvaVocabulary').callsFake(
       async (rvaId: string, versionId?: string, branding?: string) => {
         const existing = await fixtureRow("Vocabulary", { source: 'rva', sourceId: rvaId });
         if (existing) {
@@ -53,7 +54,7 @@ describe('Vocabulary bootstrap data integration', function () {
           source: 'rva',
           sourceId: rvaId,
           sourceVersionId: versionId || 'test-version',
-          branding: branding || sails.services.brandingservice.getDefault()
+          branding: branding || fixture.services.BrandingService.getDefault()
         });
       }
     );
@@ -61,8 +62,8 @@ describe('Vocabulary bootstrap data integration', function () {
 
   after(async function () {
     importStub.restore();
-    sails.config.bootstrap.bootstrapDataPath = originalBootstrapPath;
-    sails.config.vocab.bootstrapRvaImports = originalBootstrapRvaImports;
+    fixture.config.bootstrap.bootstrapDataPath = originalBootstrapPath;
+    fixture.config.vocab.bootstrapRvaImports = originalBootstrapRvaImports;
     await cleanupBootstrapVocabularies();
   });
 

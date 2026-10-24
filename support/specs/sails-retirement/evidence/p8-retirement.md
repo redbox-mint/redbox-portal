@@ -266,3 +266,13 @@ No test exclusions or skips have been added.
   each Express overlay/base general/OIDC/S3 pair and the Playwright/browser
   overlay/base pair then pass. These are configuration checks, not execution
   proof; real final suites and clean generated-app/artifact acceptance remain open.
+
+Root fixture migration rationale: `test/integration/services/ConfigService.test.ts`
+retains 35 scenarios. Imperative `mergeHookConfig`/hook-load mutation scenarios
+now assert the corresponding v6 layer precedence, array/function handling,
+immutable configuration, rejected unsupported inputs, explicit asset/template
+lookup and declared factory selection. These retired loader assertions are
+replaced by their implemented v6 contracts, not dropped to reduce the suite.
+Other root cases bind the real selected domain instances and typed repository
+owners through `test/helpers/portalFixture.cjs`; form projection and validation
+helpers receive explicit collaborators. The full count remains 422/10/0.

@@ -1,10 +1,11 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { expect } from 'chai';
 import { Readable } from 'node:stream';
 import { Datastream } from '../../../packages/redbox-core/src/Datastream.ts';
 import { Services as StandardDatastreamServices } from '../../../packages/redbox-core/src/services/StandardDatastreamService.ts';
 
 describe('StandardDatastreamService', function () {
-  let originalServices: Record<string, unknown> | undefined;
+  let datastreamInput: ConstructorParameters<typeof StandardDatastreamServices.StandardDatastream>[0];
   let calls: {
     exists: number;
     getStream: number;
@@ -31,7 +32,6 @@ describe('StandardDatastreamService', function () {
   let diskLastModified: unknown;
 
   beforeEach(function () {
-    originalServices = sails.services;
     calls = {
       exists: 0,
       getStream: 0,
@@ -169,27 +169,20 @@ describe('StandardDatastreamService', function () {
       },
     };
 
-    sails.services = {
-      ...sails.services,
-      storagemanagerservice: {
+    datastreamInput = {
+      disks: {
         stagingDisk: () => stagingDisk,
         primaryDisk: () => primaryDisk,
         getMergedStorageConfig: () => ({ keyPrefix: 'attachments/' }),
-        disk: (_name: string) => primaryDisk,
-        isBootstrapped: () => true,
       },
-      attachmentmetadataservice: attachmentMetadataService,
-    } as Record<string, unknown>;
-    (global as any).StorageManagerService = (sails.services as any).storagemanagerservice;
-  });
-
-  afterEach(function () {
-    sails.services = originalServices as Record<string, unknown>;
-    delete (global as any).StorageManagerService;
+      attachments: attachmentMetadataService,
+      forms: fixture.services.FormsService,
+      log: fixture.log,
+    };
   });
 
   it('promotes files from staging to primary without cross-disk move', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
     const ds = new Datastream({ fileId: 'file-1', name: 'Paper.pdf', mimeType: 'application/pdf', attachmentField: 'files' });
 
     await service.addDatastream('oid-1', ds);
@@ -208,7 +201,7 @@ describe('StandardDatastreamService', function () {
   });
 
   it('lists datastreams using the configured key prefix', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
 
     await service.listDatastreams('oid-1', '');
 
@@ -216,7 +209,7 @@ describe('StandardDatastreamService', function () {
   });
 
   it('removes metadata row and writes remove audit on delete', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
     metadataRows.push({ oid: 'oid-1', fileId: 'file-1', storageKey: 'attachments/oid-1/file-1' });
 
     await service.removeDatastream('oid-1', new Datastream({ fileId: 'file-1' }));
@@ -228,7 +221,7 @@ describe('StandardDatastreamService', function () {
   });
 
   it('records download access and reuses stored metadata for getDatastream', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
     metadataRows.push({
       oid: 'oid-1',
       fileId: 'file-1',
@@ -250,7 +243,7 @@ describe('StandardDatastreamService', function () {
   });
 
   it('listDatastreams uses metadata rows when present and writes one list audit row', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
     metadataRows.push({
       oid: 'oid-1',
       fileId: 'file-1',
@@ -272,7 +265,7 @@ describe('StandardDatastreamService', function () {
   });
 
   it('listDatastreams falls back to disk metadata and backfills rows when missing', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
     metadataRows = [];
 
     const response = await service.listDatastreams('oid-1', '');
@@ -286,7 +279,7 @@ describe('StandardDatastreamService', function () {
   });
 
   it('listDatastreams backfill tolerates missing disk lastModified', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
     metadataRows = [];
     diskLastModified = undefined;
 
@@ -298,7 +291,7 @@ describe('StandardDatastreamService', function () {
   });
 
   it('assigns unique metadata ids when rows are recreated after delete', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
 
     await service.addDatastream('oid-1', new Datastream({ fileId: 'file-2' }));
     const firstId = metadataRows[0].id;
@@ -311,7 +304,7 @@ describe('StandardDatastreamService', function () {
   });
 
   it('metadata or audit failures do not break addDatastream and getDatastream', async function () {
-    const service = new StandardDatastreamServices.StandardDatastream();
+    const service = new StandardDatastreamServices.StandardDatastream(datastreamInput);
     failMetadataUpsert = true;
     failRecordAccess = true;
 

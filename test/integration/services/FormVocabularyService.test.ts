@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import sinon from 'sinon';
 
 const runLiveIntegrationTests = process.env.RUN_LIVE_INTEGRATION_TESTS === 'true';
@@ -37,7 +38,7 @@ describe('The FormVocabularyService', function () {
       ]
     };
 
-    const queryParamMap = FormVocabularyService.buildNamedQueryParamMap(queryConfig, 'test', user);
+    const queryParamMap = fixture.services.FormVocabularyService.buildNamedQueryParamMap(queryConfig, 'test', user);
     expect(queryParamMap).to.be.an('object');
     expect(queryParamMap).to.have.property('userEmail');
     expect(queryParamMap.userEmail).to.equal(user.email);
@@ -79,7 +80,7 @@ describe('The FormVocabularyService', function () {
       id: '1'
     };
 
-    const solrQuery = (FormVocabularyService as any).buildSolrParams(brand, 'test', queryConfig, 1, 1, 'json', user);
+    const solrQuery = (fixture.services.FormVocabularyService as any).buildSolrParams(brand, 'test', queryConfig, 1, 1, 'json', user);
     expect(solrQuery).to.be.instanceOf(URLSearchParams);
     expect(solrQuery.get('q')).to.equal('metaMetadata_type:rdmp');
     expect(solrQuery.get('sort')).to.equal('date_object_modified desc');
@@ -97,7 +98,7 @@ describe('The FormVocabularyService', function () {
   });
 
   it('resolves dataciteDois to DoiService.lookupDataciteDois and returns service lookup results in the required format', async function () {
-    const brand = BrandingService.getDefault();
+    const brand = fixture.services.BrandingService.getDefault();
     const expectedResponse = {
       data: [
         {
@@ -120,9 +121,9 @@ describe('The FormVocabularyService', function () {
       }
     };
 
-    lookupStub = sinon.stub(sails.services.doiservice, 'lookupDataciteDois').resolves(expectedResponse);
+    lookupStub = sinon.stub(fixture.services.DOIService, 'lookupDataciteDois').resolves(expectedResponse);
 
-    const response = await FormVocabularyService.findInServiceLookup('dataciteDois', {
+    const response = await fixture.services.FormVocabularyService.findInServiceLookup('dataciteDois', {
       search: 'climate data',
       start: 0,
       rows: 25,
@@ -180,8 +181,8 @@ describe('The FormVocabularyService', function () {
       this.skip();
     }
 
-    const brand = BrandingService.getDefault();
-    const response = await FormVocabularyService.findInServiceLookup('dataciteDois', {
+    const brand = fixture.services.BrandingService.getDefault();
+    const response = await fixture.services.FormVocabularyService.findInServiceLookup('dataciteDois', {
       search: '10.5438/0014',
       start: 0,
       rows: 10,

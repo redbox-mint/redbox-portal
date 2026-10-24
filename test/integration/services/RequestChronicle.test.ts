@@ -1,14 +1,15 @@
+import { RequestChronicleHelper } from '../../../packages/redbox-core/src/utilities/RequestChronicle';
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { csrf } from '../../helpers/csrf';
 import { StreamingMultipart } from '../../../packages/redbox-core/src/http/express/multipart';
 import type { RequestHandler } from 'express';
-declare const integrationTestRoutes: { bind(path: string, handler: RequestHandler): void; unbind(path: string): void };
 import assert from 'node:assert/strict';
-import { Readable } from 'node:stream';
+import { request as httpRequest } from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import { inspect } from 'node:util';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
-import { Controllers, Services } from '@researchdatabox/redbox-core';
+import { Services } from '@researchdatabox/redbox-core';
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
 type CapturedLog = { level: LogLevel; args: unknown[] };
@@ -31,9 +32,11 @@ class WarningService extends Services.Core.Service {
   }
 }
 
-class UploadController extends Controllers.Core.Controller {
-  public recordFailure(req: Sails.Req, error: Error): void {
-    this.updateChronicle(req, { controllerUploadOutcome: 'failed' }, [error]);
+class UploadHandler {
+  public recordFailure(req: import('express').Request, error: Error): void {
+    const helper = RequestChronicleHelper.fromReq(fixture.log, req);
+    helper.addInfo({ controllerUploadOutcome: 'failed' });
+    helper.addError(error);
   }
 }
 
@@ -59,12 +62,12 @@ describe('Request chronicle in the application HTTP host', function () {
   let markUploadStarted: () => void = () => {};
 
   before(async () => {
-    const app = (sails.hooks.http as { app: Parameters<typeof supertest.agent>[0] }).app;
-    const router = integrationTestRoutes;
+    const app = fixture.server;
+    const router = fixture.routes;
     for (const [index, servicePath] of servicePaths.entries()) {
       router.bind(servicePath, async (_req, res) => {
         await new Promise(resolve => setTimeout(resolve, index === 0 ? 20 : 1));
-        const result = await EmailService.buildFromTemplateAsync(`missing-service-template-${index}`, {
+        const result = await fixture.services.EmailService.buildFromTemplateAsync(`missing-service-template-${index}`, {
           subject: 'PRIVATE SUBJECT',
           body: 'PRIVATE BODY',
         });
@@ -72,9 +75,9 @@ describe('Request chronicle in the application HTTP host', function () {
         return res.json({ status: result.status });
       });
     }
-    const warningService = new WarningService();
-    const uploadController = new UploadController();
-    multipart = new StreamingMultipart(StorageManagerService.stagingDisk(), {
+    const warningService = new WarningService(fixture.log);
+    const uploadController = new UploadHandler();
+    multipart = new StreamingMultipart(fixture.services.StorageManagerService.stagingDisk(), {
       files: 1,
       fileSize: 2 * 1024 * 1024,
       fields: 2,
@@ -100,7 +103,7 @@ describe('Request chronicle in the application HTTP host', function () {
       if (req.query.failure === 'true') {
         try {
           await firstValueFrom(
-            RDMPService.runTemplates(
+            fixture.services.RDMPService.runTemplates(
               'privacy-rdmp',
               record,
               {
@@ -121,9 +124,9 @@ describe('Request chronicle in the application HTTP host', function () {
         }
       }
       const options = { templates: [{ field: 'metadata.copied', template: '<%= record.metadata.description %>' }] };
-      await firstValueFrom(RDMPService.runTemplates('privacy-rdmp', record, options, user));
-      await firstValueFrom(RDMPService.assignPermissions('privacy-rdmp', record, {}, user));
-      await firstValueFrom(RDMPService.complexAssignPermissions('privacy-rdmp', record, {}));
+      await firstValueFrom(fixture.services.RDMPService.runTemplates('privacy-rdmp', record, options, user));
+      await firstValueFrom(fixture.services.RDMPService.assignPermissions('privacy-rdmp', record, {}, user));
+      await firstValueFrom(fixture.services.RDMPService.complexAssignPermissions('privacy-rdmp', record, {}));
       res.json({ status: true });
     });
     anonymous = supertest.agent(app);
@@ -136,34 +139,34 @@ describe('Request chronicle in the application HTTP host', function () {
       .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
       .expect(200);
 
-    const logConfig = sails.config.log as { requestChronicle?: unknown };
+    const logConfig = fixture.config.log as { requestChronicle?: unknown };
     originalSettings = logConfig.requestChronicle;
     // Retain every request, so each request produces an event.
     logConfig.requestChronicle = { successSampleRate: 1, successSampleExcludePattern: '' };
 
-    const log = sails.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
+    const log = fixture.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
     for (const level of levels) {
       const original = log[level];
       originalLog[level] = original;
       log[level] = (...args: unknown[]) => {
         captured.push({ level, args });
-        return original.apply(sails.log, args);
+        return original.apply(fixture.log, args);
       };
     }
   });
 
   after(async () => {
-    integrationTestRoutes.unbind(virtualPath);
-    integrationTestRoutes.unbind(translationFailurePath);
-    integrationTestRoutes.unbind(warningPath);
-    integrationTestRoutes.unbind(uploadPath);
-    integrationTestRoutes.unbind(rdmpPath);
+    fixture.routes.unbind(virtualPath);
+    fixture.routes.unbind(translationFailurePath);
+    fixture.routes.unbind(warningPath);
+    fixture.routes.unbind(uploadPath);
+    fixture.routes.unbind(rdmpPath);
     await multipart?.close();
     for (const servicePath of servicePaths) {
-      integrationTestRoutes.unbind(servicePath);
+      fixture.routes.unbind(servicePath);
     }
-    (sails.config.log as { requestChronicle?: unknown }).requestChronicle = originalSettings;
-    const log = sails.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
+    (fixture.config.log as { requestChronicle?: unknown }).requestChronicle = originalSettings;
+    const log = fixture.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
     for (const level of levels) {
       if (originalLog[level]) {
         log[level] = originalLog[level]!;
@@ -289,8 +292,8 @@ describe('Request chronicle in the application HTTP host', function () {
   });
 
   it('records a migrated translation failure once and redacts credentials in its message and stack', async () => {
-    const original = I18nEntriesService.getBundle;
-    I18nEntriesService.getBundle = async () => {
+    const original = fixture.services.I18nEntriesService.getBundle;
+    fixture.services.I18nEntriesService.getBundle = async () => {
       throw new Error('Upstream rejected Authorization: Bearer private-runtime-token');
     };
     try {
@@ -306,7 +309,7 @@ describe('Request chronicle in the application HTTP host', function () {
       assert.ok(!JSON.stringify(logged[0].event).includes('private-runtime-token'));
       assert.deepEqual(chronicleWarnings(), []);
     } finally {
-      I18nEntriesService.getBundle = original;
+      fixture.services.I18nEntriesService.getBundle = original;
     }
   });
 
@@ -332,14 +335,14 @@ describe('Request chronicle in the application HTTP host', function () {
   });
 
   it('does not warn or create HTTP events for service operations outside a request', async () => {
-    await firstValueFrom(UsersService.getUserWithUsername('admin'));
+    await firstValueFrom(fixture.services.UsersService.getUserWithUsername('admin'));
     await settle();
     assert.deepEqual(chronicleWarnings(), []);
     assert.equal(events(virtualPath).length, 0, 'background operations do not produce HTTP events');
   });
 
   it('retains a successful service warning as one warn event when success sampling is disabled', async () => {
-    const logConfig = sails.config.log as { requestChronicle?: unknown };
+    const logConfig = fixture.config.log as { requestChronicle?: unknown };
     const settings = logConfig.requestChronicle;
     logConfig.requestChronicle = { successSampleRate: 0 };
     try {
@@ -362,21 +365,35 @@ describe('Request chronicle in the application HTTP host', function () {
     const uploadStarted = new Promise<void>(resolve => {
       markUploadStarted = resolve;
     });
-    const attachment = Readable.from(
-      (async function* () {
-        yield Buffer.from('PRIVATE UPLOAD CONTENT');
-        await uploadStarted;
-        for (let index = 0; index < 4; index++) {
-          await delay(20);
-          yield Buffer.alloc(256 * 1024, 'x');
-        }
-      })()
-    );
-    const response = await anonymous
-      .post(uploadPath)
-      .field('marker', 'PRIVATE MARKER')
-      .attach('attachment', attachment, 'test.txt')
-      .expect(200);
+    const boundary = 'redbox-chronicle-streaming-fixture';
+    const address = fixture.server.address();
+    const request = httpRequest({ hostname: '127.0.0.1', port: address.port, path: uploadPath, method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` } });
+    request.setTimeout(15_000, () => request.destroy(new Error('Multipart fixture request timed out')));
+    const result = new Promise<{ status: number; body: unknown }>((resolve, reject) => {
+      request.once('error', reject);
+      request.once('response', response => {
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', chunk => { body += chunk; });
+        response.once('error', reject);
+        response.once('end', () => {
+          try { resolve({ status: response.statusCode!, body: JSON.parse(body) }); }
+          catch (error) { reject(error); }
+        });
+      });
+    });
+    request.flushHeaders();
+    request.write(`--${boundary}\r\nContent-Disposition: form-data; name="marker"\r\n\r\nPRIVATE MARKER\r\n`);
+    request.write(`--${boundary}\r\nContent-Disposition: form-data; name="attachment"; filename="test.txt"\r\nContent-Type: text/plain\r\n\r\nPRIVATE UPLOAD CONTENT`);
+    await uploadStarted;
+    for (let index = 0; index < 4; index++) {
+      await delay(20);
+      request.write(Buffer.alloc(256 * 1024, 'x'));
+    }
+    request.end(`\r\n--${boundary}--\r\n`);
+    const response = await result;
+    assert.equal(response.status, 200);
     await settle();
     assert.deepEqual(response.body, { uploaded: 1, parserFailed: false });
     const logged = events(uploadPath);

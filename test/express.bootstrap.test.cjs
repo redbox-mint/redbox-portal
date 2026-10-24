@@ -1,9 +1,10 @@
 'use strict';
-// Test-only legacy names refer to the actual selected Express domain instances.
-// This file never lifts Sails or constructs replacement business behavior.
+// Serialized integration fixtures bind the actual selected production domains.
+// No framework or service globals are installed.
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { createPortalHost, persistenceStatus } = require('@researchdatabox/redbox-core/portal');
+const { portalFixture: fixture } = require('./helpers/portalFixture.cjs');
 const chai = require('chai');
 Object.assign(global, {
   chai,
@@ -130,7 +131,7 @@ before(async function () {
   // Existing tests replace these collaborators and primitive bootstrap settings.
   // Accessors keep that explicit test injection on the production domain instances.
   Object.defineProperty(names.DashboardTypesService.input, 'dashboardConfig', {
-    get: () => global.DashboardConfigService,
+    get: () => fixture.services.DashboardConfigService,
   });
   for (const [key, read] of Object.entries({
     bootstrapDataPath: () => fixtureConfig.bootstrap.bootstrapDataPath,
@@ -151,46 +152,25 @@ before(async function () {
   names.FigshareVocabularyService.input.configuration = figshareConfiguration.resolveFigshareVocabularyConfig;
   names.RecordSchemaService.dependencies.getConfig = () => fixtureConfig.recordSchema;
   portal.owner.config = fixtureConfig;
-  global.sails = Object.assign(portal.owner, {
-    services: {},
-    hooks: { http: { app: Reflect.get(portal.host, 'server') } },
+  const { getCacheEntryRepository, getBrandingRepository, getStorageRepositories, mongoDatabase } = require('@researchdatabox/redbox-core');
+  const { Services: Cache } = require(path.join(coreRoot, 'services/CacheService.js'));
+  names.CacheService = new Cache.Cache({ entries: () => getCacheEntryRepository(portal.owner), config: fixtureConfig, log });
+  const { Services: Logos } = require(path.join(coreRoot, 'branding/BrandingLogo.js'));
+  names.BrandingLogoService = new Logos.BrandingLogo({
+    repository: getBrandingRepository(portal.owner), disk: () => data.disks.get().primaryDisk(),
+    legacyDatabase: () => mongoDatabase(portal.owner, 'mongodb'),
+    sanitize: ref.sanitizer.get().sanitize.bind(ref.sanitizer.get()), config: fixtureConfig.branding, log,
   });
-  Object.assign(global, names);
-  for (const name of [
-    'Config',
-    'BrandingLogo',
-    'Cache',
-    'Contrast',
-    'FormRecordConsistency',
-    'Navigation',
-    'Template',
-    'SassCompiler',
-    'AttachmentMetadata',
-  ]) {
-    const exported = require(path.join(coreRoot, 'services', name + 'Service.js'));
-    const Constructor = Object.values(exported.Services).find(value => typeof value === 'function');
-    names[name + 'Service'] = new Constructor();
-  }
-  // Only historical request/config helpers are bridged; all domain operations
-  // still run on the selected Express instances above.
-  const BrandingAdapter = require(path.join(coreRoot, 'compat/sails/branding.js')).Services.Branding;
-  for (const name of [
-    'getBrandAndPortalPath',
-    'getFaviconUrl',
-    'getBrandNameFromReq',
-    'getBrandFromReq',
-    'getPortalFromReq',
-    'getFullPath',
-    'getRootContext',
-  ])
-    names.BrandingService[name] = BrandingAdapter.prototype[name].bind(names.BrandingService);
-  const defaultBrand = fixtureConfig.auth.defaultBrand;
-  fixtureConfig.auth[defaultBrand] = fixtureConfig.brandingConfigurationDefaults.auth;
-  names.ConfigService.init?.();
-  Object.assign(global, names);
-  // Preserve owner identity for the existing persistence fixture helpers.
-  global.sails = Object.assign(portal.owner, {
-    services: Object.fromEntries(Object.entries(names).map(([name, value]) => [name.toLowerCase(), value])),
+  const { Services: Contrast } = require(path.join(coreRoot, 'services/ContrastService.js'));
+  names.ContrastService = new Contrast.Contrast(log);
+  const { Services: Templates } = require(path.join(coreRoot, 'pages/Templates.js'));
+  names.TemplateService = new Templates.Template(log);
+  const { Services: AttachmentMetadata } = require(path.join(coreRoot, 'services/AttachmentMetadataService.js'));
+  names.AttachmentMetadataService = new AttachmentMetadata.AttachmentMetadataService(getStorageRepositories(portal.owner).attachments);
+  const { FormProjection } = require(path.join(coreRoot, 'forms/FormProjection.js'));
+  Object.assign(fixture, {
+    services: names, owner: portal.owner, config: fixtureConfig, log,
+    projection: new FormProjection(log), server: Reflect.get(portal.host, 'server'),
   });
   await names.CacheService.bootstrap();
   const router = Reflect.get(portal.host, 'router');
@@ -202,7 +182,7 @@ before(async function () {
     0,
     layer
   );
-  global.integrationTestRoutes = {
+  fixture.routes = {
     bind: (path, handler) => dynamic.all(path, handler),
     unbind: path => {
       dynamic.stack = dynamic.stack.filter(layer => layer.route?.path !== path);
@@ -214,10 +194,12 @@ before(async function () {
 });
 after(async function () {
   this.timeout(120000);
+  if (fixture.services?.BrandingLogoService) await fixture.services.BrandingLogoService.close();
+  fixture.services?.CacheService?.cache?.close();
   if (portal) {
     await portal.host.stop();
     assert.equal(persistenceStatus(portal.owner).pools, 0);
     console.log('Express integration owner drained:', JSON.stringify(persistenceStatus(portal.owner)));
   }
-  delete global.sails;
+  for (const key of Object.keys(fixture)) delete fixture[key];
 });

@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import supertest from 'supertest';
 import { of, firstValueFrom } from 'rxjs';
 import { NamedQueryConfig } from '../../../packages/redbox-core/src/services/NamedQueryService';
@@ -12,12 +13,12 @@ describe('Named query and notification API parameters', function () {
   let originalToken: string | null | undefined;
 
   before(async function () {
-    request = supertest.agent(sails.hooks.http.app);
+    request = supertest.agent(fixture.server);
     const admin = await fixtureRow('User', { username: 'admin' });
     if (!admin) throw new Error('Integration admin fixture is missing');
     adminId = admin.id;
     originalToken = admin.token;
-    await firstValueFrom(UsersService.setUserKey(adminId, token));
+    await firstValueFrom(fixture.services.UsersService.setUserKey(adminId, token));
   });
 
   after(async function () {
@@ -25,12 +26,12 @@ describe('Named query and notification API parameters', function () {
   });
 
   it('passes custom query parameters from the bearer-authenticated HTTP request', async function () {
-    const getConfig = NamedQueryService.getNamedQueryConfig;
-    const perform = NamedQueryService.performNamedQueryFromConfig;
+    const getConfig = fixture.services.NamedQueryService.getNamedQueryConfig;
+    const perform = fixture.services.NamedQueryService.performNamedQueryFromConfig;
     let received: Record<string, unknown> | undefined;
     try {
-      NamedQueryService.getNamedQueryConfig = async () => new NamedQueryConfig({ collectionName: 'record' });
-      NamedQueryService.performNamedQueryFromConfig = async (_config, params) => {
+      fixture.services.NamedQueryService.getNamedQueryConfig = async () => new NamedQueryConfig({ collectionName: 'record' });
+      fixture.services.NamedQueryService.performNamedQueryFromConfig = async (_config, params) => {
         received = params;
         return new ListAPIResponse();
       };
@@ -47,17 +48,17 @@ describe('Named query and notification API parameters', function () {
         .expect(200);
       expect(received).to.include({ projectEndDateStart: '2026-10-21', projectEndDateDays: '30' });
     } finally {
-      NamedQueryService.getNamedQueryConfig = getConfig;
-      NamedQueryService.performNamedQueryFromConfig = perform;
+      fixture.services.NamedQueryService.getNamedQueryConfig = getConfig;
+      fixture.services.NamedQueryService.performNamedQueryFromConfig = perform;
     }
   });
 
   it('forwards replyTo while stripping unsafe nodemailer options over HTTP', async function () {
     // Stub the send boundary: this test must never contact an SMTP server.
-    const send = EmailService.sendMessage;
+    const send = fixture.services.EmailService.sendMessage;
     let received: Record<string, unknown> | undefined;
     try {
-      EmailService.sendMessage = (_to, _body, _subject, _from, _format, _cc, _bcc, options) => {
+      fixture.services.EmailService.sendMessage = (_to, _body, _subject, _from, _format, _cc, _bcc, options) => {
         received = options;
         return of({ success: true, msg: 'Email sent successfully. Mock transport.' });
       };
@@ -77,7 +78,7 @@ describe('Named query and notification API parameters', function () {
         .expect(200);
       expect(received).to.deep.equal({ replyTo: 'staffsupport-lib@uwa.edu.au' });
     } finally {
-      EmailService.sendMessage = send;
+      fixture.services.EmailService.sendMessage = send;
     }
   });
 });

@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 
 describe('The Agenda Queue Service', function () {
   let resolveProcessedTestData: ((data: string) => void) | null = null;
@@ -8,10 +9,10 @@ describe('The Agenda Queue Service', function () {
       if (resolveProcessedTestData && data === 'Test data') {
         resolveProcessedTestData(data);
       }
-      sails.log.debug(`Received ${data}`)
+      fixture.log.debug(`Received ${data}`)
       return data;
     };
-    AgendaQueueService.defineJob('testJob', null, testQueueConsumer)
+    fixture.services.AgendaQueueService.defineJob('testJob', null, testQueueConsumer)
     done();
   });
 
@@ -31,7 +32,7 @@ describe('The Agenda Queue Service', function () {
       };
     });
 
-    await AgendaQueueService.now('testJob', 'Test data');
+    await fixture.services.AgendaQueueService.now('testJob', 'Test data');
     const processedData = await processed;
     if (processedData !== 'Test data') {
       throw new Error(`Expected testJob to process 'Test data', received '${processedData}'.`);

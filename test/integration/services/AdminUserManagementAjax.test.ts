@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { csrf } from '../../helpers/csrf';
 import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import supertest from "supertest";
@@ -13,36 +14,36 @@ describe("Admin user management AJAX routes", function () {
   let secondaryUsername: string;
 
   before(async function () {
-    const app = (sails as any).hooks.http.app;
+    const app = fixture.server;
     agent = supertest.agent(app);
 
-    const brand = BrandingService.getDefault();
-    const roleIds = RolesService.getRoleIds(brand.roles, ["Researcher"]);
+    const brand = fixture.services.BrandingService.getDefault();
+    const roleIds = fixture.services.RolesService.getRoleIds(brand.roles, ["Researcher"]);
     const suffix = Date.now().toString();
 
     primaryUsername = `ajaxprimary${suffix}`;
     secondaryUsername = `ajaxsecondary${suffix}`;
 
     const primaryUser = await firstValueFrom(
-      UsersService.addLocalUser(
+      fixture.services.UsersService.addLocalUser(
         primaryUsername,
         "AJAX Primary User",
         `${primaryUsername}@example.edu.au`,
         "RBTest123!"
       )
     );
-    await firstValueFrom(UsersService.updateUserRoles(primaryUser.id, roleIds));
+    await firstValueFrom(fixture.services.UsersService.updateUserRoles(primaryUser.id, roleIds));
     primaryUserId = String(primaryUser.id);
 
     const secondaryUser = await firstValueFrom(
-      UsersService.addLocalUser(
+      fixture.services.UsersService.addLocalUser(
         secondaryUsername,
         "AJAX Secondary User",
         `${secondaryUsername}@example.edu.au`,
         "RBTest123!"
       )
     );
-    await firstValueFrom(UsersService.updateUserRoles(secondaryUser.id, roleIds));
+    await firstValueFrom(fixture.services.UsersService.updateUserRoles(secondaryUser.id, roleIds));
     secondaryUserId = String(secondaryUser.id);
 
     const loginCsrf = await csrf(agent);

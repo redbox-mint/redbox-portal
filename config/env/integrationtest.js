@@ -87,8 +87,7 @@ function isCompanionEnabledWithValidCredentials() {
   const hasDriveCredentials = hasProviderCredentials('UPPY_GOOGLE_KEY', 'UPPY_GOOGLE_SECRET');
   const hasOneDriveCredentials = hasProviderCredentials('UPPY_ONEDRIVE_KEY', 'UPPY_ONEDRIVE_SECRET');
   if (!hasDriveCredentials && !hasOneDriveCredentials) {
-    // sails.log may not be available at this point in the bootstrap process, so fall back to console if needed
-    const log = typeof sails !== 'undefined' && sails.log ? sails.log : console;
+    const log = console;
     log.warn(
       'UPPY_COMPANION_ENABLED=true but no complete provider credentials were found. ' +
         'Provide UPPY_GOOGLE_KEY+UPPY_GOOGLE_SECRET and/or UPPY_ONEDRIVE_KEY+UPPY_ONEDRIVE_SECRET. ' +

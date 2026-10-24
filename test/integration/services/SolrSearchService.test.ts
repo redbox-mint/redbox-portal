@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 describe('The Solr Indexing Service', function () {
   before(function (done) {
     done()
@@ -6,7 +7,7 @@ describe('The Solr Indexing Service', function () {
   let createdIndex = null
   it("Should start Indexing", function (done) {
 
-    let coreIds = Object.keys(sails.config.solr.cores);
+    let coreIds = Object.keys(fixture.config.solr.cores);
     for(let coreId of coreIds) {
       this.timeout(5000);
       let oid = "xxxxxxxxx";
@@ -15,11 +16,11 @@ describe('The Solr Indexing Service', function () {
           searchCore: coreId
         }
       };
-      SolrSearchService.index(oid, record);
+      fixture.services.SolrSearchService.index(oid, record);
     
-      SolrSearchService.searchAdvanced(coreId,null,'test').then(result => {
-        sails.log.debug("Index result: ");
-        sails.log.debug(result);
+      fixture.services.SolrSearchService.searchAdvanced(coreId,null,'test').then(result => {
+        fixture.log.debug("Index result: ");
+        fixture.log.debug(result);
         expect(result).to.not.be.null &&
           expect(result).to.have.property('responseHeader')
             .and.to.have.property('status')
@@ -30,7 +31,7 @@ describe('The Solr Indexing Service', function () {
         createdIndex = result;
       }).catch(error => {
         fail("Exception thrown");
-        sails.log.error(error);
+        fixture.log.error(error);
         done();
       })
     }
@@ -41,10 +42,10 @@ describe('The Solr Indexing Service', function () {
 
   it("Should produce a transformed document", function (done) {
 
-    let coreIds = Object.keys(sails.config.solr.cores);
+    let coreIds = Object.keys(fixture.config.solr.cores);
     for(let coreId of coreIds) {
 
-      let originalPreIndexConfig = _.cloneDeep(sails.config.solr.cores[coreId].preIndex);
+      let originalPreIndexConfig = _.cloneDeep(fixture.config.solr.cores[coreId].preIndex);
       let testPreIndexConfig = {
         move: [
           {
@@ -93,9 +94,9 @@ describe('The Solr Indexing Service', function () {
         }
       }
 
-      sails.config.solr.cores[coreId].preIndex = testPreIndexConfig;
+      fixture.config.solr.cores[coreId].preIndex = testPreIndexConfig;
 
-      let result = SolrSearchService.preIndex(testObject);
+      let result = fixture.services.SolrSearchService.preIndex(testObject);
       
       // Test move function
       expect(result, 'movedPropertyOriginalPosition does not exist').to.not.have.property('movedPropertyOriginalPosition');
@@ -115,7 +116,7 @@ describe('The Solr Indexing Service', function () {
       // Test template function
       expect(result, 'template evaluated correctly and stored into property templatespecialFlattenObjectProperty1AndProperty2').to.have.property('templatespecialFlattenObjectProperty1AndProperty2').and.equal('value1value2');
             
-      sails.config.solr.cores[coreId].preIndex = originalPreIndexConfig;
+      fixture.config.solr.cores[coreId].preIndex = originalPreIndexConfig;
     }
 
     done();

@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -10,16 +11,16 @@ describe('Figshare durable intent integration', function () {
   const created: string[] = [];
   let store:FigshareSyncRepository;
   before(async () => {
-    store=getFigshareSyncRepository();
+    store=getFigshareSyncRepository(fixture.owner);
     await store.assertReady();
   });
   after(async () => {
-    const storage = RecordsService.getFigshareIntentStorage();
+    const storage = fixture.services.RecordsService.getFigshareIntentStorage();
     for (const oid of created) { await fixtureRemove('FigshareSync', { oid }); await storage.delete(oid, true); }
   });
   it('persists an intent before queue submission, imports it once, and protects partial writes', async () => {
-    const storage = RecordsService.getFigshareIntentStorage();
-    const brand = BrandingService.getDefault();
+    const storage = fixture.services.RecordsService.getFigshareIntentStorage();
+    const brand = fixture.services.BrandingService.getDefault();
     const options: RecordWriteOptions = { figshareIntent: { saveToken: randomUUID(), readiness: 'initialising', requestedBy: 'integration-test', intents: [{ kind: 'sync', policyId: 'test', condition: '' }] } };
     const response = await storage.create(brand, { metadata: { title: 'Figshare integration fixture' }, metaMetadata: { brandId: brand.id, type: 'rdmp' }, workflow: { stage: 'draft' }, authorization: {} }, {}, {}, options);
     assert.equal(response.success, true); created.push(response.oid);

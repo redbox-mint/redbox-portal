@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { csrf } from '../../helpers/csrf';
 import supertest from "supertest";
 import sinon from "sinon";
@@ -14,7 +15,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   });
 
   before(async function () {
-    const app = (sails as any).hooks.http.app;
+    const app = fixture.server;
     agent = supertest.agent(app);
 
     const loginCsrf = await csrf(agent);
@@ -32,7 +33,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   });
 
   it("returns service-backed typeahead results", async function () {
-    lookupStub = sinon.stub(sails.services.doiservice, "lookupDataciteDois").resolves({
+    lookupStub = sinon.stub(fixture.services.DOIService, "lookupDataciteDois").resolves({
       data: [
         {
           label: "DataCite Metadata Schema Documentation (10.5438/0014) - DataCite, 2017",
@@ -118,7 +119,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   });
 
   it("returns 500 for invalid service responses", async function () {
-    lookupStub = sinon.stub(sails.services.doiservice, "lookupDataciteDois").resolves({
+    lookupStub = sinon.stub(fixture.services.DOIService, "lookupDataciteDois").resolves({
       data: [
         {
           label: "",

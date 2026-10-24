@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureCreate, fixtureRemoveOne, fixtureCount } from '../../helpers/persistenceFixtures';
 describe('The RDMPService', function () {
     const userAdminDefault = {
@@ -72,7 +73,7 @@ describe('The RDMPService', function () {
                 ],
                 "recordCreatorPermissions": "view&edit"
             };
-            RDMPService.assignPermissions(oid, record, options).subscribe(function (record) {
+            fixture.services.RDMPService.assignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).to.be.empty;
                 expect(record.authorization.view).to.be.empty;
                 expect(record.authorization.editPending).to.be.empty;
@@ -119,7 +120,7 @@ describe('The RDMPService', function () {
                 ],
                 "recordCreatorPermissions": "view&edit"
             };
-            RDMPService.assignPermissions(oid, record, options).subscribe(function (record) {
+            fixture.services.RDMPService.assignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).to.be.empty;
                 expect(record.authorization.view).eql([userAdminDefault.name]);
                 expect(record.authorization.editPending).to.be.empty;
@@ -166,7 +167,7 @@ describe('The RDMPService', function () {
                 ],
                 "recordCreatorPermissions": "view&edit"
             };
-            RDMPService.assignPermissions(oid, record, options).subscribe(function (record) {
+            fixture.services.RDMPService.assignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).eql([userAdminDefault.name]);
                 expect(record.authorization.view).to.be.empty;
                 expect(record.authorization.editPending).to.be.empty;
@@ -225,7 +226,7 @@ describe('The RDMPService', function () {
                 "viewPermissionRule": "<%= role == 'View&Edit' ||  role == 'View' %>",
                 "recordCreatorPermissions": "view&edit"
             };
-            RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
+            fixture.services.RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).to.be.empty;
                 expect(record.authorization.view).to.be.empty;
                 expect(record.authorization.editPending).to.be.empty;
@@ -269,7 +270,7 @@ describe('The RDMPService', function () {
                 "viewPermissionRule": "<%= role == 'View' %>",
                 "recordCreatorPermissions": "view&edit"
             };
-            RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
+            fixture.services.RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).to.eql([userAdminDefault.name]);
                 expect(record.authorization.view).to.be.empty;
                 expect(record.authorization.editPending).to.be.empty;
@@ -313,7 +314,7 @@ describe('The RDMPService', function () {
                 "viewPermissionRule": "<%= role == 'View&Edit' ||  role == 'View' %>",
                 "recordCreatorPermissions": "view&edit"
             };
-            RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
+            fixture.services.RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).to.be.empty;
                 expect(record.authorization.view).eql([userAdmin1.name]);
                 expect(record.authorization.editPending).to.be.empty;
@@ -375,7 +376,7 @@ describe('The RDMPService', function () {
                 "viewPermissionRule": "<%= role == 'View&Edit' ||  role == 'View' %>",
                 "recordCreatorPermissions": "view&edit"
             };
-            RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
+            fixture.services.RDMPService.complexAssignPermissions(oid, record, options).subscribe(function (record) {
                 expect(record.authorization.edit).eql([userAdminDefault.name]);
                 expect(record.authorization.view).eql([userAdminDefault.name, userAdmin1.name]);
                 expect(record.authorization.editPending).eql([userNotInDB1.email]);

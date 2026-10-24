@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { mongoDatabase, mongoSessionDatabase } from '@researchdatabox/redbox-core';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -10,18 +11,18 @@ describe('Shared MongoDB clients', function () {
   this.timeout(30_000);
 
   it('reports the real server, standalone topology and explicitly selected cache backend', async function () {
-    const db = await mongoDatabase(sails, 'mongodb');
+    const db = await mongoDatabase(fixture.owner, 'mongodb');
     const build = await db.command({ buildInfo: 1 });
     const hello = await db.command({ hello: 1 });
     assert.ok(Number(build.version.split('.')[0]) >= 8);
     assert.equal(hello.setName, undefined);
-    assert.equal(coreRequire(corePath).getCacheEntryRepository().constructor.name, 'PrismaCacheEntryRepository');
+    assert.equal(coreRequire(corePath).getCacheEntryRepository(fixture.owner).constructor.name, 'PrismaCacheEntryRepository');
   });
 
   it('persists, reopens, touches and destroys connect-mongo sessions', async function () {
     const { MongoStore } = coreRequire('connect-mongo');
     const options = {
-      clientPromise: Promise.resolve((await mongoSessionDatabase(sails, sails.config.redboxSession)).client),
+      clientPromise: Promise.resolve((await mongoSessionDatabase(fixture.owner, fixture.config.redboxSession)).client),
       collectionName: 'p4_session_smoke',
       autoRemove: 'disabled',
     };
@@ -55,9 +56,9 @@ describe('Shared MongoDB clients', function () {
   it('round trips binary data, metadata, replacement and deletion through the core GridFS driver', async function () {
     const { GridFSDriver } = coreRequire('./storage/GridFSDriver.js');
     const driver = new GridFSDriver({
-      url: sails.config.datastores.redboxStorage.url,
+      url: fixture.config.datastores.redboxStorage.url,
       bucketName: 'p4_gridfs_smoke',
-    });
+    }, undefined, undefined, fixture.owner);
     const key = `p4/${Date.now()}.bin`;
     const bytes = Buffer.from([0, 1, 127, 128, 255]);
     try {
@@ -69,7 +70,7 @@ describe('Shared MongoDB clients', function () {
       await driver.delete(key);
       assert.equal(await driver.exists(key), false);
     } finally {
-      await GridFSDriver.dispose();
+      await GridFSDriver.dispose(fixture.owner);
     }
   });
 });

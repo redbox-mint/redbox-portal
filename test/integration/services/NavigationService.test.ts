@@ -1,4 +1,4 @@
-declare var sails: Sails.Application;
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 declare var _: any;
 
 describe('NavigationService', function () {
@@ -10,12 +10,24 @@ describe('NavigationService', function () {
   let mockReq;
   let mockBrand;
 
+  const { Services } = require('../../../packages/redbox-core/dist/navigation/Navigation');
+  function navigationFor(req = mockReq) {
+    const brand = fixture.services.BrandingService.getBrand(req?.params?.branding ?? fixture.config.auth.defaultBrand);
+    return new Services.Navigation({
+      get context() { return { isAuthenticated: req?.isAuthenticated?.() === true, user: req?.user, brand,
+        brandPortalPath: fixture.config.server.rootContext + '/' + (brand?.name ?? fixture.config.auth.defaultBrand) + '/' + (req?.params?.portal ?? fixture.config.auth.defaultPortal),
+        currentPath: req?.path ?? '' }; },
+      configuration: fixture.config.brandingAware(brand?.name), appmode: fixture.config.appmode,
+      log: fixture.log, translate: key => fixture.services.TranslationService.t(key),
+      hasRole: (user, brand, role) => !!fixture.services.UsersService.hasRole(user, fixture.services.RolesService.getRole(brand, role)),
+    });
+  }
   beforeEach(() => {
-    navigationService = sails.services.navigationservice;
-    originalBrandingAware = sails.config.brandingAware;
+
+    originalBrandingAware = fixture.config.brandingAware;
 
     // Setup mock brand
-    mockBrand = BrandingService.getDefault();
+    mockBrand = fixture.services.BrandingService.getDefault();
 
     // Setup mock request object
     mockReq = {
@@ -31,23 +43,23 @@ describe('NavigationService', function () {
     };
 
     translationMap = {};
-    originalTranslationT = TranslationService.t;
-    TranslationService.t = (key: string) => translationMap[key] || key;
+    originalTranslationT = fixture.services.TranslationService.t;
+    fixture.services.TranslationService.t = (key: string) => translationMap[key] || key;
 
-    originalAppmode = sails.config.appmode;
-    sails.config.appmode = { ...(originalAppmode || {}) };
+    originalAppmode = fixture.config.appmode;
+    fixture.config.appmode = { ...(originalAppmode || {}) };
   });
 
   afterEach(() => {
     // Restore original branding aware function
-    sails.config.brandingAware = originalBrandingAware;
-    TranslationService.t = originalTranslationT;
-    sails.config.appmode = originalAppmode;
+    fixture.config.brandingAware = originalBrandingAware;
+    fixture.services.TranslationService.t = originalTranslationT;
+    fixture.config.appmode = originalAppmode;
   });
 
   describe('getDefaultMenuConfig', function () {
     it('should return the default menu configuration', function () {
-      const defaultConfig = navigationService.getDefaultMenuConfig();
+      const defaultConfig = navigationFor().getDefaultMenuConfig();
 
       expect(defaultConfig).to.have.property('items');
       expect(defaultConfig).to.have.property('showSearch', true);
@@ -58,7 +70,7 @@ describe('NavigationService', function () {
 
   describe('getDefaultHomePanelConfig', function () {
     it('should return the default home panel configuration', function () {
-      const defaultConfig = navigationService.getDefaultHomePanelConfig();
+      const defaultConfig = new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig();
 
       expect(defaultConfig).to.have.property('panels');
       expect(defaultConfig.panels).to.be.an('array');
@@ -66,7 +78,7 @@ describe('NavigationService', function () {
     });
 
     it('should have Plan panel with correct structure', function () {
-      const defaultConfig = navigationService.getDefaultHomePanelConfig();
+      const defaultConfig = new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig();
       const planPanel = defaultConfig.panels.find(p => p.id === 'plan');
 
       expect(planPanel).to.exist;
@@ -77,7 +89,7 @@ describe('NavigationService', function () {
     });
 
     it('should have Organise panel with correct structure', function () {
-      const defaultConfig = navigationService.getDefaultHomePanelConfig();
+      const defaultConfig = new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig();
       const organisePanel = defaultConfig.panels.find(p => p.id === 'organise');
 
       expect(organisePanel).to.exist;
@@ -86,7 +98,7 @@ describe('NavigationService', function () {
     });
 
     it('should have Manage panel with correct structure', function () {
-      const defaultConfig = navigationService.getDefaultHomePanelConfig();
+      const defaultConfig = new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig();
       const managePanel = defaultConfig.panels.find(p => p.id === 'manage');
 
       expect(managePanel).to.exist;
@@ -95,7 +107,7 @@ describe('NavigationService', function () {
     });
 
     it('should have Publish panel with correct structure', function () {
-      const defaultConfig = navigationService.getDefaultHomePanelConfig();
+      const defaultConfig = new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig();
       const publishPanel = defaultConfig.panels.find(p => p.id === 'publish');
 
       expect(publishPanel).to.exist;
@@ -106,7 +118,7 @@ describe('NavigationService', function () {
 
   describe('getDefaultAdminSidebarConfig', function () {
     it('should return the default admin sidebar configuration', function () {
-      const defaultConfig = navigationService.getDefaultAdminSidebarConfig();
+      const defaultConfig = navigationFor().getDefaultAdminSidebarConfig();
 
       expect(defaultConfig).to.have.property('header');
       expect(defaultConfig).to.have.property('sections');
@@ -118,7 +130,7 @@ describe('NavigationService', function () {
 
   describe('resolveMenu', function () {
     it('should return resolved menu with items and showSearch', async function () {
-      const resolvedMenu = await navigationService.resolveMenu(mockReq);
+      const resolvedMenu = await navigationFor(mockReq).resolveMenu();
 
       expect(resolvedMenu).to.have.property('items');
       expect(resolvedMenu).to.have.property('showSearch');
@@ -126,7 +138,7 @@ describe('NavigationService', function () {
     });
 
     it('should filter items based on authentication for authenticated users', async function () {
-      const resolvedMenu = await navigationService.resolveMenu(mockReq);
+      const resolvedMenu = await navigationFor(mockReq).resolveMenu();
 
       // Home item for authenticated users should be present (researcher/home)
       const homeAuthItem = resolvedMenu.items.find(
@@ -142,7 +154,7 @@ describe('NavigationService', function () {
         user: null
       };
 
-      const resolvedMenu = await navigationService.resolveMenu(unauthReq);
+      const resolvedMenu = await navigationFor(unauthReq).resolveMenu();
 
       // Most items require auth, so should be filtered out
       // Only home-anon (requiresAuth: false, hideWhenAuth: true) should show
@@ -154,7 +166,7 @@ describe('NavigationService', function () {
 
     it('should respect custom menu config and showSearch false', async function () {
       translationMap['custom-label'] = 'Custom Label';
-      sails.config.brandingAware = () => ({
+      fixture.config.brandingAware = () => ({
         menu: {
           showSearch: false,
           items: [
@@ -163,7 +175,7 @@ describe('NavigationService', function () {
         }
       });
 
-      const resolvedMenu = await navigationService.resolveMenu(mockReq);
+      const resolvedMenu = await navigationFor(mockReq).resolveMenu();
 
       expect(resolvedMenu.showSearch).to.equal(false);
       expect(resolvedMenu.items).to.have.length(1);
@@ -175,7 +187,7 @@ describe('NavigationService', function () {
       translationMap.parent = 'Parent';
       translationMap.child = 'Child';
 
-      sails.config.brandingAware = () => ({
+      fixture.config.brandingAware = () => ({
         menu: {
           items: [
             {
@@ -191,7 +203,7 @@ describe('NavigationService', function () {
       });
 
       const req = { ...mockReq, path: '/default/rdmp/child' };
-      const resolvedMenu = await navigationService.resolveMenu(req);
+      const resolvedMenu = await navigationFor(req).resolveMenu();
 
       expect(resolvedMenu.items[0].active).to.equal(true);
       expect(resolvedMenu.items[0].children).to.have.length(1);
@@ -199,8 +211,8 @@ describe('NavigationService', function () {
     });
 
     it('should hide items when feature flag is disabled', async function () {
-      sails.config.appmode = { features: { menuItem: false } };
-      sails.config.brandingAware = () => ({
+      fixture.config.appmode = { features: { menuItem: false } };
+      fixture.config.brandingAware = () => ({
         menu: {
           items: [
             { id: 'flagged', labelKey: 'flagged', href: '/flagged', featureFlag: 'features.menuItem' }
@@ -208,13 +220,13 @@ describe('NavigationService', function () {
         }
       });
 
-      const resolvedMenu = await navigationService.resolveMenu(mockReq);
+      const resolvedMenu = await navigationFor(mockReq).resolveMenu();
 
       expect(resolvedMenu.items).to.have.length(0);
     });
 
     it('should hide items when translation missing and visibleWhenTranslationExists is true', async function () {
-      sails.config.brandingAware = () => ({
+      fixture.config.brandingAware = () => ({
         menu: {
           items: [
             {
@@ -227,11 +239,11 @@ describe('NavigationService', function () {
         }
       });
 
-      const resolvedMenu = await navigationService.resolveMenu(mockReq);
+      const resolvedMenu = await navigationFor(mockReq).resolveMenu();
       expect(resolvedMenu.items).to.have.length(0);
 
       translationMap['missing-translation'] = 'Translated';
-      const resolvedWithTranslation = await navigationService.resolveMenu(mockReq);
+      const resolvedWithTranslation = await navigationFor(mockReq).resolveMenu();
       expect(resolvedWithTranslation.items).to.have.length(1);
     });
 
@@ -241,7 +253,7 @@ describe('NavigationService', function () {
         isAuthenticated: () => { throw new Error('Test error'); }
       };
 
-      const resolvedMenu = await navigationService.resolveMenu(badReq);
+      const resolvedMenu = await navigationFor(badReq).resolveMenu();
 
       expect(resolvedMenu.items).to.have.length(0);
       expect(resolvedMenu.showSearch).to.equal(true);
@@ -250,18 +262,18 @@ describe('NavigationService', function () {
 
   describe('resolveHomePanels', function () {
     it('should return resolved home panels', async function () {
-      const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
+      const resolvedPanels = await navigationFor(mockReq).resolveHomePanels();
 
       expect(resolvedPanels).to.have.property('panels');
       expect(resolvedPanels.panels).to.be.an('array');
     });
 
     it('should resolve panel titles from translation keys', async function () {
-      sails.config.brandingAware = () => ({
-        homePanels: navigationService.getDefaultHomePanelConfig()
+      fixture.config.brandingAware = () => ({
+        homePanels: new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig()
       });
 
-      const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
+      const resolvedPanels = await navigationFor(mockReq).resolveHomePanels();
 
       expect(resolvedPanels.panels.length).to.be.greaterThan(0);
 
@@ -275,11 +287,11 @@ describe('NavigationService', function () {
     });
 
     it('should resolve panel items with proper URLs', async function () {
-      sails.config.brandingAware = () => ({
-        homePanels: navigationService.getDefaultHomePanelConfig()
+      fixture.config.brandingAware = () => ({
+        homePanels: new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig()
       });
 
-      const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
+      const resolvedPanels = await navigationFor(mockReq).resolveHomePanels();
 
       expect(resolvedPanels.panels.length).to.be.greaterThan(0);
 
@@ -295,11 +307,11 @@ describe('NavigationService', function () {
     });
 
     it('should include Plan panel with RDMP items', async function () {
-      sails.config.brandingAware = () => ({
-        homePanels: navigationService.getDefaultHomePanelConfig()
+      fixture.config.brandingAware = () => ({
+        homePanels: new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig()
       });
 
-      const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
+      const resolvedPanels = await navigationFor(mockReq).resolveHomePanels();
 
       const planPanel = resolvedPanels.panels.find(p => p.id === 'plan');
       expect(planPanel).to.exist;
@@ -313,11 +325,11 @@ describe('NavigationService', function () {
     });
 
     it('should include Manage panel with data record items', async function () {
-      sails.config.brandingAware = () => ({
-        homePanels: navigationService.getDefaultHomePanelConfig()
+      fixture.config.brandingAware = () => ({
+        homePanels: new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig()
       });
 
-      const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
+      const resolvedPanels = await navigationFor(mockReq).resolveHomePanels();
 
       const managePanel = resolvedPanels.panels.find(p => p.id === 'manage');
       expect(managePanel).to.exist;
@@ -331,11 +343,11 @@ describe('NavigationService', function () {
     });
 
     it('should include Publish panel with publication items', async function () {
-      sails.config.brandingAware = () => ({
-        homePanels: navigationService.getDefaultHomePanelConfig()
+      fixture.config.brandingAware = () => ({
+        homePanels: new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultHomePanelConfig()
       });
 
-      const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
+      const resolvedPanels = await navigationFor(mockReq).resolveHomePanels();
 
       const publishPanel = resolvedPanels.panels.find(p => p.id === 'publish');
       expect(publishPanel).to.exist;
@@ -357,7 +369,7 @@ describe('NavigationService', function () {
         isAuthenticated: () => { throw new Error('Test error'); }
       };
 
-      const resolvedPanels = await navigationService.resolveHomePanels(badReq);
+      const resolvedPanels = await navigationFor(badReq).resolveHomePanels();
 
       expect(resolvedPanels).to.have.property('panels');
       expect(resolvedPanels.panels).to.be.an('array');
@@ -365,7 +377,7 @@ describe('NavigationService', function () {
     });
 
     it('should filter out panels when all items are hidden', async function () {
-      sails.config.brandingAware = () => ({
+      fixture.config.brandingAware = () => ({
         homePanels: {
           panels: [
             {
@@ -386,7 +398,7 @@ describe('NavigationService', function () {
         user: null
       };
 
-      const resolvedPanels = await navigationService.resolveHomePanels(req);
+      const resolvedPanels = await navigationFor(req).resolveHomePanels();
 
       expect(resolvedPanels.panels).to.have.length(0);
     });
@@ -410,9 +422,9 @@ describe('NavigationService', function () {
         }
       };
 
-      sails.config.brandingAware = () => customConfig;
+      fixture.config.brandingAware = () => customConfig;
 
-      const resolvedPanels = await navigationService.resolveHomePanels(mockReq);
+      const resolvedPanels = await navigationFor(mockReq).resolveHomePanels();
 
       expect(resolvedPanels.panels.length).to.equal(1);
       expect(resolvedPanels.panels[0].id).to.equal('custom');
@@ -426,7 +438,7 @@ describe('NavigationService', function () {
       translationMap['admin-item'] = 'Admin Item';
       translationMap['help-link'] = 'Help';
 
-      sails.config.brandingAware = () => ({
+      fixture.config.brandingAware = () => ({
         adminSidebar: {
           header: { titleKey: 'menu-admin', iconClass: 'fa fa-star' },
           sections: [
@@ -451,7 +463,7 @@ describe('NavigationService', function () {
         user: { ...mockReq.user, roles: [adminRole] }
       };
 
-      const resolvedSidebar = await navigationService.resolveAdminSidebar(req);
+      const resolvedSidebar = await navigationFor(req).resolveAdminSidebar();
 
       expect(resolvedSidebar.header.title).to.equal('Admin');
       expect(resolvedSidebar.sections).to.have.length(1);
@@ -460,8 +472,8 @@ describe('NavigationService', function () {
     });
 
     it('should filter sections based on roles and feature flags', async function () {
-      sails.config.appmode = { flags: { showSection: false } };
-      sails.config.brandingAware = () => ({
+      fixture.config.appmode = { flags: { showSection: false } };
+      fixture.config.brandingAware = () => ({
         adminSidebar: {
           header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
           sections: [
@@ -492,7 +504,7 @@ describe('NavigationService', function () {
         user: { ...mockReq.user, roles: [researcherRole] }
       };
 
-      const resolvedSidebar = await navigationService.resolveAdminSidebar(req);
+      const resolvedSidebar = await navigationFor(req).resolveAdminSidebar();
 
       expect(resolvedSidebar.sections).to.have.length(0);
     });
@@ -501,7 +513,7 @@ describe('NavigationService', function () {
   describe('Additional MenuService Tests', function () {
     describe('getDefaultMenuConfig', function () {
       it('should have authenticated home item in default config', function () {
-        const defaultConfig = navigationService.getDefaultMenuConfig();
+        const defaultConfig = navigationFor().getDefaultMenuConfig();
         const homeAuth = defaultConfig.items.find((item: any) => item.id === 'home-auth');
         expect(homeAuth).to.exist;
         expect(homeAuth.labelKey).to.equal('menu-home');
@@ -509,7 +521,7 @@ describe('NavigationService', function () {
         expect(homeAuth.requiresAuth).to.equal(true);
       });
       it('should have anonymous home item in default config', function () {
-        const defaultConfig = navigationService.getDefaultMenuConfig();
+        const defaultConfig = navigationFor().getDefaultMenuConfig();
         const homeAnon = defaultConfig.items.find((item: any) => item.id === 'home-anon');
         expect(homeAnon).to.exist;
         expect(homeAnon.labelKey).to.equal('menu-home');
@@ -518,7 +530,7 @@ describe('NavigationService', function () {
         expect(homeAnon.hideWhenAuth).to.equal(true);
       });
       it('should have admin item with required roles', function () {
-        const defaultConfig = navigationService.getDefaultMenuConfig();
+        const defaultConfig = navigationFor().getDefaultMenuConfig();
         const adminItem = defaultConfig.items.find((item: any) => item.id === 'admin');
         expect(adminItem).to.exist;
         expect(adminItem.requiredRoles).to.include('Admin');
@@ -528,9 +540,9 @@ describe('NavigationService', function () {
 
     describe('resolveMenu', function () {
       it('should filter out anonymous-only items for authenticated user', async function () {
-        const resolvedMenu = await navigationService.resolveMenu(mockReq);
+        const resolvedMenu = await navigationFor(mockReq).resolveMenu();
         // Home item for authenticated users should be present (researcher/home)
-        const homeItems = resolvedMenu.items.filter((item: any) => item.label === TranslationService.t('menu-home'));
+        const homeItems = resolvedMenu.items.filter((item: any) => item.label === fixture.services.TranslationService.t('menu-home'));
         // Should only have authenticated home, not anonymous home
         homeItems.forEach((item: any) => {
           expect(item.href).to.not.equal('/default/rdmp/home');
@@ -543,7 +555,7 @@ describe('NavigationService', function () {
           isAuthenticated: () => false,
           user: null
         };
-        const resolvedMenu = await navigationService.resolveMenu(unauthReq);
+        const resolvedMenu = await navigationFor(unauthReq).resolveMenu();
         // Should have items (at minimum the anonymous home)
         expect(resolvedMenu.items.length).to.be.greaterThan(0);
         // Verify no items require authentication
@@ -554,18 +566,18 @@ describe('NavigationService', function () {
         });
       });
       it('should resolve URLs with brand/portal prefix', async function () {
-        const resolvedMenu = await navigationService.resolveMenu(mockReq);
+        const resolvedMenu = await navigationFor(mockReq).resolveMenu();
         // Find home item
         const homeItem = resolvedMenu.items.find((item: any) => item.href && item.href.includes('/researcher/home'));
         expect(homeItem).to.exist;
         expect(homeItem.href).to.include('/default/rdmp');
       });
       it('should handle dropdown menus with children', async function () {
-        sails.config.brandingAware = () => ({
-          menu: navigationService.getDefaultMenuConfig()
+        fixture.config.brandingAware = () => ({
+          menu: new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultMenuConfig()
         });
 
-        const resolvedMenu = await navigationService.resolveMenu(mockReq);
+        const resolvedMenu = await navigationFor(mockReq).resolveMenu();
         // Find an item with children (dropdown)
         const dropdownItem = resolvedMenu.items.find((item: any) => item.children && item.children.length > 0);
         // There should be at least one dropdown (Plan, Organisation, Manage, or Publish)
@@ -576,7 +588,7 @@ describe('NavigationService', function () {
       it('should return empty menu on error', async function () {
         // Create a request that will cause an error
         const badReq = null;
-        const resolvedMenu = await navigationService.resolveMenu(badReq);
+        const resolvedMenu = await navigationFor(badReq).resolveMenu();
         expect(resolvedMenu).to.have.property('items');
         expect(resolvedMenu.items).to.be.an('array');
         expect(resolvedMenu).to.have.property('showSearch', true);
@@ -594,10 +606,10 @@ describe('NavigationService', function () {
           ],
           showSearch: false
         };
-        sails.config.brandingAware = (brandName: string) => ({
+        fixture.config.brandingAware = (brandName: string) => ({
           menu: customMenuConfig
         });
-        const resolvedMenu = await navigationService.resolveMenu(mockReq);
+        const resolvedMenu = await navigationFor(mockReq).resolveMenu();
         expect(resolvedMenu.showSearch).to.equal(false);
         // Should have only the custom item
         expect(resolvedMenu.items.length).to.equal(1);
@@ -609,20 +621,20 @@ describe('NavigationService', function () {
       it('should mark current path item as active', async function () {
         // Set path to match researcher home
         mockReq.path = '/default/rdmp/researcher/home';
-        const resolvedMenu = await navigationService.resolveMenu(mockReq);
+        const resolvedMenu = await navigationFor(mockReq).resolveMenu();
         // Find home item - it should be marked as active
         const homeItem = resolvedMenu.items.find((item: any) => item.href && item.href.includes('/researcher/home'));
         expect(homeItem).to.exist;
         expect(homeItem.active).to.equal(true);
       });
       it('should bubble active state to parent dropdown', async function () {
-        sails.config.brandingAware = () => ({
-          menu: navigationService.getDefaultMenuConfig()
+        fixture.config.brandingAware = () => ({
+          menu: new Services.Navigation({ configuration: {}, log: fixture.log }).getDefaultMenuConfig()
         });
 
         // Set path to match a child item (e.g., dashboard/rdmp)
         mockReq.path = '/default/rdmp/dashboard/rdmp';
-        const resolvedMenu = await navigationService.resolveMenu(mockReq);
+        const resolvedMenu = await navigationFor(mockReq).resolveMenu();
         // Find Plan dropdown - should be active because child is active
         const planDropdown = resolvedMenu.items.find((item: any) => item.children && item.children.some((child: any) => child.href && child.href.includes('/dashboard/rdmp')));
         expect(planDropdown).to.exist;
@@ -644,10 +656,10 @@ describe('NavigationService', function () {
           ],
           showSearch: true
         };
-        sails.config.brandingAware = (brandName: string) => ({
+        fixture.config.brandingAware = (brandName: string) => ({
           menu: customMenuConfig
         });
-        const resolvedMenu = await navigationService.resolveMenu(mockReq);
+        const resolvedMenu = await navigationFor(mockReq).resolveMenu();
         expect(resolvedMenu.items[0].href).to.equal('https://example.com');
         expect(resolvedMenu.items[0].external).to.equal(true);
         expect(resolvedMenu.items[0].target).to.equal('_blank');
