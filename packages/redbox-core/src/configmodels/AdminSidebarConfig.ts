@@ -52,7 +52,7 @@ export interface AdminSidebarItem {
   requiredRoles?: string[];
 
   /**
-   * Optional feature flag key (evaluated via sails.config.appmode)
+   * Optional feature flag key (evaluated via configuration.appmode)
    * @title Feature Flag
    */
   featureFlag?: string;
@@ -110,7 +110,7 @@ export interface AdminSidebarSection {
   hideWhenAuth?: boolean;
 
   /**
-   * Optional feature flag key (evaluated via sails.config.appmode)
+   * Optional feature flag key (evaluated via configuration.appmode)
    * @title Feature Flag
    */
   featureFlag?: string;
@@ -233,7 +233,7 @@ export class AdminSidebarConfig extends AppConfig {
 export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
   header: {
     titleKey: 'menu-admin',
-    iconClass: 'fa fa-cog'
+    iconClass: 'fa fa-cog',
   },
   sections: [
     {
@@ -244,8 +244,8 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
         { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
         { id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' },
         { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
-        { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
-      ]
+        { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' },
+      ],
     },
     {
       id: 'system',
@@ -257,29 +257,39 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
         { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
         { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
         { id: 'web-analytics', labelKey: 'menu-webanalytics', href: '/admin/appconfig/edit/webAnalytics' },
-        { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
+        {
+          id: 'domains',
+          labelKey: 'menu-authorizeddomainsemails',
+          href: '/admin/appconfig/edit/authorizedDomainsEmails',
+        },
         { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
         { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
         { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
         { id: 'siem', labelKey: 'menu-siemconfiguration', href: '/admin/siem' },
-        { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' },
-        { id: 'onipublishing', labelKey: 'menu-onipublishingconfiguration', href: '/admin/appconfig/edit/oniPublishing' }
-      ]
+        {
+          id: 'figsharepublishing',
+          labelKey: 'menu-figsharepublishingconfiguration',
+          href: '/admin/appconfig/edit/figsharePublishing',
+        },
+        {
+          id: 'onipublishing',
+          labelKey: 'menu-onipublishingconfiguration',
+          href: '/admin/appconfig/edit/oniPublishing',
+        },
+      ],
     },
     {
       id: 'lookup',
       titleKey: 'system-lookup-records',
       defaultExpanded: true,
       requiredRoles: ['Admin'],
-      items: [
-        { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' }
-      ]
-    }
+      items: [{ id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' }],
+    },
   ],
   footerLinks: [
     { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding' },
-    { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' }
-  ]
+    { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' },
+  ],
 };
 
 /**
@@ -296,13 +306,13 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
       description: 'Header configuration for the admin sidebar',
       widget: {
         formlyConfig: {
-          type: 'admin-sidebar-editor'
-        }
+          type: 'admin-sidebar-editor',
+        },
       },
       properties: {
         titleKey: { type: 'string', title: 'Title Key', default: 'menu-admin' },
-        iconClass: { type: 'string', title: 'Icon Class', default: 'fa fa-cog' }
-      }
+        iconClass: { type: 'string', title: 'Icon Class', default: 'fa fa-cog' },
+      },
     },
     sections: {
       type: 'array',
@@ -320,27 +330,27 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
             type: 'array',
             title: 'Required Roles',
             items: { type: 'string' },
-            default: []
+            default: [],
           },
           featureFlag: { type: 'string', title: 'Feature Flag' },
           items: {
             type: 'array',
             title: 'Items',
             items: { $ref: '#/definitions/sidebarItem' },
-            default: []
-          }
+            default: [],
+          },
         },
-        required: ['id', 'titleKey', 'items']
+        required: ['id', 'titleKey', 'items'],
       },
-      default: []
+      default: [],
     },
     footerLinks: {
       type: 'array',
       title: 'Footer Links',
       description: 'Links displayed at the bottom of the sidebar',
       items: { $ref: '#/definitions/sidebarItem' },
-      default: []
-    }
+      default: [],
+    },
   },
   definitions: {
     sidebarItem: {
@@ -356,13 +366,13 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
           type: 'array',
           title: 'Required Roles',
           items: { type: 'string' },
-          default: []
+          default: [],
         },
         featureFlag: { type: 'string', title: 'Feature Flag' },
-        visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false }
+        visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
       },
-      required: ['labelKey', 'href']
-    }
+      required: ['labelKey', 'href'],
+    },
   },
-  required: ['sections', 'footerLinks']
+  required: ['sections', 'footerLinks'],
 };

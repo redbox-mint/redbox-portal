@@ -12,7 +12,7 @@ App migrations live in `api/migrations/YYYYMMDDTHHMMSS-description.js`. Generate
 npx redbox-dev-tools --root /path/to/app generate migration backfill-dataset-label
 ```
 
-Hooks declare `sails.hasMigrations: true` and export `registerRedboxMigrations()`. Prefix hook names with the package identity. Pending migrations run in lexical name order, and successful execution is recorded through the migration ledger repository. Recorded names are skipped on restart.
+V6 extensions return named `migrations` work from `registerRedboxExtension()`. The application binds concrete inputs after persistence initialization. App-local skeleton files are not discovered automatically; bind their operation explicitly. Prefix new extension names with the package identity and preserve existing ledger names during conversion. Pending migrations run in lexical name order, and successful execution is recorded through the migration ledger repository. Recorded names are skipped on restart.
 
 Handlers receive Umzug params, with the application in `context`, not as the first argument itself. Use service/repository operations initialized before the runner:
 

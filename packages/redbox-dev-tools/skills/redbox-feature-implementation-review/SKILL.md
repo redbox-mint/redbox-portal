@@ -40,8 +40,8 @@ Use this skill after a feature implementation lands (services, controllers, mode
 2. Each service has a unit test in `packages/redbox-core/test`.
 3. Each service has at least one integration test in `typescript/test/unit` (prefer `typescript/test/unit/services`).
 4. Avoid redundant local service declarations.
-   - Rationale: Sails places services on the global scope (and via `sails.services`), so declaring `declare const SomeService` or creating local service aliases in controllers or other modules (a common pattern added by debugging agents) is unnecessary and can cause confusion or type drift.
-   - Expected behavior: reference services via the canonical global (e.g. `SomeService`, `sails.services.someservice`, or via dependency access patterns used elsewhere in the repo) and remove local `declare const` statements or redundant `const X = globalThis.X` aliases.
+   - Rationale: V6 domains and transports receive explicit typed collaborators. Ambient service declarations hide ownership and permit type drift.
+   - Expected behavior: pass collaborators through the selected factory input and remove ambient service declarations and global aliases.
    - Area mapping: `controllers` or `angular` depending on where the declaration appears.
    - Severity: `minor` for stylistic fixes, `major` if the declaration hides or masks a different service implementation.
    - Evidence: include the exact file, line range, and snippet where the local declaration occurs (e.g., `declare const VocabularyService: ...`).

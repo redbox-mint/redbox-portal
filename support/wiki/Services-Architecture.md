@@ -1,451 +1,83 @@
 # Services Architecture
 
-This document provides a deep dive into the ReDBox Portal service layer architecture, including how services are defined, loaded, and how to extend or override them in hooks.
+Business domains are explicitly constructed with the repositories, configuration,
+logger and provider operations they need. The production composition lives in
+`packages/redbox-core/src/application/portal/`. There is no process-wide service
+registry, implicit global application, loader export cache or readiness event.
 
-## Overview
+## Lifecycle and ownership
 
-ReDBox Portal uses a service-oriented architecture where business logic is encapsulated in TypeScript services. All services are centralized in the `@researchdatabox/redbox-core` package and loaded into Sails.js via the [Redbox Loader](Redbox-Loader) shim generation system.
+A factory is offline. Its `ApplicationModule` performs awaited `initialize`, then
+optional `activate`. Shutdown calls producer `quiesce`, joined `drain` and `close`.
+Initialization failure rolls back acquired modules before any ordinary activation.
+Failed stop retains resource ownership and may be retried. Accepted persistence
+work remains owned after the initiating HTTP connection closes.
 
-## Service Lifecycle
+Use `requires` to declare module ordering. Supply explicit collaborators to each
+instance; construct a fresh instance for each application. `Services.Core.Service`
+is an optional utility for logging and Observable helpers, not a registration
+mechanism. Domain operations may return Promises or single-result Observables;
+HTTP adapters await them and map typed errors.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Service Lifecycle                                │
-├─────────────────────────────────────────────────────────────────────┤
-│  1. Build Time: TypeScript services compiled to JavaScript          │
-│     └── packages/redbox-core/src/services/*.ts                │
-│                                                                     │
-│  2. Pre-Lift: the Redbox Loader generates service shims             │
-│     └── ServiceExports → api/services/*.js shims                    │
-│                                                                     │
-│  3. Sails Lift: Services loaded as Sails globals                    │
-│     └── Available as sails.services.RecordsService, etc.            │
-│                                                                     │
-│  4. Bootstrap: Service bootstrap() methods called                   │
-│     └── Initialization, cache warming, etc.                         │
-│                                                                     │
-│  5. Runtime: Services available globally                            │
-│     └── RecordsService.getMeta(oid), UsersService.findByUsername()  │
-└─────────────────────────────────────────────────────────────────────┘
-```
+## Domain boundaries
 
-## Base Service Class
-
-All services extend `Services.Core.Service` from `CoreService.ts`:
-
-```typescript
-import { Services as services } from '@researchdatabox/redbox-core';
-
-export module Services {
-    export class MyService extends services.Core.Service {
-        // Methods to expose to Sails.js
-        protected _exportedMethods: any = [
-            'bootstrap',
-            'myMethod',
-            'anotherMethod'
-        ];
-
-        // Initialization - called during bootstrap
-        public async bootstrap() {
-            // Setup code
-        }
-
-        // Business logic methods
-        public myMethod(param: string): Observable<any> {
-            return of({ result: param });
-        }
-    }
-}
-```
-
-### Key Base Class Features
-
-| Feature | Description |
+| Domain | Owned source |
 |---|---|
-| `_exportedMethods` | Array of method names to expose via `exports()` |
-| `exports()` | Returns object with bound methods for Sails.js |
-| `logger` | Access to sails.log or fallback console logger |
-| `updateChronicle(info, errors, level)` | Adds safe summaries to the current HTTP request; uses namespace logging for background work. See [Request Chronicle Logging](Request-Chronicle-Logging). |
-| `getObservable()` | Wraps asynchronous operations in RxJS Observables |
+| Records, permissions, save pipeline, datastreams and triggers | `src/records/` |
+| Forms, validation, workflows and workspace definitions | `src/forms/` |
+| Record types/schema/contributors | `src/recordTypes/`, `src/recordSchema/`, `src/record-contract/` |
+| Users, effective accounts, roles and authentication | `src/identity/` |
+| Search, reports, named queries, history and progress | `src/queries/` |
+| DOI, RAiD, ONI, Figshare, email and security auditing | `src/integrations/` |
+| Branding/typefaces/theme and application configuration | `src/branding/`, `src/configuration/` |
+| Vocabulary, translations and workspaces | `src/vocabulary/`, `src/translations/`, `src/workspaces/` |
+| Agenda and scheduled producers | `src/queues/` |
 
-## ServiceExports Object
+The retained `src/services/*Service.ts` public paths re-export owned domains.
+They do not provide default construction, globals or lifecycle discovery.
 
-The `ServiceExports` object in `src/services/index.ts` provides lazy-instantiated services:
+## Extending behavior
 
-```typescript
-export const ServiceExports = {
-    get RecordsService() {
-        return getOrCreateService('RecordsService',
-            () => new RecordsServiceModule.Services.Records().exports()
-        );
-    },
-    // ... 38 more services
-};
+Register named factories through `RedboxExtension`. A selected application binds
+its concrete dependencies and must explicitly accept extension-specific contracts.
+Do not pass a general service locator. Overrides declare `replaces: true` and
+preserve the selected contract's security, errors, concurrency, schema, audit and
+partial-effect rules. Use the validated example in
+`support/documentation/examples/hook-override.ts` and the v6 scaffold:
+
+```sh
+npx redbox-dev-tools init redbox-hook-example --template v6
 ```
 
-**Lazy instantiation** ensures:
-- Services aren't created until first access
-- Proper initialization order is maintained
-- Shim generation can inspect available services without side effects
-
-## Service Categories
-
-### Records & Data Services
-
-| Service | Purpose |
-|---|---|
-| `RecordsService` | Core CRUD operations for research data records |
-| `RecordTypesService` | Manages record type definitions and configurations |
-| `FormsService` | Dynamic form loading and management |
-| `FormRecordConsistencyService` | Validates form-record consistency |
-
-### Workflow Services
-
-| Service | Purpose |
-|---|---|
-| `WorkflowStepsService` | Manages workflow step definitions and transitions |
-| `TriggerService` | Executes workflow triggers on state changes |
-
-### User & Authorization Services
-
-| Service | Purpose |
-|---|---|
-| `UsersService` | User account management, effective-user resolution for linked aliases, disable/enable flows, and user-audit retrieval |
-| `RolesService` | Role definitions and permission management |
-
-### Search & Caching Services
-
-| Service | Purpose |
-|---|---|
-| `SolrSearchService` | Solr search index operations |
-| `CacheService` | In-memory (node-cache) and MongoDB caching |
-| `NamedQueryService` | Saved/named query execution |
-
-### Integration Services
-
-| Service | Purpose |
-|---|---|
-| `OrcidService` | ORCID identifier integration |
-| `DoiService` | DataCite DOI registration and updates |
-| `FigshareService` | Figshare repository integration |
-| `RaidService` | RAiD (Research Activity Identifier) integration |
-| `OniService` | Oni/OCFL repository integration |
-
-### Workspace Services
-
-| Service | Purpose |
-|---|---|
-| `WorkspaceService` | Research workspace management |
-| `WorkspaceTypesService` | Workspace type definitions |
-| `WorkspaceAsyncService` | Async workspace operations |
-
-### Configuration Services
-
-| Service | Purpose |
-|---|---|
-| `ConfigService` | Runtime configuration access |
-| `AppConfigService` | Application-level configuration |
-| `BrandingService` | Multi-tenant branding lifecycle coordinator (colour/typeface draft, preview, atomic publish/restore, version retention, Admin-state responses) |
-| `BrandingLogoService` | Brand logo handling |
-| `BrandingTypefaceService` | Brand typeface validation and storage boundary (WOFF2 structural inspection, variable rejection, SHA-256 content addressing, integrity checks, orphan reconciliation) |
-| `BrandingThemeCssService` | Branding colour validation plus generated theme CSS, including fixed `@font-face` declarations and the internal brand font-family variable |
-
-### Template & I18n Services
-
-| Service | Purpose |
-|---|---|
-| `TemplateService` | EJS template rendering |
-| `TranslationService` | Multi-language translation |
-| `I18nEntriesService` | Translation entry management |
-
-### Utility Services
-
-| Service | Purpose |
-|---|---|
-| `ViewUtilsService` | View helper utilities |
-| `PathRulesService` | URL path rule resolution |
-| `DomSanitizerService` | SVG content sanitization |
-| `ContrastService` | Color contrast calculations |
-| `SassCompilerService` | SASS/SCSS compilation |
-| `FormVocabularyService` | Form vocabulary lookups for named-query, external, and service-backed typeaheads |
-| `NavigationService` | Menu and navigation building |
-
-### Background Job Services
-
-| Service | Purpose |
-|---|---|
-| `AgendaQueueService` | Agenda.js job queue management |
-| `AsynchsService` | Async operation handling |
-
-### Reporting Services
-
-| Service | Purpose |
-|---|---|
-| `ReportsService` | Report generation |
-| `DashboardTypesService` | Dashboard type definitions |
-
-### Other Services
-
-| Service | Purpose |
-|---|---|
-| `EmailService` | Email delivery via nodemailer |
-| `RDMPService` | Research Data Management Plans |
-
-## Using Services in Controllers
-
-Services are available as Sails.js globals after lift:
-
-```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core';
-
-declare var sails;
-declare var RecordsService;
-declare var UsersService;
-
-export module Controllers {
-    export class MyController extends controllers.Core.Controller {
-        protected _exportedMethods: any = ['getRecord'];
-
-        public async getRecord(req, res) {
-            const oid = req.param('oid');
-
-            // Use services directly
-            RecordsService.getMeta(oid).subscribe(
-                record => res.json(record),
-                error => res.serverError(error)
-            );
-        }
-    }
-}
-```
-
-See [Controllers Architecture](Controllers-Architecture) for controller locations, shim generation, and `init()` usage.
-
-## User Management Notes
-
-Recent user-management work extends `UsersService` beyond simple CRUD. It now also owns:
-
-- linked-account resolution via `getEffectiveUser()`
-- linked-account discovery and linking workflows
-- effective disabled-state enrichment for users and aliases
-- disable/enable actions with audit events
-- normalized user-audit retrieval for the Manage Users UI
-
-The corresponding admin-facing controller surface is documented on the **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)** page.
-
-## Overriding Services in Hooks
-
-Hooks can provide custom services that override core services. Hook services take precedence.
-
-### Step 1: Declare Service Capability
-
-```json
-{
-    "name": "redbox-hook-myproject",
-    "sails": {
-        "hasServices": true
-    }
-}
-```
-
-### Step 2: Create Custom Service
-
-```typescript
-// typescript/services/CustomRecordsService.ts
-import { Services as services } from '@researchdatabox/redbox-core';
-import { RecordsService } from '@researchdatabox/redbox-core';
-
-export module Services {
-    export class CustomRecords extends RecordsService.Services.Records {
-        protected _exportedMethods: any = [
-            ...super._exportedMethods,
-            'customMethod'
-        ];
-
-        // Override existing method
-        public getMeta(oid: string): Observable<any> {
-            this.updateChronicle({ recordsReadOid: oid });
-            return super.getMeta(oid);
-        }
-
-        // Add new method
-        public customMethod(param: string): Observable<any> {
-            return of({ custom: param });
-        }
-    }
-}
-```
-
-### Step 3: Export Service Registration
-
-```typescript
-// index.ts
-import { Services } from './typescript/services/CustomRecordsService';
-
-module.exports.registerRedboxServices = function() {
-    return {
-        RecordsService: new Services.CustomRecords().exports()
-    };
-};
-```
-
-### Step 4: Generated Shim
-
-The loader generates a shim pointing to your hook:
-
-```javascript
-// api/services/RecordsService.js (generated)
-module.exports = require('redbox-hook-myproject').ServiceExports['RecordsService'];
-```
-
-### Branding extension seams
-
-- `BrandingTypefaceService` is the font validation and storage boundary. Hook developers must not reimplement WOFF2 parsing or storage-key construction; call `inspectAndStoreFace`, `readFace`, `assertTypefaceAvailable`, or `reconcileAssets`.
-- `BrandingService` owns the colour/typeface draft, preview, publication, restoration, version retention, and cache refresh. Controllers stay thin transport adapters: resolve the authenticated brand/actor, parse the request, call the service, and map typed errors.
-- `BrandingThemeCssService.generate` never accepts a user-provided CSS family string; hook CSS still loads after the generated theme stylesheet and keeps override precedence.
-
-## Service Patterns
-
-### RxJS Observable Pattern
-
-Services use RxJS Observables for async operations:
-
-```typescript
-import { Observable, of, from } from 'rxjs';
-import { mergeMap, map, catchError } from 'rxjs/operators';
-
-public getRecordWithRelated(oid: string): Observable<any> {
-    return this.getMeta(oid).pipe(
-        mergeMap(record => {
-            const relatedOid = record.metadata.relatedRecord;
-            return relatedOid
-                ? this.getMeta(relatedOid).pipe(
-                    map(related => ({ ...record, related }))
-                  )
-                : of(record);
-        }),
-        catchError(error => {
-            this.updateChronicle({ recordsReadOid: oid }, [error]);
-            throw error;
-        })
-    );
-}
-```
-
-### Repository access
-
-Services resolve the plain repository for their domain after initialization.
-For example, `getIdentityRepositories().one('user', { username })` returns a
-credential-safe user snapshot. Model globals and `sails.models` are removed.
-Hooks migrate behavior through service/repository seams; see
-[Persistence Migration](Persistence-Migration.md).
-
-### Configuration Access
-
-Services access configuration via `sails.config`:
-
-```typescript
-public getApiEndpoint(): string {
-    return sails.config.api.endpoint || 'https://default.api.com';
-}
-
-public isFeatureEnabled(): boolean {
-    return sails.config.features?.myFeature?.enabled === true;
-}
-```
-
-### Storage adapter concurrency capability
-
-A hook-provided storage adapter must explicitly declare the complete versioned
-`recordConcurrency` capability before any record type can use strict concurrent
-modification mode. Implement `getCapabilities()` using the version token
-exported by `@researchdatabox/redbox-core`; an absent or unknown version is
-treated as unsupported.
-
-The adapter must implement native atomic active update/removal and conditional
-tombstone update/removal, return the committed or removed revision/state, and
-certify bounded non-application reasons. Supplied expected revisions are never
-ignored. A driver throw or unrecognized result after dispatch remains
-`unknown`; report the uncertain result for reconciliation.
-
-Verify those guarantees against the adapter's real datastore dialect before
-declaring capability. The bundled Mongo integration tests and
-migration/deployment notes are documented in
-`packages/sails-hook-redbox-storage-mongo/README.md`.
-
-## Testing Services
-
-Services have comprehensive unit tests in `packages/redbox-core/test/services/`:
-
-```typescript
-// test/services/CacheService.test.ts
-import { Services } from '../../src/services/CacheService';
-import { setupTestEnvironment } from '../setup';
-
-describe('CacheService', () => {
-    let service: Services.Cache;
-
-    beforeEach(() => {
-        setupTestEnvironment();
-        service = new Services.Cache();
-    });
-
-    it('should cache and retrieve values', async () => {
-        await service.bootstrap();
-        service.set('testKey', { data: 'value' });
-
-        service.get('testKey').subscribe(result => {
-            expect(result).toEqual({ data: 'value' });
-        });
-    });
-});
-```
-
-Run tests:
-
-```bash
-cd packages/redbox-core
-npm test
-```
-
-## Debugging Services
-
-### Enable Verbose Logging
-
-```bash
-SHIM_VERBOSE=true npm start
-```
-
-### Service Bootstrap Order
-
-Services are bootstrapped in the order they appear in `ServiceExports`. To debug bootstrap issues:
-
-```typescript
-public async bootstrap() {
-    sails.log.info('MyService bootstrap starting...');
-    // ... initialization
-    sails.log.info('MyService bootstrap complete');
-}
-```
-
-### Inspect Generated Shims
-
-Check generated shims in `api/services/`:
-
-```bash
-cat api/services/RecordsService.js
-```
-
-## See Also
-
-- [Redbox Core Types](redbox-core) - Package documentation and service list
-- [Redbox Loader](Redbox-Loader) - Shim generation system
-- [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
-- [Architecture Overview](Architecture-Overview) - System architecture
-
-## Persistence boundaries
-
-All persistence domains use Prisma behind plain repository contracts. Keep imports
-and service registration offline and resolve repositories lazily after startup.
-See [persistence migration](Persistence-Migration.md) for institution extension
-fields, configuration, ownership and lifecycle requirements.
+Configured actions and record hooks resolve registered operation names. They
+never evaluate service-path strings. Unknown actions return 404; unregistered
+record hooks fail validation before effects. The upgrade migration recognizes a
+finite list of historic built-in hook names solely to rewrite persisted data.
+
+## Persistence and important extension contracts
+
+Repository methods require an explicit initialized owner. Keep imports and
+registration offline. See [Persistence Migration](Persistence-Migration.md) and
+[index preparation](Persistence-Index-Preparation.md).
+
+A storage replacement declares the complete versioned `recordConcurrency`
+capability before strict record types can use it. It must atomically enforce
+expected revisions, certify non-application reasons and report uncertain outcomes
+for reconciliation. Verify against its real datastore before declaring support.
+
+Branding typeface operations own WOFF2 validation, content-addressed storage,
+integrity and orphan reconciliation. Branding owns draft/publish/restore and
+retention; theme CSS never accepts arbitrary CSS-family input. Preserve these
+boundaries in replacements.
+
+Form/record validation and schema replacements preserve authoritative operations,
+privacy, timeout, shadow/enforce behavior and contributor fingerprints. Request
+chronicle summaries remain bounded and value-safe; inject a logger explicitly.
+
+## Verification
+
+Use existing service suites with concrete fixture collaborators and the real-Mongo
+HTTP/integration matrix for persisted behavior. Do not install service globals or
+replace production behavior with fixture-only implementations. See
+[Testing](ReDBox-Automated-Tests.md), [core package](Redbox-Core-Types.md) and
+[generated contracts](Generated-Reference-Documentation.md).

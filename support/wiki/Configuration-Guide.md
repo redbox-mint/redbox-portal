@@ -6,58 +6,48 @@ Much like in ReDBox 1.8+, it is recommended that you keep your configuration cha
 
 See the sample customisation repository for an example.
 
-## Managing portal configuration
+## Explicit v6 startup configuration
 
-The ReDBox Portal is built on the [SailsJS framework](https://sailsjs.com/) and therefore takes advantage of the highly extensible configuration framework provided.
-Please see the [SailsJS documentation](https://sailsjs.com/documentation/reference/configuration) for more information on its structure and configuration options.
+The v6 host awaits explicitly selected CommonJS/ESM data modules. Set
+`REDBOX_APPLICATION_CONFIG`, `REDBOX_ENVIRONMENT_CONFIG` and `REDBOX_LOCAL_CONFIG`
+to absolute filenames. `module.exports = { ... }` or an ESM default object is
+supported. Files must remain offline; initialization owns effects.
 
-There are several configuration items that are specific to the ReDBox Portal:
-1. `record.js` manages configuration around record management and the portal's interaction with the ReDBox and Mint services
-2. `auth.js` manages configuration around authorisation and authentication
-3. [emailnotification.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Email-Notifications) manages configuration of email notifications
-4. [form.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms) manages form configuration
-5. [solr.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Solr) manages Solr connection, schema, and indexing transformations
-6. [Figshare publishing AppConfig](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing) manages how records are mapped and published to Figshare
-7. [RAiD publishing AppConfig](Configuring-RAiD-Publishing) manages brand-specific credentials, mapping, retry, and audit behaviour for RAiD minting
-8. [`recordValidation`](Server-Side-Form-Validation-Operations) controls authoritative form-validation timeout, bounded shadow reporting, and global/operation rollout modes
-9. [`recordSchema`](Record-Schema-Contract-Operations) controls the default-disabled record-schema contract feature, unknown-property policy, compiler/cache limits, retention, and integration pins
+Precedence is core defaults, resolved extension contributions low to high,
+application, selected environment, local, supported environment variables, then
+supported CLI inputs. Ordinary arrays replace; Agenda jobs merge by unique name.
+Schema validation rejects unsupported meaningful settings before acquisition.
+`NODE_ENV` names the environment; it does not discover `config/env` automatically.
 
-## Configuration Defaults (redbox-core)
-
-All core configuration defaults are now centralized in the `@researchdatabox/redbox-core` package:
-
-- **Location**: `packages/redbox-core/src/config/`
-- **65+ config modules** define TypeScript interfaces and default values
-- **Shim generation**: The [Redbox Loader](Redbox-Loader) generates `config/*.js` shims that export these defaults
-
-This means:
-- Core defaults are type-safe and documented in TypeScript
-- Changes to defaults are made in `redbox-core`
-- Environment or deployment-specific overrides still work via `config/env/*.js`
-
-### Example Config Structure
-
-```typescript
-// packages/redbox-core/src/config/appmode.config.ts
-export interface AppModeConfig {
-    bootstrapAlways: boolean;
-    bootstrapOnce?: boolean;
-}
-
-export const appmode: AppModeConfig = {
-    bootstrapAlways: true
+```js
+module.exports = {
+  server: { publicUrl: 'https://research.example.invalid/research', rootContext: '/research' },
+  datastores: {
+    mongodb: { url: process.env.INSTITUTION_CORE_MONGO_URL },
+    redboxStorage: { url: process.env.INSTITUTION_STORAGE_MONGO_URL },
+  },
+  redboxSession: {
+    name: 'redbox.v6.sid', adapter: 'mongo', secret: process.env.INSTITUTION_SESSION_SECRET,
+    mongoUrl: process.env.INSTITUTION_SESSION_MONGO_URL,
+    cookie: { secure: true, httpOnly: true, sameSite: 'lax', path: '/research' },
+  },
 };
 ```
 
-The loader generates a shim:
+Use `REDBOX_SESSION_SECRET` (at least 32 characters), `REDBOX_SESSION_MONGODB_URL`
+and other documented inputs in [configuration conversion](../specs/sails-retirement/configuration-v6.md).
+Legacy `sails_*`/`sails__*`, `.sailsrc`, generated config, arbitrary framework
+options and implicit hook registrations are unsupported. The offline converter
+accepts data, never imports old files, and reports unsupported keys without
+printing secret values. Review every converted setting; do not drop meaningful
+settings to pass validation. Dynamic brand/AppConfig data remains separate.
 
-```javascript
-// config/appmode.js (auto-generated)
-const { Config } = require('@researchdatabox/redbox-core');
-module.exports.appmode = Config.appmode;
-```
+Core section defaults/interfaces live in `packages/redbox-core/src/config/`;
+`src/configuration/portal.ts` validates the composed portal. Important sections
+include `record`, `auth`, `recordValidation`, `recordSchema`, `solr`, `storage`,
+`brandingConfigurationDefaults`, `agendaQueue`, `redboxSession` and `companion`.
 
-### Branding typeface limits (`sails.config.branding`)
+### Branding typeface limits (`branding`)
 
 `packages/redbox-core/src/config/branding.config.ts` adds four operator-configurable positive integers (invalid values fall back to the defaults with a logged warning):
 
@@ -70,41 +60,12 @@ module.exports.appmode = Config.appmode;
 
 Lowering limits later affects only new uploads: already active or retained faces are grandfathered and remain publishable and restorable as long as their stored bytes verify. There is no feature flag and no decompressed-size setting. Font objects live on the Flydrive primary disk under `branding-fonts/<brand-id>/<sha256>.woff2` and must persist alongside the database backup (history pruning on upgrade is irreversible).
 
-## Hook-Provided Configuration
+## Extension configuration
 
-Hooks can provide additional configuration by declaring `hasConfig: true` in their `package.json` and exporting a `registerRedboxConfig()` function:
-
-```json
-{
-    "name": "my-redbox-hook",
-    "sails": {
-        "hasConfig": true
-    }
-}
-```
-
-```javascript
-// Hook's index.js
-module.exports.registerRedboxConfig = function() {
-    return {
-        record: {
-            customSetting: 'value'
-        }
-    };
-};
-```
-
-Hook configurations are merged with core defaults using the installation's root `package.json` `hookLoadPriority` list when present. The first hook listed has the highest precedence, so config shims process lower-precedence hooks first and the first listed hook wins conflicting values. Hooks not listed in `hookLoadPriority` are processed before listed hooks and keep the previous deterministic package-name fallback behavior.
-
-## Environment variables
-
-It is possible to use environment variables to modify configuration, this is particularly useful when running the portal in a containerised environment such as Docker. Please see [Sails configuration documentation for more information](https://sailsjs.com/documentation/concepts/configuration#?setting-sailsconfig-values-directly-using-environment-variables).
-
-### Environment specific files
-
-You may override standard configuration item for a particular environment (e.g development, test and production) by creating or modifying the environment-specific config file in the location `config/env/<environment-name>.js`. You can specify the environment by setting the `NODE_ENV` environment variable.
-
-Please see the [Sails configuration documentation](https://sailsjs.com/documentation/concepts/configuration#?environmentspecific-files-config-env) for more information.
+Return pure `config` data in `registerRedboxExtension()`. First-listed-highest
+`hookLoadPriority` remains deterministic; ordinary arrays replace. Factories and
+executable positions require explicit contracts, not arbitrary config functions.
+See [extension loading](Redbox-Loader.md).
 
 ### Developer-only Figshare fixture mode
 
@@ -133,32 +94,14 @@ figshareDev: {
 }
 ```
 
-For machine-specific developer fixtures, prefer `config/local.js` so fixture payloads do not need to be committed.
+For machine-specific fixtures, select a private local data module with `REDBOX_LOCAL_CONFIG`.
 
-## Debugging Configuration
+## Diagnostics and upgrade
 
-To debug which layer is providing configuration values, enable config snapshots:
-
-```bash
-EXPORT_BOOTSTRAP_CONFIG_JSON=true npm start
-```
-
-This generates two files in `support/debug-config/`:
-
-| File | Description |
-|---|---|
-| `pre-lift-config.json` | Config from core-types + hooks BEFORE Sails merges environment config |
-| `post-bootstrap-config.json` | Final sails.config AFTER environment config and bootstrap |
-
-Compare these files to identify where a setting is being overwritten.
-
-## See Also
-
-- [Redbox Core Types](redbox-core) - Where config defaults are defined
-- [Redbox Loader](Redbox-Loader) - How config shims are generated
-- [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Adding config via hooks
-- [Configuring Solr](Configuring-Solr) - Solr connection, schema, and pre-index mapping options
-- [Record Schema Contract Operations](Record-Schema-Contract-Operations) - Record-schema configuration, rollout, storage, retention, diagnostics, telemetry, and troubleshooting
+Startup errors report the input layer and safe setting path. Review configuration
+outside the process using the typed loader; never publish secrets or whole
+resolved snapshots. Follow [v6 upgrade/recovery](../specs/sails-retirement/upgrade-recovery-v6.md)
+and the [client compatibility list](V6-Client-Compatibility.md).
 
 ## AppConfig secret storage
 
@@ -170,6 +113,8 @@ Compare these files to identify where a setting is being overwritten.
 All groups use Prisma. Keep `datastores.mongodb`, `datastores.redboxStorage` and
 `redboxSession.mongoUrl`/`mongoOptions`/`dbName`. Remove all backend selectors,
 model configuration and datastore adapter/migrate settings; stale values fail
-with actionable guidance. Sails runs with `hooks.orm=false`. See
+with actionable guidance. See
 [the institution migration guide](Persistence-Migration.md) for exact keys,
 fixed model ownership, session pooling, index preparation and upgrade errors.
+
+`custom.cacheControl.noCache` is retired; configure `page.noCache` in v6.

@@ -1,256 +1,34 @@
-## Using a Sails hook to customise ReDBox
+# Customising ReDBox with a v6 extension
 
-To allow us to make customisations to a ReDBox instance, we take advantage of the [sails installable hook](https://sailsjs.com/documentation/concepts/extending-sails/hooks) feature.
-This allows us to package our changes as an NPM package and using npm install,
-have them applied to the instance during the lifting process.
+This page retains its historical URL. V6 loads versioned extension declarations;
+installable framework hooks and their `sails` manifest flags are retired.
+Published packages with historical names, including `sails-ng-common` and the
+bundled PDF/storage packages, keep those names and expose neutral entrypoints.
 
-### Getting Started with TypeScript
+Generate the supported scaffold with `redbox-dev-tools init institution-name`.
+`--template v6` is equivalent. The former `standard` template is rejected.
+The package declares `redbox.extension` and exports
+`registerRedboxExtension(): RedboxExtension` with `apiVersion: 1`.
 
-The recommended way to develop hooks is using the [Redbox Dev Tools](redbox-dev-tools):
+Registration is safe to inspect offline: return data and named factories, with
+explicit prerequisites and replacements. Acquire native resources in awaited
+`initialize()`, admit ordinary work at `activate()`, stop admission at `quiesce()`,
+await accepted work at `drain()` and close owned resources at `close()`. The
+application binds selected concrete inputs and owns its one server and signals.
+Do not open resources, run migrations or write bootstrap data while registering.
 
-```bash
-# Initialize a new hook project
-npx @researchdatabox/redbox-dev-tools init
+Convert global service/configuration/model lookups into explicit factory inputs.
+Convert legacy expression strings to registered operation names. Keep migration
+names stable and register awaited migration/bootstrap work separately. V6 does
+not interpret arbitrary service expressions or mount old controller classes.
 
-# Install dependencies
-npm install --save-dev @researchdatabox/redbox-dev-tools
-npm install @researchdatabox/redbox-core
+Use package-relative `views` and `assets` directories included in the published
+artifact. EJS receives the request-scoped `page` object; use `page.root`,
+`page.base`, `page.t()` and the supplied nonce. Forms and workflows are ordinary
+extension declarations, resolved in documented precedence order.
 
-# Build TypeScript
-npm run build
-```
-
-### Development
-
-A code project is setup in Bitbucket that contains the hook code.
-This should be of the format `redbox-hook-[project name]`,
-where `[project-name]` is replaced with the project, feature, or client name.
-
-Each hook contains a `docker-compose.yml` intended for development.
-It loads the customised container (i.e. with hook installed) and
-volume mounts the local code so that you can make changes.
-
-For example:
-
-```yaml
-services:
-  rbportal:
-    image: qcifengineering/redbox-portal:develop
-    volumes:
-      - "../../:/opt/redbox-portal/node_modules/redbox-hook-[project-name]"
-```
-
-To run the app use the `runForDev.sh` script or `docker-compose -f support/development/docker-compose.yml up`.
-
-### Hook Capabilities
-
-Hooks can provide various components to ReDBox by declaring capabilities in `package.json`. The [Redbox Loader](Redbox-Loader) discovers these flags and generates appropriate shims.
-
-#### package.json Configuration
-
-```json
-{
-    "name": "redbox-hook-myproject",
-    "sails": {
-        "hasPolicies": true,
-        "hasServices": true,
-        "hasControllers": true,
-        "hasBootstrap": true,
-        "hasApiRoutes": true,
-        "hasConfig": true
-    }
-}
-```
-
-#### Required Export Functions
-
-Each capability flag requires a corresponding export function:
-
-| Flag | Export Function | Returns |
-|---|---|---|
-| `hasPolicies` | `registerRedboxPolicies()` | Object of policy functions |
-| `hasServices` | `registerRedboxServices()` | Object of service exports (can override core services) |
-| `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Object of controller exports (can override core controllers) |
-| `hasBootstrap` | `registerRedboxBootstrap()` | Async function to run at startup |
-| `hasApiRoutes` | `registerHookApiRoutes()` | Array of contract-first API route definitions |
-| `hasConfig` | `registerRedboxConfig()` | Configuration object to merge |
-
-#### Persistence extensions
-
-Model registration is retired. Move callbacks into services or plain repositories,
-declare fields in the Prisma contracts and migrate custom physical mappings.
-Stale registrations and custom model shims stop startup with migration guidance.
-See [institution persistence migration](Persistence-Migration.md).
-
-#### Example: Providing Policies
-
-```javascript
-module.exports.registerRedboxPolicies = function() {
-    return {
-        myCustomPolicy: function(req, res, next) {
-            // Policy logic
-            return next();
-        }
-    };
-};
-```
-
-#### Example: Providing Services
-
-Hooks can provide custom services or override core services. Hook services take precedence over core services with the same name.
-
-**TypeScript Example (Recommended):**
-
-```typescript
-import { Services as services } from '@researchdatabox/redbox-core';
-
-export module Services {
-    export class MyCustomService extends services.Core.Service {
-        protected _exportedMethods: any = ['doSomething', 'doSomethingElse'];
-
-        public doSomething(param: string): Observable<any> {
-            // Custom business logic
-            return of({ result: param });
-        }
-
-        public doSomethingElse(): void {
-            sails.log.info('Custom service method called');
-        }
-    }
-}
-
-// In your hook's index.ts or main export file:
-module.exports.registerRedboxServices = function() {
-    return {
-        MyCustomService: new Services.MyCustomService().exports()
-    };
-};
-```
-
-**Overriding a Core Service:**
-
-```typescript
-// Override RecordsService to add custom behavior
-import { RecordsService } from '@researchdatabox/redbox-core';
-
-export module Services {
-    export class CustomRecordsService extends RecordsService.Services.Records {
-        protected _exportedMethods: any = [
-            ...super._exportedMethods,
-            'myCustomMethod'
-        ];
-
-        public myCustomMethod(oid: string): Observable<any> {
-            // Custom record handling
-            return this.getMeta(oid);
-        }
-    }
-}
-
-module.exports.registerRedboxServices = function() {
-    return {
-        RecordsService: new Services.CustomRecordsService().exports()
-    };
-};
-```
-
-#### Example: Providing Controllers
-
-Hooks can provide API controllers or webservice controllers. Hook controllers take precedence over core controllers with the same name.
-
-```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core';
-
-export module Controllers {
-    export class MyController extends controllers.Core.Controller {
-        protected _exportedMethods: any = ['index'];
-
-        public index(req: any, res: any) {
-            return res.json({ ok: true });
-        }
-    }
-}
-
-module.exports.registerRedboxControllers = function() {
-    return {
-        MyController: new Controllers.MyController().exports()
-    };
-};
-```
-
-```typescript
-module.exports.registerRedboxWebserviceControllers = function() {
-    return {
-        MyWebserviceController: new Controllers.MyWebserviceController().exports()
-    };
-};
-```
-
-#### Example: Providing Bootstrap
-
-```javascript
-module.exports.registerRedboxBootstrap = function() {
-    return async function() {
-        // Bootstrap logic runs after coreBootstrap()
-        console.log('My hook bootstrap running...');
-    };
-};
-```
-
-#### Example: Providing Config
-
-```javascript
-module.exports.registerRedboxConfig = function() {
-    return {
-        record: {
-            customFeature: {
-                enabled: true
-            }
-        }
-    };
-};
-```
-
-### Form Configuration changes
-
-Form configuration changes are kept in the `form-config` directory.
-Files are loaded using require and merged using `lodash` merge to update the form configuration.
-
-### Sails Configuration Changes
-
-Sails configuration changes are kept in the `config` directory.
-Files are loaded using require and merged using `lodash` merge to update the form configuration.
-
-For hooks using the new `hasConfig` capability, configuration can also be provided programmatically via `registerRedboxConfig()`.
-
-### Asset and View Changes
-
-Assets and Views are kept in the `assets` and `views` directories.
-Installed hooks are resolved directly at runtime, so these files do not need to be copied into `/opt/redbox-portal/assets`, `/opt/redbox-portal/.tmp/public`, or `/opt/redbox-portal/views`.
-
-View resolution follows the same branding fallback order as core views:
-
-1. `<branding>/<portal>/<view>.ejs`
-2. `default/<portal>/<view>.ejs`
-3. `default/default/<view>.ejs`
-
-For a matching candidate path, hook views override core views. When more than one installed hook supplies the same path, the installation can define precedence in the root portal `package.json`:
-
-```json
-{
-  "hookLoadPriority": [
-    "redbox-hook-jcu",
-    "sails-hook-redbox-pdfgen"
-  ]
-}
-```
-
-The first listed hook has the highest precedence. Listed hooks override unlisted hooks. If `hookLoadPriority` is missing, hook views and assets keep the previous deterministic package-name fallback behavior.
-
-Static assets under a hook's `assets` directory are served through the existing public URL shapes. For example, a hook can provide `assets/styles/client-branding.css` for `/styles/client-branding.css`, or `assets/default/rdmp/styles/theme.css` for branded fallback from `/mybrand/rdmp/styles/theme.css`.
-
-## See Also
-
-- [Redbox Dev Tools](redbox-dev-tools) - Hook development toolkit
-- [Redbox Core Types](redbox-core) - Core types and base classes
-- [Redbox Loader](Redbox-Loader) - How hooks are discovered and loaded
+Follow the [complete conversion guide](../specs/sails-retirement/hook-migration-v6.md),
+[extension contract](../specs/sails-retirement/extensions-v6.md),
+[configuration guide](Configuration-Guide.md) and [loading guide](Redbox-Loader.md).
+Operators and client developers must review the
+[v6 behavior changes](V6-Client-Compatibility.md) before upgrading.

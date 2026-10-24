@@ -2,9 +2,9 @@
 
 Use Node.js `26.11.1` and npm `11.20.0` for this development branch. From the repository root, run `nvm install` followed by `nvm use`, then check `node --version` and `npm --version`. The root and PDF hook `.nvmrc` files select the same runtime. Docker build/runtime stages, CI and test runners use that Node patch too. Released v5 comparison artifacts retain their own supported runtime.
 
-### Backend Compilation (Sails):
-1. **Install Packages**: Run `npm install` within the backend directory to ensure all dependencies are up to date.
-2. **Compile TypeScript**: Execute `npm run compile:sails` to compile the TypeScript files into JavaScript. This is crucial for the Sails backend to function correctly.
+### Backend Compilation:
+1. **Install Packages**: Run `npm ci --ignore-scripts --strict-peer-deps` with the pinned runtime.
+2. **Compile TypeScript**: Execute `npm run compile:host` to compile the TypeScript files into JavaScript. Build the core and selected extension packages before running the host.
 
 ### Frontend Compilation (Angular):
 

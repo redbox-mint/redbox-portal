@@ -120,7 +120,7 @@ export namespace Services {
     /**
      * Resolves the menu configuration for the current request context
      *
-     * @param req - The Express/Sails request object
+     * @param req - The owned request context
      * @returns ResolvedMenu ready for rendering in templates
      */
     public async resolveMenu(_req?: unknown): Promise<ResolvedMenu> {
@@ -157,7 +157,7 @@ export namespace Services {
     /**
      * Resolves the home panel configuration for the current request context
      *
-     * @param req - The Express/Sails request object
+     * @param req - The owned request context
      * @returns ResolvedHomePanels ready for rendering in templates
      */
     public async resolveHomePanels(_req?: unknown): Promise<ResolvedHomePanels> {
@@ -199,7 +199,7 @@ export namespace Services {
     /**
      * Resolves the admin sidebar configuration for the current request context
      *
-     * @param req - The Express/Sails request object
+     * @param req - The owned request context
      * @returns ResolvedAdminSidebar ready for rendering in templates
      */
     public async resolveAdminSidebar(_req?: unknown): Promise<ResolvedAdminSidebar> {

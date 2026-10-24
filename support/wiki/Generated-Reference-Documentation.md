@@ -27,7 +27,7 @@ Use `npm run docs:test` for lifecycle parsing and inheritance tests.
 
 ## Classification metadata
 
-Only explicitly classified contracts are published. Add `@extensionPoint` to a supported service, controller, hook protocol, form contract, or form component. Combine it with `@experimental` or `@deprecated` for those lifecycle states. Mark non-public contracts with `@internal`. Registered surfaces without a lifecycle tag remain unpublished and appear as `unclassified` in the health report.
+Only explicitly classified contracts are published. The extractor reads v6 declarations and owned domains directly; removed shim registries and controller base classes are not catalogue inputs. Add `@extensionPoint` to a supported owned domain, v6 extension/lifecycle protocol, form contract, or form component. Combine it with `@experimental` or `@deprecated` for those lifecycle states. Mark non-public contracts with `@internal`. Registered surfaces without a lifecycle tag remain unpublished and appear as `unclassified` in the health report.
 
 The `@extensionPoint` text should explain how hooks extend or replace the contract. Use `@remarks` for important caveats and canonical GitHub Wiki URLs in `@see` tags for longer guidance. Validated examples live in `support/documentation/examples` rather than source comments.
 
@@ -60,3 +60,17 @@ The TypeDoc reflection model is an internal intermediate under `.tmp/documentati
 ## CI and publication
 
 Branch and pull-request builds generate the documentation-health JSON and Markdown as CircleCI artifacts. Findings are advisory and do not fail the build. On `master`, CircleCI generates both documentation products, composes the complete site, records the source commit and generation timestamp, and publishes `.tmp/generated-docs-site` to `gh-pages` using the repository-pinned publishing dependency.
+
+## V6 retirement reference
+
+Run both `npm run doc:api` and `npm run docs:generate` after changing public
+transport or extension contracts, then `npm run docs:audit` and `npm run docs:test`.
+The validated hook example uses `RedboxExtension` and concrete application inputs;
+the contributor example exports a contributor for explicit binding. The catalogue
+includes offline factories/routes/work, host integrations and `ApplicationModule`
+without requiring an application global. Advisory findings remain visible and do
+not constitute runtime qualification. Record generation counts/source SHA with
+[P8 evidence](../specs/sails-retirement/evidence/p8-retirement.md).
+
+Operators/API clients must also review [all intentional v6 behavior changes](V6-Client-Compatibility.md).
+Generated extension references do not replace the upgrade and recovery runbook.

@@ -1,6 +1,6 @@
 /**
  * Storage Config Interface
- * (sails.config.storage)
+ * (configuration.storage)
  *
  * Storage service configuration with Flydrive v2 disk support.
  */

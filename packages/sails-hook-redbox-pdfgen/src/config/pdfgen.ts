@@ -1,6 +1,6 @@
 /**
  * PdfGen Config Interface
- * (sails.config.pdfgen)
+ * (configuration.pdfgen)
  *
  * Configuration for PDF generation via Puppeteer.
  */

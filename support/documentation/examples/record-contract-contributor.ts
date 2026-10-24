@@ -1,4 +1,4 @@
-import { defineRedboxHook, type RecordContractComponentContributor } from '@researchdatabox/redbox-core';
+import { type RecordContractComponentContributor } from '@researchdatabox/redbox-core';
 
 const exampleValueContract: RecordContractComponentContributor = {
   kind: 'component',
@@ -13,6 +13,5 @@ const exampleValueContract: RecordContractComponentContributor = {
   }),
 };
 
-module.exports = defineRedboxHook({
-  registerRecordContractContributors: () => [exampleValueContract],
-});
+// The selected application binds this contributor by its explicit declaration name.
+export default exampleValueContract;

@@ -1,30 +1,36 @@
-import { defineRedboxHook } from '../../../packages/redbox-core/src/hooks';
-import { Services as RecordsServiceNamespace } from '../../../packages/redbox-core/src/services/RecordsService';
-import { Controllers as RecordControllerNamespace } from '../../../packages/redbox-core/src/controllers/RecordController';
+import type { RedboxExtension } from '../../../packages/redbox-core/src/extensions';
+import type { ApplicationModule } from '../../../packages/redbox-core/src/application';
+import type { RequestHandler } from '../../../packages/redbox-core/src/extensions';
 
-class ExampleRecordsService extends RecordsServiceNamespace.Records {
-  public constructor() {
-    super();
-    this._exportedMethods = [...this._exportedMethods, 'extensionHealth'];
+class Example implements ApplicationModule {
+  private ready = false;
+  async initialize(): Promise<void> {
+    this.ready = true;
   }
-
-  public extensionHealth(): { ready: true } {
-    return { ready: true };
+  async close(): Promise<void> {
+    this.ready = false;
   }
-}
-
-class ExampleRecordController extends RecordControllerNamespace.Record {
-  public constructor() {
-    super();
-    this._exportedMethods = [...this._exportedMethods, 'extensionHealth'];
-  }
-
-  public extensionHealth(req: Sails.Req, res: Sails.Res) {
-    return this.sendResp(req, res, { data: { ready: true } });
+  health(): boolean {
+    return this.ready;
   }
 }
-
-export default defineRedboxHook({
-  registerRedboxServices: () => ({ RecordsService: new ExampleRecordsService().exports() }),
-  registerRedboxControllers: () => ({ RecordController: new ExampleRecordController().exports() }),
-});
+export function registerRedboxExtension(): RedboxExtension {
+  return {
+    apiVersion: 1,
+    modules: [{ name: 'example', create: () => new Example() }],
+    handlers: [
+      {
+        name: 'example.health',
+        requires: ['example'],
+        create:
+          (input: { example: Example }): RequestHandler =>
+          (_req, res) => {
+            res.json({ ready: input.example.health() });
+          },
+      },
+    ],
+    routes: [
+      { name: 'example.health', method: 'get', path: '/example/health', handler: 'example.health', access: 'public' },
+    ],
+  };
+}

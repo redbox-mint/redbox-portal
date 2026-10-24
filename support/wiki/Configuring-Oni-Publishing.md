@@ -1,12 +1,12 @@
 # Configuring Oni Publishing
 
 Oni publishing is configured per brand through the `oniPublishing` app-config key.
-`OniService` no longer reads `sails.config.datapubs`.
+`OniService` no longer reads `configuration.datapubs`.
 
 ## Storage
 
 OCFL writes use `StorageManagerService` disks. Configure S3 credentials in
-`sails.config.storage.disks`, then reference the disk from `oniPublishing`.
+`configuration.storage.disks`, then reference the disk from `oniPublishing`.
 
 ```js
 storage: {

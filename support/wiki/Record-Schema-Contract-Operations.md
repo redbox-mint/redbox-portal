@@ -35,7 +35,7 @@ recordSchema: {
 }
 ```
 
-Override `recordSchema` through the normal Sails configuration layers described
+Override `recordSchema` through the explicit v6 configuration layers described
 in the [Configuration Guide](Configuration-Guide). All numeric values must be
 positive integers. Environment-backed string values `"true"` and `"false"` are
 normalized for `recordSchema.enabled`; do not rely on string coercion for other
@@ -317,7 +317,7 @@ age/reference recheck.
 
 When disabled, `RecordSchemaService` reports the lifecycle as `disabled` and
 does not inspect storage or contributors. When enabled, the complete gate runs
-after the configured storage provider is ready and before Sails reports
+after the configured storage provider is ready and before the host reports
 application readiness. It aggregates deterministic findings, compiles every
 configured form, then materializes pins.
 

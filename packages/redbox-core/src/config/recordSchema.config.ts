@@ -105,7 +105,7 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-/** Normalizes boolean strings supplied by environment-backed Sails configuration. */
+/** Normalizes boolean strings supplied by environment-backed configuration. */
 export function normalizeRecordSchemaConfig(value: unknown): unknown {
   if (!isObjectRecord(value) || typeof value.enabled !== 'string') {
     return value;

@@ -338,7 +338,7 @@ export function createActionExecutionOperation(
 }
 
 /**
- * Owns detached fibers for the lifetime of a service. A Sails `lower` hook can
+ * Owns detached fibers for the lifetime of a service. Application drain can
  * interrupt the set so shutdown does not leave post-save work running against
  * a closed datastore.
  */

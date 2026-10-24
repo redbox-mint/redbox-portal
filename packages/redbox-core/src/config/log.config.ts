@@ -1,6 +1,6 @@
 /**
  * Built-in Log Configuration
- * (sails.config.log)
+ * (configuration.log)
  *
  * Configure the log level for your app, as well as the transport.
  *
@@ -17,10 +17,9 @@ import { cachePersistenceFailureForLog } from '../persistence/cache/errors';
 
 export { isPinoLogger } from '../utilities/PinoLoggerUtils';
 
-// Declare global sails type for namespace logger
 
 /**
- * The sails log levels.
+ * The application log levels.
  * Retained for compatibility; equivalent to {@link AvailableLogLevels}.
  */
 export type ApplicationLogLevel = AvailableLogLevels;
@@ -74,7 +73,7 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
     customLevels: customLevelMap,
     level: level ?? initialLogLevel,
     serializers: {
-      // Sails logs the original bootstrap error again after our failure wrapper.
+      // Keep retained cache-persistence failures safe in all logger paths.
       err: error => cachePersistenceFailureForLog(error) ?? pino.stdSerializers.err(error),
     },
     hooks: {

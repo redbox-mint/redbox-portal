@@ -10,8 +10,7 @@ npm run build
 ```
 
 The template lives in this repository at
-`packages/redbox-dev-tools/templates/hook-archetype/v6/`. The default `standard`
-template continues to serve the temporary Sails comparison environment. The v6
+`packages/redbox-dev-tools/templates/hook-archetype/v6/`. V6 is now the only scaffold and the default; `standard` is rejected. The v6
 template demonstrates an extension, not a complete standalone portal deployment.
 Generated application packaging and release commands remain SR-047/SR-053.
 
@@ -35,8 +34,7 @@ package uses CommonJS and exports the function from TypeScript; ESM can expose
 the same named function, including top-level await. Package format compatibility
 does **not** make old Sails-dependent source compatible. Convert `CoreService`,
 `sails.services`, global models/config, events, shims and `lower()` patches to
-explicit dependencies and owned lifecycle operations. The temporary legacy
-entrypoints in bundled hooks are comparison adapters, not a v6 fallback loader.
+explicit dependencies and owned lifecycle operations. The bundled hooks expose neutral extension entrypoints; the comparison adapters have been removed.
 
 ## Service and native resource
 
@@ -105,8 +103,7 @@ Before, `mergeHookConfig` mixed configuration with imperative setup. After,
 it under `config`. The application later resolves/finalizes slices and injects
 them. Registration does not mutate the running application or bootstrap data.
 
-`redbox-hook-dev/extension` reuses its existing demo/scenario declarations with
-the legacy adapter: `config`, `forms` and `workflows` refer to the same underlying
+`redbox-hook-dev/extension` uses its demo/scenario declarations: `config`, `forms` and `workflows` refer to the same underlying
 configuration definitions. Its Playwright opt-in still requires both the scenario
 flag and a development/integration-test environment. A pure public
 `redbox-core/extensions/config` entry reexports the existing DOI binding helper,
@@ -156,11 +153,9 @@ EJS inside the selected layout for HTML requests, with ordinary JSON negotiation
 and a terminal text response if the error artifact itself fails. Policy denials
 retain their policy responses; error rendering grants no additional access.
 
-The development hook still contributes demo function-name strings such as
-`sails.services.rdmpservice.runTemplates`, plus legacy redirect/view settings,
-as configuration **data**. Their execution/conversion belongs to the inventoried
-P3/P5 trigger/HTTP work. Loading these declarations does not execute those strings
-or claim that the complete demo portal already works on the partial host.
+The development hook contributes named record operations and explicit page settings.
+A finite migration table converts known persisted v5 expressions to owned operation
+names. Unknown expressions fail conversion; there is no dynamic service-path evaluation.
 
 ## Awaited bootstrap and migrations
 
@@ -205,9 +200,7 @@ repositories, storage, schema/validation, workflow/forms, queue/index and provid
 operations. Convert each v5 hook expression into a known name in the selected
 composition's callable map. `resolveHook(name)` returns only a registered function
 and throws for unknown names. Keep the existing hook signature/phase semantics;
-a missing provider is a composition failure, never a successful no-op. The thin
-Sails comparison wrapper may still interpret old expressions while it has legacy
-consumers; the standalone graph cannot import that wrapper.
+a missing provider is a composition failure, never a successful no-op. The comparison wrapper has been removed; runtime dispatch accepts only registered names.
 
 Replace a generic v5 action service expression with a selected `ConfiguredAction`:
 
@@ -255,6 +248,5 @@ The PDF factory input now requires `runAcceptedWork`. Bind it to
 application owner as the selected storage module. Initial generation and each
 scheduled retry start inside that scope and retain it through their actual fiber
 completion. The HTTP trigger or queue callback may finish sooner; its settled
-scope must not be inherited as the lifetime of detached PDF work. The comparison
-adapter supplies the same binding. Keep `quiesce`, `drain` and `close` registered
+scope must not be inherited as the lifetime of detached PDF work. Every application supplies this binding. Keep `quiesce`, `drain` and `close` registered
 with the application's existing resource registry.

@@ -143,7 +143,7 @@
       ]
     },
     "CompanionServerConfig": {
-      "description": "Companion Config\n(sails.config.companion)\n\nUppy Companion middleware configuration.",
+      "description": "Companion Config\n(configuration.companion)\n\nUppy Companion middleware configuration.",
       "type": "object",
       "properties": { "host": { "type": "string" }, "protocol": { "type": "string" }, "path": { "type": "string" } },
       "required": ["host", "path", "protocol"]
@@ -165,7 +165,7 @@
     "Record<string,string>": { "type": "object" },
     "Record<string,unknown>": { "type": "object" },
     "CustomCacheConfig": {
-      "description": "Custom Cache Config Interface\n(sails.config.custom_cache)\n\nCustom caching configuration.",
+      "description": "Custom Cache Config Interface\n(configuration.custom_cache)\n\nCustom caching configuration.",
       "type": "object",
       "properties": {
         "cacheExpiry": { "description": "Cache expiry time in seconds", "type": "number" },
@@ -554,7 +554,7 @@
       "additionalProperties": { "$ref": "#/definitions/WorkspaceTypeDefinition" }
     },
     "WorkspaceTypeDefinition": {
-      "description": "Workspace Type Config Interface\n(sails.config.workspacetype)\n\nWorkspace type definitions.",
+      "description": "Workspace Type Config Interface\n(configuration.workspacetype)\n\nWorkspace type definitions.",
       "type": "object",
       "properties": {
         "name": { "description": "Record type name for the workspace", "type": "string" },
@@ -702,7 +702,7 @@
       "required": ["options", "schema"]
     },
     "SolrCoreOptions": {
-      "description": "Solr Config Interface\n(sails.config.solr)\n\nSolr search service configuration.",
+      "description": "Solr Config Interface\n(configuration.solr)\n\nSolr search service configuration.",
       "type": "object",
       "properties": {
         "https": { "type": "boolean" },
@@ -848,7 +848,7 @@
       "required": ["api", "defaults", "settings", "templates"]
     },
     "EmailApiEndpoint": {
-      "description": "Email Notification Config Interface\n(sails.config.emailnotification)\n\nEmail notification service configuration.",
+      "description": "Email Notification Config Interface\n(configuration.emailnotification)\n\nEmail notification service configuration.",
       "type": "object",
       "properties": { "method": { "enum": ["get", "post"], "type": "string" }, "url": { "type": "string" } },
       "required": ["method", "url"]
@@ -1819,7 +1819,7 @@
     "CspDirectives": {
       "type": "object",
       "additionalProperties": {
-        "description": "Content Security Policy Config Interface\n(sails.config.csp)\n\nCSP header configuration for the contentSecurityPolicy policy.",
+        "description": "Content Security Policy Config Interface\n(configuration.csp)\n\nCSP header configuration for the contentSecurityPolicy policy.",
         "type": "array",
         "items": { "type": "string" }
       },
@@ -1849,7 +1849,7 @@
       }
     },
     "BrandingConfig": {
-      "description": "Branding Config Interface\n(sails.config.branding)\n\nBranding variable allowlist and settings.\nValues are runtime CSS custom properties, not Sass variables.",
+      "description": "Branding Config Interface\n(configuration.branding)\n\nBranding variable allowlist and settings.\nValues are runtime CSS custom properties, not Sass variables.",
       "type": "object",
       "properties": {
         "variableAllowList": {

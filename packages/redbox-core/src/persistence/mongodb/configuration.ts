@@ -33,7 +33,7 @@ function stable(value: unknown, plainOnly = false): string {
   return JSON.stringify(value);
 }
 
-/** Resolve raw Sails config, without requiring ORM loading, normalization or a manager. */
+/** Resolve explicit datastore configuration, without requiring ORM loading, normalization or a manager. */
 export function resolveDatastore(config: Record<string, unknown>): ResolvedDatastore {
   if (
     ['adapter', 'identity', 'schema', 'forceLoadAdapter', 'migrate', 'dontUseObjectIds'].some(key =>

@@ -1,265 +1,57 @@
-# Redbox Loader
+# Extension loading and retired shim generation
 
-The loader exported by `@researchdatabox/redbox-core` generates shim files for services, policies, middleware, responses, controllers, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
+ReDBox v6 imports installed extension declarations asynchronously and binds them
+into its owned application. The v5 redbox-loader shim generator and its public
+loader entrypoint are retired. Builds, installs and startup do not recreate
+`api/services`, controllers, policies, responses or generated configuration.
 
-## Overview
+## v6 declaration
 
-When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
-1. Scan dependencies for registered hooks
-2. Generate shim files that bridge Sails.js to `@researchdatabox/redbox-core`
-3. Ensure all components are in place before services and policies load
-
-## How It Works
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Application Start                        │
-├─────────────────────────────────────────────────────────────┤
-│  1. generateAllShims() from @researchdatabox/redbox-core    │
-│     ├── Scan package.json dependencies for hooks            │
-│     ├── Generate api/services/*.js shims                    │
-│     ├── Generate api/policies/*.js shims                    │
-│     ├── Generate api/middleware/*.js shims                  │
-│     ├── Generate api/responses/*.js shims                   │
-│     ├── Generate api/controllers/*.js shims                 │
-│     ├── Generate api/form-config/*.js shims                 │
-│     ├── Generate config/*.js shims                          │
-│     └── Generate config/bootstrap.js shim                   │
-├─────────────────────────────────────────────────────────────┤
-│  2. sails.lift()                                            │
-│     ├── Sails loads generated shim files                    │
-│     ├── Prisma repositories initialize on app-owned pools   │
-│     ├── Services become available as global sails services  │
-│     └── Bootstrap executes coreBootstrap()                  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Regeneration Triggers
-
-Shims are regenerated when (in priority order):
-
-| Trigger | Description |
-|---|---|
-| `NODE_ENV !== 'production'` | Always regenerate in development |
-| `.regenerate-shims` file exists | Marker file triggers regeneration, then is deleted |
-| `REGENERATE_SHIMS=true` env var | Force regeneration via environment variable |
-| Empty shim directory | If `api/policies/`, `api/services/`, etc. are empty |
-
-In production mode, shims are cached unless explicitly triggered.
-
-## What Gets Generated
-
-### Retired model surfaces
-
-Model generation and registration have been removed. The loader refuses stale
-institution registrations and preserves edited model shims with migration guidance.
-Only exact old loader output is deleted. See [persistence migration](Persistence-Migration.md).
-
-### Policy Shims (`api/policies/`)
-
-```javascript
-// Example: api/policies/isAuthenticated.js
-const { Policies } = require('@researchdatabox/redbox-core');
-module.exports = Policies['isAuthenticated'];
-```
-
-### Service Shims (`api/services/`)
-
-Service shims expose the core services from `@researchdatabox/redbox-core` to Sails.js. These include business logic for records, workflows, users, integrations, and more.
-
-```javascript
-// Example: api/services/RecordsService.js
-const { ServiceExports } = require('@researchdatabox/redbox-core');
-module.exports = ServiceExports['RecordsService'];
-```
-
-Services are lazy-instantiated when first accessed, ensuring proper initialization order.
-
-**Generated Services:**
-
-| Service | Description |
-|---|---|
-| `RecordsService` | Core record CRUD operations |
-| `UsersService` | User account management |
-| `FormsService` | Dynamic form handling |
-| `WorkflowStepsService` | Workflow state transitions |
-| `SolrSearchService` | Search indexing |
-| `EmailService` | Email delivery |
-| `CacheService` | In-memory and database caching |
-| ... | 32 additional services |
-
-See [Redbox Core Types - Services](redbox-core#core-services) for the complete service list.
-
-### Controller Shims (`api/controllers/`)
-
-Controller shims expose controllers from `@researchdatabox/redbox-core` to Sails.js. Webservice controllers are generated under `api/controllers/webservice/`.
-
-```javascript
-// Example: api/controllers/RecordController.js
-const { ControllerExports } = require('@researchdatabox/redbox-core');
-module.exports = ControllerExports['RecordController'];
-```
-
-```javascript
-// Example: api/controllers/webservice/RecordController.js
-const { WebserviceControllerExports } = require('@researchdatabox/redbox-core');
-module.exports = WebserviceControllerExports['RecordController'];
-```
-
-Controller shim generation uses `ControllerNames` and `WebserviceControllerNames` to avoid instantiating controllers during shim creation.
-
-### Config Shims (`config/`)
-
-```javascript
-// Example: config/appmode.js
-const { Config } = require('@researchdatabox/redbox-core');
-module.exports.appmode = Config.appmode;
-```
-
-Config shims also merge hook-provided configurations according to the installation's root `package.json` `hookLoadPriority` list. The first listed hook has the highest precedence, so generated config shims process lower-precedence hooks first and higher-precedence hooks later. If `hookLoadPriority` is missing, the loader keeps the previous package-name fallback behavior.
-
-### Form-Config Shims (`api/form-config/`)
-
-Form-config shims expose typed form definitions from core-types and hooks. The
-generated `api/form-config/index.js` provides a map compatible with legacy
-`config/form.js` consumers.
-
-```javascript
-// Example: api/form-config/default-1.0-draft.js
-const { FormConfigExports } = require('@researchdatabox/redbox-core');
-module.exports = FormConfigExports['default-1.0-draft'];
-```
-
-```javascript
-// Example: api/form-config/index.js
-const forms = {
-    'default-1.0-draft': require('./default-1.0-draft.js'),
-};
-
-module.exports = { forms };
-```
-
-`LOAD_DEFAULT_FORMS=true` includes core + hook forms in the registry. When
-`LOAD_DEFAULT_FORMS` is false or unset, only hook forms are included.
-
-### Bootstrap Shim (`config/bootstrap.js`)
-
-Calls `coreBootstrap()` and any hook-provided bootstrap functions.
-
-## Hook Discovery
-
-The loader scans `package.json` dependencies for hooks that declare capabilities:
+A package declares `redbox.extension` in `package.json` and exports
+`registerRedboxExtension()` from that entry. It returns an offline data declaration
+with `apiVersion: 1`: module/handler factories, routes with access policies,
+middleware, server integrations, named migrations/bootstrap/jobs, forms/workflows,
+configuration models, contributors and package-relative views/assets.
 
 ```json
-{
-    "name": "my-redbox-hook",
-    "sails": {
-        "hasPolicies": true,
-        "hasServices": true,
-        "hasControllers": true,
-        "hasBootstrap": true,
-        "hasConfig": true,
-        "hasFormConfigs": true
-    }
+{ "name": "redbox-hook-example", "redbox": { "extension": "." } }
+```
+
+```ts
+import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+export function registerRedboxExtension(): RedboxExtension {
+  return { apiVersion: 1, config: {}, modules: [] };
 }
 ```
 
-Hooks must export registration functions:
+CommonJS and ESM declarations are supported, including awaited imports. Export
+inspection must be offline. Application composition binds concrete inputs and
+owns initialization, activation and stop. Declare `requires` for dependencies
+and `replaces: true` for intentional replacement. `hookLoadPriority` preserves
+first-listed-highest precedence; deterministic package order resolves unlisted
+hooks. Conflicting undeclared replacement and unknown dependencies fail offline.
 
-| Flag | Required Export | Description |
-|---|---|---|
-| `hasPolicies` | `registerRedboxPolicies()` | Returns policies object |
-| `hasServices` | `registerRedboxServices()` | Returns services object (hook services take precedence over core) |
-| `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Returns controller export objects (hook controllers take precedence) |
-| `hasBootstrap` | `registerRedboxBootstrap()` | Returns async bootstrap function |
-| `hasApiRoutes` | `registerHookApiRoutes()` | Returns an array of contract-first API route definitions |
-| `hasConfig` | `registerRedboxConfig()` | Returns config object to merge |
-| `hasFormConfigs` | `registerRedboxFormConfigs()` | Returns form config registry |
+V5 `sails.has*`, `defineRedboxHook`, global services, readiness events and
+`registerRedboxServices`/controller/config registrations are unsupported.
+Use separate v5/v6 hook releases where needed. See the
+[hook migration guide](../specs/sails-retirement/hook-migration-v6.md),
+[extension contract](../specs/sails-retirement/extensions-v6.md) and
+[generated reference](Generated-Reference-Documentation.md).
 
-### Hook Load Priority
+## Existing generated files
 
-Installations can define hook precedence in the root portal `package.json`:
+Back up customized files before conversion. The offline command below inspects
+only a trusted inventory and defaults to no changes:
 
-```json
-{
-    "hookLoadPriority": [
-        "redbox-hook-jcu",
-        "sails-hook-redbox-pdfgen"
-    ]
-}
+```sh
+node support/migrations/retire-v5-shims.cjs /absolute/portal /absolute/trusted-manifest.json
+# After reviewing the report, remove only exact recorded generated bytes:
+node support/migrations/retire-v5-shims.cjs /absolute/portal /absolute/trusted-manifest.json --apply
 ```
 
-The first listed hook has the highest precedence. Listed hooks override unlisted hooks, and unlisted hooks keep the previous deterministic package-name fallback. Merge and shim generation paths process hooks from lowest to highest precedence because those registries are last-write-wins. Direct lookup paths such as hook views and assets search highest precedence first.
-
-Migrations are collected in hook processing order, but final migration execution remains sorted by migration name/timestamp.
-
-### Service Override Precedence
-
-When a hook provides a service with the same name as a core service, the **hook service takes precedence**. This allows hooks to override or extend core functionality:
-
-```javascript
-// Hook providing a custom RecordsService
-module.exports.registerRedboxServices = function() {
-    return {
-        RecordsService: new MyCustomRecordsService().exports()
-    };
-};
-```
-
-The generated shim will point to the hook's implementation instead of core-types.
-
-### Controller Override Precedence
-
-When a hook provides a controller with the same name as a core controller, the hook controller takes precedence. This applies independently to API and webservice controllers.
-
-## Debugging
-
-### Verbose Logging
-
-```bash
-SHIM_VERBOSE=true npm start
-```
-
-Outputs detailed information about shim generation timing and counts.
-
-### Config Snapshots
-
-```bash
-EXPORT_BOOTSTRAP_CONFIG_JSON=true npm start
-```
-
-Generates two config snapshots in `support/debug-config/`:
-
-| File | Description |
-|---|---|
-| `pre-lift-config.json` | Config from core-types + hooks BEFORE Sails merges environment config |
-| `post-bootstrap-config.json` | Final sails.config AFTER Sails loads environment config and runs bootstrap |
-
-This helps debug which layer is setting (or overwriting) configuration values.
-
-## Usage
-
-The loader is called in `app.js` before Sails lifts:
-
-```javascript
-const { generateAllShims } = require('@researchdatabox/redbox-core');
-
-(async () => {
-    await generateAllShims(__dirname);
-    sails.lift(rc('sails'));
-})();
-```
-
-## See Also
-
-- [Redbox Core Types](redbox-core) - Source of repository contracts, policies, and config
-- [Controllers Architecture](Controllers-Architecture) - Controller exports, shims, and lifecycle
-- [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Creating hooks
-
-## Persistence startup
-
-Shim generation is offline. Pre-lift setup awaits the application runtime and all
-Prisma repositories before service initialization, migrations, core bootstrap and
-hook bootstrap. Bootstrap failure and normal shutdown drain registered resources
-and close borrowed clients before their pools. Hook registration must not acquire
-repositories. See [institution migration](Persistence-Migration.md).
+Use an institution-specific manifest with trusted original hashes. A generated
+header alone is insufficient. Edited files, unknown files and symlinks are
+preserved; reconcile their customizations into v6 declarations/configuration.
+The repository baseline manifest describes this checkout only. Application-owned
+migrations and deployment files are preserved. No cleanup command runs startup,
+imports the portal, or generates replacement shims.

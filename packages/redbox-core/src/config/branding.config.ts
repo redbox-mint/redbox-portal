@@ -8,7 +8,7 @@ import {
 
 /**
  * Branding Config Interface
- * (sails.config.branding)
+ * (configuration.branding)
  *
  * Branding variable allowlist and settings.
  * Values are runtime CSS custom properties, not Sass variables.
@@ -61,7 +61,7 @@ export const branding: BrandingConfig = {
 };
 
 /**
- * Branding sails globals shape for validated config lookup.
+ * Branding configuration shape for validated config lookup.
  */
 /** Read an explicit operator setting, warning and using the default if invalid. */
 export function getBrandingPositiveInt(

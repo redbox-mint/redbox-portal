@@ -1,6 +1,6 @@
 /**
  * ReDBox Session Configuration
- * (sails.config.redboxSession)
+ * (configuration.redboxSession)
  */
 
 export interface RedboxSessionConfig {

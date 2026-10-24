@@ -174,11 +174,11 @@ async function validateExamples(
     .trim();
   for (const surface of surfaces.filter(candidate =>
     [
-      'hook-protocol:defineRedboxHook',
+      'hook-protocol:RedboxExtension',
+      'hook-protocol:ExtensionFactory',
+      'hook-protocol:ApplicationModule',
       'base-service:Service',
-      'base-controller:Controller',
       'service:RecordsService',
-      'ajax-controller:RecordController',
     ].includes(candidate.id)
   )) {
     surface.example = hookExample;

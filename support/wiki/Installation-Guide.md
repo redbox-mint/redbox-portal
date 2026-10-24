@@ -1,99 +1,53 @@
-This guide provides step-by-step instructions on how to set up and run RedBox Portal using Docker. The setup described below is intended for evaluation purposes. If you plan to use RedBox Portal in a production environment, please see the **Considerations for Production Use** section at the end of this guide.
+# Installation Guide
 
-## Prerequisites
+V6 runs the owned Express 5 host (`app.express.cjs`) with Node 26.11.1 and
+MongoDB 8+. Select an immutable, qualified application image and exact converted
+hook artifacts. Internal-default promotion is not production release acceptance;
+see the current [retirement task status](../specs/sails-retirement/tasks.md).
 
-Before you begin, ensure you have the following installed on your machine:
+## Evaluation and development
 
-- Docker: [Install Docker](https://docs.docker.com/get-docker/)
-- Docker Compose: [Install Docker Compose](https://docs.docker.com/compose/install/)
+Install Docker/Compose, use the repository's exact pins, and follow
+[Development](Development-Guide.md). The checked-in
+`support/development/docker-compose.yml` supplies the selected application and
+providers. For a local build:
 
-## Installation Steps for Evaluation
+```sh
+npm run dev:prepare
+npm run dev:run:build
+```
 
-1. **Prepare the Docker Compose File**: Create a `docker-compose.yml` file in your desired directory and copy the following content into the file:
+The image's CMD starts Express; do not override it with a framework lift command.
+Use explicit deployment modules and real secrets as described in
+[Configuration](Configuration-Guide.md). Serve the configured public URL/root
+context through the approved reverse proxy and configure trusted proxies and
+browser origins explicitly. Readiness is `/readyz`; liveness is `/healthz`.
 
-   ```yaml
-   version: '3.1'
-   networks:
-     main:
-   services:
-     redboxportal:
-       image: qcifengineering/redbox-portal:develop
-       ports:
-         - "1500:1500"
-       user: node
-       expose:
-         - "1500"
-       environment:
-         - NODE_ENV=docker
-         - PORT=1500
-         - sails_record__baseUrl__mint=https://demo.redboxresearchdata.com.au/mint
-       networks:
-         main:
-           aliases:
-             - rbportal
-       entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
-     mongodb:
-       image: mongo:latest
-       volumes:
-         - "./devdata:/devdata:delegated"
-         - "./.dev/mongo/data/db:/data/db:delegated"
-         - "./.dev/log/mongo:/var/log/mongo:delegated"
-       networks:
-         main:
-           aliases:
-             - mongodb
-       ports:
-         - "27017:27017"
-     solr:
-       image: solr:latest
-       expose:
-         - "8983"
-       ports:
-         - "8983:8983"
-       networks:
-         main:
-          aliases:
-            - solr
-       entrypoint:
-         - docker-entrypoint.sh
-         - solr-precreate
-         - redbox
-   ```
+## Existing installation upgrade
 
-2. **Launch the Services**: Navigate to the directory containing your `docker-compose.yml` file and run the following command to start all services for evaluation:
+Follow the complete [v6 upgrade/recovery runbook](../specs/sails-retirement/upgrade-recovery-v6.md)
+and [operator/API-client changes](V6-Client-Compatibility.md). Stop every writer,
+checkpoint all databases, sessions, queues, byte stores, configuration and exact
+artifacts consistently, then prepare indexes with the installed application:
 
-   ```bash
-   docker-compose up -d
-   ```
+```sh
+REDBOX_APPLICATION_CONFIG=/etc/redbox/application.cjs node app.express.cjs --maintenance=indexes:inspect
+REDBOX_APPLICATION_CONFIG=/etc/redbox/application.cjs node app.express.cjs --maintenance=indexes:ensure
+REDBOX_APPLICATION_CONFIG=/etc/redbox/application.cjs node app.express.cjs --initialize-only
+```
 
-   This command will start the necessary containers for the RedBox Portal, MongoDB, and Solr services.
+Inspect exits 2 for required operator action and 1 for operational error. Ensure
+never silently drops conflicting indexes. Review duplicate records and the
+released-v5 nonunique OID index procedure in the runbook. MongoDB engine/FCV
+upgrades are separate vendor-supported operations. Existing volumes never rerun
+empty-volume init scripts.
 
-3. **Verify the Installation**: Access the RedBox Portal web interface through:
+Require a fresh login after cutover; retain unfinished transfer state for trusted
+reconciliation. Mixed-version rolling operation and starting v5 against v6-written
+state are unsupported. Recovery restores the complete quiescent checkpoint and
+its matching image/hooks/configuration. Keep ingress closed until authentication,
+brand permissions, reads/writes, providers and successful drain are verified.
 
-   ```
-   http://localhost:1500
-   ```
-
-   Adjust the URL based on your server's configuration if necessary.
-
-## Considerations for Production Use
-
-When moving from an evaluation setup to a production environment, consider the following:
-
-- **Data Persistence**: Ensure data volumes used by Docker are backed up regularly. Consider using Docker volume plugins that support external storage systems.
-
-- **Security**: Implement network security measures such as firewalls and network segmentation. Secure your Docker daemon and use Docker security features like user namespaces and seccomp profiles.
-
-- **HTTPS Support**: Set up an Nginx reverse proxy with SSL/TLS to secure communications with the RedBox Portal. Obtain a valid SSL certificate and configure Nginx to use it.
-
-- **Resource Management**: Allocate sufficient resources (CPU, memory, storage) based on your expected load. Monitor resource usage and adjust as necessary.
-
-- **Logging and Monitoring**: Set up logging and monitoring for your Docker containers and RedBox Portal application to identify and troubleshoot issues promptly.
-
-- **Regular Updates**: Keep your Docker images, RedBox Portal application, and all dependencies up to date to ensure you have the latest features and security patches.
-
-By following these considerations, you can ensure a stable and secure production environment for your RedBox Portal deployment.
-
-## Existing databases and v6 cache migration
-
-Follow [institution migration](Cache-Persistence-Migration.md) and [backup/recovery](Cache-Persistence-Recovery.md) before changing a persisted MongoDB deployment. New-stack image selection is not an upgrade/downgrade procedure. MongoDB driver cache is the current next default; official v6 requires stable qualified dependencies and removes temporary backend config in P7. Existing volumes do not rerun Mongo init scripts and require explicit unique-index preparation.
+Persistent primary objects, GridFS, branding fonts, staging and Companion temporary
+files must outlive containers. Configure resource/stop limits for the deployment;
+a failed drain remains a failed stop. See [maintenance](../specs/sails-retirement/maintenance-v6.md).

@@ -181,7 +181,7 @@ Tracked request rules:
 - `updateMode` is not allowed on tracked requests. Use per-record `operation` and `updateStrategy` instead.
 - Duplicate submissions of the exact same chunk content are detected and counted instead of being reprocessed.
 - A chunk that is already processing returns `409` until it becomes stale and is eligible for retry.
-- By default, the service limits tracked chunks to `250` records and `5,000,000` bytes unless `sails.config.harvestRuns` overrides those values.
+- By default, the service limits tracked chunks to `250` records and `5,000,000` bytes unless `configuration.harvestRuns` overrides those values.
 
 Tracked record options:
 

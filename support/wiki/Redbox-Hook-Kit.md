@@ -132,6 +132,6 @@ Package versions match ReDBox Portal releases. For example, version `4.5.1` is c
 
 ## See Also
 
-- [Redbox Core Types](redbox-core) - Core type definitions and business logic
-- [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
+- [Redbox Core Types](Redbox-Core-Types) - Core type definitions and business logic
+- [Customising ReDBox with a v6 extension](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
 - [Redbox Loader](Redbox-Loader) - How hooks are discovered and loaded

@@ -63,7 +63,7 @@ APP_URL=http://<tailscale-ip>:1500 npm run dev:run
 curl -fsS -D - -o /tmp/redbox-home.html http://<tailscale-ip>:1500/
 ```
 
-The compose interpolation maps `APP_URL` to `sails_appUrl`. A healthy stack
+The Compose configuration maps `APP_URL` to the selected host public URL. A healthy stack
 redirects `/` to the branded home route and returns `200 OK` for the rendered
 ReDBox page. Container logs should include structured
 `record_hook_action_completed`, `record_hook_operation_dispatched`, and one

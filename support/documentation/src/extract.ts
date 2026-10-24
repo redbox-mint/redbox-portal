@@ -148,7 +148,15 @@ function surfaceFromClass(
       ? methods.filter(method =>
           ['exports', 'init', 'sendResp', 'getObservable', 'convertToType'].includes(nodeName(method) ?? '')
         )
-      : methods.filter(method => exported.has(nodeName(method) ?? ''));
+      : methods.filter(
+          method =>
+            !ts
+              .getModifiers(method)
+              ?.some(
+                modifier =>
+                  modifier.kind === ts.SyntaxKind.PrivateKeyword || modifier.kind === ts.SyntaxKind.ProtectedKeyword
+              )
+        );
   return {
     id,
     name,
@@ -569,69 +577,24 @@ function diagnosticsFor(surfaces: SurfaceContract[]): DocumentationDiagnostic[] 
 
 export function extractCatalogue(program: ts.Program): ExtractionResult {
   const checker = program.getTypeChecker();
-  const routes = extractRoutes(program);
   const surfaces: SurfaceContract[] = [];
-  const hook = basicSurface(
-    checker,
-    program,
-    'packages/redbox-core/src/hooks/defineRedboxHook.ts',
-    'DefineRedboxHookOptions',
-    'hook-protocol:defineRedboxHook',
-    'hook-protocol',
-    'defineRedboxHook'
-  );
-  const baseService = basicSurface(
-    checker,
-    program,
-    'packages/redbox-core/src/CoreService.ts',
-    'Service',
-    'base-service:Service',
-    'base-service'
-  );
-  const baseController = basicSurface(
-    checker,
-    program,
-    'packages/redbox-core/src/CoreController.ts',
-    'Controller',
-    'base-controller:Controller',
-    'base-controller'
-  );
-  if (hook) surfaces.push(hook);
-  if (baseService) surfaces.push(baseService);
-  if (baseController) surfaces.push(baseController);
-  surfaces.push(
-    ...extractRegisteredClasses(
-      program,
-      checker,
-      routes,
-      'packages/redbox-core/src/services/index.ts',
-      'ServiceExports',
-      'packages/redbox-core/src/services',
-      'service',
-      'service'
-    ),
-    ...extractRegisteredClasses(
-      program,
-      checker,
-      routes,
-      'packages/redbox-core/src/controllers/index.ts',
-      'ControllerExports',
-      'packages/redbox-core/src/controllers',
-      'ajax-controller',
-      'ajax-controller'
-    ),
-    ...extractRegisteredClasses(
-      program,
-      checker,
-      routes,
-      'packages/redbox-core/src/controllers/index.ts',
-      'WebserviceControllerExports',
-      'packages/redbox-core/src/controllers/webservice',
-      'webservice-controller',
-      'webservice-controller'
-    ),
-    ...extractForms(program, checker)
-  );
+  // v6 publishes classified declarations, not removed singleton/shim registries.
+  const contracts = [
+    ['extensions/contract.ts', 'RedboxExtension', 'hook-protocol', 'hook-protocol:RedboxExtension'],
+    ['extensions/contract.ts', 'ExtensionFactory', 'hook-protocol', 'hook-protocol:ExtensionFactory'],
+    ['extensions/contract.ts', 'ExtensionRoute', 'hook-protocol', 'hook-protocol:ExtensionRoute'],
+    ['extensions/contract.ts', 'ExtensionWork', 'hook-protocol', 'hook-protocol:ExtensionWork'],
+    ['extensions/contract.ts', 'ExtensionHostIntegration', 'hook-protocol', 'hook-protocol:ExtensionHostIntegration'],
+    ['application/Application.ts', 'ApplicationModule', 'hook-protocol', 'hook-protocol:ApplicationModule'],
+    ['CoreService.ts', 'Service', 'base-service', 'base-service:Service'],
+    ['records/Records.ts', 'Records', 'service', 'service:RecordsService'],
+    ['forms/RecordValidation.ts', 'RecordValidation', 'service', 'service:RecordValidationService'],
+  ] as const;
+  for (const [file, name, kind, id] of contracts) {
+    const surface = basicSurface(checker, program, `packages/redbox-core/src/${file}`, name, id, kind);
+    if (surface) surfaces.push(surface);
+  }
+  surfaces.push(...extractForms(program, checker));
   surfaces.sort((left, right) => left.id.localeCompare(right.id));
   return { surfaces, diagnostics: diagnosticsFor(surfaces) };
 }

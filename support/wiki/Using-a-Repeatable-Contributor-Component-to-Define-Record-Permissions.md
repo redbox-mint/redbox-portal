@@ -159,7 +159,7 @@ module.exports.recordtype = {
         hooks: {
             onUpdate: {
                 pre: [{
-                    function: 'sails.services.rdmpservice.complexAssignPermissions',
+                    function: 'record.complexAssignPermissions',
                     options: {
                         "emailProperty": "email",
                         "userProperties": [

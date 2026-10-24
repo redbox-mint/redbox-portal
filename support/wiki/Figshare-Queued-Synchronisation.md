@@ -25,7 +25,7 @@ A hook with a requester-dependent `triggerCondition` needs a separate, user-inde
 
 ```javascript
 {
-  function: 'sails.services.figshareservice.validateFigshareRecord',
+  function: 'figshare.validateFigshareRecord',
   options: {
     policyId: 'publication-sync',
     triggerCondition: '<%= user.username !== "migration" && record.workflow.stage === "queued" %>',

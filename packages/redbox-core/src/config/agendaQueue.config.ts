@@ -1,6 +1,6 @@
 /**
  * Agenda Queue Config Interface
- * (sails.config.agendaQueue)
+ * (configuration.agendaQueue)
  *
  * Agenda job queue configuration.
  */

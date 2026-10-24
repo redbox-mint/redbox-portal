@@ -22,7 +22,7 @@ At runtime the service resolves the brand's `figsharePublishing` AppConfig, choo
 
 ## Exported Service Surface
 
-These methods are exported through `_exportedMethods` and are the supported Sails-facing lifecycle surface.
+The selected Figshare domain exposes these operations through explicit injected inputs. The application owns initialization, activation and shutdown.
 
 | Method | Purpose | Typical caller |
 |---|---|---|
@@ -41,7 +41,7 @@ These methods are exported through `_exportedMethods` and are the supported Sail
 | `publishIfNeeded(record, articleId)` | Publishes immediately, defers, or skips based on publish mode and attachment state. | Internal orchestration, tests |
 | `writeBack(record, article, publishResult?, assetSyncResult?)` | Writes article identifiers, URLs, extra fields, and sync status back into the record. | Internal orchestration, tests |
 | `syncRecordWithFigshare(record, jobId?, triggerSource?)` | Full end-to-end orchestration pipeline for one record. | Core orchestration entry point |
-| `init()` | Resolves the queue service on Sails ready so scheduling methods can enqueue Agenda jobs. | Sails service lifecycle |
+| Application initialization | Binds the selected queue and provider operations before activation. | Owned application lifecycle |
 
 The service also exposes several non-exported-but-public helpers used internally and in tests:
 
@@ -62,7 +62,7 @@ Resolution rules:
 1. Read brand AppConfig from `AppConfigService.getAppConfigurationForBrand(brandName)`.
 2. Look for `figsharePublishing`.
 3. Merge stored config over `new FigsharePublishing()` defaults.
-4. Resolve fixture mode from `sails.config.figshareDev` when not in production.
+4. Resolve fixture mode from the explicit `figshareDev` input when not in production.
 5. Resolve `connection.token`, including `$ENV_VAR_NAME` references.
 6. Return `null` when `figsharePublishing.enabled !== true`.
 

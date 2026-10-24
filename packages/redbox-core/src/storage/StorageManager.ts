@@ -24,7 +24,7 @@ import { GridFSDriver } from '../storage/GridFSDriver';
  * StorageManagerService
  *
  * Wraps Flydrive v2 to provide a multi-disk storage abstraction.
- * Configures disks based on sails.config.storage and exposes
+ * Configures disks based on configuration.storage and exposes
  * accessors for staging and primary disks.
  *
  * Flydrive is ESM-only; we load it via processDynamicImports().
@@ -163,7 +163,7 @@ export namespace Services {
     /**
      * Bootstrap the storage manager.
      * Validates config and creates Disk instances for each configured disk.
-     * Called during service initialization (after Sails is ready).
+     * Called during service initialization (after owned persistence is ready).
      */
     public async bootstrap(): Promise<void> {
       if (this._bootstrapped) {

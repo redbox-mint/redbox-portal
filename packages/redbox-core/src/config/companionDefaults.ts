@@ -1,6 +1,6 @@
 /**
  * Companion Config
- * (sails.config.companion)
+ * (configuration.companion)
  *
  * Uppy Companion middleware configuration.
  */

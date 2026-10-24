@@ -6,7 +6,7 @@ Define the lifecycle stages for records, specifying settings for access control 
 
 ### Configuring Workflows
 
-Workflows are specified within the `sails.config.workflow` object, mapping stages to each record type:
+Workflows are specified within the `configuration.workflow` object, mapping stages to each record type:
 
 ```javascript
 module.exports.workflow = {

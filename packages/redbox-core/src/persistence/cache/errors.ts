@@ -39,7 +39,7 @@ export function cachePersistenceFailureForLog(error: unknown): { name: string; m
     ) {
       return { name: current.name, message: current.message };
     }
-    // A retained repository can predate Sails' module-cache invalidation.
+    // A retained repository can predate application module-cache invalidation.
     if ('code' in current && current.code === 'invalid-cache-entry') {
       return { name: 'InvalidCacheEntryError', message: 'Cache persistence rejected an invalid entry.' };
     }

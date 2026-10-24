@@ -813,7 +813,7 @@ export class I18nEntries {
    * bootstrapping default values into the database.
    *
    * The file itself is fairly large, so instead of storing it in
-   * `sails.config.[...]` for the lifetime of the app, it is read
+   * `configuration.[...]` for the lifetime of the app, it is read
    * directly from disk at the time it is needed.
    *
    * See README for more details on how this file is used.

@@ -1482,3 +1482,41 @@ TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
   node_modules/mocha/bin/mocha.js --no-config --require ts-node/register/transpile-only \
   --require chai --require test/setup.ts --timeout 30000 test/unit/startup-module-loading.test.ts
 ```
+
+The affected real `PagesMongo.test.ts` suite now passes **10/0/0**,8s,
+`pages49-mongo.log`: persisted view-orig renders200 with its title, and actual
+brand/role/CSRF/proxy/assets/error behavior remains exercised against Docker
+Mongo8.0.34/Solr. No fixture timeout or assertion was weakened.
+
+## SR-054 — Tracked wiki and generated reference update
+
+Wiki remains ordinary tracked files, as explicitly directed by the user.
+Updated architecture, lifecycle/domains, controllers, configuration, installation,
+development/testing, extensions, loader retirement, maintenance and persistence
+pages in place. `V6-Client-Compatibility.md` maps every recorded design§1.3 break
+to affected clients and remediation, including401, tenant/object grants,404,
+query validation, forced login, CSRF/logout, tus/Companion authentication and
+lifetime limits, direct sockets410 and sanitized errors. Upgrade/recovery and
+wiki entry pages link to that operator/client list. No separate wiki repository
+or submodule is created. Current source comments and bundled agent guidance now
+use explicit configuration/owned lifecycle terminology. Historical package names
+remain intact.
+
+The extractor reads actual v6 extension declarations and classified owned domains,
+not the removed service/controller shim registries. Compile-checked examples use
+neutral registration and explicit contributor binding. Commands with Node26.11.1,
+npm11.20.0 at source852a80bd2 plus the reviewed documentation changes:
+
+| Command | Result |
+|---|---|
+| `npm run doc:api` | exit0; JSON/YAML/Blueprint/HTML generated |
+| `npm run docs:generate` | exit0;43 published surfaces,523 advisory findings |
+| `npm run docs:audit` | exit0; same43/523; findings remain advisory and visible |
+| `npm run docs:test` |4 passing/0 pending/0 failing;118ms, compile-checked examples |
+| `npm run validate:api-routes` |49 passing/0 pending/0 failing;25s |
+| Changed wiki relative Markdown links |34 pages,92 links,0 missing |
+| `npm --prefix packages/redbox-dev-tools test` |52 passing/0 pending/0 failing;1m |
+
+Logs: docs48-{api,generate,audit,tests,routes,links}.log and tools46-tests.log.
+Generated reference/API outputs remain in their designated ignored output
+locations. Advisory counts do not prove runtime/artifact readiness.

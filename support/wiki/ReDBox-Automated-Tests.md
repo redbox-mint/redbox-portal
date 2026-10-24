@@ -12,7 +12,7 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:bruno:oidc` | API / Auth | Specialized Bruno tests for OIDC flows. |
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
-| `cd packages/redbox-core && npm test` | Package Unit | Runs core-types unit tests (services and controllers). |
+| `cd packages/redbox-core && npm test` | Package Unit | Runs core domain, HTTP, contract and tooling tests. |
 
 ## Running Tests
 
@@ -32,12 +32,12 @@ If you only changed backend code in `packages/redbox-core`, `npm run compile:cor
 
 ### 2. Backend Unit/Integration Tests (`test:mocha`)
 
-These tests run the Sails.js backend logic in a Docker container.
+These tests initialize the actual selected Express application in Docker with real MongoDB and providers.
 
 - **Command**: `npm run test:mocha`
 - **Details**:
     - Spins up a `redboxportal` container defined in `support/integration-testing/docker-compose.mocha.yml`.
-    - Always includes the bootstrap test (`test/bootstrap.test.ts` when present, otherwise `test/bootstrap.test.js`).
+    - Always includes the bootstrap test (`test/express.bootstrap.test.cjs`).
     - Runs Mocha tests directly from `test/integration` using `ts-node` (no separate test compilation step).
     - Live external-network integration tests are disabled by default. Enable them with `RUN_LIVE_INTEGRATION_TESTS=true` when you want to verify real downstream services from a dev environment.
     - DOI live tests use `datacite_username`, `datacite_password`, `datacite_doiPrefix`, and optional `datacite_baseUrl` when you need to point at a different Datacite host.
@@ -90,7 +90,7 @@ Some packages have their own independent test suites.
   cd packages/redbox-core
   npm test
   ```
-  Runs unit tests for controllers and services in the core-types package, including the user-management controller and service coverage for linking, disable/enable logic, and user audit retrieval.
+  Runs core domain and HTTP tests, including the user-management controller and service coverage for linking, disable/enable logic, and user audit retrieval.
 
 - **Sails-NG-Common**:
   ```bash
@@ -101,7 +101,7 @@ Some packages have their own independent test suites.
 ## Continuous Integration
 Tests are automatically run in CircleCI on every push. API route validation and OpenAPI generation now run in a dedicated `generate-api-docs` job that builds redbox-core first, while the main build job stays focused on linting and runtime image packaging. See `.circleci/config.yml` for the full pipeline definition.
 
-For Skipper multipart upload fixtures, put optimistic-concurrency text fields
+For multipart upload fixtures, put optimistic-concurrency text fields
 (such as `expectedDraftRevision`) **before** the file part. The file upload
 callback can complete before trailing text fields are available, producing a
 revision conflict before the intended validation. Keep the same order in local
@@ -140,9 +140,20 @@ previously bootstrapped scenario configuration; unsetting the opt-in flag on a
 persistent database does not remove those records.
 
 To add a scenario, define a pure entry in
-`packages/redbox-hook-dev/src/playwright/catalogue.ts`. The normal loader then
+`packages/redbox-hook-dev/src/playwright/catalogue.ts`. The v6 extension declaration then
 registers its generated `e2e-` record type, workflow and form. Use the composed
 fixtures in `test/playwright/fixtures` and assert visible, persisted behaviour.
 When a test fails, inspect the generated `browser-diagnostics.json` and use
 `node_modules/.bin/playwright show-trace <trace.zip>` or
 `node_modules/.bin/playwright show-report .tmp/playwright/report`.
+
+## Final retirement qualification
+
+P8 must rerun every existing core/root Mocha suite, full Playwright, general/OIDC/S3
+Bruno, packed consumers and MongoDB 8/9 standalone and independent replica-set
+matrix against a clean committed artifact. Baseline pending cases remain visible;
+missing-provider skips never qualify a path. Mongo containers require the recorded
+`nofile=64000:64000` limit. Qualification scripts are under
+`support/integration-testing/qualify-sails-retirement-*.sh`; commands, exact image
+IDs, counts and failures belong in [P8 evidence](../specs/sails-retirement/evidence/p8-retirement.md).
+Historical P7 results are not proof of the final artifact.

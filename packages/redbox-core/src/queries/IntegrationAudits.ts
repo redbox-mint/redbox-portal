@@ -1002,7 +1002,7 @@ export namespace Services {
     /**
      * Registers an outcome mapper for a custom integration name so the
      * integration-status component can render a badge/label for it. Hooks call
-     * this at lift time (e.g. on the 'ready' sails event). The integration name
+     * this during owned initialization. The integration name
      * is matched case-insensitively; the last registration for a name wins.
      */
     public registerOutcomeMapper(integrationName: string, mapper: IntegrationOutcomeMapper): void {

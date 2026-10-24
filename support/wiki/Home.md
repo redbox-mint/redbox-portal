@@ -47,7 +47,7 @@ If you're new to RedBox Portal, here's where you can get started:
 ## Core Packages
 
 - **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/redbox-core)**: Core type definitions, **business logic services**, Prisma contracts, policies, config defaults, and bootstrap functions.
-- **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system that bridges Sails.js to core types, including service shim generation.
+- **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: V6 extension discovery, explicit registration and exact-match v5 shim cleanup guidance.
 - **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: Shared tooling for creating and maintaining ReDBox hooks.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer architecture and how to extend or override services.
 - **[Figshare Service Technical Guide](https://github.com/redbox-mint/redbox-portal/wiki/Figshare-Service-Technical-Guide)**: Public service surface, orchestration flows, and Figshare-specific config and type reference.
@@ -80,3 +80,10 @@ Thank you for visiting the RedBox Portal project wiki! We hope you find this res
 - [Identity and membership persistence](Identity-Persistence.md): Prisma credentials, physical membership edges and recovery.
 
 - [Persistence migration](Persistence-Migration.md): ORM retirement, institution hooks and stale configuration guidance.
+
+## ReDBox v6 runtime migration
+
+The backend uses the owned Express 5 application runtime. Start with
+[Architecture](Architecture-Overview.md), [Configuration](Configuration-Guide.md),
+[extension loading](Redbox-Loader.md), [operator/API-client changes](V6-Client-Compatibility.md)
+and the [upgrade/recovery runbook](../specs/sails-retirement/upgrade-recovery-v6.md).

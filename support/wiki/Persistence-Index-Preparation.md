@@ -1,7 +1,7 @@
 # Preparing persistence indexes
 
 Fresh default dev/test stacks mount `support/resources/mongodb-persistence-indexes.js`
-into MongoDB's official init directory. Hook archetypes ship the same script.
+into MongoDB's official init directory. Use the same qualified script when provisioning fresh deployment databases.
 It creates the cache/M name indexes, R key indexes, Q dashboard/UID indexes and
 J2 lineage/query, J3/J4 and V lookup indexes, plus full S attachment/Counter indexes in `redbox-portal`
 and record/deletedrecord/recordidentity/schema/reference/audit indexes in `redbox-storage`, with the qualified uniqueness flags
@@ -21,10 +21,9 @@ npm run persistence:indexes -- --inspect
 ```
 
 Inspection is the default mode and performs no datastore writes. The command
-loads the effective Sails config and hooks with `hooks.orm=false`; it does not lift HTTP, run pre-lift setup, initialize domain
-services, start workers or execute migration bodies/business bootstrap. Normal
-loader generation may create missing shim files; existing overrides are retained.
-An app in another directory can be selected with `--app /path/to/application`.
+loads explicit v6 configuration and selected extension declarations. It does not
+listen, activate workers, initialize business domains or run migrations/bootstrap.
+It creates no shim files. An app in another directory can be selected with `--app /path/to/application`.
 
 The report contains only group/backend/collection (and index name for multi-index J2 scopes), index readiness and duplicate
 counts. It does not print document names, payloads, connection URLs or credentials.

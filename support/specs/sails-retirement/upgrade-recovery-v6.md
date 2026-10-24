@@ -7,6 +7,15 @@ Use a qualified immutable artifact and explicitly reviewed deployment inputs.
 Institution designation/qualification and P8 remain production release gates;
 this runbook does not grant production acceptance to the current branch.
 
+## Operator and API-client compatibility review
+
+Review [every intentional v6 HTTP/behavior change](../../wiki/V6-Client-Compatibility.md)
+with browser/API consumers and operators before cutover. The list maps the design's
+recorded breaks and production-composition changes to affected clients and concrete
+remediation, including 401/404, brand/actor requirements, Companion secrets,
+pagination, session invalidation, CSRF/logout, upload ownership and socket protocols.
+Record the institution's verified client conversions with its checkpoint.
+
 ## Prepare the release and checkpoint
 
 Record the institution owner, supported source release and image digest, source

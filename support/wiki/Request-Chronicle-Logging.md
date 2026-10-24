@@ -10,24 +10,20 @@ The approach follows the "wide event" or "canonical log line" pattern.
 | --- | --- |
 | Helper, sanitisation, and error normalisation | `packages/redbox-core/src/utilities/RequestChronicle.ts` |
 | Retention settings and defaults | `packages/redbox-core/src/utilities/RequestChronicleSettings.ts` |
-| HTTP middleware | `packages/redbox-core/src/middleware/requestChronicle.ts` (first in `sails.config.http.middleware.order`) |
-| Controller helpers | `updateChronicle`, `recordBackgroundOperation`, and the `chronicle` option of `sendResp` in `packages/redbox-core/src/CoreController.ts` |
-| Service helper | `updateChronicle` in `packages/redbox-core/src/CoreService.ts` |
+| HTTP middleware and sanitized errors | `packages/redbox-core/src/http/express/middleware.ts` |
+| Service summaries | `packages/redbox-core/src/utilities/serviceChronicle.ts` |
 | Async request context | `packages/redbox-core/src/utilities/RequestChronicleContext.ts` |
-| 500 response | `packages/redbox-core/src/responses/serverError.ts` records the error in the event; the bootstrap registers a Sails error listener for failures before response helpers are bound |
 
 ## Lifecycle
 
-1. The `requestChronicle` middleware creates the helper, generates a request id, and records the request method, path, and host. The helper is stored on `req.options.requestChronicleHelper`. It is a class instance, so it survives the Sails route options merge; do not replace it with a plain object. A shared symbol identifies the helper across source and compiled module copies in development.
-2. The middleware runs downstream processing in an `AsyncLocalStorage` context. The configured body parser binds its continuation to this context. It also binds completion callbacks registered through `req.file(...).upload(...)`, so streamed multipart uploads retain the context after later socket chunks arrive. Controllers, services, policies, and responses add details and errors while the request is running. Services find the helper through this context without requiring a `req` parameter or storing request state on their shared instances.
-3. The event is concluded exactly once, when the response finishes (`finish`), or when the connection closes first (`close`), which records an aborted request.
-4. The event is classified, then logged at the level for its classification, or discarded.
-
-The configured body parser replaces errors with a safe error before forwarding them to Sails. Raw bodies, parser excerpts, and causes are excluded from both the chronicle and Sails' fallback error logs. Numeric HTTP status metadata and known parser error types are retained. Malformed JSON keeps the existing HTTP 500 fallback response. Policy path messages use the same preview-token redaction as the chronicle.
-
-Failures in the request chronicle are caught. They never fail the request or crash the process.
-
-Requests that do not pass through the HTTP middleware, such as socket requests and `sails.request()`, have no request chronicle. Controller details are ignored without warnings and controller errors are logged immediately. Service summaries and errors use the service's namespace logger. Startup work and jobs processed by a separate queue worker also use namespace logging.
+The host creates the chronicle before downstream parsing and policy execution.
+An AsyncLocalStorage scope retains it through admitted asynchronous work.
+Handlers and services record safe details through the supplied context. The event
+concludes once on response finish or connection close; close before finish records
+an abort. Late service work uses the injected logger without mutating a completed
+event. Error handling excludes raw bodies, parser excerpts, credentials and causes.
+Startup, queue jobs and direct socket work use their own explicit logging context.
+Chronicle failures do not fail a request.
 
 ## Outcome, classification, and log level
 
@@ -56,7 +52,7 @@ Service warnings raise `client-error` and `aborted` events to `warn` without cha
 
 ## Retention settings
 
-Configure retention in `sails.config.log.requestChronicle`, for example in `config/log.js` or using environment variables such as `sails_log__requestChronicle__successSampleRate=1`. Invalid values use the defaults.
+Configure retention in the selected application module under `log.requestChronicle`. The host receives these settings explicitly; the old environment/config discovery is retired. Invalid retention values use the documented defaults.
 
 | Setting | Default | Description |
 | --- | --- | --- |
@@ -66,11 +62,11 @@ Configure retention in `sails.config.log.requestChronicle`, for example in `conf
 
 To log every request while diagnosing an incident, set `successSampleRate` to `1` and `successSampleExcludePattern` to `''`.
 
-At startup, a warning is logged if `requestChronicle` is not first in `sails.config.http.middleware.order`.
+The owned host fixes middleware ordering; extensions do not configure a framework middleware-order array.
 
 ## Event fields
 
-The default logfmt transport (`packages/redbox-core/logfmt-transport.cjs`) flattens nested objects into snake_case keys joined with `_`. Arrays are logged as objects keyed by index, so they remain readable (for example `errors_0_message`). Multi-line values such as stack traces are escaped once onto one line, so logfmt readers recover the original line breaks. Calls to `sails.log.blank()` emit nothing. The table shows the emitted field names, followed by the field in the event object.
+The default logfmt transport (`packages/redbox-core/logfmt-transport.cjs`) flattens nested objects into snake_case keys joined with `_`. Arrays are logged as objects keyed by index, so they remain readable (for example `errors_0_message`). Multi-line values such as stack traces are escaped once onto one line, so logfmt readers recover the original line breaks. Calls to `logger.blank()` emit nothing. The table shows the emitted field names, followed by the field in the event object.
 
 | Emitted field | Event field | Description |
 | --- | --- | --- |
@@ -188,7 +184,7 @@ Any error recorded after the request finished is logged separately at `error` le
 
 Controllers migrated so far: Action, BrandingApp, DynamicAsset, Email, FormVocabulary, Report, Translation, User, Vocabulary, and the webservice IntegrationAudit and Report controllers. When migrating another controller:
 
-1. Replace scattered `sails.log` calls for the request with `updateChronicle` details, keeping the safe capture rules.
+1. Replace scattered the injected logger calls for the request with `updateChronicle` details, keeping the safe capture rules.
 2. Keep the existing response contract. Check every `errors` added to `sendResp`.
 3. Use `recordBackgroundOperation` for work that is not awaited.
 4. Add tests for the response and the captured details.
@@ -197,6 +193,6 @@ The request-facing legacy payload logging in Records, RDMP, Users, Email, NamedQ
 
 ## Namespace loggers
 
-Services and controllers use `this.logger`, a pino child logger named after the class (for example `RecordsService` or `UserController`). Levels for each namespace are configured in `sails.config.lognamespace`. Namespace loggers without a configured level follow the application log level. If a namespace logger cannot be created, the class uses `sails.log`.
-
-The shared `ILogger` interface (`@researchdatabox/sails-ng-common`) has the sails log levels: `silent`, `blank`, `fatal`, `crit`, `error`, `warn`, `info`, `log`, `debug`, `verbose`, `trace`, and `silly`. Use `logAtLevel(logger, level, ...args)` to log at a level from config.
+Services and handlers receive their logger from the composition root. Bind namespace
+levels explicitly through `createNamespaceLogger`; no global logger lookup or
+fallback is available. Keep error redaction and bounded summaries at this boundary.

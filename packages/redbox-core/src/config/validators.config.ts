@@ -1,11 +1,11 @@
 /**
  * Validators Config
  *
- * Sails config for the validators available in the core redbox project.
+ * Configuration for the validators available in the core redbox project.
  *
- * Sails hooks cannot extend or override these.
+ * Validator definitions are selected explicitly at composition.
  * This is because the functions require utility functions,
- * which are provided to the client in a way that sails hooks cannot extend or override.
+ * which are provided to the client through the supported explicit client configuration.
  */
 
 import {FormValidatorDefinition, formValidatorsSharedDefinitions} from "@researchdatabox/sails-ng-common";
