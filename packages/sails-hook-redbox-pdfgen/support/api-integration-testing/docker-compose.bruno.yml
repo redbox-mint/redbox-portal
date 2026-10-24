@@ -4,7 +4,7 @@ networks:
   main:
 
 x-rbportal-env: &rbportal-env
-  - NODE_ENV=integrationtest
+  - NODE_ENV=production
   - REDBOX_PORT=1500
   - REDBOX_APPLICATION_CONFIG=/pdf-fixtures/deployment.cjs
   - REDBOX_SESSION_SECRET=pdf-fixture-only-session-secret-at-least-32

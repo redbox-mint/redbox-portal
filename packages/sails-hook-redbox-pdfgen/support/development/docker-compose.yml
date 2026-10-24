@@ -20,7 +20,7 @@ services:
     expose:
       - "1500"
     environment:
-      - NODE_ENV=integrationtest
+      - NODE_ENV=production
       - REDBOX_APPLICATION_CONFIG=/pdf-fixtures/deployment.cjs
       - REDBOX_SESSION_SECRET=pdf-fixture-only-session-secret-at-least-32
       - REDBOX_PUBLIC_URL=http://localhost:1500
