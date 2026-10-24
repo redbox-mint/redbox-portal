@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { httpPolicyFixture } from '../helpers/httpPolicyFixture';
 import express from 'express';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -14,6 +15,18 @@ import {
 } from '../../src/http/express/policies';
 
 describe('standalone actor and policy context', () => {
+  for (const policy of ['browseractor', 'iswebserviceauthenticated', 'checkauth'])
+    it(`scopes ${policy} domain context to the requested brand without mutating identity`, async () => {
+      const f = httpPolicyFixture();
+      const actor = { ...f.actor, roles: [
+        { id: 'a-reader', brandId: f.brand.id, name: 'Researcher' },
+        { id: 'b-publisher', brandId: 'foreign-brand', name: 'Publisher' },
+      ] };
+      f.authenticate.resolves(actor);
+      await f.run('brandingandportal', policy);
+      assert.deepEqual(requestContext(f.req).actor?.roles, [actor.roles[0]]);
+      assert.equal(actor.roles.length, 2);
+    });
   it('owns and atomically refreshes path rules without per-request repository queries', async () => {
     const brand = { id: 'brand', name: 'default' };
     const read = sinon.stub().resolves([{ path: '/private(/*)', branding: brand, role: 'admin', can_read: true }]);

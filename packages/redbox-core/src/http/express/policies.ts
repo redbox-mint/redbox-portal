@@ -25,6 +25,14 @@ export function requestContext(req: Request): HttpRequestContext {
   return value;
 }
 
+/** Identity remains global; domain authorization receives only the resolved brand's roles. */
+function actorContext(context: HttpRequestContext, actor: AuthenticatedActor): HttpRequestContext {
+  return Object.freeze({
+    ...context,
+    actor: Object.freeze({ ...actor, roles: actor.roles.filter(role => role.brandId === context.brand.id) }),
+  });
+}
+
 function normalizeTarget(target: string): string {
   return target.replace(/Controller(?=\/|$)/g, '').toLowerCase();
 }
@@ -102,7 +110,7 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
     async (req, res, next) => {
       const context = requestContext(req);
       const actor = context.actor ?? (await input.authenticate(req));
-      if (actor && !context.actor) Reflect.set(req, contextKey, Object.freeze({ ...context, actor }));
+      if (actor && !context.actor) Reflect.set(req, contextKey, actorContext(context, actor));
       const { brand, portal } = context;
       const guest = actor ? undefined : await input.defaultUnauthenticatedRole(brand);
       const roles = actor ? actor.roles.filter(role => role.brandId === brand.id) : guest ? [guest] : [];
@@ -174,7 +182,7 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
     browseractor: async (req, res, next) => {
       const context = requestContext(req);
       const actor = await input.authenticate(req);
-      if (actor) Reflect.set(req, contextKey, Object.freeze({ ...context, actor }));
+      if (actor) Reflect.set(req, contextKey, actorContext(context, actor));
       next();
     },
     browserauthenticated: (req, res, next) => {
@@ -202,7 +210,7 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
         else res.status(401).json({ message: 'Authentication required', details: '' });
         return;
       }
-      Reflect.set(req, contextKey, Object.freeze({ ...context, actor }));
+      Reflect.set(req, contextKey, actorContext(context, actor));
       next();
     },
     brandactor: (req, res, next) => {
