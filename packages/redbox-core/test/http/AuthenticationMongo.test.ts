@@ -71,6 +71,7 @@ describe('owned local/AAF authentication and Mongo session migration', function 
   });
   it('rejects invalid credentials, nonlocal accounts, malformed fields, and cross-brand login', async () => {
     f = await authenticationFixture();
+    let rejected = 0;
     for (const body of [
       { username: 'pilot-admin', password: 'bad' },
       { username: 'missing', password: 'bad' },
@@ -78,14 +79,17 @@ describe('owned local/AAF authentication and Mongo session migration', function 
       const res = await localLogin(f.url, '', body);
       assert.equal(res.status, 200);
       assert.deepEqual(await res.json(), { message: 'Incorrect username/password', user: false });
+      assert.equal(f.failures(), ++rejected);
     }
     for (const body of [
       { username: { $ne: '' }, password: 'x' },
       { username: ['pilot-admin'], password: 'x' },
       {},
       { username: 'x', password: 'x'.repeat(4097) },
-    ])
+    ]) {
       assert.equal((await localLogin(f.url, '', body)).status, 400);
+      assert.equal(f.failures(), ++rejected);
+    }
     const wrong = await localLogin(f.url, '', {
       username: 'pilot-admin',
       password: 'pilot-password',
@@ -93,7 +97,13 @@ describe('owned local/AAF authentication and Mongo session migration', function 
     });
     assert.equal(((await wrong.json()) as { user: false }).user, false);
     assert.equal(await f.native.db().collection('authSessions').countDocuments(), 0);
-    assert.equal(f.failures(), 3);
+    assert.equal(f.failures(), ++rejected);
+    await f.identities.update('user', { id: f.user.id }, { type: 'aaf' });
+    const nonlocal = await localLogin(f.url);
+    assert.equal(nonlocal.status, 200);
+    assert.deepEqual(await nonlocal.json(), { message: 'Incorrect username/password', user: false });
+    assert.equal(f.failures(), ++rejected);
+    assert.equal(await f.native.db().collection('authSessions').countDocuments(), 0);
   });
   it('resolves linked accounts and refuses disabled, orphan and cyclic aliases', async () => {
     f = await authenticationFixture();
