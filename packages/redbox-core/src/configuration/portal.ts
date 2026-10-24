@@ -36,6 +36,7 @@ import { resolveCompanionConfiguration } from '../config/companionDefaults';
 import { orcid } from '../config/orcid.config';
 import { mint } from '../config/mint.config';
 import { peopleSearch } from '../config/peopleSearch.config';
+import { figshareDev } from '../config/figshareDev.config';
 import { agendaQueueDefaultJobs } from '../config/agendaQueueJobs';
 import {
   deploymentDefaults,
@@ -294,6 +295,23 @@ export const portalSchema = deploymentSchema
     orcid: data,
     mint: data,
     peopleSearch: data,
+    figshareDev: z
+      .object({
+        enabled: z.boolean(),
+        mode: z.enum(['live', 'fixture']),
+        fixtures: z
+          .object({
+            authors: z.array(data).optional(),
+            licenses: z.array(data).optional(),
+            categories: z.array(data).optional(),
+            article: data.optional(),
+            articleFiles: z.array(data).optional(),
+            publishResult: data.optional(),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict(),
     pdfgen: z
       .object({
         token: z.string(),
@@ -435,6 +453,7 @@ export function portalDefaults(environment = 'development'): ConfigurationLayer 
       orcid,
       mint,
       peopleSearch,
+      figshareDev,
     },
   };
 }

@@ -229,7 +229,7 @@ export function portalProviderPlan(
     configuration: appConfig,
     brandById: (id: string) => ref.branding.get().getBrandById(id),
     brandByName: (name: string) => ref.branding.get().getBrand(name),
-    development: { enabled: false, mode: 'live' as const },
+    development: config.figshareDev,
     environment: config.environment,
     log,
   };

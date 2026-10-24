@@ -70,6 +70,7 @@ test(
           JSON.stringify({
             server: { port: 18517, hostname: '127.0.0.1', rootContext, publicUrl: 'http://127.0.0.1:18517' + rootContext },
             i18n: { next: { init: { debug: false } } },
+            figshareDev: { enabled: true, mode: 'fixture', fixtures: { article: { id: 'fixture-123' } } },
             datastores: {
               mongodb: { url },
               redboxStorage: { url: storageUrl.replace('/sr_p7_portal_http', '/sr_p7_portal_http_storage') },
@@ -132,8 +133,16 @@ test(
       const constructPdf = pdfFactory.create;
       let pdfUrl;
       pdfFactory.create = input => { pdfUrl = input.config.appUrl; return constructPdf(input); };
+      const figshareFactory = portal.resolved.modules.find(item => item.declaration.name === 'figshare').declaration;
+      const constructFigshare = figshareFactory.create;
+      let figshareDevelopment;
+      figshareFactory.create = input => {
+        figshareDevelopment = input.configuration.development;
+        return constructFigshare(input);
+      };
       await portal.host.initialize();
       assert.equal(pdfUrl, 'http://127.0.0.1:18517' + rootContext);
+      assert.deepEqual(figshareDevelopment, portal.config.figshareDev);
       const origin = 'http://127.0.0.1:18517';
       const readyBefore = await fetch(origin + '/readyz');
       assert.equal(readyBefore.status, 503);
