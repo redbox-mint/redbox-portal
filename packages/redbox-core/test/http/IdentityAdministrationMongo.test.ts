@@ -530,6 +530,39 @@ describe('owned identity and query administration on Mongo HTTP', function () {
     assert.equal((await request(base + '/api/users/' + aliasId + '/disable')).response.status, 400);
     assert.equal((await request(base + '/api/users/' + aliasId + '/enable')).response.status, 400);
   });
+  for (const change of ['revoked', 'granted'] as const) {
+    it(`preserves a foreign role ${change} while a local role edit is waiting`, async () => {
+      const id = (await f.identities.create('user', {
+        username: `concurrent-${change}`, name: `Concurrent ${change}`,
+        email: `concurrent-${change}@example.invalid`, type: 'local',
+        roles: change === 'revoked' ? [f.reader.id, foreignRoleId] : [f.reader.id],
+      })).id;
+      const entered = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<void>();
+      const originalUpdate = f.users.updateUserRoles;
+      f.users.updateUserRoles = (...args) => from((async () => {
+        entered.resolve();
+        await release.promise;
+        return firstValueFrom(originalUpdate(...args));
+      })());
+      const pending = request(base + '/admin/roles/user', { userid: id, roles: ['Admin'] }, 'POST', session());
+      try {
+        await entered.promise;
+        if (change === 'revoked') await f.identities.removeMemberships('user', id, [foreignRoleId]);
+        else await f.identities.addMemberships('user', id, [foreignRoleId]);
+        release.resolve();
+        assert.equal((await pending).response.status, 200);
+        assert.deepEqual(
+          ((await persisted(id))!.roles ?? []).map(role => (role as { id: string }).id).sort(),
+          (change === 'revoked' ? [f.role.id] : [f.role.id, foreignRoleId]).sort()
+        );
+      } finally {
+        release.resolve();
+        await pending;
+        f.users.updateUserRoles = originalUpdate;
+      }
+    });
+  }
   it('rejects global account changes to a shared target through every admin/API alias', async () => {
     const before = await persisted(sharedId);
     for (const [route, body, headers] of [

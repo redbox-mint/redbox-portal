@@ -1324,16 +1324,30 @@ export namespace Services {
       );
     };
 
-    public updateUserRoles = (userid: string | number, newRoleIds: Array<string | number>): Observable<UserModel> => {
+    /** When brandId is supplied, writes only that brand's membership edges. */
+    public updateUserRoles = (
+      userid: string | number,
+      newRoleIds: Array<string | number>,
+      brandId?: string
+    ): Observable<UserModel> => {
       return this.getUserWithId(userid).pipe(
         flatMap(user => {
           if (user) {
             if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
               return throwError(new Error('Please assign at least one role'));
             }
-            // START Sails 1.0 upgrade
-            const q = () => this.input.repository.replaceMemberships('user', user.id, newRoleIds);
-            // END Sails 1.0 upgrade
+            const q = async () => {
+              if (brandId === undefined)
+                return this.input.repository.replaceMemberships('user', user.id, newRoleIds);
+              const brandRoles = await this.input.repository.list('role', { branding: brandId });
+              const brandRoleIds = brandRoles.map(role => role.id);
+              const allowed = new Set(brandRoleIds.map(String));
+              if (newRoleIds.some(roleId => !allowed.has(String(roleId))))
+                throw new Error('Unknown role for brand');
+              // Never replay foreign memberships from a request's earlier snapshot.
+              await this.input.repository.removeMemberships('user', user.id, brandRoleIds);
+              await this.input.repository.addMemberships('user', user.id, newRoleIds);
+            };
             return this.getObservable<void>(q).pipe(
               flatMap(() => this.getUserWithId(userid)),
               map(updated => {

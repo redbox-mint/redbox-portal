@@ -52,7 +52,6 @@ export interface IdentityAdministrationHttpInput {
     Users.Users,
     | 'getUserWithUsername'
     | 'requireUserInBrand'
-    | 'mergeBrandRoleIds'
     | 'addLocalUser'
     | 'updateUserDetails'
     | 'updateUserRoles'
@@ -221,7 +220,7 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
           if (action === 'updateUserRoles') {
             const selectedIds = roleIds(body.roles);
             await singleHttpResult(
-              input.users.updateUserRoles(userId, input.users.mergeBrandRoleIds(target!, brand.id, selectedIds))
+              input.users.updateUserRoles(userId, selectedIds, brand.id)
             );
             await input.users.addUserAuditEvent(actor, 'update-user-roles', { brandId: brand.id, userId });
             send({ status: true, message: 'Save OK.' });
@@ -244,7 +243,7 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
           try {
             if (selected)
               await singleHttpResult(
-                input.users.updateUserRoles(user.id, input.users.mergeBrandRoleIds(target ?? user, brand.id, selected))
+                input.users.updateUserRoles(user.id, selected, brand.id)
               );
           } catch (error) {
             // Legacy API create acknowledges its committed account even when role assignment fails.
