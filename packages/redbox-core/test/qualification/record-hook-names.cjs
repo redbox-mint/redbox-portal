@@ -33,8 +33,8 @@ test('explicit built-in hook conversion preserves nested options and authoritati
   assert.equal(converted.onCreate.pre[2].function, 'institution.approvedOperation');
   assert.equal(source.onCreate.pre[0].function, 'sails.services.rdmpservice.assignPermissions');
   assert.deepEqual(convertBuiltinRecordHooks(converted), converted);
-  for (const hooks of [source, converted])
-    assert.equal(authorization.hasConfiguredRecordCreatorEditPermission({ hooks }), true);
+  assert.equal(authorization.hasConfiguredRecordCreatorEditPermission({ hooks: source }), false);
+  assert.equal(authorization.hasConfiguredRecordCreatorEditPermission({ hooks: converted }), true);
   assert.equal(
     authorization.hasConfiguredRecordCreatorEditPermission({
       hooks: {
@@ -61,7 +61,7 @@ test('explicit built-in hook conversion preserves nested options and authoritati
   assert.deepEqual(definitions.example.hooks, converted);
 });
 
-test('bundled v6 declaration converts its known operations while the comparison producer is unchanged', () => {
+test('bundled v6 declaration and producer contain only named operations', () => {
   const declaration = require('redbox-hook-dev/extension').registerRedboxExtension();
   const { recordtype } = require('../../../redbox-hook-dev/dist/config/recordtype');
   let count = 0;
@@ -76,7 +76,9 @@ test('bundled v6 declaration converts its known operations while the comparison 
   }
   for (const value of Object.values(declaration.config.recordtype)) inspect(value.hooks);
   assert(count > 20);
-  assert(JSON.stringify(recordtype).includes('sails.services.rdmpservice.assignPermissions'));
+  for (const value of Object.values(recordtype)) inspect(value.hooks);
+  assert(JSON.stringify(recordtype).includes('record.assignPermissions'));
+  assert(!JSON.stringify(recordtype).includes('sails.services.'));
   assert.equal(global.sails, undefined);
   console.log(JSON.stringify({ convertedHookDeclarations: count }));
 });

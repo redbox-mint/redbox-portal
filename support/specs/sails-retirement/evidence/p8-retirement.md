@@ -1297,3 +1297,18 @@ Bootstrap dependency, preserving actual CSS/native keyboard chooser assertions.
 CHROME_BIN=/home/andrew/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome,
 Node26.11.1. Sass emits its existing inspect() deprecation advisory. Pinned
 Prettier/diff check pass. Clean production artifact/full suites remain pending.
+
+### Named hook authorization closure
+
+RecordCreateAuthorization now accepts only registered record.assignPermissions and
+record.complexAssignPermissions operations. Historical executable aliases are
+accepted solely by the explicit persisted-declaration converter, never by runtime
+authorization. The compiled qualification retains negative unconverted input and
+positive converted input, nested options, PDF conversion and bundled producer checks.
+
+Node26.11.1: npm --prefix packages/redbox-core run build and npm --prefix
+packages/redbox-hook-dev run build both exit0 (hooknames43-build.log and
+hooknames43-dev-build.log). node --test packages/redbox-core/test/qualification/
+record-hook-names.cjs: **3 passing/0 skipped/0 failing**, 54 inspected bundled
+declarations (hooknames43-qualification.log). This incremental build is not the
+clean final artifact.

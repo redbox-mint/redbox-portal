@@ -31,12 +31,7 @@ export class RecordCreateAuthorization {
     return declarations.some(declaration => {
       const hook = this.recordObject(declaration);
       const hookFunction = String(hook.function ?? '').trim();
-      if (
-        hookFunction !== 'sails.services.rdmpservice.assignPermissions' &&
-        hookFunction !== 'sails.services.rdmpservice.complexAssignPermissions' &&
-        hookFunction !== 'record.assignPermissions' &&
-        hookFunction !== 'record.complexAssignPermissions'
-      ) {
+      if (hookFunction !== 'record.assignPermissions' && hookFunction !== 'record.complexAssignPermissions') {
         return false;
       }
 
