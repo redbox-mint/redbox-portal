@@ -107,6 +107,7 @@ export function mountBrandingUploadRoutes(
           const mapped = mapBrandingError(error);
           sendApiErrors(req, res, error instanceof MultipartError ? error.status : mapped.status, [
             {
+              ...(error instanceof MultipartError ? {} : { title: mapped.code, code: mapped.code }),
               detail:
                 error instanceof MultipartError
                   ? error.message

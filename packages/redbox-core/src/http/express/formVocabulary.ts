@@ -116,8 +116,8 @@ export function mountFormVocabularyRoutes(router: Router, input: FormVocabularyH
               const notations = (Array.isArray(raw) ? raw.map(v => text(v)) : text(raw).split(','))
                 .map(v => v.trim())
                 .filter(Boolean);
-              if (!notations.length || notations.length > 100)
-                throw new VocabularyLookupError(400, 'invalid-query-params');
+              if (!notations.length) throw new VocabularyLookupError(400, 'invalid-query-params');
+              if (notations.length > 100) throw new VocabularyLookupError(400, 'too-many-notations');
               const result = await input.vocabulary.expandPaths(brand.id, id, notations);
               if (!result) throw new VocabularyLookupError(404, 'vocabulary-not-found');
               data = result.paths;
@@ -171,8 +171,26 @@ export function mountFormVocabularyRoutes(router: Router, input: FormVocabularyH
           res.set(apiNoCacheHeaders).json(apiVersion(req) === '2.0' ? { data, meta } : data);
         } catch (error) {
           input.log.error('Form vocabulary lookup failed');
-          sendApiErrors(req, res, error instanceof VocabularyLookupError ? error.status : 500, [
-            { detail: error instanceof VocabularyLookupError ? error.message : 'Vocabulary lookup failed' },
+          const known = new Set([
+            'query-vocab-not-configured',
+            'service-lookup-not-configured',
+            'external-vocab-not-configured',
+            'query-vocab-invalid-config',
+            'service-lookup-invalid-target',
+            'service-lookup-invalid-response',
+            'external-vocab-invalid-config',
+          ]);
+          const domainCode = error instanceof Error && 'code' in error ? String(error.code) : undefined;
+          const code =
+            error instanceof VocabularyLookupError
+              ? error.message
+              : domainCode && known.has(domainCode)
+                ? domainCode
+                : 'vocabulary-lookup-failed';
+          const status =
+            error instanceof VocabularyLookupError ? error.status : code.endsWith('-not-configured') ? 404 : 500;
+          sendApiErrors(req, res, status, [
+            { code, title: code, detail: status < 500 ? code : 'Vocabulary lookup failed' },
           ]);
         }
       })

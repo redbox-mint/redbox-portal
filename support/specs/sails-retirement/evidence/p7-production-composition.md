@@ -196,3 +196,70 @@ The qualifier uses Node's explicit `--test-force-exit` only after its stop/resou
 assertions settle, matching the executable's process-exit boundary for Agenda's
 passive watchdog delays. It does not replace drain, zero-pool/Prisma assertions or
 signal qualification of the production executable.
+
+## Existing recursive general regression, production candidate
+
+At `ee1688d30` the profile-selected recursive existing general Bruno command was:
+
+```sh
+cd test/bruno
+node_modules/.bin/bru run -r '1 - REST API' '2 - AJAX calls' '3 - OpenID Connect' '4 - General' --disable-cookies --env int-test --sandbox developer --reporter-json ../../.tmp/sails-retirement/p7/bruno-general-production-third.json
+```
+
+The actual installed production Express host, with real Mongo, split storage,
+Agenda/session databases, Solr 10, Keycloak 26.5.6, Mailpit and Companion, returned
+**309 requests: 263 passed / 46 failed; 488/551 tests, 3/3 assertions; exit 1,
+51,851 ms**. Two failed requests were transport errors from legacy `http:` plus
+the newly root-relative tus Location. No bail or skip was used. A previous
+nonrecursive invocation executed only 20 direct requests and is diagnostic only.
+
+This run exposed host regressions addressed in the next change: empty optional
+export date filters, missing machine codes for vocabulary/font upload errors,
+missing schema problem responses at invalid portal boundaries, loss of the
+missing-record/user response details, duplicate browser account creation, and
+preview policy resolution without request context. Solr logs identified an
+empty `metaMetadata_type:` filter for an absent optional type. The new focused
+regression failed specifically on that filter (55 passed / 1 failed); after
+fixing it, **56 passed / 0 failed / 0 pending**, including tenant and actor
+filter assertions. The first green attempt had an incorrect expectation for
+Lucene escaping of `brand-1`; correcting that expectation retained the exact
+mandatory tenant assertion. Logs: `solr-optional-type-{red,green-second}.log`.
+The error text for email failures retains the existing public generic prefix
+while keeping backend failures sanitized and warning clients to read current
+state before retrying. No original regression assertion was relaxed for these
+production fixes. Full-suite requalification remains required.
+
+### Browser/API client conversions and their justification
+
+These are intentional v6 contract conversions from design section 1.3, not
+permission to skip requests or accept successful unauthorized writes:
+
+- The Bruno helper fetches a real session-bound `/csrfToken` before same-origin
+  unsafe browser writes, using the request's own cookie, and sends
+  `X-CSRF-Token`. Login obtains its anonymous session first. Verified API bearer
+  calls keep their independent exemption. No other persona's cookie is attached
+  automatically. Existing login/logout tests submit POST logout with CSRF.
+- Browser tus follow-ups resolve root-relative Locations against `host`, replacing
+  the v5 protocol-relative `http:` construction. Existing upload/download status
+  and content checks remain.
+- The API researcher creation uses the actual configured `Librarians` role
+  instead of unknown `Librarian`; v6 explicitly rejects unknown role names.
+- The empty-result audit date test uses ordered 2021–2023 bounds rather than
+  reversed 2023–2021 bounds, retaining its zero-result assertion; malformed or
+  reversed dates are explicitly rejected by v6.
+- Anonymous branding and protected record-form reads assert explicit 401
+  authentication denials instead of legacy 403. No denial becomes success.
+- General preview creation supplies the existing authorized Admin API credential.
+  A valid Companion-secret upload likewise supplies the actor credential; an
+  invalid secret without an actor now asserts 401 authentication failure. The
+  no-secret unauthenticated case asserts exactly 401 instead of accepting a
+  redirect or 403. Shared secrets cannot replace actor authentication in v6.
+- The branding publish-conflict request supplies its declared required draft
+  revision, so its unchanged 409 assertion reaches version-conflict handling.
+- The nested vocabulary admin request uses the existing cookie helper, matching
+  the other authenticated admin requests instead of interpolating a stale env
+  cookie.
+
+The environment file is restored after runs; runtime IDs/cookies are not committed.
+These converted existing requests still require a complete passing run before
+SR-046 acceptance.

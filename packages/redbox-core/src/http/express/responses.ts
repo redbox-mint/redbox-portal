@@ -21,7 +21,7 @@ export function sendApiErrors(
   req: Request,
   res: Response,
   status: number,
-  errors: readonly { title?: string; detail?: string }[],
+  errors: readonly { title?: string; detail?: string; code?: string }[],
   version = apiVersion(req)
 ): void {
   const only = errors[0] ?? {};

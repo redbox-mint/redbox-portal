@@ -107,7 +107,9 @@ export function mountIntegrationOperationRoutes(router: Router, input: Integrati
           } else {
             const body = validated.body as Record<string, unknown>;
             if (!body.to || typeof body.template !== 'string' || !body.template || /[\\/]|\.\./.test(body.template)) {
-              sendApiErrors(req, res, 400, [{ detail: 'A recipient and valid template name are required' }]);
+              sendApiErrors(req, res, 400, [
+                { detail: 'An error has occurred: a recipient and valid template name are required' },
+              ]);
               return;
             }
             const options = input.email.evaluateProperties(
@@ -150,7 +152,7 @@ export function mountIntegrationOperationRoutes(router: Router, input: Integrati
         } catch (_error) {
           input.log.error('Integration administration operation failed');
           sendApiErrors(req, res, 500, [
-            { detail: 'Operation failed. Some effects may have completed; review current state before retrying.' },
+            { detail: 'An error has occurred. Some effects may have completed; review current state before retrying.' },
           ]);
         }
       })

@@ -145,18 +145,27 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
     },
     brandingandportal: async (req, res, next) => {
       const { branding, portal } = req.params;
+      const missing = () => {
+        if (typeof req.route?.path === 'string' && req.route.path.includes('/api/records/schemas/'))
+          res
+            .set({ 'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL, Vary: RECORD_SCHEMA_RESPONSE_VARY })
+            .type(RECORD_SCHEMA_PROBLEM_MEDIA_TYPE)
+            .status(404)
+            .json(schemaProblem('not-found', req.path));
+        else res.status(404).end();
+      };
       if (
         typeof branding !== 'string' ||
         !/^[A-Za-z0-9_-]{1,100}$/.test(branding) ||
         typeof portal !== 'string' ||
         !input.portals.includes(portal)
       ) {
-        res.status(404).end();
+        missing();
         return;
       }
       const brand = await input.branding.getBrand({ name: branding }, true);
       if (!brand) {
-        res.status(404).end();
+        missing();
         return;
       }
       Reflect.set(req, contextKey, Object.freeze({ brand, portal }));

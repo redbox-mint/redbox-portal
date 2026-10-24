@@ -337,7 +337,7 @@ export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput
               const format = scalar('format');
               if (format !== 'csv' && format !== 'json') throw new RecordReadError(500, 'Unsupported export format');
               for (const key of ['before', 'after'])
-                if (query[key] !== undefined && Number.isNaN(Date.parse(scalar(key))))
+                if (scalar(key) && Number.isNaN(Date.parse(scalar(key))))
                   throw new RecordReadError(400, 'Invalid ' + key + ' parameter.');
               res
                 .attachment(input.translate(scalar('recType') + '-title', brand.name) + ' - Exported Records.' + format)

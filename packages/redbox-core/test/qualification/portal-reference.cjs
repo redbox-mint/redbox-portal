@@ -110,7 +110,7 @@ test(
           search: () => search,
           records: () => records,
           models: new ConfigModelRegistry(),
-          localesDirectory: resolve('config/locales'),
+          localesDirectory: resolve('language-defaults'),
           formRegistry: dev.forms,
         });
         const registry = new Map();

@@ -174,6 +174,10 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
               ? await singleHttpResult(input.users.getUserWithUsername(text(body.username)))
               : null;
           if (existing) userId = String(existing.id);
+          if (existing && browser) {
+            send({ status: false, message: 'Username already exists' });
+            return;
+          }
           const target = userId ? await input.users.requireUserInBrand(userId, brand.id) : null;
           if (userId && !target) throw new IdentityAdministrationError(403, 'Unauthorized cross-brand access');
           if (action === 'disableUser' || action === 'enableUser') {

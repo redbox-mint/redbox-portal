@@ -172,7 +172,12 @@ export function mountIdentityLinkRoutes(router: Router, input: IdentityLinksHttp
                 )
                 .map(sanitize);
               if (route.action === 'getUser') {
-                if (!users[0]) throw new IdentityLinkError(404, 'No user found with given criteria');
+                if (!users[0]) {
+                  sendApiErrors(req, res, 404, [
+                    { title: 'No user found with given criteria', detail: `Searchby: ${field} and Query: ${search}` },
+                  ]);
+                  return;
+                }
                 data = users[0];
               } else if (route.action === 'getUsers')
                 data = users.map(u => ({ ...u, token: u.hasApiKey ? 'user-has-token-but-is-suppressed' : null }));

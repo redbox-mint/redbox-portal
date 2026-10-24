@@ -74,7 +74,7 @@ test(
         appPath: directory,
         log,
         files: { application: applicationFile },
-        localesDirectory: resolve('config/locales'),
+        localesDirectory: resolve('language-defaults'),
         env: { REDBOX_SESSION_SECRET: 'portal-qualification-only-at-least-32-characters' },
       };
       portal = await createPortalApplication(options);

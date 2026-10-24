@@ -77,7 +77,7 @@ export class SolrReads {
 
     const allParams: Array<{ key: string; value: string }> = [];
     allParams.push({ key: 'fq', value: 'metaMetadata_brandId:' + this.luceneEscape(brand.id) });
-    allParams.push({ key: 'fq', value: `metaMetadata_type:${this.luceneEscape(type)}` });
+    if (type) allParams.push({ key: 'fq', value: `metaMetadata_type:${this.luceneEscape(type)}` });
     if (workflowState) {
       allParams.push({ key: 'fq', value: `workflow_stage:${this.luceneEscape(workflowState)}` });
     }

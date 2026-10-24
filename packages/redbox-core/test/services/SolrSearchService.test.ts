@@ -254,6 +254,15 @@ describe('SolrSearchService', function () {
       });
     }
 
+    it('omits an absent optional record type without relaxing tenant or actor filters', async function () {
+      const axiosGet = stubAxiosGet();
+      await SolrSearchService.searchFuzzy('default', '', '', 'Andrew', [], [], brand, user, [], ['title']);
+      const filters: string[] = axiosGet.firstCall.args[1].params.getAll('fq');
+      expect(filters).not.to.include('metaMetadata_type:');
+      expect(filters).to.include('metaMetadata_brandId:brand\\-1');
+      expect(filters.some(filter => filter.includes('authorization_edit:testuser'))).to.equal(true);
+    });
+
     it('should send every filter and facet field to solr', async function () {
       const axiosGet = stubAxiosGet();
 

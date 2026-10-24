@@ -266,7 +266,12 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
           } else {
             current = await load(oid, action === 'restoreRecord' || action === 'destroyDeletedRecord');
             if (!current)
-              throw new RecordMutationError(!browser && action === 'updateMeta' ? 400 : 404, 'Record not found');
+              throw new RecordMutationError(
+                !browser && action === 'updateMeta' ? 400 : 404,
+                !browser && action === 'updateMeta'
+                  ? `Failed to update meta, cannot find existing record with oid: ${oid}.`
+                  : 'Record not found'
+              );
             if (
               !input.records.hasEditAccess(
                 brand,

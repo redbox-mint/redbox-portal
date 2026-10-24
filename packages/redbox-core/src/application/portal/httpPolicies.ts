@@ -13,7 +13,7 @@ export function portalHttpPolicies(): PoliciesConfig {
     config[route.controller] = controller;
   }
   config.DynamicAssetController = { '*': true };
-  config.BrandingController = { '*': true };
+  config.BrandingController = { '*': true, createPreview: [...pilotPolicyChain] };
   config.TranslationController = {
     getNamespace: ['noCache', 'brandingAndPortal', 'browserActor', 'checkAuth'],
   };
