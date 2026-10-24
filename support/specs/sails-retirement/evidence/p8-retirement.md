@@ -5,6 +5,12 @@ No worktree, branch switch, push or publication. Wiki is an ordinary tracked
 snapshot on this branch; the user explicitly confirmed that it must stay so.
 SR-005/045/049's institution designation gap remains unchanged.
 
+**Historical checkpoint:** this file records P8 qualification through its closing
+commits. Its statements about “current”, “final” and post-`5088f4a7a`
+documentation-only changes apply to that checkpoint. Subsequent round-1 review
+found and fixed runtime/test defects. The frozen P8 images do not contain those
+corrections; see [round-1 fixes, verification and provenance](final-review-r1.md).
+
 ## SR-051 — Generated-file reconciliation (accepted)
 
 The SR-001 `app-shims-before.json` was compared against the actual working tree:
@@ -42,10 +48,12 @@ qualification remains SR-053/055.
 
 **All locally executable P8 gates passed** against the clean application commit
 `5088f4a7a5be746697ba7b493c302b57f85e19a8`, twelve real npm packs and three
-immutable images. The final PDF fixture/verifier is84eb91a70; later edits are
-documentation/evidence only. Every current runtime, built, packed and installed
-owned graph has0 executable Sails violations/0 forbidden dependencies. All1261
-SR-001 baseline entries reconcile.
+immutable images. The final P8 PDF fixture/verifier is84eb91a70; edits between
+that verifier and the P8 closing evidence were documentation/evidence only.
+Every qualified P8 runtime, built, packed and installed owned graph has0
+executable Sails violations/0 forbidden dependencies. All1261 SR-001 baseline
+entries reconcile at that checkpoint. Later runtime corrections and current
+mounted/compiled-tree checks are recorded separately in the round-1 evidence.
 
 **SR-051/052/053/054 are accepted. SR-055 is partial only for its inherited
 representative-institution criterion**, because SR-005/045/049's institution,
@@ -2920,9 +2928,11 @@ Exact commands,UTC gate times,image IDs,pins,provider identities,checksums,
 per-suite counts,pending cases and every failed/superseded attempt are recorded
 above and in [p8-artifacts.json](p8-artifacts.json). The focused commit ledger is
 [p8-commits.json](p8-commits.json); the superseded A8 artifact record is retained
-separately. The only post5088 implementation-tree differences are explicit external
-PDF fixture/verifier inputs; subsequent wiki/README/status/evidence changes do
-not alter the qualified application packages or images.
+separately. Through the P8 closing checkpoint, the only post5088
+implementation-tree differences were explicit external PDF fixture/verifier
+inputs; that checkpoint's wiki/README/status/evidence changes did not alter the
+qualified application packages or images. The later round-1 runtime fixes break
+that source equivalence and are not included in these immutable image results.
 
 Regressions found during full retirement were fixed in application code:owned
 page language/options and navigation contracts;artifact headers/authenticated

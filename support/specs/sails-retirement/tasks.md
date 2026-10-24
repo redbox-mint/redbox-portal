@@ -18,6 +18,12 @@ pass after removal. This does not designate an institution or grant production
 release acceptance. See [final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition)
 and [exact artifacts/results](evidence/p8-artifacts.json).
 
+[Final-gate review round 1](evidence/final-review-r1.md) records subsequent
+runtime/test fixes and current mounted-source/compiled-tree targeted verification.
+The `5088f4a7a` immutable-artifact/full-suite results above remain historical;
+no replacement immutable images were built in that review. SR-005/045/049/055's
+accepted institution gaps and checkboxes remain unchanged.
+
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
 
@@ -860,8 +866,12 @@ Read the [design](design.md) for behavior and the
   entries, installed fresh/restart/stop and released-v5 stand-in complete recovery
   pass. The representative institution/source/hooks/configuration/topology are still
   undesignated under SR-005/045/049; its SR-049 dependency and institution acceptance
-  therefore remain unmet. No local gate is left unrun and no stand-in is counted
-  as an institution. [Final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition).
+  therefore remain unmet. No P8 local gate remained unrun at that checkpoint and
+  no stand-in is counted as an institution.
+  [Final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition).
+  [Round-1 corrections and verification](evidence/final-review-r1.md) postdate
+  those frozen images; current targeted mounted/compiled verification is recorded
+  separately and does not claim a replacement immutable-artifact qualification.
 
   **Depends on:** SR-052, SR-053, SR-054, SR-049, SR-050.
 
