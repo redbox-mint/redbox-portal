@@ -2,6 +2,8 @@ import path from 'node:path';
 import type { RequestHandler, Request, Response } from 'express';
 
 export interface PageHeaderInput {
+  /** Configured external URL; request and forwarded headers do not select security policy. */
+  readonly publicUrl?: string;
   readonly sessionMaxAgeMs?: number;
   readonly noCache?: readonly string[];
 }
@@ -32,8 +34,10 @@ export function applyPageHeaders(
         ? 'no-cache, no-store'
         : `max-age=${maxAge}, private`,
     Expires: new Date(immutable ? Date.now() + 31536000000 : noCache ? 0 : Date.now() + maxAge * 1000).toUTCString(),
-    'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
   });
+  // Browsers reject this secure-context policy on ordinary HTTP origins.
+  if (input.publicUrl && new URL(input.publicUrl).protocol === 'https:')
+    res.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   if (immutable) res.removeHeader('Pragma');
   else res.set('Pragma', 'no-cache');
 }

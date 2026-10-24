@@ -114,11 +114,17 @@ describe('HTTP config security helpers', function () {
     function headers(
       pathname: string,
       session: { cookie?: { maxAge?: number } } | false = { cookie: { maxAge: 600000 } },
-      noCache: string[] = []
+      noCache: string[] = [],
+      publicUrl = 'https://portal.example.edu'
     ) {
       const app = express();
       app.use((req, res) => {
-        applyPageHeaders(req, res, { sessionMaxAgeMs: session ? session.cookie?.maxAge : undefined, noCache }, true);
+        applyPageHeaders(
+          req,
+          res,
+          { sessionMaxAgeMs: session ? session.cookie?.maxAge : undefined, noCache, publicUrl },
+          true
+        );
         res.end();
       });
       return supertest(app).get(pathname);
@@ -133,6 +139,18 @@ describe('HTTP config security helpers', function () {
       const response = await headers('/default/default/js/index.bundle.js');
       expect(response.headers['cache-control']).to.equal('max-age=600, private');
       expect(response.headers.pragma).to.equal('no-cache');
+      expect(response.headers['cross-origin-opener-policy']).to.equal('same-origin-allow-popups');
+    });
+    it('omits the HTTPS-only opener policy on a configured HTTP origin despite forwarded protocol headers', async () => {
+      const response = await headers('/default/default/js/index.bundle.js', false, [], 'http://redboxportal:1500').set(
+        'X-Forwarded-Proto',
+        'https'
+      );
+      expect(response.headers['cross-origin-opener-policy']).to.equal(undefined);
+      expect(response.headers['cache-control']).to.equal('max-age=31536000, private');
+    });
+    it('retains the opener policy for a configured HTTPS origin despite forwarded HTTP headers', async () => {
+      const response = await headers('/default/default/js/index.bundle.js').set('X-Forwarded-Proto', 'http');
       expect(response.headers['cross-origin-opener-policy']).to.equal('same-origin-allow-popups');
     });
     for (const { description, session, expected } of [

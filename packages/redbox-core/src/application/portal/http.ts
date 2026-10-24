@@ -187,7 +187,11 @@ export class PortalHttp implements ApplicationModule {
       if (!brand) throw new Error('Authentication brand is unavailable.');
       return brand;
     };
-    const pageHeaders = { sessionMaxAgeMs: config.redboxSession.cookie?.maxAge, noCache: config.page.noCache };
+    const pageHeaders = {
+      publicUrl: config.server.publicUrl,
+      sessionMaxAgeMs: config.redboxSession.cookie?.maxAge,
+      noCache: config.page.noCache,
+    };
     router.use(http.pageResponseHeaders(pageHeaders));
     const authentication = await http.prepareHttpMiddleware(router, {
       owner,

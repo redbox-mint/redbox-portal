@@ -38,7 +38,7 @@ describe('declared hook static artifacts', () => {
       });
     // Owned routes have precedence over static fallback.
     app.get('/api/owned', (_req, res) => res.send('owned'));
-    mountStaticPageArtifacts(app, artifacts);
+    mountStaticPageArtifacts(app, artifacts, { publicUrl: 'https://portal.example.edu' });
     app.use((_req, res) => res.status(404).send('missing'));
     return supertest(app);
   }
