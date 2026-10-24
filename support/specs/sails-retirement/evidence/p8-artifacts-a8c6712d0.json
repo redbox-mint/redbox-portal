@@ -1,0 +1,663 @@
+{
+  "node": "v26.11.1",
+  "npm": "11.20.0",
+  "sourceCommit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
+  "supersedesSourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+  "artifacts": [
+    {
+      "name": "@researchdatabox/sails-ng-common",
+      "filename": "researchdatabox-sails-ng-common-0.2.1.tgz",
+      "sha256": "6d23632ef3a9f4c59637fc9e8ca44e480e7c87d6218132bf3ca81289c9442a72",
+      "files": 568
+    },
+    {
+      "name": "@researchdatabox/agenda-sqs-backend",
+      "filename": "researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+      "sha256": "76d426e7ab5d9c71af1fff96e528bf800970132eb5ea4431eb7d9a87c2a3720f",
+      "files": 20
+    },
+    {
+      "name": "@researchdatabox/raido-openapi-generated-node",
+      "filename": "researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+      "sha256": "d40363198433495e887285046e26e5a7067917b7e690540e2ccb57ec48d30adf",
+      "files": 12
+    },
+    {
+      "name": "@researchdatabox/rva-registry-openapi-generated-node",
+      "filename": "researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+      "sha256": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d",
+      "files": 11
+    },
+    {
+      "name": "@researchdatabox/redbox-core",
+      "filename": "researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+      "sha256": "f1204948a9c3dd2d18a2733d9776feb769f1b67495716ca86121c539c01503e3",
+      "files": 2015
+    },
+    {
+      "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+      "filename": "researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+      "sha256": "bd52140007cb7d41ed0f5cc8b9b3c198be342ee883565521cec47275db1b5f80",
+      "files": 42
+    },
+    {
+      "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+      "filename": "researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+      "sha256": "233112cbca0a6862f3ef913079f010d835c133f0ff22f867072fd83ee45dcb40",
+      "files": 36
+    },
+    {
+      "name": "redbox-hook-dev",
+      "filename": "redbox-hook-dev-1.0.0.tgz",
+      "sha256": "8da96cff08682b094af044fd131d439dc99983479fcb3ff063dc4319846fcb7a",
+      "files": 108
+    },
+    {
+      "name": "@researchdatabox/redbox-dev-tools",
+      "filename": "researchdatabox-redbox-dev-tools-4.5.1.tgz",
+      "sha256": "b9c62813c502eb73f44b1c92c87471567a787284eba8566e3dfdf87bef3a0223",
+      "files": 86
+    },
+    {
+      "name": "sr-esm-only",
+      "filename": "sr-esm-only-1.0.0.tgz",
+      "sha256": "e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89",
+      "files": 2
+    },
+    {
+      "name": "sr-esm-hook",
+      "filename": "sr-esm-hook-1.0.0.tgz",
+      "sha256": "89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21",
+      "files": 2
+    },
+    {
+      "name": "sr-commonjs-hook",
+      "filename": "sr-commonjs-hook-1.0.0.tgz",
+      "sha256": "60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e",
+      "files": 2
+    }
+  ],
+  "result": {
+    "checks": 20,
+    "providers": [
+      "@researchdatabox/sails-hook-redbox-pdfgen",
+      "@researchdatabox/sails-hook-redbox-storage-mongo",
+      "redbox-hook-dev",
+      "sr-esm-hook",
+      "sr-commonjs-hook"
+    ],
+    "esmOnly": true,
+    "topLevelAwait": true,
+    "offline": true,
+    "isolated": true,
+    "expressHost": true,
+    "development": true,
+    "compiledScaffold": true
+  },
+  "closure": {
+    "typescript": "5.9.3",
+    "runtimeAndPackedContentAuditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c",
+    "runtime": {
+      "image": "sha256:5b5a090463b3b790762784ab736352fcc65105cbae5f07dfff82c16eb363f88c",
+      "scannedFiles": 3781,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0
+    },
+    "packedContents": {
+      "verifiedArchives": 12,
+      "scannedFiles": 2191,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0
+    },
+    "installedPackedConsumer": {
+      "toolImage": "sha256:733b974d57895dbcfd61578f3729b62d99e221534a4edeb7f83452fd1ea271f2",
+      "manifestSource": "hash-verified-packed-core",
+      "node": "v26.11.1",
+      "npm": "11.20.0",
+      "git": "git version 2.39.5",
+      "installedPackages": 1194,
+      "scannedFiles": 2191,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "auditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c",
+      "elapsedSeconds": 124.43,
+      "exitCode": 0,
+      "temporaryFilesystem": "1536MiB container tmpfs; npm cache and consumer removed"
+    },
+    "sourceInventory": {
+      "sourceCommit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
+      "matchedFiles": 1021,
+      "matchedLines": 4947,
+      "scannedFiles": 1050,
+      "baselineFilesReconciled": 1261,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "reconciliationCounts": {
+        "remaining-classified": 742,
+        "removed": 136,
+        "retained-without-candidates": 365,
+        "dependency-metadata-checked": 18
+      }
+    },
+    "shimReconciliation": {
+      "node": "v26.11.1",
+      "generatedShimsAbsent": 236,
+      "authoredPathsPreserved": 9
+    },
+    "auditorAndShimControls": {
+      "passing": 6,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 1943.671356
+    },
+    "test": {
+      "image": "sha256:6ad4b7d68615d333c0a9c040b14c87e54896f7a8b6690c81fba72855d5389413",
+      "scannedFiles": 5845,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0
+    },
+    "rehearsal": {
+      "image": "sha256:c7745b26e26ee2a2a7f60788f69d5ea6340c1ebd722af92099f3b54f3070d02f",
+      "scannedFiles": 3994,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0
+    }
+  },
+  "images": {
+    "runtime": {
+      "image": "sha256:5b5a090463b3b790762784ab736352fcc65105cbae5f07dfff82c16eb363f88c",
+      "sourceCommit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
+      "user": "node",
+      "command": [
+        "node",
+        "app.express.cjs"
+      ]
+    },
+    "test": {
+      "image": "sha256:6ad4b7d68615d333c0a9c040b14c87e54896f7a8b6690c81fba72855d5389413",
+      "sourceCommit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
+      "user": "",
+      "command": [
+        "node",
+        "app.express.cjs"
+      ]
+    },
+    "rehearsal": {
+      "image": "sha256:c7745b26e26ee2a2a7f60788f69d5ea6340c1ebd722af92099f3b54f3070d02f",
+      "sourceCommit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
+      "user": "node",
+      "command": [
+        "node",
+        "app.express.cjs"
+      ]
+    }
+  },
+  "qualificationAttempt": {
+    "status": "superseded-after-browser-regression",
+    "sourceCommit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
+    "firstCoreAttempt": {
+      "passing": 4448,
+      "pending": 7,
+      "failing": 34,
+      "exitCode": 34,
+      "elapsedSeconds": 196.33,
+      "causes": [
+        "33 missing committed font verifier inputs (read-only mount added)",
+        "First migration call exceeded unchanged 5000ms; isolated unchanged suite passes 7/0/0"
+      ]
+    },
+    "completedSuites": {
+      "core": {
+        "passing": 4496,
+        "pending": 7,
+        "failing": 0,
+        "elapsedSeconds": 146.64,
+        "exitCode": 0
+      },
+      "generatedInstitution": {
+        "passing": 1,
+        "skipped": 0,
+        "failing": 0,
+        "elapsedSeconds": 34.94,
+        "exitCode": 0,
+        "representativeInstitution": false
+      },
+      "devTools": {
+        "passing": 52,
+        "pending": 0,
+        "failing": 0
+      },
+      "pdfUnit": {
+        "passing": 75,
+        "pending": 0,
+        "failing": 0
+      },
+      "storage": {
+        "passing": 304,
+        "pending": 0,
+        "failing": 0
+      },
+      "mongoMatrix": {
+        "passing": 216,
+        "failing": 0,
+        "skipped": 0,
+        "exitCode": 0,
+        "rows": [
+          {
+            "version": "8.0.34",
+            "fcv": "8.0",
+            "topology": "standalone",
+            "datastores": "separate core/storage servers",
+            "membersPerDatastore": 1,
+            "ownership": {
+              "node": "v26.11.1",
+              "metadata": [
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0"
+                },
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0"
+                }
+              ],
+              "elections": [],
+              "separatePlacement": true,
+              "cleanStop": true
+            },
+            "productionHost": {
+              "productionHost": true,
+              "metadata": [
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0"
+                },
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0"
+                }
+              ],
+              "elections": [],
+              "separatePlacement": true,
+              "restart": true,
+              "gridfs": true,
+              "drainDeadlineRetry": true,
+              "authenticatedApis": 10,
+              "assets": 1,
+              "translationNamespaces": 1,
+              "pages": 1,
+              "health": 200,
+              "readyBefore": 503,
+              "readyAfter": 200,
+              "anonymousApi": 401,
+              "stopped": true,
+              "pools": 0
+            },
+            "regressions": {
+              "persistence": 30,
+              "recordTypes": 10,
+              "lifecycle": 12
+            },
+            "passing": 54,
+            "failing": 0,
+            "skipped": 0
+          },
+          {
+            "version": "8.0.34",
+            "fcv": "8.0",
+            "topology": "replica",
+            "datastores": "separate core/storage servers",
+            "membersPerDatastore": 3,
+            "ownership": {
+              "node": "v26.11.1",
+              "metadata": [
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0",
+                  "hosts": [
+                    "127.0.0.1:29211",
+                    "127.0.0.1:29212",
+                    "127.0.0.1:29213"
+                  ]
+                },
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0",
+                  "hosts": [
+                    "127.0.0.1:29221",
+                    "127.0.0.1:29222",
+                    "127.0.0.1:29223"
+                  ]
+                }
+              ],
+              "elections": [
+                {
+                  "set": "sr-core",
+                  "before": "127.0.0.1:29211",
+                  "after": "127.0.0.1:29213"
+                },
+                {
+                  "set": "sr-storage",
+                  "before": "127.0.0.1:29221",
+                  "after": "127.0.0.1:29223"
+                }
+              ],
+              "separatePlacement": true,
+              "cleanStop": true
+            },
+            "productionHost": {
+              "productionHost": true,
+              "metadata": [
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0",
+                  "hosts": [
+                    "127.0.0.1:29211",
+                    "127.0.0.1:29212",
+                    "127.0.0.1:29213"
+                  ]
+                },
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0",
+                  "hosts": [
+                    "127.0.0.1:29221",
+                    "127.0.0.1:29222",
+                    "127.0.0.1:29223"
+                  ]
+                }
+              ],
+              "elections": [
+                {
+                  "set": "sr-core",
+                  "before": "127.0.0.1:29213",
+                  "after": "127.0.0.1:29212"
+                },
+                {
+                  "set": "sr-storage",
+                  "before": "127.0.0.1:29223",
+                  "after": "127.0.0.1:29222"
+                }
+              ],
+              "separatePlacement": true,
+              "restart": true,
+              "gridfs": true,
+              "drainDeadlineRetry": true,
+              "authenticatedApis": 10,
+              "assets": 1,
+              "translationNamespaces": 1,
+              "pages": 1,
+              "health": 200,
+              "readyBefore": 503,
+              "readyAfter": 200,
+              "anonymousApi": 401,
+              "stopped": true,
+              "pools": 0
+            },
+            "regressions": {
+              "persistence": 30,
+              "recordTypes": 10,
+              "lifecycle": 12
+            },
+            "passing": 54,
+            "failing": 0,
+            "skipped": 0
+          },
+          {
+            "version": "9.0.4",
+            "fcv": "9.0",
+            "topology": "standalone",
+            "datastores": "separate core/storage servers",
+            "membersPerDatastore": 1,
+            "ownership": {
+              "node": "v26.11.1",
+              "metadata": [
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0"
+                },
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0"
+                }
+              ],
+              "elections": [],
+              "separatePlacement": true,
+              "cleanStop": true
+            },
+            "productionHost": {
+              "productionHost": true,
+              "metadata": [
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0"
+                },
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0"
+                }
+              ],
+              "elections": [],
+              "separatePlacement": true,
+              "restart": true,
+              "gridfs": true,
+              "drainDeadlineRetry": true,
+              "authenticatedApis": 10,
+              "assets": 1,
+              "translationNamespaces": 1,
+              "pages": 1,
+              "health": 200,
+              "readyBefore": 503,
+              "readyAfter": 200,
+              "anonymousApi": 401,
+              "stopped": true,
+              "pools": 0
+            },
+            "regressions": {
+              "persistence": 30,
+              "recordTypes": 10,
+              "lifecycle": 12
+            },
+            "passing": 54,
+            "failing": 0,
+            "skipped": 0
+          },
+          {
+            "version": "9.0.4",
+            "fcv": "9.0",
+            "topology": "replica",
+            "datastores": "separate core/storage servers",
+            "membersPerDatastore": 3,
+            "ownership": {
+              "node": "v26.11.1",
+              "metadata": [
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0",
+                  "hosts": [
+                    "127.0.0.1:29411",
+                    "127.0.0.1:29412",
+                    "127.0.0.1:29413"
+                  ]
+                },
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0",
+                  "hosts": [
+                    "127.0.0.1:29421",
+                    "127.0.0.1:29422",
+                    "127.0.0.1:29423"
+                  ]
+                }
+              ],
+              "elections": [
+                {
+                  "set": "sr-core",
+                  "before": "127.0.0.1:29411",
+                  "after": "127.0.0.1:29412"
+                },
+                {
+                  "set": "sr-storage",
+                  "before": "127.0.0.1:29421",
+                  "after": "127.0.0.1:29423"
+                }
+              ],
+              "separatePlacement": true,
+              "cleanStop": true
+            },
+            "productionHost": {
+              "productionHost": true,
+              "metadata": [
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0",
+                  "hosts": [
+                    "127.0.0.1:29411",
+                    "127.0.0.1:29412",
+                    "127.0.0.1:29413"
+                  ]
+                },
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0",
+                  "hosts": [
+                    "127.0.0.1:29421",
+                    "127.0.0.1:29422",
+                    "127.0.0.1:29423"
+                  ]
+                }
+              ],
+              "elections": [
+                {
+                  "set": "sr-core",
+                  "before": "127.0.0.1:29412",
+                  "after": "127.0.0.1:29413"
+                },
+                {
+                  "set": "sr-storage",
+                  "before": "127.0.0.1:29423",
+                  "after": "127.0.0.1:29422"
+                }
+              ],
+              "separatePlacement": true,
+              "restart": true,
+              "gridfs": true,
+              "drainDeadlineRetry": true,
+              "authenticatedApis": 10,
+              "assets": 1,
+              "translationNamespaces": 1,
+              "pages": 1,
+              "health": 200,
+              "readyBefore": 503,
+              "readyAfter": 200,
+              "anonymousApi": 401,
+              "stopped": true,
+              "pools": 0
+            },
+            "regressions": {
+              "persistence": 30,
+              "recordTypes": 10,
+              "lifecycle": 12
+            },
+            "passing": 54,
+            "failing": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      "compiledRecordTypes": {
+        "passing": 3,
+        "failing": 0,
+        "skipped": 0,
+        "exitCode": 0
+      },
+      "rootMocha": {
+        "passing": 422,
+        "pending": 10,
+        "failing": 0,
+        "exitCode": 0,
+        "elapsedSeconds": 30.74,
+        "verifierSourceCommit": "6af1e28419732e32a3ab10690d96859a8d49e4e2"
+      },
+      "documentation": {
+        "publishedSurfaces": 43,
+        "advisoryFindings": 523,
+        "passing": 4,
+        "pending": 0,
+        "failing": 0,
+        "exitCode": 0,
+        "apiOutputs": [
+          "JSON",
+          "YAML",
+          "Blueprint",
+          "HTML"
+        ],
+        "elapsedSeconds": 109.59
+      },
+      "lint": {
+        "files": 934,
+        "warnings": 0,
+        "errors": 0,
+        "exitCode": 0
+      }
+    },
+    "verifierSourceCommit": "6af1e28419732e32a3ab10690d96859a8d49e4e2",
+    "applicationDeltaSinceBuild": [],
+    "verifierDeltaSinceBuild": [
+      "test/express.bootstrap.test.cjs",
+      "test/integration/services/RequestChronicle.test.ts"
+    ],
+    "rootAttempts": [
+      {
+        "passing": 0,
+        "failing": 1,
+        "exitCode": 1,
+        "elapsedSeconds": 20.39,
+        "reason": "Test-only router assumed a hoisted undeclared Express dependency; resolve from core owner."
+      },
+      {
+        "passing": 421,
+        "pending": 10,
+        "failing": 1,
+        "exitCode": 1,
+        "elapsedSeconds": 31.5,
+        "reason": "Stale native-provider diagnostic assertion; require the documented safe operation error and stricter absence of provider/credential text."
+      }
+    ],
+    "failedGate": "playwright",
+    "playwright": {
+      "failed": 32,
+      "interrupted": 1,
+      "notRun": 91,
+      "exitCode": 1,
+      "deliberatelyInterruptedAfterSystematicFailure": true,
+      "reason": "Unconditional HTTPS-only Cross-Origin-Opener-Policy on configured plain HTTP origin",
+      "harnessPassing": 19
+    },
+    "replacementSourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8"
+  },
+  "supersededAttempts": [
+    {
+      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "status": "superseded-before-suites",
+      "failedGate": "test-image-closure",
+      "scannedFiles": 5845,
+      "executableViolations": 1,
+      "forbiddenDependencyEntries": 0,
+      "reason": "ng-packagr generated an unpinned tslib ^2.3.0 dependency; source now preserves the existing exact 2.8.1 runtime pin. Replacement clean artifact and final gates are required."
+    }
+  ],
+  "host": {
+    "os": "Ubuntu 24.04.4 LTS",
+    "kernel": "Linux 6.8.0-147-generic",
+    "architecture": "x86_64 (images linux/amd64)",
+    "docker": "29.6.1",
+    "containerd": "2.2.5",
+    "runc": "1.3.6",
+    "daemon": "owned isolated unix:///run/sr-p7-isolated/docker.sock",
+    "mongoNofile": {
+      "soft": 64000,
+      "hard": 64000
+    }
+  }
+}

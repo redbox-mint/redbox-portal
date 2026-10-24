@@ -1,0 +1,324 @@
+{
+  "baseCommit": "ad5c68d3b",
+  "throughCommit": "376b7caf4df41ccbe9feeb8579b0ac167b321967",
+  "artifactSourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
+  "repository": "main (wiki is ordinary tracked files)",
+  "coauthorTrailer": "Co-Authored-By: GPT-6.1-sol <noreply@openai.com>",
+  "allTrailersVerified": true,
+  "count": 78,
+  "scope": "All focused implementation/test/documentation commits after the P7 base through throughCommit. The containing final inventory/evidence commit is necessarily outside its own fixed-SHA ledger and is reported separately in the final handoff.",
+  "commits": [
+    {
+      "commit": "6d526541d8d7347658f16227fa7d81b415ee3903",
+      "subject": "refactor(runtime): retire shim generation and reconcile exact output"
+    },
+    {
+      "commit": "aff0dbf84dd4634927c1f231e7649841e93c1a3b",
+      "subject": "refactor(runtime): remove the Sails comparison host and dependencies"
+    },
+    {
+      "commit": "d32ffae66e99689cc87fc61b86020058d813d879",
+      "subject": "refactor(tooling): make deployment and hook scaffolds v6 only"
+    },
+    {
+      "commit": "20fad0b3c794cbe607628dec1ac8427f593bb3af",
+      "subject": "test(runtime): run root integration against explicit Express ownership"
+    },
+    {
+      "commit": "0ad1be7a117704546b95d441844fb33d63007c1c",
+      "subject": "fix(pages): honor configured language fallbacks during rendering"
+    },
+    {
+      "commit": "2328d294694057e4d22b96eab41b0545be31ca0f",
+      "subject": "test(runtime): bind core domain fixtures to explicit collaborators"
+    },
+    {
+      "commit": "afe591df78e7163f8abb0fb792114a0f3b7aa64c",
+      "subject": "test(runtime): migrate query and harvest fixtures to owned domains"
+    },
+    {
+      "commit": "d91c29b7a847922e782a54dc909a0a57ae4fc810",
+      "subject": "test(runtime): migrate publishing and SIEM ownership fixtures"
+    },
+    {
+      "commit": "6782285e0ee75c48a370463321bfea7163ecfb2d",
+      "subject": "test(queue): verify explicit activation and resource draining"
+    },
+    {
+      "commit": "0d304ca8a79b46dcbccc4e5f879c34e46311ff5d",
+      "subject": "test(runtime): migrate durable Figshare and path rule fixtures"
+    },
+    {
+      "commit": "c5b30cc16e13313c811b86de75320cd04714e607",
+      "subject": "test(config): verify owned registries and Express configuration responses"
+    },
+    {
+      "commit": "2118c0d180b7c6260c220c5045984f83dce732a0",
+      "subject": "test(logging): bind chronicle fixtures to explicit domain owners"
+    },
+    {
+      "commit": "c55bd3f05eefc9a932c2f066aefda7b7021fbc18",
+      "subject": "fix(pages): declare language configuration inputs"
+    },
+    {
+      "commit": "df28923bc994a9b9547e2bd928ac84f52ba8c539",
+      "subject": "fix(audit): retain accepted security followups through shutdown"
+    },
+    {
+      "commit": "ab6bb0c390b6337565e629ce8f5f00f719e26310",
+      "subject": "test(tooling): exercise explicit migrations and webpack ownership"
+    },
+    {
+      "commit": "2c10ea01c1a9df8f3f9769763deee9174c5af656",
+      "subject": "test(extensions): migrate bootstrap and artifact retirement fixtures"
+    },
+    {
+      "commit": "1b25aedd1d4daba7dbde2f89cff907ea0428a02e",
+      "subject": "test(extensions): replace generated-loader fixtures with v6 contracts"
+    },
+    {
+      "commit": "94b97dcfd471c3f4a92561604b10b696f6856cc2",
+      "subject": "fix(http): preserve artifact headers and authenticated popup callbacks"
+    },
+    {
+      "commit": "9f2220e40e0015695c1b3890f48b93cc9ce830c6",
+      "subject": "test(logging): retire inherited and global utility fixtures"
+    },
+    {
+      "commit": "d4732076b96e32fffc801dc2cf9589ec4a64064f",
+      "subject": "test(integrations): bind Oni and Figshare fixtures explicitly"
+    },
+    {
+      "commit": "634c42a7218e71279120bfb9ea415a2ec6b5db04",
+      "subject": "test(persistence): use explicit branding and session resource owners"
+    },
+    {
+      "commit": "dcb47adaa81ffdef4bd2dcf0671a444a398e3168",
+      "subject": "test(http): verify policies through explicit actors and request context"
+    },
+    {
+      "commit": "bc822895349a93b5afafd0b28d23c10c1e11fb6c",
+      "subject": "fix(http): isolate chronicle observers and sanitize parser failures"
+    },
+    {
+      "commit": "fa6db9e1292e36ff9178c23de335cb9604975bc1",
+      "subject": "fix(queries): retain invalid-target responses in owned HTTP routes"
+    },
+    {
+      "commit": "8dffec3f511342539cd863d5a6f56c053707c56a",
+      "subject": "fix(pages): retain visible language filtering and safe fallbacks"
+    },
+    {
+      "commit": "ff608140509a90cb9831dcb4713726766d72fc42",
+      "subject": "test(http): retire virtual session and global method policy fixtures"
+    },
+    {
+      "commit": "acd87942fe92c95d991c8c98014ccaee81201ea6",
+      "subject": "test(http): retire remaining ambient policy consumers"
+    },
+    {
+      "commit": "f118d7873383bf994439f3aebeab3fb5e9955067",
+      "subject": "fix(http): sanitize query failures and retain SIEM outage status"
+    },
+    {
+      "commit": "2858a1c2d6d16a5d37ec0717480fdcd29ea28fdc",
+      "subject": "test(http): exercise owned metadata and audit routes"
+    },
+    {
+      "commit": "97823537cae877feb17ad4962dea0e52faab7197",
+      "subject": "fix(http): retain vocabulary responses and notification defaults"
+    },
+    {
+      "commit": "a9de71e18a82b0617d670b387e8c57edeaf9bed0",
+      "subject": "fix(http): retain form vocabulary failure codes"
+    },
+    {
+      "commit": "fe0af7fd815a176707eb8629baecaf15695f8f22",
+      "subject": "fix(http): validate Figshare numeric request boundaries"
+    },
+    {
+      "commit": "26d01934eec86b112fc90aadbbc4e50c89560527",
+      "subject": "test(http): retire view and relationship controller consumers"
+    },
+    {
+      "commit": "2f1d973083cd521d98ca3884dae9379dfd6bd999",
+      "subject": "test(http): verify downloads through owned stream routes"
+    },
+    {
+      "commit": "e6f67e4cb4372be6f65f6aeb993c5371411b6dad",
+      "subject": "fix(http): restore schema JSON guards and blank title handling"
+    },
+    {
+      "commit": "d159d3a8a143c95e77ba98e8fa6fe89c4479169f",
+      "subject": "fix(http): validate account mutation identifiers before lookup"
+    },
+    {
+      "commit": "70ee44917d835d8a2eda44720bafc4d8235f0ba9",
+      "subject": "fix(http): retain normalized schema request context"
+    },
+    {
+      "commit": "b95a6eb9dd895ff269f1ecf8bb4a0c0df5f7d66a",
+      "subject": "test(http): retire font delivery controller consumers"
+    },
+    {
+      "commit": "5417beae92ee8a53da078ea571e925a14b3dbdd7",
+      "subject": "fix(http): honor configured font upload limits"
+    },
+    {
+      "commit": "1443c3b4d2be2459571e2c24b690adcad94beb55",
+      "subject": "fix(http): retain safe request operation observations"
+    },
+    {
+      "commit": "1b1f314fe1f5e8faf707f6a21f7ecffafc5520f9",
+      "subject": "test(runtime): remove framework-shaped shared fixtures"
+    },
+    {
+      "commit": "0fa0965abbaf931c95366d7ea97ee6e4d0059e49",
+      "subject": "fix(records): require named operations for creator authority"
+    },
+    {
+      "commit": "037330ec202da2ec4ce7c63bdddf838d6dd73ed3",
+      "subject": "fix(http): retain record API contracts without legacy controllers"
+    },
+    {
+      "commit": "586122d168929edbf0846478811ad68c7d6bdb7a",
+      "subject": "fix(http): preserve browser record contracts on owned transports"
+    },
+    {
+      "commit": "a80afe097663edfa228a615adfb9cdab8c3e2e60",
+      "subject": "test(extensions): retire framework globals from PDF and storage fixtures"
+    },
+    {
+      "commit": "852a80bd2078ea8e13c3a3d65104e4a743829dbb",
+      "subject": "fix(docs): bind API metadata without application globals"
+    },
+    {
+      "commit": "b9d987128fb2972be62ef836e50417ee20fa54c8",
+      "subject": "test(runtime): verify lazy startup with explicit persistence owner"
+    },
+    {
+      "commit": "f56fdfaba99561afcb9467e3aeca10d40665e95f",
+      "subject": "docs(runtime): document v6 contracts and client migration"
+    },
+    {
+      "commit": "2e7da7a08b84a23ec52b2ba81eb13563d1d2c72f",
+      "subject": "test(retirement): audit committed and installed runtime closure"
+    },
+    {
+      "commit": "61f37e604d92c1e546d26912691ac045b2a2e878",
+      "subject": "fix(http): remove unused vocabulary failure binding"
+    },
+    {
+      "commit": "e6969a82482826ed61d62fd12138043bec715a47",
+      "subject": "fix(build): retain exact storage peer resolutions in clean lock"
+    },
+    {
+      "commit": "71017283cb5ceedbe4fdf76d9a702c8c785a1b5f",
+      "subject": "refactor(deployment): retire remaining legacy environment templates"
+    },
+    {
+      "commit": "853d0039df1164beaa4098a8dba9c7984e498147",
+      "subject": "fix(build): preserve Angular HTML during shared asset minification"
+    },
+    {
+      "commit": "b3795e8c0f934c25aba10a02ce0f015ec9ef9c9f",
+      "subject": "test(retirement): classify installed negative metadata fixture"
+    },
+    {
+      "commit": "0bd7a79f13688e9726efce1119fbadf7b635746d",
+      "subject": "test(retirement): reject residual framework adapter packages"
+    },
+    {
+      "commit": "87d55e2792a726dbed15fd9f2670982a06ca731f",
+      "subject": "docs(retirement): accept clean shim removal and record packed artifacts"
+    },
+    {
+      "commit": "bcb8c7999d93648a056646669a5af8bff7f82fbe",
+      "subject": "docs(retirement): record source reconciliation and image dispatch checks"
+    },
+    {
+      "commit": "c81a60f966a19133a19677a21518c386c68d5742",
+      "subject": "test(retirement): distinguish module declarations from ambient service globals"
+    },
+    {
+      "commit": "d51ad24cf6f1688679019ca39a44f7b0bcce5385",
+      "subject": "docs(retirement): record isolated fixture and consumer prerequisites"
+    },
+    {
+      "commit": "0889c59f76face14ca7567aa6e05492c06d23f57",
+      "subject": "docs(retirement): accept source and installed dependency closure"
+    },
+    {
+      "commit": "8cb15b8638771e16c63e2bb8e1ec66f41a2ce9a4",
+      "subject": "docs(retirement): reconcile final session and extension guidance"
+    },
+    {
+      "commit": "dd88e8d9c8b69a620b4c6c6a1301a66e7c114962",
+      "subject": "docs(retirement): record canonical runtime and package rechecks"
+    },
+    {
+      "commit": "f3abbf1c26c80e000018d4a2a524565ac1a8405f",
+      "subject": "docs(retirement): state integration diagnostic permission changes"
+    },
+    {
+      "commit": "dc9cf651e3d4111cf72c15f839f13b4a927f4f65",
+      "subject": "fix(retirement): load generated hooks in production portal configuration"
+    },
+    {
+      "commit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "subject": "build(retirement): reuse builder layers for the test artifact"
+    },
+    {
+      "commit": "8e614d706adcbdc16447f0af39bd9f5e9c1cafc0",
+      "subject": "docs(retirement): retire stale configuration comparison guidance"
+    },
+    {
+      "commit": "62aa2b528acff2167d5525c96eb3709ab042487f",
+      "subject": "docs(retirement): record corrected clean artifact closure"
+    },
+    {
+      "commit": "5801f6994826a285c71aac07d056100b3fa9633a",
+      "subject": "docs(retirement): record isolated image export lease recovery"
+    },
+    {
+      "commit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
+      "subject": "fix(build): preserve the exact generated Angular helper dependency"
+    },
+    {
+      "commit": "ff0bb362350c95d5faa4e98a68c7f3243372c3d3",
+      "subject": "test(runtime): resolve the integration router from its core owner"
+    },
+    {
+      "commit": "6af1e28419732e32a3ab10690d96859a8d49e4e2",
+      "subject": "test(logging): verify sanitized integration operation failures"
+    },
+    {
+      "commit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
+      "subject": "fix(http): select opener isolation from the configured HTTPS origin"
+    },
+    {
+      "commit": "bebb61ccb4ea68cc41b59eb230a692f27f1f9d13",
+      "subject": "fix(test): run pruned PDF fixtures in production mode"
+    },
+    {
+      "commit": "d160b8ccca45dc3265011acfa32aa5842fa47bad",
+      "subject": "fix(test): bind the native PDF fixture API credential"
+    },
+    {
+      "commit": "a5d4c0e92f6bc10f64344bf65ecff0358201f002",
+      "subject": "fix(test): scope the PDF credential to its brand configuration"
+    },
+    {
+      "commit": "35042a07c2c0f54c4ac7c6315b207d66ad82f46d",
+      "subject": "fix(test): wait for the current Angular form readiness marker"
+    },
+    {
+      "commit": "84eb91a706d9157d11755dfc9357822d6270a822",
+      "subject": "test(pdf): await terminal production audit events before checking the trace"
+    },
+    {
+      "commit": "376b7caf4df41ccbe9feeb8579b0ac167b321967",
+      "subject": "docs(runtime): clarify deployment and native PDF configuration"
+    }
+  ]
+}

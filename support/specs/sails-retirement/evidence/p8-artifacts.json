@@ -1,8 +1,8 @@
 {
   "node": "v26.11.1",
   "npm": "11.20.0",
-  "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
-  "supersedesSourceCommit": "853d0039df1164beaa4098a8dba9c7984e498147",
+  "sourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
+  "supersedesSourceCommit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
   "artifacts": [
     {
       "name": "@researchdatabox/sails-ng-common",
@@ -31,7 +31,7 @@
     {
       "name": "@researchdatabox/redbox-core",
       "filename": "researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
-      "sha256": "f1204948a9c3dd2d18a2733d9776feb769f1b67495716ca86121c539c01503e3",
+      "sha256": "131a4f6d4a508fd1ec9d3858b7e85ad4b39c975117809a544764e29faec76bca",
       "files": 2015
     },
     {
@@ -97,37 +97,10 @@
   "closure": {
     "typescript": "5.9.3",
     "runtimeAndPackedContentAuditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c",
-    "runtime": {
-      "image": "sha256:4dd74a393059adad91a990f8c0ec69ef2a41fae8df8f0eb881323428f721b647",
-      "scannedFiles": 3781,
-      "executableViolations": 0,
-      "forbiddenDependencyEntries": 0
-    },
-    "packedContents": {
-      "verifiedArchives": 12,
-      "scannedFiles": 2191,
-      "executableViolations": 0,
-      "forbiddenDependencyEntries": 0
-    },
-    "installedPackedConsumer": {
-      "toolImage": "sha256:733b974d57895dbcfd61578f3729b62d99e221534a4edeb7f83452fd1ea271f2",
-      "manifestSource": "hash-verified-packed-core",
-      "node": "v26.11.1",
-      "npm": "11.20.0",
-      "git": "git version 2.39.5",
-      "installedPackages": 1194,
-      "scannedFiles": 2191,
-      "executableViolations": 0,
-      "forbiddenDependencyEntries": 0,
-      "auditorSha256": "c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c",
-      "elapsedSeconds": 376.67,
-      "exitCode": 0,
-      "temporaryFilesystem": "1536MiB container tmpfs; npm cache and consumer removed"
-    },
     "sourceInventory": {
-      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "sourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
       "matchedFiles": 1021,
-      "matchedLines": 4944,
+      "matchedLines": 4947,
       "scannedFiles": 1050,
       "baselineFilesReconciled": 1261,
       "executableViolations": 0,
@@ -139,22 +112,70 @@
         "dependency-metadata-checked": 18
       }
     },
-    "shimReconciliation": {
-      "node": "v26.11.1",
-      "generatedShimsAbsent": 236,
-      "authoredPathsPreserved": 9
-    },
     "auditorAndShimControls": {
       "passing": 6,
       "failed": 0,
       "skipped": 0,
-      "durationMs": 1943.671356
+      "durationMs": 1508.744579
+    },
+    "runtime": {
+      "image": "sha256:9a9d595cb224d2215a5a31085e1d4663e64649eaa5212fb99f323da078cbe414",
+      "scannedFiles": 3781,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "shimReconciliation": {
+        "node": "v26.11.1",
+        "generatedShimsAbsent": 236,
+        "authoredPathsPreserved": 9
+      }
+    },
+    "test": {
+      "image": "sha256:2e86451c0651b1102d928a82a20e5c9c5460bb819688580ae06bc5c9835d3658",
+      "scannedFiles": 5845,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "shimReconciliation": {
+        "node": "v26.11.1",
+        "generatedShimsAbsent": 236,
+        "authoredPathsPreserved": 9
+      }
+    },
+    "rehearsal": {
+      "image": "sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1",
+      "scannedFiles": 3994,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "shimReconciliation": {
+        "node": "v26.11.1",
+        "generatedShimsAbsent": 236,
+        "authoredPathsPreserved": 9
+      }
+    },
+    "installedPackedConsumer": {
+      "toolImage": "sha256:733b974d57895dbcfd61578f3729b62d99e221534a4edeb7f83452fd1ea271f2",
+      "manifestSource": "hash-verified-packed-core",
+      "node": "v26.11.1",
+      "npm": "11.20.0",
+      "git": "git version 2.39.5",
+      "installedPackages": 1194,
+      "scannedFiles": 2191,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "elapsedSeconds": 133.04,
+      "exitCode": 0,
+      "temporaryFilesystem": "1536MiB container tmpfs; npm cache and consumer removed"
+    },
+    "packedContents": {
+      "verifiedArchives": 12,
+      "scannedFiles": 2191,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0
     }
   },
   "images": {
     "runtime": {
-      "image": "sha256:4dd74a393059adad91a990f8c0ec69ef2a41fae8df8f0eb881323428f721b647",
-      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "image": "sha256:9a9d595cb224d2215a5a31085e1d4663e64649eaa5212fb99f323da078cbe414",
+      "sourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
       "user": "node",
       "command": [
         "node",
@@ -162,8 +183,8 @@
       ]
     },
     "test": {
-      "image": "sha256:29b7c8a064e80bce8f79bdd340f19f1ad71e9671b1185f06130801384ffae063",
-      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "image": "sha256:2e86451c0651b1102d928a82a20e5c9c5460bb819688580ae06bc5c9835d3658",
+      "sourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
       "user": "",
       "command": [
         "node",
@@ -171,8 +192,8 @@
       ]
     },
     "rehearsal": {
-      "image": "sha256:b79e9fbc52fce22ae895f591bf63ed84ffa25deba2a9a9311afbd8f83315cc63",
-      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "image": "sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1",
+      "sourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
       "user": "node",
       "command": [
         "node",
@@ -181,11 +202,1045 @@
     }
   },
   "qualificationAttempt": {
-    "status": "superseded-before-suites",
-    "failedGate": "test-image-closure",
-    "scannedFiles": 5845,
-    "executableViolations": 1,
-    "forbiddenDependencyEntries": 0,
-    "reason": "ng-packagr generated an unpinned tslib ^2.3.0 dependency; source now preserves the existing exact 2.8.1 runtime pin. Replacement clean artifact and final gates are required."
-  }
+    "sourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
+    "verifierSourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
+    "status": "all-local-gates-passed-institution-acceptance-pending",
+    "completedSuites": {
+      "core": {
+        "passing": 4498,
+        "pending": 7,
+        "failing": 0,
+        "exitCode": 0,
+        "elapsedSeconds": 181.0
+      },
+      "compiledRecordTypes": {
+        "passing": 3,
+        "pending": 0,
+        "failing": 0,
+        "exitCode": 0,
+        "elapsedSeconds": 7.43
+      },
+      "devTools": {
+        "passing": 52,
+        "pending": 0,
+        "failing": 0,
+        "exitCode": 0
+      },
+      "pdfUnit": {
+        "passing": 75,
+        "pending": 0,
+        "failing": 0,
+        "exitCode": 0
+      },
+      "storage": {
+        "passing": 304,
+        "pending": 0,
+        "failing": 0,
+        "exitCode": 0
+      },
+      "generatedInstitution": {
+        "passing": 1,
+        "skipped": 0,
+        "failing": 0,
+        "exitCode": 0,
+        "representativeInstitution": false
+      },
+      "databaseMatrix": {
+        "passing": 216,
+        "skipped": 0,
+        "failing": 0,
+        "exitCode": 0,
+        "elapsedSeconds": 405.24,
+        "rows": [
+          {
+            "major": 8,
+            "fcv": "8.0",
+            "topology": "standalone",
+            "passing": 54,
+            "skipped": 0,
+            "failing": 0,
+            "separateCoreAndStorage": true,
+            "noFileSoft": 64000,
+            "noFileHard": 64000,
+            "ownership": {
+              "node": "v26.11.1",
+              "metadata": [
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0"
+                },
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0"
+                }
+              ],
+              "elections": [],
+              "separatePlacement": true,
+              "cleanStop": true
+            },
+            "productionHost": {
+              "productionHost": true,
+              "metadata": [
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0"
+                },
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0"
+                }
+              ],
+              "elections": [],
+              "separatePlacement": true,
+              "restart": true,
+              "gridfs": true,
+              "drainDeadlineRetry": true,
+              "authenticatedApis": 10,
+              "assets": 1,
+              "translationNamespaces": 1,
+              "pages": 1,
+              "health": 200,
+              "readyBefore": 503,
+              "readyAfter": 200,
+              "anonymousApi": 401,
+              "stopped": true,
+              "pools": 0
+            },
+            "regressionSuites": [
+              30,
+              10,
+              12
+            ]
+          },
+          {
+            "major": 8,
+            "fcv": "8.0",
+            "topology": "replica",
+            "passing": 54,
+            "skipped": 0,
+            "failing": 0,
+            "separateCoreAndStorage": true,
+            "noFileSoft": 64000,
+            "noFileHard": 64000,
+            "ownership": {
+              "node": "v26.11.1",
+              "metadata": [
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0",
+                  "hosts": [
+                    "127.0.0.1:29211",
+                    "127.0.0.1:29212",
+                    "127.0.0.1:29213"
+                  ]
+                },
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0",
+                  "hosts": [
+                    "127.0.0.1:29221",
+                    "127.0.0.1:29222",
+                    "127.0.0.1:29223"
+                  ]
+                }
+              ],
+              "elections": [
+                {
+                  "set": "sr-core",
+                  "before": "127.0.0.1:29211",
+                  "after": "127.0.0.1:29213"
+                },
+                {
+                  "set": "sr-storage",
+                  "before": "127.0.0.1:29223",
+                  "after": "127.0.0.1:29221"
+                }
+              ],
+              "separatePlacement": true,
+              "cleanStop": true
+            },
+            "productionHost": {
+              "productionHost": true,
+              "metadata": [
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0",
+                  "hosts": [
+                    "127.0.0.1:29211",
+                    "127.0.0.1:29212",
+                    "127.0.0.1:29213"
+                  ]
+                },
+                {
+                  "version": "8.0.34",
+                  "fcv": "8.0",
+                  "hosts": [
+                    "127.0.0.1:29221",
+                    "127.0.0.1:29222",
+                    "127.0.0.1:29223"
+                  ]
+                }
+              ],
+              "elections": [
+                {
+                  "set": "sr-core",
+                  "before": "127.0.0.1:29213",
+                  "after": "127.0.0.1:29212"
+                },
+                {
+                  "set": "sr-storage",
+                  "before": "127.0.0.1:29221",
+                  "after": "127.0.0.1:29223"
+                }
+              ],
+              "separatePlacement": true,
+              "restart": true,
+              "gridfs": true,
+              "drainDeadlineRetry": true,
+              "authenticatedApis": 10,
+              "assets": 1,
+              "translationNamespaces": 1,
+              "pages": 1,
+              "health": 200,
+              "readyBefore": 503,
+              "readyAfter": 200,
+              "anonymousApi": 401,
+              "stopped": true,
+              "pools": 0
+            },
+            "regressionSuites": [
+              30,
+              10,
+              12
+            ]
+          },
+          {
+            "major": 9,
+            "fcv": "9.0",
+            "topology": "standalone",
+            "passing": 54,
+            "skipped": 0,
+            "failing": 0,
+            "separateCoreAndStorage": true,
+            "noFileSoft": 64000,
+            "noFileHard": 64000,
+            "ownership": {
+              "node": "v26.11.1",
+              "metadata": [
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0"
+                },
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0"
+                }
+              ],
+              "elections": [],
+              "separatePlacement": true,
+              "cleanStop": true
+            },
+            "productionHost": {
+              "productionHost": true,
+              "metadata": [
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0"
+                },
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0"
+                }
+              ],
+              "elections": [],
+              "separatePlacement": true,
+              "restart": true,
+              "gridfs": true,
+              "drainDeadlineRetry": true,
+              "authenticatedApis": 10,
+              "assets": 1,
+              "translationNamespaces": 1,
+              "pages": 1,
+              "health": 200,
+              "readyBefore": 503,
+              "readyAfter": 200,
+              "anonymousApi": 401,
+              "stopped": true,
+              "pools": 0
+            },
+            "regressionSuites": [
+              30,
+              10,
+              12
+            ]
+          },
+          {
+            "major": 9,
+            "fcv": "9.0",
+            "topology": "replica",
+            "passing": 54,
+            "skipped": 0,
+            "failing": 0,
+            "separateCoreAndStorage": true,
+            "noFileSoft": 64000,
+            "noFileHard": 64000,
+            "ownership": {
+              "node": "v26.11.1",
+              "metadata": [
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0",
+                  "hosts": [
+                    "127.0.0.1:29411",
+                    "127.0.0.1:29412",
+                    "127.0.0.1:29413"
+                  ]
+                },
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0",
+                  "hosts": [
+                    "127.0.0.1:29421",
+                    "127.0.0.1:29422",
+                    "127.0.0.1:29423"
+                  ]
+                }
+              ],
+              "elections": [
+                {
+                  "set": "sr-core",
+                  "before": "127.0.0.1:29411",
+                  "after": "127.0.0.1:29412"
+                },
+                {
+                  "set": "sr-storage",
+                  "before": "127.0.0.1:29421",
+                  "after": "127.0.0.1:29422"
+                }
+              ],
+              "separatePlacement": true,
+              "cleanStop": true
+            },
+            "productionHost": {
+              "productionHost": true,
+              "metadata": [
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0",
+                  "hosts": [
+                    "127.0.0.1:29411",
+                    "127.0.0.1:29412",
+                    "127.0.0.1:29413"
+                  ]
+                },
+                {
+                  "version": "9.0.4",
+                  "fcv": "9.0",
+                  "hosts": [
+                    "127.0.0.1:29421",
+                    "127.0.0.1:29422",
+                    "127.0.0.1:29423"
+                  ]
+                }
+              ],
+              "elections": [
+                {
+                  "set": "sr-core",
+                  "before": "127.0.0.1:29412",
+                  "after": "127.0.0.1:29411"
+                },
+                {
+                  "set": "sr-storage",
+                  "before": "127.0.0.1:29422",
+                  "after": "127.0.0.1:29423"
+                }
+              ],
+              "separatePlacement": true,
+              "restart": true,
+              "gridfs": true,
+              "drainDeadlineRetry": true,
+              "authenticatedApis": 10,
+              "assets": 1,
+              "translationNamespaces": 1,
+              "pages": 1,
+              "health": 200,
+              "readyBefore": 503,
+              "readyAfter": 200,
+              "anonymousApi": 401,
+              "stopped": true,
+              "pools": 0
+            },
+            "regressionSuites": [
+              30,
+              10,
+              12
+            ]
+          }
+        ],
+        "representativeInstitution": false
+      },
+      "rootMocha": {
+        "passing": 422,
+        "pending": 10,
+        "failing": 0,
+        "exitCode": 0,
+        "elapsedSeconds": 39.1
+      },
+      "documentationAndLint": {
+        "publishedSurfaces": 43,
+        "advisoryFindings": 523,
+        "documentationTests": 4,
+        "lintedFiles": 934,
+        "warnings": 0,
+        "errors": 0,
+        "exitCode": 0,
+        "elapsedSeconds": 124.78,
+        "commands": [
+          "npm run doc:api",
+          "npm run docs:generate",
+          "npm run docs:audit",
+          "npm run docs:test",
+          "npm run lint"
+        ],
+        "advisoryBreakdown": {
+          "invalid-example": 4,
+          "missing-example": 30,
+          "missing-parameter-description": 196,
+          "missing-return-description": 45,
+          "unclassified": 2,
+          "undocumented-member": 246
+        },
+        "finalLinkAudit": {
+          "changedWikiAndRunbookFiles": 39,
+          "relativeLinksChecked": 146,
+          "validExtensionlessWikiLinks": 29,
+          "headingAnchorsChecked": 7,
+          "missingTargets": 0,
+          "missingAnchors": 0
+        }
+      },
+      "playwrightHarness": {
+        "passing": 19,
+        "failing": 0,
+        "skipped": 0,
+        "durationMs": 10201.278473
+      },
+      "playwright": {
+        "passing": 124,
+        "failing": 0,
+        "skipped": 0,
+        "retries": 0,
+        "workers": 1,
+        "requiredApplicationIds": 20,
+        "requiredFormIds": 30,
+        "complete": true,
+        "durationMs": 536299.346,
+        "gateElapsedSeconds": 609.63,
+        "exitCode": 0,
+        "portalExitCode": 0,
+        "oomKilled": false
+      },
+      "generalBruno": {
+        "requests": 309,
+        "tests": 553,
+        "assertions": 3,
+        "failing": 0,
+        "skipped": 0,
+        "exitCode": 0,
+        "durationMs": 65919,
+        "teardownExitCode": 0,
+        "junitChecks": 556,
+        "providers": [
+          "/sr-p8-bruno-general-email-1 image=sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a limits=null",
+          "/sr-p8-bruno-general-keycloak-1 image=sha256:8d44614c74798322c4e07fbe0ecb15cfbb5879d69b484628555f58ade06f0d8c limits=null",
+          "/sr-p8-bruno-general-mongodb-1 image=sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8 limits=[{\"Name\":\"nofile\",\"Hard\":64000,\"Soft\":64000}]",
+          "/sr-p8-bruno-general-solr-1 image=sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69 limits=null"
+        ]
+      },
+      "oidcBruno": {
+        "requests": 13,
+        "tests": 17,
+        "assertions": 0,
+        "failing": 0,
+        "skipped": 0,
+        "exitCode": 0,
+        "durationMs": 9627,
+        "teardownExitCode": 0,
+        "junitChecks": 17,
+        "providers": [
+          "/sr-p8-bruno-oidc-email-1 image=sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a limits=null",
+          "/sr-p8-bruno-oidc-keycloak-1 image=sha256:8d44614c74798322c4e07fbe0ecb15cfbb5879d69b484628555f58ade06f0d8c limits=null",
+          "/sr-p8-bruno-oidc-mongodb-1 image=sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8 limits=[{\"Name\":\"nofile\",\"Hard\":64000,\"Soft\":64000}]",
+          "/sr-p8-bruno-oidc-solr-1 image=sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69 limits=null"
+        ]
+      },
+      "s3Bruno": {
+        "requests": 7,
+        "tests": 12,
+        "assertions": 0,
+        "failing": 0,
+        "skipped": 0,
+        "exitCode": 0,
+        "durationMs": 5005,
+        "teardownExitCode": 0,
+        "junitChecks": 12,
+        "providers": [
+          "/sr-p8-bruno-s3-email-1 image=sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a limits=null",
+          "/sr-p8-bruno-s3-keycloak-1 image=sha256:8d44614c74798322c4e07fbe0ecb15cfbb5879d69b484628555f58ade06f0d8c limits=null",
+          "/sr-p8-bruno-s3-mongodb-1 image=sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8 limits=[{\"Name\":\"nofile\",\"Hard\":64000,\"Soft\":64000}]",
+          "/sr-p8-bruno-s3-s3mock-1 image=sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92 limits=null",
+          "/sr-p8-bruno-s3-solr-1 image=sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69 limits=null"
+        ]
+      },
+      "brunoGate": {
+        "requests": 329,
+        "tests": 582,
+        "assertions": 3,
+        "failing": 0,
+        "skipped": 0,
+        "exitCode": 0,
+        "elapsedSeconds": 712.15,
+        "started": "2026-10-24T15:31:46Z",
+        "ended": "2026-10-24T15:43:38Z",
+        "previousFailedEnvironmentAttemptPreserved": true
+      },
+      "nativePdfBruno": {
+        "requests": 4,
+        "tests": 10,
+        "assertions": 0,
+        "failing": 0,
+        "skipped": 0,
+        "exitCode": 0,
+        "teardownExitCode": 0,
+        "junitChecks": 10,
+        "durationMs": 19842,
+        "elapsedSeconds": 58.94,
+        "started": "2026-10-24T16:04:38Z",
+        "ended": "2026-10-24T16:05:37Z",
+        "nativeChromium": "156.0.8078.47",
+        "verifierSourceCommit": "84eb91a706d9157d11755dfc9357822d6270a822",
+        "realMongoVersion": "9.0.4",
+        "mongoNofile": {
+          "soft": 64000,
+          "hard": 64000
+        },
+        "providers": [
+          "/sr-p8-pdf-bruno-1 image=sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404 limits=null",
+          "/sr-p8-pdf-mongodb-1 image=sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8 limits=[{\"Name\":\"nofile\",\"Hard\":64000,\"Soft\":64000}]",
+          "/sr-p8-pdf-redboxportal-1 image=sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1 limits=null",
+          "/sr-p8-pdf-solr-1 image=sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b limits=null"
+        ],
+        "assertionChanges": "none; fixture readiness uses the actual loaded form marker; pre-request wait synchronizes production terminal audits before unchanged assertions"
+      },
+      "runtimeArtifact": {
+        "image": "sha256:9a9d595cb224d2215a5a31085e1d4663e64649eaa5212fb99f323da078cbe414",
+        "defaultUser": "node",
+        "defaultCmd": [
+          "node",
+          "app.express.cjs"
+        ],
+        "started": "2026-10-24T16:05:37Z",
+        "ended": "2026-10-24T16:06:32Z",
+        "exitCode": 0,
+        "elapsedSeconds": 55.54,
+        "assets": {
+          "tests": 1,
+          "passing": 1,
+          "failed": 0,
+          "skipped": 0,
+          "applications": 20,
+          "viewDirectories": 6
+        },
+        "installedComponents": {
+          "tests": 1,
+          "passing": 1,
+          "failed": 0,
+          "skipped": 0,
+          "mongoVersion": "8.0.34",
+          "fcv": "8.0",
+          "separateCoreAndStorage": true,
+          "cleanStop": true
+        },
+        "portal": {
+          "fresh": {
+            "probe": {
+              "actualInstalledExecutable": true,
+              "health": 200,
+              "ready": 200,
+              "page": 200,
+              "asset": 200,
+              "csrfLogin": 200,
+              "formsRequests": 20,
+              "formsLatencyMs": {
+                "p50": 11.585889000000009,
+                "p95": 16.363966000000005,
+                "max": 16.59562500000004
+              }
+            },
+            "timing": {
+              "startupSeconds": 9,
+              "stopSeconds": 0
+            },
+            "stopExitCode": 0,
+            "oomKilled": false,
+            "nativeHealthPassed": true,
+            "memory": "sr-p7-artifact-portal 343.3MiB / 1.5GiB 0.25%"
+          },
+          "restart": {
+            "probe": {
+              "actualInstalledExecutable": true,
+              "health": 200,
+              "ready": 200,
+              "page": 200,
+              "asset": 200,
+              "csrfLogin": 200,
+              "formsRequests": 20,
+              "formsLatencyMs": {
+                "p50": 12.735919000000024,
+                "p95": 15.548910999999976,
+                "max": 20.56239499999998
+              }
+            },
+            "timing": {
+              "startupSeconds": 6,
+              "stopSeconds": 0
+            },
+            "stopExitCode": 0,
+            "oomKilled": false,
+            "nativeHealthPassed": true,
+            "memory": "sr-p7-artifact-portal 273.6MiB / 1.5GiB 1.29%"
+          }
+        },
+        "verifierMounts": "Only read-only verifier/deployment inputs; no host application source, dist, dependency or compiled asset directory supplied."
+      },
+      "releasedV5Recovery": {
+        "started": "2026-10-24T16:06:32Z",
+        "ended": "2026-10-24T16:11:04Z",
+        "exitCode": 0,
+        "elapsedSeconds": 271.43,
+        "candidateImage": "sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1",
+        "sourceImage": "qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9",
+        "sourceNode": "v24.16.0",
+        "sourceNpm": "11.13.0",
+        "mongoVersion": "8.0.34",
+        "fcv": "8.0",
+        "mongoNofile": {
+          "soft": 64000,
+          "hard": 64000
+        },
+        "mongoToolsVersion": "100.19.1",
+        "checkpoint": "/home/andrew/.npm/_redbox-sails-retirement-p8/sr-p7-recovery.Zhos5q/checkpoint",
+        "checkpointManifest": {
+          "mode": "snapshot",
+          "collections": 24,
+          "documents": 1895,
+          "gridfs": true
+        },
+        "restoredManifest": {
+          "mode": "verify",
+          "collections": 24,
+          "documents": 1895,
+          "gridfs": true
+        },
+        "checkpointHashes": {
+          "core.archive": {
+            "bytes": 1003615,
+            "sha256": "22abecb59dda8e3da26ba00d37a1c8174be652d6fea3e60b2ecd826a00fafbad"
+          },
+          "storage.archive": {
+            "bytes": 35534,
+            "sha256": "d523ccaf405882e208c17e3c33b5be27d7ae9d3af1a4e47d4af5e679e436aaa1"
+          },
+          "files.tar": {
+            "bytes": 10240,
+            "sha256": "45e180a4b19b0c1127d7ffd19a1cbfd7cf30b4fd3f8b045d516fe8764c4562f9"
+          }
+        },
+        "imageBackup": {
+          "checks": 1,
+          "platform": "linux/amd64",
+          "layers": 23,
+          "bytes": 525915136,
+          "sha256": "052c811bf18ced5437a52740ce8cfe19b867af37f14ad3b2042e80aebc461f1d",
+          "completePayload": true
+        },
+        "sourceIndexReview": {
+          "mode": "review-source-index",
+          "collection": "record",
+          "index": "redboxOid_1",
+          "oldUnique": false,
+          "duplicateGroups": 0,
+          "preservedDocuments": 2,
+          "action": "Reviewed removal of this exact nonunique v5 index; explicit ensure creates v6 uniqueness."
+        },
+        "migrationFailureInjection": {
+          "mode": "upgrade-components",
+          "migrations": 1,
+          "secondRun": 0,
+          "preservedRoles": 4,
+          "localPassword": true,
+          "partialFailure": true,
+          "scope": "Bundled storage migrations and deliberate partial-failure injection after the full candidate HTTP cutover."
+        },
+        "indexBeforeReady": false,
+        "indexAfterReady": true,
+        "probes": {
+          "source": {
+            "probe": {
+              "mode": "probe",
+              "home": 200,
+              "localLogin": 200,
+              "formsRequests": 20,
+              "records": 2,
+              "forms": 2,
+              "workflows": 2,
+              "pages": 2,
+              "formsLatencyMs": {
+                "p50": 29.3480619999998,
+                "p95": 31.82237400000008,
+                "max": 38.66779599999995
+              }
+            },
+            "timing": {
+              "startupSeconds": 102,
+              "stopSeconds": 0
+            },
+            "stopExitCode": 0,
+            "oomKilled": false,
+            "containerMemory": "sr-p7-upgrade-v5 663.5MiB / 1.5GiB 0.17%"
+          },
+          "candidate": {
+            "probe": {
+              "mode": "probe-v6",
+              "home": 200,
+              "localLogin": 200,
+              "formsRequests": 20,
+              "records": 2,
+              "forms": 2,
+              "workflows": 2,
+              "pages": 2,
+              "health": 200,
+              "ready": 200,
+              "freshCsrfLogin": true,
+              "sessionVersion": 6,
+              "formsLatencyMs": {
+                "p50": 17.146451999999954,
+                "p95": 21.70548800000006,
+                "max": 22.780651999999918
+              }
+            },
+            "timing": {
+              "startupSeconds": 9,
+              "stopSeconds": 0
+            },
+            "stopExitCode": 0,
+            "oomKilled": false,
+            "containerMemory": "sr-p7-upgrade-v6 369.1MiB / 1.5GiB 4.01%"
+          },
+          "candidate-restarted": {
+            "probe": {
+              "mode": "probe-v6",
+              "home": 200,
+              "localLogin": 200,
+              "formsRequests": 20,
+              "records": 2,
+              "forms": 2,
+              "workflows": 2,
+              "pages": 2,
+              "health": 200,
+              "ready": 200,
+              "freshCsrfLogin": true,
+              "sessionVersion": 6,
+              "formsLatencyMs": {
+                "p50": 16.27524900000003,
+                "p95": 21.01628800000003,
+                "max": 22.20938799999999
+              }
+            },
+            "timing": {
+              "startupSeconds": 13,
+              "stopSeconds": 1
+            },
+            "stopExitCode": 0,
+            "oomKilled": false,
+            "containerMemory": "sr-p7-upgrade-v6 296.3MiB / 1.5GiB 0.22%"
+          },
+          "recovered": {
+            "probe": {
+              "mode": "probe",
+              "home": 200,
+              "localLogin": 200,
+              "formsRequests": 20,
+              "records": 2,
+              "forms": 2,
+              "workflows": 2,
+              "pages": 2,
+              "formsLatencyMs": {
+                "p50": 29.783396999999923,
+                "p95": 40.560212999999976,
+                "max": 50.756110000000035
+              }
+            },
+            "timing": {
+              "startupSeconds": 28,
+              "stopSeconds": 0
+            },
+            "stopExitCode": 0,
+            "oomKilled": false,
+            "containerMemory": "sr-p7-upgrade-v5 424.8MiB / 1.5GiB 0.16%"
+          }
+        },
+        "providers": [
+          "/sr-p7-upgrade-v5 image=sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9 limits=[]",
+          "/sr-p7-upgrade-core image=sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907 limits=[{\"Name\":\"nofile\",\"Hard\":64000,\"Soft\":64000}]",
+          "/sr-p7-upgrade-storage image=sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907 limits=[{\"Name\":\"nofile\",\"Hard\":64000,\"Soft\":64000}]",
+          "/sr-p7-upgrade-solr image=sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b limits=[]"
+        ],
+        "representativeInstitution": false,
+        "limitation": "Released-v5 public stand-in, converted bundled hooks and synthetic inputs; institutional source/hooks/configuration/topology remain undesignated under SR-005/045/049 and therefore SR-055 is partial only for that inherited criterion."
+      }
+    },
+    "incompleteAttempts": [
+      {
+        "gate": "bruno-general",
+        "status": "failed-environment-precondition",
+        "requestsPassed": 223,
+        "requestsFailed": 1,
+        "requestsUnrunAfterBail": 85,
+        "testsPassed": 410,
+        "testsFailed": 1,
+        "assertionsPassed": 3,
+        "exitCode": 1,
+        "elapsedSeconds": 286.72,
+        "reason": "Attachment bind mount had 3298189312 bytes free below unchanged 10737418240-byte reserve; actual compiled handler returns not-enough-disk-space. Same image/request with large filesystem returns 201. No source/assertion/reserve change."
+      },
+      {
+        "gate": "pdf",
+        "status": "failed-fixture-before-tests",
+        "requestsRun": 0,
+        "exitCode": 1,
+        "elapsedSeconds": 41.6,
+        "reason": "NODE_ENV=integrationtest incorrectly enabled dev-dependency discovery in pruned rehearsal image; offline probe identifies absent @playwright/test. Production environment constructs same image/config with 0 resources; committed fixture correction bebb61ccb."
+      },
+      {
+        "gate": "pdf",
+        "status": "failed-missing-fixture-credential",
+        "requestsRun": 2,
+        "requestsPassing": 1,
+        "requestsFailed": 1,
+        "requestsNotRun": 2,
+        "testsPassing": 3,
+        "testsFailed": 1,
+        "durationMs": 210875,
+        "exitCode": 1,
+        "reason": "Native generator correctly refuses missing API token. Existing 210s poll completes without attachment. Initial top-level fixture token binding d160b8ccc passed a top-level configuration probe but did not supply the actual hydrated brand token; corrected in a5d4c0e92."
+      },
+      {
+        "gate": "pdf",
+        "status": "failed-top-level-fixture-credential",
+        "verifierSourceCommit": "d160b8ccca45dc3265011acfa32aa5842fa47bad",
+        "started": "2026-10-24T15:52:17Z",
+        "ended": "2026-10-24T15:56:27Z",
+        "elapsedSeconds": 250.84,
+        "exitCode": 1,
+        "requestsRun": 2,
+        "requestsPassing": 1,
+        "requestsFailed": 1,
+        "requestsNotRun": 2,
+        "testsPassing": 3,
+        "testsFailed": 1,
+        "reason": "Actual generator consumes AppConfigs hydrated brand settings, whose model default overrides top-level PDF token. Committed a5d4c0e92 supplies brandingConfigurationDefaults.pdfgen.token; actual registered AppConfigs hydration probe red then green, 0 acquired resources. No application/assertion/timeout change."
+      },
+      {
+        "gate": "pdf",
+        "status": "failed-obsolete-fixture-selector",
+        "verifierSourceCommit": "a5d4c0e92f6bc10f64344bf65ecff0358201f002",
+        "started": "2026-10-24T15:58:03Z",
+        "ended": "2026-10-24T16:02:26Z",
+        "elapsedSeconds": 262.87,
+        "exitCode": 1,
+        "requestsRun": 2,
+        "requestsPassing": 1,
+        "requestsFailed": 1,
+        "requestsNotRun": 2,
+        "testsPassing": 3,
+        "testsFailed": 1,
+        "reason": "Native Chromium ran, but fixture selected removed div#loading.hidden marker. Actual browser probe on same image: HTTP200, old marker absent, loaded-components marker present, 9 rendered direct form children. Corrected two external fixture operation options in 35042a07c. All PDF byte/audit assertions and 210s poll unchanged."
+      },
+      {
+        "gate": "pdf",
+        "status": "failed-early-production-audit-read",
+        "verifierSourceCommit": "35042a07c2c0f54c4ac7c6315b207d66ad82f46d",
+        "started": "2026-10-24T16:02:30Z",
+        "ended": "2026-10-24T16:03:24Z",
+        "elapsedSeconds": 54.37,
+        "exitCode": 1,
+        "requestsRun": 4,
+        "requestsPassing": 3,
+        "requestsFailed": 1,
+        "requestsNotRun": 0,
+        "testsPassing": 8,
+        "testsFailed": 2,
+        "durationMs": 7545,
+        "nativePdfGenerated": true,
+        "pdfDownloadStatus": 200,
+        "reason": "Attachment and downloaded PDF pass, but immediate audit read precedes production Agenda terminal event persistence (existing five-second queue poll). 84eb91a70 adds bounded 30-second terminal parent/linked-child state wait before all unchanged final-response assertions. Attachment timeout, queue behavior and application code unchanged."
+      }
+    ],
+    "pdfFixtureVerifierCommit": "84eb91a706d9157d11755dfc9357822d6270a822",
+    "verifierDelta": "After broad suites, five externally applied PDF fixture/verifier files select production mode, supply the existing disposable actor credential at the brand hydration boundary, wait for the current initialized Angular form marker, and await asynchronous production terminal audit events before unchanged assertions. No application/core defaults, package implementation, compiler/build or dependency delta; artifact source remains 5088f4a7a.",
+    "completedAt": "2026-10-24T16:11:04Z",
+    "latestGates": [
+      {
+        "gate": "packed-closures",
+        "started": "2026-10-24T14:49:23Z",
+        "ended": "2026-10-24T14:51:38Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "image-closures",
+        "started": "2026-10-24T14:51:38Z",
+        "ended": "2026-10-24T14:52:23Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "recreate-fixtures",
+        "started": "2026-10-24T14:52:23Z",
+        "ended": "2026-10-24T14:53:16Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "core",
+        "started": "2026-10-24T14:53:16Z",
+        "ended": "2026-10-24T14:56:17Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "compiled-record-types",
+        "started": "2026-10-24T14:56:17Z",
+        "ended": "2026-10-24T14:56:24Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "generated-app",
+        "started": "2026-10-24T14:56:24Z",
+        "ended": "2026-10-24T14:56:49Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "package-suites",
+        "started": "2026-10-24T14:56:49Z",
+        "ended": "2026-10-24T14:58:37Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "database-matrix",
+        "started": "2026-10-24T14:58:37Z",
+        "ended": "2026-10-24T15:05:22Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "root-mocha",
+        "started": "2026-10-24T15:05:22Z",
+        "ended": "2026-10-24T15:06:01Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "docs-and-lint",
+        "started": "2026-10-24T15:06:01Z",
+        "ended": "2026-10-24T15:08:06Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "playwright",
+        "started": "2026-10-24T15:08:06Z",
+        "ended": "2026-10-24T15:18:16Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "bruno",
+        "started": "2026-10-24T15:31:46Z",
+        "ended": "2026-10-24T15:43:38Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "pdf",
+        "started": "2026-10-24T16:04:38Z",
+        "ended": "2026-10-24T16:05:37Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "runtime-artifact",
+        "started": "2026-10-24T16:05:37Z",
+        "ended": "2026-10-24T16:06:32Z",
+        "exitCode": 0
+      },
+      {
+        "gate": "recovery",
+        "started": "2026-10-24T16:06:32Z",
+        "ended": "2026-10-24T16:11:04Z",
+        "exitCode": 0
+      }
+    ],
+    "documentationCommit": "376b7caf4df41ccbe9feeb8579b0ac167b321967"
+  },
+  "supersededAttempts": [
+    {
+      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "status": "superseded-before-suites",
+      "failedGate": "test-image-closure",
+      "scannedFiles": 5845,
+      "executableViolations": 1,
+      "forbiddenDependencyEntries": 0,
+      "reason": "ng-packagr generated an unpinned tslib ^2.3.0 dependency; source now preserves the existing exact 2.8.1 runtime pin. Replacement clean artifact and final gates are required."
+    },
+    {
+      "sourceCommit": "a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0",
+      "status": "superseded-after-browser-regression",
+      "failedGate": "playwright",
+      "record": "p8-artifacts-a8c6712d0.json",
+      "replacementFix": "5088f4a7a5be746697ba7b493c302b57f85e19a8"
+    }
+  ],
+  "host": {
+    "os": "Ubuntu 24.04.4 LTS",
+    "kernel": "Linux 6.8.0-147-generic",
+    "architecture": "x86_64 (images linux/amd64)",
+    "docker": "29.6.1",
+    "containerd": "2.2.5",
+    "runc": "1.3.6",
+    "daemon": "owned isolated unix:///run/sr-p7-isolated/docker.sock",
+    "mongoNofile": {
+      "soft": 64000,
+      "hard": 64000
+    }
+  },
+  "nativeChromium": "156.0.8078.47",
+  "taskStatus": {
+    "SR-051": "complete",
+    "SR-052": "complete",
+    "SR-053": "complete",
+    "SR-054": "complete",
+    "SR-055": "partial: all local final-artifact gates passed; representative-institution criterion depends on undesignated SR-005/045/049 cohort"
+  },
+  "cleanup": {
+    "removedStoppedFixtureContainers": [
+      "sr-p8-core-final-mongo",
+      "sr-p8-mocha-mongo",
+      "sr-p8-foundation-mongo",
+      "sr-p8-mocha-solr",
+      "sr-p8-mocha-keycloak",
+      "sr-p8-mocha-mailpit"
+    ],
+    "removedOwnedNetwork": "sr-p8-profiles",
+    "removedOwnedFirewallRules": 3,
+    "remainingP8Containers": 0,
+    "preserved": "Isolated daemon, all immutable images, historical P7 artifacts/checkpoints and completed P8 checkpoint/byte stores; default Docker untouched."
+  },
+  "limitations": [
+    "SR-005/045/049 institution, supported source and actual topology remain undesignated. Public-v5 and synthetic scaffold proof are explicitly not representative-institution acceptance. SR-055 remains unchecked for that criterion.",
+    "Core has 7 and root has 10 unchanged pending cases; they are not counted as passed coverage. No new skip or missing-provider skip qualifies a path.",
+    "Documentation audit remains advisory: 523 findings, including 4 invalid pre-existing JSON form examples and 2 unclassified declarations. Only the actual compile-checked migration/contributor examples and 4 passing docs tests are reported as validated.",
+    "Qualification covers the recorded Node, Mongo versions/FCVs, topologies and real provider fixtures; it does not infer untested institution TLS/auth/topology or remote-provider completion/replay guarantees."
+  ]
 }

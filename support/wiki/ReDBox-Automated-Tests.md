@@ -149,9 +149,12 @@ When a test fails, inspect the generated `browser-diagnostics.json` and use
 
 ## Final retirement qualification
 
-P8 must rerun every existing core/root Mocha suite, full Playwright, general/OIDC/S3
-Bruno, packed consumers and MongoDB 8/9 standalone and independent replica-set
-matrix against a clean committed artifact. Baseline pending cases remain visible;
+P8 reran every existing core/root Mocha suite, full Playwright, general/OIDC/S3
+and native PDF Bruno, packed consumers and MongoDB 8/9 standalone and independent
+replica-set matrix against clean application commit `5088f4a7a`. All local final
+gates pass, including runtime-default fresh/restart/stop and complete released-v5
+stand-in recovery. Institution acceptance remains undesignated under SR-005/045/049
+and SR-055's inherited institution criterion. Baseline pending cases remain visible;
 missing-provider skips never qualify a path. Mongo containers require the recorded
 `nofile=64000:64000` limit. The attachment staging filesystem must have more
 free space than the upload length plus `record.diskSpaceThreshold` (default

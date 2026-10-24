@@ -41,6 +41,13 @@
           "removedVersion": "0.3.0",
           "reason": "Legacy synchronous host loader retired; emitted CommonJS and awaited imports replace it."
         }
+      ],
+      "overrides": [
+        {
+          "path": "@sailshq/router.path-to-regexp",
+          "removedVersion": "0.2.5",
+          "reason": "Removed obsolete Sails-router override together with its retired dependency graph; no remaining @sailshq/router is installed. No active path-to-regexp owner is changed."
+        }
       ]
     },
     {
@@ -4344,5 +4351,12 @@
       "changedEntries": 0,
       "reason": "Inner Angular library has no independent lock and is not a dependency entry in the outer manifest; tslib remains resolved exactly to 2.8.1."
     }
-  ]
+  ],
+  "manifestDeltaVerification": {
+    "baseCommit": "ad5c68d3b",
+    "throughApplicationCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
+    "changedDirectDependencyEntries": 12,
+    "removedOverrides": 1,
+    "method": "Compare all changed tracked package.json dependencies/devDependencies/peerDependencies/optionalDependencies/overrides; every delta is enumerated in manifests. Twelve entries include both sides of the existing exact tslib move."
+  }
 }

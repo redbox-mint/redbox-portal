@@ -40,14 +40,26 @@ qualification remains SR-053/055.
 
 ## Qualification status
 
-The clean `a193b8731` archive built all twelve packs and all three Docker
-images. Its runtime and installed packed graph pass closure, but the final test
-image audit found one generated Angular `tslib` range. The source correction
-below supersedes that final-candidate attempt. A replacement clean build and all
-final gates are still required. SR-051/052 remain accepted for their recorded
-shim and Sails-runtime removal criteria; SR-053/054/055 remain unchecked. Earlier
-P7/853/a193 results are scoped historical evidence, not final qualification of
-the corrected source.
+**All locally executable P8 gates passed** against the clean application commit
+`5088f4a7a5be746697ba7b493c302b57f85e19a8`, twelve real npm packs and three
+immutable images. The final PDF fixture/verifier is84eb91a70; later edits are
+documentation/evidence only. Every current runtime, built, packed and installed
+owned graph has0 executable Sails violations/0 forbidden dependencies. All1261
+SR-001 baseline entries reconcile.
+
+**SR-051/052/053/054 are accepted. SR-055 is partial only for its inherited
+representative-institution criterion**, because SR-005/045/049's institution,
+source, hooks/configuration and actual topology are still undesignated. All local
+final-artifact, full-suite, public released-v5 stand-in cutover and complete
+checkpoint recovery checks pass. No further local implementation gap is claimed.
+The original institution gate is not satisfied by a synthetic scaffold or public
+stand-in, and no production release acceptance is granted.
+
+The final results/disposition are collected in the final section and
+[p8-artifacts.json](p8-artifacts.json). Earlier “pending”, “in progress” and
+“outstanding” statements below are chronological checkpoints, superseded by the
+recorded later results; failed attempts remain visible. A8 and earlier artifact
+results are explicitly superseded by5088 after the HTTP browser-header regression.
 
 ## SR-052 — Runtime and dependency removal (accepted)
 
@@ -88,13 +100,13 @@ still has ignored old node_modules directories; they are not the qualified
 application graph. The clean installed runtime and packed-consumer closure is
 accepted in the final SR-052 section below.
 
-## SR-053 — Consumer and test conversion (in progress)
+## SR-053 — Consumer and test conversion (implementation chronology)
 
 `compile:host` replaces the executable-host `compile:sails` command. Historical
 `sails-ng-common` package command names remain. Root test fixtures now pass a
 suite-owned fixture object and concrete repositories/domains; they do not install
-service/framework globals. This migration is unfinished and is not full-suite
-proof. The historical root test entry delegates to the owned Express fixture.
+service/framework globals. At this early checkpoint the migration was unfinished; it is not full-suite
+proof. Final accepted suite results appear below. The historical root test entry delegates to the owned Express fixture.
 Figshare administration initializes the selected application without activating
 HTTP/queue workers and always stops it. App migrations receive an explicit owner.
 
@@ -148,7 +160,7 @@ The previous structured-logging test's dependency-absence skip is replaced with
 an unconditional test of the owned logger. Existing assertions about structured
 values, blank calls and sensitive causes remain exercised.
 
-### Actual regressions/failures still being resolved
+### Earlier regressions/failures (resolved by the recorded later results)
 
 Full core Mocha attempts failed during loading, first on `src/sails`, then removed
 `src/bootstrap`, then `src/config/http.config` from the old Companion helper test.
@@ -2154,3 +2166,790 @@ The first source-inspection probe used the wrong ng-packagr subpath; the actual
 `src/lib/ng-package/entry-point/write-package.transform.js` provides the
 confirmation above. No provider quota/usage limit has occurred. A new clean
 committed archive, packs/images, closure and all full suites follow this fix.
+
+## Final clean candidate a8c6712d0 — build and closure
+
+Source: `a8c6712d07d0442aa7690ad3bab0af4ad0abd4d0`, clean `git archive` at
+`/mnt/docker-storage/sr-p7-clean-production/.tmp/sr-p8-clean-a8c6712d0`.
+Node26.11.1/npm11.20.0/TypeScript5.9.3; Docker29.6.1/containerd2.2.5 with
+original GC settings restored. No provider usage/quota limit occurred.
+Build script: `.tmp/sails-retirement/p8/build-final95.sh`, exit0. All package,
+root TypeScript, Angular, webpack and API builds pass. Angular production233.1s;
+production installation1183 packages/222.7s; test export/unpack210.6s. Rehearsal
+native Chromium156.0.8078.47. No registry publication.
+
+| Clean image | Immutable local image ID | Owned files | Executable violations / forbidden dependency entries |
+|---|---|---:|---:|
+| Runtime | `sha256:5b5a090463b3b790762784ab736352fcc65105cbae5f07dfff82c16eb363f88c` |3781|0/0|
+| Test/tooling | `sha256:6ad4b7d68615d333c0a9c040b14c87e54896f7a8b6690c81fba72855d5389413` |5845|0/0|
+| Rehearsal | `sha256:c7745b26e26ee2a2a7f60788f69d5ea6340c1ebd722af92099f3b54f3070d02f` |3994|0/0|
+
+Each image's OCI revision label equals the full source SHA. Runtime user is
+`node`, CMD `node app.express.cjs`. Each image independently proves236 generated
+shims absent/nine authored paths retained. The canonical unchanged auditor is
+`retirement-closure.cjs`, SHA256
+`c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c`.
+Actual packed graph:12 npm archives/20 checks, exit0; archive hashes match the
+superseded a193 content (the Angular manifest fix is outside these archives).
+Fresh strict installed consumer:1194 packages,2191 owned files,0/0 violations,
+exit0/124.43s, tool-only image
+`sha256:733b974d57895dbcfd61578f3729b62d99e221534a4edeb7f83452fd1ea271f2`.
+Extracted packed closure verifies all12 hashes and scans2191 files,0/0. Install
+uses actual packed core overrides, strict peers and1536MiB temporary/cache tmpfs.
+
+The unchanged SR-001 method reports1021 candidate files/4947 lines; AST/metadata
+closure scans1050 files and reports0/0. All1261 original entries reconcile:
+742 remaining classified,136 removed,365 retained without candidates,18 metadata
+checked. Remaining historical names/docs are not executable framework use.
+
+Commands: `run-packed-closures95.sh`, `run-image-closures90.sh`, and
+`recreate-final-fixtures90.sh`; all exit0. Logs/manifests are under ignored
+`.tmp/sails-retirement/p8/{final-a8c6712d0,packed-a8c6712d0}/`.
+
+### Core first-attempt failure and verifier correction
+
+First full `npm --prefix packages/redbox-core test` in the immutable test image:
+**4448 passing /7 unchanged pending /34 failing**, exit34,196.33s,
+2026-10-24T13:55:55Z–13:59:11Z. Thirty-three errors are ENOENT for committed
+root `test/resources/fonts` WOFF2 inputs: `.dockerignore` excludes root tests;
+core package tests are present but these shared verifier inputs are not.
+The runner now mounts only committed `test/resources` read-only at the expected
+`/opt/redbox-portal/test/resources`. Application code/builds/dependencies still
+come from the immutable image. This corrects verifier assembly; no application
+change, assertion/timeout/selection change or new skip.
+
+The separate first migration case exceeded its existing5000ms timeout; the
+subsequent six migration cases passed. Isolation in the same image, network none:
+`npm --prefix packages/redbox-core test -- --grep "Admin sidebar text colour migration"`
+passes **7/0/0**, first call1565ms (suite2s), exit0. No root cause is inferred
+from that successful retry; the complete unchanged core suite is rerun next.
+Original log/timing preserved as `final-a8c6712d0/core-attempt1{,-time}.log`;
+isolation in `migration-isolated.log`; retry gate separately named `core-retry`
+in `gates.jsonl`. Final acceptance requires that retry plus all remaining gates.
+
+### Full core retry and generated institution application
+
+Full immutable-image core retry (committed verifier-resource mount only):
+**4496 passing /7 unchanged pending /0 failing**, exit0,146.64s,
+2026-10-24T14:02:25Z–14:04:51Z. The previously timed-out migration passes in577ms.
+Pending placeholders remain RaidService contributor config(2), TriggerService
+validation template(2), and WorkspaceService API placeholders(3). They are not
+counted as executed coverage. The full unchanged assertions now execute all
+font-dependent suites; no new skips or extended timeouts.
+
+Generated institution qualifier in the same clean test image:
+`node --test --test-force-exit packages/redbox-core/test/qualification/generated-institution.cjs`
+passes **1/0/0**,33567.508378ms. It actually generates/compiles/packs a fresh v6
+hook, starts the production host with real Mongo8/Solr, persists two queries,
+runs the migration once and bootstraps twice across fresh/restart, serves HTTP
+and ends with zero pools. This synthetic institution does not designate the
+external SR-005/045/049 cohort. Logs: `core-final-image.log`,
+`generated-final-image.log`, and the separate timed gate records.
+
+All69 implementation/build/documentation commits from this round's base through
+a8c6712d0 have the required final coauthor trailer; full SHA/title manifest:
+[p8-commits.json](p8-commits.json). Wiki edits are normal main-repository commits.
+
+### Package suites and complete real-Mongo matrix
+
+All package suites run from the clean test image: dev-tools **52 passing**(28s),
+PDF unit **75 passing**(1s), storage **304 passing**(43s), zero pending/failing.
+Storage uses actual Docker Mongo8.0.34. Combined gate exits0 in111.85s.
+Commands: `npm --prefix packages/redbox-dev-tools test`,
+`npm --prefix packages/sails-hook-redbox-pdfgen run test:unit`, and the storage
+Mocha command recorded above with unchanged30000ms bound and real required URLs.
+
+The full `qualify-sails-retirement-databases.sh` runs application/native probes
+from the immutable rehearsal image and TypeScript regression tests from the clean
+test image, using the recorded PATH wrappers (no host application/dependency mount).
+**216 passing /0 failing /0 skipped**, four rows of54 checks:
+
+| Engine / FCV | Topology | Ownership + production host | Persistence / record-types / lifecycle |
+|---|---|---:|---:|
+|8.0.34 /8.0|Separate core/storage standalone|1+1|30/10/12|
+|8.0.34 /8.0|Independent three-member sets|1+1|30/10/12|
+|9.0.4 /9.0|Separate core/storage standalone|1+1|30/10/12|
+|9.0.4 /9.0|Independent three-member sets|1+1|30/10/12|
+
+Each replica row actually elects a new primary in **both** sets and verifies
+maintenance/indexes, migration ledger, persisted GridFS, production authenticated
+HTTP/pages/assets/namespace delivery, fresh/restart, deadline/retry and zero-pool
+stop. Anonymous API is401; readiness transitions503→200. Container inspection
+confirms `nofile=64000:64000` on every matrix Mongo. Exact source digests:
+Mongo8 `sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907`;
+Mongo9 `sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8`.
+All matrix containers are stopped/removed by the owned runner after success.
+Gate:2026-10-24T14:07:18Z–14:14:08Z, exit0.
+
+Additional new compiled-record-type verification runs the existing dedicated
+command in the final test image with
+`COMPILED_RECORD_TYPES_TEST_MONGO_URL=mongodb://127.0.0.1:29513/sr_p8_compiled`:
+**3 passing /0 failing /0 skipped**(2s). It verifies one compiled instance/client
+through HTTP/bootstrap/stop, retained cleanup failure and explicit retry, and
+cleanup after extension initialization failure. This closes the added test's
+final-image proof rather than counting the earlier source-tree result.
+
+Host: Ubuntu24.04.4LTS, Linux6.8.0-147-generic, x86_64; images linux/amd64.
+Builder base: `node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404`;
+runtime base: `node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567`.
+Commands `uname -srmo`, `/etc/os-release`, `docker version`, image inspection and
+build logs confirm these values. runc1.3.6. Existing OpenAPI test20/30s limits
+are unchanged from the round's base; the added compiled-Mongo test declares its
+own30s limit. Diff audit finds **zero newly introduced skip calls**.
+
+### Root integration bootstrap ownership and safe-error contract
+
+First root attempt stops before tests: **0 passing /1 failing**, exit1,20.39s.
+The production host has started and drained successfully; bootstrap's test-only
+`require('express').Router()` incorrectly assumes a hoisted root dependency.
+The clean install correctly owns Express5.2.1 under core; root has no direct
+Express dependency. A network-none probe confirms root resolution fails while
+`createRequire(require.resolve('@researchdatabox/redbox-core/portal'))` resolves
+core's5.2.1 and Router function (**3 ownership assertions pass**). Commit
+`ff0bb3623` changes only bootstrap dependency resolution, with no new dependency,
+application behavior, assertion, timeout or skip.
+
+Second full root run: **421 passing /10 unchanged pending /1 failing**, exit1,
+31.50s. The remaining RequestChronicle expectation requires native provider text
+with token substitution. The intentional v6 operation-observation contract already
+recorded above (and covered by core tests) records a safe operation error without
+arbitrary provider text, which can include record/user/translation contents not
+recognized by credential redaction. Restoring that native text would regress
+privacy. Commit `6af1e2841` aligns this stale root expectation: exact
+`Translation read failed`, no upstream prefix or Authorization text, no credential
+in the entire event. It retains HTTP500, exactly one error/event, correlated route,
+severity, operation failure flag and zero warnings. This is a documented v6 safe
+error contract conversion, not removing a failing privacy scenario.
+
+Original logs/timings: `final-a8c6712d0/root-mocha-attempt{1,2}{,-time}.log`;
+resolution probe: `root-dependency-resolution.log`. The next full root gate is
+separately recorded as `root-mocha-final`.
+
+Both fixes affect only verifier files excluded by `.dockerignore`'s root `test`.
+`git diff a8c6712d0..6af1e2841 --name-only` contains exactly those two test files;
+there is **no application/config/dependency/build input delta**. The immutable
+application image source remains clean commita8c6712d0; mounted verifier source
+is committed6af1e2841. Subsequent documentation generation asserts that precise
+two-file-only committed delta. No completed application gate is discarded or
+rerun because of unchanged application code.
+
+### Final root integration and generated documentation gates
+
+Full root integration retry at committed verifier6af1e2841 against application
+imagea8c6712d0: **422 passing /10 unchanged pending /0 failing**, exit0,30.74s
+(Mocha body19s),2026-10-24T14:17:14Z–14:17:45Z. Production Express initializes,
+serves real integration requests and reports zero operations/clients/pools on
+owned stop. All original correlation/privacy checks pass with the documented
+safe operation contract. The ten unchanged pending cases are seven DOI writes,
+one explicitly unmigrated legacy form, one opt-in live DataCite provider call
+and one production RVA vocabulary import. They are **not executed or counted as
+coverage**; no new skip has been introduced.
+
+`run-root-image.sh` resets only disposable synthetic DBs/Solr, supplies selected
+configuration/session inputs, mounts committed root tests/support/TypeScript
+verifier inputs read-only, and invokes
+`bash support/integration-testing/run-mocha-express.sh` in the clean test image.
+Application source/dist/node_modules are not mounted. Core's fixture correction
+adds `-v "$PWD/test/resources:/opt/redbox-portal/test/resources:ro"` to the actual
+immutable-image `npm --prefix packages/redbox-core test` command.
+
+Generated documentation and lint run under Node26.11.1/npm11.20.0 at verifier
+commit6af1e2841, with the exact two-test-only delta from application commita8c6712d0
+asserted before execution. **All exit0**,109.59s combined:
+
+| Command | Actual result |
+|---|---|
+|`npm run doc:api`|JSON/YAML/Blueprint/HTML all generated|
+|`npm run docs:generate`|43 published surfaces/523 advisory findings|
+|`npm run docs:audit`|43 surfaces/523 findings, advisory policy unchanged|
+|`npm run docs:test`|4 passing/0 pending/0 failing,21ms|
+|`npm run lint`|934 files,0 warnings/0 errors; package-boundary check passes|
+
+Outputs remain in the documented generated locations; no docs site is published.
+Detailed logs and health JSON are under `final-a8c6712d0/`. The authoritative wiki
+is ordinary main-repository content, including the complete intentional behavior
+break/affected-client/remediation table linked from upgrade/recovery. Final wiki
+status wording and relative-link validation follow completion of the remaining
+deployment/browser/recovery gates.
+
+### Browser qualification regression — HTTP opener policy
+
+A8 browser harness passes **19/0/0**. The full124-case Playwright attempt starts
+with `PLAYWRIGHT_REQUIRE_COMPLETE=true`,one worker,no retries. It is deliberately
+interrupted after identifying a systematic production-code failure, to fix it
+before repeating the complete suite: **32 failed /1 interrupted /91 not run**,
+gate exit1,2026-10-24T14:19:35Z–14:23:21Z. None of the interrupted/unrun cases is
+counted as coverage. Diagnostics from32 completed scenarios contain84 Chromium
+console errors rejecting `Cross-Origin-Opener-Policy` on untrustworthy plain-HTTP
+`redboxportal`; one request abort accompanies interruption. Portal stop exits0
+with no OOM. The fixture's Docker health check incorrectly used default1500 while
+actual readyz/browser requests use1504; the runner now selects existing `REDBOX_PORT=1504` so the native health check
+uses the same port. This was separate from the browser failure and changes no
+application readiness assertion.
+
+`pageHeaders.ts` unconditionally emitted `same-origin-allow-popups`, introduced
+while restoring legacy header ownership earlier in P8. The production header
+owner now receives the **validated configured public URL**. It emits that policy
+for HTTPS, omits it for HTTP/unspecified origin, and never selects it from request
+or forwarded headers. Caching/CSP/auth/transport/diagnostics contracts are unchanged.
+No browser diagnostic is allowed/ignored to accommodate the error.
+
+Regression added **before** the fix, actual clean a8 test image, network none,
+only two changed test inputs mounted read-only: **29 passing /1 failing**, exit1,
+exact header-presence mismatch for configured HTTP. After mounting the corrected
+header source for diagnosis only: **30 passing /0 pending /0 failing**,315ms,
+exit0. Existing secure-header/static-cookie/cache assertions remain and explicitly
+select their HTTPS fixture origin. Two new checks require HTTP omission despite
+forwarded HTTPS and HTTPS retention despite forwarded HTTP. The corrected
+production composition also passes its actual public URL to both ordinary page
+and static header paths. No timeout, skip, diagnostic allowlist or weakened
+assertion. This focused source overlay is **not** final artifact acceptance.
+
+Source commit `5088f4a7a5be746697ba7b493c302b57f85e19a8` contains the four-file
+implementation/regression fix. Pinned Prettier passes; complete core Prisma/schema/
+TypeScript build exits0 under Node26.11.1/npm11.20.0. No dependency changes.
+Logs: `page-header-{red,green,format,build}100.log`; failed browser diagnostics,
+complete partial-run log and portal/state logs are preserved under
+`final-a8c6712d0/`. Earlier completed candidate suite logs/matrix are preserved
+there before reuse of runner output paths. The new clean5088f4a7a archive and
+all final packs/images/suites, including already successful gates, follow.
+
+### Replacement clean5088f4a7a packs and controls
+
+`build-final101.sh` creates a fresh committed archive at
+`/mnt/docker-storage/sr-p7-clean-production/.tmp/sr-p8-clean-5088f4a7a` and
+reruns source inventory/AST closure/reconciliation before the real Docker build.
+Actual source closure remains **1050 files/0 executable violations/0 forbidden
+entries**, all1261 baseline entries reconciled. The clean builder recompiles
+all packages, Angular, webpack and API outputs. Real pack qualification passes
+**12 archives/20 checks**, stage194.2s, including ESM-only/TLA, CommonJS, bundled,
+offline and compiled scaffold consumers. Eleven archive hashes are identical to
+a8; only core changes to
+`sha256:131a4f6d4a508fd1ec9d3858b7e85ad4b39c975117809a544764e29faec76bca`.
+
+Fresh canonical auditor/shim controls at source5088f4a7a:
+`node --test test/tooling/retirement-closure.test.cjs test/tooling/retire-v5-shims.test.cjs`
+**6 passing /0 failed /0 skipped**,1508.744579ms, exit0. Clean image construction
+and all final suite results follow; these facts alone do not close SR-055.
+Installation/development/client wiki clarifications remain ordinary tracked
+main-repository changes. A fresh changed-page/runbook link audit checks
+**35 files/133 relative links/0 missing**. Generated docs/lint are rerun below
+against the corrected source before acceptance.
+
+### Replacement5088f4a7a immutable images and graph closure
+
+All clean builds finish before2026-10-24T14:49:23Z, `build-final101.sh` exit0.
+All package/core/root/Angular/webpack/API commands execute from the committed
+archive, with normal containerd GC settings; no export lease workaround is needed.
+Runtime export/unpack step33.2s; test129.2s; rehearsal66.0s. Exact source labels
+on all images equal5088f4a7a5be746697ba7b493c302b57f85e19a8.
+
+| Image | Immutable ID | Audited owned files | Executable violations / forbidden dependencies |
+|---|---|---:|---:|
+|Runtime|`sha256:9a9d595cb224d2215a5a31085e1d4663e64649eaa5212fb99f323da078cbe414`|3781|0/0|
+|Test/tooling|`sha256:2e86451c0651b1102d928a82a20e5c9c5460bb819688580ae06bc5c9835d3658`|5845|0/0|
+|Rehearsal|`sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1`|3994|0/0|
+
+Every image independently proves236 obsolete generated shims absent/nine authored
+paths preserved. Runtime/rehearsal default to `node`; test defaults to root (Docker
+inspect omits the User key in that case). An initial metadata assembly probe
+assumed the key existed, raised KeyError and wrote no partial manifest; it now
+records Docker's actual default. All CMDs remain `node app.express.cjs`.
+Actual native versions: Node26.11.1/npm11.20.0/Chromium156.0.8078.47 on Debian12.
+
+Strict installed packed consumer: **1194 packages,2191 owned files,0/0**,
+exit0,133.04s. Packed-content closure independently verifies all12 hashes and
+scans2191 files,0/0. Canonical auditor SHA unchanged. Gates packed-closures
+14:49:23Z–14:51:38Z and image-closures14:51:38Z–14:52:23Z both exit0.
+Providers then restart/readiness-pass by14:53:16Z, including real Mongo29511/13
+pings and authenticated Mongo9 at29512; no missing-provider skip. Mongo limits
+remain64000:64000. Current full core starts14:53:16Z.
+
+[Current artifact manifest](p8-artifacts.json) records only this replacement's
+actual artifacts/results; [superseded a8 manifest](p8-artifacts-a8c6712d0.json)
+preserves its completed suites and failed browser attempt. Detailed new logs are
+under `.tmp/sails-retirement/p8/final-5088f4a7a/`; actual serial driver is
+`run-all-final-gates101.sh`. No registry publication or push.
+
+### Replacement5088f4a7a core, packages, topology and root regression
+
+Every result in this section uses the new clean5088f4a7a images and committed
+5088f4a7a verifier inputs. Serial gate timestamps are UTC2026-10-24. Full core
+Mocha runs14:53:16–14:56:17,181.00s: **4498 passing /7 unchanged pending /
+0 failing**,exit0. The seven baseline placeholders remain unexecuted and do not
+count as coverage (RaidService2,TriggerService2,WorkspaceService3). Real Mongo
+cases execute; committed font resources are mounted read-only. Initial migration
+case takes1737ms under its unchanged5000ms limit.
+
+Compiled record-type gate14:56:17–14:56:24: **3/0/0**,exit0,7.43s. Generated v6
+institution-app gate14:56:24–14:56:49: **1/0/0**,exit0. This verifies the actual
+compiled scaffold through production composition; it is synthetic and does not
+designate an institution. Package gates14:56:49–14:58:37 all exit0: dev-tools
+**52 passing**, PDF unit **75 passing**, storage **304 passing** with actual
+Mongo; no pending/skips/failures.
+
+`run-database-image.sh` invokes the committed
+`support/integration-testing/qualify-sails-retirement-databases.sh` with clean test
+and rehearsal image IDs. Matrix14:58:37–15:05:22,405.24s,exit0: **216 passing /
+0 failing /0 skipped**. Each row executes one ownership test, one complete
+production-host test and30+10+12 real persisted regression cases:
+
+| MongoDB / FCV | Topology | Passing | Result |
+|---|---|---:|---|
+|8.0.34 /8.0|Independent core/storage standalone|54|Restart,GridFS,auth,drain/retry,zero pools|
+|8.0.34 /8.0|Independent core/storage three-member sets|54|Both sets step down/re-elect in ownership and production checks|
+|9.0.4 /9.0|Independent core/storage standalone|54|Restart,GridFS,auth,drain/retry,zero pools|
+|9.0.4 /9.0|Independent core/storage three-member sets|54|Both sets step down/re-elect in ownership and production checks|
+
+Each production row executes10 authenticated APIs, assets, translations, pages,
+health200, readiness503→200 and anonymous401; clean stop leaves0 pools. Exact
+members/elections and per-row metadata are preserved in[p8-artifacts.json](p8-artifacts.json).
+All Mongo containers are inspected with `nofile=64000:64000`; exact8/9 image
+hashes remain those recorded above. All matrix containers stop/remove successfully.
+This is local supported-topology proof; institution-specific auth/TLS/topology
+remains SR-005/045/049's existing external gap.
+
+Full root integration15:05:22–15:06:01: **422 passing /10 unchanged pending /
+0 failing**,exit0,39.10s. Production Express serves the full compiled-source
+integration suite and ends with0 operations/clients/pools. Its ten baseline
+placeholders/external opt-ins are explicitly listed in the earlier root section;
+none counts as coverage. No application/test/dependency change was made between
+these new clean gates. Detailed logs remain in
+`.tmp/sails-retirement/p8/final-5088f4a7a/` and `database-image-final/`.
+
+### Replacement5088f4a7a generated references and lint
+
+`run-docs101.sh` verifies HEAD is the exact clean application/verifier5088f4a7a
+commit before running all documented generation commands. Gate15:06:01–15:08:06,
+exit0. `npm run doc:api` regenerates JSON,YAML,Blueprint and HTML;
+`npm run docs:generate` and `npm run docs:audit` each report **43 published
+surfaces/523 advisory findings**, with the existing advisory policy unchanged.
+`npm run docs:test`: **4 passing /0 pending /0 failing**,20ms.
+`npm run lint`: **934 files/0 warnings/0 errors**,125ms, package-boundary check
+passes. Generated API/site/health outputs remain in their documented ignored
+locations; no site or package is published. This is a fresh new-source run and
+supersedes the prior candidate's documentation proof. Current intentional-break
+list additionally documents safe request-chronicle messages and log-processor
+remediation; wiki stays ordinary tracked files in the main repository.
+
+Documentation-health detail remains explicit:246 undocumented-member,196 missing
+parameter descriptions,45 missing return descriptions,30 missing examples,4
+invalid form-component JSON examples (missing current required component fields),
+and2 unclassified surfaces (`RelatedObjectDataComponent`,`ApplicationModule`).
+The neutral hook/contributor TypeScript migration examples compile and all4 docs
+tests pass; the4 advisory JSON examples are not reported as validated. The wiki
+now distinguishes the hook example's use of ApplicationModule from publication
+of a separate classified surface. None of these findings is suppressed or turned
+into runtime proof; the documented advisory policy permits recorded findings.
+
+### Replacement5088f4a7a complete browser qualification
+
+Full Playwright gate15:08:06–15:18:16UTC2026-10-24,609.63s including setup and
+teardown: **124 passing /0 failing /0 skipped**,exit0. Browser body536299.346ms
+(8.9m). `PLAYWRIGHT_REQUIRE_COMPLETE=true`,one worker,zero retries; the required
+coverage reporter confirms **20 application IDs/30 form IDs,complete=true,
+errors=[]** and exactly one passed result for each of124 cases. Browser harness
+also passes **19/0/0**,10201.278473ms. The portal runs the immutable5088f4a7a
+test image, its native readiness probe is healthy, and owned stop exits0 with
+OOMKilled=false. Configured HTTP responses produce no rejected opener-policy
+console errors. No test, diagnostic allowance, skip, timeout or assertion changed
+for this retry.
+
+The user interrupted the tool turn after this gate completed. The serial driver's
+next Bruno provider pull has no completion/result and no test containers exist;
+its partial provider-pull log is retained, not counted as executed coverage.
+`resume-final-gates103.sh` verifies the same committed HEAD and all three exact
+image source labels, then resumes Bruno→PDF→runtime→recovery. No passed gate is
+rerun or substituted. Successful and failed gate records remain separate from
+this interrupted infrastructure start. No provider/model quota was reported.
+
+### General Bruno disk-capacity failure and unchanged-guard retry
+
+First completed general Bruno attempt15:24:00–15:28:47UTC,gate exit1,286.72s
+including pinned provider pulls/start/cleanup. The collection body takes24115ms:
+**223 requests passed/1 failed/85 not run after bail;410/411 tests,3/3 assertions**.
+The first resumable attachment create returns500 instead of201. No unrun request
+counts as coverage; OIDC/S3/PDF/runtime/recovery have not run at this point.
+Containers/volumes clean up successfully. Failed collection/JUnit/provider/state
+logs are preserved under `final-5088f4a7a/bruno-attempt1/` before retry.
+
+A tight HTTP probe in the actual immutable test image uses its compiled
+ResumableUploads, actual policy/context chain, Flydrive FSDriver, real filesystem
+and the unchanged configured10GiB reserve. Only actor/record lookup ports use
+fixed synthetic values; no disk result, tus server or response is mocked. Command:
+
+```sh
+docker run --rm --network none --user root \
+  -v "$PWD/.tmp/attachments:/attachments" \
+  -v "$PWD/.tmp/sails-retirement/p8/upload-space-probe104.cjs:/opt/redbox-portal/upload-space-probe104.cjs:ro" \
+  sha256:2e86451c0651b1102d928a82a20e5c9c5460bb819688580ae06bc5c9835d3658 \
+  node upload-space-probe104.cjs
+```
+
+It deterministically fails the201 assertion: **3298189312 bytes free**, reserve
+**10737418240**, response500 `{message:"not-enough-disk-space",details:""}`.
+That explicit guarded response and arithmetic identify an unmet test-environment
+precondition; generic missing-directory/tus-write-error hypotheses are eliminated.
+The same probe/request/image with **only the attachment bind source changed** to
+`/home/andrew/.npm/_redbox-sails-retirement-p8/attachments` passes: free
+**7877670338560 bytes**,status201,correct root-relative attachment Location.
+Probe cleans its synthetic directory and owned server on both outcomes.
+Logs `upload-space-probe104-{red,green}.log`; no instrumentation enters source.
+
+Qualification-only Compose overrides now bind disposable general/OIDC/S3
+attachments and separate PDF attachments under that already-recorded large
+user-owned scratch mount. Compose config inspection confirms the exact selected
+bind and Mongo nofile64000:64000. **No application, image, configuration reserve,
+test assertion, timeout or skip changes.** The failed run correctly exercised the
+low-space refusal. The complete unchanged collections are rerun with sufficient
+storage, keeping all other passed5088f4a7a gates applicable. Main source remains
+the same clean committed5088f4a7a artifact; this environment correction requires
+no rebuild. Current retry driver: `resume-final-gates105.log`.
+
+### Replacement5088f4a7a complete general/OIDC/S3 Bruno qualification
+
+The unchanged full collections with sufficient staging capacity pass; combined
+serial gate15:31:46–15:43:38UTC,**exit0**,712.15s including all fresh providers,
+readiness/realm discovery, installed-image portal preparation and full teardown.
+Each profile records a passing marker, complete JUnit and provider identities.
+
+| Collection | Requests | Tests | Assertions | Failing / skipped | Body ms |
+|---|---:|---:|---:|---:|---:|
+|General|309|553|3|0/0|65919|
+|Dedicated OIDC|13|17|0|0/0|9627|
+|S3|7|12|0|0/0|5005|
+|Total|329|582|3|0/0|80551|
+
+Independent JUnit totals are556,17,12 checks, each0 failures/0 errors/0 skips.
+All three runner exits and cleanup exits are0. Real providers include Mongo9.0.4,
+Solr, Keycloak26.5.6, mail and S3 mock; exact per-profile image IDs and Mongo
+nofile64000:64000 are captured in[p8-artifacts.json](p8-artifacts.json).
+S3 mock is `adobe/s3mock@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92`.
+The source Compose pins identify the remaining exact provider image digests.
+No live identity/storage provider is substituted with a test skip.
+
+Actual commands are the committed general/OIDC/S3 Compose profiles with
+`--profile ci`, the unchanged collection runners and the qualification-only
+network/attachment-volume overrides described above. The general/OIDC images
+use installed dependencies and compiled packages. S3's existing guarded runner
+also rebuilds core from the immutable tooling image's own source/scripts before
+index preparation because those scripts exist in the test target; no host core
+source/dist/dependency tree is mounted. Default production/pruned-runtime behavior
+is separately verified by the following runtime gate. No application/source,
+assertion, timeout, dependency or reserve change was required for these passes.
+
+### Native PDF fixture environment failure and committed correction
+
+First PDF gate15:43:38–15:44:20UTC,**exit1**,41.60s: extension startup fails
+before tests. **0 Bruno requests executed**; no JUnit exists. The collection's
+missing-JUnit copy also fails, so it is not mistaken for a successful collection
+when Compose exits after a dependency failure. All containers/volumes clean up.
+Logs preserved in `final-5088f4a7a/pdf-attempt1/`.
+
+A network-none,read-only,node-user probe invokes real installed
+`createPortalApplication` with exactly the PDF deployment module and the CLI's
+same environment/discovery inputs. Integrationtest mode deterministically exits1:
+`Extension @playwright/test: declared dependency is not installed`. The pruned
+rehearsal graph intentionally excludes development dependencies; the old PDF
+Compose override incorrectly selected nonproduction discovery. One-variable
+probe with `NODE_ENV=production` constructs successfully, **0 resources /
+0 operations /0 clients /0 pools**,exit0. Logs
+`pdf-offline-probe107-{red,green}.log`; no datastore/provider or extension is mocked.
+
+Commit `bebb61ccb` corrects both PDF API-integration and development Compose
+files to use the runtime's production mode, retaining the same explicit deployment
+module, authentication, storage, bootstrap, real providers and all PDF assertions.
+No dependency or test/assertion/timeout/skip change. `git diff5088f4a7a..bebb61ccb`
+contains **only those two externally applied Compose YAML files**: no application,
+configuration-module, package, compiler/build or dependency changes. The clean
+application artifact source/IDs remain5088f4a7a; no application suite is invalidated
+by an external fixture-environment correction. The deployed production artifact
+already defaults to production. PDF retry and subsequent gates use committed
+fixture verifierbebb61ccb, with the exact two-file delta asserted by
+`resume-final-gates108.sh` before execution. Image source labels remain5088f4a7a.
+
+The completed Bruno runners wrote synthetic request/session variables into their
+mounted environment file and normalized the test lock's top-level package name.
+These generated test outputs are restored to their committed inputs; no dependency
+resolution changed and no generated credential enters an implementation commit.
+
+### Native PDF actor-credential fixture correction
+
+The next full PDF run15:47:19–15:51:46UTC,exit1,does reach the actual generator.
+Create succeeds201; native generation correctly refuses missing `pdfgen.token`.
+The existing210000ms attachment poll expires unchanged: **2 requests executed,
+1 passed/1 failed;3/4 tests;2 further requests not run**. Body210875ms.
+No omitted generation is counted as PDF proof. Complete failed logs/JUnit remain
+in `final-5088f4a7a/pdf-attempt2/`. The first failure had masked this second
+missing explicit fixture input.
+
+A focused installed-configuration probe now also requires the PDF token to be
+nonempty and match the explicitly configured fixture actor credential. Production
+composition is red before correction (`credentialMatches:false`),green afterward
+(`credentialMatches:true`); both acquire0 resources/operations/clients/pools.
+Only booleans are logged,never the credential. Logs `pdf-token-probe109-{red,green}.log`.
+
+Commit `d160b8ccc` binds `pdfgen.token` to the **already-existing disposable API
+actor credential** in the explicit PDF fixture deployment module. This applies to
+both fixture Compose consumers. Production token defaults remain empty; native
+PDF HTTP/byte/audit assertions and the210s poll remain unchanged. No dependency,
+application implementation or compiler/build change. The current verifier delta
+from application5088f4a7a is exactly **three external PDF fixture files** (the two
+Compose selections plus their selected deployment input), asserted by
+`resume-final-gates110.sh`; image source labels/IDs remain5088f4a7a. The complete
+PDF collection is rerun from fresh providers before runtime/recovery proceed.
+
+### Native PDF brand hydration correction
+
+The d160b8ccc retry ran15:52:17–15:56:27UTC,exit1,250.84s.
+It again executed2 requests (1 passed/1 failed),3/4 tests;2 requests were not
+run after the unchanged210s attachment poll failed. The preceding offline probe
+had checked only top-level extension configuration, which was the wrong boundary.
+The actual generator reads hydrated `AppConfigs` brand settings. Its registered
+PDF configuration model supplies an empty token which overrides that top-level
+extension value. This failed attempt remains in `final-5088f4a7a/pdf-attempt3/`;
+it is not qualification.
+
+Commit `a5d4c0e92` moves the same disposable actor credential to the fixture's
+`brandingConfigurationDefaults.pdfgen.token`. Production defaults, application
+code, dependencies, assertions and timeouts are unchanged. The stronger probe
+uses the actual installed `createPortalApplication`, registered configuration
+models and `AppConfigs.loadAppConfigurationModel`; only synthetic empty repository
+rows are supplied. It reports `credentialMatches:false` before the correction
+and `true` afterward, with0 acquired resources/operations/clients/pools. Logs:
+`pdf-brand-token-probe111-{red,green}.log`. No credential is printed.
+
+`resume-final-gates112.sh` verifies committed fixture revisiona5d4c0e92 and the
+same exact three-file external fixture delta from application5088f4a7a, checks
+all three immutable image source labels, then runs fresh PDF, runtime-artifact
+and released-v5 recovery gates serially. The PDF README now explains the actual
+brand-default input and actor view permission requirement.
+
+### Native PDF obsolete readiness-selector correction
+
+The a5d4c0e92 attempt reaches native Chromium but its integration audit records
+`BrowserError`, cause `Waiting for selector div#loading.hidden failed`. The
+fixture's onCreate/onUpdate operation options still selected a marker removed
+from the current Angular form. The optional session-only `/user/info` request
+returns403 for this bearer-only browser; it is not the form failure. No identity
+policy is relaxed.
+
+The real Chromium diagnostic `pdf-readiness-probe114.cjs` runs inside the same
+installed rehearsal container with its configured actor and created record.
+It receives200, waits for the actual initialized-components container and asserts
+that the obsolete marker is absent, the current marker exists and9 direct form
+children are rendered. Result in `pdf-readiness-probe114.log`:
+`status:200,oldLoadingSelector:false,loadedComponentsSelector:true,renderedFields:9`.
+The Angular implementation sets `componentsLoaded` only after every component
+wrapper, FormGroup, baseline, subscriptions and form-definition-ready event.
+
+Commit `35042a07c` corrects both external fixture operation options to wait for
+`redbox-form .rb-form-components:not([aria-hidden="true"])`. This preserves the
+requirement to render the initialized form, all native generation/byte/audit
+assertions and the existing210s poll. The fixture directory is mounted read-only
+at `/pdf-fixtures`; it is an explicitly selected deployment input, not a change
+to the qualified application image. The delta from application5088f4a7a is now
+four external PDF fixture files, with no application/package/build/dependency
+change. The PDF README explains the current readiness marker.
+
+The a5d4c0e92 PDF collection finishes15:58:03–16:02:26UTC,exit1,262.87s:
+2 requests executed (1 passed/1 failed),3/4 tests;2 further requests unrun after
+the unchanged210s attachment poll. Failed attempt logs/JUnit are preserved in
+`final-5088f4a7a/pdf-attempt4/`. The serial `resume-final-gates115.sh` starts from
+committed fixture35042a07c, asserts the exact four-file delta and immutable image
+labels, and reruns the same PDF collection against fresh providers before the
+runtime/recovery gates.
+
+### Native PDF production-audit verification boundary
+
+Fixture35042a07c runs16:02:30–16:03:24UTC,exit1,54.37s. All4 requests execute;
+3 pass/1 fails,8/10 tests pass,body7545ms. Native Chromium generates and stores
+the PDF; attachment discovery and the200 download/content assertions pass.
+Only the final immediate audit read fails: parent status is still `started`,
+and its successful child has not yet been persisted. Failed logs/JUnit remain
+in `final-5088f4a7a/pdf-attempt5/`.
+
+The actual `IntegrationAudits.queueOrPersist` contract persists directly only
+in integrationtest mode; production submits the owned Agenda store job. Its
+unchanged default poll is5 seconds and store concurrency is1. The now-correct
+production fixture therefore exposes an existing asynchronous boundary that the
+old immediate assertion did not account for. Attachment visibility is an earlier
+boundary; it does not promise that every subsequent audit job has run.
+
+Commit `84eb91a70` adds a bounded30s pre-request poll for the successful parent
+and child with matching trace/parent span, breaking immediately for a failed
+parent. Then **all unchanged final-response assertions** run: HTTP200, PDF
+entries, successful parent/finalStatus, successful child trace/span, file ID,
+attempt, URL and readiness strategy. No assertion or scenario is deleted, no
+skip is added, and no existing attachment timeout or production queue behavior is
+changed. This is synchronization with the actual production contract, not a
+replacement for a failing assertion. `resume-final-gates116.sh` asserts the
+five-file external fixture/verifier delta and unchanged image labels before the
+full PDF retry; runtime and recovery follow only if the collection passes.
+
+### Replacement5088f4a7a complete native PDF qualification
+
+Final PDF gate16:04:38–16:05:37UTC,exit0,58.94s,fixture/verifier84eb91a70.
+**4 requests/10 tests/0 assertions,all pass;0 failures/skips**,body19842ms.
+Independent JUnit parsing confirms10 cases,0 failures/errors/skips. Creation201,
+attachment listing200, PDF download200/content and the successful terminal
+parent/child trace with span linkage and metadata all pass. Native Chromium
+156.0.8078.47 renders the actual selected form in the installed pruned rehearsal
+image581f7c6d5fe8. Real Mongo9.0.4 has nofile64000:64000; Solr10 uses the pinned
+c2a983cd image. Image identities and limits are in `pdf-final-identities.log` and
+[p8-artifacts.json](p8-artifacts.json). Runner/Compose cleanup both exit0; all
+PDF containers/volumes are removed. The mounted byte directory stays retained.
+
+The broad clean5088f4a7a artifact/suites remain applicable: subsequent committed
+deltas are exactly the five external PDF fixture/verifier files asserted before
+this run. No production implementation, configuration default, package build,
+dependency or image is patched. Native runtime-default and full released-v5
+checkpoint recovery now proceed serially against the same immutable artifacts.
+
+### Replacement5088f4a7a actual runtime-default qualification
+
+```sh
+SR_P7_IMAGE=sha256:9a9d595cb224d2215a5a31085e1d4663e64649eaa5212fb99f323da078cbe414 \
+SR_P7_DEFAULT_ENTRYPOINT=true \
+  bash support/integration-testing/qualify-sails-retirement-artifact.sh
+```
+
+This command
+runs16:05:37–16:06:32UTC,exit0,55.54s. Image inspection confirms default user
+`node`,CMD `node app.express.cjs`. Only read-only verifier/deployment inputs are
+mounted; application source,dist,node_modules and compiled assets come from the
+immutable clean image.
+
+Asset inventory **1 passed/0 failed/skipped**:20 Angular applications,6 view
+directories,standalone exports and no Sails. Installed component lifecycle **1
+passed/0 failed/skipped** on real independent Mongo8.0.34/FCV8.0 core/storage
+servers,nofile64000:64000:maintenance,ledger,HTTP,GridFS,drain and restart.
+Explicit installed index maintenance exits0. Actual default executable fresh and
+restart probes each return200 for health/readiness/page/asset/CSRF-login and run
+20 persisted form reads. Native image healthcheck also passes on nondefault
+REDBOX_PORT18527. Fresh startup9s,restart6s; both stops0s,exit0,OOMfalse.
+Observed container memory343.3MiB fresh/273.6MiB restart within1.5GiB bound;
+form read p95=16.364/15.549ms respectively. All owned providers/verifier/portal
+containers are removed after stop. Detailed structured probe/state/timing summaries
+are in [p8-artifacts.json](p8-artifacts.json); logs remain in
+`.tmp/sails-retirement/p8/runtime-artifact-final/`.
+
+### Replacement5088f4a7a complete released-v5 cutover and recovery
+
+Actual command, with the recorded Node26 toolchain and isolated Docker socket:
+
+```sh
+SR_P7_CANDIDATE_IMAGE=sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1 \
+SR_P7_SCRATCH_ROOT=/home/andrew/.npm/_redbox-sails-retirement-p8 \
+SR_P7_RECOVERY_NETWORK=sr-p8-profiles \
+  bash support/integration-testing/rehearse-sails-retirement-recovery.sh
+```
+
+Gate16:06:32–16:11:04UTC,exit0,271.43s. The released-v5 stand-in is
+`qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9`,
+actually running Node24.16.0/npm11.13.0. Candidate uses the clean installed
+rehearsal image,Node26.11.1/npm11.20.0. Core/storage are independent real
+Mongo8.0.34/FCV8.0 servers,nofile64000:64000. Mongo tools100.19.1.
+
+Source home/local-login and20 form reads pass;2 records,2 forms,2 workflows and
+2 pages are verified. Source startup102s/stop0s,exit0. After quiescing all writers,
+the consistent checkpoint contains **24 collections/1895 documents,including
+GridFS**,both datastore archives,primary/staging bytes,configuration and the
+complete matching released image/hook payload. Retained checkpoint:
+`/home/andrew/.npm/_redbox-sails-retirement-p8/sr-p7-recovery.Zhos5q/checkpoint`.
+Its image archive has23 layers,525915136 bytes,SHA256
+`052c811bf18ced5437a52740ce8cfe19b867af37f14ad3b2042e80aebc461f1d`; actual
+payload validation passes. Exact database/file archive sizes/hashes are in the
+artifact manifest. No archive or binary is committed.
+
+Index inspect correctly reports not-ready for the exact nonunique v5
+`record.redboxOid_1`. The separate guarded operator review confirms0 duplicate
+OID groups and preserves2 records before removing only that definition; explicit
+ensure/inspect then report ready. Installed candidate ensure,inspect and
+initialize-only commands all exit0. Actual v6 cutover and fresh-process restart
+both return200 for home/login/health/readiness and20 form reads, preserving all
+selected records/forms/workflows/pages. Fresh session version6 and CSRF login
+are verified. Candidate startup9s/restart13s; stop0s/1s respectively,exit0,OOMfalse.
+Container memory369.1/296.3MiB within1.5GiB. Form-read p95=21.705/21.016ms.
+
+The installed component verifier proves migration idempotency,4 preserved roles,
+local password and the deliberately injected partial migration failure. With
+writers stopped, it damages the disposable databases,primary/staging bytes and
+configuration. Both complete database archives restore with --drop (1885 core +10
+storage documents,0 restore failures); saved bytes/configuration and matching
+image payload are restored. Full inventory verification again reports exactly
+24 collections/1895 documents including GridFS and original index definitions.
+Only then does the recovered old image start; home/login and20 form reads pass,
+with all selected record/form/workflow/page fixtures intact. Recovered startup28s,
+stop0s,exit0,OOMfalse;memory424.8MiB,p95 form reads40.560ms.
+
+The driver completes with exit0 and writes
+`final-5088f4a7a/qualification.complete`. All owned rehearsal containers are
+removed. This is complete **public released-v5 stand-in** recovery through both
+Prisma and runtime retirement. It does not designate an institution.
+
+## Final qualification and task disposition
+
+| Task | Final disposition and evidence |
+|---|---|
+| SR-051 | Accepted:236 exact obsolete shims absent,nine authored paths preserved;safe edited/symlink reconciliation;clean installs/builds/packs do not regenerate them. |
+| SR-052 | Accepted:comparison adapters/globals/types and executable dependencies removed;source,built,packed,1194-package strict installed consumer and all three image graphs report0/0. Every direct/lock dependency change and removed router override has a reason in p8-dependencies.json. Historical published package names stay unchanged. |
+| SR-053 | Accepted:standalone full Mocha/bootstrap,real profiles,Docker default CMD/user/native health,CI/maintenance and v6-only dev-tools/scaffold qualify without Sails installed. PDF fixture and asynchronous audit verification corrections are documented above. |
+| SR-054 | Accepted:tracked wiki and generated reference inputs describe implemented v6;operator/client break table is linked from the upgrade runbook;both generators,audit and compile-checked examples run. Advisory findings remain explicit. |
+| SR-055 | All local final-artifact/inventory/packed-hook/bundled-hook/fresh/restart/stop/full-suite/released-v5 recovery work passes. **Partial/unchecked only for the undesignated representative institution**, inherited from SR-005/045/049; the original acceptance criterion is preserved. |
+
+Final current-artifact results (failures are0 in every completed row):
+
+| Gate | Actual passing result; pending/skips |
+|---|---|
+| Core Mocha |4498 passing;7 unchanged pending,0 failures. Pending cases are not counted as coverage. |
+| Root integration Mocha |422 passing;10 unchanged pending,0 failures;0 retained operations/clients/pools on stop. |
+| Compiled RecordTypes / generated production scaffold |3/1 passing respectively;0 failures/skips. Scaffold is synthetic. |
+| Dev-tools / PDF unit / storage |52/75/304 passing respectively;0 failures/pending;storage uses real Mongo. |
+| Mongo8/9 standalone + independent core/storage three-member sets |216 passing;0 failures/skips. Exact engines8.0.34/9.0.4,FCV8.0/9.0;both datastore sets elect/reconnect;GridFS,restart,HTTP and drain retry execute. |
+| Full Playwright |124 passing,0 failed/skipped,retries0;all20 application/30 form scenario IDs complete. Harness19 passing/0 failed/skipped. |
+| General/OIDC/S3 Bruno |309/13/7 requests;553/17/12 tests;3/0/0 assertions. Total329 requests/582 tests/3 assertions,0 failures/skips;all teardowns0. |
+| Native Chromium PDF Bruno |4 requests/10 tests,0 failures/skips;terminal parent/child trace and downloaded PDF bytes verified. |
+| Clean npm pack/consumers |12 archives/20 checks,0 failures/skips;ESM-only/TLA,CJS/ESM hooks,offline/import isolation,production scaffold and bundled extensions. |
+| Actual production runtime |1 asset +1 installed-component test;fresh/restart HTTP/login and40 total form reads;native health,stop exit0. |
+| Released-v5 full cutover/restart/recovery |24 collections/1895 documents,bytes/config/image restored and recovered probes pass;0 failed/skipped gates. |
+| Generated docs/API/audit/tests/lint |43 published surfaces,523 explicit advisory findings;4 docs tests pass;934 lint files,0 errors/warnings. Four pre-existing invalid JSON examples are not claimed validated. |
+| Canonical shim/auditor controls |6 passing,0 failed/skipped;zero source/built/packed/installed executable/forbidden entries. |
+
+Exact commands,UTC gate times,image IDs,pins,provider identities,checksums,
+per-suite counts,pending cases and every failed/superseded attempt are recorded
+above and in [p8-artifacts.json](p8-artifacts.json). The focused commit ledger is
+[p8-commits.json](p8-commits.json); the superseded A8 artifact record is retained
+separately. The only post5088 implementation-tree differences are explicit external
+PDF fixture/verifier inputs; subsequent wiki/README/status/evidence changes do
+not alter the qualified application packages or images.
+
+Regressions found during full retirement were fixed in application code:owned
+page language/options and navigation contracts;artifact headers/authenticated
+callbacks;query/identifier/schema validation and retained error codes;request
+chronicle observer isolation/privacy;accepted audit shutdown followups;record
+transport/hook authorization;configured font upload limits;Angular HTML packaging,
+clean storage-lock metadata,exact emitted tslib and production scaffold discovery;
+and configured HTTPS opener policy. The current full suites pass after the final
+production correction. Tests retain their behavior assertions and record explicit
+fixture/ownership/API-contract migration justifications in the chronology; no
+missing-provider skip or removed assertion is substituted for proof.
+
+After all gates,cleanup removes the six stopped owned P8 fixtures,the owned
+sr-p8-profiles network and its three specifically commented firewall rules.
+There are0 P8/artifact/rehearsal containers left. The isolated daemon,immutable
+images,P7 artifacts/checkpoints and completed P8 checkpoint/byte stores remain.
+Default Docker,unrelated work and the untracked graphql-record-metadata directory
+are untouched. Nothing is pushed,published or uploaded to a registry. Wiki commits
+are ordinary focused main-repository commits; no submodule is created.
+
+Final documentation link audit after the closing status/runbook edits checks
+**39 changed wiki/runbook files,146 relative links and7 heading anchors,0 missing**.
+The29 extensionless GitHub-wiki links resolve to their tracked Markdown pages.
+Logs: `wiki-links118.json`,`wiki-anchors118.json`. A separate manifest comparison
+checks every changed package's dependencies/devDependencies/peerDependencies/
+optionalDependencies/overrides against the reason ledger: **12 direct entry
+changes** (including both sides of the existing exact tslib move) and **1 retired
+router override**,all enumerated. The78 focused commits through376b7caf4 have
+the required final coauthor trailer; the ledger is updated again after the closing
+acceptance/evidence commit. Final committed-tree inventory closure follows.

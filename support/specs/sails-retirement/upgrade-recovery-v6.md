@@ -2,10 +2,12 @@
 
 This runbook accompanies SR-048/SR-049. The production Express entrypoint is
 `app.express.cjs`; it composes the installed selected domains and bundled hooks.
-The complete installed released-v5 stand-in cutover and recovery have passed.
+The final Sails-free P8 artifact passes installed fresh/restart/stop and complete
+released-v5 stand-in cutover/recovery; see [exact artifacts and results](evidence/p8-artifacts.json).
 Use a qualified immutable artifact and explicitly reviewed deployment inputs.
-Institution designation/qualification and P8 remain production release gates;
-this runbook does not grant production acceptance to the current branch.
+Institution designation/qualification remains a production release gate under
+SR-005/045/049 and SR-055's inherited institution criterion. The local stand-in
+results do not grant production acceptance to an undesignated deployment.
 
 ## Operator and API-client compatibility review
 

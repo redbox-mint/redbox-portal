@@ -1,21 +1,22 @@
 # Sails retirement: v6 task list
 
-Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
-production-source designation. P7 has accepted SR-046/047/048/050. The complete
-local Node 26/MongoDB 8 and 9 matrix passes 216 checks, including separate
-three-member sets/elections/drain. Existing suites pass: Playwright 124, Bruno
-329 requests/582 tests/3 assertions, core Mocha 4485 passing/7 unchanged pending,
-root Mocha 422 passing/10 unchanged pending; no failures. Twelve clean packed
-artifacts pass 20 checks. Installed production images, full released-v5 stand-in
-cutover/restart/stop, operational comparisons and complete offline-capable
-checkpoint recovery pass. SR-045/049 remain partial only for the undesignated
-institution/source/topology. Internal-default promotion SR-050 is complete; its
-actual Docker/npm/dev workflows pass. P8 is in progress: SR-051/052 are accepted after exact shim reconciliation,
-clean packed/runtime builds and source/built/installed dependency closure.
-Consumer and documentation changes are implemented; final test/deployment
-entrypoint, image, full-suite and recovery qualification remains underway. The P7
-counts above are historical; the P8 tree is not yet qualified. See
-[P8 evidence](evidence/p8-retirement.md).
+Status: SR-001–SR-054 are complete except SR-005/045/049, which remain partial
+only for the undesignated representative institution, supported production source,
+hooks/configuration and actual topology. SR-051/052/053/054 are accepted. SR-055's
+local final-artifact qualification is complete; it remains partial/unchecked only
+for that same inherited institution criterion and SR-049 dependency.
+
+Clean application commit `5088f4a7a` passes 12 real npm packs/20 checks, all three
+immutable image/installed dependency graphs and zero executable Sails violations.
+Final suites pass: core Mocha 4498/7 unchanged pending, root 422/10 unchanged pending,
+full Playwright 124, general/OIDC/S3 Bruno 329 requests/582 tests/3 assertions,
+native PDF 4 requests/10 tests, Mongo 8/9 matrix 216 checks including independent
+three-member core/storage sets, elections and drain. All completed gates have 0
+failures; pending cases are not counted as passed coverage. Actual runtime-default
+fresh/restart/stop and complete released-v5 stand-in cutover/checkpoint recovery
+pass after removal. This does not designate an institution or grant production
+release acceptance. See [final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition)
+and [exact artifacts/results](evidence/p8-artifacts.json).
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -816,7 +817,13 @@ Read the [design](design.md) for behavior and the
   have no required Sails runtime path. Historical text and framework-independent
   package names containing `sails` are classified, not renamed unnecessarily.
 
-- [ ] **SR-053 — Finish test/deployment/maintenance and archetype retirement.**
+- [x] **SR-053 — Finish test/deployment/maintenance and archetype retirement.**
+
+  **Status:** done; clean generated production scaffold, standalone full suites,
+  real provider profiles, Docker default CMD/user/native health, maintenance and
+  v6-only dev-tools all pass without Sails installed. Existing assertions are
+  preserved; fixture synchronization/corrections are justified in
+  [final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition).
 
   **Depends on:** SR-052, SR-025, SR-018.
 
@@ -827,7 +834,14 @@ Read the [design](design.md) for behavior and the
   test entrypoints work without Sails installed; templates do not reintroduce old
   metadata, process handlers, shims or unsupported configuration aliases.
 
-- [ ] **SR-054 — Update authoritative wiki and generated extension references.**
+- [x] **SR-054 — Update authoritative wiki and generated extension references.**
+
+  **Status:** done; wiki stays ordinary tracked files in the main repository.
+  Architecture/extension/configuration/operator pages and the complete intentional
+  v6 client-break list are updated and linked from upgrade/recovery. Both generators,
+  audit and 4 documentation tests pass; 43 surfaces/523 advisory findings and example
+  validation limits remain explicit. Relative links resolve.
+  [P8 documentation evidence](evidence/p8-retirement.md#sr-054--tracked-wiki-and-generated-reference-update).
 
   **Depends on:** SR-020, SR-018, SR-053, SR-048.
 
@@ -840,6 +854,14 @@ Read the [design](design.md) for behavior and the
   doc router only where the implemented documentation structure requires it.
 
 - [ ] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
+
+  **Status:** partial only for the inherited representative-institution criterion.
+  Clean `5088f4a7a` packs/images, full existing suites, all 1261 baseline inventory
+  entries, installed fresh/restart/stop and released-v5 stand-in complete recovery
+  pass. The representative institution/source/hooks/configuration/topology are still
+  undesignated under SR-005/045/049; its SR-049 dependency and institution acceptance
+  therefore remain unmet. No local gate is left unrun and no stand-in is counted
+  as an institution. [Final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition).
 
   **Depends on:** SR-052, SR-053, SR-054, SR-049, SR-050.
 
