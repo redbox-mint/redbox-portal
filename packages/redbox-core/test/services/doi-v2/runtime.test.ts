@@ -20,7 +20,7 @@ describe('doi-v2 runtime', function () {
     const completeAudit = sinon.stub();
     const failAudit = sinon.stub();
     const input = { audit: { start: startAudit, complete: completeAudit, fail: failAudit },
-      log: { warn: sinon.stub() }, clientLayer: (...args) => httpModule.makeClientLayer(...args) };
+      log: { warn: sinon.stub() }, clientLayer: (...args: Parameters<typeof httpModule.makeClientLayer>) => httpModule.makeClientLayer(...args) };
     startAudit.returns({ traceId: 'trace-child', spanId: 'span-child', redboxOid: 'oid-1' });
 
     sinon.stub(httpModule, 'makeClientLayer').returns(
@@ -79,7 +79,7 @@ describe('doi-v2 runtime', function () {
     const completeAudit = sinon.stub();
     const failAudit = sinon.stub();
     const input = { audit: { start: startAudit, complete: completeAudit, fail: failAudit },
-      log: { warn: sinon.stub() }, clientLayer: (...args) => httpModule.makeClientLayer(...args) };
+      log: { warn: sinon.stub() }, clientLayer: (...args: Parameters<typeof httpModule.makeClientLayer>) => httpModule.makeClientLayer(...args) };
     startAudit.returns({ traceId: 'trace-child', spanId: 'span-child', redboxOid: 'oid-1' });
 
     const transportCause = Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' });

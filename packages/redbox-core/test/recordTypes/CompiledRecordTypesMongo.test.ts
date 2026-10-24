@@ -41,7 +41,7 @@ describe('compiled owned record types on real MongoDB', function () {
     const owner = { config: { ...pilotConfiguration(), datastores: { mongodb: { url: url.toString(), maxPoolSize: 2 } } }, log: createSinonStubLogger(sinon) };
     const stages: string[] = [];
     let instance!: InstanceType<typeof RecordTypes>;
-    const application = new ApplicationRuntime(owner, [{
+    const application: InstanceType<typeof ApplicationRuntime> = new ApplicationRuntime(owner, [{
       name: 'recordTypes', create: () => {
         instance = new RecordTypes({ repository: getReferenceRepositories(owner).recordTypes, config: owner.config, log: owner.log, storageCapability: () => ({ getCapabilities: () => ({ recordConcurrency: 1 }) }) });
         return { initialize: async () => {}, close: () => instance.close() };
@@ -60,7 +60,7 @@ describe('compiled owned record types on real MongoDB', function () {
       } }],
       postBootstrap: [{ name: 'post', run: async () => { stages.push('post'); assert.equal(application.status().ready, false); } }],
     });
-    const host = new ExpressHost(application, { owner, port: 0, hostname: '127.0.0.1', prepare: router => {
+    const host = new ExpressHost(application, { owner, port: 0, hostname: '127.0.0.1', prepare: async router => {
       router.get('/test/record-types', async (_req, res) => { res.json({ count: (await firstValueFrom(instance.getAll(brand))).length }); });
     } });
     hosts.push(host);

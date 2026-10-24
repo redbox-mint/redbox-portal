@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { execFileSync } from 'node:child_process';
 import { loadStartupConfiguration } from '../../src/configuration/loading';
 import { ConfigurationError, resolveStartupConfiguration } from '../../src/configuration';
-import { resolveExtensions } from '../../src/extensions';
+import { resolveExtensions, type ExtensionProvider } from '../../src/extensions';
 
 const schema = z
   .object({
@@ -101,7 +101,10 @@ describe('Startup configuration', () => {
         workflows,
       },
     };
-    const resolve = (providers = [low], application?: { source: string; values: object }) =>
+    const resolve = (
+      providers: readonly ExtensionProvider[] = [low],
+      application?: { source: string; values: Record<string, unknown> }
+    ) =>
       resolveStartupConfiguration({
         schema: workflowSchema,
         core: { ...core, values: { ...core.values, workflow: {} } },

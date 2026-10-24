@@ -209,7 +209,7 @@ describe('Owned datastream HTTP contracts', function () {
   });
   it('never finalizes strict missing or stale claims and cleans each certified abandoned upload', async function () {
     for (const testCase of [
-      { headers: {}, code: 'record-precondition-required', status: 428 },
+      { headers: {} as Record<string, string>, code: 'record-precondition-required', status: 428 },
       { headers: { 'If-Match': formatRecordEntityTag('record-1', 4) }, code: 'record-revision-stale', status: 412 },
     ]) {
       records.updateMeta.resolves(refused(testCase.code));

@@ -48,7 +48,7 @@ export function httpPolicyFixture() {
     setHeader: sinon.spy((name: string, value: string) => {
       headers[name.toLowerCase()] = value;
     }),
-    set: sinon.spy((name: string | Record<string, string>, value?: string) => {
+    set: sinon.spy((name: string | Record<string, string>, value?: string): object => {
       for (const [key, item] of Object.entries(typeof name === 'string' ? { [name]: value! } : name))
         headers[key.toLowerCase()] = item;
       return response;

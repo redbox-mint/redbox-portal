@@ -763,7 +763,7 @@ describe('OniService', function () {
     expect(published.metadata).not.to.have.property('citation_doi');
     expect(published.metadata).not.to.have.property('publication_error');
     const audit = collaborators.IntegrationAuditService;
-    expect(audit.startAudit.getCalls().map(call => call.args[1])).to.deep.equal([
+    expect(audit.startAudit.getCalls().map((call: sinon.SinonSpyCall) => call.args[1])).to.deep.equal([
       IntegrationAuditAction.publishOniDataset,
       IntegrationAuditAction.buildOniRoCrate,
       IntegrationAuditAction.writeOniOcflObject,

@@ -50,12 +50,14 @@ describe('released-v5 notification hook upgrade on Mongo', function () {
       const saved = await created.json();
       const oid = saved.oid;
       assert(oid);
-      const email = new Email.Email({
+      const email: Email.Email = new Email.Email({
         config: emailnotification,
         log: nothingLogger,
         templateContext: {},
         resolveHook: name => {
-          if (name === 'email.sendRecordNotification') return (...args) => email.sendRecordNotification(...args);
+          if (name === 'email.sendRecordNotification')
+            return (id, record, options, user, response) =>
+              email.sendRecordNotification(id, record, options as Record<string, unknown>, user, response);
           if (name === 'record.updateNotificationLog')
             return (id, record, options) =>
               f.writer.updateNotificationLog(id, record, options as Record<string, unknown>);
@@ -68,6 +70,16 @@ describe('released-v5 notification hook upgrade on Mongo', function () {
       // Keep provider transport and template fixtures deterministic; execute the real success pipeline and record writer.
       const messages = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
       sinon.stub(email, 'evaluateProperties').callsFake(options => ({
+        format: 'html',
+        formatRendered: 'html',
+        from: '',
+        to: '',
+        cc: '',
+        ccRendered: '',
+        bcc: '',
+        bccRendered: '',
+        subject: '',
+        template: null,
         toRendered: String(options.to),
         subjectRendered: String(options.subject),
         fromRendered: 'fixture@example.invalid',
@@ -81,8 +93,9 @@ describe('released-v5 notification hook upgrade on Mongo', function () {
       assert.equal(messages.callCount, 2);
       assert.equal(messages.secondCall.args[2], 'Data publication ready for review');
       const notified = await f.storage.getMeta(oid);
-      assert.equal(notified.notification.state, 'emailed-reviewing');
-      assert.equal(notified.notification.log.reviewing.length, 1);
+      const notification = notified.notification as { state: string; log: { reviewing: unknown[] } };
+      assert.equal(notification.state, 'emailed-reviewing');
+      assert.equal(notification.log.reviewing.length, 1);
     } finally {
       await Promise.allSettled(pending);
       sinon.restore();

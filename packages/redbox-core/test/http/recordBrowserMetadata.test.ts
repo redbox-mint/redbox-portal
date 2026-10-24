@@ -35,14 +35,14 @@ describe('Owned browser record metadata', function () {
     const response = await f.request(base + '/record/wfSteps/dataset');
     expect(response.status).to.equal(400);
     expect(response.body.message).to.equal('Record Type provided is not valid');
-    expect(recordTypes.get.calledOnceWithMatch({ id: 'brand-1' }, 'dataset')).to.equal(true);
+    expect(recordTypes.get.calledOnce && recordTypes.get.calledWithMatch({ id: 'brand-1' }, 'dataset')).to.equal(true);
     expect(workflowSteps.getAllForRecordType.called).to.equal(false);
   });
   it('returns workflow steps for a valid trimmed record type', async function () {
     const response = await f.request(base + '/record/wfSteps/%20dataset%20');
     expect(response.status).to.equal(200);
     expect(response.body).to.deep.equal([{ name: 'draft' }, { name: 'review' }]);
-    expect(recordTypes.get.calledOnceWithMatch({ id: 'brand-1' }, 'dataset')).to.equal(true);
+    expect(recordTypes.get.calledOnce && recordTypes.get.calledWithMatch({ id: 'brand-1' }, 'dataset')).to.equal(true);
     expect(
       workflowSteps.getAllForRecordType.calledOnceWithExactly(
         await import('rxjs').then(({ firstValueFrom }) => firstValueFrom(recordTypes.get.firstCall.returnValue))
@@ -60,9 +60,10 @@ describe('Owned browser record metadata', function () {
     dashboardTypes.getDashboardTableConfig.resolves(table);
     const response = await f.request(base + '/record/wfSteps/dataset');
     expect(response.status).to.equal(200);
-    expect(dashboardTypes.getDashboardTableConfig.calledOnceWithMatch({ id: 'brand-1' }, 'dataset', 'draft')).to.equal(
-      true
-    );
+    expect(
+      dashboardTypes.getDashboardTableConfig.calledOnce &&
+        dashboardTypes.getDashboardTableConfig.calledWithMatch({ id: 'brand-1' }, 'dataset', 'draft')
+    ).to.equal(true);
     expect(response.body[0].config).to.deep.equal({ ...snapshot[0].config, dashboard: { table } });
     expect(steps).to.deep.equal(snapshot);
   });

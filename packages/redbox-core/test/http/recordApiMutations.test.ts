@@ -825,7 +825,7 @@ describe('Owned record API mutations', function () {
         f.records.getDeletedRecordMeta.resolves(null);
         const response = await f.request(tombstone, { method, body: method === 'PUT' ? {} : undefined });
         expect(response.status).to.equal(404);
-        expect(f.records.getDeletedRecordMeta.calledOnceWithMatch('record-1', { id: 'brand-1' })).to.equal(true);
+        expect(f.records.getDeletedRecordMeta.calledOnce && f.records.getDeletedRecordMeta.calledWithMatch('record-1', { id: 'brand-1' })).to.equal(true);
         expect(f.records.getMeta.called).to.equal(false);
         expect(f.records[owner].called).to.equal(false);
       });

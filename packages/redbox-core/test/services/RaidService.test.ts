@@ -106,11 +106,11 @@ describe('RaidService', function () {
     // Import after mocks are set up
     const { Services } = require('../../src/services/RaidService');
     RaidService = new Services.Raid({ log: fixture.log,
-      brand: id => collaborators.BrandingService.getBrandById(id) ?? collaborators.BrandingService.getBrand(id),
-      configuration: name => collaborators.AppConfigService.getAppConfigurationForBrand(name)?.raidPublishing,
+      brand: (id: string) => collaborators.BrandingService.getBrandById(id) ?? collaborators.BrandingService.getBrand(id),
+      configuration: (name: string) => collaborators.AppConfigService.getAppConfigurationForBrand(name)?.raidPublishing,
       defaultConfiguration: () => fixture.config.raid,
       get records() { return collaborators.RecordsService; }, get queue() { return collaborators.AgendaQueueService; },
-      audit: { start: (...args) => collaborators.IntegrationAuditService?.startAudit(...args), complete: (...args) => collaborators.IntegrationAuditService?.completeAudit(...args), fail: (...args) => collaborators.IntegrationAuditService?.failAudit(...args) } });
+      audit: { start: (...args: unknown[]) => collaborators.IntegrationAuditService?.startAudit(...args), complete: (...args: unknown[]) => collaborators.IntegrationAuditService?.completeAudit(...args), fail: (...args: unknown[]) => collaborators.IntegrationAuditService?.failAudit(...args) } });
   });
 
   afterEach(function () {
