@@ -23,9 +23,19 @@ RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/inst
 WORKDIR /opt/redbox-portal
 SHELL ["bash", "-o", "pipefail", "-c"]
 
-FROM base AS builder
-
-COPY . .
+# Install from the pinned manifests before copying application source. Runtime
+# fixes must not invalidate the complete strict dependency tree during qualification.
+FROM base AS dependencies
+COPY package*.json .npmrc ./
+COPY packages/agenda-sqs-backend/package*.json ./packages/agenda-sqs-backend/
+COPY packages/sails-ng-common/package*.json ./packages/sails-ng-common/
+COPY packages/raido/package*.json ./packages/raido/
+COPY packages/rva-registry/package*.json ./packages/rva-registry/
+COPY packages/redbox-core/package*.json ./packages/redbox-core/
+COPY packages/redbox-dev-tools/package*.json ./packages/redbox-dev-tools/
+COPY packages/sails-hook-redbox-storage-mongo/package*.json ./packages/sails-hook-redbox-storage-mongo/
+COPY packages/redbox-hook-dev/package*.json ./packages/redbox-hook-dev/
+COPY packages/sails-hook-redbox-pdfgen/package*.json ./packages/sails-hook-redbox-pdfgen/
 
 # Subproject npm invocations do not inherit the application's .npmrc. Keep the
 # same strict, script-free install policy at every package boundary; the explicit
@@ -37,22 +47,28 @@ RUN cd packages/raido && npm ci --ignore-scripts --strict-peer-deps --legacy-pee
 RUN cd packages/rva-registry && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
 RUN cd packages/redbox-core && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
 RUN cd packages/sails-hook-redbox-storage-mongo && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit
+RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps --no-audit
+
+FROM dependencies AS builder
+COPY . .
 
 RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN --network=none cd packages/redbox-core && npm run check:prisma && npm run build
-RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit && npm run build
+RUN cd packages/redbox-dev-tools && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
 # Build its dist so the optional `test` image (below) can load it. It is pruned
 # from node_modules for the pristine runtime image.
-RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit && npm run build
+RUN cd packages/redbox-hook-dev && npm run build
 # Build the optional PDF hook from this checkout. The pdfgen runtime target
 # installs this local package, so it does not depend on a separately released
 # portal-core-compatible npm version.
-RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps --no-audit && npm run compile
+RUN cd packages/sails-hook-redbox-pdfgen && npm run compile
 
 RUN npx tsc --project tsconfig.json
 
