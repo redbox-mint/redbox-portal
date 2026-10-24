@@ -266,7 +266,7 @@ export namespace Services {
 
           if (!claimedRequest) {
             yield* this.logWarn(
-              `PDFService::PDF generation already in progress for ${currentURL}, skipping duplicate request.`
+              `PDFService::PDF generation already in progress for record ${oid}, skipping duplicate request.`
             );
             return {
               outcome: 'duplicateSuppressed' as const,
@@ -389,12 +389,7 @@ export namespace Services {
             });
           }
 
-          yield* Effect.sync(() => {
-            this.dependencies.log.verbose(`PDFService::sourceUrlBase ${sourceUrlBase}`);
-            this.dependencies.log.verbose(`PDFService::pdfgen.appUrlOverride ${pdfgenAppUrlOverride}`);
-          });
-
-          yield* this.logDebug(`PDFService::Chromium loading page: ${currentURL}`);
+          yield* this.logDebug(`PDFService::Chromium loading record: ${oid}`);
 
           const initialNavigationResponse = yield* Effect.tryPromise({
             try: () => page.goto(currentURL, { waitUntil: 'domcontentloaded' }),
@@ -406,7 +401,7 @@ export namespace Services {
                   ? new Error(`Blocked navigation outside the portal: ${blockedNavigationUrl}`)
                   : cause
               ),
-          }).pipe(Effect.withSpan('navigatePage', { attributes: { oid, attempt, url: currentURL } }));
+          }).pipe(Effect.withSpan('navigatePage', { attributes: { oid, attempt } }));
 
           const validateNavigation = () => {
             if (blockedNavigationUrl) {
@@ -473,7 +468,7 @@ export namespace Services {
           });
 
           yield* Effect.sync(() =>
-            this.dependencies.log.verbose(`PDFService::Page ready: ${currentURL}, generating PDF...`)
+            this.dependencies.log.verbose(`PDFService::Record ready: ${oid}, generating PDF...`)
           );
 
           const date = DateTime.now().toMillis();

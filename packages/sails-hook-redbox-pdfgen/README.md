@@ -343,7 +343,9 @@ The Docker compose files set `NODE_PATH` so a mounted hook resolves host-provide
 | `MissingBrandError` | The record has no resolvable `metaMetadata.brandId`. |
 | Nothing happens on save, no logs | The trigger isn't wired, or `PDFService-CreatePDF` was used in the `function` field instead of via `queueTriggerCall`. |
 
-Set `enableChromeLogging: true` and raise the Sails log level to `verbose` to see Chromium console output, responses and failed requests.
+Set `enableChromeLogging: true` and the application log level to `verbose` for
+bounded Chromium activity, response-status and failure diagnostics. Page content,
+provider errors and configured navigation URLs are excluded from these logs.
 
 ## License
 

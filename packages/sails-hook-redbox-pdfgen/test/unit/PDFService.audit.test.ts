@@ -1,5 +1,5 @@
 import type { SinonStub } from 'sinon';
-const { Cause, Effect } = require('effect');
+const { Cause, Effect, Logger } = require('effect');
 const sinon = require('sinon');
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
 const { pdfDependencies, waitForAssertion, navigationResponse, navigationRequest } = require('../support/pdfFixture');
@@ -113,6 +113,26 @@ describe('PDFService Integration Audit', () => {
       ).to.equal(true)
     );
     expect(JSON.stringify(Object.values(input.log).flatMap((stub: any) => stub.args))).not.to.include(secret);
+  });
+
+  it('keeps configured URL credentials out of success and duplicate diagnostics', async () => {
+    const secret = 'private-configured-pdf-url-credential';
+    const options = { appUrlOverride: `https://pdf-user:${secret}@portal.invalid` };
+    const effectMessages: unknown[] = [];
+    const capture = Logger.replace(Logger.defaultLogger, Logger.make((entry: any) => {
+      effectMessages.push(entry.message);
+    }));
+    const run = (oid: string) => Effect.runPromise(
+      pdfService.attemptPDFGeneration(oid, {}, options, { name: 'default' }, 1).pipe(Effect.provide(capture))
+    );
+
+    expect((await run('oid-url-success')).outcome).to.equal('generated');
+    pdfService.processMap.add(`${options.appUrlOverride}/default/rdmp/record/view/oid-url-duplicate`);
+    expect((await run('oid-url-duplicate')).outcome).to.equal('duplicateSuppressed');
+
+    expect(JSON.stringify(Object.values(input.log).flatMap((stub: any) => stub.args))).not.to.include(secret);
+    expect(JSON.stringify(effectMessages)).not.to.include(secret);
+    expect(mockPage.goto.firstCall.args[0]).to.include(secret);
   });
 
   it('records a startAudit + completeAudit pair on successful PDF generation', async () => {
