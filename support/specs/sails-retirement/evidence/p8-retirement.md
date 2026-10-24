@@ -861,3 +861,20 @@ Node 26.11.1 explicit core runner: `pages26-third.log` **14 passing / 0 pending 
 failing**; final assertions rerun in `pages26-fourth.log` with the next method/socket
 slice (**25 passing total / 0 pending / 0 failing**). `tsc --noEmit`: **exit 0**,
 `pages26-tsc.log` (also checks the preceding named-query fix). No skip introduced.
+
+### Route methods and socket credential fixture retirement
+
+The two deleted prepWs/HEAD policies' 11 scenarios now exercise actual
+prepareHttpMiddleware.authenticateCredential, its MemoryStore and real HTTP route
+mounts. Current v6 sessions resolve authoritative actors; absent/null/old session
+credentials are denied without deserialization; stale session.user never supplies
+permissions and no second user serializer/authentication method is installed.
+The actual refresh route rejects HEAD with 405/Allow: GET/empty body and no side
+effects. Explicit GET refresh and validated POST/PUT/DELETE operations execute
+once through their actual route owners. This replaces the retired global HEAD
+policy's 400 and the removed virtual-request/session snapshot patching, per the
+intentional v6 method/socket/session changes.
+
+Node 26.11.1 explicit core runner: `pages26-fourth.log` **25 passing / 0 pending /
+0 failing** including the preceding 14 page scenarios. All 11 method/socket cases
+execute, no skips or failures. No production change was needed for this slice.
