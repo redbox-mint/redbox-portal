@@ -76,6 +76,23 @@
           "reason": "Retired host and comparison adapters; Express owns application runtime."
         }
       ]
+    },
+    {
+      "file": "angular/projects/researchdatabox/portal-ng-common/package.json",
+      "dependencies": [
+        {
+          "section": "devDependencies",
+          "name": "tslib",
+          "removedVersion": "2.8.1",
+          "reason": "Move the existing exact helper dependency into runtime dependencies; ng-packagr otherwise injects an unpinned ^2.3.0 generated dependency."
+        },
+        {
+          "section": "dependencies",
+          "name": "tslib",
+          "addedVersion": "2.8.1",
+          "reason": "Preserve the existing exact installed helper version in the emitted owned Angular library manifest; no new resolution or version upgrade."
+        }
+      ]
     }
   ],
   "locks": [
@@ -4316,6 +4333,16 @@
           "reason": "Unreachable after removal of the retired direct dependencies; no remaining lock owner."
         }
       ]
+    }
+  ],
+  "additionalLockVerification": [
+    {
+      "file": "angular/package-lock.json",
+      "command": "npm --prefix angular install --package-lock-only --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit --no-fund",
+      "node": "26.11.1",
+      "npm": "11.20.0",
+      "changedEntries": 0,
+      "reason": "Inner Angular library has no independent lock and is not a dependency entry in the outer manifest; tslib remains resolved exactly to 2.8.1."
     }
   ]
 }

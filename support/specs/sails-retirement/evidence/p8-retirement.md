@@ -40,13 +40,14 @@ qualification remains SR-053/055.
 
 ## Qualification status
 
-The corrected clean application archive
-`a193b87312a24221744c7e1ac58b1328d472156b` builds all packages/Angular/shared
-assets and passes twelve actual packs/twenty consumer checks. Its pristine runtime
-and fresh1194-package packed consumer pass canonical closure. Test/rehearsal image
-export and final suite/recovery qualification remain in progress. SR-051/052 are
-accepted. Earlier853d0039d/P7 results below are historical; they do not qualify
-the corrected final tree. See the corrected clean-artifact section at the end.
+The clean `a193b8731` archive built all twelve packs and all three Docker
+images. Its runtime and installed packed graph pass closure, but the final test
+image audit found one generated Angular `tslib` range. The source correction
+below supersedes that final-candidate attempt. A replacement clean build and all
+final gates are still required. SR-051/052 remain accepted for their recorded
+shim and Sails-runtime removal criteria; SR-053/054/055 remain unchecked. Earlier
+P7/853/a193 results are scoped historical evidence, not final qualification of
+the corrected source.
 
 ## SR-052 — Runtime and dependency removal (accepted)
 
@@ -2104,3 +2105,52 @@ Commands/configurations/logs remain under ignored `engine92/`,
 `all-final-gates92.log`. The initial unsupported `ctr plugins info` probe produces
 no result; the supported detailed listing above provides the actual verification.
 No provider quota/usage limit has occurred. Final images/suites remain pending.
+
+
+## Generated Angular manifest pinning — final gate regression
+
+All three `a193b8731` images finish building. The corrected test export succeeds
+(2,013.6s export /579.7s unpack; Docker step2,596.2s, exit0), followed by the
+production rehearsal image (147.8s export/unpack step, exit0). Image IDs:
+
+- Runtime: `sha256:4dd74a393059adad91a990f8c0ec69ef2a41fae8df8f0eb881323428f721b647`.
+- Test: `sha256:29b7c8a064e80bce8f79bdd340f19f1ad71e9671b1185f06130801384ffae063`.
+- Rehearsal: `sha256:b79e9fbc52fce22ae895f591bf63ed84ffa25deba2a9a9311afbd8f83315cc63`.
+
+Original containerd GC is restored and explicitly verified (`ScheduleDelay 0s`,
+`MutationThreshold 100`) before qualification; Docker29.6.1/containerd2.2.5.
+The serial gate starts13:21:48Z and stops13:23:19Z with **exit1**: canonical
+read-only/network-none test-image closure scans **5,845 files**, reports **zero
+forbidden Sails dependency entries** and **one exact-pin violation**:
+`angular/dist/researchdatabox/portal-ng-common/package.json` contains
+`tslib: "^2.3.0"`. No final core/browser/database/recovery suite has started.
+The strict audit remains unchanged; this attempt is not final acceptance.
+
+The source package declared `tslib2.8.1` only in `devDependencies`. The installed
+ng-packagr22.2.1 implementation confirms that, absent a runtime/peer declaration,
+it copies Angular compiler's `tslib` range into the emitted owned manifest. This
+rules out stale output and an explicitly ranged source declaration. The fix
+moves the **same exact2.8.1** declaration to `dependencies`; there is no version
+upgrade/new resolution. The dependency ledger records both sections/reason.
+
+Actual focused validation uses the completed test image, network disabled and
+only the corrected source manifest mounted read-only, runs
+`node node_modules/@angular/cli/bin/ng.js build @researchdatabox/portal-ng-common
+--configuration production` from `angular`, and asserts the emitted exact pin.
+It first prints the old `^2.3.0`, rebuilds the real library, then reports
+**1 passing /0 failed /0 skipped**, generated `2.8.1`, Angular compile18.128s,
+command exit0. Node26.11.1 remains selected. Existing canonical closure is the
+regression gate; no assertion, test selection, timeout or audit allowance changes.
+`npm --prefix angular install --package-lock-only --ignore-scripts
+--strict-peer-deps --legacy-peer-deps=false --no-audit --no-fund` exits0 in2s
+with **zero lock changes**, npm11.20.0. This inner library has no independent
+lock; the outer lock still resolves2.8.1. `git diff --check` passes.
+
+Logs: `final-a193b8731/{test-build-retry92,rehearsal-build-retry92,
+restore-engine92,image-closures-driver,image-closures-time}.log`,
+`test-closure.json`, `gates.jsonl`, `engine92/gc-restored-info.txt`,
+`ng-packagr-tslib94-source.log`, `angular-emitted-pin94.log`, `angular-lock94.log`.
+The first source-inspection probe used the wrong ng-packagr subpath; the actual
+`src/lib/ng-package/entry-point/write-package.transform.js` provides the
+confirmation above. No provider quota/usage limit has occurred. A new clean
+committed archive, packs/images, closure and all full suites follow this fix.

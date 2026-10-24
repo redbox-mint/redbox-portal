@@ -150,5 +150,42 @@
       "skipped": 0,
       "durationMs": 1943.671356
     }
+  },
+  "images": {
+    "runtime": {
+      "image": "sha256:4dd74a393059adad91a990f8c0ec69ef2a41fae8df8f0eb881323428f721b647",
+      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "user": "node",
+      "command": [
+        "node",
+        "app.express.cjs"
+      ]
+    },
+    "test": {
+      "image": "sha256:29b7c8a064e80bce8f79bdd340f19f1ad71e9671b1185f06130801384ffae063",
+      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "user": "",
+      "command": [
+        "node",
+        "app.express.cjs"
+      ]
+    },
+    "rehearsal": {
+      "image": "sha256:b79e9fbc52fce22ae895f591bf63ed84ffa25deba2a9a9311afbd8f83315cc63",
+      "sourceCommit": "a193b87312a24221744c7e1ac58b1328d472156b",
+      "user": "node",
+      "command": [
+        "node",
+        "app.express.cjs"
+      ]
+    }
+  },
+  "qualificationAttempt": {
+    "status": "superseded-before-suites",
+    "failedGate": "test-image-closure",
+    "scannedFiles": 5845,
+    "executableViolations": 1,
+    "forbiddenDependencyEntries": 0,
+    "reason": "ng-packagr generated an unpinned tslib ^2.3.0 dependency; source now preserves the existing exact 2.8.1 runtime pin. Replacement clean artifact and final gates are required."
   }
 }
