@@ -213,6 +213,7 @@ describe('owned record mutation pipeline on real Mongo Solr HTTP', function () {
       body: JSON.stringify({ username: 'pilot-admin', password: 'pilot-password' }),
     });
     assert.equal(login.status, 200);
+    await login.json();
     const cookie = login.headers.get('set-cookie')!.split(';')[0];
     const token = await fetch(f.url + '/csrfToken', { headers: { Cookie: cookie } });
     const { _csrf } = await token.json();

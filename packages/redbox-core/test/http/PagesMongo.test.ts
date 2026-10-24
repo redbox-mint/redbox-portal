@@ -52,6 +52,7 @@ describe('owned EJS pages on Mongo Express', function () {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: user.username, password: 'reader-password' }),
     });
+    await login.json();
     const cookie = login.headers.get('set-cookie')!.split(';')[0];
     for (const route of pageRoutes.filter(route => route.path.includes('/admin'))) {
       const url = route.path.replace('/:branding/:portal', '/default/rdmp').replace(/:[A-Za-z]+/g, 'sample');
@@ -169,6 +170,7 @@ describe('owned EJS pages on Mongo Express', function () {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'error-reader', password: 'reader-password' }),
     });
+    await login.json();
     const denied = await get('/default/rdmp/record/view/' + oid, {
       Cookie: login.headers.get('set-cookie')!.split(';')[0],
       Accept: 'text/html',

@@ -262,6 +262,7 @@ describe('owned Companion URL transfers alongside portal Socket.IO on real Mongo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'pilot-admin', password: 'pilot-password' }),
     });
+    await login.json();
     const cookie = login.headers.get('set-cookie')!.split(';')[0]!;
     const missingOrInvalid: Record<string, string>[] = [
       { Cookie: cookie },

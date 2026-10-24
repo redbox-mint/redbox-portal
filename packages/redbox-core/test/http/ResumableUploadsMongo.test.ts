@@ -117,6 +117,7 @@ describe('owned tus authorization and persistent resume on actual HTTP Mongo dis
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'pilot-admin', password: 'pilot-password' }),
     });
+    await login.json();
     const cookie = login.headers.get('set-cookie')!.split(';')[0]!;
     assert.equal((await create({}, { Cookie: cookie })).status, 403);
     assert.equal((await create({}, { Cookie: cookie, 'X-CSRF-Token': 'invalid' })).status, 403);

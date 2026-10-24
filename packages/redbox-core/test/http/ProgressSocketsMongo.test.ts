@@ -152,6 +152,7 @@ describe('direct owned progress sockets on real HTTP Mongo sessions', function (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'pilot-admin', password: 'pilot-password' }),
     });
+    await login.json();
     const cookie = login.headers.get('set-cookie')!.split(';')[0]!;
     assert.equal((await request('POST', '/asynch/socket-token', {}, { Cookie: cookie })).response.status, 403);
     const token = await fetch(f.url + '/csrfToken', { headers: { Cookie: cookie } });
