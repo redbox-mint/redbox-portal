@@ -409,3 +409,19 @@ Sails comparison entrypoint remains the actual default until those gates pass.
 P8 has not started. Missing institution designation is **not the only remaining
 gap**: production composition and full existing-suite/artifact/upgrade execution
 also remain.
+
+### Operational comparison criteria for the production candidate
+
+Before the new installed-portal/cutover runs, the local engineering review uses
+these tolerances: zero failed requests in each 20-request sequential forms sample;
+startup within 1.5 times the released source observation; resident container
+memory within 1.5 times that source snapshot; and forms p95 within twice the
+released source sample. Both candidate fresh start and restart must become ready
+and stop with exit 0, without OOM/forced termination. Persistent owners must close
+without retained pools/clients. Compare initialized/restored observations
+separately from cold fixture bootstrap; record absolute measurements as well as
+ratios. These deliberately broad local tolerances accommodate this shared VM's
+observed cold-cache/disk variability. They are internal review criteria, not
+institution performance requirements or load-test guarantees. A failed criterion
+requires investigation, not retroactive adjustment. A 20-request sequential
+sample does not characterize concurrency, tail latency or production capacity.
