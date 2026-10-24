@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';

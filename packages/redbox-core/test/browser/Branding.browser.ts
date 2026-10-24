@@ -2,7 +2,6 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import fs from 'node:fs';
 import path from 'node:path';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals } from '../services/testHelper';
 
 // Explicit browser suite: run separately from datastore/service tests.
 const { chromium } = require('@playwright/test');
@@ -13,16 +12,14 @@ describe('Branding browser print and native upload controls', function () {
   this.timeout(20000);
   let browser: import('@playwright/test').Browser;
   before(async function () {
-    setupServiceTestGlobals();
     browser = await chromium.launch({ executablePath: process.env.CHROME_BIN, headless: true, args: ['--no-sandbox'] });
   });
   after(async function () {
     await browser?.close();
-    cleanupServiceTestGlobals();
   });
 
   it('applies generated custom typography through the real print cascade and preserves inactive defaults', async function () {
-    const { Services } = require('../../src/services/BrandingThemeCssService');
+    const { Services } = require('../../src/branding/BrandingThemeCss');
     const theme = new Services.BrandingThemeCss();
     const bridge = sass.compileString(
       fs.readFileSync(path.join(root, 'assets/styles/default-variables.scss'), 'utf8') +
@@ -77,7 +74,7 @@ describe('Branding browser print and native upload controls', function () {
       'utf8'
     );
     const bootstrap = fs.readFileSync(
-      path.join(root, 'angular/node_modules/bootstrap/dist/css/bootstrap.min.css'),
+      require.resolve('bootstrap/dist/css/bootstrap.min.css', { paths: [root] }),
       'utf8'
     );
     const page = await browser.newPage();

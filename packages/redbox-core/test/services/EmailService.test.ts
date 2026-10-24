@@ -1,3 +1,4 @@
+import _ from 'lodash';
 const hooks = new Map<string, unknown>();
 const collaborators: any = {};
 import {createSinonStubLogger} from "../logger.test";

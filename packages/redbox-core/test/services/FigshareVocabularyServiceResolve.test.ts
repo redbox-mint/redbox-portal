@@ -95,7 +95,7 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
     repositoryFixtures.VocabularyEntry = { find: entryFind };
 
     environment = createDomainFixture();
-    savedServices = environment.services;
+    savedServices = environment.collaborators;
 
     delete require.cache[require.resolve('../../src/services/FigshareVocabularyService')];
     const { Services } = require('../../src/services/FigshareVocabularyService');
@@ -295,7 +295,7 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
    */
   describe('getCrosswalkUsage', function () {
     function withConfig(figsharePublishing: unknown) {
-      environment.services = {
+      environment.collaborators = {
         appconfigservice: {
           getAppConfigurationForBrand: sinon.stub().returns({ figsharePublishing })
         }

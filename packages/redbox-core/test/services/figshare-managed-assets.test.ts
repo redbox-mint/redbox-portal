@@ -59,10 +59,10 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
 
     disks = { disk: () => disk, stagingDisk: () => disk };
     Object.assign(environment.config, { record: { datastreamService: 'teststreams' } });
-    Reflect.set(environment, 'services', { teststreams: { getDatastream: async () => ({ size: bytes.length, readstream: Readable.from(bytes) }), removeDatastream: async () => { throw new Error('Local bytes must never be deleted'); } } });
+    Reflect.set(environment, 'collaborators', { teststreams: { getDatastream: async () => ({ size: bytes.length, readstream: Readable.from(bytes) }), removeDatastream: async () => { throw new Error('Local bytes must never be deleted'); } } });
     const { createFigshareAssets } = requireTest('../../src/integrations/figshare/assets');
     const { createFigshareManagedAssets } = requireTest('../../src/integrations/figshare/managed-assets');
-    ({ mirrorManagedAssets, cleanupProjection } = createFigshareManagedAssets(createFigshareAssets({ disks, datastream: () => environment.services.teststreams, log: environment.log })));
+    ({ mirrorManagedAssets, cleanupProjection } = createFigshareManagedAssets(createFigshareAssets({ disks, datastream: () => environment.collaborators.teststreams, log: environment.log })));
 
   });
   afterEach(() => staged.clear());
@@ -102,7 +102,7 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
   });
   it('skips re-reading an unchanged attachment, and re-reads it once its stored bytes change', async () => {
     let reads = 0;
-    const streams = Reflect.get(environment.services, 'teststreams');
+    const streams = Reflect.get(environment.collaborators, 'teststreams');
     const read = streams.getDatastream;
     Object.assign(streams, { getDatastream: async () => { reads++; return read(); }, getDatastreamFingerprint: async () => `etag-${bytes.toString('hex')}` });
     const current = record(); const remote = client();
@@ -116,7 +116,7 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
   });
   it('re-reads once to fingerprint a receipt verified before fingerprints were recorded', async () => {
     let reads = 0;
-    const streams = Reflect.get(environment.services, 'teststreams');
+    const streams = Reflect.get(environment.collaborators, 'teststreams');
     const read = streams.getDatastream;
     streams.getDatastream = async () => { reads++; return read(); };
     const current = record(); const remote = client();

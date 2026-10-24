@@ -136,7 +136,7 @@ describe('DashboardConfigService', function () {
     repositoryFixtures.DashboardType = { find: sinon.stub().resolves([]) };
     repositoryFixtures.AppConfig = { find: sinon.stub().resolves([]), findOne: sinon.stub().resolves(undefined), create: sinon.stub().resolves({}) };
     repositoryFixtures.BrandingConfig = { find: sinon.stub().resolves([{ id: 'brand1', name: 'default' }]) };
-    service = new Services.DashboardConfig({ references: referenceFixtures(), configuration: configurationFixtures(), brands: brandingFixtures(), migrations: { isExecuted: migrationExecuted }, config: fixture.config, log: fixture.log, get recordTypes() { return collaborators.RecordTypesService; }, get workflowSteps() { return collaborators.WorkflowStepsService; }, get schema() { return fixture.services.recordschemaservice; }, availableBrands: () => collaborators.BrandingService.getAvailable(), getBrand: name => collaborators.BrandingService.getBrand(name) });
+    service = new Services.DashboardConfig({ references: referenceFixtures(), configuration: configurationFixtures(), brands: brandingFixtures(), migrations: { isExecuted: migrationExecuted }, config: fixture.config, log: fixture.log, get recordTypes() { return collaborators.RecordTypesService; }, get workflowSteps() { return collaborators.WorkflowStepsService; }, get schema() { return fixture.collaborators.recordschemaservice; }, availableBrands: () => collaborators.BrandingService.getAvailable(), getBrand: name => collaborators.BrandingService.getBrand(name) });
   });
 
   afterEach(function () {
@@ -385,7 +385,7 @@ describe('DashboardConfigService', function () {
 
     beforeEach(async function () {
       await seed({ rdmp: { draft: stageSettings('Draft') } });
-      fixture.services = {
+      fixture.collaborators = {
         recordschemaservice: {
           describeStage: sinon.stub().resolves({
             kind: 'resolved',
@@ -400,7 +400,7 @@ describe('DashboardConfigService', function () {
       const result = await service.getFieldCatalogue(brand, draft, { caller, portal: 'rdmp' });
       expect(result.status).to.equal('complete');
       expect(result.fields.map((f) => f.path)).to.include.members(['metadata.title', 'metadata.owner.email', 'metaMetadata.lastSaveDate']);
-      const request = fixture.services.recordschemaservice.describeStage.firstCall.args[0];
+      const request = fixture.collaborators.recordschemaservice.describeStage.firstCall.args[0];
       expect(request).to.deep.include({ recordType: 'rdmp', targetStep: 'draft', portal: 'rdmp' });
     });
 
@@ -412,7 +412,7 @@ describe('DashboardConfigService', function () {
     });
 
     it('never blocks editing when the schema is unavailable', async function () {
-      fixture.services.recordschemaservice.describeStage = sinon.stub().resolves({ kind: 'unavailable', code: 'forbidden' });
+      fixture.collaborators.recordschemaservice.describeStage = sinon.stub().resolves({ kind: 'unavailable', code: 'forbidden' });
       const result = await service.getFieldCatalogue(brand, draft, { caller });
       expect(result.status).to.equal('unavailable');
       expect(result.reason).to.equal('forbidden');

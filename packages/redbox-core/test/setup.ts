@@ -1,5 +1,3 @@
-import { repositoryFixtures } from './helpers/repositoryFixtures';
-import * as lodash from 'lodash';
 import {
   createNoopMeter,
   metrics,
@@ -38,7 +36,8 @@ const capturingMeter: Meter = new Proxy(noopMeter, {
   },
 });
 const capturingMeterProvider: MeterProvider = {
-  getMeter: name => name === 'redbox.record-validation' || name === 'redbox.record-schema' ? capturingMeter : noopMeter,
+  getMeter: name =>
+    name === 'redbox.record-validation' || name === 'redbox.record-schema' ? capturingMeter : noopMeter,
 };
 if (!metrics.setGlobalMeterProvider(capturingMeterProvider)) {
   throw new Error('The core test suite could not install its OpenTelemetry meter provider.');
@@ -55,15 +54,4 @@ export function getCapturedOpenTelemetryMeasurements(): readonly CapturedOpenTel
   }));
 }
 
-import {createSinonStubLogger} from "./logger.test";
-import * as sinon from "sinon";
-
-// Test process telemetry is installed above; domains receive their own fixture inputs.
-
-// Set up lodash as global
-(global as any)._ = lodash;
-
-// Set up minimal model mocks that might be accessed during module loading
-repositoryFixtures.AsynchProgress = { find: () => ({ exec: () => { } }) };
-repositoryFixtures.Role = { find: () => ({ exec: () => { } }) };
-repositoryFixtures.BrandingConfig = { findOne: () => ({ exec: () => { } }) };
+// Domains receive explicit fixture inputs; module evaluation installs no framework globals.

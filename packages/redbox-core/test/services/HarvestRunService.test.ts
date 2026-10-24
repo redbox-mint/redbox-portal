@@ -133,7 +133,7 @@ describe('HarvestRunService', function () {
     };
 
     fixture = createDomainFixture({
-      services: {
+      collaborators: {
         recordsservice: recordsService,
       },
     });
@@ -172,7 +172,7 @@ describe('HarvestRunService', function () {
 
     sinon.stub(require('../../src/persistence/harvest/runtime'), 'getHarvestRepositories').callsFake(harvestFixtures);
     fixture.config.storage = { serviceName: 'harveststorage' };
-    fixture.services.harveststorage = {
+    fixture.collaborators.harveststorage = {
       findHarvestRecords: async (harvestIds: string[], recordType: string, brandId?: string) =>
         repositoryFixtures.Record.find({
           harvestId: brandId === undefined && harvestIds.length === 1 ? harvestIds[0] : { in: harvestIds },
@@ -184,7 +184,7 @@ describe('HarvestRunService', function () {
     const module = require('../../src/services/HarvestRunService');
     HarvestRunServiceClass = module.Services.HarvestRunService;
     service = new HarvestRunServiceClass({ get records() { return collaborators.RecordsService; },
-      get storage() { return fixture.services.harveststorage; }, get workflows() { return collaborators.WorkflowStepsService; },
+      get storage() { return fixture.collaborators.harveststorage; }, get workflows() { return collaborators.WorkflowStepsService; },
       repository: harvestFixtures(), get config() { return fixture.config; }, log: fixture.log });
   });
 
@@ -268,7 +268,7 @@ describe('HarvestRunService', function () {
       auditing: { enabled: false, recordAuditJobName: 'RecordAudit' },
     };
     fixture.config.jsonld = { addJsonLdContext: false, contexts: {} };
-    fixture.services.recordschemaservice = schemaResolver;
+    fixture.collaborators.recordschemaservice = schemaResolver;
     collaborators.WorkflowStepsService = {
       getFirst: sinon.stub().returns(of(workflowStep)),
       get: sinon.stub().returns(of(workflowStep)),
@@ -291,7 +291,7 @@ describe('HarvestRunService', function () {
         .callsFake(async request => recordValidationResult(request)),
     };
     collaborators.RecordValidationService = recordValidationService;
-    fixture.services.recordvalidationservice = recordValidationService;
+    fixture.collaborators.recordvalidationservice = recordValidationService;
     collaborators.TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
@@ -314,7 +314,7 @@ describe('HarvestRunService', function () {
     realRecordsService.queueService = { now: sinon.stub() };
     realRecordsService.datastreamService = {};
     collaborators.RecordsService = realRecordsService;
-    fixture.services.recordsservice = realRecordsService;
+    fixture.collaborators.recordsservice = realRecordsService;
 
     return {
       persistedRecords,

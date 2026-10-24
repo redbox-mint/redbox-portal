@@ -1,3 +1,4 @@
+import _ from 'lodash';
 const collaborators: any = {};
 import { createSinonStubLogger } from '../logger.test';
 

@@ -47,8 +47,7 @@ describe('FigshareVocabularyService preview mode resolution', function () {
     return FigshareVocabularyService.resolvePreviewMode(input, BRAND);
   }
 
-  // The shared setup helper installs its own `sails` mock and then removes it, which would
-  // strip the global fixture other suites depend on. Snapshot and restore instead.
+  // Repository spies are shared by these focused suites; restore each captured entry.
   const savedFixtures = new Map<string, unknown>();
 
   beforeEach(function () {

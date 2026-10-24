@@ -268,13 +268,13 @@ function buildAssetRecord(dataLocations: any[]): RecordModel {
 
 function installDatastreamStub(buffer: Buffer, size?: number) {
   environment.config.record = { datastreamService: 'datastreamservice' };
-  environment.services.datastreamservice = {
+  environment.collaborators.datastreamservice = {
     getDatastream: sinon.stub().resolves({
       readstream: Readable.from([buffer]),
       ...(size === undefined ? {} : { size }),
     }),
   };
-  return environment.services.datastreamservice.getDatastream as sinon.SinonStub;
+  return environment.collaborators.datastreamservice.getDatastream as sinon.SinonStub;
 }
 
 function buildAssetClient(
@@ -330,7 +330,7 @@ describe('FigshareService', function () {
       now: sinon.stub(),
       schedule: sinon.stub(),
     };
-    environment.services.queueservice = mockQueueService;
+    environment.collaborators.queueservice = mockQueueService;
 
     installRepositoryFixtures();
     collaborators.AgendaQueueService = mockQueueService;
@@ -393,7 +393,7 @@ describe('FigshareService', function () {
       recordType: async (...args) => collaborators.RecordTypesService.get(...args).toPromise(),
       workflowStep: async (...args) => collaborators.WorkflowStepsService.get(...args).toPromise(),
       eligible: () => true, store: () => { throw new Error('No store configured for this scenario'); },
-      datastream: () => environment.services.datastreamservice,
+      datastream: () => environment.collaborators.datastreamservice,
       disks: { disk: (...args) => collaborators.StorageManagerService.disk(...args), stagingDisk: () => collaborators.StorageManagerService.stagingDisk() },
       crosswalk: { get resolveCrosswalkValues() { return collaborators.FigshareVocabularyService?.resolveCrosswalkValues; } },
       get audit() { return collaborators.IntegrationAuditService; }, queue: mockQueueService,
@@ -1801,7 +1801,7 @@ describe('FigshareService', function () {
         emitClose: false,
       });
       environment.config.record = { datastreamService: 'datastreamservice' };
-      environment.services.datastreamservice = {
+      environment.collaborators.datastreamservice = {
         getDatastream: sinon.stub().resolves({ readstream, size: 8 }),
       };
       const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
@@ -2075,7 +2075,7 @@ describe('FigshareService', function () {
 
       expect(collaborators.StorageManagerService.disk.called).to.equal(false);
       expect(collaborators.StorageManagerService.stagingDisk.called).to.equal(false);
-      expect(environment.services.datastreamservice.getDatastream.called).to.equal(false);
+      expect(environment.collaborators.datastreamservice.getDatastream.called).to.equal(false);
       expect(result.uploadedAttachments[0].id).to.equal('fixture-attachment-1');
     });
   });

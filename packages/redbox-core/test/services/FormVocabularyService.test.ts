@@ -1,3 +1,4 @@
+import _ from 'lodash';
 const collaborators: any = {};
 import {createSinonStubLogger} from "../logger.test";
 
@@ -67,7 +68,7 @@ describe('FormVocabularyService', function () {
         }
       },
       log: createSinonStubLogger(sinon),
-      services: {
+      collaborators: {
         solrsearchservice: {
           searchAdvanced: sinon.stub().resolves({ response: { docs: [] } })
         },
@@ -100,8 +101,8 @@ describe('FormVocabularyService', function () {
     delete require.cache[require.resolve('../../src/services/FormVocabularyService')];
     const { Services } = require('../../src/services/FormVocabularyService');
     FormVocabularyService = new Services.FormVocabulary({ get config() { return fixture.config.vocab; }, log: fixture.log,
-      get queries() { return collaborators.NamedQueryService; }, get search() { return fixture.services.solrsearchservice; },
-      resolveLookup: (service, method) => { const target = fixture.services[service.toLowerCase()]; return typeof target?.[method] === 'function' ? target[method].bind(target) : undefined; } });
+      get queries() { return collaborators.NamedQueryService; }, get search() { return fixture.collaborators.solrsearchservice; },
+      resolveLookup: (service, method) => { const target = fixture.collaborators[service.toLowerCase()]; return typeof target?.[method] === 'function' ? target[method].bind(target) : undefined; } });
   });
 
   afterEach(function () {
@@ -188,7 +189,7 @@ describe('FormVocabularyService', function () {
 
       await FormVocabularyService.findRecords('solr-source', brand, 'query', 0, 10, user);
 
-      expect(fixture.services.solrsearchservice.searchAdvanced.called).to.be.true;
+      expect(fixture.collaborators.solrsearchservice.searchAdvanced.called).to.be.true;
     });
 
     it('rejects unknown query vocabularies', async function () {
@@ -264,8 +265,8 @@ describe('FormVocabularyService', function () {
         ],
         meta: { total: 1 }
       });
-      expect(fixture.services.lookuptestservice.lookupPeople.calledOnce).to.be.true;
-      const requestArg = fixture.services.lookuptestservice.lookupPeople.firstCall.args[0];
+      expect(fixture.collaborators.lookuptestservice.lookupPeople.calledOnce).to.be.true;
+      const requestArg = fixture.collaborators.lookuptestservice.lookupPeople.firstCall.args[0];
       expect(requestArg).to.include({
         serviceId: 'testLookup',
         search: 'jan',
@@ -317,7 +318,7 @@ describe('FormVocabularyService', function () {
     });
 
     it('rejects invalid service lookup responses', async function () {
-      fixture.services.lookuptestservice.lookupPeople.resolves({ meta: { total: 0 } });
+      fixture.collaborators.lookuptestservice.lookupPeople.resolves({ meta: { total: 0 } });
 
       try {
         await FormVocabularyService.findInServiceLookup('testLookup', {
@@ -336,7 +337,7 @@ describe('FormVocabularyService', function () {
     });
 
     it('rejects invalid service lookup options', async function () {
-      fixture.services.lookuptestservice.lookupPeople.resolves({
+      fixture.collaborators.lookuptestservice.lookupPeople.resolves({
         data: [{ label: '', value: 'party-1' }]
       });
 
@@ -375,8 +376,8 @@ describe('FormVocabularyService', function () {
         ],
         meta: { total: 1, source: 'datacite' }
       });
-      expect(fixture.services.doiservice.lookupDataciteDois.calledOnce).to.be.true;
-      expect(fixture.services.doiservice.lookupDataciteDois.firstCall.args[0]).to.include({
+      expect(fixture.collaborators.doiservice.lookupDataciteDois.calledOnce).to.be.true;
+      expect(fixture.collaborators.doiservice.lookupDataciteDois.firstCall.args[0]).to.include({
         serviceId: 'dataciteDois',
         search: 'climate data',
         start: 0,

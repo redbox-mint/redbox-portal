@@ -36,12 +36,12 @@ describe('AgendaQueueService', function () {
   let queueNumber = 0;
   function createQueue(owner = environment) {
     const handlers = {
-      'fixture.noop': (...args) => owner.services.fixture?.noop(...args),
-      'fixture.work': (...args) => owner.services.fixture?.work(...args),
-      'completionFixture.handler': (...args) => owner.services.completionFixture?.handler(...args),
-      'testservice.defaultJob': (...args) => owner.services.testservice?.defaultJob(...args),
-      'testservice.overrideJob': (...args) => owner.services.testservice?.overrideJob(...args),
-      'testservice.process': (...args) => owner.services.testservice?.process(...args),
+      'fixture.noop': (...args) => owner.collaborators.fixture?.noop(...args),
+      'fixture.work': (...args) => owner.collaborators.fixture?.work(...args),
+      'completionFixture.handler': (...args) => owner.collaborators.completionFixture?.handler(...args),
+      'testservice.defaultJob': (...args) => owner.collaborators.testservice?.defaultJob(...args),
+      'testservice.overrideJob': (...args) => owner.collaborators.testservice?.overrideJob(...args),
+      'testservice.process': (...args) => owner.collaborators.testservice?.process(...args),
     };
     const service = new AgendaQueue({ owner, get config() { return owner.config.agendaQueue ?? { options: {}, jobs: {} }; }, log: owner.log,
       handler: name => handlers[name],
@@ -57,7 +57,7 @@ describe('AgendaQueueService', function () {
   }
   function auditInput() {
     return { log: environment.log, environment: environment.config.environment,
-      storage: environment.services.auditstorage ?? {},
+      storage: environment.collaborators.auditstorage ?? {},
       enqueue: (name, data) => collaborators.AgendaQueueService.now(name, data) };
   }
   function createAgendaStub(overrides: any = {}) {
@@ -710,7 +710,7 @@ describe('AgendaQueueService', function () {
     environment.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {
       first: { fnName: 'fixture.noop' }, second: { fnName: 'fixture.noop', backend: 'sqs' },
     } };
-    Reflect.set(environment.services, 'fixture', { noop: async () => {} });
+    Reflect.set(environment.collaborators, 'fixture', { noop: async () => {} });
     let enter!: () => void, release!: () => void;
     const entered = new Promise<void>(resolve => { enter = resolve; });
     const held = new Promise<void>(resolve => { release = resolve; });
@@ -998,7 +998,7 @@ describe('AgendaQueueService', function () {
     };
     if (registration === 'dynamic') service.defineJob('completion-producer', {}, handler);
     else {
-      Reflect.set(environment.services, 'completionFixture', { handler });
+      Reflect.set(environment.collaborators, 'completionFixture', { handler });
       service.defineJobs([{ name: 'completion-producer', fnName: 'completionFixture.handler' }]);
     }
     Reflect.set(collaborators, 'AgendaQueueService', service);
@@ -1042,7 +1042,7 @@ describe('AgendaQueueService', function () {
     let releaseEnqueue!: () => void;
     const heldStorage = new Promise<void>(resolve => { releaseStorage = resolve; });
     const heldEnqueue = new Promise<void>(resolve => { releaseEnqueue = resolve; });
-    Reflect.set(environment.services, 'auditstorage', {
+    Reflect.set(environment.collaborators, 'auditstorage', {
       createIntegrationAudit: async () => { await heldStorage; return { success: true }; },
     });
     const { Services: Audit } = require('../../src/services/IntegrationAuditService');
@@ -1449,7 +1449,7 @@ describe('AgendaQueueService', function () {
             }
           }
         },
-        services: {
+        collaborators: {
           testservice: {
             defaultJob: sinon.stub().resolves(undefined),
             overrideJob: sinon.stub().resolves(undefined)
@@ -1492,7 +1492,7 @@ describe('AgendaQueueService', function () {
             }
           }
         },
-        services: {
+        collaborators: {
           testservice: {
             process: sinon.stub().resolves(undefined)
           }
@@ -1534,7 +1534,7 @@ describe('AgendaQueueService', function () {
             }
           }
         },
-        services: {
+        collaborators: {
           testservice: {
             process: sinon.stub().resolves(undefined)
           }
@@ -1574,7 +1574,7 @@ describe('AgendaQueueService', function () {
             }
           }
         },
-        services: {
+        collaborators: {
           testservice: {
             process: sinon.stub().resolves(undefined)
           }

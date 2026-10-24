@@ -43,7 +43,6 @@ describe('FigshareVocabularyService bootstrap data', function () {
   let savedBootstrapConfig: unknown;
   let savedServices: unknown;
   let savedLog: any;
-  /** True when this suite created the sails global and must therefore remove it. */
   let createdEnvironment = false;
 
   const IMPORT_ITEM = {
@@ -83,19 +82,18 @@ describe('FigshareVocabularyService bootstrap data', function () {
       updateOne: crosswalkUpdateOne
     };
 
-    // Don't depend on another spec file having installed the sails global first —
-    // suite ordering left this undefined when the whole suite runs.
+    // Each suite constructs its own explicit domain environment.
     environment = createDomainFixture();
 
     
     savedVocabConfig = environment.config.vocab;
     savedBootstrapConfig = environment.config.bootstrap;
-    savedServices = environment.services;
+    savedServices = environment.collaborators;
     savedLog = environment.log;
 
     environment.config.vocab = {};
     environment.config.bootstrap = { bootstrapDataPath: '/app/bootstrap-data' };
-    environment.services = { brandingservice: { getDefault: () => ({ id: BRAND, name: 'default' }) } };
+    environment.collaborators = { brandingservice: { getDefault: () => ({ id: BRAND, name: 'default' }) } };
     logError = sinon.stub();
     environment.log = { ...savedLog, error: logError };
 

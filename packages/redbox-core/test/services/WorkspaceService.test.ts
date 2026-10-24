@@ -42,7 +42,6 @@ describe('WorkspaceService', function () {
     repositoryFixtures.User = mockUser;
     repositoryFixtures.WorkspaceApp = mockWorkspaceApp;
     repositoryFixtures.Form = { findOne: sinon.stub() };
-    (global as any).Institution = { findOne: sinon.stub() };
     collaborators.RecordsService = {
       getMeta: sinon.stub().resolves({}),
       appendToRecord: sinon.stub().resolves({}),
@@ -66,7 +65,6 @@ describe('WorkspaceService', function () {
     delete repositoryFixtures.User;
     delete repositoryFixtures.WorkspaceApp;
     delete repositoryFixtures.Form;
-    delete (global as any).Institution;
     delete collaborators.RecordsService;
     delete collaborators.BrandingService;
     axiosStub.restore();

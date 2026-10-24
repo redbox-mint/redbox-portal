@@ -1258,3 +1258,42 @@ fixture. `chronicle41-final.log`:140/0/1 from that stale fixture;
 including all35 HTTP, I18nEntries domain and chronicle utility scenarios. Source
 TypeScript **exit0**, `chronicle41-tsc-final.log`; pinned Prettier/diff check pass.
 No whole-suite/final-artifact qualification is claimed by these focused checks.
+
+### Framework-free shared domain fixtures and browser bootstrap
+
+Removed createMockSails/global setup/cleanup and the final global Lodash/model
+installation from test/setup. createDomainFixture now returns explicit local
+configuration, logger and collaborator data. Domain suites and Figshare helpers
+refer to that local collaborator data; production vocabulary service declarations
+in config.vocab.services are unchanged. Four tests now import their used Lodash
+module explicitly. Removed an unused Institution global fixture. SIEM replay now
+constructs its actual capture service with explicit repository/enqueue ports,
+retaining the committed-capture/retry/delivered-state assertions.
+
+The first mechanical fixture edit missed environment/owner references beyond the
+fixture variable; `fixtures42-services.log` records **2211 passing/65 pending/6
+failing**. It omitted Mongo environment URLs and is diagnostic only. Corrected
+those local references and an unmigrated SIEM no-argument/global-service test.
+A focused attempt recorded172 passing/1 failing from an RVA literal property;
+corrected that fixture as well. No test assertion was removed or relaxed.
+
+Full service execution with real Docker Mongo8.0.34 on29511:
+`SIEM_TEST_MONGO_URL=mongodb://127.0.0.1:29511/sr_p8_siem
+FIGSHARE_TEST_MONGO_URI=mongodb://127.0.0.1:29511/sr_p8_figshare
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types
+node_modules/mocha/bin/mocha.js --no-config --require
+ts-node/register/transpile-only --require chai --require test/setup.ts
+--timeout20000 test/services/*.test.ts` (space between `--timeout` and `20000`).
+`fixtures42-services-final.log`: **2334 passing / 7 unchanged pending / 0 failing**,
+exit0, 1m. Durable Mongo cases execute; the seven existing placeholders remain
+2 RAID contributors,2 workflow template validation and3 workspace API scenarios.
+They do not count as executed qualification and are not new skips.
+
+The explicit branding browser suite installs no framework globals. Its first run
+passed print/font rendering but failed because a hardcoded duplicate Angular
+node_modules Bootstrap path was absent. It now resolves the existing exact root
+Bootstrap dependency, preserving actual CSS/native keyboard chooser assertions.
+`fixtures42-browser-final.log`: **2 passing/0 pending/0 failing**, Chromium1243,
+CHROME_BIN=/home/andrew/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome,
+Node26.11.1. Sass emits its existing inspect() deprecation advisory. Pinned
+Prettier/diff check pass. Clean production artifact/full suites remain pending.

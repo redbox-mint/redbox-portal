@@ -24,7 +24,7 @@ describe('ReportsService', function () {
         },
       },
       log: createSinonStubLogger(sinon),
-      services: {
+      collaborators: {
         solrsearchservice: {
           searchAdvanced: sinon.stub().resolves({ response: { docs: [] } }),
         },
@@ -64,8 +64,8 @@ describe('ReportsService', function () {
     };
 
     const { Services } = require('../../src/services/ReportsService');
-    ReportsService = new Services.Reports({ reports: referenceFixtures().reports, get namedQueries() { return collaborators.NamedQueryService; }, get search() { return fixture.services.solrsearchservice; }, config: fixture.config, log: fixture.log, portalUrl: parameters => collaborators.BrandingService.getFullPath(parameters.branding, parameters.portal) });
-    ReportsService.searchService = fixture.services.solrsearchservice;
+    ReportsService = new Services.Reports({ reports: referenceFixtures().reports, get namedQueries() { return collaborators.NamedQueryService; }, get search() { return fixture.collaborators.solrsearchservice; }, config: fixture.config, log: fixture.log, portalUrl: parameters => collaborators.BrandingService.getFullPath(parameters.branding, parameters.portal) });
+    ReportsService.searchService = fixture.collaborators.solrsearchservice;
   });
 
   afterEach(function () {
@@ -465,14 +465,14 @@ describe('ReportsService', function () {
       };
       mockReport.findOne.returns(createQueryObject(reportModel));
 
-      fixture.services.solrsearchservice.searchAdvanced.resolves({
+      fixture.collaborators.solrsearchservice.searchAdvanced.resolves({
         response: { numFound: 5, start: 0, docs: [{}, {}, {}, {}, {}] },
       });
 
       const result = await ReportsService.getResults(brand, 'report-1', req);
 
-      expect(fixture.services.solrsearchservice.searchAdvanced.called).to.be.true;
-      const params = fixture.services.solrsearchservice.searchAdvanced.firstCall.args[2] as URLSearchParams;
+      expect(fixture.collaborators.solrsearchservice.searchAdvanced.called).to.be.true;
+      const params = fixture.collaborators.solrsearchservice.searchAdvanced.firstCall.args[2] as URLSearchParams;
       expect(params.getAll('fq')).to.deep.equal(['metaMetadata_brandId:brand-1', 'metadata_title:research & data*']);
       expect(result.total).to.equal(5);
       expect(result.records).to.have.length(5);

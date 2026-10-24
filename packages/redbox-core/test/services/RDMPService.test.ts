@@ -36,7 +36,7 @@ describe('RDMPService', function () {
         }
       },
       log: createSinonStubLogger(sinon),
-      services: {
+      collaborators: {
         agendaqueueservice: {
           now: sinon.stub().resolves({})
         }
@@ -90,8 +90,8 @@ describe('RDMPService', function () {
 
     // Import after mocks are set up
     const { RecordTriggers } = require('../../src/services/RDMPService');
-    RDMPService = new RecordTriggers({ config: fixture.config.record, log: fixture.log, identities: identityRepositories(), counters: { incrementGlobal: async () => 101 }, get queue() { return fixture.services.agendaqueueservice; }, effectiveUser: user => firstValueFrom(collaborators.UsersService.getEffectiveUser(user)), translate: key => collaborators.TranslationService.t(key), interpolate: (...args) => collaborators.TranslationService.tInter(...args), resolveHook: name => hooks.get(name), get workspaces() { return collaborators.WorkspaceService; } });
-    RDMPService.queueService = fixture.services.agendaqueueservice;
+    RDMPService = new RecordTriggers({ config: fixture.config.record, log: fixture.log, identities: identityRepositories(), counters: { incrementGlobal: async () => 101 }, get queue() { return fixture.collaborators.agendaqueueservice; }, effectiveUser: user => firstValueFrom(collaborators.UsersService.getEffectiveUser(user)), translate: key => collaborators.TranslationService.t(key), interpolate: (...args) => collaborators.TranslationService.tInter(...args), resolveHook: name => hooks.get(name), get workspaces() { return collaborators.WorkspaceService; } });
+    RDMPService.queueService = fixture.collaborators.agendaqueueservice;
   });
 
   afterEach(function () {
@@ -763,7 +763,7 @@ describe('RDMPService', function () {
 
       const result = await firstValueFrom(RDMPService.queueTriggerCall('oid-1', record, options, {}));
 
-      expect(fixture.services.agendaqueueservice.now.calledWith('testJob')).to.be.true;
+      expect(fixture.collaborators.agendaqueueservice.now.calledWith('testJob')).to.be.true;
       expect(result).to.deep.equal(record);
     });
 
@@ -779,7 +779,7 @@ describe('RDMPService', function () {
 
       const result = await firstValueFrom(RDMPService.queueTriggerCall('oid-1', record, options, {}));
 
-      expect(fixture.services.agendaqueueservice.now.called).to.be.true;
+      expect(fixture.collaborators.agendaqueueservice.now.called).to.be.true;
     });
   });
 

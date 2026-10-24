@@ -64,7 +64,7 @@ describe('RolesService', function() {
     RolesService = new Services.Roles({ repository: identityRepositories(), log: fixture.log, auth: brand => collaborators.ConfigService.getBrand(brand), roles: () => fixture.config.auth.roles, defaultBrand: () => collaborators.BrandingService.getDefault(), refreshBrand: id => collaborators.BrandingService.refreshBrandingCache(id), loadBrands: () => collaborators.BrandingService.loadAvailableBrands() });
 
     // Inject brandingservice into explicit collaborators for bootstrap
-    fixture.services.brandingservice = collaborators.BrandingService;
+    fixture.collaborators.brandingservice = collaborators.BrandingService;
   });
 
   afterEach(function() {

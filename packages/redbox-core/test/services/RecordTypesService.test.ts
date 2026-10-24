@@ -37,7 +37,7 @@ describe('RecordTypesService', function () {
     };
     fixture.config.appmode = { bootstrapAlways: false };
     fixture.config.storage = { serviceName: 'teststorage' };
-    fixture.services.teststorage = {
+    fixture.collaborators.teststorage = {
       getCapabilities: () => ({
         recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       }),
@@ -61,7 +61,7 @@ describe('RecordTypesService', function () {
       findOne: sinon.stub().returns(mockDeferred({})),
     };
 
-    service = new RecordTypes({ repository: referenceFixtures().recordTypes, config: fixture.config, log: fixture.log, storageCapability: () => fixture.services.teststorage });
+    service = new RecordTypes({ repository: referenceFixtures().recordTypes, config: fixture.config, log: fixture.log, storageCapability: () => fixture.collaborators.teststorage });
   });
 
   afterEach(function () {
@@ -313,7 +313,7 @@ describe('RecordTypesService', function () {
     });
 
     it('fails closed at runtime when a strict policy uses an unsupported adapter', async function () {
-      fixture.services.teststorage = {};
+      fixture.collaborators.teststorage = {};
       repositoryFixtures.RecordType.findOne.returns({
         exec: (callback: (error: unknown, result: unknown) => void) =>
           callback(null, {
@@ -334,7 +334,7 @@ describe('RecordTypesService', function () {
 
   describe('storage capability startup gate', function () {
     it('rejects an existing strict type when the adapter declaration is absent', async function () {
-      fixture.services.teststorage = {};
+      fixture.collaborators.teststorage = {};
       repositoryFixtures.RecordType.find.resolves([
         {
           name: 'dataset',

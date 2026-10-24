@@ -6,10 +6,10 @@ export function figshareVocabularyInput(environment = createDomainFixture()) {
   return {
     repository: getVocabularyRepositories(),
     get log() { return environment.log; },
-    brandName: (id: string) => environment.services.brandingservice?.getBrandById?.(id)?.name ?? id,
-    defaultBrandId: () => String(environment.services.brandingservice?.getDefault?.()?.id ?? 'default'),
+    brandName: (id: string) => environment.collaborators.brandingservice?.getBrandById?.(id)?.name ?? id,
+    defaultBrandId: () => String(environment.collaborators.brandingservice?.getDefault?.()?.id ?? 'default'),
     configuration: (name: string) => environment.configuration?.(name) ?? null,
-    appConfiguration: (name: string) => environment.services.appconfigservice?.getAppConfigurationForBrand?.(name),
+    appConfiguration: (name: string) => environment.collaborators.appconfigservice?.getAppConfigurationForBrand?.(name),
     get bootstrapDataPath() { return environment.config.bootstrap?.bootstrapDataPath; },
     get bootstrapFigshareImports() { return environment.config.vocab?.bootstrapFigshareImports; },
   };

@@ -21,7 +21,7 @@ type VocabularyEnvironment = {
     bootstrap?: { bootstrapDataPath?: string };
     vocab?: { bootstrapRvaImports?: boolean };
   };
-  services: Record<string, unknown>;
+  collaborators: Record<string, unknown>;
 };
 
 type VocabularyFindChain = {
@@ -55,7 +55,7 @@ type VocabularyEntryModelStub = {
   updateOne: (...args: unknown[]) => { set: (...args: unknown[]) => Promise<{ id: string }> };
 };
 
-type TestGlobals = typeof globalThis & {
+type VocabularyFixture = {
   environment: VocabularyEnvironment;
   Vocabulary: VocabularyModelStub;
   VocabularyEntry: VocabularyEntryModelStub;
@@ -64,16 +64,15 @@ type TestGlobals = typeof globalThis & {
 
 describe('VocabularyService', () => {
   let service: VocabularyServiceModule.VocabularyService;
-  let g: TestGlobals;
-  let previousUnderscore: unknown;
+  let g: VocabularyFixture;
 
   beforeEach(() => {
     stubVocabularyPersistence();
-    g = {} as TestGlobals;
+    g = {} as VocabularyFixture;
     g.environment = {
       log: createSinonStubLogger(sinon),
       config: { auth: { defaultBrand: 'default' } },
-      services: {
+      collaborators: {
         brandingservice: { getDefault: sinon.stub().returns('default') },
         rvaimportservice: { importRvaVocabulary: sinon.stub().resolves({ id: 'rva-v1' }) }
       }
@@ -117,8 +116,8 @@ describe('VocabularyService', () => {
 
     service = new VocabularyServiceModule.VocabularyService({ repository: require('../../src/persistence/vocabulary/runtime').getVocabularyRepositories(),
       get config() { return g.environment.config; }, log: g.environment.log as ILogger,
-      getBrand: name => g.BrandingService.getBrand(name), defaultBrand: () => g.environment.services.brandingservice.getDefault(),
-      get rva() { return g.environment.services.rvaimportservice; } });
+      getBrand: name => g.BrandingService.getBrand(name), defaultBrand: () => g.environment.collaborators.brandingservice.getDefault(),
+      get rva() { return g.environment.collaborators.rvaimportservice; } });
     g.BrandingService = {
       getBrand: sinon.stub().returns({ id: 'default' })
     };
@@ -850,7 +849,7 @@ describe('VocabularyService', () => {
       findOneStub.onFirstCall().resolves(null);
       findOneStub.onSecondCall().resolves({ id: 'existing-rva', name: 'Existing RVA', type: 'flat' });
       repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.environment.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
 
       await service.bootstrapData();
 
@@ -863,7 +862,7 @@ describe('VocabularyService', () => {
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
       repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.environment.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.onFirstCall().rejects(new Error('RVA import timed out'));
       importStub.onSecondCall().resolves({ id: 'rva-316' });
 
@@ -883,7 +882,7 @@ describe('VocabularyService', () => {
         findOneStub.onFirstCall().resolves(null);
         findOneStub.onSecondCall().resolves({ id: 'rva-316' });
         repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
-        const importStub = (g.environment.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+        const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(new Promise(() => undefined));
 
         const bootstrap = service.bootstrapData();
@@ -903,7 +902,7 @@ describe('VocabularyService', () => {
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
       repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.environment.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.rejects(new Error('RVA metadata is invalid'));
 
       await service.bootstrapData();
@@ -917,7 +916,7 @@ describe('VocabularyService', () => {
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
       repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.environment.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.rejects(new Error('RVA import timed out'));
 
       await service.bootstrapData();
@@ -944,7 +943,7 @@ describe('VocabularyService', () => {
           return null;
         });
         repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
-        const importStub = (g.environment.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+        const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(originalImport);
 
         const bootstrap = service.bootstrapData();
@@ -963,17 +962,17 @@ describe('VocabularyService', () => {
       const clock = sinon.useFakeTimers();
       try {
         repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
-        const importStub = (g.environment.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+        const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(new Promise(() => undefined));
         const importBootstrap = Reflect.get(service, 'importRvaBootstrapVocabulary').bind(service) as (
-          importService: typeof g.environment.services.rvaimportservice,
+          importService: typeof g.environment.collaborators.rvaimportservice,
           rvaId: string,
           versionId: string | undefined,
           branding: string,
           sourceKey: string
         ) => Promise<VocabularyAttributes>;
 
-        const importResult = importBootstrap(g.environment.services.rvaimportservice, '316', undefined, 'default', 'rva:316');
+        const importResult = importBootstrap(g.environment.collaborators.rvaimportservice, '316', undefined, 'default', 'rva:316');
         let error: unknown;
         importResult.catch((caughtError) => { error = caughtError; });
         await clock.runAllAsync();
@@ -991,7 +990,7 @@ describe('VocabularyService', () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
-      const importStub = (g.environment.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
 
       await service.bootstrapData();
 

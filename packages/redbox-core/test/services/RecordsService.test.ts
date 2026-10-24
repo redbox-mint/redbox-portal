@@ -230,7 +230,7 @@ describe('RecordsService', function () {
         },
       },
       log: createSinonStubLogger(sinon),
-      services: {
+      collaborators: {
         brandingservice: {
           getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
           getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
@@ -333,7 +333,7 @@ describe('RecordsService', function () {
       resolve: recordValidationResolve,
     };
     collaborators.RecordValidationService = mockRecordValidationService;
-    fixture.services.recordvalidationservice = mockRecordValidationService;
+    fixture.collaborators.recordvalidationservice = mockRecordValidationService;
     collaborators.TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
@@ -358,9 +358,9 @@ describe('RecordsService', function () {
       get forms() { return collaborators.FormsService; },
       get users() { return collaborators.UsersService; },
       get roles() { return collaborators.RolesService; },
-      get schema() { return fixture.services.recordschemaservice; },
-      get validation() { return fixture.services.recordvalidationservice ?? collaborators.RecordValidationService; },
-      get attachments() { return fixture.services.attachmentmetadataservice; },
+      get schema() { return fixture.collaborators.recordschemaservice; },
+      get validation() { return fixture.collaborators.recordvalidationservice ?? collaborators.RecordValidationService; },
+      get attachments() { return fixture.collaborators.attachmentmetadataservice; },
       get translation() { return collaborators.TranslationService; },
       stagingDisk: () => collaborators.StorageManagerService.stagingDisk(),
       resolveHook: name => hookFunctions.get(name),
@@ -1361,7 +1361,7 @@ describe('RecordsService', function () {
         findUnresolvedByOid: sinon.stub().resolves([]),
         markMutation: sinon.stub().resolves(true),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       const plan = [
@@ -1399,7 +1399,7 @@ describe('RecordsService', function () {
         findUnresolvedByOid: sinon.stub().resolves([]),
         markMutation: sinon.stub().rejects(new Error('journal unavailable')),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
       const plan = [
         {
@@ -1500,7 +1500,7 @@ describe('RecordsService', function () {
       });
       const resolveCreate = sinon.stub().rejects(new Error('structural schema resolution must be bypassed'));
       const validateResolvedArtifact = sinon.stub();
-      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
       for (const mode of ['shadow', 'enforce'] as const) {
         const bootstrapPath = await fs.mkdtemp(path.join(os.tmpdir(), `records-bootstrap-${mode}-`));
@@ -1695,8 +1695,8 @@ describe('RecordsService', function () {
         if (operation !== 'soft-delete') {
           if (operation === 'destroy-deleted') mockStorageService.getMeta.resolves(null);
           mockRecord.findOne.returns(createQueryObject(null));
-          fixture.services.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService(attachmentFixture({ log: fixture.log, emitAccessEvent: event => collaborators.SecurityEventService.emitSecurityEvent({ ...event, eventType: `attachment.${event.action}`, category: 'attachment', source: 'AttachmentMetadataService' }) }));
-          const datastreams = new DatastreamServices.StandardDatastream({ disks: collaborators.StorageManagerService, forms: collaborators.FormsService, attachments: fixture.services.attachmentmetadataservice, log: fixture.log });
+          fixture.collaborators.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService(attachmentFixture({ log: fixture.log, emitAccessEvent: event => collaborators.SecurityEventService.emitSecurityEvent({ ...event, eventType: `attachment.${event.action}`, category: 'attachment', source: 'AttachmentMetadataService' }) }));
+          const datastreams = new DatastreamServices.StandardDatastream({ disks: collaborators.StorageManagerService, forms: collaborators.FormsService, attachments: fixture.collaborators.attachmentmetadataservice, log: fixture.log });
           mockDatastreamService.listDatastreams.onFirstCall().resolves([{ fileId: 'file-1' }]);
           mockDatastreamService.listDatastreams.onSecondCall().resolves([]);
           mockDatastreamService.removeDatastream.callsFake(
@@ -2623,7 +2623,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.updateMeta.resolves({
@@ -2678,7 +2678,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.updateMeta.resolves({
@@ -2736,7 +2736,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.updateMeta.resolves({
@@ -2898,7 +2898,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub(),
         markMutation: sinon.stub(),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
 
       const result = await update(record(3, 'Unauthorized', false), { expectedRevision: 3 });
 
@@ -2918,7 +2918,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub(),
         markMutation: sinon.stub(),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       installMode('strict');
       mockStorageService.getMeta.resolves(record());
       mockDatastreamService.addDatastream = sinon.stub().resolves();
@@ -3057,7 +3057,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onFirstCall().resolves(stored);
@@ -3184,7 +3184,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onFirstCall().resolves(stored);
@@ -3248,7 +3248,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onFirstCall().resolves(stored);
@@ -3359,7 +3359,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.resolves(stored);
@@ -3406,7 +3406,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onCall(0).resolves(initial);
@@ -3505,7 +3505,7 @@ describe('RecordsService', function () {
         prepareMutations: sinon.stub().resolves(),
         markMutation: sinon.stub().resolves(true),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.getMeta.onFirstCall().resolves(stored);
@@ -3602,7 +3602,7 @@ describe('RecordsService', function () {
               : []
           ),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       fixture.config.record.attachments = { stagingExpiryMs: 60_000 };
       mockStorageService.getMeta.callsFake(async (oid: string) =>
         oid === 'active-record'
@@ -3669,7 +3669,7 @@ describe('RecordsService', function () {
         recoverStagingCleanup: sinon.stub().resolves('retained'),
         findUnresolvedByStagingFileId: sinon.stub().resolves([]),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockStorageService.getMeta.resolves({ metadata: { partial: true } });
       mockDatastreamService.removeStagedDatastream = sinon.stub().resolves();
 
@@ -3898,7 +3898,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.create.resolves({
@@ -4165,7 +4165,7 @@ describe('RecordsService', function () {
 
     it('stops before persistence when the attachment journal cannot be prepared', async function () {
       const markMutation = sinon.stub().resolves(true);
-      fixture.services.attachmentmetadataservice = {
+      fixture.collaborators.attachmentmetadataservice = {
         prepareMutations: sinon.stub().rejects(new Error('journal unavailable')),
         findUnresolvedByOid: sinon.stub().resolves([]),
         markMutation,
@@ -4244,7 +4244,7 @@ describe('RecordsService', function () {
     });
 
     it('returns a pre-save problem when update journal reconciliation cannot be read', async function () {
-      fixture.services.attachmentmetadataservice = {
+      fixture.collaborators.attachmentmetadataservice = {
         prepareMutations: sinon.stub().resolves(),
         findUnresolvedByOid: sinon.stub().rejects(new Error('journal read failed')),
       };
@@ -4263,7 +4263,7 @@ describe('RecordsService', function () {
     });
 
     it('reports a warning when physical attachment work fails after metadata commits', async function () {
-      fixture.services.attachmentmetadataservice = {
+      fixture.collaborators.attachmentmetadataservice = {
         prepareMutations: sinon.stub().resolves(),
         findUnresolvedByOid: sinon.stub().resolves([]),
         markMutation: sinon.stub().resolves(true),
@@ -4567,7 +4567,7 @@ describe('RecordsService', function () {
       };
       const schemaStorage = recordSchemaStorageSpies();
       fixture.config.recordSchema = { enabled: false };
-      fixture.services.recordschemaservice = schemaService;
+      fixture.collaborators.recordschemaservice = schemaService;
       Object.assign(mockStorageService, schemaStorage);
       return { schemaService, schemaStorage };
     };
@@ -4738,7 +4738,7 @@ describe('RecordsService', function () {
       };
       const validationService = createValidation(validationDependencies);
       const businessValidation = sinon.spy(validationService, 'resolve');
-      fixture.services.recordvalidationservice = validationService;
+      fixture.collaborators.recordvalidationservice = validationService;
 
       const formRecord: FormAttributes = {
         id: 'form-default-form',
@@ -4796,7 +4796,7 @@ describe('RecordsService', function () {
       const resolveCreate = sinon.spy(schemaService, 'resolveCreate');
       const validateResolvedArtifact = sinon.spy(schemaService, 'validateResolvedArtifact');
       const persistSaveUsageReference = sinon.spy(schemaService, 'persistSaveUsageReference');
-      fixture.services.recordschemaservice = schemaService;
+      fixture.collaborators.recordschemaservice = schemaService;
 
       return {
         businessValidation,
@@ -4860,7 +4860,7 @@ describe('RecordsService', function () {
       };
       const validationService = createValidation(dependencies);
       const resolve = sinon.spy(validationService, 'resolve');
-      fixture.services.recordvalidationservice = validationService;
+      fixture.collaborators.recordvalidationservice = validationService;
       collaborators.FormsService.getForm.resolves({
         name: 'default-form',
         configuration: richHtmlForm(),
@@ -4960,7 +4960,7 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      fixture.services.attachmentmetadataservice = journal;
+      fixture.collaborators.attachmentmetadataservice = journal;
       collaborators.FormsService.getForm.resolves({
         name: 'default-form',
         configuration: { attachmentFields: ['attachments'] },
@@ -5023,7 +5023,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -5156,7 +5156,7 @@ describe('RecordsService', function () {
       );
       const resolveCreate = sinon.stub().resolves(createSchemaResolution('resolved', 'enforce'));
       const putRecordSchemaReference = sinon.stub();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact: sinon.stub().returns({
           kind: 'validated',
@@ -5209,7 +5209,7 @@ describe('RecordsService', function () {
         retryable: true,
         reference: recordedSchemaUsageResult(request).reference,
       }));
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -5272,7 +5272,7 @@ describe('RecordsService', function () {
           digest: 'b'.repeat(64),
         },
       }));
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveCreate: sinon.stub().resolves(createSchemaResolution('resolved', 'enforce')),
         validateResolvedArtifact: sinon.stub().returns({
           kind: 'validated',
@@ -5496,7 +5496,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -5711,7 +5711,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -5779,7 +5779,7 @@ describe('RecordsService', function () {
       );
       const resolveCreate = sinon.stub();
       const validateResolvedArtifact = sinon.stub();
-      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
       for (const mode of ['disabled', 'shadow', 'enforce'] as const) {
         fixture.config.recordSchema = { enabled: mode !== 'disabled' };
@@ -5838,7 +5838,7 @@ describe('RecordsService', function () {
             truncated: false,
           };
         });
-        fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+        fixture.collaborators.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
         const result = await RecordsService.create(
           { id: 'brand-1' },
@@ -5879,7 +5879,7 @@ describe('RecordsService', function () {
       });
       const resolveCreate = sinon.stub();
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -5944,7 +5944,7 @@ describe('RecordsService', function () {
         ],
         truncated: true,
       });
-      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
       for (const mode of ['shadow', 'enforce'] as const) {
         resolveCreate.reset();
@@ -5993,7 +5993,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -6047,7 +6047,7 @@ describe('RecordsService', function () {
         code: 'record-schema.unavailable',
       });
       const validateResolvedArtifact = sinon.stub();
-      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveCreate, validateResolvedArtifact };
       const context = recordSchemaContext({ validationOperation: '  publish  ' });
       const recordType = {
         name: 'rdmp',
@@ -6110,7 +6110,7 @@ describe('RecordsService', function () {
         diagnosticCodes: ['record-validation-operation-role-unauthorized'],
       });
       const validateResolvedArtifact = sinon.stub();
-      fixture.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveCreate, validateResolvedArtifact };
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       for (const mode of ['shadow', 'enforce'] as const) {
@@ -6370,7 +6370,7 @@ describe('RecordsService', function () {
         }),
       });
       const businessValidation = sinon.spy(validationService, 'resolve');
-      fixture.services.recordvalidationservice = validationService;
+      fixture.collaborators.recordvalidationservice = validationService;
       const formRecord: FormAttributes = {
         id: 'form-default-form',
         name: 'default-form',
@@ -6938,7 +6938,7 @@ describe('RecordsService', function () {
     it('rejects configured pre-create hook identity divergence before validation or downstream effects', async function () {
       collaborators.__configuredCreatePreOid = undefined;
       const attachmentJournal = { prepareMutations: sinon.stub() };
-      fixture.services.attachmentmetadataservice = attachmentJournal;
+      fixture.collaborators.attachmentmetadataservice = attachmentJournal;
       const recordType = {
         name: 'rdmp',
         searchable: true,
@@ -7800,10 +7800,10 @@ describe('RecordsService', function () {
         markMutation: sinon.stub().resolves(true),
         rebindOid: sinon.stub().resolves(),
       };
-      fixture.services.attachmentmetadataservice = attachmentJournal;
+      fixture.collaborators.attachmentmetadataservice = attachmentJournal;
       const validationService = createValidation(dependencies);
       const resolve = sinon.spy(validationService, 'resolve');
-      fixture.services.recordvalidationservice = validationService;
+      fixture.collaborators.recordvalidationservice = validationService;
 
       const result = await RecordsService.create(
         { id: 'brand-1' },
@@ -8052,7 +8052,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -8169,7 +8169,7 @@ describe('RecordsService', function () {
       collaborators.WorkflowStepsService.get.returns(of(publishedStep));
       const resolveUpdate = sinon.stub();
       const validateResolvedArtifact = sinon.stub();
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
       const transitionMetadata = sinon.spy(RecordsService, 'transitionWorkflowStepMetadata');
@@ -8255,7 +8255,7 @@ describe('RecordsService', function () {
         code: 'record-schema.precondition-failed',
       });
       const validateResolvedArtifact = sinon.stub();
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
@@ -8312,7 +8312,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -8406,7 +8406,7 @@ describe('RecordsService', function () {
         };
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -8478,7 +8478,7 @@ describe('RecordsService', function () {
         code: 'record-schema.unavailable',
       });
       const validateResolvedArtifact = sinon.stub();
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult());
       const context = recordSchemaContext({
         routeFamily: 'api',
@@ -8536,7 +8536,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.type', pointer: '/title', expected: { type: 'string' } }],
         truncated: false,
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
@@ -8582,7 +8582,7 @@ describe('RecordsService', function () {
         expect(request.input).to.deep.equal({});
         return { kind: 'validated', valid: true, issues: [], truncated: false };
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.updateMeta(
@@ -8638,7 +8638,7 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const persistSaveUsageReference = recordedSchemaUsage();
-      fixture.services.recordschemaservice = {
+      fixture.collaborators.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
         persistSaveUsageReference,
@@ -8704,7 +8704,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.updateMetaInternal({
@@ -8760,7 +8760,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const staleResult = await RecordsService.updateMeta(
@@ -8824,7 +8824,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.array-item', pointer: '/nested/values/0' }],
         truncated: false,
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       const result = await RecordsService.updateMeta(
@@ -8865,7 +8865,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.type', pointer: '/__proto__', expected: { type: 'object' } }],
         truncated: false,
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       const result = await RecordsService.updateMeta(
@@ -9053,7 +9053,7 @@ describe('RecordsService', function () {
         });
         return { kind: 'validated', valid: true, issues: [], truncated: false };
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
       const businessValidation = collaborators.RecordValidationService.resolve as sinon.SinonStub;
@@ -10889,7 +10889,7 @@ describe('RecordsService', function () {
 
     it('handles an unavailable validation service by the effective shadow/enforce rollout mode', async function () {
       delete collaborators.RecordValidationService;
-      delete fixture.services.recordvalidationservice;
+      delete fixture.collaborators.recordvalidationservice;
 
       fixture.config.recordValidation = { mode: 'shadow' };
       const shadowResult = await RecordsService.create(
@@ -10917,7 +10917,7 @@ describe('RecordsService', function () {
 
     it('uses a validation service that becomes available after RecordsService initialization', async function () {
       delete collaborators.RecordValidationService;
-      delete fixture.services.recordvalidationservice;
+      delete fixture.collaborators.recordvalidationservice;
       fixture.config.recordValidation = { mode: 'shadow' };
 
       const beforeRegistration = await RecordsService.create(
@@ -10929,7 +10929,7 @@ describe('RecordsService', function () {
       expect(beforeRegistration.outcome).to.equal('saved');
 
       const lateService = { resolve: sinon.stub().resolves(blockingResult()) };
-      fixture.services.recordvalidationservice = lateService;
+      fixture.collaborators.recordvalidationservice = lateService;
       mockStorageService.create.resetHistory();
       const afterRegistration = await RecordsService.create(
         { id: 'brand-1' },
@@ -10946,7 +10946,7 @@ describe('RecordsService', function () {
     it('uses record-type and operation rollout overrides when validation resolution is unavailable', async function () {
       const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
       delete collaborators.RecordValidationService;
-      delete fixture.services.recordvalidationservice;
+      delete fixture.collaborators.recordvalidationservice;
       fixture.config.recordValidation = {
         mode: 'shadow',
         operations: { publish: { mode: 'enforce' } },
@@ -10991,7 +10991,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
 
       const appendStored = {
@@ -11073,7 +11073,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.type', pointer: '/title' }],
         truncated: false,
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
 
       const rejectedAppend = await RecordsService.appendToRecord(
         'record-123',
@@ -11140,7 +11140,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      fixture.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      fixture.collaborators.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.updateMetaInternal({
@@ -11169,7 +11169,7 @@ describe('RecordsService', function () {
         of({ name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } })
       );
       delete collaborators.RecordValidationService;
-      delete fixture.services.recordvalidationservice;
+      delete fixture.collaborators.recordvalidationservice;
 
       const appendStored = { ...baseRecord(), revision: 1 };
       mockStorageService.getMeta.resolves(appendStored);
@@ -11188,7 +11188,7 @@ describe('RecordsService', function () {
       expect(collaborators.RecordTypesService.get.firstCall.args[0]).to.deep.include({ id: 'brand-1' });
 
       const rejectingService = { resolve: sinon.stub().rejects(new Error('validation unavailable')) };
-      fixture.services.recordvalidationservice = rejectingService;
+      fixture.collaborators.recordvalidationservice = rejectingService;
       mockStorageService.updateMeta.resetHistory();
       const removeStored = {
         ...baseRecord(),

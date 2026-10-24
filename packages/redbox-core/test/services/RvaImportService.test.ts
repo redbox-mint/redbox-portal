@@ -23,7 +23,7 @@ describe('RvaImportService', () => {
     createStub = sinon.stub().resolves({ id: 'v1', name: 'Imported' });
     environment = {
       config: { vocab: { rva: { baseUrl: 'https://example.org/rva' } }, auth: { defaultBrand: 'default' } },
-      services: {
+      collaborators: {
         vocabularyservice: {
           create: createStub,
           upsertEntries: sinon.stub().resolves({ created: 1, updated: 2, skipped: 0 })
@@ -36,7 +36,7 @@ describe('RvaImportService', () => {
       findOne: sinon.stub().resolves({ id: 'v1', source: 'rva', sourceId: '1', name: 'Existing' }),
       updateOne: sinon.stub().returns({ set: sinon.stub().resolves() }),
     };
-    collaborators.VocabularyService = environment.services.vocabularyservice;
+    collaborators.VocabularyService = environment.collaborators.vocabularyservice;
 
     getVocabularyByIdStub = sinon.stub(ResourcesApi.prototype, 'getVocabularyById');
     getVocabularyByIdStub.onCall(0).resolves({

@@ -86,7 +86,7 @@ describe('NamedQueryService', function() {
       getRelatedRecords: sinon.stub().resolves({ rootOid: 'oid-1', edges: [], relatedObjects: {}, omittedByAccess: {} })
     };
 
-    fixture.services = {
+    fixture.collaborators = {
       recordsservice: mockRecordsService
     };
 

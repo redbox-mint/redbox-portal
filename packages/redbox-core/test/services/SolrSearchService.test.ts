@@ -55,10 +55,9 @@ describe('SolrSearchService', function () {
         },
       },
       log: createSinonStubLogger(sinon),
-      services: {
+      collaborators: {
         agendaqueueservice: mockQueueService,
       },
-      on: sinon.stub(),
     });
 
     installRepositoryFixtures();
@@ -69,7 +68,7 @@ describe('SolrSearchService', function () {
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/SolrSearchService');
-    SolrSearchService = new Services.SolrSearchService({ config: fixture.config.solr, get queue() { return fixture.services?.agendaqueueservice; }, log: fixture.log, retainFollowup: work => work });
+    SolrSearchService = new Services.SolrSearchService({ config: fixture.config.solr, get queue() { return fixture.collaborators?.agendaqueueservice; }, log: fixture.log, retainFollowup: work => work });
     SolrSearchService.queueService = mockQueueService;
   });
 
@@ -399,7 +398,7 @@ describe('SolrSearchService', function () {
     it('should run inline when queue service is unavailable', async function () {
       const solrAddOrUpdateStub = sinon.stub(SolrSearchService, 'solrAddOrUpdate').resolves();
       SolrSearchService.queueService = undefined;
-      fixture.services.agendaqueueservice = undefined;
+      fixture.collaborators.agendaqueueservice = undefined;
       const data: any = {
         metadata: { title: 'Inline Test' },
       };
@@ -436,7 +435,7 @@ describe('SolrSearchService', function () {
     it('should run delete inline when queue service is unavailable', function () {
       const solrDeleteStub = sinon.stub(SolrSearchService, 'solrDelete').resolves();
       SolrSearchService.queueService = undefined;
-      fixture.services.agendaqueueservice = undefined;
+      fixture.collaborators.agendaqueueservice = undefined;
 
       SolrSearchService.remove('record-inline-delete');
 
@@ -797,12 +796,12 @@ describe('SolrClient', function () {
           },
           queue: { serviceName: 'agendaqueueservice' },
         },
-        services: { agendaqueueservice: { now: sinon.stub() } },
+        collaborators: { agendaqueueservice: { now: sinon.stub() } },
       });
       installRepositoryFixtures();
 
       const { Services } = require('../../src/services/SolrSearchService');
-      const service = new Services.SolrSearchService({ config: fixture.config.solr, get queue() { return fixture.services?.agendaqueueservice; }, log: fixture.log, retainFollowup: work => work });
+      const service = new Services.SolrSearchService({ config: fixture.config.solr, get queue() { return fixture.collaborators?.agendaqueueservice; }, log: fixture.log, retainFollowup: work => work });
       (service as any).initClient();
 
       expect(service.clients.default).to.exist;

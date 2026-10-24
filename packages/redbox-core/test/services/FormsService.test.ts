@@ -97,7 +97,7 @@ describe('FormsService', function () {
     repositoryFixtures.RecordType = mockRecordType;
 
     const { Forms } = require('../../src/services/FormsService');
-    FormsService = new Forms({ repository: referenceFixtures(), log: fixture.log, config: fixture.config, get records() { return collaborators.RecordsService ?? fixture.services.recordsservice; }, get validation() { return collaborators.RecordValidationService ?? fixture.services.recordvalidationservice; }, get recordTypes() { return collaborators.RecordTypesService; }, get workflowSteps() { return collaborators.WorkflowStepsService; }, vocabulary: { getEntries: (...args) => collaborators.VocabularyService.getEntries(...args), defaultBrand: () => collaborators.BrandingService.getDefault().name }, formRegistry: () => fixture.config.form?.formConfigRegistry ?? {}, defaultBrand: () => collaborators.BrandingService.getDefault(), translate: (...args) => collaborators.TranslationService?.t(...args) });
+    FormsService = new Forms({ repository: referenceFixtures(), log: fixture.log, config: fixture.config, get records() { return collaborators.RecordsService ?? fixture.collaborators.recordsservice; }, get validation() { return collaborators.RecordValidationService ?? fixture.collaborators.recordvalidationservice; }, get recordTypes() { return collaborators.RecordTypesService; }, get workflowSteps() { return collaborators.WorkflowStepsService; }, vocabulary: { getEntries: (...args) => collaborators.VocabularyService.getEntries(...args), defaultBrand: () => collaborators.BrandingService.getDefault().name }, formRegistry: () => fixture.config.form?.formConfigRegistry ?? {}, defaultBrand: () => collaborators.BrandingService.getDefault(), translate: (...args) => collaborators.TranslationService?.t(...args) });
   });
 
   afterEach(function () {
@@ -300,7 +300,7 @@ describe('FormsService', function () {
           exceptionText: 'database password',
         },
       ]);
-      fixture.services = {
+      fixture.collaborators = {
         recordsservice: {
           hasEditAccess: sinon.stub().returns(true),
           hasTransitionRoleAuthorization: sinon.stub().callsFake((step: any) => step.name !== 'private'),
@@ -357,7 +357,7 @@ describe('FormsService', function () {
 
     it('fails closed when a record form is attached to a different requested form payload', async function () {
       const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
-      fixture.services = {
+      fixture.collaborators = {
         recordsservice: {
           hasEditAccess: sinon.stub().returns(true),
           hasTransitionRoleAuthorization: sinon.stub().returns(true),
@@ -383,7 +383,7 @@ describe('FormsService', function () {
 
     it('omits discovery when the actor lacks edit access or context is missing', async function () {
       const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
-      fixture.services = {
+      fixture.collaborators = {
         recordsservice: {
           hasEditAccess: sinon.stub().returns(false),
           hasTransitionRoleAuthorization: sinon.stub().returns(true),
@@ -419,7 +419,7 @@ describe('FormsService', function () {
 
     it('does not mix a caller-supplied record type or unrelated form into create discovery', async function () {
       const discoverOperations = sinon.stub().resolves([{ name: 'submit' }]);
-      fixture.services = {
+      fixture.collaborators = {
         recordsservice: {
           hasEditAccess: sinon.stub().returns(true),
           hasTransitionRoleAuthorization: sinon.stub().returns(true),

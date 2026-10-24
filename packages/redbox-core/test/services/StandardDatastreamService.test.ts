@@ -91,7 +91,7 @@ describe('StandardDatastreamService', function () {
           },
         },
       },
-      services: {
+      collaborators: {
         storagemanagerservice: mockStorageManager,
       },
     });
@@ -110,7 +110,7 @@ describe('StandardDatastreamService', function () {
   describe('exports', function () {
     it('should export all DatastreamService methods', function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       const exported = service;
 
       expect(exported).to.have.property('addDatastreams');
@@ -127,7 +127,7 @@ describe('StandardDatastreamService', function () {
   describe('getDatastreamFingerprint', function () {
     it('identifies stored bytes from primary disk metadata without reading them', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       mockPrimaryDisk.getMetaData.resolves({ contentLength: 9, etag: 'etag-1', lastModified: new Date('2026-01-01T00:00:00.000Z') });
       expect(await service.getDatastreamFingerprint('oid-123', 'file-1')).to.equal('etag-1:9:2026-01-01T00:00:00.000Z');
       expect(mockPrimaryDisk.getMetaData.calledWith('attachments/oid-123/file-1')).to.be.true;
@@ -136,7 +136,7 @@ describe('StandardDatastreamService', function () {
 
     it('reports no fingerprint without an ETag or before the attachment reaches the primary disk', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       mockPrimaryDisk.getMetaData.resolves({ contentLength: 9, etag: '', lastModified: new Date() });
       expect(await service.getDatastreamFingerprint('oid-123', 'file-1')).to.equal(undefined);
       mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
@@ -147,7 +147,7 @@ describe('StandardDatastreamService', function () {
   describe('addDatastream', function () {
     it('should read from staging disk and write to primary disk', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const ds = new Datastream({ fileId: 'test-file-id' });
       await service.addDatastream('oid-123', ds);
@@ -166,7 +166,7 @@ describe('StandardDatastreamService', function () {
 
     it('should not use staging disk move for cross-disk promotion', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.move.resolves();
 
@@ -181,7 +181,7 @@ describe('StandardDatastreamService', function () {
 
     it('should delete the staged file only after a successful primary write', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const ds = new Datastream({ fileId: 'ordered-file-id' });
       await service.addDatastream('oid-123', ds);
@@ -193,7 +193,7 @@ describe('StandardDatastreamService', function () {
 
     it('should keep the staged file when the primary write fails', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.putStream.rejects(new Error('primary write failed'));
 
@@ -210,7 +210,7 @@ describe('StandardDatastreamService', function () {
 
     it('should normalize a key prefix without a trailing slash', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStorageManager.getMergedStorageConfig.returns({ keyPrefix: 'uploads' });
 
@@ -223,7 +223,7 @@ describe('StandardDatastreamService', function () {
 
     it('should write to a GridFS-backed primary disk through the storage manager abstraction', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const gridfsPrimaryDisk = {
         exists: sinon.stub().resolves(true),
@@ -254,7 +254,7 @@ describe('StandardDatastreamService', function () {
 
     it('should throw when staging file does not exist', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.exists.resolves(false);
       mockPrimaryDisk.exists.resolves(false);
@@ -271,7 +271,7 @@ describe('StandardDatastreamService', function () {
 
     it('should treat wrapped S3 not found metadata errors as a missing primary object', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.exists.resolves(false);
       mockPrimaryDisk.exists.resolves(false);
@@ -293,7 +293,7 @@ describe('StandardDatastreamService', function () {
 
     it('should bound recursive storage not found checks for circular cause chains', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.exists.resolves(false);
       mockPrimaryDisk.exists.resolves(false);
@@ -316,7 +316,7 @@ describe('StandardDatastreamService', function () {
 
     it('should treat an already-promoted primary object as a successful add', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.exists.resolves(false);
       mockPrimaryDisk.exists.withArgs('attachments/oid-123/already-promoted-file').resolves(true);
@@ -332,7 +332,7 @@ describe('StandardDatastreamService', function () {
 
     it('should succeed when a concurrent promotion completes during the TUS parts attempt', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.exists.resolves(false);
       // First primary check loses the race; the re-check after the TUS attempt wins.
@@ -350,7 +350,7 @@ describe('StandardDatastreamService', function () {
 
     it('should treat primary metadata as proof of an already-promoted object', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.exists.resolves(false);
       mockPrimaryDisk.exists.withArgs('attachments/oid-123/metadata-visible-file').resolves(false);
@@ -373,7 +373,7 @@ describe('StandardDatastreamService', function () {
 
     it('should promote TUS parts when legacy and current prefixes contain equivalent parts', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.exists.resolves(false);
       mockPrimaryDisk.exists.resolves(false);
@@ -411,7 +411,7 @@ describe('StandardDatastreamService', function () {
 
     it('should reject TUS parts when legacy and current prefixes contain different parts', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStagingDisk.exists.resolves(false);
       mockPrimaryDisk.exists.resolves(false);
@@ -440,7 +440,7 @@ describe('StandardDatastreamService', function () {
   describe('addDatastreams', function () {
     it('should add multiple datastreams and return success response', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const ds1 = new Datastream({ fileId: 'file-1' });
       const ds2 = new Datastream({ fileId: 'file-2' });
@@ -455,7 +455,7 @@ describe('StandardDatastreamService', function () {
 
     it('should report failure when a datastream upload fails', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       // Make the second getStream call fail
       mockStagingDisk.getStream.onSecondCall().rejects(new Error('read error'));
@@ -472,7 +472,7 @@ describe('StandardDatastreamService', function () {
 
     it('should return success for an empty datastreams array', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const response = await service.addDatastreams('oid-123', []);
 
@@ -487,9 +487,9 @@ describe('StandardDatastreamService', function () {
         deleteByStorageKey: sinon.stub().resolves(),
         recordAccess: sinon.stub().resolves(),
       };
-      fixture.services.attachmentmetadataservice = metadataService;
+      fixture.collaborators.attachmentmetadataservice = metadataService;
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       const ds = new Datastream({
         fileId: 'file-to-delete',
         attachmentId: 'attachment-1',
@@ -507,7 +507,7 @@ describe('StandardDatastreamService', function () {
 
     it('should delete the file from primary disk', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const ds = new Datastream({ fileId: 'file-to-delete' });
       await service.removeDatastream('oid-123', ds);
@@ -518,7 +518,7 @@ describe('StandardDatastreamService', function () {
 
     it('should not throw when file does not exist', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.delete.rejects(new Error('file not found'));
 
@@ -532,7 +532,7 @@ describe('StandardDatastreamService', function () {
   describe('removeStagedDatastream', function () {
     it('removes only the bounded staging object and its TUS sidecars', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       await service.removeStagedDatastream('staged-file-1');
 
@@ -546,7 +546,7 @@ describe('StandardDatastreamService', function () {
 
     it('rejects a path-shaped staging identity before accessing storage', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       let failure: unknown;
       try {
@@ -566,7 +566,7 @@ describe('StandardDatastreamService', function () {
   describe('addAndRemoveDatastreams', function () {
     it('should add then remove datastreams in order', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const addDs = new Datastream({ fileId: 'add-file' });
       const removeDs = new Datastream({ fileId: 'remove-file' });
@@ -583,10 +583,10 @@ describe('StandardDatastreamService', function () {
   describe('getDatastream', function () {
     it('does not open an S3 body while attachment metadata is still pending', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       let resolveMetadata!: (row: undefined) => void;
       const findOneByStorageKey = sinon.stub().returns(new Promise(resolve => { resolveMetadata = resolve; }));
-      fixture.services.attachmentmetadataservice = { findOneByStorageKey };
+      fixture.collaborators.attachmentmetadataservice = { findOneByStorageKey };
 
       const reading = service.getDatastream('oid-123', 'file-123');
       await waitFor(() => findOneByStorageKey.called);
@@ -601,9 +601,9 @@ describe('StandardDatastreamService', function () {
 
     it('does not leak an open body when attachment metadata lookup fails', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       const failure = new Error('metadata database unavailable');
-      fixture.services.attachmentmetadataservice = {
+      fixture.collaborators.attachmentmetadataservice = {
         findOneByStorageKey: sinon.stub().rejects(failure),
       };
 
@@ -618,7 +618,7 @@ describe('StandardDatastreamService', function () {
 
     it('should return an object with a readstream', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const result = await service.getDatastream('oid-123', 'file-123');
 
@@ -633,7 +633,7 @@ describe('StandardDatastreamService', function () {
 
     it('should throw when file does not exist', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.exists.resolves(false);
       mockStagingDisk.exists.resolves(false);
@@ -649,7 +649,7 @@ describe('StandardDatastreamService', function () {
 
     it('promotes a stranded staging file when primary is missing', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
       mockPrimaryDisk.exists.onSecondCall().resolves(false);
@@ -667,7 +667,7 @@ describe('StandardDatastreamService', function () {
 
     it('keeps a stranded staging file when promotion to primary fails', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.exists.resolves(false);
       mockStagingDisk.exists.resolves(true);
@@ -686,7 +686,7 @@ describe('StandardDatastreamService', function () {
 
     it('should still return readstream when getMetaData fails', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.getMetaData.rejects(new Error('no metadata'));
 
@@ -699,7 +699,7 @@ describe('StandardDatastreamService', function () {
 
     it('coalesces concurrent staging promotions for the same file', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       let resolvePromotion: (() => void) | undefined;
       mockPrimaryDisk.exists.onCall(0).resolves(false);
@@ -733,7 +733,7 @@ describe('StandardDatastreamService', function () {
 
     it('treats already-promoted writes as successful', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.exists.onCall(0).resolves(false);
       mockPrimaryDisk.exists.onCall(1).resolves(false);
@@ -750,7 +750,7 @@ describe('StandardDatastreamService', function () {
 
     it('ignores already-deleted staging files after promotion', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
       mockPrimaryDisk.exists.onSecondCall().resolves(false);
@@ -768,7 +768,7 @@ describe('StandardDatastreamService', function () {
   describe('listDatastreams', function () {
     it('should list a specific file when fileId is provided', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const result = await service.listDatastreams('oid-123', 'file-123');
 
@@ -779,7 +779,7 @@ describe('StandardDatastreamService', function () {
 
     it('should return empty array when specific file does not exist', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.exists.resolves(false);
 
@@ -790,7 +790,7 @@ describe('StandardDatastreamService', function () {
 
     it('should list all files under an oid prefix when fileId is empty', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       const lastModified = new Date('2026-05-13T07:01:32.533Z');
 
       mockPrimaryDisk.listAll.resolves({
@@ -824,7 +824,7 @@ describe('StandardDatastreamService', function () {
 
     it('should still list all files when metadata lookup fails', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockPrimaryDisk.listAll.resolves({
         objects: [{ key: 'attachments/oid-123/file-a', name: 'file-a' }],
@@ -840,7 +840,7 @@ describe('StandardDatastreamService', function () {
 
     it('should batch metadata lookups when listing many files', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       const lastModified = new Date('2026-05-13T07:01:32.533Z');
       const pendingMetadataResolvers: Array<(value: unknown) => void> = [];
 
@@ -895,7 +895,7 @@ describe('StandardDatastreamService', function () {
 
     it('should normalize a key prefix without a trailing slash when listing all files', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       mockStorageManager.getMergedStorageConfig.returns({ keyPrefix: 'uploads' });
 
@@ -907,7 +907,7 @@ describe('StandardDatastreamService', function () {
 
     it('should fall back to an empty key prefix when storage config does not provide one', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       mockStorageManager.getMergedStorageConfig.returns({});
 
       await service.getDatastream('oid-123', 'file-123');
@@ -917,7 +917,7 @@ describe('StandardDatastreamService', function () {
 
     it('should use the configured key prefix for migration-compatible keys', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
       const ds = new Datastream({ fileId: 'file-123' });
 
       await service.addDatastream('oid-123', ds);
@@ -935,7 +935,7 @@ describe('StandardDatastreamService', function () {
       collaborators.FormsService = mockFormsService;
 
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const record = {
         metaMetadata: { form: 'test-form-1.0-draft', brandId: 'brand-1' },
@@ -984,7 +984,7 @@ describe('StandardDatastreamService', function () {
       collaborators.FormsService = mockFormsService;
 
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const record = {
         metaMetadata: { form: 'test-form-1.0-draft', brandId: 'brand-1' },
@@ -1021,7 +1021,7 @@ describe('StandardDatastreamService', function () {
       collaborators.FormsService = mockFormsService;
 
       const { Services } = require('../../src/services/StandardDatastreamService');
-      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.services.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       const record = {
         metaMetadata: { form: 'unknown-form' },
