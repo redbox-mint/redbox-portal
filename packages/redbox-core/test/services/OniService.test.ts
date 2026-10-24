@@ -1,7 +1,7 @@
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import axios from 'axios';
-import { of } from 'rxjs';
+import { of, firstValueFrom } from 'rxjs';
 import { finished } from 'node:stream/promises';
 import { Services } from '../../src/services/OniService';
 import { OniPublishing } from '../../src/configmodels/OniPublishing';
@@ -9,18 +9,40 @@ import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/st
 import { buildOniRoCrate, getPerson, getSelectedAttachments } from '../../src/services/oni-v2/crate';
 import { validateHandlebarsTemplate } from '../../src/services/oni-v2/bindings';
 import { mapDatasetFields, mapGraphEntities, validateMappedDataset } from '../../src/services/oni-v2/mapping';
-import { getBrandName, resolveOniPublishingConfig, resolveOniSite } from '../../src/integrations/oni/config';
+import {
+  getBrandName as getBrandNameWithInput,
+  getBrand,
+  resolveOniPublishingConfig as resolveOniPublishingConfigWithInput,
+  resolveOniSite,
+} from '../../src/integrations/oni/config';
+import { makeOniAuditService } from '../../src/integrations/oni/audit';
 import { createStorageManagerOcflStoreClass } from '../../src/services/oni-v2/flydriveOcflStore';
-import { runPublishDatasetProgram } from '../../src/integrations/oni/runtime';
+import { runPublishDatasetProgram as runPublishWithLog } from '../../src/integrations/oni/runtime';
 import * as ingestionModule from '../../src/services/oni-v2/ingestion';
 import { ingestOniRepository } from '../../src/services/oni-v2/ingestion';
 import type { Services as StorageManagerServices } from '../../src/services/StorageManagerService';
 import { RBValidationError } from '../../src/model/RBValidationError';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import { createDomainFixture } from './testHelper';
 
 describe('OniService', function () {
   let service: InstanceType<typeof Services.OniService>;
   let oniPublishing: OniPublishing;
+  let fixture: any;
+  let collaborators: any;
+  function configInput() {
+    return {
+      configuration: (name: string) =>
+        collaborators.AppConfigService?.getAppConfigurationForBrand(name) ?? fixture.config.brandingAware(name),
+      brandById: (value: string) => collaborators.BrandingService.getBrandById(value),
+      brandByName: (value: string) => collaborators.BrandingService.getBrand(value),
+      warn: (message: string) => fixture.log.warn(message),
+    };
+  }
+  const resolveOniPublishingConfig = (record?: any) => resolveOniPublishingConfigWithInput(configInput(), record);
+  const getBrandName = (record?: any) => getBrandNameWithInput(configInput(), record);
+  const runPublishDatasetProgram = (
+    ...args: Parameters<import('../../src/integrations/oni/input').OniInput['publish']>
+  ) => runPublishWithLog(fixture.log, ...args);
 
   before(async function () {
     ({ expect } = await import('chai'));
@@ -45,23 +67,23 @@ describe('OniService', function () {
         },
       },
     };
-    const mockSails = createMockSails();
-    mockSails.config.brandingConfigurationDefaults = { oniPublishing };
-    mockSails.config.brandingAware = sinon.stub().withArgs('default').returns({ oniPublishing });
-    mockSails.config.record = { datastreamService: 'datastreamservice' };
-    setupServiceTestGlobals(mockSails);
+    fixture = createDomainFixture();
+    collaborators = {};
+    fixture.config.brandingConfigurationDefaults = { oniPublishing };
+    fixture.config.brandingAware = sinon.stub().withArgs('default').returns({ oniPublishing });
+    fixture.config.record = { datastreamService: 'datastreamservice' };
 
-    (global as unknown as { BrandingService: unknown }).BrandingService = {
+    collaborators.BrandingService = {
       getBrandById: sinon.stub().withArgs('brand-1').returns({ id: 'brand-1', name: 'default' }),
       getBrand: sinon.stub().withArgs('default').returns({ id: 'brand-1', name: 'default' }),
     };
-    (global as unknown as { UsersService: unknown }).UsersService = {
+    collaborators.UsersService = {
       getUserWithUsername: sinon.stub().returns(of({ email: 'creator@example.edu', text_full_name: 'Creator User' })),
     };
-    (global as unknown as { RecordsService: unknown }).RecordsService = {
+    collaborators.RecordsService = {
       updateMetaInternal: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
     };
-    (global as unknown as { IntegrationAuditService: unknown }).IntegrationAuditService = {
+    collaborators.IntegrationAuditService = {
       startAudit: sinon.stub().returns({
         redboxOid: 'pub-1',
         brandId: 'brand-1',
@@ -75,16 +97,23 @@ describe('OniService', function () {
       failAudit: sinon.stub(),
     };
 
-    service = new Services.OniService();
+    service = new Services.OniService({
+      log: fixture.log,
+      configuration: record => resolveOniPublishingConfig(record),
+      brand: record => getBrand(configInput(), record),
+      brandName: record => getBrandName(record),
+      creator: username => firstValueFrom(collaborators.UsersService.getUserWithUsername(username)),
+      records: collaborators.RecordsService,
+      audit: makeOniAuditService(collaborators.IntegrationAuditService),
+      createRepository() {
+        throw new Error('Bind a controlled repository in publishing tests');
+      },
+      runWork: operation => operation(),
+      publish: (...args) => runPublishDatasetProgram(...args),
+    });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as unknown as { AppConfigService?: unknown }).AppConfigService;
-    delete (global as unknown as { BrandingService?: unknown }).BrandingService;
-    delete (global as unknown as { UsersService?: unknown }).UsersService;
-    delete (global as unknown as { RecordsService?: unknown }).RecordsService;
-    delete (global as unknown as { IntegrationAuditService?: unknown }).IntegrationAuditService;
     sinon.restore();
   });
 
@@ -141,8 +170,7 @@ describe('OniService', function () {
   }
 
   it('exports the canonical trigger method', function () {
-    const exported = service.exports();
-    expect(exported).to.have.property('exportDataset');
+    expect(service.exportDataset).to.be.a('function');
   });
 
   it('resolves Oni publishing config from branding-aware app-config', function () {
@@ -166,11 +194,11 @@ describe('OniService', function () {
       enumerable: false,
     });
 
-    (global as unknown as { BrandingService: unknown }).BrandingService = {
+    collaborators.BrandingService = {
       getBrandById: sinon.stub().withArgs('brand-2').returns({ id: 'brand-2', name: 'faculty' }),
       getBrand: sinon.stub().callsFake((name: string) => ({ id: name === 'faculty' ? 'brand-2' : 'brand-1', name })),
     };
-    (global as unknown as { AppConfigService: unknown }).AppConfigService = {
+    collaborators.AppConfigService = {
       getAppConfigurationForBrand: sinon.stub().callsFake((name: string) => {
         if (name === 'default') {
           return { oniPublishing: defaultOniPublishing };
@@ -189,8 +217,8 @@ describe('OniService', function () {
   });
 
   it('throws when oniPublishing app-config is missing', function () {
-    (sails.config.brandingAware as sinon.SinonStub).withArgs('default').returns({});
-    sails.config.brandingConfigurationDefaults = {} as typeof sails.config.brandingConfigurationDefaults;
+    (fixture.config.brandingAware as sinon.SinonStub).withArgs('default').returns({});
+    fixture.config.brandingConfigurationDefaults = {} as typeof fixture.config.brandingConfigurationDefaults;
     expect(() => resolveOniPublishingConfig(publicationRecord())).to.throw('oniPublishing app-config is missing');
   });
 
@@ -594,7 +622,7 @@ describe('OniService', function () {
   });
 
   it('resolves brand ids to brand names for Oni config lookup', function () {
-    (global as unknown as { BrandingService: unknown }).BrandingService = {
+    collaborators.BrandingService = {
       getBrandById: sinon.stub().returns(undefined),
       getBrand: sinon.stub().withArgs('brand-2').returns({ id: 'brand-2', name: 'configured-brand' }),
     };
@@ -616,9 +644,7 @@ describe('OniService', function () {
   });
 
   it('runs publish workflow, audits it, and persists with the record brand', async function () {
-    (
-      global as unknown as { RecordsService: { updateMetaInternal: sinon.SinonStub } }
-    ).RecordsService.updateMetaInternal.resolves({
+    collaborators.RecordsService.updateMetaInternal.resolves({
       outcome: 'saved-with-warnings',
       wasPersisted: () => true,
       isComplete: () => false,
@@ -655,16 +681,13 @@ describe('OniService', function () {
     );
 
     expect(
-      (
-        global as unknown as { IntegrationAuditService: { startAudit: sinon.SinonStub } }
-      ).IntegrationAuditService.startAudit.calledWith(
+      collaborators.IntegrationAuditService.startAudit.calledWith(
         'pub-1',
         IntegrationAuditAction.publishOniDataset,
         sinon.match({ integrationName: IntegrationAuditName.oni })
       )
     ).to.equal(true);
-    const updateMeta = (global as unknown as { RecordsService: { updateMetaInternal: sinon.SinonStub } }).RecordsService
-      .updateMetaInternal;
+    const updateMeta = collaborators.RecordsService.updateMetaInternal;
     expect(updateMeta.calledOnce).to.equal(true);
     const updateOptions = updateMeta.firstCall.args[0];
     expect(updateOptions.brand).to.deep.equal({ id: 'brand-1', name: 'default' });
@@ -675,8 +698,7 @@ describe('OniService', function () {
     expect(updateOptions.metadataMode).to.equal('pre-applied');
     expect(updateOptions.metadata.citation_url).to.equal('https://data.example.edu/pub-1');
     expect(ingestStub.calledOnce).to.equal(true);
-    const completeAudit = (global as unknown as { IntegrationAuditService: { completeAudit: sinon.SinonStub } })
-      .IntegrationAuditService.completeAudit;
+    const completeAudit = collaborators.IntegrationAuditService.completeAudit;
     expect(completeAudit.firstCall.args[1].responseSummary).to.include({
       structuralObjects: 2,
       searchItems: 1,
@@ -740,15 +762,7 @@ describe('OniService', function () {
     expect(published.metadata.citation_url).to.equal('https://data.example.edu/pub-1');
     expect(published.metadata).not.to.have.property('citation_doi');
     expect(published.metadata).not.to.have.property('publication_error');
-    const audit = (
-      global as unknown as {
-        IntegrationAuditService: {
-          startAudit: sinon.SinonStub;
-          completeAudit: sinon.SinonStub;
-          failAudit: sinon.SinonStub;
-        };
-      }
-    ).IntegrationAuditService;
+    const audit = collaborators.IntegrationAuditService;
     expect(audit.startAudit.getCalls().map(call => call.args[1])).to.deep.equal([
       IntegrationAuditAction.publishOniDataset,
       IntegrationAuditAction.buildOniRoCrate,
@@ -781,8 +795,7 @@ describe('OniService', function () {
       { email: 'approver@example.edu' }
     );
 
-    const completeAudit = (global as unknown as { IntegrationAuditService: { completeAudit: sinon.SinonStub } })
-      .IntegrationAuditService.completeAudit;
+    const completeAudit = collaborators.IntegrationAuditService.completeAudit;
     expect(completeAudit.firstCall.args[1].responseSummary).not.to.have.property('structuralObjects');
     expect(completeAudit.firstCall.args[1].responseSummary).not.to.have.property('searchItems');
   });
@@ -818,16 +831,14 @@ describe('OniService', function () {
       );
     }
 
-    const updateMeta = (global as unknown as { RecordsService: { updateMetaInternal: sinon.SinonStub } }).RecordsService
-      .updateMetaInternal;
+    const updateMeta = collaborators.RecordsService.updateMetaInternal;
     expect(updateMeta.firstCall.args[0].record.metadata.citation_url).to.equal('https://data.example.edu/pub-1');
     expect(updateMeta.firstCall.args[0].record.metadata.citation_doi).to.equal(
       'https://doi.org/10.1234/https://data.example.edu/pub-1'
     );
     expect(updateMeta.firstCall.args[0].record.metadata.publication_error).to.include('Oni indexing failed');
 
-    const failAudit = (global as unknown as { IntegrationAuditService: { failAudit: sinon.SinonStub } })
-      .IntegrationAuditService.failAudit;
+    const failAudit = collaborators.IntegrationAuditService.failAudit;
     expect(failAudit.firstCall.args[2]).to.deep.include({
       message: 'Oni OCFL write completed, but repository ingestion failed.',
       responseSummary: {
@@ -849,10 +860,7 @@ describe('OniService', function () {
     ).ingestDataset('pub-1', oniPublishing.sites['test-site'], { siteName: 'test-site' }, null);
 
     expect(result).to.equal(undefined);
-    expect(
-      (global as unknown as { IntegrationAuditService: { startAudit: sinon.SinonStub } }).IntegrationAuditService
-        .startAudit.called
-    ).to.equal(false);
+    expect(collaborators.IntegrationAuditService.startAudit.called).to.equal(false);
   });
 
   it('audits successful and failed Oni ingestion runs', async function () {
@@ -885,15 +893,7 @@ describe('OniService', function () {
     expect(result).to.deep.equal({ structuralObjects: 3, searchItems: 4 });
     expect(ingestStub.calledOnceWithExactly(site.ingestion)).to.equal(true);
 
-    const auditService = (
-      global as unknown as {
-        IntegrationAuditService: {
-          startAudit: sinon.SinonStub;
-          completeAudit: sinon.SinonStub;
-          failAudit: sinon.SinonStub;
-        };
-      }
-    ).IntegrationAuditService;
+    const auditService = collaborators.IntegrationAuditService;
     expect(auditService.startAudit.firstCall.args[1]).to.equal(IntegrationAuditAction.ingestOniDataset);
     expect(auditService.completeAudit.firstCall.args[1].responseSummary).to.include({
       structuralObjects: 3,
@@ -1068,11 +1068,8 @@ describe('OniService', function () {
       expect((error as RBValidationError).displayErrors[0].code).to.equal('oni-site-unknown');
     }
 
-    const auditService = (
-      global as unknown as { IntegrationAuditService: { startAudit: sinon.SinonStub; failAudit: sinon.SinonStub } }
-    ).IntegrationAuditService;
-    const updateMeta = (global as unknown as { RecordsService: { updateMetaInternal: sinon.SinonStub } }).RecordsService
-      .updateMetaInternal;
+    const auditService = collaborators.IntegrationAuditService;
+    const updateMeta = collaborators.RecordsService.updateMetaInternal;
     expect(auditService.startAudit.calledOnce).to.equal(true);
     expect(auditService.failAudit.calledOnce).to.equal(true);
     expect(auditService.failAudit.firstCall.args[2].responseSummary.displayErrors[0].code).to.equal('oni-site-unknown');

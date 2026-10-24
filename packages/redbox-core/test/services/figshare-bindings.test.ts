@@ -1,10 +1,7 @@
 import * as sinon from 'sinon';
-import { createRequire } from 'node:module';
-
-const testRequire = createRequire(__filename);
-const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
-const { evaluateBinding, resolveCrosswalkBinding } = testRequire('../../src/integrations/figshare/bindings');
-const { createBindingContext } = testRequire('../../src/services/figshare-v2/context');
+import { createFigshareBindings } from '../../src/integrations/figshare/bindings';
+import { createFigshareContext } from '../../src/integrations/figshare/context';
+import { createSinonStubLogger } from '../logger.test';
 
 let expect!: Chai.ExpectStatic;
 
@@ -42,28 +39,32 @@ describe('figshare-v2 bindings', function () {
   };
 
   let resolveCrosswalkValuesStub: sinon.SinonStub;
+  let crosswalk: any;
+  let log: ReturnType<typeof createSinonStubLogger>;
+  let evaluateBinding: ReturnType<typeof createFigshareBindings>['evaluateBinding'];
+  let resolveCrosswalkBinding: ReturnType<typeof createFigshareBindings>['resolveCrosswalkBinding'];
+  let createBindingContext: ReturnType<typeof createFigshareContext>['createBindingContext'];
 
   beforeEach(function () {
-    setupServiceTestGlobals(createMockSails());
     resolveCrosswalkValuesStub = sinon.stub().resolves({
       values: [10, 20],
       normalizedCodes: ['0101', '0102'],
       unresolvedCodes: [],
       historicalTargets: [],
     });
-    (global as any).FigshareVocabularyService = {
+    crosswalk = {
       resolveCrosswalkValues: resolveCrosswalkValuesStub,
     };
-    (global as any).BrandingService = {
+    const branding = {
       getBrand: sinon.stub().returns({ id: 'default-id', name: 'default' }),
       getBrandById: sinon.stub().returns(undefined),
     };
+    log = createSinonStubLogger(sinon);
+    ({ evaluateBinding, resolveCrosswalkBinding } = createFigshareBindings({ crosswalk, log }));
+    ({ createBindingContext } = createFigshareContext({ branding, brandName: () => 'default' }));
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).FigshareVocabularyService;
-    delete (global as any).BrandingService;
     sinon.restore();
   });
 
@@ -78,10 +79,7 @@ describe('figshare-v2 bindings', function () {
     });
 
     it('falls back to defaultValue when a path misses', async function () {
-      const value = await evaluateBinding(
-        { kind: 'path', path: 'metadata.nope', defaultValue: 'fallback' },
-        record
-      );
+      const value = await evaluateBinding({ kind: 'path', path: 'metadata.nope', defaultValue: 'fallback' }, record);
       expect(value).to.equal('fallback');
     });
 
@@ -94,10 +92,7 @@ describe('figshare-v2 bindings', function () {
     });
 
     it('renders a handlebars binding', async function () {
-      const value = await evaluateBinding(
-        { kind: 'handlebars', template: '{{metadata.title}}!' },
-        record
-      );
+      const value = await evaluateBinding({ kind: 'handlebars', template: '{{metadata.title}}!' }, record);
       expect(value).to.equal('Dataset title!');
     });
 
@@ -110,10 +105,7 @@ describe('figshare-v2 bindings', function () {
     });
 
     it('evaluates a jsonata binding', async function () {
-      const value = await evaluateBinding(
-        { kind: 'jsonata', expression: 'metadata.count + 1' },
-        record
-      );
+      const value = await evaluateBinding({ kind: 'jsonata', expression: 'metadata.count + 1' }, record);
       expect(value).to.equal(3);
     });
 
@@ -215,14 +207,10 @@ describe('figshare-v2 bindings', function () {
         historicalTargets: [],
       });
 
-      const value = await evaluateBinding(
-        { ...crosswalkBinding, defaultValue: ['none'] },
-        record,
-        contextFor()
-      );
+      const value = await evaluateBinding({ ...crosswalkBinding, defaultValue: ['none'] }, record, contextFor());
 
       expect(value).to.deep.equal(['none']);
-      sinon.assert.calledWithMatch((global as any).sails.log.warn, /could not resolve: 0101/);
+      sinon.assert.calledWithMatch(log.warn, /could not resolve: 0101/);
     });
 
     it('warns rather than silently dropping historical targets', async function () {
@@ -235,7 +223,7 @@ describe('figshare-v2 bindings', function () {
 
       await evaluateBinding(crosswalkBinding, record, contextFor());
 
-      sinon.assert.calledWithMatch((global as any).sails.log.warn, /historical targets: 0102 → src-99/);
+      sinon.assert.calledWithMatch(log.warn, /historical targets: 0102 → src-99/);
     });
 
     /** Config arrives as JSON, so the type-level ban on nesting needs a runtime guard. */
@@ -248,10 +236,7 @@ describe('figshare-v2 bindings', function () {
     });
 
     it('throws when the brand cannot be resolved', async function () {
-      await expectRejection(
-        evaluateBinding(crosswalkBinding, record, contextFor('')),
-        /Unable to resolve the brand/
-      );
+      await expectRejection(evaluateBinding(crosswalkBinding, record, contextFor('')), /Unable to resolve the brand/);
     });
 
     it('throws when no context is supplied at all', async function () {
@@ -270,7 +255,7 @@ describe('figshare-v2 bindings', function () {
     });
 
     it('throws when the vocabulary service is unavailable', async function () {
-      delete (global as any).FigshareVocabularyService;
+      delete crosswalk.resolveCrosswalkValues;
 
       await expectRejection(
         evaluateBinding(crosswalkBinding, record, contextFor()),

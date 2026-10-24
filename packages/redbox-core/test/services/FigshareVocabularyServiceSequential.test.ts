@@ -2,15 +2,12 @@ import { figshareVocabularyInput } from '../helpers/figshareVocabularyInput';
 import { createDomainFixture } from './testHelper';
 let environment: any;
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
-import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
+import { stubVocabularyPersistence } from '../fixtures/vocabulary-stubs';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/FigshareVocabularyService';
-import { createMockSails } from './testHelper';
 
 describe('Figshare vocabulary sequential writes', () => {
-  const names: string[] = [];
-  const previous = new Map<string, unknown>();
   const ctx = { brandId: 'brand', userId: 'user' };
   let service: Services.FigshareVocabularyService;
   let crosswalk: {
@@ -30,7 +27,7 @@ describe('Figshare vocabulary sequential writes', () => {
 
   beforeEach(() => {
     stubVocabularyPersistence();
-    
+
     order = [];
     failMapping = undefined;
     crosswalk = {
@@ -49,7 +46,7 @@ describe('Figshare vocabulary sequential writes', () => {
     environment = createDomainFixture();
     const app = environment;
     app.log.warn = warn;
-    
+
     Reflect.set(repositoryFixtures, 'Vocabulary', { findOne: async () => ({ id: 'local', name: 'Local' }) });
     Reflect.set(repositoryFixtures, 'VocabularyEntry', {
       findOne: async ({ id }: { id: string }) => (id === 'foreign' ? null : { id, vocabulary: 'local' }),
@@ -96,12 +93,6 @@ describe('Figshare vocabulary sequential writes', () => {
 
   afterEach(() => {
     sinon.assert.notCalled(warn);
-    for (const name of names) {
-      const value = previous.get(name);
-      if (value === undefined) Reflect.deleteProperty(globalThis, name);
-      else Reflect.set(globalThis, name, value);
-    }
-    previous.clear();
     sinon.restore();
   });
 

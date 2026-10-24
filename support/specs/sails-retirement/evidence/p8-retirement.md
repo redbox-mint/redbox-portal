@@ -673,3 +673,25 @@ getObservable test now exercises actual repository-backed Asynchs.get: it stays
 cold and shares the first result or rejection across subscribers. All reference
 predicate/projection/tenant/BSON/JSON contracts remain. The source comment now
 describes explicit chronicle settings. No new skips or weakened assertions.
+
+### Explicit Oni and Figshare binding fixtures
+
+Node 26.11.1, source following `94b97dcfd`. Oni fixtures now pass local current
+configuration/brand/creator/record/audit ports and owned publish work. The actual
+Oni Effect program receives its logger. Figshare bindings/context use their actual
+per-instance factories and local crosswalk/brand/logger ports. Sequential
+vocabulary fixtures discard an unused framework import and empty global-restoration
+loop. No framework globals remain in these three suites.
+
+`integrations20-first.log`: 68 passing/2 fixture failures. Inspection found an
+over-broad cast-edit expression had also removed three scenario bodies. The Oni
+file was restored from its committed version and converted with bounded balanced
+cast edits. A scripted check confirms **all 46 original Oni scenario titles in
+identical order**; the actual RO-Crate publication, committed-write/failed-ingestion
+and disabled-ingestion cases are retained. No incomplete first-run result counts
+as acceptance. `integrations20-second.log`: **73 passing / 0 pending / 0 failing**
+(638ms), services/{figshare-bindings,OniService,FigshareVocabularyServiceSequential},
+explicit core Mocha runner. All mapping, brand resolution, conditional publishing,
+audit/writeback, OCFL/Flydrive, crosswalk fallback/privacy and sequential partial
+failure contracts execute. The deleted exports() adapter assertion now checks the
+actual public exportDataset operation. No skips were introduced.
