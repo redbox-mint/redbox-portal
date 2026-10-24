@@ -183,7 +183,12 @@ for label in candidate candidate-restarted; do
   docker rm -v sr-p7-upgrade-v6 >/dev/null
   unset 'task_containers[-1]'
 done
-fixture upgrade-components > "$task_logs/upgrade-components.log" 2>&1
+# Exercise migration retry/failure using the installed candidate's emitted
+# modules and production dependencies. Only the guarded verifier is mounted.
+docker run --rm --init --network host --memory=1536m \
+  --mount "type=bind,src=$task_root/packages/redbox-core/test/qualification/recovery-fixture.cjs,dst=/opt/redbox-portal/packages/redbox-core/test/qualification/recovery-fixture.cjs,readonly" \
+  -e SR_REHEARSAL_DISPOSABLE -e SR_REHEARSAL_CORE_URL -e SR_REHEARSAL_STORAGE_URL \
+  "$task_candidate" node packages/redbox-core/test/qualification/recovery-fixture.cjs upgrade-components > "$task_logs/upgrade-components.log" 2>&1
 # Emulate an interrupted cutover affecting databases, bytes and config. Never run
 # the old image over this changed state: restore the complete checkpoint first.
 fixture destroy-disposable > "$task_logs/destroy.log" 2>&1
