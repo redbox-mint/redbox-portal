@@ -22,7 +22,8 @@ export namespace Services {
           brandPortalPath: req ? BrandingService.getBrandAndPortalPath(req) : '',
           currentPath: req?.path ?? '',
         },
-        configuration: typeof sails.config.brandingAware === 'function' ? sails.config.brandingAware(brandName) : {},
+        configuration:
+          req && typeof sails.config.brandingAware === 'function' ? sails.config.brandingAware(brandName) : {},
         appmode: { ...sails.config.appmode },
         log: sails.log,
         translate: key => TranslationService.t(key),

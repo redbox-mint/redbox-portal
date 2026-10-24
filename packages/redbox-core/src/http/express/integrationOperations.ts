@@ -22,7 +22,6 @@ export interface IntegrationOperationsHttpInput {
   readonly records: Pick<RecordsService, 'getRecords' | 'getMeta'>;
   readonly search: Pick<Solr.SolrSearchService, 'index' | 'removeBrand'>;
   readonly email: Pick<Email.Email, 'evaluateProperties' | 'sendMessage'>;
-  readonly defaultMailOptions?: Readonly<Record<string, unknown>>;
   audit(actor: { id: string; username: string }, action: string, context: { brandId: string }): Promise<unknown>;
   readonly csrf: Pick<ReturnType<typeof createHttpCsrf>, 'apiProtect'>;
   readonly policies: Readonly<Record<string, RequestHandler>>;
@@ -141,7 +140,7 @@ export function mountIntegrationOperationRoutes(router: Router, input: Integrati
                 options.formatRendered,
                 options.ccRendered,
                 options.bccRendered,
-                typeof replyTo === 'string' ? { ...input.defaultMailOptions, replyTo } : undefined
+                typeof replyTo === 'string' ? { replyTo } : undefined
               )
             );
             if (!result.success) throw new Error('Mail delivery failed');

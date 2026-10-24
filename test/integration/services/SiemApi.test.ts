@@ -103,8 +103,8 @@ describe('SIEM authenticated HTTP API', function () {
     const response = await fetch(`http://127.0.0.1:${sails.config.port}/default/rdmp/api/siem/config`, {
       headers: { 'X-ReDBox-Api-Version': '2.0', 'Content-Type': 'application/json' },
     });
-    expect(response.status).to.equal(403);
-    expect(await response.json()).to.deep.equal({ message: 'Access Denied' });
+    expect(response.status).to.equal(401);
+    expect(await response.json()).to.deep.equal({ message: 'Authentication required', details: '' });
   });
 
   it('returns disjoint event pages for the failed filter and enforces request brand', async function () {

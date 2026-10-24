@@ -1,3 +1,4 @@
+import { csrf } from '../../helpers/csrf';
 import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import supertest from "supertest";
 import { firstValueFrom } from "rxjs";
@@ -44,8 +45,10 @@ describe("Admin user management AJAX routes", function () {
     await firstValueFrom(UsersService.updateUserRoles(secondaryUser.id, roleIds));
     secondaryUserId = String(secondaryUser.id);
 
+    const loginCsrf = await csrf(agent);
     const loginResponse = await agent
       .post("/user/login_local")
+      .set('X-CSRF-Token', loginCsrf)
       .set("X-Source", "jsclient")
       .send({
         username: "admin",
@@ -99,6 +102,7 @@ describe("Admin user management AJAX routes", function () {
 
     const linkResponse = await agent
       .post("/default/rdmp/admin/users/link")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .send({
         primaryUserId,
@@ -123,6 +127,7 @@ describe("Admin user management AJAX routes", function () {
 
     const disableResponse = await agent
       .post(`/default/rdmp/admin/users/${primaryUserId}/disable`)
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .send({})
       .expect(200);
@@ -151,6 +156,7 @@ describe("Admin user management AJAX routes", function () {
 
     const enableResponse = await agent
       .post(`/default/rdmp/admin/users/${primaryUserId}/enable`)
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .send({})
       .expect(200);

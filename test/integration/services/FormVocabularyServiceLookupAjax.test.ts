@@ -1,3 +1,4 @@
+import { csrf } from '../../helpers/csrf';
 import supertest from "supertest";
 import sinon from "sinon";
 
@@ -16,8 +17,10 @@ describe("Form vocabulary service lookup AJAX routes", function () {
     const app = (sails as any).hooks.http.app;
     agent = supertest.agent(app);
 
+    const loginCsrf = await csrf(agent);
     await agent
       .post("/user/login_local")
+      .set('X-CSRF-Token', loginCsrf)
       .set("X-Source", "jsclient")
       .send({
         username: "admin",
@@ -53,6 +56,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
 
     const response = await agent
       .post("/default/rdmp/service/vocab/dataciteDois")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
@@ -84,6 +88,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   it("returns 400 for invalid paging params", async function () {
     const response = await agent
       .post("/default/rdmp/service/vocab/dataciteDois")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
@@ -99,6 +104,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   it("returns 404 for missing service config", async function () {
     const response = await agent
       .post("/default/rdmp/service/vocab/notConfigured")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
@@ -123,6 +129,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
 
     const response = await agent
       .post("/default/rdmp/service/vocab/dataciteDois")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({

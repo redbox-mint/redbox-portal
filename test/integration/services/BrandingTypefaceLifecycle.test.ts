@@ -1,3 +1,4 @@
+import { csrf } from '../../helpers/csrf';
 import { fixtureRow, fixturePatch, fixtureRemove, fixtureCreate, fixtureRows } from '../../helpers/persistenceFixtures';
 /* eslint-disable no-unused-expressions */
 const { expect } = require('chai');
@@ -19,8 +20,10 @@ describe('Branding typeface lifecycle (mounted)', function () {
   before(async function () {
     const app = sails.hooks.http.app;
     agent = supertest.agent(app);
+    const loginCsrf = await csrf(agent);
     await agent
       .post('/user/login_local')
+      .set('X-CSRF-Token', loginCsrf)
       .set('X-Source', 'jsclient')
       .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
       .expect(200);
@@ -216,16 +219,19 @@ describe('Branding typeface lifecycle (mounted)', function () {
 
     await agent
       .post('/default/rdmp/app/branding/draft')
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ variables: { primary: '#123123' }, expectedDraftRevision: 99 })
       .expect(409);
     const saved = await agent
       .post('/default/rdmp/app/branding/draft')
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ variables: { primary: '#123123' }, expectedDraftRevision: 0 })
       .expect(200);
     expect(saved.body.draft.revision).to.equal(1);
 
     const uploaded = await agent
       .put('/default/rdmp/app/branding/draft/typeface/faces/regular')
+      .set('X-CSRF-Token', await csrf(agent))
       .field('expectedDraftRevision', '1')
       .attach('face', REGULAR_FONT)
       .expect(200);
@@ -233,6 +239,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
 
     const published = await agent
       .post('/default/rdmp/app/branding/publish')
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ expectedVersion: 0, expectedDraftRevision: 2 })
       .expect(200);
     expect(published.body.active.version).to.equal(1);
@@ -242,27 +249,30 @@ describe('Branding typeface lifecycle (mounted)', function () {
 
     const versionPreview = await agent
       .post(`/default/rdmp/app/branding/versions/${versions.body[0].id}/preview`)
+      .set('X-CSRF-Token', await csrf(agent))
       .send({})
       .expect(200);
     expect(versionPreview.body.token).to.exist;
 
     const restored = await agent
       .post(`/default/rdmp/app/branding/restore/${versions.body[0].id}`)
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ expectedVersion: 1, expectedDraftRevision: 3 })
       .expect(200);
     expect(restored.body.active.version).to.equal(2);
 
     const rolled = await agent
       .post(`/default/rdmp/app/branding/rollback/${versions.body[0].id}`)
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ expectedVersion: 2, expectedDraftRevision: 4 })
       .expect(200);
     expect(rolled.headers.deprecation).to.equal('true');
     expect(rolled.body.active.version).to.equal(3);
 
-    // Non-admin policy denial (JSON content type yields 403, not a login redirect).
+    // Anonymous JSON clients receive the v6 authentication-required status.
     await supertest(sails.hooks.http.app)
       .get('/default/rdmp/app/branding/config')
       .set('Content-Type', 'application/json')
-      .expect(403);
+      .expect(401);
   });
 });

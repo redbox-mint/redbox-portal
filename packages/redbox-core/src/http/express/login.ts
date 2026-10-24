@@ -1,3 +1,4 @@
+import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import type { createHttpAuthentication } from './authentication';
 import type { Request, Response, RequestHandler, Router } from 'express';
 import type { HttpIdentity, AuthenticatedActor } from './identity';
@@ -208,6 +209,7 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
         return;
       }
     }
+    RequestChronicleHelper.existing(req)?.addInfo({ userInfoSuccess: true, userUsername: actor.username });
     res.set(apiNoCacheHeaders).json({ user: await input.identity.profile(actor.id) });
   });
   router.get('/user/info', info);

@@ -1,3 +1,4 @@
+import { csrf } from '../../helpers/csrf';
 import { fixtureCreate, fixtureRemove } from '../../helpers/persistenceFixtures';
 import { Observable, of } from 'rxjs';
 import supertest from 'supertest';
@@ -55,8 +56,10 @@ describe('The FormRecordConsistencyService', function () {
 
   it("returns permitted Data Locations and Data Manager from the browser metadata endpoint", async function () {
     const agent = supertest.agent(sails.hooks.http.app);
+    const loginCsrf = await csrf(agent);
     await agent
       .post("/user/login_local")
+      .set('X-CSRF-Token', loginCsrf)
       .set("X-Source", "jsclient")
       .send({
         username: "admin",

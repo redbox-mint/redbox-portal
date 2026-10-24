@@ -1,13 +1,14 @@
+import { csrf } from '../../helpers/csrf';
+import { StreamingMultipart } from '../../../packages/redbox-core/src/http/express/multipart';
+import type { RequestHandler } from 'express';
+declare const integrationTestRoutes: { bind(path: string, handler: RequestHandler): void; unbind(path: string): void };
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { inspect } from 'node:util';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
-import { ControllerExports, Controllers, Services } from '@researchdatabox/redbox-core';
+import { Controllers, Services } from '@researchdatabox/redbox-core';
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
 type CapturedLog = { level: LogLevel; args: unknown[] };
@@ -37,13 +38,13 @@ class UploadController extends Controllers.Core.Controller {
 }
 
 /**
- * Checks the request chronicle through lifted Sails: the HTTP middleware, routing, policies, and controllers.
+ * Checks the selected host middleware, policies and async service capture over real HTTP.
  */
-describe('Request chronicle in lifted Sails', function () {
+describe('Request chronicle in the application HTTP host', function () {
   this.timeout(60_000);
 
   const virtualPath = '/request-chronicle-virtual-test';
-  const translationFailurePath = '/request-chronicle-translation-failure-test';
+  const translationFailurePath = '/default/rdmp/app/i18n/bundles/en/translation';
   const servicePaths = ['/request-chronicle-service-first', '/request-chronicle-service-second'];
   const warningPath = '/request-chronicle-service-warning';
   const uploadPath = '/request-chronicle-service-upload';
@@ -54,27 +55,12 @@ describe('Request chronicle in lifted Sails', function () {
   let originalSettings: unknown;
   let anonymous: supertest.Agent;
   let admin: supertest.Agent;
-  let uploadDirectory: string;
+  let multipart: StreamingMultipart;
   let markUploadStarted: () => void = () => {};
 
   before(async () => {
     const app = (sails.hooks.http as { app: Parameters<typeof supertest.agent>[0] }).app;
-    const router = sails.router as unknown as {
-      bind(path: string, handler: (req: Sails.Req, res: Sails.Res) => void): void;
-    };
-    const userController = ControllerExports.UserController as { info(req: Sails.Req, res: Sails.Res): void };
-    // Call the migrated action through the virtual router without HTTP-only authentication/language policies.
-    router.bind(virtualPath, (req, res) => {
-      req.user = { username: 'virtual-test' } as Sails.Req['user'];
-      userController.info(req, res);
-    });
-    const translationController = ControllerExports.TranslationController as {
-      getBundleApp(req: Sails.Req, res: Sails.Res): Promise<unknown>;
-    };
-    router.bind(translationFailurePath, (req, res) => {
-      req.params.branding = 'default';
-      return translationController.getBundleApp(req, res);
-    });
+    const router = integrationTestRoutes;
     for (const [index, servicePath] of servicePaths.entries()) {
       router.bind(servicePath, async (_req, res) => {
         await new Promise(resolve => setTimeout(resolve, index === 0 ? 20 : 1));
@@ -88,19 +74,25 @@ describe('Request chronicle in lifted Sails', function () {
     }
     const warningService = new WarningService();
     const uploadController = new UploadController();
-    uploadDirectory = mkdtempSync(join(tmpdir(), 'chronicle-sails-upload-'));
+    multipart = new StreamingMultipart(StorageManagerService.stagingDisk(), {
+      files: 1,
+      fileSize: 2 * 1024 * 1024,
+      fields: 2,
+      fieldSize: 1024,
+    });
     router.bind(warningPath, (_req, res) => {
       warningService.recordWarning();
       res.json({ status: true });
     });
-    router.bind(uploadPath, (req, res) => {
-      req.file('attachment').upload({ dirname: uploadDirectory }, (parserError: unknown, files: unknown[]) => {
+    router.bind(uploadPath, async (req, res) => {
+      const work = multipart.receive(req, async ({ files }) => {
         const error = new Error('upload service failed');
-        warningService.recordUploadFailure(files?.length ?? 0, error);
+        warningService.recordUploadFailure(files.length, error);
         uploadController.recordFailure(req, error);
-        res.json({ uploaded: files?.length ?? 0, parserFailed: parserError !== null && parserError !== undefined });
+        res.json({ uploaded: files.length, parserFailed: false });
       });
       markUploadStarted();
+      await work;
     });
     router.bind(rdmpPath, async (req, res) => {
       const record = { metaMetadata: { createdBy: 'admin' }, metadata: { description: 'PRIVATE RDMP DESCRIPTION' } };
@@ -125,7 +117,7 @@ describe('Request chronicle in lifted Sails', function () {
             )
           );
         } catch (error) {
-          return res.serverError(error);
+          return res.status(500).end();
         }
       }
       const options = { templates: [{ field: 'metadata.copied', template: '<%= record.metadata.description %>' }] };
@@ -136,8 +128,10 @@ describe('Request chronicle in lifted Sails', function () {
     });
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
+    const loginCsrf = await csrf(admin);
     await admin
       .post('/user/login_local')
+      .set('X-CSRF-Token', loginCsrf)
       .set('X-Source', 'jsclient')
       .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
       .expect(200);
@@ -158,15 +152,15 @@ describe('Request chronicle in lifted Sails', function () {
     }
   });
 
-  after(() => {
-    (sails.router as unknown as { unbind(path: string): void }).unbind(virtualPath);
-    (sails.router as unknown as { unbind(path: string): void }).unbind(translationFailurePath);
-    (sails.router as unknown as { unbind(path: string): void }).unbind(warningPath);
-    (sails.router as unknown as { unbind(path: string): void }).unbind(uploadPath);
-    (sails.router as unknown as { unbind(path: string): void }).unbind(rdmpPath);
-    rmSync(uploadDirectory, { recursive: true, force: true });
+  after(async () => {
+    integrationTestRoutes.unbind(virtualPath);
+    integrationTestRoutes.unbind(translationFailurePath);
+    integrationTestRoutes.unbind(warningPath);
+    integrationTestRoutes.unbind(uploadPath);
+    integrationTestRoutes.unbind(rdmpPath);
+    await multipart?.close();
     for (const servicePath of servicePaths) {
-      (sails.router as unknown as { unbind(path: string): void }).unbind(servicePath);
+      integrationTestRoutes.unbind(servicePath);
     }
     (sails.config.log as { requestChronicle?: unknown }).requestChronicle = originalSettings;
     const log = sails.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
@@ -232,6 +226,7 @@ describe('Request chronicle in lifted Sails', function () {
     const path = '/default/rdmp/user/update';
     const response = await admin
       .post(path)
+      .set('X-CSRF-Token', await csrf(admin))
       .set('X-Source', 'jsclient')
       .send({ details: { email: 'admin@example.edu.au' } })
       .expect(200);
@@ -247,10 +242,11 @@ describe('Request chronicle in lifted Sails', function () {
     const path = '/default/rdmp/user/update';
     const response = await admin
       .post(path)
+      .set('X-CSRF-Token', await csrf(admin))
       .set('X-Source', 'jsclient')
       .set('Content-Type', 'application/json')
       .send('{"password":"PRIVATE MALFORMED PASSWORD",')
-      .expect(500);
+      .expect(400);
     await settle();
 
     const logged = events(path);
@@ -335,15 +331,11 @@ describe('Request chronicle in lifted Sails', function () {
     assert.deepEqual(chronicleWarnings(), []);
   });
 
-  it('does not warn for virtual requests, which have no request chronicle', async () => {
-    await new Promise<void>((resolve, reject) => {
-      sails.request({ url: virtualPath, method: 'get' }, (err: unknown) => (err ? reject(err) : resolve()));
-    });
+  it('does not warn or create HTTP events for service operations outside a request', async () => {
+    await firstValueFrom(UsersService.getUserWithUsername('admin'));
     await settle();
-
     assert.deepEqual(chronicleWarnings(), []);
-    // Background HTTP probes can finish while this virtual request settles.
-    assert.equal(events(virtualPath).length, 0, 'virtual requests do not produce events');
+    assert.equal(events(virtualPath).length, 0, 'background operations do not produce HTTP events');
   });
 
   it('retains a successful service warning as one warn event when success sampling is disabled', async () => {

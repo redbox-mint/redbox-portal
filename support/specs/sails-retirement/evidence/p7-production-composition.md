@@ -346,3 +346,105 @@ source predates the above fixes. No completed image or image qualification is
 claimed for that attempt. The system containerd snapshot walk had delayed it;
 an isolated containerd/Docker pair was started on the scratch disk without
 restarting the system daemon. No package or image was published.
+
+### Existing root Mocha adapter and contract conversions (in progress)
+
+The tenth diagnostic root invocation completed with **375 existing tests passing,
+10 pending and 19 failures**, exit 19. Its console total of 376 includes one
+separate diagnostic-only report probe, which is excluded from existing-suite
+counts. The report probe confirmed the real named-query rejection has status 400;
+it is not a regression acceptance test. Local log:
+`.tmp/sails-retirement/p7/mocha-production-tenth.log`.
+
+`test/express.bootstrap.test.cjs` starts `createPortalHost`, initializes and
+activates it, and binds the old test names to its actual selected domain instances.
+It never lifts Sails. A test-only `sails` name retains persistence owner identity
+and the historical fixture configuration API. Config, branding-logo, cache,
+contrast, form-consistency, navigation, template, Sass and attachment-metadata
+comparison helper classes remain explicit in this adapter; their existing helper
+cases are not claimed as additional production route coverage. The mounted host
+and HTTP assertions use the actual listening Express server. No ephemeral
+Supertest-owned listener substitutes for it.
+
+`test/helpers/compiledCore.cjs` maps explicit `src/*.ts` imports in the old tests
+to the matching emitted modules. Loading a second source copy of persistence
+would create a different WeakMap and silently test another owner. Tests still
+execute their existing assertions and real disposable Mongo databases. Mutable
+fixture collaborator/config changes are injected into the selected instances only
+inside this bootstrap; production startup configuration remains immutable.
+
+The following test changes are intentional v6 consumer conversions, not removed
+assertions:
+
+- Existing browser login and mutations acquire a real session-bound CSRF token.
+  CSRF remains enabled; the helper does not manufacture credentials or tokens.
+- Revoked/missing bearer credentials expect 401 under the explicit v6 API contract.
+  The tests retain denial, token-clearing and privacy assertions.
+- Blank attachment identifiers expect the specific `storage-validation` code,
+  rather than the old generic `storage-unknown` classification.
+- Email callbacks use the neutral `record.updateNotificationLog` operation name,
+  retaining the notification-log and trigger-condition assertions.
+- Request-chronicle fixture routes bind through the real Express router instead
+  of retired `sails.router`. Its multipart case uses `StreamingMultipart` and the
+  selected staging disk with actual streamed bytes. Background service work
+  replaces the removed Sails virtual-request API. Concurrency, error deduplication,
+  sampling, warnings, upload callbacks and all privacy assertions are retained.
+- Malformed JSON expects the explicit client-error status 400 instead of the old
+  host's 500, while still requiring one safe error and no request-body leakage.
+
+The existing chronicle assertions exposed missing safe user/translation details
+and missing parser-error capture in the new host. The host is corrected rather
+than removing these assertions. Default navigation helpers also recursively read
+branded configuration when a fixture derives its defaults from those same
+helpers; only request-based operations now evaluate branded configuration.
+Notification delivery forwards only the allowlisted reply-to override; evaluated
+from/subject/format values already have their explicit send arguments.
+
+The new `run-mocha-express.sh` and `docker-compose.express.yml` are candidate
+runners for the existing suites/profiles. Their presence alone is not proof of a
+passing run. The candidate profile configuration maps the legacy fixture inputs
+explicitly, retaining v6 CSRF instead of accepting `sails_security__csrf=false`.
+TypeScript `tsc --noEmit -p packages/redbox-core/tsconfig.json` completed with exit
+0 on Node 26.11.1 after the runtime corrections. Full compiled-source reruns and
+profile counts remain required before SR-046 acceptance.
+
+The eleventh diagnostic (with edited modules transpiled only in its own process,
+so that the running browser host's dist was untouched) finished **386 passing /
+10 pending / 7 failing**, exit 7. Six remaining browser login hooks exposed
+Supertest's eager cookie capture: creating `.post()` before awaiting the first
+CSRF session omitted that session's new cookie. The callers now fetch the login
+token before constructing the request. The seventh assertion now checks the
+explicit v6 unauthenticated 401 body (`Authentication required` and empty details).
+A further full diagnostic is running; no passing claim is made here.
+
+Playwright F09 completed its recovery and downstream-event assertions, but its
+strict diagnostics expected the legacy missing-record 500. The real v6 response
+is 404, confirmed in its trace. The test's two exact expected-failure diagnostics
+now require 404 (including Chromium's resource error); their counts and all form
+recovery assertions are retained. This is an intentional not-found contract
+conversion, not an ignored browser error.
+
+### P7 integration fixture membership correction
+
+The root `RouteRecordAccess` administrator mixed-case credential case created a
+local target with **no roles and no active brand link**. The owned v6 identity
+route deliberately applies the same `requireUserInBrand` boundary as the REST
+administration API; the old browser controller wrote a credential by arbitrary
+user ID. The focused real-host run reproduced the rejection (12 passing / 1
+failing, including all anonymous/researcher denials). The fixture now gives its
+target the default brand's Researcher role before exercising credential issuance.
+This records the intended tenant explicitly and keeps every denial, mixed-case
+route, credential immutability and success assertion. The production tenant check
+is retained; unassigned/foreign user IDs are not made administrable by this test.
+The intermediate diagnostic's Buffer/string handling itself failed while printing
+the response; that diagnostic is not committed and is not an acceptance result.
+
+The twelfth full diagnostic completed **416 passing / 10 unchanged pending /
+6 failing**, exit 6. Five failures were the remaining anonymous 403-to-401
+contract conversions; the sixth was the target-membership precondition above.
+After that fixture correction the focused real Express access suite completed
+**13 passing / 0 failing / 0 pending**, exit 0, with zero owned pools, clients,
+resources and operations after stop (`mocha-route-access-second.log`). It used
+the diagnostic per-process transpile loader; final compiled-source full-suite
+qualification is still required. Changed runtime lint: **7 files, 0 warnings /
+0 errors**. No timeout or skip was added.

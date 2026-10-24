@@ -46,12 +46,14 @@ describe('Route and record access checks', function () {
       )
     );
     targetId = String(target.id);
+    await firstValueFrom(UsersService.updateUserRoles(target.id, RolesService.getRoleIds(brand.roles, ['Researcher'])));
     await firstValueFrom(UsersService.setUserKey(targetId, 'initial-regression-token'));
 
     for (const [agent, loginUsername, password] of [
       [researcher, username, 'RBTest123!'],
       [admin, 'admin', 'rbadmin'],
     ] as const) {
+      const token = await csrf(agent);
       await agent
         .post('/user/login_local')
         .set('X-Source', 'jsclient')
@@ -60,7 +62,7 @@ describe('Route and record access checks', function () {
           password,
           branding: 'default',
           portal: 'rdmp',
-          _csrf: await csrf(agent),
+          _csrf: token,
         })
         .expect(200);
     }
@@ -89,7 +91,7 @@ describe('Route and record access checks', function () {
   for (const actor of ['anonymous', 'researcher'] as const) {
     it(`blocks ${actor} access to mixed-case administrative user lists`, async () => {
       const agent = actor === 'anonymous' ? anonymous : researcher;
-      await agent.get('/default/rdmp/AdMiN/users/get').set('Content-Type', 'application/json').expect(403);
+      await agent.get('/default/rdmp/AdMiN/users/get').set('Content-Type', 'application/json').expect(actor === 'anonymous' ? 401 : 403);
     });
 
     for (const path of [
@@ -107,7 +109,7 @@ describe('Route and record access checks', function () {
             userid: targetId,
             _csrf: await csrf(agent),
           })
-          .expect(403);
+          .expect(actor === 'anonymous' ? 401 : 403);
         const after = await fixtureRow("User", { id: targetId });
         assert.equal(after.token, before.token);
       });

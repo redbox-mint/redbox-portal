@@ -249,7 +249,7 @@ describe('The EmailService', function () {
                 },
                 onNotifySuccess: [
                     {
-                        function: "sails.services.recordsservice.updateNotificationLog",
+                        function: "record.updateNotificationLog",
                         options: {
                             name: `Add notification log`,
                             logName: "notification.log.testing",
@@ -288,7 +288,7 @@ describe('The EmailService', function () {
                 },
                 onNotifySuccess: [
                     {
-                        function: "sails.services.recordsservice.updateNotificationLog",
+                        function: "record.updateNotificationLog",
                         options: {
                             name: `Add notification log`,
                             logName: "notification.log.testing",

@@ -1,3 +1,4 @@
+import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import { retiredDashboardOperation, sendDashboardError } from './dashboardResponses';
 import type { RequestHandler, Router } from 'express';
 import _ from 'lodash';
@@ -290,6 +291,11 @@ export function mountMetadataReadRoutes(router: Router, input: MetadataReadHttpI
           }
           sendApiData(req, res, result);
         } catch (error) {
+          if (route.action === 'getBundleApp') {
+            const chronicle = RequestChronicleHelper.existing(req);
+            chronicle?.addInfo({ translationGetBundleFailed: true });
+            chronicle?.addError(error);
+          }
           if (error instanceof MetadataParameterError) {
             sendApiErrors(req, res, 400, [{ detail: error.message }]);
             return;

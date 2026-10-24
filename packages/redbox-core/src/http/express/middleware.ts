@@ -37,7 +37,7 @@ export interface HttpMiddlewareInput {
   configureAuthentication?(passport: ReturnType<typeof createHttpAuthentication>['passport']): Promise<void>;
   readonly session: session.SessionOptions & { [key: string]: unknown };
   readonly log: ILogger;
-  readonly logSettings?: Partial<RequestChronicleSettings>;
+  readonly logSettings?: Partial<RequestChronicleSettings> | (() => Partial<RequestChronicleSettings> | undefined);
   /** Explicit raw/upload mounts excluded from these parsers; pilot mounts none. */
   readonly parserExclusions?: readonly string[];
 }
@@ -45,7 +45,9 @@ export interface HttpMiddlewareInput {
 export async function prepareHttpMiddleware(router: Router, input: HttpMiddlewareInput) {
   router.use((req, res, next) => {
     const chronicle = RequestChronicleHelper.fromReq(input.log, req, {
-      settings: input.logSettings ?? defaultRequestChronicleSettings,
+      settings:
+        (typeof input.logSettings === 'function' ? input.logSettings() : input.logSettings) ??
+        defaultRequestChronicleSettings,
     });
     chronicle.start();
     chronicle.updateReq(req);
@@ -119,7 +121,9 @@ export async function prepareHttpMiddleware(router: Router, input: HttpMiddlewar
 export function httpErrorHandler(log: ILogger): ErrorRequestHandler {
   return (error: unknown, req, res, _next) => {
     // Never log raw datastore/auth/parser errors or user request bodies.
-    RequestChronicleHelper.existing(req)?.addInfo({ httpFailure: 'request-failed' });
+    const chronicle = RequestChronicleHelper.existing(req);
+    chronicle?.addInfo({ httpFailure: 'request-failed' });
+    if (chronicle && !chronicle.hasErrors) chronicle.addError(new Error('HTTP request failed'));
     if (res.headersSent || res.writableEnded) {
       res.destroy();
       return;

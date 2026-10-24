@@ -1,3 +1,4 @@
+import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import { randomUUID } from 'node:crypto';
 import type { RequestHandler, Router } from 'express';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
@@ -217,6 +218,11 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
             );
             await input.users.addUserAuditEvent(actor, 'update-user-roles', { brandId: brand.id, userId });
             send({ status: true, message: 'Save OK.' });
+            return;
+          }
+          if (self && browser && (typeof details.name !== 'string' || !details.name.trim())) {
+            RequestChronicleHelper.existing(req)?.addInfo({ userDetailsUpdateSuccess: false });
+            send({ status: false, message: 'Error: name must not be null' });
             return;
           }
           const name = text(details.name);

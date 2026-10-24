@@ -31,7 +31,8 @@ describe('API key revocation', function () {
       await firstValueFrom(UsersService.setUserKey(userId, input));
       assert.equal((await fixtureRow('User', { id: userId })).token, null);
       const after = await authenticate();
-      assert.equal(after.status, 403);
+      // Revoked credentials are unauthenticated under the v6 HTTP contract.
+      assert.equal(after.status, 401);
       await after.arrayBuffer();
     });
   }

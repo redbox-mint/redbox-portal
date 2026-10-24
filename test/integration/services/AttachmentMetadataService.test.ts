@@ -179,6 +179,6 @@ describe('AttachmentMetadataService integration', function () {
 
   it('rejects blank attachment identifiers through the service', async () => {
     try { await service.upsert({ oid: '   ', fileId: 'file-1', storageKey: 'attachments/invalid' }); expect.fail('Expected rejection'); }
-    catch (error) { expect(error).to.have.property('code', 'storage-unknown'); }
+    catch (error) { expect(error).to.have.property('code', 'storage-validation'); }
   });
 });

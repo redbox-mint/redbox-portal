@@ -24,6 +24,7 @@ import type { ConfiguredAction } from '../../http/express/configuredActions';
 type Portal = Awaited<ReturnType<typeof createPortalApplication>>;
 export interface PortalHttpOptions {
   readonly appPath: string;
+  readonly requestLogging?: http.HttpMiddlewareInput['logSettings'];
   readonly portals?: readonly string[];
   readonly policyConfiguration?: PoliciesConfig;
   readonly actions?: Readonly<Record<string, ConfiguredAction>>;
@@ -182,6 +183,7 @@ export class PortalHttp implements ApplicationModule {
       identity,
       session: config.redboxSession,
       log,
+      logSettings: this.options.requestLogging,
       // Only streaming paths bypass ordinary body parsing. Non-upload requests
       // retain the existing parser/size/error contract.
       parserExclusions: config.companion.enabled ? [config.companion.route] : [],
@@ -488,7 +490,6 @@ export class PortalHttp implements ApplicationModule {
       records: data.records.get(),
       search: data.search.get(),
       email: providers.email.get(),
-      defaultMailOptions: { ...config.emailnotification.defaults },
     });
     http.mountConfiguredActionRoutes(router, { ...shared, audit, actions: this.options.actions ?? {} });
     http.mountBrandingUploadRoutes(router, {
