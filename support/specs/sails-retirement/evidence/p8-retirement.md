@@ -1680,3 +1680,37 @@ docker run --rm --network none \
 
 Logs: `packed-final-build.log`, `runtime-build.log`,
 `packed-853d0039d/result.json`, `runtime-shims56.log`.
+
+
+### Current source inventory and image-runner dispatch
+
+At auditor/evidence commit `87d55e2792a726dbed15fd9f2670982a06ca731f`,
+the unchanged SR-001 method reports1019matched files/4938matched lines. The AST,
+manifest and lock audit examines1045candidate/metadata files and exits0 with
+**0 executable violations / 0 forbidden dependency entries**. Reconciliation
+covers all1261baseline entries:742remaining-classified,136removed,
+365retained-without-candidates and18dependency-metadata-checked.
+This is source proof; installed/built/packed closure remains a separate gate.
+
+```sh
+node support/specs/sails-retirement/evidence/inventory.cjs HEAD > source-inventory58.json
+node support/specs/sails-retirement/evidence/retirement-closure.cjs HEAD > source-closure58.json
+node support/specs/sails-retirement/evidence/reconcile-retirement-inventory.cjs \
+  source-inventory58.json source-closure58.json > inventory-reconciliation58.json
+```
+
+The image matrix harness was reviewed before execution. Bash functions alone do
+not intercept `timeout node ...`; an executable PATH wrapper is therefore also
+installed for node/npm. It delegates into the immutable image, forwarding the
+explicit matrix/persistence/portal connection inputs, and mounts no application
+source, emitted output or dependencies. The timeout-protected probe asserts
+`process.cwd() === '/opt/redbox-portal'` and reports `insideImage:true`,
+Node26.11.1. First probe executes there but exits124 during Docker cleanup while
+cache reclamation is running; after reclamation the identical30s probe exits0
+(`database-image-wrapper60.log`, `database-image-wrapper61.log`). This is harness
+validation, not a matrix suite pass. Test assertions/deadlines are unchanged.
+
+Unused failed-build cache reclamation (`docker builder prune --force --filter
+until=15m`) exits0 and reports8.901GB reclaimed. Images and existing recovery
+checkpoints are preserved. Core/Playwright runners remain paused during the
+large dependency-copy build to avoid the already observed index-I/O contention.
