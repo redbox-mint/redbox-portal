@@ -676,8 +676,10 @@ The fully serialized final core run exited **0**: **4485 passing / 7 unchanged
 pending / 0 failing**, approximately two minutes. Every real-Mongo case ran,
 including foundation and all Prisma contracts; the unchanged source-loader child
 also passed. Log: `.tmp/sails-retirement/p7/core-serial-final.log`. The seven
-pending cases remain the pre-existing external DOI publisher credential/prefix
-cases recorded earlier; they are not counted as passes. No timeout, test or
+pending core cases are two empty RAiD contributor-mapping stubs, two disabled
+legacy Lodash-template validator cases and three disabled Axios-based Workspace
+helper unit cases. They are unchanged and are not counted as passes. These differ
+from the separately reviewed root integration publisher/live-service pending cases. No timeout, test or
 product assertion was weakened for the successful retry.
 
 ```sh
@@ -710,3 +712,13 @@ Playwright RVA/tile stubs and opt-in scenarios remain explicit fixture inputs;
 OIDC, S3, email, Solr and MongoDB providers actually ran. Sails comparison and
 released-v5 public-fixture evidence remain as linked earlier; the full installed
 v5-to-v6 upgrade/recovery comparison is the next gate, not claimed by these suites.
+
+The pending-core review was checked against the actual final log and source:
+`services/RaidService.test.ts` has two empty contributor-mapping `it.skip` bodies;
+`services/TriggerService.test.ts` has two disabled legacy `<% ... %>` template
+validator cases; `services/WorkspaceService.test.ts` has three disabled Axios
+helper tests with existing module-cache mocking comments. The complete general
+Bruno and root integration runs exercise the public record create/read/update
+paths instead. No missing-environment real-Mongo skip remains. The initial
+acceptance paragraph incorrectly categorized these seven as publisher cases;
+the classification above corrects it without changing the measured counts.
