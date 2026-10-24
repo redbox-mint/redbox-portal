@@ -1714,3 +1714,48 @@ Unused failed-build cache reclamation (`docker builder prune --force --filter
 until=15m`) exits0 and reports8.901GB reclaimed. Images and existing recovery
 checkpoints are preserved. Core/Playwright runners remain paused during the
 large dependency-copy build to avoid the already observed index-I/O contention.
+
+
+### Compiled runtime and packed-content closure
+
+The first actual runtime scan (3780owned source/built/template/manifest files)
+and all twelve hash-verified extracted archives (2191files) each exit1 for one
+false positive: `dist/services/oni-v2/templating.d.ts` exports
+`declare const liveOniTemplatingService`. This is the declaration of an explicitly
+exported Effect service object, not a global. The auditor now distinguishes
+external-module exports from ambient service globals, including declarations
+inside `declare global`. It also examines `let` and global-augmentation inputs.
+
+Added `test/tooling/retirement-closure.test.cjs`: **5passing/0failed/0skipped**,
+1.448s. Explicit module export is accepted; script global, implicit runtime
+global in an external module, ordinary global augmentation and an exported
+variable inside global augmentation are all rejected. No existing test changes,
+no global/module path allowlist and no application/dependency change.
+
+Repeated actual audits both exit0:
+
+| Artifact | Examined files | Executable violations | Forbidden dependency entries |
+|---|---:|---:|---:|
+| Runtime771ebe39b424, built from853d0039d |3780|0|0|
+| Twelve SHA256-verified packed contents from853d0039d |2191|0|0|
+
+The runtime audit runs network-disabled/read-only as root, mounting only the
+auditor and TypeScript5.9.3 outside `/opt/redbox-portal`. It recursively inspects
+installed third-party manifests and owned installed/built code, including public
+assets. No application source/output/dependencies are supplied by a host mount.
+The packed audit verifies every archive's exact recorded digest before extracting
+its npm payload to a disposable `packages/<leaf>` tree and invoking the same
+auditor; all twelve manifest package names also match.
+
+Commands: `node --test test/tooling/retirement-closure.test.cjs`;
+`node .tmp/sails-retirement/p8/audit-packed-content.cjs`;
+`docker run --rm --init --network none --read-only --user root
+-e NODE_PATH=/audit/node_modules -v "$audit_tools:/audit:ro"
+-v "$PWD/node_modules/typescript:/audit/node_modules/typescript:ro"
+"$runtime_image" node /audit/retirement-closure.cjs --tree /opt/redbox-portal`.
+Logs: `closure65-controls.log`, `runtime-closure65-module-export-red.json`,
+`packed-content-closure-final.log` (first failure),
+`runtime-closure-final.json`, `packed-content-closure-final.json`,
+`runtime-closure66.log`, `packed-content-closure66.log`. Compact results and
+executed auditor digest are in [p8-artifacts.json](p8-artifacts.json).
+The installed packed-consumer graph and other image targets remain unaccepted.

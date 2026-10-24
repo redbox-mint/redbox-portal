@@ -92,5 +92,21 @@
     "expressHost": true,
     "development": true,
     "compiledScaffold": true
+  },
+  "closure": {
+    "auditorSha256": "d407e82fc053751816a8afb15a2e9da39113023288de0f7440eb6493baf9bbb7",
+    "typescript": "5.9.3",
+    "runtime": {
+      "image": "sha256:771ebe39b424ae38dd7d3b876a4371d6c0cfd5865e80e3b5855fafab9b485b72",
+      "scannedFiles": 3780,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0
+    },
+    "packedContents": {
+      "verifiedArchives": 12,
+      "scannedFiles": 2191,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0
+    }
   }
 }

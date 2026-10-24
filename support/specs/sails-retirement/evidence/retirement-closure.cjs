@@ -49,7 +49,7 @@ if (!tree) {
       '-l',
       '-I',
       '-E',
-      'sails|Sails|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket|declare[[:space:]]+(const|var)[[:space:]]+[[:alnum:]_]*Service',
+      'sails|Sails|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket|declare[[:space:]]+((const|var|let)[[:space:]]+[[:alnum:]_]*Service|global)',
       commit,
       '--',
       '.'
@@ -147,7 +147,7 @@ for (const file of files) {
     continue;
   }
   if (
-    !/sails|Sails|req\.(?:file|param|allParams|validate)|res\.(?:view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\.socket|declare\s+(?:const|var)\s+\w+Service/.test(
+    !/sails|Sails|req\.(?:file|param|allParams|validate)|res\.(?:view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\.socket|declare\s+(?:(?:const|var|let)\s+\w+Service|global)/.test(
       source
     )
   )
@@ -236,10 +236,22 @@ for (const file of files) {
         classify(node, 'Negative stale registration metadata fixture; module must not execute');
       else fail(node, 'Executable/type Sails identifier');
     }
-    if (ts.isVariableStatement(node) && node.modifiers?.some(m => m.kind === ts.SyntaxKind.DeclareKeyword))
-      for (const declaration of node.declarationList.declarations)
-        if (ts.isIdentifier(declaration.name) && /Service$/.test(declaration.name.text))
-          fail(declaration, 'Ambient service global declaration');
+    if (ts.isVariableStatement(node)) {
+      let globalAugmentation = false;
+      for (let scope = node.parent; scope; scope = scope.parent)
+        if (ts.isModuleDeclaration(scope) && scope.flags & ts.NodeFlags.GlobalAugmentation) globalAugmentation = true;
+      const declared = node.modifiers?.some(m => m.kind === ts.SyntaxKind.DeclareKeyword);
+      const moduleExport =
+        ts.isExternalModule(ast) &&
+        !globalAugmentation &&
+        node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
+      if (declared || globalAugmentation)
+        for (const declaration of node.declarationList.declarations)
+          if (ts.isIdentifier(declaration.name) && /Service$/.test(declaration.name.text)) {
+            if (moduleExport) classify(declaration, 'Explicit module export declaration; no ambient global');
+            else fail(declaration, 'Ambient service global declaration');
+          }
+    }
     if (
       (ts.isStringLiteralLike(node) || ts.isTemplateExpression(node)) &&
       /\bsails\.[A-Za-z]|\bSails\.[A-Za-z]|generateAllShims|(?:globalThis|global)\.sails\s*=|(?:require|import)\(['"]sails['"]\)/.test(
