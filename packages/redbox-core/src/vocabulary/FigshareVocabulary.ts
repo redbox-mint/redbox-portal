@@ -263,6 +263,7 @@ export namespace Services {
   export class FigshareVocabularyService {
     constructor(
       protected readonly input: {
+        runAcceptedWork?<T>(operation: () => Promise<T>): Promise<T>;
         repository: VocabularyRepositories;
         log: ILogger;
         brandName(id: string): string;
@@ -273,6 +274,21 @@ export namespace Services {
         bootstrapFigshareImports?: boolean;
       }
     ) {}
+
+    private readonly imports = new Set<Promise<unknown>>();
+
+    public async drain(): Promise<void> {
+      while (this.imports.size) await Promise.allSettled(this.imports);
+    }
+
+    public close(): Promise<void> { return this.drain(); }
+
+    private ownImport<T>(operation: () => Promise<T>): Promise<T> {
+      const work = this.input.runAcceptedWork ? this.input.runAcceptedWork(operation) : Promise.resolve().then(operation);
+      this.imports.add(work);
+      void work.then(() => this.imports.delete(work), () => this.imports.delete(work));
+      return work;
+    }
 
     protected _exportedMethods: string[] = figshareVocabularyExportedMethods;
 
@@ -2276,7 +2292,7 @@ export namespace Services {
 
       try {
         await promiseWithTimeout(
-          this.runBootstrapImport({ scope, taxonomyId, localCloneName, item }, ctx),
+          this.ownImport(() => this.runBootstrapImport({ scope, taxonomyId, localCloneName, item }, ctx)),
           FIGSHARE_IMPORT_TIMEOUT_MS,
           `Figshare vocabulary import ${label}`
         );

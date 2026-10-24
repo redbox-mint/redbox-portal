@@ -2,6 +2,7 @@ import _ from 'lodash';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { VocabularyRepositories } from '../persistence/vocabulary/VocabularyRepositories';
 export interface VocabularyDependencies {
+  runAcceptedWork?<T>(operation: () => Promise<T>): Promise<T>;
   readonly repository: VocabularyRepositories;
   readonly config: {
     readonly bootstrap?: { readonly bootstrapDataPath?: string };
@@ -181,6 +182,21 @@ export namespace Services {
 
   export class VocabularyService {
     public constructor(private readonly input: VocabularyDependencies) {}
+
+    private readonly imports = new Set<Promise<unknown>>();
+
+    public async drain(): Promise<void> {
+      while (this.imports.size) await Promise.allSettled(this.imports);
+    }
+
+    public close(): Promise<void> { return this.drain(); }
+
+    private ownImport<T>(operation: () => Promise<T>): Promise<T> {
+      const work = this.input.runAcceptedWork ? this.input.runAcceptedWork(operation) : Promise.resolve().then(operation);
+      this.imports.add(work);
+      void work.then(() => this.imports.delete(work), () => this.imports.delete(work));
+      return work;
+    }
 
     /**
      * Externally managed mirrors (a `source=external` vocabulary owned by a Figshare
@@ -1222,7 +1238,7 @@ export namespace Services {
       for (let attempt = 1; attempt <= RVA_IMPORT_MAX_ATTEMPTS; attempt++) {
         let importPromise: Promise<VocabularyAttributes> | undefined;
         try {
-          importPromise = rvaImportService.importRvaVocabulary(rvaId, versionId, branding);
+          importPromise = this.ownImport(() => rvaImportService.importRvaVocabulary(rvaId, versionId, branding));
           return await promiseWithTimeout(importPromise, RVA_IMPORT_TIMEOUT_MS, `RVA import ${sourceKey}`);
         } catch (error) {
           lastError = error;

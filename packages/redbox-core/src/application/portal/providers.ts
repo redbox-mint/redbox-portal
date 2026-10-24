@@ -239,10 +239,11 @@ export function portalProviderPlan(
     ['vocabulary', 'appConfigs'],
     (input: ConstructorParameters<typeof FigshareVocabulary.FigshareVocabularyService>[0]) =>
       new FigshareVocabulary.FigshareVocabularyService(input),
-    noDomainResources,
+    value => ({ initialize: async () => {}, drain: () => value.drain(), close: () => value.close() }),
     (value): value is FigshareVocabulary.FigshareVocabularyService =>
       value instanceof FigshareVocabulary.FigshareVocabularyService,
     () => ({
+      runAcceptedWork: operation => runAcceptedPersistenceWork(owner, operation),
       repository: getVocabularyRepositories(owner),
       log,
       brandName: id => {

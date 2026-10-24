@@ -6,6 +6,7 @@ import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { PortalConfiguration } from '../../configuration/portal';
 import type { PersistenceOwner } from '../../persistence/owner';
 import {
+  runAcceptedPersistenceWork,
   getReferenceRepositories,
   getConfigurationRepositories,
   getBrandingRepository,
@@ -183,9 +184,10 @@ export function portalReferencePlan(
     'vocabulary',
     ['branding'],
     (input: ConstructorParameters<typeof Vocabulary.VocabularyService>[0]) => new Vocabulary.VocabularyService(input),
-    noDomainResources,
+    value => ({ initialize: async () => {}, drain: () => value.drain(), close: () => value.close() }),
     (value): value is Vocabulary.VocabularyService => value instanceof Vocabulary.VocabularyService,
     () => ({
+      runAcceptedWork: operation => runAcceptedPersistenceWork(owner, operation),
       repository: getVocabularyRepositories(owner),
       config,
       log,
