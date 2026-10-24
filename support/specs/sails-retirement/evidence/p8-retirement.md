@@ -1088,3 +1088,25 @@ instead of the actual embedded local-auth application. Corrected to actual
 contracts. `relationships34-first.log`: **26 passing / 0 pending / 0 failing**
 (572ms), Node 26.11.1 explicit core runner. Pinned Prettier and diff check pass.
 No production change or skip; whole-suite/artifact qualification remains open.
+
+### Download consumers now exercise real HTTP cancellation and stream cleanup
+
+All **15 scenarios** (browser attachment, browser datastream and API datastream,
+five each) now run actual datastream route mounts and access logic over local HTTP.
+They check original complete bytes and response finish, mid-stream disconnect,
+late storage-stream arrival after disconnect, source error without another
+response, and the next storage request with an Agent limited to maxSockets:1.
+Selected brand/actor and attachment ownership use explicit ports and real grants.
+
+Initial fixture attempts used events.once for an expected errored stream close,
+which rejects on the preceding AbortError, and a fully buffered storage response
+could close before the cancellation observer attached. `downloads35-first.log`
+records those failed/timeout cases; stopped only that task's Mocha PID 3322324
+after inspecting the blocked old fixture. Corrected expected-error event handling
+and made the storage provider actually stream until cancellation. The follow-up
+request still must execute/finish within its existing 2s deadline. No production
+workaround or weakened cleanup assertion was needed.
+
+`downloads35-second.log`: **15 passing / 0 pending / 0 failing** (223ms), Node
+26.11.1 explicit core runner. Pinned Prettier and diff check pass. No skipped or
+removed scenario. Whole-suite/final artifact qualification remains outstanding.
