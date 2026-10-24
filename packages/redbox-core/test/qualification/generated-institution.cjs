@@ -33,6 +33,21 @@ test(
       assert.equal((await native.db().listCollections().toArray()).length, 0, 'use an empty disposable database');
       const generated = path.join(directory, 'hook');
       generateHookArchetype({ cwd: generated, packageName: 'p8-institution' });
+      // Pack a provider whose custom type declares its stages only through workflows.
+      const entry = path.join(generated, 'src/index.ts');
+      const declaration = await fs.readFile(entry, 'utf8');
+      await fs.writeFile(
+        entry,
+        declaration.replace(
+          'config: { custom:',
+          `
+        workflows: { reviewType: { draft: { starting: true, config: {
+          workflow: { stage: 'draft', stageLabel: 'Review draft' },
+          authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] }, form: 'generated-view-only'
+        } } } },
+        config: { recordtype: { reviewType: { packageType: 'reviewType', searchable: false } }, custom:`
+        )
+      );
       const config = ts.readConfigFile(path.join(generated, 'tsconfig.json'), ts.sys.readFile);
       assert.equal(config.error, undefined);
       const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, generated);
@@ -174,6 +189,17 @@ test(
       for (const phase of ['fresh', 'restart']) {
         if (phase === 'restart') portal = await createPortalHost(options);
         await portal.host.initialize();
+        const reviewType = await runtime
+          .getReferenceRepositories(portal.owner)
+          .recordTypes.findByName(portal.data.reference.branding.get().getDefault().id, 'reviewType');
+        assert(reviewType, 'the packed extension record type is bootstrapped');
+        const reviewStages = await runtime
+          .getReferenceRepositories(portal.owner)
+          .workflows.listForRecordType(reviewType.id);
+        assert.equal(reviewStages.length, 1);
+        assert.equal(reviewStages[0].name, 'draft');
+        assert.equal(reviewStages[0].starting, true);
+        assert.equal(reviewStages[0].config.workflow.stageLabel, 'Review draft');
         await portal.host.activate();
         assert.equal((await fetch('http://127.0.0.1:18547/readyz')).status, 200);
         const response = await fetch('http://127.0.0.1:18547/hooks/p8-institution/status');

@@ -136,3 +136,8 @@ construct `app()`. Cleanup cron and beyond-deadline provider-internal I/O remain
 process-owned; Redis and periodic pings are not supported by this adapter. See the
 [design ownership/limitations](design.md#companion-711-ownership-and-residual-limitations)
 and [executed evidence](evidence/p6-uploads.md).
+
+Workflow contributions in `workflows` merge into `config.workflow` by record type
+and stage. Within each provider, declared workflows follow `config`; higher-priority
+providers and application/environment/local configuration override them in the
+ordinary configuration order. Declarations are copied before finalization.

@@ -137,6 +137,7 @@ export function resolveStartupConfiguration<T extends Record<string, unknown>>(
       const declaration = provider.declaration;
       return [
         { source: provider.name, values: declaration.config ?? {} },
+        ...(declaration.workflows ? [{ source: provider.name, values: { workflow: declaration.workflows } }] : []),
         ...(declaration.jobs ? [{ source: provider.name, values: { agendaQueue: { jobs: declaration.jobs } } }] : []),
       ];
     }),

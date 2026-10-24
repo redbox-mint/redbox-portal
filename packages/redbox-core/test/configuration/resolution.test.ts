@@ -89,6 +89,42 @@ describe('Startup configuration', () => {
     assert(Object.isFrozen(config.server.tags));
     assert(!Object.isFrozen(core.values.server));
   });
+  it('merges declared workflows after provider config and before higher providers and application layers', () => {
+    const workflowSchema = schema.extend({ workflow: z.record(z.string(), z.record(z.string(), z.unknown())) });
+    const workflows = { review: { draft: { form: 'declared' } } };
+    const low = {
+      name: 'low',
+      root: '.',
+      declaration: {
+        apiVersion: 1 as const,
+        config: { workflow: { review: { draft: { form: 'config' }, published: { form: 'published' } } } },
+        workflows,
+      },
+    };
+    const resolve = (providers = [low], application?: { source: string; values: object }) =>
+      resolveStartupConfiguration({
+        schema: workflowSchema,
+        core: { ...core, values: { ...core.values, workflow: {} } },
+        executablePaths,
+        extensions: resolveExtensions(providers, providers.some(provider => provider.name === 'high') ? ['high'] : []),
+        application,
+      });
+    assert.deepEqual(resolve().workflow.review, { draft: { form: 'declared' }, published: { form: 'published' } });
+    const higher = {
+      ...low,
+      name: 'high',
+      declaration: { apiVersion: 1 as const, workflows: { review: { draft: { form: 'high' } } } },
+    };
+    assert.deepEqual(resolve([low, higher]).workflow.review.draft, { form: 'high' });
+    assert.deepEqual(
+      resolve([low], { source: 'application', values: { workflow: { review: { draft: { form: 'app' } } } } }).workflow
+        .review.draft,
+      { form: 'app' }
+    );
+    assert.equal(workflows.review.draft.form, 'declared');
+    assert(!Object.isFrozen(workflows));
+  });
+
   it('replaces ordinary and branded arrays, merges jobs by name and preserves inputs', () => {
     const values = {
       server: { tags: ['x'], optional: null },
