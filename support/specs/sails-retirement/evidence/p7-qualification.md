@@ -321,7 +321,47 @@ bootstrap/migration and HTTP/page assembly plus its owning executable.
 
 ## SR-047 — Clean packed artifacts
 
-Final native source: **`58f7cbbd60e23881cdfea9fbcb712ab2b01914ca`**. A fresh
+### Current production packages
+
+Clean committed source **`d82dc4f864be4797451b5b3795afbf694896725f`** was
+extracted with `git archive` to
+`/mnt/docker-storage/sr-p7-clean-production/.tmp/candidate-d82dc4f86`.
+No host node_modules, emitted output or generated Prisma artifacts were copied.
+All **nine package builds**, the root TypeScript build, offline Prisma contract
+check/generation/copy, **twenty Angular applications / two libraries** and API
+descriptors passed. Angular reports **97 warnings**; webpack **5.111.1** reports
+**9 warnings / 0 errors**. Node **26.11.1**, npm **11.20.0**.
+
+```sh
+DOCKER_HOST=unix:///run/sr-p7-isolated/docker.sock \
+SR_P7_CLEAN_CONTEXT=/mnt/docker-storage/sr-p7-clean-production/.tmp/candidate-d82dc4f86 \
+SR_P7_PACKED_OUTPUT="$PWD/.tmp/sails-retirement/p7/packed-d82dc4f86" \
+  bash support/integration-testing/qualify-sails-retirement-packages.sh
+```
+
+The complete package qualifier exited **0**: **12 tarballs / 20 existing
+production/offline consumer checks**, no failures or skips. Strict peer resolution
+and `legacy-peer-deps=false` apply to both consumer installs. Online install added
+**1423 packages**; fresh offline ci added **1419**. Public exports, ESM-only/top-level
+await, CommonJS registration, isolated applications, Express lifetime, development
+registration and generated-hook compilation/lifecycle all pass. These are
+consumer checks, not the full application regressions counted under SR-046.
+The [current manifest](p7-production-packed-artifacts.json) records all twelve
+SHA256s, file counts, tools, source and the real result. No binary is committed.
+
+Harness **`40b79fc3c`** runs the unchanged consumer inside a temporary Docker
+build stage and exports only its results/tarballs. Every install and compilation
+stage was reused from the completed clean build cache. Earlier cache-prewarming
+dependency-image and builder-image exports were deliberately cancelled (exit
+**130**) while exporting their unused development trees, including the very large
+Prisma Composer/Alchemy trees. They are not qualified images or failed consumer
+checks. The original clean production Dockerfile and all consumer assertions are
+unchanged. Logs: `.tmp/sails-retirement/p7/{dependencies-2e7ea887e,builder-d82dc4f86}-build.log`
+and `packed-d82dc4f86.log`. Runtime/rehearsal image qualification remains required.
+
+### Historical native packages
+
+Earlier native source: **`58f7cbbd60e23881cdfea9fbcb712ab2b01914ca`**. A fresh
 `git archive` was extracted to
 `/mnt/docker-storage/sr-p7-clean-4254c2e/.tmp/final-58f7cbb`. This is an ordinary
 archive directory, not a worktree or the shared checkout's installed tree.

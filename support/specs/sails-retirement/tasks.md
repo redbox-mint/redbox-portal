@@ -722,7 +722,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-047 — Qualify clean package/image artifacts and operational comparisons.**
 
-  **Status:** partial; clean nine-package builds and twelve packed artifacts pass the 18-check production/offline consumer. Clean runtime image builds all 20 Angular applications/2 libraries and passes installed assets plus split-Mongo/GridFS lifecycle checks (1+1 passing, no skips); full production Express portal/operational qualification remains open; [artifact evidence](evidence/p7-qualification.md#sr-047--clean-packed-artifacts).
+  **Status:** partial; current clean production source builds all nine packages, 20 Angular applications/2 libraries and webpack, and its twelve packed artifacts pass all 20 production/offline consumer checks with strict peers/legacy=false and no failures/skips. Historical runtime component checks passed (1+1); the new production runtime/rehearsal images and full installed portal/operational comparison remain open; [artifact evidence](evidence/p7-qualification.md#sr-047--clean-packed-artifacts).
 
   **Depends on:** SR-017, SR-018, SR-037, SR-044, SR-045.
   Full portal qualification also requires SR-046's production-composition prerequisite.
