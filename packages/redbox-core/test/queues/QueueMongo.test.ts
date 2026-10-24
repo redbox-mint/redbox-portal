@@ -42,7 +42,8 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
   });
   async function fixture(
     jobs: AgendaQueueConfig['jobs'],
-    handler: ConstructorParameters<typeof AgendaQueue>[0]['handler']
+    handler: ConstructorParameters<typeof AgendaQueue>[0]['handler'],
+    createQueue = (input: ConstructorParameters<typeof AgendaQueue>[0]) => new AgendaQueue(input)
   ) {
     const name = `sr_p3_lifecycle_queue_${process.pid}_${names.length}`;
     names.push(name);
@@ -52,7 +53,7 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     await initializePersistence(owner);
     const config = { options: { processEvery: '0.02 seconds', defaultLockLifetime: 200, drainTimeoutMs: 1000 }, jobs };
     await prepareAgendaIndexes(owner, config.options, 'ensure');
-    const queue = new AgendaQueue({ owner, config, log, handler });
+    const queue = createQueue({ owner, config, log, handler });
     return { owner, queue, db: native.db(name) };
   }
   it('defines without claims, schedules or submissions, then activates and schedules once', async () => {
@@ -91,6 +92,61 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     assert.equal(await db.collection('agendaJobs').countDocuments({ name: 'repeat' }), 1);
     await app.activate();
     assert.equal(await db.collection('agendaJobs').countDocuments(), 3);
+    await app.stop();
+    assert.equal(persistenceStatus(owner).pools, 0);
+  });
+  it('persists startup schedules before claiming an existing due recurring job', async () => {
+    const saving = Promise.withResolvers<void>(),
+      release = Promise.withResolvers<void>();
+    let calls = 0;
+    class HeldScheduleQueue extends AgendaQueue {
+      protected override async createMongoBackend(...args: Parameters<AgendaQueue['createMongoBackend']>) {
+        const backend = await super.createMongoBackend(...args);
+        const save = backend.repository.saveJob.bind(backend.repository);
+        backend.repository.saveJob = async (...values) => {
+          if (values[0].name === 'repeat') {
+            saving.resolve();
+            await release.promise;
+          }
+          return save(...values);
+        };
+        return backend;
+      }
+    }
+    const { owner, queue, db } = await fixture(
+      {
+        repeat: {
+          fnName: 'bound',
+          schedule: { method: 'every', intervalOrSchedule: '1 hour' },
+        },
+      },
+      () => async () => {
+        calls++;
+      },
+      input => new HeldScheduleQueue(input)
+    );
+    const app = new ApplicationRuntime(owner, [{ name: 'queue', create: () => queue }]);
+    apps.push(app);
+    await db.collection('agendaJobs').insertOne({
+      name: 'repeat',
+      type: 'single',
+      priority: 0,
+      nextRunAt: new Date(),
+      lockedAt: null,
+      repeatInterval: '1 hour',
+    });
+    await app.initialize();
+    const activating = app.activate();
+    try {
+      await saving.promise;
+      await new Promise(resolve => setTimeout(resolve, 100));
+      assert.equal(calls, 0, 'No due job may run before the startup schedule write settles');
+      assert.equal((await db.collection('agendaJobs').findOne({ name: 'repeat' }))!.lockedAt, null);
+    } finally {
+      release.resolve();
+      await activating;
+    }
+    await until(() => calls === 1);
     await app.stop();
     assert.equal(persistenceStatus(owner).pools, 0);
   });

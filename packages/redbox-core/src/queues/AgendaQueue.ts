@@ -374,9 +374,11 @@ export class AgendaQueue implements QueueService {
     );
   }
   private async activatePrepared(): Promise<void> {
-    await this.startProcessors();
-    if (this.closing) throw new Error('AgendaQueue is stopping.');
+    // Persist recurring definitions before any due persisted job can be claimed.
+    // Otherwise schedule upserts can overwrite an active delivery's owner/lock.
     await this.runConfiguredStartupSchedules(this.preparedJobs);
+    if (this.closing) throw new Error('AgendaQueue is stopping.');
+    await this.startProcessors();
     if (this.closing) throw new Error('AgendaQueue is stopping.');
     this.active = true;
   }
@@ -557,7 +559,9 @@ export class AgendaQueue implements QueueService {
   private async moveHistory(): Promise<void> {
     const historyRetentionHours = this.input.config.options?.historyRetentionHours ?? 25;
     const historyRetentionMs = historyRetentionHours * 60 * 60 * 1000;
-    const dbManager = (await this.mongoJobDatabase(this.input.config.options ?? {})) as unknown as AgendaQueueMongoManager;
+    const dbManager = (await this.mongoJobDatabase(
+      this.input.config.options ?? {}
+    )) as unknown as AgendaQueueMongoManager;
     const collectionName = String(_.get(this.input.config, 'options.collection', 'agendaJobs'));
     const jobsCollection = dbManager.collection(collectionName);
     const historyCollection = dbManager.collection(`${collectionName}History`);

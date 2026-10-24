@@ -142,3 +142,21 @@ suite passed **16/16**, zero pending/failing, exit **0**
 (`query-pagination-green.log`), including its unchanged two-request Bruno fixture.
 An attempt while the compiled dependency graph was being rebuilt failed module
 loading; this harness ordering error is not counted as a behavior result.
+
+### Recurring queue startup race
+
+The real portal restart logged `AgendaClaimLostError` for existing recurring jobs.
+Processing started before the configured schedule upserts settled. A due job could
+therefore be claimed while its startup upsert rewrote processor state. Activation
+now persists schedules first, then starts processors. A new real-Mongo test holds
+an actual recurring schedule save and asserts no due-job handler/lock before it
+settles; it does not mock the claim path.
+
+`agenda-schedule-activation-red.log`: **8 passing / 1 failing**, the new case
+observed **1 handler versus 0** while its schedule write was held. After the fix,
+`agenda-schedule-activation-green.log`: **9 passing / 0 failing / 0 pending**,
+exit **0**, approximately **13 s**. Existing Agenda/runtime/schedule unit regression
+(`agenda-schedule-existing.log`) passed **78/78**, no failures/pending, exit **0**.
+No old assertion or timeout changed. The first production-matrix attempt picked
+up the added red test during development and stopped after Mongo8 standalone;
+that invocation is not a completed matrix and will be repeated from fixed source.
