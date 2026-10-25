@@ -9,6 +9,68 @@ import { initializePersistence, cleanupPersistence } from '../../src/persistence
 import type { RecordModel } from '../../src/model/storage/RecordModel';
 
 describe('progress socket handshake ownership', () => {
+  it('does not deliver an authorized emit after unsubscribe has acknowledged', async () => {
+    const owner = { config: {}, log: { warn() {} } };
+    await initializePersistence(owner);
+    const server = createServer();
+    const actor = { id: 'user', username: 'user', roles: [{ id: 'role', brandId: 'brand' }] };
+    const record = { redboxOid: 'record', metaMetadata: { brandId: 'brand' } } as RecordModel;
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<typeof actor>();
+    let gate = false;
+    const sockets = new ProgressSockets({
+      owner,
+      path: '/progress/socket.io',
+      origins: ['http://127.0.0.1'],
+      records: { getMeta: async () => record, hasViewAccess: () => true },
+      progress: { get: () => of([]) },
+      authenticate: async () => {
+        if (!gate) return actor;
+        entered.resolve();
+        return release.promise;
+      },
+    });
+    sockets.attach(server);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const client = io(`http://127.0.0.1:${(server.address() as AddressInfo).port}`, {
+      path: '/progress/socket.io',
+      transports: ['websocket'],
+      reconnection: false,
+      extraHeaders: { Origin: 'http://127.0.0.1' },
+      auth: { token: sockets.issue({ sessionId: 'session' }, { id: 'brand' }, actor) },
+    });
+    const updates: unknown[] = [];
+    client.on('update', value => updates.push(value));
+    try {
+      await new Promise<void>((resolve, reject) => {
+        client.once('connect', resolve);
+        client.once('connect_error', reject);
+      });
+      assert.deepEqual(await client.timeout(3000).emitWithAck('subscribe', 'record'), { status: true });
+      gate = true;
+      const emitting = sockets.emit('update', { branding: 'brand', relatedRecordId: 'record' });
+      await entered.promise;
+      assert.deepEqual(await client.timeout(3000).emitWithAck('unsubscribe', 'record'), { status: true });
+      release.resolve(actor);
+      await emitting;
+      // This acknowledgement is a wire-order fence after the pending delivery.
+      await client.timeout(3000).emitWithAck('unsubscribe', 'record');
+      assert.equal(updates.length, 0);
+      gate = false;
+      assert.deepEqual(await client.timeout(3000).emitWithAck('subscribe', 'record'), { status: true });
+      const received = once(client, 'update');
+      await sockets.emit('update', { branding: 'brand', relatedRecordId: 'record' });
+      await received;
+      assert.equal(updates.length, 1);
+    } finally {
+      release.resolve(actor);
+      client.disconnect();
+      await sockets.close();
+      await cleanupPersistence(owner);
+      if (server.listening) await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  });
   it('acknowledges concurrent subscriptions while the same room intent remains current', async () => {
     const owner = { config: {}, log: { warn() {} } };
     await initializePersistence(owner);

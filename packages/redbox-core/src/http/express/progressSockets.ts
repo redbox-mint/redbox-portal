@@ -195,7 +195,12 @@ export class ProgressSockets {
     for (const [socket, connection] of this.connections) {
       if (connection.grant.brand.id !== progress.branding) continue;
       for (const room of rooms) {
-        if (connection.rooms.has(room) && (await this.permitted(connection, room))) {
+        if (
+          connection.rooms.has(room) &&
+          (await this.permitted(connection, room)) &&
+          this.connections.get(socket) === connection &&
+          connection.rooms.has(room)
+        ) {
           socket.emit(event, progress);
           break;
         }
