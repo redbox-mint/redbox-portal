@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
 import {LoggerService} from '../logger.service';
 import {UtilityService} from '../utility.service';
-import {FormFieldBaseComponent} from './form-field-base.component';
+import {FormFieldCompMapEntry, FormFieldBaseComponent} from './form-field-base.component';
 import {FormFieldModel} from "./base.model";
 
 class TestFormFieldBaseComponent extends FormFieldBaseComponent<unknown> {
@@ -24,6 +24,38 @@ describe('FormFieldBaseComponent', () => {
       providers: [LoggerService, UtilityService]
     });
     component = TestBed.runInInjectionContext(() => new TestFormFieldBaseComponent());
+  });
+
+  it('shares a stable label target between layout and control for one runtime entry', () => {
+    const entry: FormFieldCompMapEntry = { compConfigJson: {
+      name: 'title', component: { class: 'SimpleInputComponent' }
+    } };
+    component.formFieldCompMapEntry = entry;
+    const layout = TestBed.runInInjectionContext(() => new TestFormFieldBaseComponent());
+    layout.formFieldCompMapEntry = entry;
+    const id = layout.labelableControlId;
+    expect(id).toBeTruthy();
+    expect(component.labelableControlId).toBe(id);
+    expect(layout.labelableControlId).toBe(id);
+    component.formFieldCompMapEntry = { compConfigJson: structuredClone(entry.compConfigJson) };
+    expect(component.labelableControlId).not.toBe(id);
+    expect(entry.compConfigJson.component?.config).toBeUndefined();
+  });
+
+  it('does not generate label targets for hidden inputs or components with their own label handling', () => {
+    expect(component.labelableControlId).toBeUndefined();
+    const definitions: FormFieldCompMapEntry['compConfigJson'][] = [
+      { name: 'field', component: { class: 'SimpleInputComponent', config: { type: 'hidden' } as FormFieldCompMapEntry['compConfigJson']['component']['config'] } },
+      { name: 'field', component: { class: 'GroupComponent' } },
+      { name: 'field', component: { class: 'CheckboxInputComponent' } },
+      { name: 'field', component: { class: 'RadioInputComponent' } },
+    ];
+    for (const compConfigJson of definitions) {
+      const entry: FormFieldCompMapEntry = { compConfigJson };
+      component.formFieldCompMapEntry = entry;
+      expect(component.labelableControlId).toBeUndefined();
+      expect(entry.labelableControlId).toBeUndefined();
+    }
   });
 
   it('should resolve immediately when view is already initialised', async () => {
