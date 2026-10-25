@@ -241,8 +241,8 @@ connects to an institution database. Keep at least 6 GiB free in the scratch roo
 ```sh
 export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
 export SR_P7_SCRATCH_ROOT=/path/to/disposable/scratch
-# Immutable image ID from the clean SR-047 build; use the bundled-hook stand-in.
-export SR_P7_CANDIDATE_IMAGE=sha256:25725acf4be38222bdf3546e29cdd1016492ec671c19c9920c7beb8420a05b1b
+# Immutable Sails-free P8 rehearsal image from evidence/p8-artifacts.json.
+export SR_P7_CANDIDATE_IMAGE=sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1
 bash support/integration-testing/rehearse-sails-retirement-recovery.sh
 ```
 
