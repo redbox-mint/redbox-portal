@@ -1,0 +1,69 @@
+{
+  "node": "v26.11.1",
+  "proof": "Loopback HTTP with actual Express 5, Passport, sessions, CSRF, policies and extracted production Angular onLogin. Controlled identity/audit ports. No Mongo, historical host, live external provider or deployed-browser claim.",
+  "sourceSha256": "edd86718fac145fa9facb7ef30dc34d832ce2fe700a19ea491762abb225d6fa4",
+  "observations": [
+    {
+      "name": "audit rejection clears the session and recovers the consumer",
+      "version": "1.0",
+      "status": 500
+    },
+    {
+      "name": "failed login leaves no authenticated session",
+      "version": "1.0",
+      "status": 403
+    },
+    {
+      "name": "old CSRF cannot retry the destroyed session",
+      "version": "1.0",
+      "status": 403
+    },
+    {
+      "name": "fresh CSRF and session recover the failed login",
+      "version": "1.0",
+      "status": 200
+    },
+    {
+      "name": "audit rejection clears the session and recovers the consumer",
+      "version": "2.0",
+      "status": 500
+    },
+    {
+      "name": "failed login leaves no authenticated session",
+      "version": "2.0",
+      "status": 403
+    },
+    {
+      "name": "old CSRF cannot retry the destroyed session",
+      "version": "2.0",
+      "status": 403
+    },
+    {
+      "name": "fresh CSRF and session recover the failed login",
+      "version": "2.0",
+      "status": 200
+    },
+    {
+      "name": "expired browser session preserves its original rooted destination",
+      "redirect": "/research/default/portal/record/edit/record-1?tab=metadata"
+    },
+    {
+      "name": "stale logout CSRF refuses effects and retains the logged-in session",
+      "status": 403
+    },
+    {
+      "name": "fresh logout CSRF completes redirect and invalidates the session",
+      "status": 302
+    },
+    {
+      "name": "GET logout retains its documented rejection",
+      "status": 405
+    }
+  ],
+  "audits": [
+    "login",
+    "login",
+    "login",
+    "logout"
+  ]
+}

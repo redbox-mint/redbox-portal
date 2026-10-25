@@ -1,0 +1,119 @@
+{
+  "recorded_at": "2026-10-25T20:28:49.370668+00:00",
+  "base": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "head": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0",
+  "node": "v26.11.1",
+  "green": {
+    "files": [
+      "focused-current.json",
+      "lifecycle-current.json"
+    ],
+    "passed": 402,
+    "failed": 0,
+    "pending": 0,
+    "runs": [
+      {
+        "file": "focused-current.json",
+        "stats": {
+          "suites": 20,
+          "tests": 280,
+          "passes": 280,
+          "pending": 0,
+          "failures": 0,
+          "start": "2026-10-25T20:15:57.635Z",
+          "end": "2026-10-25T20:16:05.821Z",
+          "duration": 8186
+        }
+      },
+      {
+        "file": "lifecycle-current.json",
+        "stats": {
+          "suites": 19,
+          "tests": 122,
+          "passes": 122,
+          "pending": 0,
+          "failures": 0,
+          "start": "2026-10-25T20:23:48.327Z",
+          "end": "2026-10-25T20:23:49.687Z",
+          "duration": 1360
+        }
+      }
+    ]
+  },
+  "fresh_expected_negative_controls": [
+    {
+      "file": "r14-incoming.json",
+      "reference": "9bb858218",
+      "substitution": "Only ten actual incoming modules; checked-in tests/helpers/shared dependencies remain current. See r14-incoming-loader.cjs.",
+      "tests": 138,
+      "passed": 96,
+      "failed_as_expected": 42,
+      "pending": 0,
+      "exit": 42
+    },
+    {
+      "file": "r13-search-incoming.json",
+      "reference": "2d7516aaa^",
+      "substitution": "Only recordReads.ts; current 15-case checked-in test.",
+      "tests": 15,
+      "passed": 8,
+      "failed_as_expected": 7,
+      "pending": 0,
+      "exit": 7,
+      "attribution": "Two search regressions belong to 2d7516aaa; the other five are the later browser-list fix. Not seven distinct search defects."
+    },
+    {
+      "file": "r13-browser-incoming.json",
+      "reference": "f1da6196e^",
+      "substitution": "Only recordReads.ts; current 15-case checked-in test.",
+      "tests": 15,
+      "passed": 10,
+      "failed_as_expected": 5,
+      "pending": 0,
+      "exit": 5,
+      "attribution": "Five browser-list cases; overlap the earlier incoming run."
+    }
+  ],
+  "r15_fresh_paired_and_causal_observations": {
+    "file_counts": {
+      "r15-consumer-results.json": 10,
+      "r15-companion-results.json": 24,
+      "r15-delayed-widget-results.json": 12
+    },
+    "additional_delayed_setter_controls": 2,
+    "total_observations": 48,
+    "all_probe_assertions_passed": true,
+    "limits": "Actual extracted component methods and installed RequestClient; native Express loopback and session CSRF where stated. Controlled domain/provider ports. No Chrome, OAuth or cloud-transfer claim."
+  },
+  "fresh_actual_baseline_method_controls": [
+    {
+      "file": "records-baseline-fresh.json",
+      "observations": 13
+    },
+    {
+      "file": "identity-baseline-fresh.json",
+      "observations": 13
+    },
+    {
+      "file": "entrypoints-baseline-fresh.json",
+      "observations": 5
+    },
+    {
+      "file": "browser-list-baseline-fresh.json",
+      "observations": 4
+    }
+  ],
+  "baseline_observations_total": 35,
+  "baseline_limit": "Pinned actual controller/helper bodies with deterministic ports, not a historical Sails HTTP deployment.",
+  "historical_results_newly_claimed": false,
+  "not_run_here": [
+    "Chrome/Karma Jasmine suite (parent-owned current run)",
+    "MongoDB/Solr integration",
+    "containers",
+    "compile/build/typecheck/lint",
+    "broad qualification or artifact packaging",
+    "institution qualification"
+  ],
+  "final_status_note": "This axis made no tracked edits. Three parent-owned documentation edits were present at finalization; HEAD and reviewed runtime/test sources remain pinned to 1d38ddd1c00c6197d3a28ebe616248bfd008faf0.",
+  "final_integrity_evidence": "integrity.json"
+}

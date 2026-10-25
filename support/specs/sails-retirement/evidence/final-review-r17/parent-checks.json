@@ -1,0 +1,203 @@
+{
+  "reviewedHead": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0",
+  "qualifiedNode": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+  "node": "v26.11.1",
+  "npm": "11.20.0",
+  "rawRoot": ".tmp/sails-retirement/final-review-r17/parent",
+  "checks": [
+    {
+      "name": "auth-recovery",
+      "cwd": ".",
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node --no-experimental-strip-types .tmp/sails-retirement/final-review-r17/parent/auth-recovery-probe.cjs",
+      "exitCode": 0,
+      "observations": 12,
+      "log": "auth-recovery.log"
+    },
+    {
+      "name": "authentication-focused",
+      "cwd": "packages/redbox-core",
+      "environment": {
+        "TS_NODE_PROJECT": "test/tsconfig.json"
+      },
+      "command": "qualified-node node_modules/mocha/bin/mocha.js --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 20000 test/http/authentication-matrix.test.ts test/http/Policies.test.ts test/application/PortalAuthentication.test.ts --reporter dot",
+      "exitCode": 0,
+      "passed": 165,
+      "log": "authentication-focused.log"
+    },
+    {
+      "name": "local-auth-chrome",
+      "cwd": "angular",
+      "environment": {
+        "CHROME_BIN": "/home/andrew/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome"
+      },
+      "command": "qualified-node node_modules/@angular/cli/bin/ng.js test @researchdatabox/local-auth --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage=false --progress=false",
+      "exitCode": 0,
+      "passed": 37,
+      "log": "local-auth-chrome.log"
+    },
+    {
+      "name": "r13-http-current",
+      "cwd": "packages/redbox-core",
+      "environment": {
+        "TS_NODE_PROJECT": "test/tsconfig.json"
+      },
+      "command": "qualified-node --no-experimental-strip-types node_modules/mocha/bin/mocha.js --no-config --require ts-node/register/transpile-only --timeout 20000 test/http/httpInputAcceptance.test.ts --reporter dot",
+      "exitCode": 0,
+      "passed": 59,
+      "log": "r13-current.log"
+    },
+    {
+      "name": "r13-http-negative",
+      "cwd": "packages/redbox-core",
+      "environment": {
+        "TS_NODE_PROJECT": "test/tsconfig.json"
+      },
+      "command": "qualified-node --no-experimental-strip-types node_modules/mocha/bin/mocha.js --no-config --require ts-node/register/transpile-only --require ../../support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-negative-control.cjs --timeout 20000 test/http/httpInputAcceptance.test.ts --reporter json",
+      "exitCode": 33,
+      "passed": 26,
+      "expectedFailures": 33,
+      "log": "r13-negative.json",
+      "limits": "Only six actual production owners loaded from c8a5064d0; current tests/helpers/dependencies, no historical whole-host deployment."
+    },
+    {
+      "name": "r16-incoming-causal-proof",
+      "cwd": ".",
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node --no-experimental-strip-types .tmp/sails-retirement/final-review-r17/parent/local-login-audit-probe.cjs",
+      "exitCode": 0,
+      "observations": 3,
+      "log": "r16-negative.log"
+    },
+    {
+      "name": "r16-corrected-causal-proof",
+      "cwd": ".",
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node --no-experimental-strip-types .tmp/sails-retirement/final-review-r17/parent/local-login-audit-green-probe.cjs",
+      "exitCode": 0,
+      "observations": 7,
+      "log": "r16-current.log"
+    },
+    {
+      "name": "closure-tooling",
+      "cwd": ".",
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node --test test/tooling/retirement-closure.test.cjs",
+      "exitCode": 0,
+      "passed": 10,
+      "log": "closure-tests.log"
+    },
+    {
+      "name": "tooling-siblings",
+      "cwd": ".",
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node --test test/tooling/retire-v5-shims.test.cjs test/tooling/local-lockfile-contract.test.cjs",
+      "exitCode": 0,
+      "passed": 7,
+      "log": "tooling-siblings.log"
+    },
+    {
+      "name": "documentation-tests",
+      "cwd": ".",
+      "environment": {
+        "TS_NODE_PROJECT": "support/documentation/tsconfig.json"
+      },
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node --no-experimental-strip-types node_modules/mocha/bin/mocha.js --no-config --require ts-node/register/transpile-only support/documentation/test/*.test.ts --reporter dot",
+      "exitCode": 0,
+      "passed": 4,
+      "log": "docs-tests.log"
+    },
+    {
+      "name": "documentation-audit",
+      "cwd": ".",
+      "environment": {
+        "TS_NODE_PROJECT": "support/documentation/tsconfig.json"
+      },
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node --no-experimental-strip-types -r ts-node/register/transpile-only support/documentation/src/generate.ts --audit-only",
+      "exitCode": 0,
+      "surfaces": 43,
+      "existingAdvisories": 524,
+      "log": "docs-audit.log"
+    },
+    {
+      "name": "incoming-source-closure",
+      "cwd": ".",
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node support/specs/sails-retirement/evidence/retirement-closure.cjs HEAD",
+      "exitCode": 0,
+      "candidates": 1186,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "log": "source-closure.json"
+    },
+    {
+      "name": "incoming-source-inventory",
+      "cwd": ".",
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node support/specs/sails-retirement/evidence/inventory.cjs HEAD",
+      "exitCode": 0,
+      "matchedFiles": 1157,
+      "log": "source-inventory.json"
+    },
+    {
+      "name": "incoming-reconciliation",
+      "cwd": ".",
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node support/specs/sails-retirement/evidence/reconcile-retirement-inventory.cjs .tmp/sails-retirement/final-review-r17/parent/source-inventory.json .tmp/sails-retirement/final-review-r17/parent/source-closure.json",
+      "exitCode": 0,
+      "baselineFiles": 1261,
+      "log": "reconciliation.json"
+    },
+    {
+      "name": "runtime-equivalence-pins-and-selected-locks",
+      "cwd": ".",
+      "command": "python3 .tmp/sails-retirement/final-review-r17/parent/verify-runtime.py",
+      "exitCode": 0,
+      "log": "runtime-equivalence.json"
+    }
+  ],
+  "negativeTestTitles": [
+    "Legacy HTTP input acceptance retains a bodyless browser vocabulary sync for the latest version",
+    "Legacy HTTP input acceptance retains existing-record editing and route identifier precedence /record/rdmp/edit?oid=oid-1",
+    "Legacy HTTP input acceptance retains existing-record form delivery and route identifier precedence /record/form/rdmp?oid=oid-1",
+    "Legacy HTTP input acceptance retains optional translation listing filters ",
+    "Legacy HTTP input acceptance retains optional translation listing filters ?locale=en&namespace=",
+    "Legacy HTTP input acceptance retains optional translation listing filters ?locale=&namespace=custom",
+    "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin genKey",
+    "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin revokeKey",
+    "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin update",
+    "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin roles",
+    "Legacy HTTP input acceptance does not select query.id when browser admin genKey omits userid",
+    "Legacy HTTP input acceptance does not select body.id when browser admin genKey omits userid",
+    "Legacy HTTP input acceptance does not select both when browser admin genKey omits userid",
+    "Legacy HTTP input acceptance does not select query.id when browser admin revokeKey omits userid",
+    "Legacy HTTP input acceptance does not select body.id when browser admin revokeKey omits userid",
+    "Legacy HTTP input acceptance does not select both when browser admin revokeKey omits userid",
+    "Legacy HTTP input acceptance does not select query.id when browser admin update omits userid",
+    "Legacy HTTP input acceptance does not select body.id when browser admin update omits userid",
+    "Legacy HTTP input acceptance does not select both when browser admin update omits userid",
+    "Legacy HTTP input acceptance does not select query.id when browser admin roles omits userid",
+    "Legacy HTTP input acceptance does not select body.id when browser admin roles omits userid",
+    "Legacy HTTP input acceptance does not select both when browser admin roles omits userid",
+    "Legacy HTTP input acceptance retains includeHistoricalValues=\"TRUE\"",
+    "Legacy HTTP input acceptance retains includeHistoricalValues=\" t \"",
+    "Legacy HTTP input acceptance retains includeHistoricalValues=\"1\"",
+    "Legacy HTTP input acceptance retains includeHistoricalValues=\"yes\"",
+    "Legacy HTTP input acceptance retains includeHistoricalValues=\"y\"",
+    "Legacy HTTP input acceptance retains includeHistoricalValues=\"on\"",
+    "Legacy HTTP input acceptance retains includeHistoricalValues=\"enable\"",
+    "Legacy HTTP input acceptance retains includeHistoricalValues=\"enabled\"",
+    "Legacy HTTP input acceptance splits and deduplicates 2 notation parameters before the unique-value limit",
+    "Legacy HTTP input acceptance splits and deduplicates 4 notation parameters before the unique-value limit",
+    "Legacy HTTP input acceptance splits and deduplicates 1 notation parameters before the unique-value limit"
+  ],
+  "r16ArtifactsReverified": {
+    "qualification": 361,
+    "review": 19,
+    "reviewScratch": 82,
+    "source": 89
+  },
+  "rejectedAttempts": [
+    {
+      "log": "docs-audit-attempt.log",
+      "exitCode": 9,
+      "reason": "--project was passed to node instead of setting TS_NODE_PROJECT; failed before audit. Corrected launcher accepted."
+    },
+    {
+      "reason": "Initial structural comparator selected 18 locks rather than R16's six consumer roots and rejected a source-library leaf snapshot. No all-lockfile success is claimed; selected-root retry accepted."
+    }
+  ],
+  "limits": "Counts overlap across reviewer lanes. ts-node transpile-only is not a compiler gate. Runtime/test tree unchanged, so full qualification is carried forward from R16 rather than claimed as a new run."
+}

@@ -28,10 +28,17 @@ passed. Pending cases are separate. These current source/compiled-tree results d
 not claim replacement immutable images or a repeated topology matrix. They do
 not designate an institution or grant production release acceptance.
 
+**Latest confirmation review:** [R17](evidence/final-review-r17.md) found zero
+class-(A) P1/P2 issues. It changes review evidence and status text only; R16's
+full qualification still applies to the unchanged runtime/test tree. Fresh
+authentication recovery, late-fix regression and structural checks are recorded
+separately in R17.
+
 Review evidence: [R1](evidence/final-review-r1.md), [R2](evidence/final-review-r2.md), [R3](evidence/final-review-r3.md), [R4](evidence/final-review-r4.md),
 [R5](evidence/final-review-r5.md), [R6](evidence/final-review-r6.md), [R7](evidence/final-review-r7.md), [R8](evidence/final-review-r8.md),
 [R9](evidence/final-review-r9.md), [R10](evidence/final-review-r10.md), [R11](evidence/final-review-r11.md), [R12](evidence/final-review-r12.md),
-[R13](evidence/final-review-r13.md), [R14](evidence/final-review-r14.md), [R15](evidence/final-review-r15.md), [R16](evidence/final-review-r16.md).
+[R13](evidence/final-review-r13.md), [R14](evidence/final-review-r14.md), [R15](evidence/final-review-r15.md), [R16](evidence/final-review-r16.md),
+[R17](evidence/final-review-r17.md).
 The [inherited-defects backlog](evidence/inherited-defects-backlog.md) records 14
 unchanged groups separately from the feature gate. The four accepted institution
 gaps and their task checkboxes remain unchanged.
@@ -885,6 +892,8 @@ Read the [design](design.md) for behavior and the
   postdate those frozen images. R16's runtime/test input is
   `4bf60062fd2a9d1cf387d3ac993cf531c1b6032b`; current source/compiled qualification
   remains separate from the historical immutable-image/topology evidence.
+  [R17 confirmation](evidence/final-review-r17.md) finds zero class-(A) P1/P2
+  issues and retains R16's full qualification for the unchanged runtime/test tree.
 
   **Depends on:** SR-052, SR-053, SR-054, SR-049, SR-050.
 

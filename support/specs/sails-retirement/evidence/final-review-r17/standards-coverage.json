@@ -1,0 +1,807 @@
+{
+  "scope": "R17 Standards axis: host/application/extensions/configuration/queues/maintenance/build core; bounded review, not independent qualification of every feature file.",
+  "base": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "head": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0",
+  "timestampUTC": "2026-10-25T20:30:16.028252+00:00",
+  "coreFullReadFiles": 38,
+  "coreFullReadLines": 8352,
+  "source": [
+    {
+      "path": "packages/redbox-core/src/application/Application.ts",
+      "lines": 329,
+      "sha256": "8ef2207350703e01fe6c4db429abcf0a510826418f49aaba4d7ee08d2f6440b0",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/index.ts",
+      "lines": 18,
+      "sha256": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/migrations.ts",
+      "lines": 106,
+      "sha256": "19686a9c2f901177692bbde516d3a74429fdf3f4149b0d8d8c18a32fa16d7221",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/application.ts",
+      "lines": 494,
+      "sha256": "3090b1ba8843f29d170668d0a3bf9386fe753e8e90386efa2e05cfc2635d119d",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/data.ts",
+      "lines": 416,
+      "sha256": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/domain.ts",
+      "lines": 77,
+      "sha256": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/host.ts",
+      "lines": 26,
+      "sha256": "04513c428f6fd76d63d35b32656b7a1c5214eed0e7f2666547de45e84cb05aea",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/http.ts",
+      "lines": 620,
+      "sha256": "cad31280fe054008a85284dae3376ed3cb8319e314913773e7d1539428870bc1",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/httpPolicies.ts",
+      "lines": 24,
+      "sha256": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/index.ts",
+      "lines": 7,
+      "sha256": "b6a4a3075e8e4ffd552c08a97035fcb5ebde12ed0cf7537c658178336f55d996",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/providers.ts",
+      "lines": 321,
+      "sha256": "5129b33cf153fd8bb622614d17f7b9667ca52e9efcaa2372a14f95ede3487138",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/recordOperations.ts",
+      "lines": 86,
+      "sha256": "a7379086d95a222254cdd3b6fcfab5b66082edc2d634209f892e247d6ddeba3a",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/reference.ts",
+      "lines": 599,
+      "sha256": "ae4b2e65f0cce567530a993b82f8c67d7543de972d792eb4071aeb3faf99e96f",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/extensions/composition.ts",
+      "lines": 154,
+      "sha256": "bbbe5fca2f580470c6bc205800a83a7f1b391e993996d60f1628bd714f4dd02e",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/extensions/config.ts",
+      "lines": 2,
+      "sha256": "eefe9292c8eb59a3466bb57b2c51f906fd4170fd8ecebc81e07636fe5ade4996",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/extensions/contract.ts",
+      "lines": 78,
+      "sha256": "d4f59d5386c72b6806e5106eff5ce14ea1e99c333fc625d4c4837a310e4dc625",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/extensions/index.ts",
+      "lines": 4,
+      "sha256": "1fb6c34ed82c6a1ad7fadd9bdc71158072b6415d1143e3b5fa488ff86327b5ee",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/extensions/loading.ts",
+      "lines": 99,
+      "sha256": "0020656f7060758df1619f009a8c03641f5261bc10ac4a2db630c7a3aa669c01",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/extensions/resolution.ts",
+      "lines": 406,
+      "sha256": "48c465ce6655bc58f479e32fe594d8438373c337aa32c2c7c853fa76c976c0ac",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/extensions/storage.ts",
+      "lines": 50,
+      "sha256": "6baae36567e571e1f714ab1df4df4e35c28747b3d83af429e503c54ab97cad7c",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/AppConfigSecrets.ts",
+      "lines": 481,
+      "sha256": "0a325ec29b6fbd3f7fa90cacee9a4a38ab45feddf8d063a31ce0043b9c04a5e3",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/AppConfigs.ts",
+      "lines": 828,
+      "sha256": "65301ed39e39eef77dc7784a02e7757b3808f2c8d1af812b43b2c8bd32ad019d",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/ConfigModelRegistry.ts",
+      "lines": 223,
+      "sha256": "756d07ecafc1807ef2218df4eaf15c817409b5e366b85124f09ddc8d1b0ae625",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/PortalDomainConfiguration.ts",
+      "lines": 42,
+      "sha256": "1c21093bec503678111af99823f88acd2acfb28989a97b00300ba59c384c1395",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/brand.ts",
+      "lines": 35,
+      "sha256": "9e49e0081161ab0ce4ab676f3e38a942eb51c309f75594c232203378fefa4663",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/dashboardKeys.ts",
+      "lines": 6,
+      "sha256": "461734caccb2ef9a301444df7e87a77aa025a0e1f026f610de6c81162dce6d91",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/deployment.ts",
+      "lines": 383,
+      "sha256": "a027fe3178deeb801826c91e720fb40a2f104212e850fbb4b8e98c332751c2c6",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/index.ts",
+      "lines": 8,
+      "sha256": "84b13ecd4844993a32543edabfb25b536179b6a76ba704e1e7684cb8ef27fcdd",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/loading.ts",
+      "lines": 35,
+      "sha256": "c3e6a270c50a3891729928135e64e34ed914b31833be47d54b3d83cd793237e7",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/portal.ts",
+      "lines": 527,
+      "sha256": "4f3fe6a53cea3f116cd3132a8a49bfc933bead93af62339f738d421c4e204a42",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/resolution.ts",
+      "lines": 211,
+      "sha256": "323e32dea9a51b35596013d09b82f94d07d701624cc704c1a41fdafb20127b48",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/queues/AgendaQueue.ts",
+      "lines": 1023,
+      "sha256": "a19c8fc2db2f8e8552ac05af479966476b3f6f914264f826cce5dcebf6b17f76",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/queues/ScheduledWork.ts",
+      "lines": 67,
+      "sha256": "85c16fdf7da0514af3aeb90f680d6999e638d6be53ec564e6bb65ddb0d279b75",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/queues/index.ts",
+      "lines": 8,
+      "sha256": "a25facdef7be8e979578158c103527ecff6d19c9a135a49dc18581a4b4cd5fcf",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/queues/indexes.ts",
+      "lines": 76,
+      "sha256": "17aeddcbc78c77eda6eb18ad02f2f88c10350fe1126f1b6deee13c694c02e05f",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/queues/migrateRecordHooks.ts",
+      "lines": 70,
+      "sha256": "23cf8191380aaed6d7b4af8ee63e98383f07c01cc705bbc7c7dca4950221b2aa",
+      "method": "full current source read",
+      "notes": "Reviewed end to end in this R17 axis; no claim to have independently reviewed all callers."
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/ExpressHost.ts",
+      "lines": 305,
+      "sha256": "3016fd18b09e328d705ebf2358bfb84c3a04052847c1478313b45ca7352b2432",
+      "method": "full current source read",
+      "notes": ""
+    },
+    {
+      "path": "packages/redbox-core/src/maintenance/indexes.ts",
+      "lines": 108,
+      "sha256": "a3d35bdee90de2561ce3898f28374455504f18f8d5da4fa6c449380bb605207b",
+      "method": "full current source read",
+      "notes": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/login.ts",
+      "lines": 298,
+      "sha256": "ac13d15ee66b732d707798bf128eecef34232e590b3a646c00393bdc139be998",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "Dockerfile",
+      "lines": 227,
+      "sha256": "182cfa6f87bb91e7d00d225010e59d89b082d094d0d80e10d56de05aa63f493b",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "app.express.cjs",
+      "lines": 112,
+      "sha256": "d73e5741df30752417695d1443142c937f9a72d82f7cbbad0b7a6ea99253e0d2",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/scripts/package-pages.cjs",
+      "lines": 38,
+      "sha256": "cbdbc94d1c4fc6f6be4f597d773d63916a2e52824d67141eb20fffb85605aa8c",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/scripts/portal-configuration-schema.cjs",
+      "lines": 32,
+      "sha256": "adee009ca3700a494316c3002a6fc5c0846fc396580ec312a17c571ffb2bef9d",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/bin/persistence-indexes.cjs",
+      "lines": 60,
+      "sha256": "affdff170017c391a753c001f36a73971be73849339bbaebbcd83834589cc81c",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/src/config/webpack.config.ts",
+      "lines": 139,
+      "sha256": "951a3d57b7cd8730d881011c8f818d515ffdb26b05b66d46c00f78abe0f89437",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-dev-tools/bin/wrapper-webpack.js",
+      "lines": 28,
+      "sha256": "90cb3f9bc645b9b39b2b187b2ac44653b0a0acb8b524f1a0e6fc8abb3ec6679d",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "support/build/compileProductionAngular.sh",
+      "lines": 99,
+      "sha256": "9f5a5ed027ed725d7336b13096c4aa133bae80eb0265139a1f2483148e1898f0",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/package.json",
+      "lines": 385,
+      "sha256": "6e8bf3487de4da9bb12cbf5fff57d13f64fca5a278622b642454e19d200f2170",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/src/config/appmode.config.ts",
+      "lines": 18,
+      "sha256": "5db82452563e51ca7ed055d3fa360108e9689bddedf98331848f3eeb16d8a9d3",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/src/config/emailnotification.config.ts",
+      "lines": 87,
+      "sha256": "f680b4ecaf4907d2c6ea8785c6c9d17125f477b983a4fd023ac87045d4544458",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/src/config/storage.config.ts",
+      "lines": 92,
+      "sha256": "abf1e68c99a9e408a2e08e52e6ad7ff9f9e08ca4026fc7e66dd6c1993cdd603f",
+      "method": "full current source read",
+      "notes": "Additional source/build context outside the 38-file core set."
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/recordReads.ts",
+      "lines": 458,
+      "sha256": "b71effc92b2d5ad8248b29126906c13f1ae687a16c24a24fb5b7794d718f2bee",
+      "method": "changed hunks and relevant context",
+      "notes": "R13 pagination changes and immediate surrounding context; full handler behavior belongs to the Express/data sibling."
+    },
+    {
+      "path": "packages/redbox-core/src/config/record.config.ts",
+      "lines": 180,
+      "sha256": "b14c7d901afa819156deec13a62e3d1ad11f13154e7f76c4f7c4929e20358404",
+      "method": "changed hunks and relevant context",
+      "notes": "Both feature hunks: uppercase endpoint methods and svgMaxBytes; baseline declaration checked."
+    },
+    {
+      "path": "package.json",
+      "lines": 270,
+      "sha256": "beac5b50690794f90e5206669b4b87dcf82ea514d6cb673083802fc6e3a0e63d",
+      "method": "changed hunks and relevant context",
+      "notes": "Feature/build changed hunks; not an end-to-end root manifest audit."
+    },
+    {
+      "path": ".circleci/config.yml",
+      "lines": 1802,
+      "sha256": "64a497c430939e3847fcdc3bab2c1a495287acfc8c69b2888bddff7d36a12e0b",
+      "method": "changed hunks and relevant context",
+      "notes": "Feature/build changed hunks; not full CI execution or a full-file audit."
+    },
+    {
+      "path": "packages/redbox-core/src/configuration/portal-domains.schema.json",
+      "lines": 9715,
+      "sha256": "cb61ed0ec7a8b189068e627a30639291f4e9fdf7055d6fcec57c1e5e6635facd",
+      "method": "generated equality check and focused runtime tests",
+      "notes": "Not manually read end to end. portal-configuration-schema.cjs --check passed; selected historical schema used in two negative controls."
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/README.md",
+      "lines": 53,
+      "sha256": "d1e0738ab4c22eb4470bcc6e8e468042720e25580da42bc3d56d2966be0f61cc",
+      "method": "full current file read for user-raised lock accounting observation",
+      "notes": ""
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/package.json",
+      "lines": 26,
+      "sha256": "995810f488a864974be5d94fa60ab0fbcd9de104a1d7c7e9ee6f5f169b656f65",
+      "method": "full current file read for user-raised lock accounting observation",
+      "notes": ""
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/ng-package.json",
+      "lines": 7,
+      "sha256": "4808799285faff1666daa5f06112367da76a644aa944668fcc01fad99dcc8a5b",
+      "method": "full current file read for user-raised lock accounting observation",
+      "notes": ""
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/package-lock.json",
+      "lines": 297,
+      "sha256": "e6d58bf011bad357fc0e1d133206493a2f049af75d4661d72fe98e12b511962a",
+      "method": "root package metadata and baseline unchanged provenance",
+      "notes": "No full 18-lockfile audit, install or leaf packaging execution. Supported Angular-root build does not consume this stale leaf lock."
+    }
+  ],
+  "documentation": [
+    {
+      "path": "AGENTS.md",
+      "lines": 70,
+      "sha256": "1efe81f3acf9199c65acd028c88a0cc003a24f5ce6242ff9c6020e4157d78839",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "lines": 49,
+      "sha256": "32abca67f90737f240e625a316cf306be2fc24adb0f37633be246d9a13b226b7",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/wiki/Coding-Standards-and-Conventions.md",
+      "lines": 28,
+      "sha256": "cefbccff1c4a16499d291e944d681b1aedb0ffba9a023f707dce9222d538c706",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/wiki/Architecture-Overview.md",
+      "lines": 62,
+      "sha256": "c5c4df3287c2d2bc7330892f8d15cb5ea6c9bdeb3f855f872330fd4087085524",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/wiki/Services-Architecture.md",
+      "lines": 83,
+      "sha256": "4638ea1b67745fe4882231a345f9f744fc8c5743b8d919e20789351ef983e681",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/wiki/Configuration-Guide.md",
+      "lines": 138,
+      "sha256": "c43176e4031856c2153f8080c6529cdca6b9e532c9f9912e80da123c0e677e08",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/wiki/Development-Guide.md",
+      "lines": 50,
+      "sha256": "c995192b6488cfcaab34c6c7c5b479a2319baa9614cf11f5db0afc06d43fc417",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/wiki/Redbox-Core-Types.md",
+      "lines": 42,
+      "sha256": "ded1dba4d964ffb64c9babc0c21c594a0ffb6d02e5b9c95c348dab77ff5afd9f",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/inherited-defects-backlog.md",
+      "lines": 358,
+      "sha256": "239e857296f068783b47511e40a5027d891919a40276da1bd5b5cd57d549da48",
+      "method": "read closely",
+      "notes": " Final parent-owned R17 status/header diff read separately; current hash includes that documentation-only change. Parent attribution was explicitly supplied by the user."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r13.md",
+      "lines": 232,
+      "sha256": "eaf9ff1541520ec14feccdc6aed44ec07859f799f31955174bf71b3c916b5738",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r14.md",
+      "lines": 215,
+      "sha256": "6245ce17320b79d2cc886f4cb699e8f771939ae5a4827c52f28d9f399ff7c141",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r15.md",
+      "lines": 217,
+      "sha256": "3b0dd3c36e9d354d9d6c8327a6d2b01848cc8d036435fb7d13794c8ecb82c58b",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r16.md",
+      "lines": 251,
+      "sha256": "69c979d3e11ea40bd48a9d302f07bc11f77019b0fa8456ecfc3f3e3e9ee5aecc",
+      "method": "read closely",
+      "notes": ""
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r1.md",
+      "lines": 256,
+      "sha256": "7292ba0abf61ef4eaca5632a1c13149529a26b8ad38f56223861c41aeff9e58f",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r2.md",
+      "lines": 139,
+      "sha256": "418bc88cb5ea04662c8be47f9976421a29ed3c8d363c666cba7d46fda7a215c7",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r3.md",
+      "lines": 90,
+      "sha256": "c2d2ff11c38c9da9d5d3c7aa517065574f569e672e3193ff82699c03c6b58536",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r4.md",
+      "lines": 318,
+      "sha256": "dec79a1d6dccc6cbda2d85ff319b2a7e56a5c2460a8fe54c24db24b966ac2a62",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r5.md",
+      "lines": 191,
+      "sha256": "f7a4e2deeffd74f5af1489167a0bd5206a6b878213f73cb0a166bae04a7b0b35",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r6.md",
+      "lines": 219,
+      "sha256": "85c583baa8f2e068e970cf5a5abc0d810a36cd2acf6703f6b64df9c6b21e29a7",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r7.md",
+      "lines": 193,
+      "sha256": "4d8ea25bcce0fca7d848e6c06756478737a28f9bf6b92d231eee31fe5aca045f",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r8.md",
+      "lines": 201,
+      "sha256": "076f098112676d9b895894b1d27da66f343ef2fce223fe98b2f4a92b313f7198",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r9.md",
+      "lines": 100,
+      "sha256": "3e718e6ab5f9d33d336ccbe1126d6b90eed42518fcc073d467fa040975bc4f4e",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r10.md",
+      "lines": 155,
+      "sha256": "2721e7ec3c5841a6922b54b80dd2af9a9b5bbe8fa3bfbb2fb058ac9f4425d73e",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r11.md",
+      "lines": 260,
+      "sha256": "82bc00f429a0012fdd6a3cedc3237b8d97612a7648a6b81d076c25d3674bd230",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r12.md",
+      "lines": 238,
+      "sha256": "77a98a4d56aa09a6d5f93232e7cbb9db545387b5741b677832688e0a65dc9612",
+      "method": "skim of findings, headings and provenance",
+      "notes": "Combined outputs were bounded; not a full reread of every prior report/evidence artifact."
+    },
+    {
+      "path": "support/specs/sails-retirement/design.md",
+      "lines": 857,
+      "sha256": "8a1ae2bb309dffbb84a2c36aa10fa517d28789e7fc002673850be6b9ac573697",
+      "method": "selected specification context",
+      "notes": "Focused source/context reading, including lines 257\u2013551 (modules, lifecycle, shutdown, configuration and extensions); not a full manual reread."
+    },
+    {
+      "path": "support/specs/sails-retirement/implementation_plan.md",
+      "lines": 369,
+      "sha256": "e8c58422bd8a6aede8374539de5dea8d8b3c19622be871cd06023cd1f78e3ba8",
+      "method": "selected specification context",
+      "notes": "Focused reading including lines 79\u2013172."
+    },
+    {
+      "path": "support/specs/sails-retirement/tasks.md",
+      "lines": 924,
+      "sha256": "d1566eb2f16dc7df5f8adb7cdb3b7e6be4e28749d962c2a76a4c2748a11a6d90",
+      "method": "selected specification context",
+      "notes": "Headings/status and accepted SR-005/045/049/055 dispositions. Final parent-owned R17 status/header diff read separately; current hash includes that documentation-only change. Parent attribution was explicitly supplied by the user."
+    },
+    {
+      "path": "support/specs/sails-retirement/extensions-v6.md",
+      "lines": 149,
+      "sha256": "dae54ecbb3516eb7871dc900e1552152e52060b06362e1ac3a5caada4cbcb9a1",
+      "method": "selected specification context",
+      "notes": "Read contract/lifecycle content across this 149-line document."
+    },
+    {
+      "path": "support/specs/sails-retirement/hook-migration-v6.md",
+      "lines": 293,
+      "sha256": "557537b319f8d66a9ad083097b000b3830032746c89058c471cf2d4cdec3b01b",
+      "method": "selected specification context",
+      "notes": "Focused reading including lines 121\u2013226."
+    },
+    {
+      "path": "support/specs/sails-retirement/maintenance-v6.md",
+      "lines": 153,
+      "sha256": "028b17e1d457fdebbfaf73bc773202b0a5290eec08301727f6cbc3e8462b9bb7",
+      "method": "selected specification context",
+      "notes": "First 105 lines and selected later contract portions; large combined output was truncated, so no full-file coverage claim."
+    },
+    {
+      "path": "support/specs/sails-retirement/upgrade-recovery-v6.md",
+      "lines": 310,
+      "sha256": "0f4613a9f60a6fa51c44c2196dd99bd9eee3bb7140c86aa8c5a84ab30c2eaf45",
+      "method": "selected specification context",
+      "notes": "Focused reading including lines 129\u2013204."
+    },
+    {
+      "path": "support/specs/sails-retirement/configuration-v6.md",
+      "lines": 239,
+      "sha256": "d99de13f27ac3d5c609a3bf4673e5d53291225883f2bbf386049cb0a81af55bd",
+      "method": "selected specification context",
+      "notes": "First 100 lines and baseline shape/disposition portions; large combined output was truncated, so no full-file coverage claim."
+    },
+    {
+      "path": "support/wiki/ReDBox-Automated-Tests.md",
+      "lines": 204,
+      "sha256": "5186081063b194bb004a7f9738b3416b84787e3658a856e3211aca47d9d38a6e",
+      "method": "relevant deterministic package-test guidance",
+      "notes": " Final parent-owned R17 status/header diff read separately; current hash includes that documentation-only change. Parent attribution was explicitly supplied by the user."
+    },
+    {
+      "path": "angular/README.md",
+      "lines": 67,
+      "sha256": "f036e8a47ffe2ea2e32588b8e020fa6a9726412a448c04287bb5176641d29f8a",
+      "method": "documented Angular-root build command context",
+      "notes": ""
+    }
+  ],
+  "regressionSource": [
+    {
+      "path": "packages/redbox-core/test/configuration/legacyAcceptance.test.ts",
+      "lines": 314,
+      "sha256": "cf594edf15aaa5eacb75b353f4cdc0878c1c8d8aa3c3f2782ad86f87721a9fd5",
+      "method": "late-fix regression source/context review and execution",
+      "notes": ""
+    },
+    {
+      "path": "packages/redbox-core/test/configuration/legacyInventory.test.ts",
+      "lines": 77,
+      "sha256": "a33504cb0ee2ca9337d7ee84a318ae26400c5fcbcbadbe7d18a4a2c7a5aef151",
+      "method": "full current test source read and execution",
+      "notes": ""
+    },
+    {
+      "path": "packages/redbox-core/test/configuration/legacyInventoryTypes.ts",
+      "lines": 6937,
+      "sha256": "b26bbd15b77548ba95214ac6e1b441e5e82d21297b9899a3fadc48f8dd217b22",
+      "method": "runtime fixture execution and generator equality/type-policy check",
+      "notes": "6,937-line generated typing fixture was not all hand read. configuration-acceptance.cjs --check regenerates/compares the literal fixture source and verifies its virtual compiler diagnostics, not a complete project typecheck."
+    },
+    {
+      "path": "packages/redbox-core/test/http/authentication-matrix.test.ts",
+      "lines": 814,
+      "sha256": "fbc5bffc6e792ba53c272b668fdba5479d5a04311e7a056e2053a1678b80c1cc",
+      "method": "relevant local/OIDC input cases reviewed; whole suite executed",
+      "notes": "Parent owns the broader auth review; no claim of full independent authentication source coverage."
+    },
+    {
+      "path": "packages/redbox-core/test/http/recordReadLimits.test.ts",
+      "lines": 53,
+      "sha256": "bd8e04f059d77fb48340be1bc9128667929b5b4c1a3a98c2b0f88b62bd77dff2",
+      "method": "full current test source read and execution",
+      "notes": ""
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r13/smtp-url-baseline.cjs",
+      "lines": 89,
+      "sha256": "7bfd1d319e27ed2131f09e599370741788b82d30e82d6ec276956a20bac166f8",
+      "method": "full current probe source read and newly rerun",
+      "notes": "smtp-baseline-rerun.log records baseline method success, native transport host/port and current configuration acceptance. Delivery remains replaced; no historical application deployment."
+    },
+    {
+      "path": "packages/redbox-core/test/helpers/httpInputInventory.cjs",
+      "lines": 629,
+      "sha256": "c165e076a8edf108a82b9314fb6a5fef4d26a7309359e4bf4f432461264ffdbe",
+      "method": "full authored test/helper/verification source read",
+      "notes": "Generated giant ledgers/literal rows were checked by equality/completeness and existing regression execution, rather than manually reviewed row by row."
+    },
+    {
+      "path": "packages/redbox-core/test/http/httpInputInventory.test.ts",
+      "lines": 132,
+      "sha256": "cd4ec7beee583af3350641bebdc60b345fd6a15850a55181377d49ddf003ca57",
+      "method": "full authored test/helper/verification source read",
+      "notes": "Generated giant ledgers/literal rows were checked by equality/completeness and existing regression execution, rather than manually reviewed row by row."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-inventory.cjs",
+      "lines": 94,
+      "sha256": "d81ae31ce62ef3677f24a357760339bf12ff654171e54f4b9f50d181ccaeec4b",
+      "method": "full authored test/helper/verification source read",
+      "notes": "Generated giant ledgers/literal rows were checked by equality/completeness and existing regression execution, rather than manually reviewed row by row."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-baseline.cjs",
+      "lines": 198,
+      "sha256": "508bde9c4e62e5627cf8b32196b82996aefcd361e45c80fd85644f858483defc",
+      "method": "full authored test/helper/verification source read",
+      "notes": "Generated giant ledgers/literal rows were checked by equality/completeness and existing regression execution, rather than manually reviewed row by row."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-negative-control.cjs",
+      "lines": 54,
+      "sha256": "455c649b796b19eb48133de2b86a56626f05c92063fd50882fb09d91515340c1",
+      "method": "full authored test/helper/verification source read",
+      "notes": "Generated giant ledgers/literal rows were checked by equality/completeness and existing regression execution, rather than manually reviewed row by row."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r13/configuration-inventory.cjs",
+      "lines": 290,
+      "sha256": "7672d652fca04f0ef7311faadcf989abebecaf74722ffae9efc5fc982ba8d0ff",
+      "method": "full authored test/helper/verification source read",
+      "notes": "Generated giant ledgers/literal rows were checked by equality/completeness and existing regression execution, rather than manually reviewed row by row."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r13/configuration-acceptance.cjs",
+      "lines": 222,
+      "sha256": "cb1eea7768b265659b76112561911982ebbecb00442758098c0ba609ffd7628a",
+      "method": "full authored test/helper/verification source read",
+      "notes": "Generated giant ledgers/literal rows were checked by equality/completeness and existing regression execution, rather than manually reviewed row by row."
+    }
+  ],
+  "baselineProvenance": [
+    {
+      "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e:packages/redbox-core/src/services/AppConfigService.ts",
+      "current": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0:packages/redbox-core/src/configuration/AppConfigs.ts",
+      "evidence": "AppConfigs-provenance.diff",
+      "method": "baseline/current source comparison; formatting differences retained, not treated as behavior"
+    },
+    {
+      "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e:packages/redbox-core/src/services/AgendaQueueService.ts",
+      "current": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0:packages/redbox-core/src/queues/AgendaQueue.ts",
+      "evidence": "AgendaQueue-provenance.diff",
+      "method": "baseline/current source comparison; formatting differences retained, not treated as behavior"
+    },
+    {
+      "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e:packages/redbox-core/src/services/AppConfigSecrets.ts",
+      "current": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0:packages/redbox-core/src/configuration/AppConfigSecrets.ts",
+      "evidence": "AppConfigSecrets-provenance.diff",
+      "method": "baseline/current source comparison; formatting differences retained, not treated as behavior"
+    },
+    {
+      "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e:packages/redbox-core/src/configmodels/ConfigModels.ts",
+      "current": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0:packages/redbox-core/src/configuration/ConfigModelRegistry.ts",
+      "evidence": "ConfigModelRegistry-provenance.diff",
+      "method": "baseline/current source comparison; formatting differences retained, not treated as behavior"
+    }
+  ],
+  "parentOwnedWorkingTreeDocumentation": [
+    "support/specs/sails-retirement/tasks.md",
+    "support/specs/sails-retirement/evidence/inherited-defects-backlog.md",
+    "support/wiki/ReDBox-Automated-Tests.md"
+  ],
+  "exclusions": [
+    "Parent: afaf6ef01, R13 closure tooling, R16 local-auth, broader auth siblings/docs, loginUI.",
+    "Sibling: Express/data behavior beyond the selected R13 limits/config binding checks.",
+    "No Angular, browser, database, cloud-provider, container, installation, production-image or complete build qualification rerun here.",
+    "Untracked support/specs/graphql-record-metadata/ ignored."
+  ]
+}

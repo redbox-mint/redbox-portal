@@ -1,0 +1,491 @@
+{
+  "node": "v26.11.1",
+  "nodePath": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+  "focused": [
+    {
+      "name": "late-green",
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/configuration/legacyAcceptance.test.ts",
+        "test/configuration/legacyInventory.test.ts",
+        "test/http/authentication-matrix.test.ts",
+        "test/http/recordReadLimits.test.ts"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 0,
+      "seconds": 21.49,
+      "log": "late-green.log",
+      "passing": 354,
+      "failing": 0
+    },
+    {
+      "name": "lifecycle-green",
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/application/Application.test.ts",
+        "test/http/ExpressHost.test.ts",
+        "test/http/ExpressPreparation.test.ts",
+        "test/http/HostStateMachine.test.ts",
+        "test/extensions/composition.test.ts",
+        "test/extensions/handler-lifetime.test.ts",
+        "test/extensions/head-routes.test.ts",
+        "test/extensions/loading.test.ts",
+        "test/extensions/resolution.test.ts",
+        "test/extensions/route-equivalence.test.ts",
+        "test/configuration/resolution.test.ts",
+        "test/configuration/deployment.test.ts",
+        "test/configuration/brand.test.ts",
+        "test/queues/ScheduledWork.test.ts"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 0,
+      "seconds": 21.79,
+      "log": "lifecycle-green.log",
+      "passing": 141,
+      "failing": 0
+    },
+    {
+      "name": "queue-maintenance-green",
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/services/AgendaQueueService.test.ts",
+        "test/application/IndexMaintenanceConfiguration.test.ts",
+        "test/application/IndexMaintenanceExtensions.test.ts",
+        "test/application/PortalQueuePreflight.test.ts",
+        "test/application/PortalDomain.test.ts",
+        "test/application/PortalCompanionConfiguration.test.ts",
+        "test/application/PortalStorageEntrypoint.test.ts"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 0,
+      "seconds": 11.47,
+      "log": "queue-maintenance-green.log",
+      "passing": 72,
+      "failing": 0
+    }
+  ],
+  "totalPassing": 903,
+  "negatives": [
+    {
+      "name": "local-input-negative",
+      "reference": "c8a5064d0f16ad9e10f083c6590ae4bc178085db",
+      "modules": [
+        "packages/redbox-core/src/http/express/login.ts"
+      ],
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r17/standards-core/historical-loader.cjs",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/http/authentication-matrix.test.ts",
+        "--grep",
+        "local input acceptance:"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 10,
+      "seconds": 2.13,
+      "log": "local-input-negative.log",
+      "passing": [
+        "5"
+      ],
+      "failing": [
+        "10"
+      ],
+      "scope": "Current regression/tests and dependencies; only enumerated production modules loaded from selected historical revision. No historical application deployment."
+    },
+    {
+      "name": "oidc-input-negative",
+      "reference": "5f887304f8aa5c6a85e16c45d8d772cb3852ec96",
+      "modules": [
+        "packages/redbox-core/src/http/express/login.ts"
+      ],
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r17/standards-core/historical-loader.cjs",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/http/authentication-matrix.test.ts",
+        "--grep",
+        "named OIDC input acceptance:"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 3,
+      "seconds": 1.98,
+      "log": "oidc-input-negative.log",
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "3"
+      ],
+      "scope": "Current regression/tests and dependencies; only enumerated production modules loaded from selected historical revision. No historical application deployment."
+    },
+    {
+      "name": "config-input-negative",
+      "reference": "2d7516aaa8ae01a8c318aa1dc9a35fb92bc81990",
+      "modules": [
+        "packages/redbox-core/src/configuration/portal.ts",
+        "packages/redbox-core/src/configuration/deployment.ts",
+        "packages/redbox-core/src/configuration/portal-domains.schema.json",
+        "packages/redbox-core/src/application/portal/http.ts"
+      ],
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r17/standards-core/historical-loader.cjs",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/configuration/legacyAcceptance.test.ts",
+        "--grep",
+        "binds the canonical|email URL",
+        "--invert"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 10,
+      "seconds": 6.14,
+      "log": "config-input-negative.log",
+      "passing": [
+        "1"
+      ],
+      "failing": [
+        "10"
+      ],
+      "scope": "Current regression/tests and dependencies; only enumerated production modules loaded from selected historical revision. No historical application deployment."
+    },
+    {
+      "name": "smtp-url-negative",
+      "reference": "c9a77fcd784d5e4f6ccd829fdd1493e1f1794c6f",
+      "modules": [
+        "packages/redbox-core/src/configuration/portal-domains.schema.json"
+      ],
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r17/standards-core/historical-loader.cjs",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/configuration/legacyAcceptance.test.ts",
+        "--grep",
+        "native email URL"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 2,
+      "seconds": 5.79,
+      "log": "smtp-url-negative.log",
+      "passing": [
+        "0"
+      ],
+      "failing": [
+        "2"
+      ],
+      "scope": "Current regression/tests and dependencies; only enumerated production modules loaded from selected historical revision. No historical application deployment."
+    },
+    {
+      "name": "search-limit-negative",
+      "reference": "2f9634213173222d2de0418fd600f7063ebd1978",
+      "modules": [
+        "packages/redbox-core/src/http/express/recordReads.ts"
+      ],
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r17/standards-core/historical-loader.cjs",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/http/recordReadLimits.test.ts",
+        "--grep",
+        "record/search/"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 2,
+      "seconds": 2.78,
+      "log": "search-limit-negative.log",
+      "passing": [
+        "1"
+      ],
+      "failing": [
+        "2"
+      ],
+      "scope": "Current regression/tests and dependencies; only enumerated production modules loaded from selected historical revision. No historical application deployment."
+    },
+    {
+      "name": "browser-list-negative",
+      "reference": "def11b40c53259aa63e2ccd3e854802934a12483",
+      "modules": [
+        "packages/redbox-core/src/http/express/recordReads.ts"
+      ],
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r17/standards-core/historical-loader.cjs",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/http/recordReadLimits.test.ts"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 5,
+      "seconds": 2.78,
+      "log": "browser-list-negative.log",
+      "passing": [
+        "10"
+      ],
+      "failing": [
+        "5"
+      ],
+      "scope": "Current regression/tests and dependencies; only enumerated production modules loaded from selected historical revision. No historical application deployment."
+    }
+  ],
+  "schema": {
+    "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node packages/redbox-core/scripts/portal-configuration-schema.cjs --check",
+    "exitCode": 0,
+    "log": "schema-check.log"
+  },
+  "limits": "Deterministic package/loopback port tests on host; no Mongo/container/browser/cloud/full-build qualification. ts-node transpile-only is not a compiler/typecheck gate.",
+  "testOnlyVerification": [
+    {
+      "name": "configuration-inventory-equality",
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "support/specs/sails-retirement/evidence/final-review-r13/configuration-inventory.cjs",
+        "--check"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal",
+      "exitCode": 0,
+      "seconds": 7.45,
+      "log": "configuration-inventory-equality.log"
+    },
+    {
+      "name": "configuration-acceptance-equality",
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "support/specs/sails-retirement/evidence/final-review-r13/configuration-acceptance.cjs",
+        "--check"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal",
+      "exitCode": 0,
+      "seconds": 9.63,
+      "log": "configuration-acceptance-equality.log"
+    },
+    {
+      "name": "smtp-baseline-rerun",
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "support/specs/sails-retirement/evidence/final-review-r13/smtp-url-baseline.cjs"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal",
+      "exitCode": 0,
+      "seconds": 2.07,
+      "log": "smtp-baseline-rerun.log"
+    },
+    {
+      "name": "http-inventory-green",
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "/home/andrew/src/github/redbox-portal/packages/redbox-core/node_modules/mocha/bin/mocha.js",
+        "--no-config",
+        "--require",
+        "ts-node/register/transpile-only",
+        "--require",
+        "chai",
+        "--require",
+        "test/setup.ts",
+        "--timeout",
+        "15000",
+        "--reporter",
+        "spec",
+        "test/http/httpInputInventory.test.ts"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal/packages/redbox-core",
+      "exitCode": 0,
+      "seconds": 4.28,
+      "log": "http-inventory-green.log"
+    },
+    {
+      "name": "http-inventory-reconciliation",
+      "command": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "--no-experimental-strip-types",
+        "--require",
+        "ts-node/register/transpile-only",
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r17/standards-core/reconcile-http-inventory.cjs"
+      ],
+      "cwd": "/home/andrew/src/github/redbox-portal",
+      "exitCode": 1,
+      "seconds": 13.16,
+      "log": "http-inventory-reconciliation.log"
+    }
+  ],
+  "httpInventoryPassing": 336,
+  "httpReconciliationFinal": {
+    "fullByteEquivalent": false,
+    "normalizedEquivalent": true,
+    "normalization": "Compare JSON-serialized data; remove workingHead and current owner input-site line offsets, sort owner input-site expressions. All baseline/current contract cells, owner expression sets, dispositions and counts remain compared.",
+    "currentCounts": {
+      "declarations": 335,
+      "api": 152,
+      "baselineControllerResolved": 332,
+      "fields": 554,
+      "cases": 7145,
+      "differences": 0,
+      "differentialCases": 5945,
+      "currentAliasSnapshotCases": 1200,
+      "baselineRoutePatterns": 331,
+      "unresolvedBaselinePatterns": 0,
+      "nativeHttpRegressionCases": 59,
+      "baselineControllerProbeCases": 30,
+      "baselineEditorSourceAssertions": 1,
+      "supplemental": 10,
+      "bundled": 3
+    },
+    "retainedCounts": {
+      "declarations": 335,
+      "api": 152,
+      "baselineControllerResolved": 332,
+      "fields": 554,
+      "cases": 7145,
+      "differences": 0,
+      "differentialCases": 5945,
+      "currentAliasSnapshotCases": 1200,
+      "baselineRoutePatterns": 331,
+      "unresolvedBaselinePatterns": 0,
+      "nativeHttpRegressionCases": 59,
+      "baselineControllerProbeCases": 30,
+      "baselineEditorSourceAssertions": 1,
+      "supplemental": 10,
+      "bundled": 3
+    }
+  },
+  "httpReconciliationFinalCommand": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node --no-experimental-strip-types --require ts-node/register/transpile-only .tmp/sails-retirement/final-review-r17/standards-core/reconcile-http-inventory.cjs",
+  "httpReconciliationFinalLog": "http-inventory-reconciliation-final.log",
+  "httpReconciliationFinalExitCode": 0,
+  "httpReconciliationFinalCwd": "/home/andrew/src/github/redbox-portal",
+  "httpReconciliationInitialNote": "Initial comparator exit 1 is retained. It compared live undefined properties against serialized JSON and treated owner-expression order as behavior. Final comparison JSON-serializes values, sorts current owner expression sets, and omits only workingHead/current source line offsets. This is a comparator correction, not a production regression or an accepted failed gate.",
+  "counts": {
+    "currentMochaPassing": 903,
+    "historicalModuleNegativePassing": 17,
+    "historicalModuleExpectedFailing": 32,
+    "historicalModuleNegativeGroups": 6,
+    "portalSchemaEqualityPassed": 1,
+    "configurationGeneratedEqualityChecksPassed": 2,
+    "httpSemanticReconciliationPassed": 1,
+    "smtpBaselineProbePassed": 1
+  },
+  "parentReportedChecks": {
+    "authenticationPassing": 165,
+    "chromePassing": 37,
+    "controls": "all pass per latest user confirmation",
+    "nativeRecoveryProbePassing": 12,
+    "attribution": "Parent-reported; excluded from this axis 903 tests and six negative groups."
+  }
+}

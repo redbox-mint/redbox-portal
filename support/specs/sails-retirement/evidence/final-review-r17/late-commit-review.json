@@ -1,0 +1,1178 @@
+{
+  "base": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "incomingHead": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0",
+  "commitCount": 34,
+  "runtimeFixCommitCount": 19,
+  "correctedPriorIssueFamilies": 34,
+  "commits": [
+    {
+      "commit": "5f887304f8aa5c6a85e16c45d8d772cb3852ec96",
+      "subject": "fix(auth): retain supported local credential inputs",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/login.ts",
+        "packages/redbox-core/test/http/authentication-matrix.test.ts",
+        "support/specs/sails-retirement/evidence/final-review-r13/local-input-baseline.cjs"
+      ],
+      "standards": {
+        "review": "Reviewed non-generated commit diff, full current login.ts and relevant matrix cases; local lookup compared with native Passport contract.",
+        "current": "late-green.log: all 15 local input cases pass.",
+        "negative": "local-input-negative.log: pre-fix login.ts; 5 pass / 10 expected status failures."
+      }
+    },
+    {
+      "commit": "2f9634213173222d2de0418fd600f7063ebd1978",
+      "subject": "fix(auth): accept configured OIDC provider names",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/login.ts",
+        "packages/redbox-core/test/http/authentication-matrix.test.ts",
+        "support/specs/sails-retirement/evidence/final-review-r13/oidc-identifier-baseline.cjs"
+      ],
+      "standards": {
+        "review": "Reviewed commit diff, full current login.ts and provider-name cases; configured strings retain independent input bounds.",
+        "current": "late-green.log: all 3 named OIDC cases pass.",
+        "negative": "oidc-input-negative.log: pre-fix login.ts; 0 pass / 3 expected 400-vs-302 failures."
+      }
+    },
+    {
+      "commit": "2d7516aaa8ae01a8c318aa1dc9a35fb92bc81990",
+      "subject": "fix(http): keep search pagination independent of API list limits",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/recordReads.ts",
+        "packages/redbox-core/test/http/recordReadLimits.test.ts"
+      ],
+      "standards": {
+        "review": "Reviewed limit diff/current pagination context and full regression; current production composition read in full.",
+        "current": "late-green.log: 3 record/search cases pass; API/browser cases also pass.",
+        "negative": "search-limit-negative.log: pre-fix recordReads.ts; 1 pass / 2 expected search-page failures."
+      },
+      "spec": {
+        "commit": "2d7516aaa8ae01a8c318aa1dc9a35fb92bc81990",
+        "round": "R13",
+        "contract": "Search rows independent of api.max_requests",
+        "diff": "2d7516aaa.diff",
+        "diff_read": "complete including tests and baseline probe",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/recordReads.ts",
+          "packages/redbox-core/test/http/recordReadLimits.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/recordReadLimits.test.ts"
+        ],
+        "fresh_green": "focused-current.json (all 15 pagination cases pass)",
+        "fresh_negative": {
+          "file": "r13-search-incoming.json",
+          "reference": "2d7516aaa^",
+          "attributed_failures": 2,
+          "test_titles": [
+            "Record list and search limit configuration applies the selected limit to /record/search/dataRecord?rows=50",
+            "Record list and search limit configuration applies the selected limit to /record/search/dataRecord?rows=100"
+          ],
+          "run_total_passes": 8,
+          "run_total_failures": 7,
+          "note": "Earlier incoming run also includes five later browser-list failures; not additional search defects."
+        },
+        "fresh_baseline_method_control": "Baseline controller provenance and retained pagination spec; no new baseline search-method probe",
+        "spec": "design.md \u00a71.1; configuration-v6.md baseline input dispositions",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "03b1d724e5902ebc25ff740c88ac687e06bb666c",
+      "subject": "fix(config): preserve supported baseline configuration inputs",
+      "changedFiles": [
+        "packages/redbox-core/src/application/portal/http.ts",
+        "packages/redbox-core/src/config/appmode.config.ts",
+        "packages/redbox-core/src/config/emailnotification.config.ts",
+        "packages/redbox-core/src/config/record.config.ts",
+        "packages/redbox-core/src/config/storage.config.ts",
+        "packages/redbox-core/src/configuration/deployment.ts",
+        "packages/redbox-core/src/configuration/portal-domains.schema.json",
+        "packages/redbox-core/src/configuration/portal.ts",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts",
+        "support/specs/sails-retirement/evidence/final-review-r13/configuration-negative-control.cjs"
+      ],
+      "standards": {
+        "review": "Reviewed non-generated diff and current configuration/production http composition in full. Schema checked mechanically; native input/provenance and production bindings traced.",
+        "current": "late-green.log: 11 selected non-URL/non-Location acceptance cases pass; inventory suite also passes.",
+        "negative": "config-input-negative.log: 4 selected pre-fix modules; 1 pass / 10 expected rejection/binding failures. Later Location and SMTP cases excluded."
+      }
+    },
+    {
+      "commit": "afaf6ef010ff00e4cdf6f98b8bce62daf2c64db4",
+      "subject": "fix(http): retain legitimate legacy request inputs",
+      "changedFiles": [
+        "packages/redbox-core/src/application/portal/http.ts",
+        "packages/redbox-core/src/http/express/formDelivery.ts",
+        "packages/redbox-core/src/http/express/formVocabulary.ts",
+        "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "packages/redbox-core/src/http/express/metadata.ts",
+        "packages/redbox-core/src/http/express/pages.ts",
+        "packages/redbox-core/src/http/express/vocabularyIntegrations.ts",
+        "packages/redbox-core/test/http/httpInputAcceptance.test.ts"
+      ],
+      "standards": {
+        "review": "Parent-owned legacy HTTP input acceptance; prior R13 report read. No independent full adapter audit claimed.",
+        "current": "No separate rerun for this commit by this axis.",
+        "negative": "No new negative by this axis; historical results remain attributed to prior R13 evidence."
+      },
+      "parent": {
+        "review": "Entire runtime/test diff and all 59 current regressions reviewed; surrounding route input/target ownership and production bindings traced.",
+        "current": "59/59 existing HTTP regressions pass.",
+        "negative": "Actual incoming six owner modules: 26 pass / 33 expected failures; source/tests/dependencies otherwise current."
+      }
+    },
+    {
+      "commit": "c9a77fcd784d5e4f6ccd829fdd1493e1f1794c6f",
+      "subject": "test(config): retain baseline SMTP URL acceptance probe",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/final-review-r13/smtp-url-baseline.cjs"
+      ],
+      "standards": {
+        "review": "All 89 authored probe lines read: exact baseline method extraction, native Nodemailer constructor, assertions, replacement of delivery only and observational current outcome. Conclusion: no material A/P1/P2 issue verified.",
+        "current": "smtp-baseline-rerun.log newly executes one baseline email method successfully, asserts native host/port and reports current loader accepted. Both current SMTP/SMTPS regression cases pass.",
+        "negative": "Probe is newly rerun, not a historical-server claim. Pre-fix current schema rejections are separately observed for 217c61339; the probe itself reports current outcome rather than enforcing it."
+      }
+    },
+    {
+      "commit": "217c6133966dc3bf6cfa1b3c5e807b377d06c8a3",
+      "subject": "fix(config): retain native SMTP URL transport configuration",
+      "changedFiles": [
+        "packages/redbox-core/src/config/emailnotification.config.ts",
+        "packages/redbox-core/src/configuration/portal-domains.schema.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ],
+      "standards": {
+        "review": "Non-generated diff/current email type and regression reviewed; generated schema checker passed. Native SMTP/SMTPS parsing assertions inspected.",
+        "current": "late-green.log: both native URL cases pass without delivery.",
+        "negative": "smtp-url-negative.log: pre-fix schema only; 0 pass / 2 expected configuration rejections."
+      }
+    },
+    {
+      "commit": "def11b40c53259aa63e2ccd3e854802934a12483",
+      "subject": "test(http): retain complete native input acceptance inventory",
+      "changedFiles": [
+        "packages/redbox-core/test/helpers/httpInputInventory.cjs",
+        "packages/redbox-core/test/http/httpInputInventory.test.ts",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-baseline.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-baseline.json",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-focused.log",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-inputs.txt",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-inventory.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-negative-control.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-negative-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-negative.json",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-no-git.log",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-provenance.json",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance-routes.md",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance.json",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance.md",
+        "support/wiki/V6-Client-Compatibility.md"
+      ],
+      "standards": {
+        "review": "Authored helper (606 lines), permanent test (132), writing CLI (94), baseline probe (198), negative loader (54) and compatibility-doc diff read. Per-field snapshots are labelled separately from true baseline differential cells and owner-level input sites. Conclusion: no material A/P1/P2 issue verified.",
+        "current": "http-inventory-green.log: 336 passing existing tests; 335 route declarations / 331 baseline patterns reconciled, 7,145 cells = 5,945 differential + 1,200 current snapshots. Helper regeneration reconciles retained semantic JSON; exact metadata/source offsets are not byte-equal.",
+        "negative": "Authored historical-module loader reviewed; parent covers its afaf6ef01 native tests/negatives. No new rerun of that full native negative in this axis; six selected runtime negatives remain independently recorded."
+      }
+    },
+    {
+      "commit": "f1da6196e871f0df9218bb5a22ad1223864b8c1e",
+      "subject": "fix(http): retain browser record list page sizes",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/recordReads.ts",
+        "packages/redbox-core/test/http/recordReadLimits.test.ts",
+        "support/specs/sails-retirement/evidence/final-review-r13/browser-list-baseline.cjs"
+      ],
+      "standards": {
+        "review": "Limit diff/context and full recordReadLimits regression read; independent browser/API production bindings checked.",
+        "current": "late-green.log: 15 limit cases pass; production binding case also passes.",
+        "negative": "browser-list-negative.log: pre-fix recordReads.ts; 10 pass / 5 expected browser-page failures; API and search controls remain green."
+      },
+      "spec": {
+        "commit": "f1da6196e871f0df9218bb5a22ad1223864b8c1e",
+        "round": "R13",
+        "contract": "Browser/deleted browser list rows independent of api.max_requests",
+        "diff": "f1da6196e.diff",
+        "diff_read": "complete including tests and baseline probe",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/recordReads.ts",
+          "packages/redbox-core/test/http/recordReadLimits.test.ts",
+          "support/specs/sails-retirement/evidence/final-review-r13/browser-list-baseline.cjs"
+        ],
+        "existing_regressions": [
+          "test/http/recordReadLimits.test.ts"
+        ],
+        "fresh_green": "focused-current.json (all 15 pagination cases pass)",
+        "fresh_negative": {
+          "file": "r13-browser-incoming.json",
+          "reference": "f1da6196e^",
+          "attributed_failures": 5,
+          "test_titles": [
+            "Record list and search limit configuration applies the selected limit to /listRecords?rows=21",
+            "Record list and search limit configuration applies the selected limit to /listRecords?rows=50",
+            "Record list and search limit configuration applies the selected limit to /listRecords?rows=100",
+            "Record list and search limit configuration applies the selected limit to /listDeletedRecords?rows=50",
+            "Record list and search limit configuration applies the selected limit to /listDeletedRecords?rows=100"
+          ],
+          "run_total_passes": 10,
+          "run_total_failures": 5,
+          "note": "Five cases overlap the earlier incoming run."
+        },
+        "fresh_baseline_method_control": "browser-list-baseline-fresh.json",
+        "spec": "design.md \u00a71.1; configuration-v6.md baseline input dispositions",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "443954d8f37f8b36b7ddfc00e1bda6e71fd4b4c3",
+      "subject": "docs(review): distinguish browser and REST record list limits",
+      "changedFiles": [
+        "packages/redbox-core/test/helpers/httpInputInventory.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance.json",
+        "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance.md"
+      ],
+      "standards": {
+        "review": "Prior R13 report/disposition and browser-versus-REST distinction read.",
+        "current": "Documentation only; current runtime controls recorded above.",
+        "negative": "Not applicable: no production change."
+      },
+      "parent": {
+        "review": "Entire helper/docs metadata diff; baseline browser controller/helper ownership is independent from REST api.max_requests.",
+        "current": "336-case inventory gate and semantic reconciliation pass in Standards lane; 15 pagination cases and four baseline method controls pass in Spec lane.",
+        "negative": "No runtime change; the supporting f1da6196e regression is recorded separately."
+      }
+    },
+    {
+      "commit": "9cff20d5095387f7df418d4951240198ef47dbbc",
+      "subject": "test(config): retain complete baseline acceptance inventory",
+      "changedFiles": [
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts",
+        "packages/redbox-core/test/configuration/legacyInventory.test.ts",
+        "packages/redbox-core/test/configuration/legacyInventoryTypes.ts",
+        "support/specs/sails-retirement/configuration-v6.md",
+        "support/specs/sails-retirement/evidence/final-review-r13/configuration-acceptance.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r13/configuration-acceptance.json",
+        "support/specs/sails-retirement/evidence/final-review-r13/configuration-inventory.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r13/configuration-inventory.json",
+        "support/specs/sails-retirement/evidence/final-review-r13/configuration-review.md",
+        "support/specs/sails-retirement/evidence/inherited-defects-backlog.md",
+        "support/wiki/V6-Client-Compatibility.md"
+      ],
+      "standards": {
+        "review": "Authored inventory generator (290 lines), acceptance/type-policy generator (222), permanent test (77), 5-line acceptance change and configuration/compatibility-doc additions read. Static unresolved data is inventoried rather than executed. Conclusion: no material A/P1/P2 issue verified; B-07 retained.",
+        "current": "configuration-inventory-equality.log and configuration-acceptance-equality.log: exact ledger and 6,937-line generated typing-fixture equality; virtual compiler diagnostic policy passes. 206 existing inventory tests pass, including 195 retained literals and 10 rejection cases.",
+        "negative": "All 10 documented malformed/migrated-shape rejection cases rerun green; config-input and SMTP historical-schema negatives separately fail as expected. No independent extractor mutation control or full-project typecheck claimed."
+      }
+    },
+    {
+      "commit": "6ddbfd493e791d53779102d896d184fbceca0a6d",
+      "subject": "test(retirement): classify retained configuration literal data",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/retirement-closure.cjs",
+        "test/tooling/retirement-closure.test.cjs"
+      ],
+      "standards": {
+        "review": "Parent owns R13 closure/audit tooling and confirms authored narrow change read/tested. Prior R13 report and inherited backlog read.",
+        "current": "Parent-confirmed read/tested; no independent tooling rerun here.",
+        "negative": "No new negative by this axis."
+      },
+      "parent": {
+        "review": "Entire closure-tooling diff; narrow data-literal classification still detects executable identifiers and ambient globals.",
+        "current": "All 10 closure tests and seven sibling tooling tests pass.",
+        "negative": "Existing positive/negative controls cover data classification, runtime access and unrelated paths; no production correction in this commit."
+      }
+    },
+    {
+      "commit": "6e022ccb9bbc3933880bbba6891db1ee5da7b7fa",
+      "subject": "test(retirement): exercise the literal audit prefilter",
+      "changedFiles": [
+        "test/tooling/retirement-closure.test.cjs"
+      ],
+      "standards": {
+        "review": "Parent owns R13 closure/audit tooling and confirms authored narrow change read/tested. Prior R13 report read.",
+        "current": "Parent-confirmed read/tested; no independent tooling rerun here.",
+        "negative": "No new negative by this axis."
+      },
+      "parent": {
+        "review": "Entire 3-case test diff verifies queued-data and service/path prefilter behavior.",
+        "current": "All three new cases execute in the 10-case closure run.",
+        "negative": "Tests explicitly assert executable runtime identifiers and unrelated retired paths remain violations."
+      }
+    },
+    {
+      "commit": "9bb858218075dec4d77c1302063c134d8f3133f2",
+      "subject": "docs(review): record round thirteen acceptance and final qualification",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/final-review-r13.md",
+        "support/specs/sails-retirement/evidence/final-review-r13/qualification.json"
+      ],
+      "standards": {
+        "review": "R13 report read closely; supporting result references used as historical context.",
+        "current": "No historical full qualification rerun claimed.",
+        "negative": "Documentation/evidence only."
+      },
+      "parentEvidenceReview": "Report/closing status and provenance reviewed as historical snapshots; full generated artifacts not all manually read. R16 qualification/review/source hashes freshly reverified; task/wiki status reconciled."
+    },
+    {
+      "commit": "17504071ebe39a01925d427d3701ee60dbeb40e9",
+      "subject": "fix(http): preserve upload claim and finalization responses",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/datastreamWrites.ts",
+        "packages/redbox-core/test/http/recordDatastreamContracts.test.ts"
+      ],
+      "standards": {
+        "review": "Express/data sibling owns upload response/finalization behavior. Current core composition read; R14 report read closely.",
+        "current": "No independent upload suite rerun here.",
+        "negative": "Prior R14 controls only; not newly observed by this axis."
+      },
+      "spec": {
+        "commit": "17504071ebe39a01925d427d3701ee60dbeb40e9",
+        "round": "R14",
+        "contract": "Upload claim/finalization, typed conflicts and authorization before current-state disclosure",
+        "diff": "17504071e.diff",
+        "diff_read": "complete, including associated tests",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/datastreamWrites.ts",
+          "packages/redbox-core/test/http/recordDatastreamContracts.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/recordDatastreamContracts.test.ts"
+        ],
+        "fresh_green": "focused-current.json",
+        "fresh_negative": {
+          "file": "r14-incoming.json",
+          "reference": "9bb858218",
+          "failures": 9,
+          "test_titles": [
+            "Owned datastream HTTP contracts reports returned finalization failure with the committed save contract in API 1.0",
+            "Owned datastream HTTP contracts reports thrown finalization failure with the committed save contract in API 1.0",
+            "Owned datastream HTTP contracts reports returned finalization failure with the committed save contract in API 2.0",
+            "Owned datastream HTTP contracts reports thrown finalization failure with the committed save contract in API 2.0",
+            "Owned datastream HTTP contracts returns safe current metadata and typed conflicts for a refused upload claim",
+            "Owned datastream HTTP contracts withholds upload-conflict state after view access is revoked in API 1.0",
+            "Owned datastream HTTP contracts withholds upload-conflict state after view access is revoked in API 2.0",
+            "Owned datastream HTTP contracts retains the legacy validation-refusal status in API 1.0",
+            "Owned datastream HTTP contracts retains the legacy validation-refusal status in API 2.0"
+          ]
+        },
+        "fresh_baseline_method_control": "entrypoints-baseline-fresh.json",
+        "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "c33416372d3e2c8df61a6e31e378846f4108dc4d",
+      "subject": "fix(pages): honor institution original record views",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/pages.ts",
+        "packages/redbox-core/test/helpers/httpRecordPagesFixture.ts",
+        "packages/redbox-core/test/http/recordBrowserPages.test.ts"
+      ],
+      "standards": {
+        "review": "Express/data sibling owns page/original-view handler behavior. Current core page configuration binding read; R14 report read closely.",
+        "current": "No independent original-view suite rerun here.",
+        "negative": "Prior R14 controls only."
+      },
+      "spec": {
+        "commit": "c33416372d3e2c8df61a6e31e378846f4108dc4d",
+        "round": "R14",
+        "contract": "Institution record/view-orig template override at actual rendered HTTP URL",
+        "diff": "c33416372.diff",
+        "diff_read": "complete, including associated tests",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/pages.ts",
+          "packages/redbox-core/test/helpers/httpRecordPagesFixture.ts",
+          "packages/redbox-core/test/http/recordBrowserPages.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/recordBrowserPages.test.ts"
+        ],
+        "fresh_green": "focused-current.json",
+        "fresh_negative": {
+          "file": "r14-incoming.json",
+          "reference": "9bb858218",
+          "failures": 1,
+          "test_titles": [
+            "Owned record browser pages renders an institution record/view-orig override at its legacy URL"
+          ]
+        },
+        "fresh_baseline_method_control": "entrypoints-baseline-fresh.json",
+        "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "4c32615300cd8d0e38af87d569f3196d01275ef5",
+      "subject": "fix(identity): retain REST user targets and visibility",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "packages/redbox-core/src/http/express/identityLinks.ts",
+        "packages/redbox-core/test/http/identityDifferential.test.ts"
+      ],
+      "standards": {
+        "review": "Express/data sibling owns identity target/visibility behavior. R14 report read closely.",
+        "current": "No independent identity differential rerun here.",
+        "negative": "Prior R14 controls only."
+      },
+      "spec": {
+        "commit": "4c32615300cd8d0e38af87d569f3196d01275ef5",
+        "round": "R14",
+        "contract": "REST body.id target precedence, disabled account lookups, browser-only hiddenUsers",
+        "diff": "4c3261530.diff",
+        "diff_read": "complete, including associated tests",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/identityAdministration.ts",
+          "packages/redbox-core/src/http/express/identityLinks.ts",
+          "packages/redbox-core/test/http/identityDifferential.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/identityDifferential.test.ts"
+        ],
+        "fresh_green": "focused-current.json",
+        "fresh_negative": {
+          "file": "r14-incoming.json",
+          "reference": "9bb858218",
+          "failures": 9,
+          "test_titles": [
+            "Identity route target precedence REST update selects its declared body.id ?id=222222222222222222222222",
+            "Identity route target precedence REST update selects its declared body.id ?id=222222222222222222222222&userid=222222222222222222222222",
+            "Identity route target precedence REST find returns a disabled account in API 1.0",
+            "Identity route target precedence REST find returns a disabled account in API 2.0",
+            "Identity route target precedence REST get returns a disabled account in API 1.0",
+            "Identity route target precedence REST get returns a disabled account in API 2.0",
+            "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users",
+            "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users/find?searchBy=username&query=hidden",
+            "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users/get?searchBy=username&query=hidden"
+          ]
+        },
+        "fresh_baseline_method_control": "identity-baseline-fresh.json",
+        "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "ea2a97c6c1bb539f75b3bc92df78ca193a6d6000",
+      "subject": "fix(downloads): preserve generic streams and API headers",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "packages/redbox-core/test/http/datastreamReadDifferential.test.ts"
+      ],
+      "standards": {
+        "review": "Express/data sibling owns download behavior. Current full http.ts composition includes canonical creation-Location binding; R14 report read closely.",
+        "current": "late-green.log incidentally reruns both current canonical Location binding cases; no independent stream/header differential run.",
+        "negative": "No negative for this R14 commit by this axis."
+      },
+      "spec": {
+        "commit": "ea2a97c6c1bb539f75b3bc92df78ca193a6d6000",
+        "round": "R14",
+        "contract": "Generic stream without attachment metadata; generic filename and API length/filename fallback",
+        "diff": "ea2a97c6c.diff",
+        "diff_read": "complete, including associated tests",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/datastreamReads.ts",
+          "packages/redbox-core/test/http/datastreamReadDifferential.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/datastreamReadDifferential.test.ts"
+        ],
+        "fresh_green": "focused-current.json",
+        "fresh_negative": {
+          "file": "r14-incoming.json",
+          "reference": "9bb858218",
+          "failures": 4,
+          "test_titles": [
+            "Datastream read compatibility downloads an authorized generic datastream without attachment metadata",
+            "Datastream read compatibility uses the datastream ID as the generic download filename",
+            "Datastream read compatibility retains API download length and filename ?fileName=",
+            "Datastream read compatibility retains API download length and filename ?fileName=renamed.csv"
+          ]
+        },
+        "fresh_baseline_method_control": "identity-baseline-fresh.json",
+        "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "da600162f2add69af28ebf8b8ea372ae3c65eefb",
+      "subject": "fix(vocabulary): treat empty RVA versions as latest",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/vocabularyIntegrations.ts",
+        "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts"
+      ],
+      "standards": {
+        "review": "Express/data sibling owns RVA behavior. R14 report read closely.",
+        "current": "No independent RVA suite rerun here.",
+        "negative": "Prior R14 controls only."
+      },
+      "spec": {
+        "commit": "da600162f2add69af28ebf8b8ea372ae3c65eefb",
+        "round": "R14",
+        "contract": "Empty optional RVA version uses latest for API/admin import/sync",
+        "diff": "da600162f.diff",
+        "diff_read": "complete, including associated tests",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/vocabularyIntegrations.ts",
+          "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/vocabularyVersionDifferential.test.ts"
+        ],
+        "fresh_green": "focused-current.json",
+        "fresh_negative": {
+          "file": "r14-incoming.json",
+          "reference": "9bb858218",
+          "failures": 4,
+          "test_titles": [
+            "Optional RVA vocabulary version api import preserves version \"\"",
+            "Optional RVA vocabulary version api sync preserves version \"\"",
+            "Optional RVA vocabulary version admin import preserves version \"\"",
+            "Optional RVA vocabulary version admin sync preserves version \"\""
+          ]
+        },
+        "fresh_baseline_method_control": "identity-baseline-fresh.json",
+        "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "8b64e7f690ae42406798a7886902b652deec2bdd",
+      "subject": "fix(records): retain browser relationship response envelopes",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/recordReads.ts",
+        "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+      ],
+      "standards": {
+        "review": "Express/data sibling owns relationship response envelopes. R14 report read closely.",
+        "current": "No independent relationship differential rerun here.",
+        "negative": "Prior R14 controls only."
+      },
+      "spec": {
+        "commit": "8b64e7f690ae42406798a7886902b652deec2bdd",
+        "round": "R14",
+        "contract": "Browser relationships API1 flattening and API2 meta envelope",
+        "diff": "8b64e7f69.diff",
+        "diff_read": "complete, including associated tests",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/recordReads.ts",
+          "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/recordDifferentialR14.test.ts"
+        ],
+        "fresh_green": "focused-current.json",
+        "fresh_negative": {
+          "file": "r14-incoming.json",
+          "reference": "9bb858218",
+          "failures": 2,
+          "test_titles": [
+            "Pre-retirement browser record response and side-effect contracts (R14) retains the browser metadata relationship envelope (1.0)",
+            "Pre-retirement browser record response and side-effect contracts (R14) retains the browser metadata relationship envelope (2.0)"
+          ]
+        },
+        "fresh_baseline_method_control": "records-baseline-fresh.json",
+        "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "8c9fef62fafcd467505f105ccce83aec6a40457d",
+      "subject": "fix(records): preserve recoverable deletes and committed results",
+      "changedFiles": [
+        "packages/redbox-core/src/application/portal/http.ts",
+        "packages/redbox-core/src/http/express/recordMutations.ts",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts",
+        "packages/redbox-core/test/helpers/httpRecordMutationsFixture.ts",
+        "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+      ],
+      "standards": {
+        "review": "Express/data sibling owns record deletion/finalization behavior. R14 report read closely.",
+        "current": "No independent record differential rerun here.",
+        "negative": "Prior R14 controls only."
+      },
+      "spec": {
+        "commit": "8c9fef62fafcd467505f105ccce83aec6a40457d",
+        "round": "R14",
+        "contract": "Recoverable browser deletes, committed mutation warnings/headers and canonical Location production binding",
+        "diff": "8c9fef62f.diff",
+        "diff_read": "complete, including associated tests",
+        "changed_files": [
+          "packages/redbox-core/src/application/portal/http.ts",
+          "packages/redbox-core/src/http/express/recordMutations.ts",
+          "packages/redbox-core/test/configuration/legacyAcceptance.test.ts",
+          "packages/redbox-core/test/helpers/httpRecordMutationsFixture.ts",
+          "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/recordDifferentialR14.test.ts",
+          "test/configuration/legacyAcceptance.test.ts"
+        ],
+        "fresh_green": "focused-current.json",
+        "fresh_negative": {
+          "file": "r14-incoming.json",
+          "reference": "9bb858218",
+          "failures": 9,
+          "test_titles": [
+            "Pre-retirement browser record response and side-effect contracts (R14) keeps browser deletion recoverable even if the REST-only permanent flag is supplied",
+            "Pre-retirement browser record response and side-effect contracts (R14) retains committed create outcome, warning and headers after read failure",
+            "Pre-retirement browser record response and side-effect contracts (R14) retains committed create outcome, warning and headers after projection failure",
+            "Pre-retirement browser record response and side-effect contracts (R14) retains committed update outcome, warning and headers after read failure",
+            "Pre-retirement browser record response and side-effect contracts (R14) retains committed update outcome, warning and headers after projection failure",
+            "Pre-retirement browser record response and side-effect contracts (R14) uses the configured public URL for API create Location under root ''",
+            "Pre-retirement browser record response and side-effect contracts (R14) uses the configured public URL for API create Location under root '/research'",
+            "baseline configuration acceptance and production consumers binds the canonical creation Location base (root)",
+            "baseline configuration acceptance and production consumers binds the canonical creation Location base (/research)"
+          ]
+        },
+        "fresh_baseline_method_control": "records-baseline-fresh.json",
+        "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+      "subject": "fix(reports): preserve POST preview filter precedence",
+      "changedFiles": [
+        "packages/redbox-core/src/http/express/queryReads.ts",
+        "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+      ],
+      "standards": {
+        "review": "Express/data sibling owns preview filter precedence. R14 report read closely.",
+        "current": "No independent preview differential rerun here.",
+        "negative": "Prior R14 controls only."
+      },
+      "spec": {
+        "commit": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+        "round": "R14",
+        "contract": "POST preview body-before-query filters for browser/API",
+        "diff": "fb08b5447.diff",
+        "diff_read": "complete, including associated tests",
+        "changed_files": [
+          "packages/redbox-core/src/http/express/queryReads.ts",
+          "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+        ],
+        "existing_regressions": [
+          "test/http/recordDifferentialR14.test.ts"
+        ],
+        "fresh_green": "focused-current.json",
+        "fresh_negative": {
+          "file": "r14-incoming.json",
+          "reference": "9bb858218",
+          "failures": 4,
+          "test_titles": [
+            "Pre-retirement browser record response and side-effect contracts (R14) retains POST preview body filter values before query values (api, conflict=false)",
+            "Pre-retirement browser record response and side-effect contracts (R14) retains POST preview body filter values before query values (api, conflict=true)",
+            "Pre-retirement browser record response and side-effect contracts (R14) retains POST preview body filter values before query values (admin, conflict=false)",
+            "Pre-retirement browser record response and side-effect contracts (R14) retains POST preview body filter values before query values (admin, conflict=true)"
+          ]
+        },
+        "fresh_baseline_method_control": "records-baseline-fresh.json",
+        "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "0e4c310960b9b1d270adf695e5cb0d8f6a88f557",
+      "subject": "test(http): type partial behavioral differential fixtures",
+      "changedFiles": [
+        "packages/redbox-core/test/http/identityDifferential.test.ts",
+        "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+      ],
+      "standards": {
+        "review": "Entire 3-line test-only fixture typing diff read; intentionally partial ports are test doubles.",
+        "current": "No independent application typecheck or affected differential suite rerun.",
+        "negative": "No runtime fix; no new negative required/claimed."
+      },
+      "spec": {
+        "commit": "0e4c310960b9b1d270adf695e5cb0d8f6a88f557",
+        "round": "R14",
+        "kind": "test-only type annotations/casts",
+        "diff": "0e4c31096.diff",
+        "diff_read": "complete",
+        "changed_files": [
+          "packages/redbox-core/test/http/identityDifferential.test.ts",
+          "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+        ],
+        "green_evidence": "focused-current.json executes both affected suites",
+        "negative_evidence": "r14-incoming.json preserves wrong-target and response contract failures",
+        "typecheck_rerun_here": false,
+        "generated_runtime_changes": false,
+        "finding": "none verified"
+      },
+      "parent": {
+        "review": "Entire test-only partial-fixture annotation diff; no behavioral change.",
+        "current": "Affected R14 suites execute green in Spec lane.",
+        "negative": "Incoming R14 modules still fail expected target/response assertions; no independent compiler rerun claimed."
+      }
+    },
+    {
+      "commit": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+      "subject": "test(identity): type enrichment fixture parameters",
+      "changedFiles": [
+        "packages/redbox-core/test/http/identityDifferential.test.ts"
+      ],
+      "standards": {
+        "review": "Entire 2-line test-only fixture parameter typing diff read.",
+        "current": "No independent application typecheck rerun.",
+        "negative": "No runtime fix; no new negative required/claimed."
+      },
+      "spec": {
+        "commit": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+        "round": "R14",
+        "kind": "test-only type annotations/casts",
+        "diff": "c31ac2862.diff",
+        "diff_read": "complete",
+        "changed_files": [
+          "packages/redbox-core/test/http/identityDifferential.test.ts"
+        ],
+        "green_evidence": "focused-current.json executes both affected suites",
+        "negative_evidence": "r14-incoming.json preserves wrong-target and response contract failures",
+        "typecheck_rerun_here": false,
+        "generated_runtime_changes": false,
+        "finding": "none verified"
+      },
+      "parent": {
+        "review": "Entire test-only enrichment fixture parameter annotation diff; no behavioral change.",
+        "current": "Affected R14 suites execute green in Spec lane.",
+        "negative": "No runtime correction or new negative requirement."
+      }
+    },
+    {
+      "commit": "1f0ca4aecdb5d5e0190d579160d5315f32ebebde",
+      "subject": "docs(review): record round 14 behavioral differential and qualification",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/final-review-r14.md",
+        "support/specs/sails-retirement/evidence/final-review-r14/baseline-method.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r14/differential-summary.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-controls.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-differential.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-probe-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-probes.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-review.md",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-baseline-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-baseline.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-differential.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-inherited-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-inherited.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-negative.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-probes.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-r13-target-history.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/identity-review.md",
+        "support/specs/sails-retirement/evidence/final-review-r14/parent-baseline-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/parent-baseline.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r14/parent-differential.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/parent-negative-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/parent-negative.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r14/qualification.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/r13-correctness.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-artifacts.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-baseline-probes.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-baseline-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-differential.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-focused-green.log",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-negative-incoming.log",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-negative-location.log",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-negative-preview.log",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-review.md",
+        "support/specs/sails-retirement/evidence/final-review-r14/records-validation.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/rejected-attempts.json",
+        "support/specs/sails-retirement/evidence/final-review-r14/validate-differentials.cjs",
+        "support/specs/sails-retirement/evidence/inherited-defects-backlog.md"
+      ],
+      "standards": {
+        "review": "R14 report read closely; evidence references used as historical context.",
+        "current": "No historical full qualification rerun claimed.",
+        "negative": "Documentation/evidence only."
+      },
+      "parentEvidenceReview": "Report/closing status and provenance reviewed as historical snapshots; full generated artifacts not all manually read. R16 qualification/review/source hashes freshly reverified; task/wiki status reconciled."
+    },
+    {
+      "commit": "bda01cb2525ef31bdb1f449ddb7ea52e52deafb3",
+      "subject": "docs(review): retain round 14 closing tree checks",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/final-review-r14.md",
+        "support/specs/sails-retirement/evidence/final-review-r14/closing-checks.json"
+      ],
+      "standards": {
+        "review": "R14 closing report read as historical context.",
+        "current": "No historical closing checks rerun claimed; independent R17 read-only checks retained separately.",
+        "negative": "Documentation/evidence only."
+      },
+      "parentEvidenceReview": "Report/closing status and provenance reviewed as historical snapshots; full generated artifacts not all manually read. R16 qualification/review/source hashes freshly reverified; task/wiki status reconciled."
+    },
+    {
+      "commit": "8b091d8dc7328c0c92b3af5a9f9b26765a4d40dc",
+      "subject": "fix(angular): finish user management requests on HTTP errors",
+      "changedFiles": [
+        "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.spec.ts",
+        "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts"
+      ],
+      "standards": {
+        "review": "Parent/UI owner; R15 report read closely. Angular source not independently rereviewed in this axis.",
+        "current": "No administration browser/probe rerun here.",
+        "negative": "Historical R15 results only."
+      },
+      "spec": {
+        "commit": "8b091d8dc7328c0c92b3af5a9f9b26765a4d40dc",
+        "round": "R15",
+        "contract": "Finish users request on rejected HTTP and display error while retaining draft/modal",
+        "diff": "8b091d8dc.diff",
+        "diff_read": "complete, including Jasmine regressions",
+        "changed_files": [
+          "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.spec.ts",
+          "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts"
+        ],
+        "regressions": "Changed component .spec.ts covers rejected statuses 0/400/403/500; not rerun in Chrome here",
+        "fresh_check": "angular-consumer-probes.cjs",
+        "fresh_results": "r15-consumer-results.json",
+        "observations": 8,
+        "paired_incoming_and_current": [
+          {
+            "kind": "users",
+            "method": "genKey",
+            "version": "incoming",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": true,
+            "message": "Generating..."
+          },
+          {
+            "kind": "users",
+            "method": "genKey",
+            "version": "current",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": false,
+            "message": "User administration failed."
+          },
+          {
+            "kind": "users",
+            "method": "revokeKey",
+            "version": "incoming",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": true,
+            "message": "Revoking..."
+          },
+          {
+            "kind": "users",
+            "method": "revokeKey",
+            "version": "current",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": false,
+            "message": "User administration failed."
+          },
+          {
+            "kind": "users",
+            "method": "updateUserSubmit",
+            "version": "incoming",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": true,
+            "message": "Saving..."
+          },
+          {
+            "kind": "users",
+            "method": "updateUserSubmit",
+            "version": "current",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": false,
+            "message": "User administration failed."
+          },
+          {
+            "kind": "users",
+            "method": "newUserSubmit",
+            "version": "incoming",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": true,
+            "message": "Saving..."
+          },
+          {
+            "kind": "users",
+            "method": "newUserSubmit",
+            "version": "current",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": false,
+            "message": "User administration failed."
+          }
+        ],
+        "negative_reference": "bda01cb25 actual extracted Angular methods; native loopback 500 response",
+        "spec": "design.md \u00a7\u00a71.1, 8.2; implementation_plan.md P6 coordinated consumers",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "e4a198691e8713b308386535acb9d6008f82c051",
+      "subject": "fix(angular): display role update HTTP failures",
+      "changedFiles": [
+        "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.spec.ts",
+        "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts"
+      ],
+      "standards": {
+        "review": "Parent/UI owner; R15 report read closely. Angular source not independently rereviewed in this axis.",
+        "current": "No role-update browser/probe rerun here.",
+        "negative": "Historical R15 results only."
+      },
+      "spec": {
+        "commit": "e4a198691e8713b308386535acb9d6008f82c051",
+        "round": "R15",
+        "contract": "Finish roles request on rejected HTTP and display error while retaining draft/modal",
+        "diff": "e4a198691.diff",
+        "diff_read": "complete, including Jasmine regressions",
+        "changed_files": [
+          "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.spec.ts",
+          "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts"
+        ],
+        "regressions": "Changed component .spec.ts covers rejected statuses 0/400/403/500; not rerun in Chrome here",
+        "fresh_check": "angular-consumer-probes.cjs",
+        "fresh_results": "r15-consumer-results.json",
+        "observations": 2,
+        "paired_incoming_and_current": [
+          {
+            "kind": "roles",
+            "method": "saveCurrentUser",
+            "version": "incoming",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": true,
+            "message": "Saving..."
+          },
+          {
+            "kind": "roles",
+            "method": "saveCurrentUser",
+            "version": "current",
+            "httpStatus": 500,
+            "body": {
+              "message": "User administration failed.",
+              "details": ""
+            },
+            "rejected": false,
+            "message": "User administration failed."
+          }
+        ],
+        "negative_reference": "bda01cb25 actual extracted Angular methods; native loopback 500 response",
+        "spec": "design.md \u00a7\u00a71.1, 8.2; implementation_plan.md P6 coordinated consumers",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "709483c4670583677e8318cb9dadc14fa362b549",
+      "subject": "fix(angular): send CSRF on Companion provider requests",
+      "changedFiles": [
+        "angular/projects/researchdatabox/form/src/app/component/data-location.component.spec.ts",
+        "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+        "angular/projects/researchdatabox/form/src/app/component/file-upload.component.spec.ts",
+        "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts"
+      ],
+      "standards": {
+        "review": "Parent/UI owner; R15 report read closely. Current core Companion configuration source/test read and run, but not this Angular fix.",
+        "current": "queue-maintenance-green.log covers core Companion configuration, not installed-widget/header recovery.",
+        "negative": "Historical R15 widget controls only."
+      },
+      "spec": {
+        "commit": "709483c4670583677e8318cb9dadc14fa362b549",
+        "round": "R15",
+        "contract": "All Companion providers receive outer request CSRF, including delayed config without leaking arbitrary tus headers",
+        "diff": "709483c46.diff",
+        "diff_read": "complete including immediate/delayed Jasmine regressions",
+        "changed_files": [
+          "angular/projects/researchdatabox/form/src/app/component/data-location.component.spec.ts",
+          "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+          "angular/projects/researchdatabox/form/src/app/component/file-upload.component.spec.ts",
+          "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts"
+        ],
+        "regressions": "file-upload.component.spec.ts and data-location.component.spec.ts immediate/delayed provider cases read; not rerun Chrome here",
+        "fresh_checks": [
+          "angular-companion-probe.cjs",
+          "r15-delayed-widget-probe.cjs"
+        ],
+        "fresh_results": [
+          "r15-companion-results.json",
+          "r15-delayed-widget-results.json"
+        ],
+        "observations": 38,
+        "controls": {
+          "installed_client_native_csrf": 24,
+          "private_header_setter_causality": 2,
+          "actual_delayed_widget_private_client": 12
+        },
+        "negative_reference": "e4a198691 actual components; missing outer token gives 403 with nested tus token present, corrected outer token/current gives 200",
+        "spec": "design.md \u00a7\u00a71.1, 9; implementation_plan.md P6 CSRF/Companion coordinated client conversion",
+        "finding": "none verified"
+      }
+    },
+    {
+      "commit": "af52030d279d5eb91c269f5a24f8d6d4a330813a",
+      "subject": "docs(review): record round 15 contracts and persistence qualification",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/final-review-r15.md",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-companion-probe.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-companion-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-consumer-probes.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-consumer-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-findings.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-inventory.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-components-green.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-components-rejected-fixture.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-probe.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/consumer-probes.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-green.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-negative-v2.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-negative.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-green.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative-v2.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative-v3.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/p3-consumers.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-network-inventory.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-network.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-p3-probes.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-p3-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-rejected-attempts.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-review.md",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-source.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/angular-validation.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/legacy-client-contracts.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/legacy-profile-probe.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/legacy-profile-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-inventory.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-inventory.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-manifest.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-prisma.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-probe-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-probes.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-probes.log",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-review.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/persistence-review.md",
+        "support/specs/sails-retirement/evidence/final-review-r15/qualification.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/target-controls.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r15/target-controls.json",
+        "support/specs/sails-retirement/evidence/final-review-r15/target-selection.json",
+        "support/specs/sails-retirement/evidence/inherited-defects-backlog.md"
+      ],
+      "standards": {
+        "review": "R15 report read closely; references used as historical context.",
+        "current": "No historical contracts/persistence/full qualification rerun claimed.",
+        "negative": "Documentation/evidence only."
+      },
+      "parentEvidenceReview": "Report/closing status and provenance reviewed as historical snapshots; full generated artifacts not all manually read. R16 qualification/review/source hashes freshly reverified; task/wiki status reconciled."
+    },
+    {
+      "commit": "547370ac8a80e6f2af553e6958ad90343ff81d0a",
+      "subject": "docs(review): retain round 15 committed-tree checks",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/final-review-r15.md",
+        "support/specs/sails-retirement/evidence/final-review-r15/closing-checks.json"
+      ],
+      "standards": {
+        "review": "R15 closing report read as historical context.",
+        "current": "No historical closing checks rerun claimed.",
+        "negative": "Documentation/evidence only."
+      },
+      "parentEvidenceReview": "Report/closing status and provenance reviewed as historical snapshots; full generated artifacts not all manually read. R16 qualification/review/source hashes freshly reverified; task/wiki status reconciled."
+    },
+    {
+      "commit": "4bf60062fd2a9d1cf387d3ac993cf531c1b6032b",
+      "subject": "fix(auth): recover local login after rejected HTTP requests",
+      "changedFiles": [
+        "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.spec.ts",
+        "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts"
+      ],
+      "standards": {
+        "review": "Parent owns R16 local-auth fix and auth recovery; R16 report read closely. No Angular source/probe rerun in this axis.",
+        "current": "Parent now confirms auth 165 / Chrome 37 and controls all pass; prior handoff native recovery probe passes 12. These are parent-reported results, excluded from this axis totals.",
+        "negative": "No new negative by this axis; historical R16 36-case failures remain historical; parent newly confirms current controls pass."
+      },
+      "parent": {
+        "review": "Entire diff and component/template/regressions; safe v1/v2/fallback message, field retention, credential denial, success and async rendering traced.",
+        "current": "37 Chrome regressions; seven native corrected controls; 12 new session/CSRF/retry observations pass.",
+        "negative": "Fresh replay of actual old extracted consumer proves audit500 leaves it disabled; baseline actual audit/login methods establish feature causality. Original 36 expected browser failures are reverified historical evidence."
+      }
+    },
+    {
+      "commit": "81b347ae40d955ca95e4df4b6f3e72a9726043c4",
+      "subject": "docs: record round 16 Sails retirement review and qualification",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/final-review-r16.md",
+        "support/specs/sails-retirement/evidence/final-review-r16/audit-root-probe.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r16/audit-root-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/client-error-probes.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r16/client-error-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/client-error-sweep.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r16/client-error-sweep.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/local-login-audit-green-probe.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r16/local-login-audit-green-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/local-login-audit-probe.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r16/local-login-audit-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/qualification.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/r15-companion-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/r15-consumer-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/r15-delayed-widget-probe.cjs",
+        "support/specs/sails-retirement/evidence/final-review-r16/r15-delayed-widget-results.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/review-accounting.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/spec-coverage.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/spec-review.md",
+        "support/specs/sails-retirement/evidence/final-review-r16/standards-audit.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/standards-coverage.json",
+        "support/specs/sails-retirement/evidence/final-review-r16/standards-review.md",
+        "support/specs/sails-retirement/evidence/inherited-defects-backlog.md",
+        "support/specs/sails-retirement/tasks.md",
+        "support/wiki/Development-Guide.md",
+        "support/wiki/Home.md",
+        "support/wiki/ReDBox-Automated-Tests.md"
+      ],
+      "standards": {
+        "review": "R16 report read closely. Broader auth/docs and parent review remain parent-owned.",
+        "current": "No historical full qualification rerun claimed.",
+        "negative": "Documentation/evidence only."
+      },
+      "parentEvidenceReview": "Report/closing status and provenance reviewed as historical snapshots; full generated artifacts not all manually read. R16 qualification/review/source hashes freshly reverified; task/wiki status reconciled."
+    },
+    {
+      "commit": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0",
+      "subject": "docs: close round 16 retirement evidence accounting",
+      "changedFiles": [
+        "support/specs/sails-retirement/evidence/final-review-r16.md",
+        "support/specs/sails-retirement/evidence/final-review-r16/closing-checks.json"
+      ],
+      "standards": {
+        "review": "Pinned R16 closing report/evidence accounting read. No feature runtime change.",
+        "current": "R17 branch/HEAD/tracked-diff checks retained separately.",
+        "negative": "Documentation/evidence only."
+      },
+      "parentEvidenceReview": "Report/closing status and provenance reviewed as historical snapshots; full generated artifacts not all manually read. R16 qualification/review/source hashes freshly reverified; task/wiki status reconciled."
+    }
+  ],
+  "limits": "Each entry attributes independent fresh source/check coverage, parent/sibling handoffs, generated mechanics and historical observations. Negative failures are expected regression controls, not current-tree failures."
+}

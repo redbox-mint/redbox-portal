@@ -1,0 +1,252 @@
+{
+  "base": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "head": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0",
+  "source": [
+    {
+      "path": "packages/redbox-core/src/http/express/authentication.ts",
+      "sha256": "4a08ac094d8fb9f6b58b5edebaaabee1f6964591892736258749e919f22b060b",
+      "lines": 118,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/identity.ts",
+      "sha256": "a5f46fecf45de4a19d39bf3637fcf71016b79ff550f4cda0e60fe3b40f6a8a79",
+      "lines": 90,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/identityProviders.ts",
+      "sha256": "2760ca2f20d1af3efb7d1061336c083210e607874aa2fd529213e8e4b69df80f",
+      "lines": 183,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/login.ts",
+      "sha256": "ac13d15ee66b732d707798bf128eecef34232e590b3a646c00393bdc139be998",
+      "lines": 298,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/csrf.ts",
+      "sha256": "aaf2780ae2231a8018ac6969b41f09777016f7cdae01da6fd737f1a27e9c3423",
+      "lines": 69,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/session.ts",
+      "sha256": "3e3d06b8fdb7a349dcfd555d10804b879b648fbf7650ebc5d673af710682bf03",
+      "lines": 224,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/sessionData.ts",
+      "sha256": "8517ed3f4f28bda4fa2ea6347b4117785c9826e65c109bbba3c1d2ae440b703d",
+      "lines": 7,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/policies.ts",
+      "sha256": "0e334597c2054abd2f513c66028e0c2e5385806bbe786899956a9e956ba37ffb",
+      "lines": 243,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/middleware.ts",
+      "sha256": "d40395e9741df1425aa220626d9ecfea1852bf534565f21e7a0e48f972cb73fb",
+      "lines": 214,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/apiManifest.ts",
+      "sha256": "68a32161e415247ab7024035906a35f5aad0a0db4021e00d4c89de90bbefa2c5",
+      "lines": 50,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/index.ts",
+      "sha256": "587e9e8a1e27eae3f3bfd09a84e97c9963747fa99bad813e063bd3fb1418ca70",
+      "lines": 105,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/integrationOperations.ts",
+      "sha256": "1abf2eee7156866e74130fe3c03e204e73f1aa4477dccbde85b7952a8ff93e72",
+      "lines": 163,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/ownedRoutes.ts",
+      "sha256": "884f929ee19bf48743f4bcb61f1f1cb26271aa2cc972add47df82903c515d16a",
+      "lines": 62,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/siemWrites.ts",
+      "sha256": "3243f18300da9cf63281bb6b27c98f31c8f2b4efc459b43f3cb58a8e0a726426",
+      "lines": 110,
+      "scope": "full current file"
+    },
+    {
+      "path": "app.express.cjs",
+      "sha256": "d73e5741df30752417695d1443142c937f9a72d82f7cbbad0b7a6ea99253e0d2",
+      "lines": 112,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/host.ts",
+      "sha256": "04513c428f6fd76d63d35b32656b7a1c5214eed0e7f2666547de45e84cb05aea",
+      "lines": 26,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/middleware/requestLifetime.ts",
+      "sha256": "2760bae4865d382d51d0477ecd4db9a5a04befa5388e78fe735db42b58725c58",
+      "lines": 207,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/integrations/SecurityEvents.ts",
+      "sha256": "85a896d76728f974898af10f3f29408726f5d2eb008157cca72532023fdae4a8",
+      "lines": 256,
+      "scope": "full current file"
+    },
+    {
+      "path": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts",
+      "sha256": "edd86718fac145fa9facb7ef30dc34d832ce2fe700a19ea491762abb225d6fa4",
+      "lines": 114,
+      "scope": "full current file"
+    },
+    {
+      "path": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.html",
+      "sha256": "5fb915115942b032a0f99440f2011cd92543e72ec4050b2a9f9eac045d1a7eab",
+      "lines": 31,
+      "scope": "full current file"
+    },
+    {
+      "path": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.spec.ts",
+      "sha256": "12089207f768d6d386b5dc21c26ee0118aad0e6a4365694179d48aa66ce1bcf1",
+      "lines": 115,
+      "scope": "full current file"
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/base.component.ts",
+      "sha256": "d50e1a5005480b01d2b545e294e0fb361528a8097243f9f158defe413b66bcaf",
+      "lines": 166,
+      "scope": "full current file"
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "sha256": "ce1c3664deff3f2be416d4919c727e0d1b6d4fca3bae6cada4d76f334f547209",
+      "lines": 311,
+      "scope": "full current file"
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/httpClient.service.ts",
+      "sha256": "78fcbc8977d62d28ee515eb2bb2700ecc20516c94684a3ed305999c20e186b3e",
+      "lines": 114,
+      "scope": "full current file"
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/csrf.interceptor.ts",
+      "sha256": "7bfbfde91051e0453886f80206e88c406a90ff03f5e0530da9d2c4dd1a6b48f2",
+      "lines": 63,
+      "scope": "full current file"
+    },
+    {
+      "path": "views/default/default/user/login.ejs",
+      "sha256": "8e2bde94acaf30cd2d439dcd334e9b76791f5b5837ec400a89388dda0b4f042e",
+      "lines": 13,
+      "scope": "full current file"
+    },
+    {
+      "path": "views/default/default/user/aaf.ejs",
+      "sha256": "13615796e32b4ca24deac1775282d4d4d6b48e5429ba327c0978314d4a2958e5",
+      "lines": 18,
+      "scope": "full current file"
+    },
+    {
+      "path": "views/default/default/user/openidconnect.ejs",
+      "sha256": "90e070ec3b2962e437353b905cecdc4add51949489080f77e805c93c5ba2520e",
+      "lines": 12,
+      "scope": "full current file"
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/http.ts",
+      "sha256": "cad31280fe054008a85284dae3376ed3cb8319e314913773e7d1539428870bc1",
+      "lines": 620,
+      "scope": "changed functions/hunks and stated context",
+      "note": "Production auth/session/CSRF/provider/page-context and limits bindings; Standards independently reads full file."
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/providers.ts",
+      "sha256": "5129b33cf153fd8bb622614d17f7b9667ca52e9efcaa2372a14f95ede3487138",
+      "lines": 321,
+      "scope": "changed functions/hunks and stated context",
+      "note": "Production identity/provider and SecurityEvents construction/forwarding."
+    },
+    {
+      "path": "views/default/default/layout.ejs",
+      "sha256": "96fa2eab994565f872625969cb24ed6413ddad394ab4a60bbbb4e32a0a800dac",
+      "lines": 204,
+      "scope": "changed functions/hunks and stated context",
+      "note": "Login/logout navigation/form/CSRF bindings."
+    },
+    {
+      "path": "views/default/default/record/layout.ejs",
+      "sha256": "42b8847b8d6faeefa10c0c93bbc53083e64c451bde549a28a9c5c57ee4e68c57",
+      "lines": 154,
+      "scope": "changed functions/hunks and stated context",
+      "note": "Login/logout navigation/form/CSRF bindings."
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/recordReads.ts",
+      "sha256": "b71effc92b2d5ad8248b29126906c13f1ae687a16c24a24fb5b7794d718f2bee",
+      "lines": 458,
+      "scope": "changed functions/hunks and stated context",
+      "note": "Entire afaf6ef01 diff and test plus current request/limit context; Spec independently reads full file."
+    },
+    {
+      "path": "test/tooling/retirement-closure.test.cjs",
+      "sha256": "06034260eab9c8cdcf4f6171fc62c58835723014119cf232bdb7c4db76881d7a",
+      "lines": 76,
+      "scope": "changed functions/hunks and stated context",
+      "note": "R13 changed tests and expected positive/negative assertion logic; fresh complete test run."
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/retirement-closure.cjs",
+      "sha256": "a673f07e99cd1a1db1be93fb388c6ef259be5d4f885ad82950cd7816d9d930bc",
+      "lines": 308,
+      "scope": "changed functions/hunks and stated context",
+      "note": "Complete R13 tooling diff and affected prefilter/literal-classification functions."
+    },
+    {
+      "path": "packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "sha256": "1393d8ec0d0857e4e53e49b03c1648c13726ab1ed350a13cb6bf302a94578248",
+      "lines": 334,
+      "scope": "changed functions/hunks and stated context",
+      "note": "59-case regression logic and complete afaf6ef01 diff; green and incoming module runs."
+    },
+    {
+      "path": "packages/redbox-core/test/helpers/httpInputInventory.cjs",
+      "sha256": "c165e076a8edf108a82b9314fb6a5fef4d26a7309359e4bf4f432461264ffdbe",
+      "lines": 629,
+      "scope": "changed functions/hunks and stated context",
+      "note": "Entire 443954d8f helper change and browser/REST provenance; Standards independently reviews authored helper logic."
+    }
+  ],
+  "centralCoverage": {
+    "expressModules": 51,
+    "centralUniqueTypeScriptFiles": 88,
+    "uncoveredExpress": []
+  },
+  "lateFixOwnership": [
+    "afaf6ef01",
+    "443954d8f",
+    "6ddbfd493",
+    "6e022ccb9",
+    "0e4c31096",
+    "c31ac2862",
+    "4bf60062f"
+  ],
+  "limits": "Current source review and targeted historical diffs. Child coverage complements this lane. No complete manual review of every generated/deleted line or arbitrary institution hook is claimed."
+}

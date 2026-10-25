@@ -1,0 +1,952 @@
+{
+  "axis": "spec-native-data-browser",
+  "recorded_at": "2026-10-25T20:28:49.370668+00:00",
+  "base": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "head": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0",
+  "full_current_source_files": 60,
+  "source_scopes": [
+    {
+      "path": "packages/redbox-core/src/http/express/adminOperations.ts",
+      "sha256": "fdb31149bf71964df18e25863e296cb9054c02ee937e920bdbf9c8884e5d6b03",
+      "total_lines": 100,
+      "read_ranges": [
+        [
+          1,
+          100
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/brandingDelivery.ts",
+      "sha256": "1ab2635e2100de1450819a14b5650573c61fef31cf8a823f19f780e01ebf5b7e",
+      "total_lines": 430,
+      "read_ranges": [
+        [
+          1,
+          430
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/brandingOperations.ts",
+      "sha256": "e0aa18de112d93ee369ca00bca8beca9977c0b942f357fdef0536dd7a00d5be2",
+      "total_lines": 210,
+      "read_ranges": [
+        [
+          1,
+          210
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/brandingUploads.ts",
+      "sha256": "68e6e9c87e432dcd3e73424ae111a3dab65aa36f4683be46c7ed259fce3d9586",
+      "total_lines": 133,
+      "read_ranges": [
+        [
+          1,
+          133
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/companion.ts",
+      "sha256": "582225f79ed273685cec04620e61ac4dcc4e650b74749b8f4c96f4493cefb84c",
+      "total_lines": 319,
+      "read_ranges": [
+        [
+          1,
+          319
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/companionLogging.ts",
+      "sha256": "7fa7f64f7217c75b56c047f760c91c86921bbfbcc37b6dccd6d2e2130ba05c8b",
+      "total_lines": 49,
+      "read_ranges": [
+        [
+          1,
+          49
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/companionSendToken.ts",
+      "sha256": "b5c45e3ccae28a18b62fec00cd951543f84c36540c8456252afcd6dfd73bc9bb",
+      "total_lines": 43,
+      "read_ranges": [
+        [
+          1,
+          43
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/configuration.ts",
+      "sha256": "fb7412f92cb76b2b1a0d0080cda6a75e0d6b0cfd852ddc037517aa76076c4b17",
+      "total_lines": 183,
+      "read_ranges": [
+        [
+          1,
+          183
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/configurationWrites.ts",
+      "sha256": "2d17deebd6baa799711a1ae1d6463dc63b6faad14b87b8e6e7e57d853b8ea91a",
+      "total_lines": 282,
+      "read_ranges": [
+        [
+          1,
+          282
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/configuredActions.ts",
+      "sha256": "2724e91bb5e3d7b032be9d4cba2fecb5d716d8792da7f07434cd2bedebda87f3",
+      "total_lines": 86,
+      "read_ranges": [
+        [
+          1,
+          86
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/dashboardResponses.ts",
+      "sha256": "56514b6baec8135bd440817e936cfac14691a50718c80b6958918d2d748e18af",
+      "total_lines": 33,
+      "read_ranges": [
+        [
+          1,
+          33
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/datastreamReads.ts",
+      "sha256": "8460c8bd3b39f4e7e6f974c8907727119cc6efb7e03d1fec032f7c688be5c18c",
+      "total_lines": 153,
+      "read_ranges": [
+        [
+          1,
+          153
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/datastreamWrites.ts",
+      "sha256": "594544833d48ae760f8423491f5319f65d7606dd42a1f7e67a42a6727e29c97f",
+      "total_lines": 236,
+      "read_ranges": [
+        [
+          1,
+          236
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/figshareAdministration.ts",
+      "sha256": "068ad8ae503858883851e9239c4586e3a91d5f68881e72d8c9cd0d052b3a03e1",
+      "total_lines": 358,
+      "read_ranges": [
+        [
+          1,
+          358
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/formDelivery.ts",
+      "sha256": "3a4abe84a687c7cb34ef0d42876472035fa077dd216b4b1f3412048b3ed0bdd5",
+      "total_lines": 87,
+      "read_ranges": [
+        [
+          1,
+          87
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/formVocabulary.ts",
+      "sha256": "5ab740e0a152d1c92c41be4f33373e6a88803f9c7ce665cf48e9637dc2998e55",
+      "total_lines": 222,
+      "read_ranges": [
+        [
+          1,
+          222
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/harvestMutations.ts",
+      "sha256": "9140fb41bc359cdbcce1b5c07dc76dea4fcb9fae61f75dd075546c094ba3e74c",
+      "total_lines": 125,
+      "read_ranges": [
+        [
+          1,
+          125
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/identityAdministration.ts",
+      "sha256": "a6fab3f8055eb47fa36fdc58a7f196a5ed9ba6c7676e693a037ef6dc5ecad166",
+      "total_lines": 297,
+      "read_ranges": [
+        [
+          1,
+          297
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/identityLinks.ts",
+      "sha256": "e3f96d2d6eeb9cf3eb5d7b32f5551917b4e50af747b4712f762595afb1915714",
+      "total_lines": 218,
+      "read_ranges": [
+        [
+          1,
+          218
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/metadata.ts",
+      "sha256": "b5b38bd9185bbd106b72dedee7200a06e804aa023808a5b893f48f42f3259efa",
+      "total_lines": 322,
+      "read_ranges": [
+        [
+          1,
+          322
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/middleware.ts",
+      "sha256": "d40395e9741df1425aa220626d9ecfea1852bf534565f21e7a0e48f972cb73fb",
+      "total_lines": 214,
+      "read_ranges": [
+        [
+          1,
+          214
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/multipart.ts",
+      "sha256": "4b203ea5a6890108a9716f096134683dcbaacb9f23d100dcc0129f32a9778a2c",
+      "total_lines": 163,
+      "read_ranges": [
+        [
+          1,
+          163
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/pageAssets.ts",
+      "sha256": "b5aea3ac927a986041886985ae63f14f666a4a2ea562522c65de985aabac7c3b",
+      "total_lines": 310,
+      "read_ranges": [
+        [
+          1,
+          310
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/pageHeaders.ts",
+      "sha256": "5b991c38ab58802c882300d5f8025b7ce0d43d99de3ebb135a99b05709d48888",
+      "total_lines": 50,
+      "read_ranges": [
+        [
+          1,
+          50
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/pages.ts",
+      "sha256": "40ecbd192f878180831a689a42bee46e7a488be6e8098fa350226ac3a74c73bf",
+      "total_lines": 475,
+      "read_ranges": [
+        [
+          1,
+          475
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/progressOperations.ts",
+      "sha256": "c0d8656ce73ba70fe4b961be3f92c5d81b0ec3395217ed46ce70698aeb7f032d",
+      "total_lines": 196,
+      "read_ranges": [
+        [
+          1,
+          196
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/progressSockets.ts",
+      "sha256": "a468b7582e937ec28e9d36c1748cf435b7b145c12fcb3dec295c7fd0d6466c35",
+      "total_lines": 229,
+      "read_ranges": [
+        [
+          1,
+          229
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/queryReads.ts",
+      "sha256": "03487e4128cc5c1610485c68107b345f293d1d7fae6f8d2fa6fec13f19e51bdb",
+      "total_lines": 416,
+      "read_ranges": [
+        [
+          1,
+          416
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/queryWrites.ts",
+      "sha256": "d920bf188e0a3f18638f585aa3899f76de2a12b53c95c0c707a80fe184300328",
+      "total_lines": 129,
+      "read_ranges": [
+        [
+          1,
+          129
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/recordMutations.ts",
+      "sha256": "4f047c9813d00c1b5c708a0854afbf72ad4c8d67312652f110308640ca537131",
+      "total_lines": 546,
+      "read_ranges": [
+        [
+          1,
+          546
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/recordReads.ts",
+      "sha256": "b71effc92b2d5ad8248b29126906c13f1ae687a16c24a24fb5b7794d718f2bee",
+      "total_lines": 458,
+      "read_ranges": [
+        [
+          1,
+          458
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/recordSchemaReads.ts",
+      "sha256": "dc19e77ff9213695f490a0604a9cc24cd844a0ff9e531d0111d8d86415de3ecf",
+      "total_lines": 124,
+      "read_ranges": [
+        [
+          1,
+          124
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/recordTypes.ts",
+      "sha256": "097a17a953504ef1816390e72e289b90b1f86cdee3e36c4bc1358a1ae7851f05",
+      "total_lines": 97,
+      "read_ranges": [
+        [
+          1,
+          97
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/responses.ts",
+      "sha256": "5d1b6933c6af075fea233c5e23f6262d6e683d7c908dd1b2eecc7f58dd466a98",
+      "total_lines": 47,
+      "read_ranges": [
+        [
+          1,
+          47
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/resumableUploads.ts",
+      "sha256": "7539ccc7e65536a3ee79044122b9463798893e0b21c42ee4c03b485662acb664",
+      "total_lines": 222,
+      "read_ranges": [
+        [
+          1,
+          222
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/vocabularyAdministration.ts",
+      "sha256": "0e3299be372c98ac3c8030d2a148a337b1addeb9484ec2629600dc0eb1af534e",
+      "total_lines": 169,
+      "read_ranges": [
+        [
+          1,
+          169
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/http/express/vocabularyIntegrations.ts",
+      "sha256": "ec2c5434486966e454d242359a4b8e752942726216fdc24a884891c1ea4adc99",
+      "total_lines": 107,
+      "read_ranges": [
+        [
+          1,
+          107
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/http.ts",
+      "sha256": "cad31280fe054008a85284dae3376ed3cb8319e314913773e7d1539428870bc1",
+      "total_lines": 620,
+      "read_ranges": [
+        [
+          1,
+          620
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/httpPolicies.ts",
+      "sha256": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
+      "total_lines": 24,
+      "read_ranges": [
+        [
+          1,
+          24
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/application/portal/data.ts",
+      "sha256": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
+      "total_lines": 416,
+      "read_ranges": [
+        [
+          1,
+          416
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/middleware/requestLifetime.ts",
+      "sha256": "2760bae4865d382d51d0477ecd4db9a5a04befa5388e78fe735db42b58725c58",
+      "total_lines": 207,
+      "read_ranges": [
+        [
+          1,
+          207
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/runtime.ts",
+      "sha256": "30ba87bb9b2ee5a959dcb4e7808b624062f97af7e81ae443fa41504141fb8334",
+      "total_lines": 495,
+      "read_ranges": [
+        [
+          1,
+          495
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/groupRuntime.ts",
+      "sha256": "6695f48f812ecf17cd8c1124e130c9b5aa5ab4e5696e201202f14fa9eaf57e19",
+      "total_lines": 114,
+      "read_ranges": [
+        [
+          1,
+          114
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/runtime.ts",
+      "sha256": "24bcba44ededff68c4d257a2a8d154ee8f6906efe31a995c593daa1ddc1d9cc0",
+      "total_lines": 57,
+      "read_ranges": [
+        [
+          1,
+          57
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/pages/Artifacts.ts",
+      "sha256": "1f2e89f20eae74311736032638d64529193eeb01b7427a0c2bccca8d7c61d33f",
+      "total_lines": 112,
+      "read_ranges": [
+        [
+          1,
+          112
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/storage/StandardDatastream.ts",
+      "sha256": "97597f0dac06533ce9d1b0a0d184617bcb49d79659dc7c70da614c919e025d40",
+      "total_lines": 1259,
+      "read_ranges": [
+        [
+          1,
+          1259
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/storage/StorageManager.ts",
+      "sha256": "9842af164a4cab127202d3102706375f14487fd4f0481075b13e2628cf50b8e8",
+      "total_lines": 390,
+      "read_ranges": [
+        [
+          1,
+          390
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/storage/GridFSDriver.ts",
+      "sha256": "f1ef4d39d23e59b775b2951eb7364a65656e63feb28562cbfd7e149b2ec07928",
+      "total_lines": 512,
+      "read_ranges": [
+        [
+          1,
+          512
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/storage/ownGridFSDownload.ts",
+      "sha256": "ffd8ae91a917af3bc6980e75cb45f887860fd55b4c3e095384acd64516b894c1",
+      "total_lines": 61,
+      "read_ranges": [
+        [
+          1,
+          61
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/storage/writeGridFSStream.ts",
+      "sha256": "3a5e97dfab9abd7e76451584963c72a7044e47211b75a4a843747b0967ac47c6",
+      "total_lines": 43,
+      "read_ranges": [
+        [
+          1,
+          43
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/records/RecordCreateAuthorization.ts",
+      "sha256": "4ff4c8265e5e47abcad6e947de2b6a4db43d407d52604daa02ce0e2603bac20f",
+      "total_lines": 127,
+      "read_ranges": [
+        [
+          1,
+          127
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/records/access.ts",
+      "sha256": "3a1603b6a49fff13124745a9d611a2eef357066f895ceeab28e417ee1bac0f73",
+      "total_lines": 95,
+      "read_ranges": [
+        [
+          1,
+          95
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/persistence/guardPrismaStorage.ts",
+      "sha256": "5f9f7795a5f0ded8e1ed9a694f3a98c527473dfe2dbeccd53b6aa0b67585921f",
+      "total_lines": 66,
+      "read_ranges": [
+        [
+          1,
+          66
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+      "sha256": "86f75127a79a251b4a378e41c339e8adbd1ad648984e6665716c0ac55c056369",
+      "total_lines": 924,
+      "read_ranges": [
+        [
+          1,
+          924
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts",
+      "sha256": "2e9ce8fc6e9a723959fd0507079c6f3d3fa6c93036bb48686254c7332eee92ff",
+      "total_lines": 165,
+      "read_ranges": [
+        [
+          1,
+          165
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "sha256": "90313fdc9e1ed6a6f809c83f3198bb14258f02d9f62b80dbca99c148c8e9d383",
+      "total_lines": 633,
+      "read_ranges": [
+        [
+          1,
+          633
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "sha256": "2324e001356264358fce1f21daddf320289a3aa36ab3054dff676c360b8cd15a",
+      "total_lines": 845,
+      "read_ranges": [
+        [
+          1,
+          845
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "sha256": "ce1c3664deff3f2be416d4919c727e0d1b6d4fca3bae6cada4d76f334f547209",
+      "total_lines": 311,
+      "read_ranges": [
+        [
+          1,
+          311
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/test/helpers/httpRouteFixture.ts",
+      "sha256": "26c275653cff478dc98aac21cc7f207a0f2044089497e01d60b23baba5e05a09",
+      "total_lines": 68,
+      "read_ranges": [
+        [
+          1,
+          68
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/test/helpers/httpRecordReadsFixture.ts",
+      "sha256": "0e9c75eb5e6a192329da63e400622fa9b18bae0e3cd70f936cd65f3802bc6c8e",
+      "total_lines": 44,
+      "read_ranges": [
+        [
+          1,
+          44
+        ]
+      ],
+      "scope": "full current file",
+      "note": ""
+    },
+    {
+      "path": "packages/redbox-core/src/records/Records.ts",
+      "sha256": "34124520db85bc969468aa9ccf0d02a714ed48bc82c0259daf95311a2eeaa161",
+      "total_lines": 8214,
+      "read_ranges": [
+        [
+          3180,
+          3420
+        ],
+        [
+          5980,
+          6175
+        ],
+        [
+          6800,
+          6940
+        ],
+        [
+          7810,
+          8025
+        ]
+      ],
+      "scope": "bounded ranges only",
+      "note": "Selected complete journal/cleanup/audit methods and surrounding slices; constructor/hook and validation/create extraction also compared via named baseline diff ranges. The 8,214-line file was not reviewed in full."
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/PrismaAttachments.ts",
+      "sha256": "2ba10f728749413413ccc09e7ae8feabfe9fe4eea541c8081580e0d83c63ddbb",
+      "total_lines": 913,
+      "read_ranges": [
+        [
+          310,
+          415
+        ],
+        [
+          820,
+          913
+        ]
+      ],
+      "scope": "bounded ranges only",
+      "note": "Complete baseline diff read; current claim/reclaim owner fields and cleanup-normalization context selected. File not reviewed in full."
+    }
+  ],
+  "documents": [
+    {
+      "path": "AGENTS.md",
+      "read": "full; tracked wiki preferred"
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/inherited-defects-backlog.md",
+      "read": "close full read, B01-B14 including tail; inherited issues excluded from A findings"
+    },
+    {
+      "path": "support/specs/sails-retirement/final-review-r13.md",
+      "read": "close full read"
+    },
+    {
+      "path": "support/specs/sails-retirement/final-review-r14.md",
+      "read": "close full read"
+    },
+    {
+      "path": "support/specs/sails-retirement/final-review-r15.md",
+      "read": "close full read"
+    },
+    {
+      "path": "support/specs/sails-retirement/final-review-r16.md",
+      "read": "close full read"
+    },
+    {
+      "path": "support/specs/sails-retirement/final-review-r1.md .. final-review-r12.md",
+      "read": "skimmed opening/headings/finding summaries; not claimed close full reads"
+    },
+    {
+      "path": "support/specs/sails-retirement/design.md",
+      "read": "requirements and sections 1-13 consulted; clipped middle revisited at lines 245-525 in earlier working context"
+    },
+    {
+      "path": "support/specs/sails-retirement/implementation_plan.md",
+      "read": "full attempted read plus separately read P2/P3/P4/P5/P6/P7/P8; command-list truncation not treated as source coverage"
+    },
+    {
+      "path": "support/specs/sails-retirement/tasks.md",
+      "read": "lines 1-115; P5/P6 lines 483-710; task headings and unchecked gates across remainder"
+    },
+    {
+      "path": "support/specs/sails-retirement/extensions-v6.md",
+      "read": "full"
+    },
+    {
+      "path": "support/specs/sails-retirement/maintenance-v6.md",
+      "read": "full"
+    },
+    {
+      "path": "support/specs/sails-retirement/hook-migration-v6.md",
+      "read": "full"
+    },
+    {
+      "path": "support/specs/sails-retirement/upgrade-recovery-v6.md",
+      "read": "full"
+    },
+    {
+      "path": "support/specs/sails-retirement/configuration-v6.md",
+      "read": "startup/environment/dynamic/lifecycle sections and complete baseline-dispositions table; combined-output truncations revisited"
+    },
+    {
+      "path": "support/wiki/ReDBox-Automated-Tests.md",
+      "read": "lines 1-95"
+    },
+    {
+      "path": "support/wiki/Redbox-Core-Types.md",
+      "read": "full"
+    },
+    {
+      "path": "support/wiki/V6-Client-Compatibility.md",
+      "read": "selected relevant sections; not full-page claim"
+    }
+  ],
+  "baseline_provenance": [
+    {
+      "file": "StandardDatastream-baseline.diff",
+      "read": "full diff; current full 1-1259 source context"
+    },
+    {
+      "file": "PrismaAttachments-baseline.diff",
+      "read": "full diff; selected current claim/context ranges"
+    },
+    {
+      "file": "Records-baseline.diff",
+      "read": "selected diff lines 230-356, 588-890, 1285-1486, 1525-1772 only, plus searches. Not full 2956-line diff."
+    },
+    {
+      "files": [
+        "records-baseline-fresh.json",
+        "identity-baseline-fresh.json",
+        "entrypoints-baseline-fresh.json",
+        "browser-list-baseline-fresh.json"
+      ],
+      "read": "Actual baseline method probe sources read before fresh execution; pinned source from git show. No Sails HTTP claim."
+    }
+  ],
+  "late_diffs": "All 13 assigned runtime-fix diffs and 2 late test-only typing diffs read completely, including tests. Exact files retained individually.",
+  "test_source_scope": "New/rewritten regressions in assigned commit diffs read; checked-in focused/lifecycle suites executed. No claim that every pre-existing test line was read.",
+  "full_feature_diff": "feature.diff stores the exact requested full diff; review navigated the bounded native/data/browser sources, not every byte of this 51 MB diff.",
+  "browser_templates": "Targeted current bindings for user/role submit handlers, token actions and error-message elements; full templates not claimed.",
+  "rejected_or_inherited": "No new B backlog issue verified; existing B01-B14 retained as backlog only. Generic downloads retain stored brand and view ACL; API download membership gate remains. Multipart cleanup masking is baseline-inherited (prior evidence), not a new R17 finding.",
+  "exclusions": [
+    "Parent PortalAuthentication/Policies/auth siblings/local login and docs, afaf6ef01, R13 closure tooling",
+    "Standards sibling host/config/extensions ownership",
+    "Most of Records.ts, most concrete Prisma repository implementations, other business domain internals beyond traced bindings",
+    "Generated artifacts inventoried, not regenerated or independently semantically qualified",
+    "Untracked support/specs/graphql-record-metadata/ ignored",
+    "Accepted institution gates SR-005/045/049/055 not raised"
+  ],
+  "execution_limits": [
+    "Chrome/Karma Jasmine suite (parent-owned current run)",
+    "MongoDB/Solr integration",
+    "containers",
+    "compile/build/typecheck/lint",
+    "broad qualification or artifact packaging",
+    "institution qualification"
+  ],
+  "verified_A_P1_P2": [],
+  "final_status_note": "This axis made no tracked edits. Three parent-owned documentation edits were present at finalization; HEAD and reviewed runtime/test sources remain pinned to 1d38ddd1c00c6197d3a28ebe616248bfd008faf0.",
+  "final_integrity_evidence": "integrity.json"
+}

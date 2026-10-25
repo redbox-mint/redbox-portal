@@ -1,0 +1,543 @@
+{
+  "base": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "head": "1d38ddd1c00c6197d3a28ebe616248bfd008faf0",
+  "runtime_fix_commits_reviewed": 13,
+  "additional_test_only_commits_reviewed": 2,
+  "commits": [
+    {
+      "commit": "17504071ebe39a01925d427d3701ee60dbeb40e9",
+      "round": "R14",
+      "contract": "Upload claim/finalization, typed conflicts and authorization before current-state disclosure",
+      "diff": "17504071e.diff",
+      "diff_read": "complete, including associated tests",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/datastreamWrites.ts",
+        "packages/redbox-core/test/http/recordDatastreamContracts.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/recordDatastreamContracts.test.ts"
+      ],
+      "fresh_green": "focused-current.json",
+      "fresh_negative": {
+        "file": "r14-incoming.json",
+        "reference": "9bb858218",
+        "failures": 9,
+        "test_titles": [
+          "Owned datastream HTTP contracts reports returned finalization failure with the committed save contract in API 1.0",
+          "Owned datastream HTTP contracts reports thrown finalization failure with the committed save contract in API 1.0",
+          "Owned datastream HTTP contracts reports returned finalization failure with the committed save contract in API 2.0",
+          "Owned datastream HTTP contracts reports thrown finalization failure with the committed save contract in API 2.0",
+          "Owned datastream HTTP contracts returns safe current metadata and typed conflicts for a refused upload claim",
+          "Owned datastream HTTP contracts withholds upload-conflict state after view access is revoked in API 1.0",
+          "Owned datastream HTTP contracts withholds upload-conflict state after view access is revoked in API 2.0",
+          "Owned datastream HTTP contracts retains the legacy validation-refusal status in API 1.0",
+          "Owned datastream HTTP contracts retains the legacy validation-refusal status in API 2.0"
+        ]
+      },
+      "fresh_baseline_method_control": "entrypoints-baseline-fresh.json",
+      "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+      "finding": "none verified"
+    },
+    {
+      "commit": "c33416372d3e2c8df61a6e31e378846f4108dc4d",
+      "round": "R14",
+      "contract": "Institution record/view-orig template override at actual rendered HTTP URL",
+      "diff": "c33416372.diff",
+      "diff_read": "complete, including associated tests",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/pages.ts",
+        "packages/redbox-core/test/helpers/httpRecordPagesFixture.ts",
+        "packages/redbox-core/test/http/recordBrowserPages.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/recordBrowserPages.test.ts"
+      ],
+      "fresh_green": "focused-current.json",
+      "fresh_negative": {
+        "file": "r14-incoming.json",
+        "reference": "9bb858218",
+        "failures": 1,
+        "test_titles": [
+          "Owned record browser pages renders an institution record/view-orig override at its legacy URL"
+        ]
+      },
+      "fresh_baseline_method_control": "entrypoints-baseline-fresh.json",
+      "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+      "finding": "none verified"
+    },
+    {
+      "commit": "4c32615300cd8d0e38af87d569f3196d01275ef5",
+      "round": "R14",
+      "contract": "REST body.id target precedence, disabled account lookups, browser-only hiddenUsers",
+      "diff": "4c3261530.diff",
+      "diff_read": "complete, including associated tests",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "packages/redbox-core/src/http/express/identityLinks.ts",
+        "packages/redbox-core/test/http/identityDifferential.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/identityDifferential.test.ts"
+      ],
+      "fresh_green": "focused-current.json",
+      "fresh_negative": {
+        "file": "r14-incoming.json",
+        "reference": "9bb858218",
+        "failures": 9,
+        "test_titles": [
+          "Identity route target precedence REST update selects its declared body.id ?id=222222222222222222222222",
+          "Identity route target precedence REST update selects its declared body.id ?id=222222222222222222222222&userid=222222222222222222222222",
+          "Identity route target precedence REST find returns a disabled account in API 1.0",
+          "Identity route target precedence REST find returns a disabled account in API 2.0",
+          "Identity route target precedence REST get returns a disabled account in API 1.0",
+          "Identity route target precedence REST get returns a disabled account in API 2.0",
+          "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users",
+          "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users/find?searchBy=username&query=hidden",
+          "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users/get?searchBy=username&query=hidden"
+        ]
+      },
+      "fresh_baseline_method_control": "identity-baseline-fresh.json",
+      "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+      "finding": "none verified"
+    },
+    {
+      "commit": "ea2a97c6c1bb539f75b3bc92df78ca193a6d6000",
+      "round": "R14",
+      "contract": "Generic stream without attachment metadata; generic filename and API length/filename fallback",
+      "diff": "ea2a97c6c.diff",
+      "diff_read": "complete, including associated tests",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "packages/redbox-core/test/http/datastreamReadDifferential.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/datastreamReadDifferential.test.ts"
+      ],
+      "fresh_green": "focused-current.json",
+      "fresh_negative": {
+        "file": "r14-incoming.json",
+        "reference": "9bb858218",
+        "failures": 4,
+        "test_titles": [
+          "Datastream read compatibility downloads an authorized generic datastream without attachment metadata",
+          "Datastream read compatibility uses the datastream ID as the generic download filename",
+          "Datastream read compatibility retains API download length and filename ?fileName=",
+          "Datastream read compatibility retains API download length and filename ?fileName=renamed.csv"
+        ]
+      },
+      "fresh_baseline_method_control": "identity-baseline-fresh.json",
+      "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+      "finding": "none verified"
+    },
+    {
+      "commit": "da600162f2add69af28ebf8b8ea372ae3c65eefb",
+      "round": "R14",
+      "contract": "Empty optional RVA version uses latest for API/admin import/sync",
+      "diff": "da600162f.diff",
+      "diff_read": "complete, including associated tests",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/vocabularyIntegrations.ts",
+        "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/vocabularyVersionDifferential.test.ts"
+      ],
+      "fresh_green": "focused-current.json",
+      "fresh_negative": {
+        "file": "r14-incoming.json",
+        "reference": "9bb858218",
+        "failures": 4,
+        "test_titles": [
+          "Optional RVA vocabulary version api import preserves version \"\"",
+          "Optional RVA vocabulary version api sync preserves version \"\"",
+          "Optional RVA vocabulary version admin import preserves version \"\"",
+          "Optional RVA vocabulary version admin sync preserves version \"\""
+        ]
+      },
+      "fresh_baseline_method_control": "identity-baseline-fresh.json",
+      "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+      "finding": "none verified"
+    },
+    {
+      "commit": "8b64e7f690ae42406798a7886902b652deec2bdd",
+      "round": "R14",
+      "contract": "Browser relationships API1 flattening and API2 meta envelope",
+      "diff": "8b64e7f69.diff",
+      "diff_read": "complete, including associated tests",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/recordReads.ts",
+        "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/recordDifferentialR14.test.ts"
+      ],
+      "fresh_green": "focused-current.json",
+      "fresh_negative": {
+        "file": "r14-incoming.json",
+        "reference": "9bb858218",
+        "failures": 2,
+        "test_titles": [
+          "Pre-retirement browser record response and side-effect contracts (R14) retains the browser metadata relationship envelope (1.0)",
+          "Pre-retirement browser record response and side-effect contracts (R14) retains the browser metadata relationship envelope (2.0)"
+        ]
+      },
+      "fresh_baseline_method_control": "records-baseline-fresh.json",
+      "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+      "finding": "none verified"
+    },
+    {
+      "commit": "8c9fef62fafcd467505f105ccce83aec6a40457d",
+      "round": "R14",
+      "contract": "Recoverable browser deletes, committed mutation warnings/headers and canonical Location production binding",
+      "diff": "8c9fef62f.diff",
+      "diff_read": "complete, including associated tests",
+      "changed_files": [
+        "packages/redbox-core/src/application/portal/http.ts",
+        "packages/redbox-core/src/http/express/recordMutations.ts",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts",
+        "packages/redbox-core/test/helpers/httpRecordMutationsFixture.ts",
+        "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/recordDifferentialR14.test.ts",
+        "test/configuration/legacyAcceptance.test.ts"
+      ],
+      "fresh_green": "focused-current.json",
+      "fresh_negative": {
+        "file": "r14-incoming.json",
+        "reference": "9bb858218",
+        "failures": 9,
+        "test_titles": [
+          "Pre-retirement browser record response and side-effect contracts (R14) keeps browser deletion recoverable even if the REST-only permanent flag is supplied",
+          "Pre-retirement browser record response and side-effect contracts (R14) retains committed create outcome, warning and headers after read failure",
+          "Pre-retirement browser record response and side-effect contracts (R14) retains committed create outcome, warning and headers after projection failure",
+          "Pre-retirement browser record response and side-effect contracts (R14) retains committed update outcome, warning and headers after read failure",
+          "Pre-retirement browser record response and side-effect contracts (R14) retains committed update outcome, warning and headers after projection failure",
+          "Pre-retirement browser record response and side-effect contracts (R14) uses the configured public URL for API create Location under root ''",
+          "Pre-retirement browser record response and side-effect contracts (R14) uses the configured public URL for API create Location under root '/research'",
+          "baseline configuration acceptance and production consumers binds the canonical creation Location base (root)",
+          "baseline configuration acceptance and production consumers binds the canonical creation Location base (/research)"
+        ]
+      },
+      "fresh_baseline_method_control": "records-baseline-fresh.json",
+      "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+      "finding": "none verified"
+    },
+    {
+      "commit": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+      "round": "R14",
+      "contract": "POST preview body-before-query filters for browser/API",
+      "diff": "fb08b5447.diff",
+      "diff_read": "complete, including associated tests",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/queryReads.ts",
+        "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/recordDifferentialR14.test.ts"
+      ],
+      "fresh_green": "focused-current.json",
+      "fresh_negative": {
+        "file": "r14-incoming.json",
+        "reference": "9bb858218",
+        "failures": 4,
+        "test_titles": [
+          "Pre-retirement browser record response and side-effect contracts (R14) retains POST preview body filter values before query values (api, conflict=false)",
+          "Pre-retirement browser record response and side-effect contracts (R14) retains POST preview body filter values before query values (api, conflict=true)",
+          "Pre-retirement browser record response and side-effect contracts (R14) retains POST preview body filter values before query values (admin, conflict=false)",
+          "Pre-retirement browser record response and side-effect contracts (R14) retains POST preview body filter values before query values (admin, conflict=true)"
+        ]
+      },
+      "fresh_baseline_method_control": "records-baseline-fresh.json",
+      "spec": "design.md \u00a7\u00a71.1, 8.2, 9; implementation_plan.md P5/P6",
+      "finding": "none verified"
+    },
+    {
+      "commit": "2d7516aaa8ae01a8c318aa1dc9a35fb92bc81990",
+      "round": "R13",
+      "contract": "Search rows independent of api.max_requests",
+      "diff": "2d7516aaa.diff",
+      "diff_read": "complete including tests and baseline probe",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/recordReads.ts",
+        "packages/redbox-core/test/http/recordReadLimits.test.ts"
+      ],
+      "existing_regressions": [
+        "test/http/recordReadLimits.test.ts"
+      ],
+      "fresh_green": "focused-current.json (all 15 pagination cases pass)",
+      "fresh_negative": {
+        "file": "r13-search-incoming.json",
+        "reference": "2d7516aaa^",
+        "attributed_failures": 2,
+        "test_titles": [
+          "Record list and search limit configuration applies the selected limit to /record/search/dataRecord?rows=50",
+          "Record list and search limit configuration applies the selected limit to /record/search/dataRecord?rows=100"
+        ],
+        "run_total_passes": 8,
+        "run_total_failures": 7,
+        "note": "Earlier incoming run also includes five later browser-list failures; not additional search defects."
+      },
+      "fresh_baseline_method_control": "Baseline controller provenance and retained pagination spec; no new baseline search-method probe",
+      "spec": "design.md \u00a71.1; configuration-v6.md baseline input dispositions",
+      "finding": "none verified"
+    },
+    {
+      "commit": "f1da6196e871f0df9218bb5a22ad1223864b8c1e",
+      "round": "R13",
+      "contract": "Browser/deleted browser list rows independent of api.max_requests",
+      "diff": "f1da6196e.diff",
+      "diff_read": "complete including tests and baseline probe",
+      "changed_files": [
+        "packages/redbox-core/src/http/express/recordReads.ts",
+        "packages/redbox-core/test/http/recordReadLimits.test.ts",
+        "support/specs/sails-retirement/evidence/final-review-r13/browser-list-baseline.cjs"
+      ],
+      "existing_regressions": [
+        "test/http/recordReadLimits.test.ts"
+      ],
+      "fresh_green": "focused-current.json (all 15 pagination cases pass)",
+      "fresh_negative": {
+        "file": "r13-browser-incoming.json",
+        "reference": "f1da6196e^",
+        "attributed_failures": 5,
+        "test_titles": [
+          "Record list and search limit configuration applies the selected limit to /listRecords?rows=21",
+          "Record list and search limit configuration applies the selected limit to /listRecords?rows=50",
+          "Record list and search limit configuration applies the selected limit to /listRecords?rows=100",
+          "Record list and search limit configuration applies the selected limit to /listDeletedRecords?rows=50",
+          "Record list and search limit configuration applies the selected limit to /listDeletedRecords?rows=100"
+        ],
+        "run_total_passes": 10,
+        "run_total_failures": 5,
+        "note": "Five cases overlap the earlier incoming run."
+      },
+      "fresh_baseline_method_control": "browser-list-baseline-fresh.json",
+      "spec": "design.md \u00a71.1; configuration-v6.md baseline input dispositions",
+      "finding": "none verified"
+    },
+    {
+      "commit": "8b091d8dc7328c0c92b3af5a9f9b26765a4d40dc",
+      "round": "R15",
+      "contract": "Finish users request on rejected HTTP and display error while retaining draft/modal",
+      "diff": "8b091d8dc.diff",
+      "diff_read": "complete, including Jasmine regressions",
+      "changed_files": [
+        "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.spec.ts",
+        "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts"
+      ],
+      "regressions": "Changed component .spec.ts covers rejected statuses 0/400/403/500; not rerun in Chrome here",
+      "fresh_check": "angular-consumer-probes.cjs",
+      "fresh_results": "r15-consumer-results.json",
+      "observations": 8,
+      "paired_incoming_and_current": [
+        {
+          "kind": "users",
+          "method": "genKey",
+          "version": "incoming",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": true,
+          "message": "Generating..."
+        },
+        {
+          "kind": "users",
+          "method": "genKey",
+          "version": "current",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": false,
+          "message": "User administration failed."
+        },
+        {
+          "kind": "users",
+          "method": "revokeKey",
+          "version": "incoming",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": true,
+          "message": "Revoking..."
+        },
+        {
+          "kind": "users",
+          "method": "revokeKey",
+          "version": "current",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": false,
+          "message": "User administration failed."
+        },
+        {
+          "kind": "users",
+          "method": "updateUserSubmit",
+          "version": "incoming",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": true,
+          "message": "Saving..."
+        },
+        {
+          "kind": "users",
+          "method": "updateUserSubmit",
+          "version": "current",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": false,
+          "message": "User administration failed."
+        },
+        {
+          "kind": "users",
+          "method": "newUserSubmit",
+          "version": "incoming",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": true,
+          "message": "Saving..."
+        },
+        {
+          "kind": "users",
+          "method": "newUserSubmit",
+          "version": "current",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": false,
+          "message": "User administration failed."
+        }
+      ],
+      "negative_reference": "bda01cb25 actual extracted Angular methods; native loopback 500 response",
+      "spec": "design.md \u00a7\u00a71.1, 8.2; implementation_plan.md P6 coordinated consumers",
+      "finding": "none verified"
+    },
+    {
+      "commit": "e4a198691e8713b308386535acb9d6008f82c051",
+      "round": "R15",
+      "contract": "Finish roles request on rejected HTTP and display error while retaining draft/modal",
+      "diff": "e4a198691.diff",
+      "diff_read": "complete, including Jasmine regressions",
+      "changed_files": [
+        "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.spec.ts",
+        "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts"
+      ],
+      "regressions": "Changed component .spec.ts covers rejected statuses 0/400/403/500; not rerun in Chrome here",
+      "fresh_check": "angular-consumer-probes.cjs",
+      "fresh_results": "r15-consumer-results.json",
+      "observations": 2,
+      "paired_incoming_and_current": [
+        {
+          "kind": "roles",
+          "method": "saveCurrentUser",
+          "version": "incoming",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": true,
+          "message": "Saving..."
+        },
+        {
+          "kind": "roles",
+          "method": "saveCurrentUser",
+          "version": "current",
+          "httpStatus": 500,
+          "body": {
+            "message": "User administration failed.",
+            "details": ""
+          },
+          "rejected": false,
+          "message": "User administration failed."
+        }
+      ],
+      "negative_reference": "bda01cb25 actual extracted Angular methods; native loopback 500 response",
+      "spec": "design.md \u00a7\u00a71.1, 8.2; implementation_plan.md P6 coordinated consumers",
+      "finding": "none verified"
+    },
+    {
+      "commit": "709483c4670583677e8318cb9dadc14fa362b549",
+      "round": "R15",
+      "contract": "All Companion providers receive outer request CSRF, including delayed config without leaking arbitrary tus headers",
+      "diff": "709483c46.diff",
+      "diff_read": "complete including immediate/delayed Jasmine regressions",
+      "changed_files": [
+        "angular/projects/researchdatabox/form/src/app/component/data-location.component.spec.ts",
+        "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+        "angular/projects/researchdatabox/form/src/app/component/file-upload.component.spec.ts",
+        "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts"
+      ],
+      "regressions": "file-upload.component.spec.ts and data-location.component.spec.ts immediate/delayed provider cases read; not rerun Chrome here",
+      "fresh_checks": [
+        "angular-companion-probe.cjs",
+        "r15-delayed-widget-probe.cjs"
+      ],
+      "fresh_results": [
+        "r15-companion-results.json",
+        "r15-delayed-widget-results.json"
+      ],
+      "observations": 38,
+      "controls": {
+        "installed_client_native_csrf": 24,
+        "private_header_setter_causality": 2,
+        "actual_delayed_widget_private_client": 12
+      },
+      "negative_reference": "e4a198691 actual components; missing outer token gives 403 with nested tus token present, corrected outer token/current gives 200",
+      "spec": "design.md \u00a7\u00a71.1, 9; implementation_plan.md P6 CSRF/Companion coordinated client conversion",
+      "finding": "none verified"
+    },
+    {
+      "commit": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+      "round": "R14",
+      "kind": "test-only type annotations/casts",
+      "diff": "c31ac2862.diff",
+      "diff_read": "complete",
+      "changed_files": [
+        "packages/redbox-core/test/http/identityDifferential.test.ts"
+      ],
+      "green_evidence": "focused-current.json executes both affected suites",
+      "negative_evidence": "r14-incoming.json preserves wrong-target and response contract failures",
+      "typecheck_rerun_here": false,
+      "generated_runtime_changes": false,
+      "finding": "none verified"
+    },
+    {
+      "commit": "0e4c310960b9b1d270adf695e5cb0d8f6a88f557",
+      "round": "R14",
+      "kind": "test-only type annotations/casts",
+      "diff": "0e4c31096.diff",
+      "diff_read": "complete",
+      "changed_files": [
+        "packages/redbox-core/test/http/identityDifferential.test.ts",
+        "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+      ],
+      "green_evidence": "focused-current.json executes both affected suites",
+      "negative_evidence": "r14-incoming.json preserves wrong-target and response contract failures",
+      "typecheck_rerun_here": false,
+      "generated_runtime_changes": false,
+      "finding": "none verified"
+    }
+  ],
+  "shared_negative_control_limit": "Current tests/helpers plus actual prior modules, not whole historical trees. Counts are behavioral cases, not defect counts."
+}

@@ -170,6 +170,9 @@ revision `4bf60062fd2a9d1cf387d3ac993cf531c1b6032b`. Those results include 5,631
 passes with seven unchanged pending cases, 224 real-service core passes, and 135
 focused Angular passes. They do not claim replacement immutable images or a newly
 repeated topology matrix; see [current task status](../specs/sails-retirement/tasks.md).
+[R17 confirmation](../specs/sails-retirement/evidence/final-review-r17.md) found
+zero class-(A) P1/P2 issues with no runtime/test change. R16 remains the latest
+full qualification; R17 records fresh focused regression and recovery checks.
 
 The old `support/acceptance-testing` DLCF/Selenium deployment predates v5. Its
 Compose entry now includes the maintained Playwright stack; the old deployment
