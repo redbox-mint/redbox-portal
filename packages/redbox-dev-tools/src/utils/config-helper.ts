@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import { createHash } from 'node:crypto';
 import { Project, SyntaxKind, ObjectLiteralExpression, ArrayLiteralExpression } from 'ts-morph';
 import { RedboxPaths } from './paths';
 
@@ -93,19 +94,26 @@ export async function updateRoutes(params: {
   const routes = sourceFile
     .getVariableDeclarationOrThrow('routes')
     .getInitializerIfKindOrThrow(SyntaxKind.ArrayLiteralExpression);
-  const name = `${params.webservice ? 'api-' : ''}${params.controllerName}-${params.action}`;
-  if (!/^[A-Za-z][A-Za-z0-9_-]{0,99}$/.test(name))
+  const handler = `${params.webservice ? 'api-' : ''}${params.controllerName}-${params.action}`;
+  if (!/^[A-Za-z][A-Za-z0-9_-]{0,99}$/.test(handler))
     throw new Error('Generated route names must be bounded extension identifiers; provide a shorter named handler.');
+  const verb = method.toLowerCase();
+  const suffix = `-${verb}-${createHash('sha256').update(routePath).digest('hex').slice(0, 16)}`;
+  const name = handler.slice(0, 100 - suffix.length) + suffix;
   const duplicate = routes
     .getElements()
-    .some(el =>
-      el.isKind(SyntaxKind.ObjectLiteralExpression) && getStringProp(el, 'name') === name
+    .some(
+      el =>
+        el.isKind(SyntaxKind.ObjectLiteralExpression) &&
+        getStringProp(el, 'method') === verb &&
+        getStringProp(el, 'path') === routePath &&
+        getStringProp(el, 'handler') === handler
     );
   const access = ['noCache', 'brandingAndPortal', 'isWebServiceAuthenticated', 'brandActor', 'checkAuth'];
   if (!['get', 'head', 'options'].includes(method.toLowerCase())) access.push('csrf');
   if (!duplicate)
     routes.addElement(
-      `{ name: ${JSON.stringify(name)}, method: ${JSON.stringify(method.toLowerCase())}, path: ${JSON.stringify(routePath)}, handler: ${JSON.stringify(name)}, access: ${JSON.stringify(access)} }`
+      `{ name: ${JSON.stringify(name)}, method: ${JSON.stringify(verb)}, path: ${JSON.stringify(routePath)}, handler: ${JSON.stringify(handler)}, access: ${JSON.stringify(access)} }`
     );
   sourceFile.formatText();
   if (!params.dryRun) await sourceFile.save();

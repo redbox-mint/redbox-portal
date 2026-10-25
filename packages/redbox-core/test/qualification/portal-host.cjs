@@ -58,11 +58,15 @@ test(
         await symlink(resolve('packages', folder), join(directory, 'node_modules', name));
       // Mount the actual controller generator's declaration in the production host.
       const project = new Project({ useInMemoryFileSystem: true, compilerOptions: { module: 1 } });
-      await updateRoutes({
+      for (const route of [
+        'post /:branding/:portal/generated-write',
+        'get /:branding/:portal/generated-write',
+        'get /:branding/:portal/generated-alias',
+      ]) await updateRoutes({
         project,
         paths: { coreTypes: '/generated/core' },
         root: '/generated',
-        route: 'post /:branding/:portal/generated-write',
+        route,
         controllerName: 'GeneratedController',
         action: 'save',
         webservice: true,
@@ -216,6 +220,10 @@ test(
       const angularResponse = await fetch(angularApi, { headers });
       assert.equal(angularResponse.status, 200);
       await angularResponse.text();
+      for (const path of ['/default/rdmp/generated-write', '/default/rdmp/generated-alias']) {
+        await request(path, {}, 401);
+        assert.deepEqual(JSON.parse((await request(path, { headers })).text), { generated: true });
+      }
       const generatedPath = '/default/rdmp/generated-write';
       await request(generatedPath, { method: 'POST' }, 401);
       assert.deepEqual(JSON.parse((await request(generatedPath, { method: 'POST', headers })).text), {
