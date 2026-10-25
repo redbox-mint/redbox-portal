@@ -457,6 +457,29 @@ function collectInventory() {
     owners,
     inputScope: {
       compatibilityDocument: 'support/wiki/V6-Client-Compatibility.md#http-request-input-scope',
+      recordListLimitOwnership: {
+        restApi: {
+          routes: ['HTTP-099', 'HTTP-100'],
+          baseline: 'controllers/webservice/RecordController.ts:1686,2342',
+          policy: 'api.max_requests applies to REST record/deleted-record lists only (default 20)',
+        },
+        browser: {
+          routes: ['HTTP-106', 'HTTP-107'],
+          baseline: 'controllers/RecordController.ts:99,2541,2627,2723,2798',
+          policy:
+            'Own browser controller/helpers never reference api.max_requests. Preserve the incoming native maxSearchRows policy (default 1000000) for browser lists/deleted lists; do not introduce the REST API cap.',
+        },
+        disposition:
+          'Supporting correction to the existing API-limit fix, not a separate incoming defect; parent fix f1da6196e.',
+        parentVerification: {
+          baselineProbe: 'browser-list-baseline.cjs',
+          baselinePasses: 4,
+          nativeTest: 'test/http/recordReadLimits.test.ts',
+          currentPasses: 15,
+          previousPasses: 10,
+          previousFailures: 5,
+        },
+      },
       supported:
         'Declared path/query inputs and route-owned write bodies, with explicit supported legacy aliases and precedence. Parent local-login cases retain body/query/nested passport-local lookup.',
       notUniversalReqParam:

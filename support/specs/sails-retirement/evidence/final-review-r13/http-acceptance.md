@@ -1,6 +1,7 @@
 # Round 13 HTTP input acceptance
 
-Runtime freeze: **afaf6ef010ff00e4cdf6f98b8bce62daf2c64db4**. Feature baseline:
+Reviewer-owned runtime fixes: **afaf6ef010ff00e4cdf6f98b8bce62daf2c64db4**;
+parent-owned supporting limit correction: **f1da6196e**. Feature baseline:
 `a49366803164429f9d8bdd249dadcdf856c9d13e`; incoming reviewed HEAD:
 `c8a5064d0f16ad9e10f083c6590ae4bc178085db`. No broad/Docker qualification was run
 by this reviewer. The parent owns final qualification. SR-005/045/049/055
@@ -72,7 +73,7 @@ normal supported input paths. No speculative coercion expansion was added.
 |---|---|
 | Local login body/query/mixed/nested fields | Parent commit `5f887304f`; fifteen local-input table rows; actual baseline controller/pinned passport-local probes **10 pass**. See `local-input-baseline.cjs` and `test/http/authentication-matrix.test.ts`. |
 | Configured OIDC names | Parent commit `2f9634213`; three real accepted names plus three malformed controls; actual baseline probes **6 pass**. See `oidc-identifier-baseline.cjs`. Parent reports final complete auth matrix **118 passing in Docker Node 26**. Those results are parent-provided, not rerun by this reviewer. |
-| Independent search/API limits | Parent commit `2d7516aaa`, seven real HTTP cases in `test/http/recordReadLimits.test.ts`; production search configuration binding at `src/application/portal/http.ts:466` included in `afaf6ef01`. Search rows=50/100 use the search limit, independently of API default20. Configuration reviewer owns API/prehydrate bindings in `03b1d724e`. |
+| REST versus browser list/search limits | Parent commits `2d7516aaa` and supporting correction **`f1da6196e`** separate REST API limits from browser list/search limits; the production `maxSearchRows` binding at `src/application/portal/http.ts:466` is in `afaf6ef01`. **Only REST** record/deleted-record lists use `api.max_requests` (default20). Baseline browser `RecordController.ts:99` extends `Core.Controller`; its `getRecordList:2541` / `getDeletedRecordList:2627` call its own `getRecords:2723` / `getDeletedRecords:2798`, and that file never references `api.max_requests`. Browser lists/deleted lists therefore retain the incoming native `maxSearchRows` policy (default1m), as does search. Parent reports four actual baseline method probes pass (`browser-list-baseline.cjs`) and **15 real HTTP controls pass** (`test/http/recordReadLimits.test.ts`), versus previous code 10 pass/5 fail: API lists/deleted retain20; browser lists/deleted accept50/100 under configured bound100; search remains independent. This corrects the existing API-limit fix, not a separate incoming issue. Configuration reviewer owns API/prehydrate bindings in `03b1d724e`. |
 | R12 configurationWrites query toggle | Reviewed `e487ce22c`: only the browser bundle-enabled alias may omit its body. Nine focused current HTTP cases cover query-only true/false, existing body/query truthiness precedence and four malformed/missing controls. All pass; all nine also pass against the pinned R12 native owner. `ConfigurationMongo.test.ts` remains the existing datastore regression. No new R12 defect found. |
 
 ## Supported inputs and deliberate compatibility changes
@@ -108,7 +109,7 @@ legacy input into an A defect.
 | Native owner group | Reviewed input boundaries |
 |---|---|
 | recordTypes, metadata, configuration, configurationWrites | Path/query/body projection, required/optional filters, translation slash keys, defaults and the R12 toggle. |
-| recordReads, recordMutations, harvestMutations | ID/type/workflow selectors, metadata/permission JSON, ETag/concurrency, list limits, harvest payloads and retry identifiers. |
+| recordReads, recordMutations, harvestMutations | ID/type/workflow selectors, metadata/permission JSON, ETag/concurrency, distinct REST API versus browser list/deleted-list limits (parent-owned supporting correction above), harvest payloads and retry identifiers. |
 | queryReads, queryWrites | Search/report/history/dashboard selectors, rows/start/date/depth/field checks, named query bodies and extraction fallbacks. |
 | identityAdministration, identityLinks | Browser userid versus REST/path/self target, profile/role/list fields, link target IDs and explicit aliases. Login/Accounts/callbacks are parent-owned. |
 | vocabularyAdministration, vocabularyIntegrations, formVocabulary | IDs, optional versions, booleans, notation lists, imports, paging and structured-input controls. |
