@@ -162,7 +162,7 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
         Reflect.set(req.session, 'authenticationVersion', 6);
         req.session.branding = selected.brand;
         req.session.portal = selected.portal;
-        if (typeof logoutUrl === 'string') {
+        if (oidc && actorSnapshot.type === 'oidc' && typeof logoutUrl === 'string') {
           const url = URL.parse(logoutUrl);
           if (url && input.logoutOrigins?.includes(url.origin)) Reflect.set(req.session, 'logoutUrl', url.toString());
         }
@@ -264,7 +264,7 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
       }
       let redirect = input.postLogoutPath || root + '/' + selected.brand + '/' + selected.portal + '/home';
       const candidate: unknown = Reflect.get(req.session, 'logoutUrl');
-      if (typeof candidate === 'string') {
+      if (actor.type === 'oidc' && typeof candidate === 'string') {
         const url = URL.parse(candidate);
         if (url && input.logoutOrigins?.includes(url.origin)) redirect = url.toString();
       }
