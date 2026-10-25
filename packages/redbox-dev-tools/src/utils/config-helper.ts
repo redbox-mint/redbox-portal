@@ -262,7 +262,7 @@ function getStringProp(obj: ObjectLiteralExpression, name: string): string | und
   const prop = obj.getProperty(name);
   if (!prop || !prop.asKind(SyntaxKind.PropertyAssignment)) return undefined;
   const initializer = prop.asKind(SyntaxKind.PropertyAssignment)!.getInitializer();
-  return initializer ? initializer.getText().replace(/['"]/g, '') : undefined;
+  return initializer?.asKind(SyntaxKind.StringLiteral)?.getLiteralValue();
 }
 
 function getArrayProp(obj: ObjectLiteralExpression, name: string): ArrayLiteralExpression | undefined {

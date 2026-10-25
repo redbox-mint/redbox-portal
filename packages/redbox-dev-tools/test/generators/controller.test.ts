@@ -141,6 +141,8 @@ export const auth: any = {
         { action: 'index', verb: 'get', path: '/:branding/:portal/shared' },
         { action: 'index', verb: 'post', path: '/:branding/:portal/shared' },
         { action: 'index', verb: 'get', path: '/:branding/:portal/alias' },
+        { action: 'index', verb: 'get', path: '/:branding/:portal/item/:"item-id"' },
+        { action: 'index', verb: 'get', path: '/:branding/:portal/item/:"item-id"' },
         { action: 'index', verb: 'get', path: '/:branding/:portal/shared' },
       ],
     });
@@ -156,8 +158,8 @@ export const auth: any = {
     const routes = (
       output.exports as { routes: Array<{ name: string; method: string; path: string; handler: string }> }
     ).routes;
-    expect(routes).to.have.length(3);
-    expect(new Set(routes.map(route => route.name)).size).to.equal(3);
+    expect(routes).to.have.length(4);
+    expect(new Set(routes.map(route => route.name)).size).to.equal(4);
     expect(new Set(routes.map(route => route.handler))).to.deep.equal(new Set(['TestController-index']));
     const { resolveExtensions } = require('@researchdatabox/redbox-core/extensions');
     const express = require('node:module').createRequire(require.resolve('@researchdatabox/redbox-core/extensions'))(
@@ -184,9 +186,12 @@ export const auth: any = {
       await new Promise(resolve => server.once('listening', resolve));
       const url = 'http://127.0.0.1:' + server.address().port;
       for (const route of routes) {
-        const response = await fetch(url + route.path.replace(':branding', 'default').replace(':portal', 'portal'), {
-          method: route.method.toUpperCase(),
-        });
+        const response = await fetch(
+          url + route.path.replace(':branding', 'default').replace(':portal', 'portal').replace(':"item-id"', '123'),
+          {
+            method: route.method.toUpperCase(),
+          }
+        );
         expect(response.status).to.equal(200);
         expect(await response.json()).to.deep.equal({ handler: 'TestController-index' });
       }
