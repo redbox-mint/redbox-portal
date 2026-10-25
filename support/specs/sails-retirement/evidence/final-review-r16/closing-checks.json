@@ -1,0 +1,234 @@
+{
+  "committedEvidenceInput": "81b347ae40d955ca95e4df4b6f3e72a9726043c4",
+  "qualifiedRuntimeTestRevision": "4bf60062fd2a9d1cf387d3ac993cf531c1b6032b",
+  "changesSinceQualifiedRuntime": [
+    "support/specs/sails-retirement/evidence/final-review-r16.md",
+    "support/specs/sails-retirement/evidence/final-review-r16/audit-root-probe.cjs",
+    "support/specs/sails-retirement/evidence/final-review-r16/audit-root-results.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/client-error-probes.cjs",
+    "support/specs/sails-retirement/evidence/final-review-r16/client-error-results.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/client-error-sweep.cjs",
+    "support/specs/sails-retirement/evidence/final-review-r16/client-error-sweep.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/local-login-audit-green-probe.cjs",
+    "support/specs/sails-retirement/evidence/final-review-r16/local-login-audit-green-results.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/local-login-audit-probe.cjs",
+    "support/specs/sails-retirement/evidence/final-review-r16/local-login-audit-results.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/qualification.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/r15-companion-results.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/r15-consumer-results.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/r15-delayed-widget-probe.cjs",
+    "support/specs/sails-retirement/evidence/final-review-r16/r15-delayed-widget-results.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/review-accounting.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/spec-coverage.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/spec-review.md",
+    "support/specs/sails-retirement/evidence/final-review-r16/standards-audit.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/standards-coverage.json",
+    "support/specs/sails-retirement/evidence/final-review-r16/standards-review.md",
+    "support/specs/sails-retirement/evidence/inherited-defects-backlog.md",
+    "support/specs/sails-retirement/tasks.md",
+    "support/wiki/Development-Guide.md",
+    "support/wiki/Home.md",
+    "support/wiki/ReDBox-Automated-Tests.md"
+  ],
+  "sourceClosure": {
+    "commit": "81b347ae40d955ca95e4df4b6f3e72a9726043c4",
+    "tree": null,
+    "scannedFiles": 1185,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates."
+  },
+  "sourceInventory": {
+    "sourceCommit": "81b347ae40d955ca95e4df4b6f3e72a9726043c4",
+    "method": {
+      "trackedFiles": 5047,
+      "pattern": "sails|Sails|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket",
+      "committedTreeOnly": true,
+      "limitation": "Text inventory plus manually documented native owners/routes; symbols in comments are candidates, not proof of execution. Ignored/generated working-tree output and installed dependencies require separate probes."
+    },
+    "counts": {
+      "build-deployment-tooling": 15,
+      "repository-metadata": 3,
+      "dependency-lock": 9,
+      "package-metadata": 9,
+      "browser-views": 158,
+      "reference-only": 578,
+      "application-owned-config": 6,
+      "maintenance-entrypoint": 1,
+      "core-domain": 152,
+      "route-policy-contract": 4,
+      "http-config-middleware": 9,
+      "core-lifecycle-cache": 1,
+      "persistence-owner": 5,
+      "test-harness": 153,
+      "scaffold-tooling": 11,
+      "development-hook": 30,
+      "pdf-hook": 4,
+      "storage-hook": 3,
+      "shared-contract": 4,
+      "app-types": 1
+    },
+    "matchedFiles": 1156,
+    "matchedLines": 18049,
+    "unclassified": [],
+    "manifests": [
+      {
+        "file": "angular/package.json",
+        "name": "angular",
+        "version": "1.0.0",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "260918966f8a500e7669614aefd6258d55e0144826a058a601a6cffc57dc894e"
+      },
+      {
+        "file": "package.json",
+        "name": "redbox-portal",
+        "version": "2.1.0",
+        "packageManager": "npm@11.20.0",
+        "engines": null,
+        "sails": null,
+        "sha256": "beac5b50690794f90e5206669b4b87dcf82ea514d6cb673083802fc6e3a0e63d"
+      },
+      {
+        "file": "packages/agenda-sqs-backend/package.json",
+        "name": "@researchdatabox/agenda-sqs-backend",
+        "version": "0.0.1-beta.9472",
+        "packageManager": null,
+        "engines": {
+          "node": ">=18.0.0"
+        },
+        "sails": null,
+        "sha256": "5221ccd5c37af4efdbe4651f0685d18e084cfc37f4d8c28589d7596a0aaa2c64"
+      },
+      {
+        "file": "packages/raido/package.json",
+        "name": "@researchdatabox/raido-openapi-generated-node",
+        "version": "0.0.3",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "1482e3f9e34a451f588be893d4377a9faac5edbfb8e453704033c49ffc3a5a7c"
+      },
+      {
+        "file": "packages/redbox-core/package.json",
+        "name": "@researchdatabox/redbox-core",
+        "version": "0.0.1-beta.9022",
+        "packageManager": "npm@11.20.0",
+        "engines": null,
+        "sails": null,
+        "sha256": "6e8bf3487de4da9bb12cbf5fff57d13f64fca5a278622b642454e19d200f2170"
+      },
+      {
+        "file": "packages/redbox-dev-tools/package.json",
+        "name": "@researchdatabox/redbox-dev-tools",
+        "version": "4.5.1",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "07bc862d2588da7f175c29541111166e54c4c425bafc0324df530b177e631bae"
+      },
+      {
+        "file": "packages/redbox-hook-dev/package.json",
+        "name": "redbox-hook-dev",
+        "version": "1.0.0",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "88c337c6fef3bb231d3529d41fc7f88342e3531498f5f25a0d1ed10ba2cd7ff2"
+      },
+      {
+        "file": "packages/rva-registry/package.json",
+        "name": "@researchdatabox/rva-registry-openapi-generated-node",
+        "version": "0.0.1",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "0a5388ad727993c083f48d3c0b6e13279801941de26795b8ec1fdde2faf6b751"
+      },
+      {
+        "file": "packages/sails-hook-redbox-pdfgen/package.json",
+        "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+        "version": "1.0.0",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "ece84bddc5d1a529521905d2de3f45246c8d75600becf94fd768ed0e7a79fdad"
+      },
+      {
+        "file": "packages/sails-hook-redbox-storage-mongo/package.json",
+        "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "version": "1.5.3",
+        "packageManager": null,
+        "engines": null,
+        "sails": null,
+        "sha256": "dad7c7aae56f8dc606c373c82f407f8cb7191fd4449a59eb22df962c45a5bda6"
+      },
+      {
+        "file": "packages/sails-ng-common/package.json",
+        "name": "@researchdatabox/sails-ng-common",
+        "version": "0.2.1",
+        "packageManager": null,
+        "engines": {
+          "node": ">=20.0.0"
+        },
+        "sails": null,
+        "sha256": "b15ae86d46ce8ed6a94778ccb91bf11a811e4d17ffaf869b5e2371fd5d9902c6"
+      }
+    ]
+  },
+  "baselineReconciliation": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "sourceCommit": "81b347ae40d955ca95e4df4b6f3e72a9726043c4",
+    "method": "Rerun original SR-001 method; reconcile every baseline file against committed paths/candidates and successful AST/dependency closure. Removed/renamed source retains original migration owner. Historical names, finite conversions and explicit neutral parameter inputs are classified.",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1156,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "pins": {
+    "manifests": 23,
+    "declarations": 377,
+    "localReferences": 20,
+    "violations": []
+  },
+  "lockRoots": [
+    "package-lock.json",
+    "packages/redbox-core/package-lock.json",
+    "packages/redbox-dev-tools/package-lock.json",
+    "packages/redbox-hook-dev/package-lock.json",
+    "packages/sails-hook-redbox-pdfgen/package-lock.json",
+    "packages/sails-hook-redbox-storage-mongo/package-lock.json"
+  ],
+  "qualificationArtifactsReverified": 361,
+  "reviewArtifactsReverified": 19,
+  "reviewScratchArtifactsReverified": 82,
+  "scopedTypeScriptSourcesReverified": 88,
+  "closureArtifactSha256": {
+    "closing-source-closure.json": "a635045679035f6e702bc656078dd34b33387689e50563015efeb30ec3c677f2",
+    "closing-source-inventory.json": "70d0abf54155f5282ef1671acd497f4414935e72e6a1ac477b9f0224bee69c84",
+    "closing-reconciliation.json": "76d3c4b97ef5151fecd622557bde7e10518fc5f8f905f8c7823846d868e410a9"
+  },
+  "documentationLinks": {
+    "files": 6,
+    "localLinks": 120,
+    "missingLinks": 0,
+    "tasks": 55,
+    "completedTasks": 51,
+    "unchecked": [
+      "SR-005",
+      "SR-045",
+      "SR-049",
+      "SR-055"
+    ]
+  },
+  "qualificationManifestSha256": "45aa9e39eef8971d58869f30a8c2916977a320f1ae71ad8cc31b6b1a614b5a91",
+  "reviewAccountingSha256": "93e9bb422ece0fb1080813d28e32640477c1b3b6291e7ba5219063ee5810a887",
+  "closingScope": "Only review evidence/wiki/spec text changed after qualification. Following accounting commit changes this evidence/report only; no runtime or test change."
+}

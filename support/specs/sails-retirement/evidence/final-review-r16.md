@@ -238,3 +238,14 @@ this does not claim replacement immutable images, a repeated topology matrix or
 representative-institution acceptance. The four accepted unchecked tasks remain
 unchanged. One P2 was found and fixed, so R16 is **not** a zero-issue confirmation
 round; no verified class-A P1/P2 remains after the correction.
+
+After evidence commit `81b347ae40d955ca95e4df4b6f3e72a9726043c4`,
+[closing committed-tree checks](final-review-r16/closing-checks.json) scan
+**1,185 source files**, classify **1,156 inventory matches**,
+reconcile **all 1,261 baseline files** and find zero executable/dependency
+violations. All 361 qualification hashes, 19 review hashes, 82 durable review
+scratch hashes and 88 scoped TypeScript sources reverify. Exact pins and all six
+lock roots pass again; 120 local links resolve and the 51/55 task disposition
+is unchanged. Only evidence/wiki/spec text differs from the qualified runtime.
+The following accounting commit adds this artifact and report link only. Authored
+whitespace checks pass.
