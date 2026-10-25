@@ -20,7 +20,10 @@ interface Grant {
 interface Connection {
   grant: Grant;
   rooms: Set<string>;
-  subscriptions: Map<string, symbol>;
+  subscriptions: Map<string, Subscription>;
+}
+interface Subscription {
+  pending: number;
 }
 const attachments = new WeakSet<Server>();
 /** The portal owns this namespace; Companion attaches its own distinct socket path. */
@@ -139,7 +142,7 @@ export class ProgressSockets {
   }
   private async subscribe(socket: Socket, room: unknown, ack: unknown): Promise<void> {
     const connection = this.connections.get(socket);
-    let request: symbol | undefined;
+    let request: Subscription | undefined;
     try {
       if (!connection || this.closing || typeof room !== 'string') {
         if (typeof ack === 'function') ack({ status: false });
@@ -150,7 +153,10 @@ export class ProgressSockets {
         if (typeof ack === 'function') ack({ status: false });
         return;
       }
-      request = Symbol();
+      // Duplicate subscriptions express the same room intent until unsubscribe.
+      // Keep it alive until every concurrent authorization has acknowledged.
+      request = connection.subscriptions.get(room) ?? { pending: 0 };
+      request.pending++;
       connection.subscriptions.set(room, request);
       const permitted = await this.permitted(connection, room);
       const allowed =
@@ -163,7 +169,13 @@ export class ProgressSockets {
     } catch {
       if (typeof ack === 'function') ack({ status: false });
     } finally {
-      if (connection && typeof room === 'string' && connection.subscriptions.get(room) === request)
+      if (
+        connection &&
+        request &&
+        --request.pending === 0 &&
+        typeof room === 'string' &&
+        connection.subscriptions.get(room) === request
+      )
         connection.subscriptions.delete(room);
     }
   }

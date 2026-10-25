@@ -9,6 +9,67 @@ import { initializePersistence, cleanupPersistence } from '../../src/persistence
 import type { RecordModel } from '../../src/model/storage/RecordModel';
 
 describe('progress socket handshake ownership', () => {
+  it('acknowledges concurrent subscriptions while the same room intent remains current', async () => {
+    const owner = { config: {}, log: { warn() {} } };
+    await initializePersistence(owner);
+    const server = createServer();
+    const actor = { id: 'user', username: 'user', roles: [{ id: 'role', brandId: 'brand' }] };
+    const record = { redboxOid: 'record', metaMetadata: { brandId: 'brand' } } as RecordModel;
+    const first = { entered: Promise.withResolvers<void>(), release: Promise.withResolvers<typeof actor>() };
+    const second = { entered: Promise.withResolvers<void>(), release: Promise.withResolvers<typeof actor>() };
+    const gates = [first, second];
+    let connected = false;
+    const sockets = new ProgressSockets({
+      owner,
+      path: '/progress/socket.io',
+      origins: ['http://127.0.0.1'],
+      records: { getMeta: async () => record, hasViewAccess: () => true },
+      progress: { get: () => of([]) },
+      authenticate: async () => {
+        const gate = connected ? gates.shift() : undefined;
+        if (!gate) return actor;
+        gate.entered.resolve();
+        return gate.release.promise;
+      },
+    });
+    sockets.attach(server);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const client = io(`http://127.0.0.1:${(server.address() as AddressInfo).port}`, {
+      path: '/progress/socket.io',
+      transports: ['websocket'],
+      reconnection: false,
+      extraHeaders: { Origin: 'http://127.0.0.1' },
+      auth: { token: sockets.issue({ sessionId: 'session' }, { id: 'brand' }, actor) },
+    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        client.once('connect', resolve);
+        client.once('connect_error', reject);
+      });
+      connected = true;
+      const one = client.timeout(3000).emitWithAck('subscribe', 'record');
+      void one.catch(() => {});
+      await first.entered.promise;
+      const two = client.timeout(3000).emitWithAck('subscribe', 'record');
+      void two.catch(() => {});
+      await second.entered.promise;
+      first.release.resolve(actor);
+      assert.deepEqual(await one, { status: true });
+      second.release.resolve(actor);
+      assert.deepEqual(await two, { status: true });
+      assert.equal([...Reflect.get(sockets, 'connections').values()][0].rooms.has('record'), true);
+      assert.deepEqual(await client.timeout(3000).emitWithAck('unsubscribe', 'record'), { status: true });
+      assert.equal([...Reflect.get(sockets, 'connections').values()][0].rooms.has('record'), false);
+    } finally {
+      first.release.resolve(actor);
+      second.release.resolve(actor);
+      client.disconnect();
+      await sockets.close();
+      await cleanupPersistence(owner);
+      if (server.listening) await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  });
   it('keeps an unsubscribe ahead of an older pending join and preserves a later join', async () => {
     const owner = { config: {}, log: { warn() {} } };
     await initializePersistence(owner);
