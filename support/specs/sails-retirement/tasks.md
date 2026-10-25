@@ -1,11 +1,10 @@
 # Sails retirement: v6 task list
 
-Status: **51 of 55 tasks are complete.** SR-005/045/049/055 remain
-partial/unchecked solely for the accepted undesignated representative institution,
-its supported production source, hooks/configuration, actual topology and
-reconciliation owner. SR-051/052/053/054 are accepted. SR-055's local P8
-qualification is complete; its institution criterion and SR-049 dependency remain
-unmet.
+Status: **52 of 55 tasks are complete.** SR-005 now designates WSU, its
+historically compatible released-v5 source fallback and local topology, with
+production access/release-coverage gaps explicit. SR-045/049/055 remain unchecked
+while the installed WSU matrix, complete cutover/recovery and final artifact
+qualification are executed. [WSU evidence](evidence/institution-wsu.md).
 
 **Historical P8 artifact qualification:** clean application commit `5088f4a7a`
 passed 12 real npm packs/20 checks, all three immutable image/installed dependency
@@ -127,11 +126,13 @@ Read the [design](design.md) for behavior and the
   **Accept/evidence:** array, function, branded and Agenda job-name cases are
   distinguished; PDF events/shutdown and process-level instance caches have owners.
 
-- [ ] **SR-005 — Define database qualification and the institution rehearsal cohort.**
+- [x] **SR-005 — Define database qualification and the institution rehearsal cohort.**
 
-  **Status:** partial; [exact Mongo candidates and executed foundation checks](evidence/p0-qualification.md).
-  Representative institution hook/configuration and approved production upgrade
-  source remain undesignated; topology and release-coverage gaps are explicit.
+  **Status:** done; WSU `14ab99e` is designated, with released v5.0.4 plus
+  historical compatible WSU `4996206` as the demonstrated source fallback. Exact
+  artifacts, configuration, Mongo 8/9 candidates/FCVs, separate stores, local
+  S3/Solr/auth topology and production access/release-coverage gaps are explicit.
+  [WSU designation and source reasoning](evidence/institution-wsu.md#sr-005--institution-source-decision-and-topology).
 
   **Depends on:** SR-001, SR-003.
 
