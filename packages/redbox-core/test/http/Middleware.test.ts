@@ -144,7 +144,7 @@ describe('per-application HTTP middleware and completion', function () {
   it('returns client errors for unsupported and malformed encoded parser bodies without leaking payloads', async () => {
     const f = await fixture();
     for (const contentType of ['application/json', 'application/x-www-form-urlencoded']) {
-      const cases: Array<{ headers: Record<string, string>; body: string | Buffer; status: number }> = [
+      const cases: Array<{ headers: Record<string, string>; body: RequestInit['body']; status: number }> = [
         { headers: { 'Content-Type': contentType + '; charset=not-a-charset' }, body: 'secret-test-body', status: 415 },
         {
           headers: { 'Content-Type': contentType, 'Content-Encoding': 'unknown' },
@@ -154,7 +154,7 @@ describe('per-application HTTP middleware and completion', function () {
         { headers: { 'Content-Type': contentType, 'Content-Encoding': 'gzip' }, body: 'secret-test-body', status: 400 },
         {
           headers: { 'Content-Type': contentType, 'Content-Encoding': 'gzip' },
-          body: gzipSync('secret-test'.repeat(110000)),
+          body: new Uint8Array(gzipSync('secret-test'.repeat(110000))),
           status: 413,
         },
       ];
