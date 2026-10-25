@@ -4,7 +4,7 @@ import { agendaQueueDefaultOptions } from '../config/agendaQueueDefaults';
 import { pathToFileURL } from 'node:url';
 import { loadExtensionModule } from '../extensions/loading';
 import type { StorageIndexPreparation } from '../persistence/maintenance';
-import { loadExtensions } from '../extensions/resolution';
+import { loadInstalledExtensionProviders, resolveExtensions } from '../extensions/resolution';
 import {
   loadStartupConfiguration,
   deploymentSchema,
@@ -29,30 +29,34 @@ export interface IndexMaintenanceOptions {
 
 /** Standalone selected persistence. Never constructs ApplicationRuntime or business factories. */
 export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
-  const resolved = await loadExtensions(options.appPath);
+  const installed = await loadInstalledExtensionProviders(options.appPath);
+  // Only these startup sections are consumed by maintenance. Forms, provider auth,
+  // views, domain configuration and executable work remain offline declarations.
+  const sections = new Set(['datastores', 'agendaQueue', 'storage', 'redboxSession']);
+  const providers = installed.providers.map(provider => {
+    assertPersistenceConfiguration(provider.declaration.config ?? {});
+    return {
+      ...provider,
+      declaration: {
+        apiVersion: provider.declaration.apiVersion,
+        jobs: provider.declaration.jobs,
+        // Select storage ownership without composing offline portal factories.
+        // Their core prerequisites and named core replacements belong to startup.
+        modules: provider.declaration.modules
+          ?.filter(module => module.name === 'storage')
+          .map(module => ({ name: module.name, replaces: module.replaces, create: module.create })),
+        config: Object.fromEntries(
+          Object.entries(provider.declaration.config ?? {}).filter(([name]) => sections.has(name))
+        ),
+      },
+    };
+  });
+  const resolved = resolveExtensions(providers, installed.hookLoadPriority);
   const storage = resolved.modules.find(item => item.declaration.name === 'storage');
   if (storage?.provider !== '@researchdatabox/sails-hook-redbox-storage-mongo')
     throw new Error(
       'Index maintenance requires the selected bundled Mongo storage provider; custom replacements need their own explicit preflight.'
     );
-  // Only these startup sections are consumed by maintenance. Forms, provider auth,
-  // views, domain configuration and executable work remain offline declarations.
-  const sections = new Set(['datastores', 'agendaQueue', 'storage', 'redboxSession']);
-  const extensions = {
-    providers: resolved.providers.map(provider => {
-      assertPersistenceConfiguration(provider.declaration.config ?? {});
-      return {
-        ...provider,
-        declaration: {
-          apiVersion: provider.declaration.apiVersion,
-          jobs: provider.declaration.jobs,
-          config: Object.fromEntries(
-            Object.entries(provider.declaration.config ?? {}).filter(([name]) => sections.has(name))
-          ),
-        },
-      };
-    }),
-  };
   const config = await loadStartupConfiguration({
     schema: deploymentSchema,
     core: {
@@ -64,7 +68,7 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
         agendaQueue: { options: agendaQueueDefaultOptions, jobs: agendaQueueDefaultJobs },
       },
     },
-    extensions,
+    extensions: resolved,
     files: options.files,
     env: convertLegacyEnvironment(options.env ?? process.env),
     environmentInputs: deploymentEnvironmentInputs,

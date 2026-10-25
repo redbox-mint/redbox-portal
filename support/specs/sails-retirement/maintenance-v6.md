@@ -62,6 +62,10 @@ export default {
 
 Maintenance consumes extension `datastores`, `agendaQueue`, `redboxSession` and `storage`
 contributions. Domain sections (forms, views, authentication providers) stay offline.
+Only storage ownership and operational configuration/jobs are resolved; maintenance
+does not compose the portal business graph. Hook dependencies on core modules and
+named core module/route replacements therefore remain offline too. Declaration
+shape validation and explicit storage replacement selection still apply.
 Explicit files must satisfy the deployment schema; unknown sections fail rather
 than being silently ignored. Retired persistence/ORM selectors are rejected even
 in extension contributions. Legacy Sails `config/`, `.sailsrc`, generated shims and

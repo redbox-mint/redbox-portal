@@ -5,7 +5,10 @@ const fail = () => {
 export function registerRedboxExtension() {
   return {
     apiVersion: 1,
-    modules: [{ name: 'maintenanceProbe', create: fail }],
+    modules: [
+      { name: 'maintenanceProbe', requires: ['records'], create: fail },
+      { name: 'records', replaces: true, create: fail },
+    ],
     migrations: [{ name: '000-must-not-run', run: fail }],
     bootstrap: [{ name: 'must-not-bootstrap', run: fail }],
     workflows: { institutionRecord: { draft: { form: 'institution-form' } } },
