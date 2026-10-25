@@ -20,6 +20,7 @@ interface Grant {
 interface Connection {
   grant: Grant;
   rooms: Set<string>;
+  subscriptions: Map<string, symbol>;
 }
 const attachments = new WeakSet<Server>();
 /** The portal owns this namespace; Companion attaches its own distinct socket path. */
@@ -90,7 +91,7 @@ export class ProgressSockets {
       }
       // A transport can close while authentication is pending; only live
       // connections acquire a retained session binding and disconnect cleanup.
-      this.connections.set(socket, { grant, rooms: new Set() });
+      this.connections.set(socket, { grant, rooms: new Set(), subscriptions: new Map() });
       socket.on('subscribe', (room: unknown, ack: unknown) => {
         const work = runAcceptedPersistenceWork(this.input.owner, () => this.subscribe(socket, room, ack)).catch(() => {
           if (typeof ack === 'function') ack({ status: false });
@@ -99,7 +100,10 @@ export class ProgressSockets {
       });
       socket.on('unsubscribe', (room: unknown, ack: unknown) => {
         const connection = this.connections.get(socket);
-        if (typeof room === 'string') connection?.rooms.delete(room);
+        if (typeof room === 'string') {
+          connection?.subscriptions.delete(room);
+          connection?.rooms.delete(room);
+        }
         if (typeof ack === 'function') ack({ status: true });
       });
       socket.on('disconnect', () => this.connections.delete(socket));
@@ -134,18 +138,33 @@ export class ProgressSockets {
     );
   }
   private async subscribe(socket: Socket, room: unknown, ack: unknown): Promise<void> {
+    const connection = this.connections.get(socket);
+    let request: symbol | undefined;
     try {
-      const connection = this.connections.get(socket);
+      if (!connection || this.closing || typeof room !== 'string') {
+        if (typeof ack === 'function') ack({ status: false });
+        return;
+      }
+      const rooms = new Set([...connection.rooms, ...connection.subscriptions.keys()]);
+      if (!rooms.has(room) && rooms.size >= 100) {
+        if (typeof ack === 'function') ack({ status: false });
+        return;
+      }
+      request = Symbol();
+      connection.subscriptions.set(room, request);
+      const permitted = await this.permitted(connection, room);
       const allowed =
+        permitted &&
         !this.closing &&
-        connection &&
-        typeof room === 'string' &&
-        connection.rooms.size < 100 &&
-        (await this.permitted(connection, room));
+        this.connections.get(socket) === connection &&
+        connection.subscriptions.get(room) === request;
       if (allowed) connection.rooms.add(room);
       if (typeof ack === 'function') ack({ status: !!allowed });
     } catch {
       if (typeof ack === 'function') ack({ status: false });
+    } finally {
+      if (connection && typeof room === 'string' && connection.subscriptions.get(room) === request)
+        connection.subscriptions.delete(room);
     }
   }
   emit(event: string, progress: Record<string, unknown>): Promise<void> {
