@@ -168,7 +168,7 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
             ? actor.id
             : action === 'createUser'
               ? ''
-              : text(req.params.id ?? (browser ? body.userid : (query.id ?? body.userid ?? body.id)));
+              : text(req.params.id ?? (browser ? body.userid : action === 'updateUser' ? body.id : query.id));
           const existing =
             action === 'createUser'
               ? await singleHttpResult(input.users.getUserWithUsername(text(body.username)))

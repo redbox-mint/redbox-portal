@@ -167,8 +167,10 @@ export function mountIdentityLinkRoutes(router: Router, input: IdentityLinksHttp
               const users = enriched
                 .filter(
                   u =>
-                    !(input.hiddenUsers ?? []).includes(String(u.name)) &&
-                    (query.includeDisabled === 'true' || u.effectiveLoginDisabled !== true) &&
+                    (route.action !== 'getUsers' || !(input.hiddenUsers ?? []).includes(String(u.name))) &&
+                    (route.action === 'getUser' ||
+                      query.includeDisabled === 'true' ||
+                      u.effectiveLoginDisabled !== true) &&
                     (!field || String(Reflect.get(u, field) ?? '') === search)
                 )
                 .map(sanitize);
