@@ -129,7 +129,9 @@ const hash = value => createHash('sha256').update(value).digest('hex');
       } else {
         const records = JSON.parse(await fs.readFile(process.argv[3],'utf8'));
         assert.equal(records.length,5);
-        assert.equal((await fetch(base+'/default/rdmp/home')).status,200);
+        for(const endpoint of ['/default/rdmp/home','/default/rdmp/user/login']) {
+          const page=await fetch(base+endpoint);assert.equal(page.status,200,endpoint);assert.match(await page.text(),/<html/i);
+        }
         if(v6) for(const endpoint of ['/healthz','/readyz']) assert.equal((await fetch(base+endpoint)).status,200);
         for(const record of records) {
           const response = await fetch(base+'/default/rdmp/api/records/metadata/'+record.oid,{headers});
@@ -143,7 +145,7 @@ const hash = value => createHash('sha256').update(value).digest('hex');
           const page = await fetch(base+'/default/rdmp/record/edit/'+record.oid,{headers:{Cookie:session,Accept:'text/html'}});
           assert.equal(page.status,200); assert((await page.text()).includes('form'));
         }
-        console.log(JSON.stringify({mode, v6, localLogin:true, records:5, forms:5, workflows:5, pages:5, ...(v6?{freshCsrf:true,health:200,ready:200}:{})}));
+        console.log(JSON.stringify({mode, v6, localLogin:true, anonymousPages:2, records:5, forms:5, workflows:5, pages:5, ...(v6?{freshCsrf:true,health:200,ready:200}:{})}));
       }
     } else throw Error('Unknown WSU recovery verifier mode');
   } finally {for(const client of clients) await client.close();}

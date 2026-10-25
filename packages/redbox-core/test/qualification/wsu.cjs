@@ -48,6 +48,9 @@ const options={appPath:process.cwd(),files:{application:REDBOX_APPLICATION_CONFI
     await portal.host.activate();
     const base=config.server.publicUrl;
     assert.equal((await fetch(base+'/readyz')).status,200);
+    for(const endpoint of ['/default/rdmp/home','/default/rdmp/user/login']) {
+      const response=await fetch(base+endpoint);assert.equal(response.status,200,endpoint);assert.match(await response.text(),/<html/i);
+    }
     const csrf=await fetch(base+'/csrfToken');assert.equal(csrf.status,200);
     const cookie=csrf.headers.getSetCookie().map(v=>v.split(';')[0]).join('; '),token=(await csrf.json())._csrf;
     const login=await fetch(base+'/user/login_local',{method:'POST',headers:{'Content-Type':'application/json','X-Source':'jsclient','X-CSRF-Token':token,Cookie:cookie},body:JSON.stringify({username:'admin',password:'rbadmin',branding:'default',portal:'rdmp'})});
@@ -83,6 +86,6 @@ const options={appPath:process.cwd(),files:{application:REDBOX_APPLICATION_CONFI
     assert.equal(portal.data.reference.branding.get().getDefault().id,brand.id);assert.equal(await clients[0].db().collection('form').countDocuments(),forms);
     await portal.host.stop({deadlineMs:20000});assert.equal(core.persistenceStatus(portal.owner).pools,0);
     assert.equal(global.sails,undefined);
-    console.log(JSON.stringify({institution:'Western Sydney University',runtime:process.version,datastores:metadata,maintenanceBeforeReady:before.ready,maintenance:true,types:5,forms,ledgerDocuments:ledger.length,csrfLogin:true,recordFormWorkflowReads:5,extensionCsrf:true,s3RoundTrip:true,workerWrite:true,failedDrainRetainsPools:true,successfulDrainPools:0,restart:true}));
+    console.log(JSON.stringify({institution:'Western Sydney University',runtime:process.version,datastores:metadata,maintenanceBeforeReady:before.ready,maintenance:true,types:5,forms,ledgerDocuments:ledger.length,anonymousPages:2,csrfLogin:true,recordFormWorkflowReads:5,extensionCsrf:true,s3RoundTrip:true,workerWrite:true,failedDrainRetainsPools:true,successfulDrainPools:0,restart:true}));
   } finally {releaseWork?.();await portal?.host?.stop({deadlineMs:30000});for(const client of clients)await client.close();console.log(JSON.stringify({cleanup:core.persistenceStatus(portal.owner),activeResources:process.getActiveResourcesInfo()}));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

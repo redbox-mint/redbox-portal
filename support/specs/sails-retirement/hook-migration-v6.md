@@ -201,6 +201,17 @@ EJS inside the selected layout for HTML requests, with ordinary JSON negotiation
 and a terminal text response if the error artifact itself fails. Policy denials
 retain their policy responses; error rendering grants no additional access.
 
+Convert institution overrides themselves, including anonymous pages. For example,
+`TranslationService.t('welcome-title')` becomes `page.t('welcome-title')` and
+`BrandingService.getBrandAndPortalPath(req)` becomes `page.base`. Remove the old
+`include('../../../functions')` helper from login overrides; the host already
+supplies `superPartial`. Do not copy legacy helpers or install service globals.
+Render the actual packaged home and login overrides with `PageArtifacts` and
+only declared locals, including the homepage error branches and escaped messages.
+Then require HTTP 200 and HTML from both anonymous `/home` and `/user/login`
+under the configured brand/portal in the installed artifact, before acquiring a
+session. Readiness, JSON login and form API checks alone missed both WSU failures.
+
 The development hook contributes named record operations and explicit page settings.
 A finite migration table converts known persisted v5 expressions to owned operation
 names, including explicit nested `hooks`, notification `onNotifySuccess` callbacks
