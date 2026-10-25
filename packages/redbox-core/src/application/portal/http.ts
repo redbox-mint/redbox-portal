@@ -149,6 +149,7 @@ export class PortalHttp implements ApplicationModule {
             server: { ...companion.server, implicitPath: config.server.rootContext },
             providerOptions: { drive: companion.providerOptions.drive, onedrive: companion.providerOptions.onedrive },
             uploadUrls: companion.uploadUrls,
+            tusDeferredUploadLength: companion.tusDeferredUploadLength,
             uploadHeaders: companion.uploadHeaders,
             metrics: companion.metrics ?? false,
           },
