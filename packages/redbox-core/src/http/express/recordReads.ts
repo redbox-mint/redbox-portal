@@ -94,7 +94,9 @@ export interface RecordReadHttpInput extends RecordSchemaReadHttpInput {
   readonly recordTypes: Pick<RecordTypes, 'get'>;
   readonly search: Pick<SolrReads, 'searchFuzzy'>;
   readonly returnFields: string[];
+  /** API/browser record-list limit, independent of fuzzy search pagination. */
   readonly maxRows: number;
+  readonly maxSearchRows?: number;
   readonly log: ILogger;
   translate(key: string, brand: string): string;
 }
@@ -120,6 +122,9 @@ function natural(value: unknown, fallback: number, minimum = 0): number {
 export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput): void {
   if (!Number.isSafeInteger(input.maxRows) || input.maxRows < 1)
     throw new TypeError('Record reads require an explicit maximum row count.');
+  const maxSearchRows = input.maxSearchRows ?? input.maxRows;
+  if (!Number.isSafeInteger(maxSearchRows) || maxSearchRows < 1)
+    throw new TypeError('Record search requires a positive maximum row count.');
   mountRecordSchemaReadRoutes(router, input);
   const projection = new FormProjection(input.log);
   const lists = new RecordLists({
@@ -315,7 +320,7 @@ export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput
                 });
               const rows = natural(query.rows, 10, 1);
               const page = natural(query.page, 1, 1);
-              if (rows > input.maxRows) throw new RecordReadError(400, 'Invalid pagination parameter.');
+              if (rows > maxSearchRows) throw new RecordReadError(400, 'Invalid pagination parameter.');
               const result = await input.search.searchFuzzy(
                 recordType.searchCore ?? scalar('core', 'default'),
                 type,
