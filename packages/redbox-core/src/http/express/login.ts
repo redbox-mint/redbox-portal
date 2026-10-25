@@ -101,6 +101,11 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
         res.status(400).json({ message: 'Invalid branding or portal' });
         return;
       }
+      // Providers and audits consume this already-validated context. In
+      // particular, AAF provisioning must use the same brand as membership
+      // validation, even on the unbranded callback URL with an empty session.
+      req.params.branding = selected.brand;
+      req.params.portal = selected.portal;
       if (
         local &&
         (input.credentialFields ?? ['username', 'password']).some(

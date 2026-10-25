@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { once } from 'node:events';
 import express from 'express';
 import sinon from 'sinon';
 import { Passport } from 'passport';
+import { sign } from 'jsonwebtoken';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { PortalHttp } from '../../src/application/portal/http';
 import { BrandingModel } from '../../src/model/storage/BrandingModel';
@@ -70,3 +72,50 @@ describe('production authentication configuration binding', () => {
   });
 });
 
+describe('validated AAF callback context in production composition', () => {
+  for (const source of ['body', 'query', 'session', 'invalid'] as const) it(source, async () => {
+    const users: Array<Record<string, any>> = [];
+    const repository = {
+      one: async (_kind: string, where: Record<string, unknown>) => users.find(user => Object.entries(where).every(([key, value]) => user[key] === value)) ?? null,
+      create: async (_kind: string, value: Record<string, unknown>) => { const user = { ...value, id: 'aaf-user' }; users.push(user); return user; },
+    };
+    const selected: string[] = [];
+    const accounts = new AuthenticationAccounts({ repository, log: nothingLogger,
+      defaultBrand: () => brands.default, getBrand: (name: string) => brands[name],
+      authConfig: (name: string) => { selected.push(name); return hydrated; },
+      defaultAuthenticatedRole: (brand: BrandingModel) => brand.roles[0],
+      nestedRoles: (_name: string, roles: unknown[]) => roles, authorizedEmails: () => ({}),
+      resolveHook() { throw Error('unused'); }, event() {},
+    } as never);
+    const { passport, input } = await binding(accounts, { default: hydrated, other: hydrated });
+    const app = express(); app.use(express.json());
+    app.use((req, _res, next) => {
+      req.session = { ...(source === 'session' ? { branding: 'other', portal: 'rdmp' } : {}), save: (done: () => void) => done() } as never;
+      req.logIn = ((_actor: unknown, done: () => void) => done()) as never;
+      next();
+    });
+    login.mountAuthenticationRoutes(app, { ...input, passport,
+      identity: { session: async () => users.length ? { id: 'aaf-user', username: 'aaf-user', roles: users[0].roles.map((id: string) => ({ id, brandId: id.replace('role-', 'brand-') })) } : false,
+        profile: async () => users[0] } as never,
+      audit: async () => {}, loginFailure: async () => {}, renderAuthenticationFailure: undefined,
+    });
+    app.use(middleware.httpErrorHandler(nothingLogger));
+    const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
+    const address = server.address(); assert(address && typeof address !== 'string');
+    try {
+      const assertion = sign({ sub: 'aaf-subject', 'https://aaf.edu.au/attributes': { mail: 'person@example.invalid', cn: 'AAF Person' } },
+        hydrated.aaf.opts.secretOrKey, { issuer: 'https://rapid.aaf.edu.au', expiresIn: '5m' });
+      const response = await fetch(`http://127.0.0.1:${address.port}/user/login_aaf${source === 'query' ? '?branding=other&portal=rdmp' : ''}`, {
+        method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assertion, ...(source === 'body' ? { branding: 'other', portal: 'rdmp' } : source === 'invalid' ? { branding: ['other'], portal: 'rdmp' } : {}) }),
+      });
+      await response.text();
+      assert.equal(response.status, source === 'invalid' ? 400 : 302);
+      if (source === 'invalid') { assert.equal(users.length, 0); assert.equal(selected.length, 0); }
+      else {
+        assert.deepEqual(users[0].roles, ['role-other']); assert(selected.every(name => name === 'other'));
+        assert.equal(response.headers.get('location'), '/research/other/rdmp/institution/welcome');
+      }
+    } finally { await new Promise<void>(done => server.close(() => done())); }
+  });
+});
