@@ -2,10 +2,12 @@
 window.createRedboxProgress = function ({ io, endpoint, tokenUrl, csrfToken, onProgress }) {
   let closed = false;
   let reconnectTimer;
+  let generation = 0;
   // Socket.IO does not reconnect after a namespace/auth rejection. Retry grant
   // acquisition too, with one bounded delay and no replay of a one-use token.
   const reconnect = () => {
     if (closed || reconnectTimer) return;
+    generation++;
     socket.disconnect();
     reconnectTimer = setTimeout(() => {
       reconnectTimer = undefined;
@@ -18,13 +20,15 @@ window.createRedboxProgress = function ({ io, endpoint, tokenUrl, csrfToken, onP
     transports: ['websocket'],
     auth: async callback => {
       if (closed) return;
+      const attempt = ++generation;
+      const current = () => !closed && attempt === generation;
       try {
         const response = await fetch(tokenUrl, {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'X-CSRF-Token': csrfToken(), 'X-ReDBox-Api-Version': '2.0' },
         });
-        if (closed) return;
+        if (!current()) return;
         if (response.status === 401 || response.status === 403) {
           socket.disconnect();
           return;
@@ -34,16 +38,20 @@ window.createRedboxProgress = function ({ io, endpoint, tokenUrl, csrfToken, onP
           return;
         }
         const token = (await response.json()).data?.token;
+        if (!current()) return;
         if (typeof token !== 'string' || !token) {
           reconnect();
           return;
         }
-        if (!closed) callback({ token });
+        callback({ token });
       } catch {
-        reconnect();
+        if (current()) reconnect();
       }
     },
   });
+  // Transport closure can precede namespace connection (and its disconnect
+  // event). A late HTTP result belongs only to the transport that requested it.
+  socket.io.on('close', () => generation++);
   const rooms = new Set();
   socket.on('connect', () => {
     clearTimeout(reconnectTimer);
@@ -66,6 +74,7 @@ window.createRedboxProgress = function ({ io, endpoint, tokenUrl, csrfToken, onP
     },
     close() {
       closed = true;
+      generation++;
       clearTimeout(reconnectTimer);
       rooms.clear();
       socket.disconnect();
