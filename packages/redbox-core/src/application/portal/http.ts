@@ -306,8 +306,8 @@ export class PortalHttp implements ApplicationModule {
       },
       renderAuthenticationFailure: async (req, res, reason) => {
         Object.assign(req.params, {
-          branding: req.session.branding ?? config.auth.defaultBrand,
-          portal: req.session.portal ?? config.auth.defaultPortal,
+          branding: req.params.branding ?? req.session.branding ?? config.auth.defaultBrand,
+          portal: req.params.portal ?? req.session.portal ?? config.auth.defaultPortal,
         });
         await policies.brandingandportal(req, res, () => {});
         if (res.writableEnded) return;

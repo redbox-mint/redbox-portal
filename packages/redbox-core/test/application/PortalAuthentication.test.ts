@@ -331,3 +331,72 @@ describe('validated AAF callback context in production composition', () => {
       }
     });
 });
+
+describe('rejected AAF callback context in production composition', () => {
+  for (const source of ['body', 'query', 'session'] as const)
+    for (const reason of ['email', 'assertion'] as const)
+      it(`${source}: ${reason}`, async () => {
+        const accounts = new AuthenticationAccounts({
+          repository: { one: async () => null },
+          log: nothingLogger,
+          defaultBrand: () => brands.default,
+          getBrand: (name: string) => brands[name],
+          authConfig: () => hydrated,
+          defaultAuthenticatedRole: (brand: BrandingModel) => brand.roles[0],
+          nestedRoles: (_name: string, roles: unknown[]) => roles,
+          authorizedEmails: () => ({ enabled: true, domainsAaf: ['allowed.invalid'] }),
+          resolveHook() {
+            throw Error('unused');
+          },
+          event() {},
+        } as never);
+        const { passport, input } = await binding(accounts, { default: hydrated, other: hydrated }, startup, true);
+        const app = express();
+        app.use(express.json());
+        let saved!: { branding: string; portal: string };
+        app.use((req, _res, next) => {
+          saved =
+            source === 'session' ? { branding: 'other', portal: 'catalog' } : { branding: 'default', portal: 'rdmp' };
+          req.session = saved as never;
+          next();
+        });
+        login.mountAuthenticationRoutes(app, { ...input, passport, loginFailure: async () => {} });
+        app.use(middleware.httpErrorHandler(nothingLogger));
+        const server = app.listen(0, '127.0.0.1');
+        await once(server, 'listening');
+        const address = server.address();
+        assert(address && typeof address !== 'string');
+        try {
+          const assertion =
+            reason === 'assertion'
+              ? 'invalid'
+              : sign(
+                  {
+                    sub: 'subject',
+                    'https://aaf.edu.au/attributes': { mail: 'person@denied.invalid', cn: 'Denied Person' },
+                  },
+                  hydrated.aaf.opts.secretOrKey,
+                  { issuer: 'https://rapid.aaf.edu.au', expiresIn: '5m' }
+                );
+          const response = await fetch(
+            `http://127.0.0.1:${address.port}/user/login_aaf${source === 'query' ? '?branding=other&portal=catalog' : ''}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'text/html' },
+              body: JSON.stringify({
+                assertion,
+                ...(source === 'body' ? { branding: 'other', portal: 'catalog' } : {}),
+              }),
+            }
+          );
+          const html = await response.text();
+          assert.equal(response.status, 403, html);
+          assert.match(html, /data-artifact="403:other:catalog"/);
+          assert.match(html, /data-artifact="layout:other:catalog"/);
+          assert.equal(saved.branding, 'other');
+          assert.equal(saved.portal, 'catalog');
+        } finally {
+          await new Promise<void>(done => server.close(() => done()));
+        }
+      });
+});
