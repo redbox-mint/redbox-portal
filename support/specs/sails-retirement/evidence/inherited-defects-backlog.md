@@ -102,3 +102,29 @@ production impact or access-control exception.
 **Suggested fix:** preserve and restore the original Fetch function in teardown,
 or install a Sinon-managed stub on the global property so `restore()` owns it.
 Qualify the translation tests followed by a real Fetch request in one process.
+
+## B-05 — P2: long unversioned asset names receive immutable year-long caching
+
+**Location:** `packages/redbox-core/src/http/express/pageHeaders.ts:11`.
+
+**Reproduction:** the actual immutable-asset matcher accepts
+`/default/rdmp/images/checklist.png` and `/js/redbox-progress.js`, although neither
+basename contains a content fingerprint. Static delivery consequently marks them
+`public, max-age=31536000, immutable`. A deployment changing bytes at the same URL
+can leave a browser using the older artifact for a year. The fingerprinted
+`/angular/form/browser/main-ABC12345.js` is a positive control.
+
+**Inheritance:** `a49366803:packages/redbox-core/src/config/http.config.ts:227–234`
+uses the same basename expression; its middleware at lines 800–806 applies the
+same immutable year-long header before its no-cache path handling. R8 extracts
+and evaluates only the baseline matcher functions, comparing them with the
+compiled current matcher: all three paths return true in both. This is unchanged
+behavior, so no runtime correction is included in Sails retirement. No severe
+ordinary-user access-control exception was demonstrated.
+
+**Suggested fix:** distinguish a real generated content fingerprint from an
+ordinary basename and retain validation/revalidation for unversioned assets.
+Qualify changed bytes across two deployments and preserve immutable caching for
+fingerprinted Angular bundles. The executable comparison and its observations
+are retained in `final-review-r8/cache-inheritance-probe.cjs` and R8 qualification
+hashes; the full baseline configuration is not copied into the evidence.
