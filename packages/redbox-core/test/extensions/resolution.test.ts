@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
 import express, { type Request, type Response } from 'express';
-import supertest from 'supertest';
 import { resolveExtensions, type ExtensionProvider, type RedboxExtension } from '../../src/extensions';
 
 const makeModule = (name: string, requires?: string[]) => ({
@@ -100,9 +100,22 @@ describe('v6 extension declarations', () => {
   it('matches repeated trailing slashes like the actual Express router', async () => {
     const router = express();
     router.get('/items/:item//', (_req, res) => res.send('matched'));
-    for (const requestPath of ['/items/example', '/items/example/']) {
-      assert.equal((await supertest(router).get(requestPath).expect(200)).text, 'matched');
-      await supertest(router).head(requestPath).expect(200);
+    const server = createServer(router);
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const address = server.address();
+      assert(address && typeof address !== 'string');
+      for (const requestPath of ['/items/example', '/items/example/']) {
+        const url = `http://127.0.0.1:${address.port}${requestPath}`;
+        const response = await fetch(url);
+        assert.equal(response.status, 200);
+        assert.equal(await response.text(), 'matched');
+        assert.equal((await fetch(url, { method: 'HEAD' })).status, 200);
+      }
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close(error => (error ? reject(error) : resolve()))
+      );
     }
   });
   for (const [first, second] of [
