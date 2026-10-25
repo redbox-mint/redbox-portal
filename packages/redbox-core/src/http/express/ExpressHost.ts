@@ -183,6 +183,9 @@ export class ExpressHost {
             // A host deadline can expire just before the application's deadline.
             // A retry must outlive that old attempt before starting a fresh one.
             await this.withDeadline(previousStop?.catch(() => {}) ?? Promise.resolve(), deadline);
+            // Host preparation can still acquire resources on initialized modules.
+            // Quiesce immediately, but retain those modules until acquisition settles.
+            await this.withDeadline(this.inFlight?.catch(() => {}) ?? Promise.resolve(), deadline);
             if (Date.now() >= deadline)
               throw new Error('Host stop deadline exceeded; resources remain owned. Retry stop.');
             await this.application.stop({ deadlineMs: Math.max(1, deadline - Date.now()) });
