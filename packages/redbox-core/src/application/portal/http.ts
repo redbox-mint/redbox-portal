@@ -401,7 +401,11 @@ export class PortalHttp implements ApplicationModule {
         forms: ref.forms.get(),
         recordTypes: ref.types.get(),
         workflowSteps: ref.workflows.get(),
-        prehydrate: new Prehydrate.FormPayloadPrehydrateService({ config: {}, vocabulary: ref.vocabulary.get(), log }),
+        prehydrate: new Prehydrate.FormPayloadPrehydrateService({
+          config: { form: config.form },
+          vocabulary: ref.vocabulary.get(),
+          log,
+        }),
         loadRecord,
         canView: async (brand, user, record) =>
           !!user &&
@@ -458,7 +462,7 @@ export class PortalHttp implements ApplicationModule {
       recordTypes: ref.types.get(),
       search: data.search.get(),
       returnFields: config.record.search.returnFields,
-      maxRows: config.record.search.maxRecordsPerPage,
+      maxRows: config.api.max_requests,
       translate: (key, brand) => ref.translation.get().t(key, undefined, 'en', brand),
     });
     http.mountRecordMutationRoutes(router, {

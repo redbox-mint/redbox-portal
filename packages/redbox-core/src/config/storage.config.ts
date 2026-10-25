@@ -41,6 +41,12 @@ export type DiskConfig =
   | { driver: 'gridfs'; config: GridFSDriverOptions };
 
 export interface StorageConfig {
+  /** Additional/overridden storage indexes inspected by explicit maintenance. */
+  mongodb?: {
+    indices?: import('mongodb').IndexDescription[];
+    deletedRecordIndices?: import('mongodb').IndexDescription[];
+    recordIdentityIndices?: import('mongodb').IndexDescription[];
+  };
   /** Name of the storage service to use */
   serviceName: string;
   /** Default disk name (used when no specific disk is requested) */

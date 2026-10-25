@@ -865,6 +865,7 @@
     },
     "EmailServerOptions": {
       "type": "object",
+      "additionalProperties": {},
       "properties": {
         "host": { "type": "string" },
         "port": { "type": "number" },
@@ -879,22 +880,23 @@
           "properties": { "user": { "type": "string" }, "pass": { "type": "string" } },
           "required": ["pass", "user"]
         }
-      },
-      "required": ["host", "port", "secure"]
+      }
     },
     "EmailDefaults": {
       "type": "object",
       "properties": {
         "from": { "type": "string" },
         "subject": { "type": "string" },
-        "format": { "enum": ["html", "text"], "type": "string" }
+        "format": { "enum": ["html", "text"], "type": "string" },
+        "cc": { "type": "string" },
+        "bcc": { "type": "string" },
+        "otherSendOptions": { "$ref": "#/definitions/Record%3Cstring%2Cunknown%3E" }
       },
       "required": ["format", "from", "subject"]
     },
     "EmailTemplate": {
       "type": "object",
-      "properties": { "subject": { "type": "string" }, "template": { "type": "string" } },
-      "required": ["subject", "template"]
+      "properties": { "subject": { "type": "string" }, "template": { "type": "string" } }
     },
     "BrandingConfigurationDefaultsConfig": {
       "type": "object",

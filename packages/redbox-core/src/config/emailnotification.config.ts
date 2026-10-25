@@ -11,9 +11,11 @@ export interface EmailApiEndpoint {
 }
 
 export interface EmailServerOptions {
-  host: string;
-  port: number;
-  secure: boolean;
+  /** Native Nodemailer transport data, including service/JSON/stream transports. */
+  [option: string]: unknown;
+  host?: string;
+  port?: number;
+  secure?: boolean;
   tls?: {
     rejectUnauthorized: boolean;
   };
@@ -34,11 +36,14 @@ export interface EmailDefaults {
   from: string;
   subject: string;
   format: 'html' | 'text';
+  cc?: string;
+  bcc?: string;
+  otherSendOptions?: Record<string, unknown>;
 }
 
 export interface EmailTemplate {
-  subject: string;
-  template: string;
+  subject?: string;
+  template?: string;
 }
 
 export interface EmailNotificationConfig {

@@ -4,6 +4,7 @@ import { DateTime } from 'luxon';
 import domainSchema from './portal-domains.schema.json';
 import type { PortalDomainConfiguration } from './PortalDomainConfiguration';
 import { appmode } from '../config/appmode.config';
+import { api } from '../config/api.config';
 import { record } from '../config/record.config';
 import { recordValidation } from '../config/recordValidation.config';
 import { recordSchema } from '../config/recordSchema.config';
@@ -105,7 +106,7 @@ const pipeline = z
       z.string(),
       z
         .object({
-          method: z.enum(['get', 'post', 'put', 'patch', 'delete']),
+          method: z.enum(['get', 'post', 'put', 'patch', 'delete', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
           url: z.string(),
           readTimeout: positive.optional(),
         })
@@ -149,7 +150,11 @@ const pipeline = z
     datastreamService: z.string().optional(),
     helpEmail: z.string(),
     form: z
-      .object({ htmlSanitizationMode: z.enum(['sanitize', 'reject']), returnMetadataOnSave: z.boolean() })
+      .object({
+        htmlSanitizationMode: z.enum(['sanitize', 'reject']),
+        returnMetadataOnSave: z.boolean(),
+        svgMaxBytes: positive.optional(),
+      })
       .strict()
       .optional(),
   })
@@ -195,6 +200,16 @@ export const portalSchema = deploymentSchema
     logging: z.object({ level: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']) }).strict(),
     page: z.object({ landingPath: z.string().regex(/^\/(?!\/)/), noCache: strings }).strict(),
     bootstrap: z.object({ bootstrapDataPath: z.string().min(1) }).strict(),
+    angularDev: z.boolean().optional(),
+    api: z.object({ max_requests: positive, additionalClientConfig: data.optional() }).strict(),
+    form: z
+      .object({
+        prehydrate: z
+          .object({ enabled: z.boolean().optional(), maxVocabSelections: nonnegative.optional() })
+          .strict()
+          .optional(),
+      })
+      .strict(),
     appmode: z
       .object({
         bootstrapAlways: z.boolean(),
@@ -202,7 +217,7 @@ export const portalSchema = deploymentSchema
         features: data.optional(),
         flags: data.optional(),
       })
-      .strict(),
+      .catchall(z.json()),
     record: pipeline,
     recordValidation: z
       .object({
@@ -418,6 +433,8 @@ export function portalDefaults(environment = 'development'): ConfigurationLayer 
       redbox: {},
       schedules: [],
       appmode: { ...appmode, bootstrapAlways: false },
+      api,
+      form: {},
       record,
       recordValidation,
       recordSchema,

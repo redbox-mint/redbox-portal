@@ -20,6 +20,11 @@ const connection = jsonMap.superRefine((value, context) => {
     context.addIssue({ code: 'custom', message: 'Invalid MongoDB connection configuration' });
   }
 });
+const mongoIndex = z
+  .object({
+    key: z.record(z.string(), z.union([z.number(), z.enum(['2d', '2dsphere', 'text', 'geoHaystack', 'hashed'])])),
+  })
+  .catchall(z.json());
 const visibility = z.enum(['public', 'private']).optional();
 const disk = z.discriminatedUnion('driver', [
   z.object({ driver: z.literal('fs'), config: z.object({ root: z.string().min(1), visibility }).strict() }).strict(),
@@ -69,6 +74,7 @@ const session = z
     collection: z.string().optional(),
     ttl: positive.optional(),
     touchAfter: z.number().nonnegative().optional(),
+    stringify: z.boolean().optional(),
     cookie: z
       .object({
         maxAge: positive.optional(),
@@ -180,6 +186,14 @@ export const deploymentSchema = z
     storage: z
       .object({
         serviceName: z.string().min(1),
+        mongodb: z
+          .object({
+            indices: z.array(mongoIndex).optional(),
+            deletedRecordIndices: z.array(mongoIndex).optional(),
+            recordIdentityIndices: z.array(mongoIndex).optional(),
+          })
+          .strict()
+          .optional(),
         defaultDisk: z.string().optional(),
         stagingDisk: z.string().optional(),
         primaryDisk: z.string().optional(),
