@@ -23,6 +23,7 @@ net.Socket.prototype.connect = () => {
   throw Error('Maintenance import connected');
 };
 const { runIndexMaintenance } = require('@researchdatabox/redbox-core/maintenance');
+const { portalDefaults } = require('@researchdatabox/redbox-core/configuration');
 const runtime = require('@researchdatabox/redbox-core/extensions/storage');
 assert.equal(typeof runIndexMaintenance, 'function');
 net.Socket.prototype.connect = originalConnect;
@@ -134,11 +135,26 @@ process.on('beforeExit', () => {
       sqsConfig,
       `module.exports = ${JSON.stringify({
         datastores: { mongodb: { url: urls[0] }, redboxStorage: { url: urls[1] } },
-        agendaQueue: { options: { backend: 'sqs', db: 'mongodb://127.0.0.1:1/must-not-connect' } },
+        agendaQueue: { options: { backend: 'sqs', db: urls[2] } },
       })};`
     );
     const sqs = await cli([], 0, sqsConfig);
-    assert.equal(sqs.groups.filter(report => report.group === 'agenda').length, 0);
+    assert.equal(sqs.groups.filter(report => report.group === 'agenda').length, 3);
+    const sqsOnlyConfig = path.join(__dirname, 'sqs-only-config.cjs');
+    fs.writeFileSync(
+      sqsOnlyConfig,
+      `module.exports = ${JSON.stringify({
+        datastores: { mongodb: { url: urls[0] }, redboxStorage: { url: urls[1] } },
+        agendaQueue: {
+          options: { backend: 'sqs', db: 'mongodb://127.0.0.1:1/must-not-connect' },
+          jobs: Object.fromEntries(
+            Object.keys(portalDefaults().values.agendaQueue.jobs).map(name => [name, { backend: 'sqs' }])
+          ),
+        },
+      })};`
+    );
+    const sqsOnly = await cli([], 0, sqsOnlyConfig);
+    assert.equal(sqsOnly.groups.filter(report => report.group === 'agenda').length, 0);
     // This failure occurs after real pools are acquired. The subprocess must
     // close them and exit naturally, without jobs, listeners or signal handlers.
     await databases[2].collection('qualifiedJobs').drop();
@@ -192,7 +208,7 @@ process.on('beforeExit', () => {
       JSON.stringify({
         scopes: ensured.groups.length,
         agendaScopes: 3,
-        commands: 9,
+        commands: 10,
         pending: 0,
         failures: 0,
         explicitBackfill: '1 then 0',

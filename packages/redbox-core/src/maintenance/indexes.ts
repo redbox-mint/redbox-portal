@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { agendaQueueDefaultJobs } from '../config/agendaQueueJobs';
+import { agendaQueueDefaultOptions } from '../config/agendaQueueDefaults';
 import { pathToFileURL } from 'node:url';
 import { loadExtensionModule } from '../extensions/loading';
 import type { StorageIndexPreparation } from '../persistence/maintenance';
@@ -53,7 +55,15 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
   };
   const config = await loadStartupConfiguration({
     schema: deploymentSchema,
-    core: deploymentDefaults(options.environment),
+    core: {
+      source: 'core',
+      values: {
+        ...deploymentDefaults(options.environment).values,
+        // Match the portal's offline job catalog, including jobs explicitly
+        // bound to Mongo when the deployment's default backend is SQS.
+        agendaQueue: { options: agendaQueueDefaultOptions, jobs: agendaQueueDefaultJobs },
+      },
+    },
     extensions,
     files: options.files,
     env: convertLegacyEnvironment(options.env ?? process.env),
