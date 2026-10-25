@@ -19,10 +19,9 @@ describe('explicit extension HEAD routing', () => {
           { name: 'read', method: 'get', path: '/hook', handler: 'read', access: 'public' },
           { name: 'headers', method: 'head', path: '/hook', handler: 'read', access: ['checked'] },
         ];
-        if (headFirst) routes.reverse();
         const declaration: RedboxExtension = {
           apiVersion: 1,
-          routes,
+          routes: headFirst ? [...routes].reverse() : routes,
           handlers: [
             {
               name: 'read',
