@@ -12,6 +12,8 @@ describe('production owned route collision preflight', () => {
   for (const [method, path] of [
     ['get', '/:branding/:portal/api/recordtypes'],
     ['get', '/:branding/:portal/api/recordtypes//'],
+    ['get', '/:brand/:site/api/recordtypes{}'],
+    ['get', '/:brand/:site/api/recordtypes{/}'],
     ['head', '/:brand/:site/api/recordtypes///'],
     ['head', '/:brand/:site/api/recordtypes/'],
     ['get', '/:branding/:portal/home'],
@@ -27,10 +29,11 @@ describe('production owned route collision preflight', () => {
       );
     });
   }
-  it('accepts a deliberate named core replacement and a new custom route', async () => {
+  it('accepts named core replacements with structural aliases and a new custom route', async () => {
     const target = owned.find(route => route.method === 'get' && route.path === '/:branding/:portal/api/recordtypes')!;
     for (const route of [
       { ...target, replaces: true },
+      { ...target, path: '/:brand/:site/API/RECORDTYPES{}///', replaces: true },
       { name: 'custom', method: 'get', path: '/:branding/:portal/custom-route' },
     ])
       await withPortal({ ...route, handler: 'shadow', access: 'public' }, async options => {
@@ -39,14 +42,12 @@ describe('production owned route collision preflight', () => {
         await portal.application.stop();
       });
   });
-  it('rejects a named replacement that changes the owned target', async () => {
+  it('rejects named replacements that change the owned method or add matched paths', async () => {
     const target = owned.find(route => route.method === 'get' && route.path === '/:branding/:portal/api/recordtypes')!;
-    await withPortal(
-      { ...target, path: '/unrelated', replaces: true, handler: 'shadow', access: 'public' },
-      async options => {
+    for (const change of [{ path: '/unrelated' }, { path: target.path + '{/}' }, { method: 'post' }])
+      await withPortal({ ...target, ...change, replaces: true, handler: 'shadow', access: 'public' }, async options => {
         await assert.rejects(createPortalApplication(options), /owned route replacement must retain/);
-      }
-    );
+      });
   });
   async function withPortal(
     route: object,

@@ -113,9 +113,7 @@ describe('v6 extension declarations', () => {
         assert.equal((await fetch(url, { method: 'HEAD' })).status, 200);
       }
     } finally {
-      await new Promise<void>((resolve, reject) =>
-        server.close(error => (error ? reject(error) : resolve()))
-      );
+      await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
     }
   });
   for (const [first, second] of [
@@ -125,7 +123,7 @@ describe('v6 extension declarations', () => {
     ['/items/:α', '/items/:β'],
     ['/items/:first', '/items/:"second"'],
     ['/items/:first', '/ITEMS/:second//'],
-    ['/', '///'],
+    ['//', '///'],
   ])
     it(`rejects equivalent Express 5 paths ${first} and ${second} before constructing handlers`, () => {
       const route = { name: 'first', method: 'get' as const, path: first, handler: 'read', access: 'public' as const };

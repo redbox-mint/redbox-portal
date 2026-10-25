@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { pathToRegexp } from 'path-to-regexp';
+import { parse, pathToRegexp, TokenData, type Token } from 'path-to-regexp';
 import type { RedboxExtension, ExtensionFactory, ExtensionRoute, ExtensionWork } from './contract';
 import { discoverInstalledExtensions, extensionRegistration, ExtensionError, loadExtensionModule } from './loading';
 
@@ -164,9 +164,83 @@ export interface OwnedHttpRoute {
   readonly path: string;
 }
 
-/** The same matcher grammar/options as the host's default Express 5 router. */
+/** Match Express's non-Unicode ignoreCase folding, without decoding URL literals. */
+function routeCase(value: string): string {
+  return value
+    .split('')
+    .map(char => {
+      const upper = char.toUpperCase();
+      if (upper.length !== 1 || (char.charCodeAt(0) >= 128 && upper.charCodeAt(0) < 128)) return char;
+      return upper.charCodeAt(0) < 128 ? upper.toLowerCase() : upper;
+    })
+    .join('');
+}
+
+type FlatRouteToken = Exclude<Token, { type: 'group' }>;
+
+/** Expand optional alternatives using the pinned matcher grammar, before comparing paths.
+ * The host uses default (non-strict, case-insensitive, end-matching) Express routers.
+ * Express loosens declaration slashes, except for the root, before parsing them.
+ */
+function httpRoutePath(routePath: string): { patterns: string[]; identity: string } {
+  const loosened = routePath === '/' ? routePath : routePath.replace(/\/+$/, '');
+  // Validate exactly what Express compiles, including its 256-alternative bound.
+  pathToRegexp(loosened);
+  const expand = (tokens: Token[]): FlatRouteToken[][] => {
+    let alternatives: FlatRouteToken[][] = [[]];
+    for (const token of tokens) {
+      const suffixes = token.type === 'group' ? [...expand(token.tokens), []] : [[token]];
+      alternatives = alternatives.flatMap(prefix => suffixes.map(suffix => [...prefix, ...suffix]));
+    }
+    return alternatives;
+  };
+  const alternatives = expand(parse(loosened).tokens).map(tokens => {
+    const folded = tokens.map(token => (token.type === 'text' ? { ...token, value: routeCase(token.value) } : token));
+    // Character atoms ignore text-token boundaries introduced by optional groups.
+    const atoms = folded.flatMap(token =>
+      token.type === 'text' ? token.value.split('').map(char => JSON.stringify(char)) : [token.type]
+    );
+    const prefix = folded.slice(0, -1);
+    const tail = folded.at(-1)?.type;
+    const lastCapture = prefix.findLastIndex(token => token.type !== 'text');
+    const lastSlash = prefix.findLastIndex(token => token.type === 'text' && token.value.includes('/'));
+    // A first capture in its segment is unrestricted. Earlier wildcards constrain
+    // subsequent wildcards in the pinned matcher, so do not simplify those.
+    const absorbsTail =
+      lastSlash > lastCapture &&
+      (tail === 'param' || (tail === 'wildcard' && !prefix.some(token => token.type === 'wildcard')));
+    return { atoms, tail: absorbsTail ? tail : undefined, pattern: pathToRegexp(new TokenData(folded)).regexp.source };
+  });
+  const unique = [...new Map(alternatives.map(alternative => [alternative.pattern, alternative])).values()];
+  const identity = unique
+    .filter(
+      candidate =>
+        !unique.some(broader => {
+          if (broader === candidate || !broader.tail) return false;
+          const prefix = broader.atoms.slice(0, -1);
+          if (!prefix.every((atom, index) => candidate.atoms[index] === atom)) return false;
+          const rest = candidate.atoms.slice(prefix.length);
+          return (
+            rest.length > 0 &&
+            (broader.tail === 'wildcard' || !rest.some(atom => atom === 'wildcard' || atom === JSON.stringify('/')))
+          );
+        })
+    )
+    .map(alternative => alternative.pattern)
+    .sort()
+    .join('\n');
+  // Keep absorbed alternatives for collision checks: another route may declare
+  // exactly that narrower alternative without declaring its broader sibling.
+  return { patterns: unique.map(alternative => alternative.pattern), identity };
+}
+
+/** Structural matcher identity, ignoring capture names and optional alternatives
+ * covered by an unrestricted final capture after the same structural prefix.
+ * This is not a general regular-language equivalence algorithm. Capture values and
+ * decoding errors are outside this identity; literal URL encodings are preserved.
+ */
 export function canonicalHttpRoutePath(routePath: string): string {
-  return pathToRegexp(routePath.replace(/\/+$/, '').toLowerCase()).regexp.source;
+  return httpRoutePath(routePath).identity;
 }
 
 function orderModules(modules: readonly ResolvedRegistration<ExtensionFactory>[]) {
@@ -232,28 +306,33 @@ export function resolveExtensions(
   );
   const bootstrap = select<ExtensionWork>(ordered, 'bootstrap');
   const methods = new Set<string>();
-  const owned = ownedRoutes.map(route => ({ ...route, pattern: canonicalHttpRoutePath(route.path) }));
+  const owned = ownedRoutes.map(route => ({ ...route, matching: httpRoutePath(route.path) }));
   for (const route of routes) {
     // Match the host's default case-insensitive, non-strict Express router.
-    let routePath: string;
+    let matching: ReturnType<typeof httpRoutePath>;
     try {
-      routePath = canonicalHttpRoutePath(route.declaration.path);
+      matching = httpRoutePath(route.declaration.path);
     } catch {
       fail(route.provider, 'invalid Express route path');
     }
-    const key = route.declaration.method + ' ' + routePath;
     for (const target of owned) {
-      const samePath = routePath === target.pattern;
+      const samePath = matching.identity === target.matching.identity;
+      const sharedPath = samePath || matching.patterns.some(pattern => target.matching.patterns.includes(pattern));
       const sameMethod = route.declaration.method === target.method;
       if (route.declaration.name === target.name && (!samePath || !sameMethod))
         fail(route.provider, 'owned route replacement must retain its method and path');
-      if (samePath && (sameMethod || target.method === 'all')) {
+      if (sharedPath && (sameMethod || target.method === 'all')) {
         if (route.declaration.name !== target.name || !route.declaration.replaces)
           fail(route.provider, 'collision with an owned portal route requires its name and replaces: true');
       }
     }
-    if (methods.has(key)) fail(route.provider, 'accidental method/path route collision');
-    methods.add(key);
+    // This deliberately checks identical complete alternatives, rather than all
+    // overlaps (for example a static route and a parameter or wildcard route).
+    for (const pattern of matching.patterns) {
+      const key = route.declaration.method + ' ' + pattern;
+      if (methods.has(key)) fail(route.provider, 'accidental method/path route collision');
+      methods.add(key);
+    }
   }
   const moduleNames = new Set(modules.map(item => item.declaration.name));
   const handlerNames = new Set(handlers.map(item => item.declaration.name));
