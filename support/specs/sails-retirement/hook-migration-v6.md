@@ -15,7 +15,7 @@ cd ../redbox-hook-demo-client
 node "$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js" init demo-client --template v6
 npm install --save-dev --save-exact "$REDBOX_PORTAL_ROOT/packages/redbox-core"
 npm run build
-node "$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js" check
+node "$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js" check --v6
 npm pack --ignore-scripts
 ```
 
@@ -25,6 +25,11 @@ This development-only `file:` reference is allowed by the exact-pin policy.
 For a released hook, replace it with the exact qualified v6 core version or the
 deployment's complete packed dependency set, then repeat installation, build and
 pack in isolation. Do not publish a manifest containing a developer's local path.
+
+`check --v6` checks the dependency contract and neutral manifest/public export.
+It does not prove that runtime services, persisted declarations or deployment
+bindings have been converted; compile, offline inspection and an installed
+rehearsal remain required.
 
 The template lives in this repository at
 `packages/redbox-dev-tools/templates/hook-archetype/v6/`. V6 is now the only scaffold and the default; `standard` is rejected. The v6
@@ -109,7 +114,11 @@ After, `src/handler.ts` exports an Express handler factory receiving only
 `{ example: Pick<Example, 'greet'> }`. Generated `src/index.ts` declares its module
 prerequisite and a named GET route. The example deliberately uses `access: 'public'`.
 A protected route declares ordered policy names, for example
-`access: ['authenticated', 'administrator']`; the host must bind policy execution.
+`access: ['brandingAndPortal', 'isWebServiceAuthenticated', 'brandActor', 'csrf']`; the host must bind policy execution.
+These are the production host's policy names. Check the resolved actor's brand-scoped
+`Admin` role inside an administrative handler; there is no built-in `administrator`
+policy. Include `csrf` on mutation routes. Extension routes mount before the
+ordinary portal route groups and do not inherit those groups' CSRF policy.
 Missing policies are an error, not an implicit public route. Method/path aliases
 and unintended duplicates fail during resolution; named replacement is explicit.
 Handler execution sits behind the existing host's inactive/activation gate.
@@ -198,7 +207,8 @@ registerRedboxBootstrap: () => async function bootstrap() {
 After, generated `src/work.ts` defines `ExampleWorkInput.ensureNamedQuery()` and
 awaits it. The extension returns separate `bootstrap` and `migrations` declarations
 with required modules. Merely loading the extension runs neither operation.
-The application binds real repository operations after schema/readiness checks;
+The application binds real repository operations after persistence/index readiness
+and module initialization, before core bootstrap and final schema validation;
 the sample's injected operation must implement the deployment's upsert policy.
 
 Migrations keep stable, lexically ordered names and the existing ledger. Preserve
@@ -207,6 +217,26 @@ sample migration before first release. These declarations provide no transaction
 rollback, or exactly-once guarantee. The application awaits migrations and
 bootstrap before activating workers and HTTP. A failed operation prevents readiness;
 the ledger records completed named migrations for restart.
+
+### Institution expressions in persisted definitions
+
+Core conversion recognizes only its finite built-in expression table. Before its
+`20261024T000000-v6-record-hook-operations` migration, convert institution-owned
+expressions with a new, explicitly earlier lexical migration name (for example
+`00000000T000000-institution-v6-hook-names`). Preserve all existing migration names.
+Use the owned reference repositories and the configured Agenda store; convert
+explicit nested `hooks`, `onNotifySuccess` and queued `triggerConfiguration`
+declarations too. Keep templates and ordinary metadata opaque. Never evaluate a
+service expression, map unknown names, or merely change new startup definitions:
+persisted types and already queued payloads also require conversion. Bind the new
+operation names in the institution composition before starting maintenance or HTTP.
+
+A real hook needs an institution composition executable using `createPortalHost`
+and its concrete `bindings`. The default `app.express.cjs` has no application-specific
+binding discovery. Use that same explicit composition with `createPortalApplication`
+for index maintenance and initialize-only; otherwise maintenance can fail on the
+unbound institution handlers before it reaches index inspection. Configuration
+files remain data-only; they cannot supply executable bindings.
 
 ## Verification and remaining rollout
 

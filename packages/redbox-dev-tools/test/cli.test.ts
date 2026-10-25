@@ -132,4 +132,28 @@ describe('cli smoke test', function () {
     expect(result.stderr).to.contain('exact version required');
   });
 
+  it('refuses a dependency-clean legacy hook when checking a v6 conversion', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-metadata-'));
+    const file = path.join(tempRoot, 'package.json');
+    const pkg: any = { name: 'redbox-hook-institution', sails: { isHook: true, hasServices: true } };
+    fs.writeFileSync(file, JSON.stringify(pkg));
+    expect(runCli(['check'], tempRoot).status).to.equal(0);
+    let result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(1);
+    expect(result.stderr).to.contain('sails: remove legacy hook discovery metadata');
+    expect(result.stderr).to.contain('redbox.extension');
+    delete pkg.sails;
+    pkg.redbox = { extension: './extension' };
+    fs.writeFileSync(file, JSON.stringify(pkg));
+    result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(1);
+    expect(result.stderr).to.contain('exports: expose');
+    pkg.exports = { './extension': { default: './dist/index.js' } };
+    fs.writeFileSync(file, JSON.stringify(pkg));
+    expect(runCli(['check', '--v6'], tempRoot).status).to.equal(0);
+    pkg.sails = { isHook: true };
+    fs.writeFileSync(file, JSON.stringify(pkg));
+    expect(runCli(['check'], tempRoot).status).to.equal(1);
+  });
+
 });

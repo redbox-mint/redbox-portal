@@ -184,7 +184,8 @@ program
 program
   .command('check')
   .description('Validate that a hook uses the shared Redbox dependency contract')
-  .action(() => {
+  .option('--v6', 'Also require neutral v6 extension metadata and a public entrypoint')
+  .action((options: { v6?: boolean }) => {
     const packageJsonPath = path.join(process.cwd(), 'package.json');
     if (!fs.existsSync(packageJsonPath)) {
       console.error('❌ package.json not found in the current directory.');
@@ -193,6 +194,14 @@ program
 
     const pkg = readPackageJson(packageJsonPath);
     const findings = findForbiddenHookDeps(pkg);
+    if (options.v6 || pkg.redbox?.extension != null) {
+      if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata');
+      const entry = pkg.redbox?.extension;
+      if (typeof entry !== 'string' || (entry !== '.' && !/^\.\/[A-Za-z0-9_/-]+$/.test(entry)))
+        findings.push('redbox.extension: declare a public v6 extension subpath');
+      else if (!pkg.exports || !Object.hasOwn(pkg.exports, entry))
+        findings.push('exports: expose the declared redbox.extension subpath');
+    }
 
     if (findings.length === 0) {
       console.log('✅ Hook dependency contract looks good.');
