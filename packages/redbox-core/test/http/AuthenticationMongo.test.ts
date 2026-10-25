@@ -69,6 +69,22 @@ describe('owned local/AAF authentication and Mongo session migration', function 
       1
     );
   });
+  for (const destination of [undefined, '', '/configured-destination']) {
+    it(`uses the expected logout destination for ${JSON.stringify(destination)}`, async () => {
+      f = await authenticationFixture({ rootContext: '/research', postLogoutPath: destination });
+      const login = await localLogin(f.url);
+      assert.equal(login.status, 200);
+      assert((await login.json() as { user: unknown }).user);
+      const cookie = responseCookie(login);
+      const logout = await fetch(f.url + '/default/rdmp/user/logout', {
+        method: 'POST', redirect: 'manual', headers: { Cookie: cookie },
+      });
+      assert.equal(logout.status, 302);
+      assert.equal(logout.headers.get('location'), destination || '/research/default/rdmp/home');
+      await logout.arrayBuffer();
+      assert.equal((await fetch(f.url + '/user/info', { headers: { Cookie: cookie } })).status, 403);
+    });
+  }
   it('rejects invalid credentials, nonlocal accounts, malformed fields, and cross-brand login', async () => {
     f = await authenticationFixture();
     let rejected = 0;

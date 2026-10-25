@@ -257,7 +257,7 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
         res.status(403).end();
         return;
       }
-      let redirect = input.postLogoutPath ?? root + '/' + selected.brand + '/' + selected.portal + '/home';
+      let redirect = input.postLogoutPath || root + '/' + selected.brand + '/' + selected.portal + '/home';
       const candidate: unknown = Reflect.get(req.session, 'logoutUrl');
       if (typeof candidate === 'string') {
         const url = URL.parse(candidate);

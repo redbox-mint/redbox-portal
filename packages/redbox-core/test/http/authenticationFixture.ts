@@ -23,6 +23,7 @@ export const aafSecret = 'synthetic-aaf-signing-secret-for-tests-only';
 export async function authenticationFixture(
   options: {
     rootContext?: string;
+    postLogoutPath?: string;
     port?: number;
     secure?: boolean;
     trustProxy?: boolean;
@@ -158,6 +159,7 @@ export async function authenticationFixture(
         passport: auth.passport,
         identity: f.identity,
         rootContext: root,
+        postLogoutPath: options.postLogoutPath,
         defaultBrand: 'default',
         defaultPortal: 'rdmp',
         validContext: (name, portal) => ['default', 'other'].includes(name) && portal === 'rdmp',
