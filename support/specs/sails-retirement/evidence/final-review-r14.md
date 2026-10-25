@@ -205,3 +205,11 @@ pre-existing image `9bf944d09e37` and durable engine data are preserved. Generat
 Bruno environment/lock files match their original snapshots. Durable logs and
 compiled scratch inputs remain on disk. The evidence commit changes no qualified
 runtime or test input.
+
+[Closing checks](final-review-r14/closing-checks.json) at evidence commit
+`1f0ca4aec` pass again: 1,152 source files, zero closure/dependency violations,
+1,261/1,261 baseline files reconciled and exact pins/lock roots. All 283 qualified
+artifact hashes still match. Raw captured Mocha logs retain terminal whitespace
+for byte/hash fidelity; the authored-file whitespace check excludes those four
+logs and passes. The subsequent accounting commit adds only this report link and
+the closing JSON; runtime/test inputs remain unchanged.

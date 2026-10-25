@@ -1,0 +1,62 @@
+{
+  "checkedEvidenceCommit": "1f0ca4aecdb5d5e0190d579160d5315f32ebebde",
+  "qualifiedRuntimeAndTests": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+  "onlyEvidenceChangedSinceQualification": true,
+  "changedEvidenceFiles": 37,
+  "sourceClosure": {
+    "commit": "1f0ca4aecdb5d5e0190d579160d5315f32ebebde",
+    "tree": null,
+    "scannedFiles": 1152,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates.",
+    "violations": [],
+    "dependencies": []
+  },
+  "inventory": {
+    "matchedFiles": 1123,
+    "unclassified": []
+  },
+  "reconciliation": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "sourceCommit": "1f0ca4aecdb5d5e0190d579160d5315f32ebebde",
+    "method": "Rerun original SR-001 method; reconcile every baseline file against committed paths/candidates and successful AST/dependency closure. Removed/renamed source retains original migration owner. Historical names, finite conversions and explicit neutral parameter inputs are classified.",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1123,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "pins": {
+    "manifests": 23,
+    "declarations": 377,
+    "localReferences": 20,
+    "violations": []
+  },
+  "lockRoots": {
+    "locks": [
+      "package-lock.json",
+      "packages/redbox-core/package-lock.json",
+      "packages/redbox-dev-tools/package-lock.json",
+      "packages/redbox-hook-dev/package-lock.json",
+      "packages/sails-hook-redbox-pdfgen/package-lock.json",
+      "packages/sails-hook-redbox-storage-mongo/package-lock.json"
+    ],
+    "violations": []
+  },
+  "qualifiedArtifactHashesReverified": 283,
+  "rawTerminalLogsAreBytePreserved": true,
+  "authoredWhitespaceCheck": "Passed for changes since 9bb858218 excluding the four raw captured Mocha .log files, which intentionally retain terminal whitespace.",
+  "closingArtifactSha256": {
+    "closing-source-closure.json": "c49fe9e63fbb95fc427a9fbddf87b747c61d7641a952a6a1f0aee8c3edad9c1b",
+    "closing-source-inventory.json": "133524df95fbab02ba821f09f385a1117d272123186c2c8997b7b8588c7322a0",
+    "closing-reconciliation.json": "ef99c87f8c2f3f4274166f7e2ff8a5b5a08ccb8e84d7886e036f98da61f3671a",
+    "closing-dependency-pins.log": "3727589d010437431d3410463a12646ffce7a4b88008a8bab5eda35e001d4570"
+  },
+  "scope": "The subsequent commit adds this accounting artifact and its report link only; qualified runtime/test inputs remain unchanged."
+}
