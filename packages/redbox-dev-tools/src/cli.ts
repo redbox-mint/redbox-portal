@@ -176,7 +176,7 @@ program
 
     console.log('\n✨ Archetype ready!\n');
     console.log('Next steps:');
-    console.log('  1. Install dependencies: npm install');
+    console.log('  1. Install dependencies with the matching v6 core; follow README.md');
     console.log('  2. Compile TypeScript: npm run build');
     console.log('  3. Bind concrete factory inputs in your application; see README.md\n');
   });

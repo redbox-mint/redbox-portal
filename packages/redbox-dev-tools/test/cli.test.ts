@@ -42,6 +42,8 @@ describe('cli smoke test', function () {
     const pkg = JSON.parse(fs.readFileSync(path.join(tempRoot, 'package.json'), 'utf8'));
     expect(pkg.redbox.extension).to.equal('.');
     expect(pkg.sails).to.equal(undefined);
+    expect(result.stdout).to.contain('matching v6 core');
+    expect(result.stdout).to.contain('README.md');
     expect(result.stdout).to.contain('npm run build');
     const checked = runCli(['check'], tempRoot);
     expect(checked.status).to.equal(0, checked.stderr);
