@@ -234,6 +234,21 @@ for (const file of files) {
         node.parent.name === node
       )
         classify(node, 'Negative stale registration metadata fixture; module must not execute');
+      else if (
+        /\/redbox-dev-tools\/(?:src|dist)\/cli\.[jt]s$/.test(file) &&
+        ts.isPropertyAccessExpression(node.parent) && node.parent.name === node &&
+        node.parent.getText(ast) === 'pkg.sails' &&
+        ts.isBinaryExpression(node.parent.parent) && node.parent.parent.getText(ast) === 'pkg.sails != null' &&
+        ts.isIfStatement(node.parent.parent.parent) &&
+        node.parent.parent.parent.thenStatement.getText(ast) === "findings.push('sails: remove legacy hook discovery metadata');"
+      )
+        classify(node, 'Offline manifest rejection check; legacy metadata is never loaded');
+      else if (
+        /\/redbox-dev-tools\/test\/cli\.test\.ts$/.test(file) &&
+        ((ts.isPropertyAssignment(node.parent) && node.parent.name === node) ||
+          (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node && node.parent.getText(ast) === 'pkg.sails'))
+      )
+        classify(node, 'Negative CLI manifest fixture; subprocess must reject v6 legacy metadata');
       else fail(node, 'Executable/type Sails identifier');
     }
     if (ts.isVariableStatement(node)) {
@@ -277,7 +292,7 @@ for (const file of files) {
       else if (/(^|\/)test\/tooling\/retirement-closure\.test\.cjs$/.test(file) && ts.isStringLiteralLike(node))
         classify(node, 'Auditor positive/negative control source strings; never imported by the application');
       else if (
-        /\/test\/qualification\/(?:portal-application|workflow-triggers)\.cjs$/.test(file) &&
+        /\/test\/qualification\/(?:portal-application|workflow-triggers|wsu)\.cjs$/.test(file) &&
         (assertion(node).includes('assert.throws') || node.text === 'sails.services.synthetic.unregistered')
       )
         classify(node, 'Explicit unknown-operation rejection fixture');
