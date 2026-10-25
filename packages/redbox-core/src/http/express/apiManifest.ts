@@ -22,7 +22,7 @@ import { integrationOperationRoutes } from './integrationOperations';
 import { datastreamReadRoutes } from './datastreamReads';
 import { datastreamWriteRoutes } from './datastreamWrites';
 
-export const apiHttpDeclarations = [
+export const ownedHttpDeclarations = [
   ...recordTypeApiRoutes,
   ...metadataReadRoutes,
   ...configurationReadRoutes,
@@ -45,4 +45,6 @@ export const apiHttpDeclarations = [
   ...integrationOperationRoutes,
   ...datastreamReadRoutes,
   ...datastreamWriteRoutes,
-].filter(route => route.path.includes('/api/'));
+];
+
+export const apiHttpDeclarations = ownedHttpDeclarations.filter(route => route.path.includes('/api/'));

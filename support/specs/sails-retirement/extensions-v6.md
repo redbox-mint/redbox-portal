@@ -39,7 +39,13 @@ Routes identify a named handler factory and explicitly declare `access: 'public'
 or a nonempty ordered list of policy names. Named replacements retain or expressly
 revise the route's contract and policies; accidental method/path collisions fail
 before mounting, including parameter-name, case and trailing-slash aliases under
-the host's default Express router. The host
+the host's default Express router. Production resolution includes concrete core
+HTTP routes, their implicit HEAD methods, and enabled Companion paths. Use
+`portalOwnedHttpRoutes(config)` from `@researchdatabox/redbox-core/http/express`
+to find the stable core route name by method/path, then declare that name with
+`replaces: true`. Core replacements retain the target method/path and explicitly
+select their handler and policies; new custom paths need no replacement marker.
+Static assets and the final page fallback leave room for new extension routes. The host
 must bind policy execution; declaration metadata is not authorization. Middleware
 and integrations participate in the host's admission and application cleanup.
 Integrations attach to the host's single server, never call listen or add signal

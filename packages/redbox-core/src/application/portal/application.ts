@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { retainHttpRequestFollowup } from '../../middleware/requestLifetime';
 import { httpAction } from '../../http/express/middleware';
+import { portalOwnedHttpRoutes } from '../../http/express/ownedRoutes';
 import type { Observable } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { ApplicationRuntime, type ApplicationModule, type ApplicationWork } from '../Application';
@@ -250,7 +251,8 @@ export async function createPortalApplication(options: PortalApplicationOptions)
       },
       ...installed.providers,
     ],
-    installed.hookLoadPriority
+    installed.hookLoadPriority,
+    portalOwnedHttpRoutes(config)
   );
   const storage = resolved.modules.find(item => item.declaration.name === 'storage');
   if (!storage) throw new Error('Select an installed storage extension.');

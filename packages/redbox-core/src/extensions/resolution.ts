@@ -139,13 +139,14 @@ function validate(provider: ExtensionProvider): void {
 
 function select<T extends { readonly name: string; readonly replaces?: true }>(
   providers: readonly ExtensionProvider[],
-  field: keyof RedboxExtension
+  field: keyof RedboxExtension,
+  existingNames: ReadonlySet<string> = new Set()
 ): ResolvedRegistration<T>[] {
   const selected = new Map<string, ResolvedRegistration<T>>();
   for (const provider of providers) {
     const entries = provider.declaration[field] as readonly T[] | undefined;
     for (const declaration of entries ?? []) {
-      const exists = selected.has(declaration.name);
+      const exists = selected.has(declaration.name) || existingNames.has(declaration.name);
       if (exists !== !!declaration.replaces)
         fail(
           provider.name,
@@ -155,6 +156,17 @@ function select<T extends { readonly name: string; readonly replaces?: true }>(
     }
   }
   return [...selected.values()];
+}
+
+export interface OwnedHttpRoute {
+  readonly name: string;
+  readonly method: string;
+  readonly path: string;
+}
+
+/** The same matcher grammar/options as the host's default Express 5 router. */
+export function canonicalHttpRoutePath(routePath: string): string {
+  return pathToRegexp(routePath.replace(/\/$/, '').toLowerCase()).regexp.source;
 }
 
 function orderModules(modules: readonly ResolvedRegistration<ExtensionFactory>[]) {
@@ -206,28 +218,40 @@ export function orderExtensionProviders(
 /** Resolve the whole graph before any factory is called. Core is always lowest precedence. */
 export function resolveExtensions(
   providers: readonly ExtensionProvider[],
-  hookLoadPriority: readonly string[] = []
+  hookLoadPriority: readonly string[] = [],
+  ownedRoutes: readonly OwnedHttpRoute[] = []
 ): ResolvedExtensions {
   const ordered = orderExtensionProviders(providers, hookLoadPriority);
   const modules = orderModules(select<ExtensionFactory>(ordered, 'modules'));
   const handlers = select<NonNullable<RedboxExtension['handlers']>[number]>(ordered, 'handlers');
   const integrations = select<NonNullable<RedboxExtension['integrations']>[number]>(ordered, 'integrations');
-  const routes = select<ExtensionRoute>(ordered, 'routes');
+  const routes = select<ExtensionRoute>(ordered, 'routes', new Set(ownedRoutes.map(route => route.name)));
   const middleware = select<NonNullable<RedboxExtension['middleware']>[number]>(ordered, 'middleware');
   const migrations = select<ExtensionWork>(ordered, 'migrations').sort((a, b) =>
     a.declaration.name.localeCompare(b.declaration.name)
   );
   const bootstrap = select<ExtensionWork>(ordered, 'bootstrap');
   const methods = new Set<string>();
+  const owned = ownedRoutes.map(route => ({ ...route, pattern: canonicalHttpRoutePath(route.path) }));
   for (const route of routes) {
     // Match the host's default case-insensitive, non-strict Express router.
     let routePath: string;
     try {
-      routePath = pathToRegexp(route.declaration.path.replace(/\/$/, '').toLowerCase()).regexp.source;
+      routePath = canonicalHttpRoutePath(route.declaration.path);
     } catch {
       fail(route.provider, 'invalid Express route path');
     }
     const key = route.declaration.method + ' ' + routePath;
+    for (const target of owned) {
+      const samePath = routePath === target.pattern;
+      const sameMethod = route.declaration.method === target.method;
+      if (route.declaration.name === target.name && (!samePath || !sameMethod))
+        fail(route.provider, 'owned route replacement must retain its method and path');
+      if (samePath && (sameMethod || target.method === 'all')) {
+        if (route.declaration.name !== target.name || !route.declaration.replaces)
+          fail(route.provider, 'collision with an owned portal route requires its name and replaces: true');
+      }
+    }
     if (methods.has(key)) fail(route.provider, 'accidental method/path route collision');
     methods.add(key);
   }

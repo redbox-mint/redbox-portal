@@ -101,3 +101,5 @@ export { Services as PageTemplates } from '../../pages/Templates';
 export { pageResponseHeaders, applyPageHeaders, isImmutableAssetPath, type PageHeaderInput } from './pageHeaders';
 
 export { buildCompanionSendTokenConfig, buildCompanionSendTokenHtml } from './companionSendToken';
+
+export { portalOwnedHttpRoutes } from './ownedRoutes';
