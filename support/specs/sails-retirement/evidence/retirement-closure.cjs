@@ -123,6 +123,12 @@ if (!tree) {
   read = file => fs.readFileSync(path.join(tree, file), 'utf8');
 }
 const fixtureFiles = new Set(['record-hook-names.cjs', 'persisted-record-hooks.cjs', 'portal-reference.cjs']);
+const wsuConversionNames = {
+  'sails.services.planattachmentservice.preserveIds': 'wsu.plan.preserveIds',
+  'sails.services.publicationembargoservice.releaseOnTransition': 'wsu.publication.releaseOnTransition',
+  'sails.services.publicationembargoservice.validatePublication': 'wsu.publication.validatePublication',
+  'sails.services.metadataoutputstriggerservice.produceMetadataFiles': 'wsu.publication.produceMetadataFiles',
+};
 const doc = file => /(^|\/)(?:support\/(?:specs|wiki|docs)\/|skills\/)/.test(file) || /\.md(?:\.hbs)?$/.test(file);
 for (const file of files) {
   const source = read(file);
@@ -275,6 +281,13 @@ for (const file of files) {
     ) {
       if (/\/(?:src|dist)\/recordTypes\/RecordHookNames\.[cm]?[jt]s$/.test(file))
         classify(node, 'Finite persisted-declaration conversion key or rejected legacy prefix; never evaluated');
+      else if (
+        /(?:^|\/)redbox-hook-wsu\/(?:src|dist)\/migration-data\.[jt]s$/.test(file) &&
+        ts.isStringLiteralLike(node) && ts.isPropertyAssignment(node.parent) && node.parent.name === node &&
+        ts.isStringLiteralLike(node.parent.initializer) &&
+        Object.hasOwn(wsuConversionNames, node.text) && wsuConversionNames[node.text] === node.parent.initializer.text
+      )
+        classify(node, 'Finite WSU persisted-declaration conversion key to its explicit named operation; never evaluated');
       else if (/\/test\/qualification\//.test(file) && fixtureFiles.has(path.basename(file)))
         classify(node, 'Persisted conversion fixture/opaque-value preservation and rejection assertions');
       else if (

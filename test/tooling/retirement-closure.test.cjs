@@ -8,6 +8,26 @@ const { test } = require('node:test');
 const auditor = path.resolve(__dirname, '../../support/specs/sails-retirement/evidence/retirement-closure.cjs');
 
 for (const [label, source, count] of [
+  ['known finite conversion', "const names = {'sails.services.planattachmentservice.preserveIds':'wsu.plan.preserveIds'};", 0],
+  ['unknown conversion', "const names = {'sails.services.unknown.run':'wsu.unknown'};", 1],
+  ['live access', 'sails.services.planattachmentservice.preserveIds();', 1],
+]) {
+  test(`retirement audit checks WSU ${label}`, () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(),'redbox-retirement-wsu-audit-'));
+    try {
+      const fixture = path.join(directory,'node_modules/redbox-hook-wsu/dist');
+      fs.mkdirSync(fixture,{recursive:true});
+      fs.writeFileSync(path.join(directory,'node_modules/redbox-hook-wsu/package.json'),JSON.stringify({name:'redbox-hook-wsu'}));
+      fs.writeFileSync(path.join(fixture,'migration-data.js'),source);
+      const result = spawnSync(process.execPath,[auditor,'--tree',directory],{encoding:'utf8'});
+      const audit = JSON.parse(result.stdout);
+      assert.equal(audit.executableViolations,count,result.stdout+result.stderr);
+      assert.equal(result.status,count?1:0);
+    } finally {fs.rmSync(directory,{recursive:true,force:true});}
+  });
+}
+
+for (const [label, source, count] of [
   ['offline manifest rejection', "if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata');", 0],
   ['loading the legacy manifest value', 'load(pkg.sails);', 1],
   ['live runtime access beside the rejection check', "if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata'); sails.lift();", 1],
