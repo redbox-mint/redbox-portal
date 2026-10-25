@@ -63,8 +63,9 @@ test('production image contains standalone exports, EJS views and every Angular 
       assert(existsSync(path.join(artifacts.assets[0], 'angular', application, 'browser', 'main-' + hash + '.js')));
     }
     assert(existsSync(path.join(root, 'node_modules/@researchdatabox/sails-hook-redbox-storage-mongo')));
-    assert.equal(existsSync(path.join(root, 'node_modules/redbox-hook-dev')), false);
-    assert.equal(existsSync(path.join(root, 'packages/redbox-hook-dev')), false);
+    const bundled = process.env.SR_ARTIFACT_BUNDLED === 'true';
+    assert.equal(existsSync(path.join(root, 'node_modules/redbox-hook-dev')), bundled);
+    assert.equal(existsSync(path.join(root, 'packages/redbox-hook-dev')), bundled);
     for (const file of Object.keys(require.cache)) {
       assert(file.startsWith(root + '/'), 'Module outside the installed image: ' + file);
       assert(!file.endsWith('.ts'), 'Source TypeScript shortcut: ' + file);

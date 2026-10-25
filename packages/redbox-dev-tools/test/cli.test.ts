@@ -35,6 +35,32 @@ describe('cli smoke test', function () {
     }
   });
 
+  it('compiles a converted hook through the shared base without a hoisted tsconfig package', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-isolated-config-'));
+    fs.mkdirSync(path.join(tempRoot, 'src'));
+    fs.writeFileSync(path.join(tempRoot, 'src/index.ts'), 'export const supportedMajor: number = 26;\n');
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({name:'redbox-hook-config-proof',type:'commonjs'}));
+    const packageLink = path.join(tempRoot,'node_modules/@researchdatabox/redbox-dev-tools');
+    fs.mkdirSync(path.dirname(packageLink),{recursive:true});
+    fs.symlinkSync(packageRoot,packageLink,'dir');
+    const fixtureRequire = require('node:module').createRequire(path.join(tempRoot,'package.json'));
+    expect(() => fixtureRequire.resolve('@tsconfig/node24/tsconfig.json')).to.throw();
+    const config = {extends:'@tsconfig/node24/tsconfig.json',compilerOptions:{outDir:'dist',types:[]},include:['src/**/*.ts']};
+    const file = path.join(tempRoot,'tsconfig.json');
+    const compile = () => spawnSync(process.execPath,
+      ['--require',tsNodeRegister,path.join(packageRoot,'src/bin/run-hook-tsc.ts'),'-p','tsconfig.json'],
+      {cwd:tempRoot,encoding:'utf8',env:{...process.env,TS_NODE_PROJECT:tsNodeProject,TS_NODE_TRANSPILE_ONLY:'true'}});
+    fs.writeFileSync(file,JSON.stringify(config));
+    const legacy = compile();
+    expect(legacy.status).to.not.equal(0);
+    expect(legacy.stdout+legacy.stderr).to.contain("@tsconfig/node24/tsconfig.json");
+    config.extends = '@researchdatabox/redbox-dev-tools/config/tsconfig.base.json';
+    fs.writeFileSync(file,JSON.stringify(config));
+    const converted = compile();
+    expect(converted.status).to.equal(0,converted.stdout+converted.stderr);
+    expect(fs.existsSync(path.join(tempRoot,'dist/index.js'))).to.equal(true);
+  });
+
   it('generates the initial v6 extension through the public init command', () => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-v6-init-'));
     const result = runCli(['init', 'demo-client', '--template', 'v6'], tempRoot);

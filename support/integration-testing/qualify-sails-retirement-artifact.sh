@@ -23,6 +23,7 @@ cleanup() {
 }
 trap cleanup EXIT
 docker create --name sr-p7-artifact-assets --network none \
+  -e SR_ARTIFACT_BUNDLED \
   --mount "type=bind,src=$PWD/packages/redbox-core/test/qualification/image-artifacts.cjs,dst=/opt/redbox-portal/image-artifacts.cjs,readonly" \
   "$task_image" node --test image-artifacts.cjs > "$task_logs/assets-container.txt"
 task_containers+=(sr-p7-artifact-assets)

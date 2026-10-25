@@ -41,6 +41,23 @@ belongs under `config.custom[hookName]`.
 exercises these bindings, persisted work, public HTTP, restart and drain on the
 production host; it supplements the isolated packed registration checks.
 
+## Convert compiler configuration before a clean install
+
+A migrated hook must not extend a compiler-base package that only happened to be
+hoisted by its old core dependency tree. For example, change an undeclared
+`"extends": "@tsconfig/node24/tsconfig.json"` to
+`"extends": "@researchdatabox/redbox-dev-tools/config/tsconfig.base.json"`, with
+an exact matching dev-tools dependency. The shared base owns its compiler-base
+dependency. Preserve institution compiler options and source/output paths. The
+conservative Node 24 type/compiler base does not select the executing runtime;
+v6 executes on the qualified Node 26 patch. A newly generated v6 scaffold can
+also use its explicit compiler settings without an external base.
+
+Run the actual shared compiler from a clean installed hook, outside the portal
+checkout, before accepting the conversion. Source-tree hoisting and `NODE_PATH`
+can hide missing packages. The isolated compiler regression exercises the failing
+undeclared base and the working shared base without a hoisted `@tsconfig` package.
+
 ## Package format and registration
 
 Before, the manifest's `sails.hasServices`, `hasControllers`, `hasConfig`,
