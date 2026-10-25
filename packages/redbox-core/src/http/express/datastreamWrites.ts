@@ -7,8 +7,19 @@ import Datastream from '../../Datastream';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 import { addDataStreamsRoute } from '../../api-routes/groups/records';
 import { validateApiRouteFiles, validateApiRouteRequest } from '../../api-routes/validation';
-import { parsePublicRecordConcurrencyRequest, recordSaveResultHeaders } from '../../RecordHttpConcurrency';
-import { createRecordSaveContext, readSaveRequestId, recordSaveFailureStatus } from '../../RecordSaveResponse';
+import {
+  parsePublicRecordConcurrencyRequest,
+  recordRepresentationConcurrency,
+  recordSaveResultHeaders,
+} from '../../RecordHttpConcurrency';
+import {
+  createRecordSaveContext,
+  isRecordConflictStatus,
+  readSaveRequestId,
+  recordSaveDisplayErrors,
+  recordSaveFailureStatus,
+  recordSaveProblem,
+} from '../../RecordSaveResponse';
 import type { PoliciesConfig } from '../../config/policies.config';
 import type { createHttpCsrf } from './csrf';
 import { bindHttpPolicies, resolveEffectivePolicies, requestContext } from './policies';
@@ -17,7 +28,10 @@ import { apiVersion, apiNoCacheHeaders, sendApiErrors } from './responses';
 import { StreamingMultipart, MultipartError } from './multipart';
 export const datastreamWriteRoutes = [addDataStreamsRoute];
 export interface DatastreamWritesHttpInput {
-  readonly records: Pick<RecordsService, 'getMeta' | 'hasEditAccess' | 'updateMeta'>;
+  readonly records: Pick<
+    RecordsService,
+    'getMeta' | 'getDeletedRecordMeta' | 'hasViewAccess' | 'hasEditAccess' | 'updateMeta'
+  >;
   readonly datastream: Pick<DatastreamService, 'addDatastreams'>;
   readonly multipart: StreamingMultipart;
   readonly csrf: Pick<ReturnType<typeof createHttpCsrf>, 'apiProtect'>;
@@ -118,20 +132,84 @@ export function mountDatastreamWriteRoutes(router: Router, input: DatastreamWrit
                 uploadedBy: actor.username,
               })
           );
-          const result = await input.datastream.addDatastreams(oid, files);
-          Object.assign(result, { fileIds: files });
-          if (!result.isSuccessful()) {
-            result.message = 'Attachment finalization failed. Review current attachments before retrying.';
+          try {
+            const result = await input.datastream.addDatastreams(oid, files);
+            if (!result.isSuccessful()) throw new Error('Datastream finalization failed');
+            Object.assign(result, { fileIds: files });
+            return { saved, result };
+          } catch {
+            input.log.error('Datastream finalization failed');
             saved.addProblem({
               kind: 'processing',
               phase: 'attachments',
               issues: [{ code: 'datastream-finalization-failed', message: '@datastream-finalization-failed' }],
             });
+            return { saved, finalizationFailed: true };
           }
-          return { saved, result };
         });
         if (response.failure) {
-          sendApiErrors(req, res, recordSaveFailureStatus(response.failure), [{ detail: response.failure.message }]);
+          const failure = response.failure;
+          // A certified non-write can expose only a freshly authorized snapshot,
+          // never the candidate carried back by a losing save.
+          if (
+            failure.outcome === 'not-saved' &&
+            failure.problems.some(problem => problem.kind === 'conflict' || problem.kind === 'authorization')
+          ) {
+            failure.setProjectedMetadata(null);
+            const active = await input.records.getMeta(oid);
+            let latest = active?.metaMetadata?.brandId === snapshot.id ? active : null;
+            if (!latest)
+              try {
+                const deleted = await input.records.getDeletedRecordMeta(oid, brand);
+                if (deleted?.metaMetadata?.brandId === snapshot.id) latest = deleted;
+              } catch {
+                /* Missing/deleted objects remain private on a failed recovery read. */
+              }
+            if (!latest || !input.records.hasViewAccess(brand, user, user.roles, latest)) {
+              sendApiErrors(req, res, 403, [{ code: 'not-authorised', detail: 'Not authorised.' }]);
+              return;
+            }
+            if (!input.records.hasEditAccess(brand, user, user.roles, latest))
+              failure.problems = [
+                recordSaveProblem(
+                  'authorization',
+                  'response',
+                  '@record-save-record-validation-edit-unauthorized',
+                  'record-validation-edit-unauthorized'
+                ),
+              ];
+            failure.setProjectedMetadata(latest.metadata);
+            failure.setConcurrencyMetadata({
+              ...failure.concurrency,
+              ...recordRepresentationConcurrency(latest).metadata,
+            });
+          }
+          const detail = 'Error sending datastreams upstream.';
+          const status = recordSaveFailureStatus(failure);
+          res.set(apiNoCacheHeaders).set(recordSaveResultHeaders(failure));
+          if (apiVersion(req) === '2.0')
+            res.status(status).json({ errors: recordSaveDisplayErrors(failure, detail), meta: { ...failure } });
+          else {
+            const schemaMalformed = failure.problems.some(
+              problem =>
+                problem.kind === 'validation' &&
+                problem.issues.some(issue => issue.code === 'record-schema.invalid-request')
+            );
+            res.status(status === 412 || isRecordConflictStatus(status) ? status : schemaMalformed ? 400 : 500).json({
+              message: detail,
+            });
+          }
+          return;
+        }
+        if (response.finalizationFailed) {
+          const detail = 'Attachment finalization failed. Review current attachments before retrying.';
+          res.set(recordSaveResultHeaders(response.saved));
+          if (apiVersion(req) === '2.0')
+            res
+              .set(apiNoCacheHeaders)
+              .status(500)
+              .json({ errors: [{ detail }], meta: { ...response.saved } });
+          else sendApiErrors(req, res, 500, [{ detail }]);
           return;
         }
         res

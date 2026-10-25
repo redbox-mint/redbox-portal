@@ -66,6 +66,7 @@ describe('Owned datastream HTTP contracts', function () {
     multipart = new StreamingMultipart(disk, { files: 10, fileSize: 1024, fields: 10, fieldSize: 1024 });
     records = {
       getMeta: sinon.stub().resolves(activeRecord()),
+      getDeletedRecordMeta: sinon.stub().resolves(null),
       hasViewAccess: sinon.stub().returns(true),
       hasEditAccess: sinon.stub().returns(true),
       getAttachments: sinon.stub().resolves([{ fileId: 'file-1', name: 'safe.txt' }]),
@@ -160,6 +161,32 @@ describe('Owned datastream HTTP contracts', function () {
     expect(response.body.meta.outcome).to.equal('saved');
     expect(response.headers.get('ETag')).to.equal(formatRecordEntityTag('record-1', 6));
   });
+  for (const version of ['1.0', '2.0'])
+    for (const failure of ['returned', 'thrown'])
+      it(`reports ${failure} finalization failure with the committed save contract in API ${version}`, async function () {
+        if (failure === 'thrown') datastream.addDatastreams.rejects(new Error('PRIVATE provider failure'));
+        else
+          datastream.addDatastreams.resolves({
+            success: false,
+            message: 'PRIVATE provider failure',
+            isSuccessful: () => false,
+          });
+        const response = await upload({ 'X-ReDBox-Api-Version': version });
+        expect(response.status).to.equal(500);
+        expect(response.headers.get('ETag')).to.equal(formatRecordEntityTag('record-1', 6));
+        expect(response.headers.get('Cache-Control')).to.equal('no-cache, private');
+        expect(JSON.stringify(response.body)).not.to.include('PRIVATE');
+        if (version === '2.0') {
+          expect(response.body.errors).to.have.length(1);
+          expect(response.body.meta.outcome).to.equal('saved-with-warnings');
+          expect(response.body.meta.oid).to.equal('record-1');
+          expect(response.body.meta.problems[0].issues[0].code).to.equal('datastream-finalization-failed');
+        } else expect(response.body.message).to.be.a('string').and.not.to.equal('');
+        expect(records.updateMeta.calledOnce).to.equal(true);
+        expect(datastream.addDatastreams.calledOnce).to.equal(true);
+        expect(disk.delete.calledOnce).to.equal(true);
+        expect(await readdir(directory)).to.deep.equal([]);
+      });
   it('reloads tokenless metadata after upload and skips the onUpdate hook chain', async function () {
     const latest = {
       ...activeRecord(),
@@ -196,6 +223,45 @@ describe('Owned datastream HTTP contracts', function () {
     expect(disk.delete.calledOnce).to.equal(true);
     expect(await readdir(directory)).to.deep.equal([]);
   });
+  it('returns safe current metadata and typed conflicts for a refused upload claim', async function () {
+    const failure = refused('record-revision-stale');
+    failure.setProjectedMetadata({ privateValue: 'stale untrusted snapshot' });
+    records.updateMeta.resolves(failure);
+    const response = await upload();
+    expect(response.status).to.equal(412);
+    expect(response.body.errors[0].code).to.equal('record-revision-stale');
+    expect(response.body.meta.outcome).to.equal('not-saved');
+    expect(response.body.meta.metadata).to.deep.equal({ title: 'Existing title' });
+    expect(response.headers.get('ETag')).to.equal(formatRecordEntityTag('record-1', 5));
+    expect(JSON.stringify(response.body)).not.to.include('stale untrusted snapshot');
+    expect(datastream.addDatastreams.called).to.equal(false);
+  });
+  for (const version of ['1.0', '2.0'])
+    it(`withholds upload-conflict state after view access is revoked in API ${version}`, async function () {
+      const failure = refused('record-revision-stale');
+      failure.setProjectedMetadata({ privateValue: 'must not return' });
+      failure.setConcurrencyMetadata({ revision: 6, entityTag: formatRecordEntityTag('record-1', 6) });
+      records.updateMeta.resolves(failure);
+      records.hasViewAccess.returns(false);
+      const response = await upload({ 'X-ReDBox-Api-Version': version });
+      expect(response.status).to.equal(403);
+      expect(response.headers.get('ETag')).to.equal(null);
+      expect(JSON.stringify(response.body)).not.to.include('must not return');
+      if (version === '2.0') expect(response.body.meta).to.deep.equal({});
+      expect(datastream.addDatastreams.called).to.equal(false);
+    });
+  for (const version of ['1.0', '2.0'])
+    it(`retains the legacy validation-refusal status in API ${version}`, async function () {
+      const failure = refused('validation-failed');
+      failure.problems[0].kind = 'validation';
+      records.updateMeta.resolves(failure);
+      const response = await upload({ 'X-ReDBox-Api-Version': version });
+      expect(response.status).to.equal(version === '1.0' ? 500 : 400);
+      if (version === '2.0') {
+        expect(response.body.meta.outcome).to.equal('not-saved');
+        expect(response.body.errors[0].code).to.equal('validation-failed');
+      } else expect(response.body).to.deep.equal({ message: 'Error sending datastreams upstream.' });
+    });
   it('rechecks edit permission after bytes arrive without disclosing record state', async function () {
     records.getMeta.onSecondCall().resolves({ ...activeRecord(), metadata: { privateValue: 'must-not-return' } });
     records.hasEditAccess.onSecondCall().returns(false);
