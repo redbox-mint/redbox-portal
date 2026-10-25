@@ -5,7 +5,16 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render } from 'ejs';
 import sinon from 'sinon';
-import { nothingLogger } from '@researchdatabox/sails-ng-common';
+import { createTransport } from 'nodemailer';
+import {
+  nothingLogger,
+  FormConfig,
+  CheckboxTreeFormComponentDefinition,
+  CheckboxTreeFieldComponentDefinition,
+  CheckboxTreeFieldComponentConfig,
+  CheckboxTreeFieldModelDefinition,
+  CheckboxTreeFieldModelConfig,
+} from '@researchdatabox/sails-ng-common';
 import { loadPortalConfiguration } from '../../src/configuration/portal';
 import { PortalHttp } from '../../src/application/portal/http';
 import { clientConfiguration } from '../../src/pages/clientConfiguration';
@@ -99,17 +108,22 @@ describe('baseline configuration acceptance and production consumers', () => {
   });
 
   it('passes enabled and selection limits into production form prehydration', async () => {
-    const formConfig = {
+    const formConfig = Object.assign(new FormConfig(), {
       name: 'test',
-      accept: async () => {},
       componentDefinitions: [
-        {
+        Object.assign(new CheckboxTreeFormComponentDefinition(), {
           name: 'tree',
-          component: { class: 'CheckboxTreeComponent', config: { vocabRef: 'anzsrc' } },
-          model: { config: { value: [{ notation: '01' }, { notation: '02' }] } },
-        },
+          component: Object.assign(new CheckboxTreeFieldComponentDefinition(), {
+            config: Object.assign(new CheckboxTreeFieldComponentConfig(), { vocabRef: 'anzsrc' }),
+          }),
+          model: Object.assign(new CheckboxTreeFieldModelDefinition(), {
+            config: Object.assign(new CheckboxTreeFieldModelConfig(), {
+              value: [{ notation: '01' }, { notation: '02' }],
+            }),
+          }),
+        }),
       ],
-    };
+    });
     for (const enabled of [true, false]) {
       const config = await load({ form: { prehydrate: { enabled, maxVocabSelections: 1 } } });
       const { delivery } = await productionInputs(config);
@@ -235,8 +249,31 @@ describe('baseline configuration acceptance and production consumers', () => {
     const properties = email.evaluateProperties({ template: 'institution' });
     assert.equal(properties.subject, 'Institution subject');
     assert.equal(properties.cc, 'copy@example.invalid');
-    assert.equal(config.emailnotification.settings.serverOptions.jsonTransport, true);
+    const serverOptions = config.emailnotification.settings.serverOptions;
+    assert(typeof serverOptions !== 'string');
+    assert.equal(serverOptions.jsonTransport, true);
   });
+
+  for (const [url, port, secure] of [
+    ['smtp://mail.example.invalid:2525?secure=false', 2525, false],
+    ['smtps://mail.example.invalid:465', 465, true],
+  ] as const) {
+    it(`retains native email URL transport ${url.split(':')[0]}`, async () => {
+      const config = await load({ emailnotification: { settings: { serverOptions: url } } });
+      const serverOptions = config.emailnotification.settings.serverOptions;
+      assert.equal(serverOptions, url);
+      assert(typeof serverOptions === 'string');
+      const transport = createTransport(serverOptions);
+      try {
+        const nativeOptions = Reflect.get(transport, 'transporter').options;
+        assert.equal(nativeOptions.host, 'mail.example.invalid');
+        assert.equal(nativeOptions.port, port);
+        assert.equal(nativeOptions.secure, secure);
+      } finally {
+        transport.close();
+      }
+    });
+  }
 
   it('retains the Angular development bundle switch used by workspace pages', async () => {
     const source = readFileSync(resolve('../../views/default/default/listWorkspaces.ejs'), 'utf8');

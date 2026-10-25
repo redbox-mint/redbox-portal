@@ -859,7 +859,7 @@
         "enabled": { "type": "boolean" },
         "from": { "type": "string" },
         "templateDir": { "type": "string" },
-        "serverOptions": { "$ref": "#/definitions/EmailServerOptions" }
+        "serverOptions": { "anyOf": [{ "$ref": "#/definitions/EmailServerOptions" }, { "type": "string" }] }
       },
       "required": ["enabled", "from", "serverOptions", "templateDir"]
     },

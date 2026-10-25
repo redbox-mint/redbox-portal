@@ -29,7 +29,7 @@ export interface EmailSettings {
   enabled: boolean;
   from: string;
   templateDir: string;
-  serverOptions: EmailServerOptions;
+  serverOptions: EmailServerOptions | string;
 }
 
 export interface EmailDefaults {
