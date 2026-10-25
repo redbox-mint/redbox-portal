@@ -94,8 +94,9 @@ export interface RecordReadHttpInput extends RecordSchemaReadHttpInput {
   readonly recordTypes: Pick<RecordTypes, 'get'>;
   readonly search: Pick<SolrReads, 'searchFuzzy'>;
   readonly returnFields: string[];
-  /** API/browser record-list limit, independent of fuzzy search pagination. */
+  /** API record-list limit, independent of browser list/search pagination. */
   readonly maxRows: number;
+  /** Browser record-list and fuzzy search bound; defaults to maxRows for existing callers. */
   readonly maxSearchRows?: number;
   readonly log: ILogger;
   translate(key: string, brand: string): string;
@@ -252,10 +253,11 @@ export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput
             case 'getDeletedRecordList': {
               const start = natural(query.start, 0);
               const rows = natural(query.rows, 10, 1);
-              if (rows > input.maxRows)
+              const maxListRows = browser ? maxSearchRows : input.maxRows;
+              if (rows > maxListRows)
                 throw new RecordReadError(
                   400,
-                  'You have reached the maximum of request available; Max rows per request ' + input.maxRows
+                  'You have reached the maximum of request available; Max rows per request ' + maxListRows
                 );
               const csv = (name: string) => (scalar(name) ? scalar(name).split(',') : undefined);
               const fields = csv('filterFields');
