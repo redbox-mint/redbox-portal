@@ -1,0 +1,274 @@
+{
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "head": "547370ac8a80e6f2af553e6958ad90343ff81d0a",
+  "comparison": "git diff a49366803...HEAD",
+  "branch": "stack/sails-retirement",
+  "sourceCoverage": {
+    "application": {
+      "files": 13,
+      "typeScriptFiles": 13,
+      "lines": 3123,
+      "sources": [
+        {
+          "file": "packages/redbox-core/src/application/Application.ts",
+          "lines": 329,
+          "sha256": "8ef2207350703e01fe6c4db429abcf0a510826418f49aaba4d7ee08d2f6440b0"
+        },
+        {
+          "file": "packages/redbox-core/src/application/index.ts",
+          "lines": 18,
+          "sha256": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159"
+        },
+        {
+          "file": "packages/redbox-core/src/application/migrations.ts",
+          "lines": 106,
+          "sha256": "19686a9c2f901177692bbde516d3a74429fdf3f4149b0d8d8c18a32fa16d7221"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/application.ts",
+          "lines": 494,
+          "sha256": "3090b1ba8843f29d170668d0a3bf9386fe753e8e90386efa2e05cfc2635d119d"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/data.ts",
+          "lines": 416,
+          "sha256": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/domain.ts",
+          "lines": 77,
+          "sha256": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/host.ts",
+          "lines": 26,
+          "sha256": "04513c428f6fd76d63d35b32656b7a1c5214eed0e7f2666547de45e84cb05aea"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/http.ts",
+          "lines": 620,
+          "sha256": "cad31280fe054008a85284dae3376ed3cb8319e314913773e7d1539428870bc1"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/httpPolicies.ts",
+          "lines": 24,
+          "sha256": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/index.ts",
+          "lines": 7,
+          "sha256": "b6a4a3075e8e4ffd552c08a97035fcb5ebde12ed0cf7537c658178336f55d996"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/providers.ts",
+          "lines": 321,
+          "sha256": "5129b33cf153fd8bb622614d17f7b9667ca52e9efcaa2372a14f95ede3487138"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/recordOperations.ts",
+          "lines": 86,
+          "sha256": "a7379086d95a222254cdd3b6fcfab5b66082edc2d634209f892e247d6ddeba3a"
+        },
+        {
+          "file": "packages/redbox-core/src/application/portal/reference.ts",
+          "lines": 599,
+          "sha256": "ae4b2e65f0cce567530a993b82f8c67d7543de972d792eb4071aeb3faf99e96f"
+        }
+      ]
+    },
+    "extensions": {
+      "files": 7,
+      "typeScriptFiles": 7,
+      "lines": 793,
+      "sources": [
+        {
+          "file": "packages/redbox-core/src/extensions/composition.ts",
+          "lines": 154,
+          "sha256": "bbbe5fca2f580470c6bc205800a83a7f1b391e993996d60f1628bd714f4dd02e"
+        },
+        {
+          "file": "packages/redbox-core/src/extensions/config.ts",
+          "lines": 2,
+          "sha256": "eefe9292c8eb59a3466bb57b2c51f906fd4170fd8ecebc81e07636fe5ade4996"
+        },
+        {
+          "file": "packages/redbox-core/src/extensions/contract.ts",
+          "lines": 78,
+          "sha256": "d4f59d5386c72b6806e5106eff5ce14ea1e99c333fc625d4c4837a310e4dc625"
+        },
+        {
+          "file": "packages/redbox-core/src/extensions/index.ts",
+          "lines": 4,
+          "sha256": "1fb6c34ed82c6a1ad7fadd9bdc71158072b6415d1143e3b5fa488ff86327b5ee"
+        },
+        {
+          "file": "packages/redbox-core/src/extensions/loading.ts",
+          "lines": 99,
+          "sha256": "0020656f7060758df1619f009a8c03641f5261bc10ac4a2db630c7a3aa669c01"
+        },
+        {
+          "file": "packages/redbox-core/src/extensions/resolution.ts",
+          "lines": 406,
+          "sha256": "48c465ce6655bc58f479e32fe594d8438373c337aa32c2c7c853fa76c976c0ac"
+        },
+        {
+          "file": "packages/redbox-core/src/extensions/storage.ts",
+          "lines": 50,
+          "sha256": "6baae36567e571e1f714ab1df4df4e35c28747b3d83af429e503c54ab97cad7c"
+        }
+      ]
+    },
+    "configuration": {
+      "files": 12,
+      "typeScriptFiles": 11,
+      "lines": 12494,
+      "sources": [
+        {
+          "file": "packages/redbox-core/src/configuration/AppConfigSecrets.ts",
+          "lines": 481,
+          "sha256": "0a325ec29b6fbd3f7fa90cacee9a4a38ab45feddf8d063a31ce0043b9c04a5e3"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/AppConfigs.ts",
+          "lines": 828,
+          "sha256": "65301ed39e39eef77dc7784a02e7757b3808f2c8d1af812b43b2c8bd32ad019d"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/ConfigModelRegistry.ts",
+          "lines": 223,
+          "sha256": "756d07ecafc1807ef2218df4eaf15c817409b5e366b85124f09ddc8d1b0ae625"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/PortalDomainConfiguration.ts",
+          "lines": 42,
+          "sha256": "1c21093bec503678111af99823f88acd2acfb28989a97b00300ba59c384c1395"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/brand.ts",
+          "lines": 35,
+          "sha256": "9e49e0081161ab0ce4ab676f3e38a942eb51c309f75594c232203378fefa4663"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/dashboardKeys.ts",
+          "lines": 6,
+          "sha256": "461734caccb2ef9a301444df7e87a77aa025a0e1f026f610de6c81162dce6d91"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/deployment.ts",
+          "lines": 383,
+          "sha256": "a027fe3178deeb801826c91e720fb40a2f104212e850fbb4b8e98c332751c2c6"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/index.ts",
+          "lines": 8,
+          "sha256": "84b13ecd4844993a32543edabfb25b536179b6a76ba704e1e7684cb8ef27fcdd"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/loading.ts",
+          "lines": 35,
+          "sha256": "c3e6a270c50a3891729928135e64e34ed914b31833be47d54b3d83cd793237e7"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/portal-domains.schema.json",
+          "lines": 9715,
+          "sha256": "cb61ed0ec7a8b189068e627a30639291f4e9fdf7055d6fcec57c1e5e6635facd"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/portal.ts",
+          "lines": 527,
+          "sha256": "4f3fe6a53cea3f116cd3132a8a49bfc933bead93af62339f738d421c4e204a42"
+        },
+        {
+          "file": "packages/redbox-core/src/configuration/resolution.ts",
+          "lines": 211,
+          "sha256": "323e32dea9a51b35596013d09b82f94d07d701624cc704c1a41fdafb20127b48"
+        }
+      ]
+    },
+    "queues": {
+      "files": 5,
+      "typeScriptFiles": 5,
+      "lines": 1244,
+      "sources": [
+        {
+          "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+          "lines": 1023,
+          "sha256": "a19c8fc2db2f8e8552ac05af479966476b3f6f914264f826cce5dcebf6b17f76"
+        },
+        {
+          "file": "packages/redbox-core/src/queues/ScheduledWork.ts",
+          "lines": 67,
+          "sha256": "85c16fdf7da0514af3aeb90f680d6999e638d6be53ec564e6bb65ddb0d279b75"
+        },
+        {
+          "file": "packages/redbox-core/src/queues/index.ts",
+          "lines": 8,
+          "sha256": "a25facdef7be8e979578158c103527ecff6d19c9a135a49dc18581a4b4cd5fcf"
+        },
+        {
+          "file": "packages/redbox-core/src/queues/indexes.ts",
+          "lines": 76,
+          "sha256": "17aeddcbc78c77eda6eb18ad02f2f88c10350fe1126f1b6deee13c694c02e05f"
+        },
+        {
+          "file": "packages/redbox-core/src/queues/migrateRecordHooks.ts",
+          "lines": 70,
+          "sha256": "23cf8191380aaed6d7b4af8ee63e98383f07c01cc705bbc7c7dca4950221b2aa"
+        }
+      ]
+    },
+    "maintenance": {
+      "files": 1,
+      "typeScriptFiles": 1,
+      "lines": 108,
+      "sources": [
+        {
+          "file": "packages/redbox-core/src/maintenance/indexes.ts",
+          "lines": 108,
+          "sha256": "a3d35bdee90de2561ce3898f28374455504f18f8d5da4fa6c449380bb605207b"
+        }
+      ]
+    },
+    "ExpressHost": {
+      "files": 1,
+      "lines": 305,
+      "sources": [
+        {
+          "file": "packages/redbox-core/src/http/express/ExpressHost.ts",
+          "sha256": "3016fd18b09e328d705ebf2358bfb84c3a04052847c1478313b45ca7352b2432"
+        }
+      ]
+    }
+  },
+  "pins": {
+    "manifests": 23,
+    "declarationsIncludingPeerAndOptional": 377,
+    "allowedLocal": 20,
+    "introducedNonExact": [],
+    "inheritedNonExact": []
+  },
+  "tasks": {
+    "total": 55,
+    "complete": 51,
+    "partial": [
+      "SR-005",
+      "SR-045",
+      "SR-049",
+      "SR-055"
+    ],
+    "linkedReviewRounds": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "constraints": {
+    "runtimeOrTestEdits": false,
+    "dockerManaged": false,
+    "branchChanged": false,
+    "worktreeCreated": false,
+    "agentsSpawned": false
+  }
+}

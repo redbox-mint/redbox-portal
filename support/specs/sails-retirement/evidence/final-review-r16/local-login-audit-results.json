@@ -1,0 +1,45 @@
+{
+  "node": "v26.11.1",
+  "classification": "A",
+  "severity": "P2",
+  "proof": "Native HTTP, real Passport sessions and CSRF; controlled identity/audit ports. Actual extracted Angular onLogin and pinned baseline localLogin/recordBackgroundOperation bodies. No Mongo, historical HTTP server or browser claim.",
+  "auditCalls": 2,
+  "observations": [
+    {
+      "case": "current correct credentials; useraudit insert rejects",
+      "httpStatus": 500,
+      "body": {
+        "message": "Internal server error",
+        "details": ""
+      },
+      "consumer": {
+        "rejected": true,
+        "isLoginDisabled": true,
+        "loginMessage": null,
+        "redirect": ""
+      }
+    },
+    {
+      "case": "current successful audit control",
+      "httpStatus": 200,
+      "consumer": {
+        "rejected": false,
+        "isLoginDisabled": true,
+        "loginMessage": null,
+        "redirect": "/default/portal/home"
+      }
+    },
+    {
+      "case": "baseline actual localLogin/background methods; same audit failure",
+      "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+      "httpStatus": 200,
+      "auditFailureRecorded": true,
+      "consumer": {
+        "rejected": false,
+        "isLoginDisabled": true,
+        "loginMessage": null,
+        "redirect": "/default/portal/home"
+      }
+    }
+  ]
+}

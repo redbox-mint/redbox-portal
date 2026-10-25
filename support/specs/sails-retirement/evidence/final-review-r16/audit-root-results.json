@@ -1,0 +1,40 @@
+{
+  "node": "v26.11.1",
+  "classification": "B",
+  "severity": "P2",
+  "proof": "Actual current native HTTP through /research, actual baseline method execution, source-backed shipped direct href. Controlled record ports; no deployed proxy/browser or historical HTTP claim.",
+  "observations": [
+    {
+      "case": "current native audit tab",
+      "status": 200,
+      "rawAuditUrl": "/default/portal/api/records/audit/record-1"
+    },
+    {
+      "case": "actual returned link",
+      "status": 404
+    },
+    {
+      "case": "prefixed control through native raw-audit route",
+      "status": 200,
+      "body": {
+        "summary": {
+          "numFound": 0,
+          "page": 1,
+          "start": 0
+        },
+        "records": []
+      }
+    },
+    {
+      "case": "actual baseline buildRawAuditUrl method",
+      "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+      "rawAuditUrl": "/default/portal/api/records/audit/record-1",
+      "equalsCurrent": true
+    },
+    {
+      "case": "shipped Angular consumer",
+      "directAssignment": true,
+      "directHref": true
+    }
+  ]
+}

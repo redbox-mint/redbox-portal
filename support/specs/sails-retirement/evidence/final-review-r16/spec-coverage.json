@@ -1,0 +1,1136 @@
+{
+  "axis": "Spec",
+  "round": 16,
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "reviewedHead": "547370ac8a80e6f2af553e6958ad90343ff81d0a",
+  "diff": "git diff a49366803...547370ac8",
+  "scope": "Fresh body-by-body Express and production binding review; relevant prior differential/acceptance/client ledgers consulted. This is not a re-execution of every route or a new qualification gate.",
+  "counts": {
+    "expressModulesReadEndToEnd": 51,
+    "expressSourceLines": 9865,
+    "expressModulesWithoutNewClassAP1P2": 50,
+    "productionBindingsReadEndToEnd": 2,
+    "productionSourceLines": 644,
+    "classAP1": 0,
+    "classAP2": 1,
+    "newInheritedP2Notes": 1,
+    "priorP3GroupsRetained": 10,
+    "newControlledObservations": 56,
+    "remainingVerifiedClassAP1P2": 0,
+    "correctedClassAP2": 1,
+    "postCorrectionNativeConsumerObservations": 7
+  },
+  "coverageGroups": {
+    "host-admission-authentication-response": {
+      "files": 13,
+      "readFocus": [
+        "actor/brand/object target and authorization",
+        "data normalization, outcomes and HTTP responses",
+        "admission and completion ownership",
+        "relevant parser, upload, callback and protocol boundaries"
+      ]
+    },
+    "configuration-form-and-metadata": {
+      "files": 6,
+      "readFocus": [
+        "actor/brand/object target and authorization",
+        "data normalization, outcomes and HTTP responses",
+        "admission and completion ownership",
+        "relevant parser, upload, callback and protocol boundaries"
+      ]
+    },
+    "pages-assets-branding": {
+      "files": 6,
+      "readFocus": [
+        "actor/brand/object target and authorization",
+        "data normalization, outcomes and HTTP responses",
+        "admission and completion ownership",
+        "relevant parser, upload, callback and protocol boundaries"
+      ]
+    },
+    "records-bytes-multipart": {
+      "files": 7,
+      "readFocus": [
+        "actor/brand/object target and authorization",
+        "data normalization, outcomes and HTTP responses",
+        "admission and completion ownership",
+        "relevant parser, upload, callback and protocol boundaries"
+      ]
+    },
+    "query-report-dashboard": {
+      "files": 3,
+      "readFocus": [
+        "actor/brand/object target and authorization",
+        "data normalization, outcomes and HTTP responses",
+        "admission and completion ownership",
+        "relevant parser, upload, callback and protocol boundaries"
+      ]
+    },
+    "identity-administration-providers": {
+      "files": 3,
+      "readFocus": [
+        "actor/brand/object target and authorization",
+        "data normalization, outcomes and HTTP responses",
+        "admission and completion ownership",
+        "relevant parser, upload, callback and protocol boundaries"
+      ]
+    },
+    "integration-and-admin-operations": {
+      "files": 7,
+      "readFocus": [
+        "actor/brand/object target and authorization",
+        "data normalization, outcomes and HTTP responses",
+        "admission and completion ownership",
+        "relevant parser, upload, callback and protocol boundaries"
+      ]
+    },
+    "resumable-provider-progress-protocols": {
+      "files": 6,
+      "readFocus": [
+        "actor/brand/object target and authorization",
+        "data normalization, outcomes and HTTP responses",
+        "admission and completion ownership",
+        "relevant parser, upload, callback and protocol boundaries"
+      ]
+    }
+  },
+  "modules": [
+    {
+      "file": "packages/redbox-core/src/http/express/ExpressHost.ts",
+      "sha256": "3016fd18b09e328d705ebf2358bfb84c3a04052847c1478313b45ca7352b2432",
+      "lines": 305,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/adminOperations.ts",
+      "sha256": "fdb31149bf71964df18e25863e296cb9054c02ee937e920bdbf9c8884e5d6b03",
+      "lines": 100,
+      "read": "end-to-end",
+      "group": "integration-and-admin-operations",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/apiManifest.ts",
+      "sha256": "68a32161e415247ab7024035906a35f5aad0a0db4021e00d4c89de90bbefa2c5",
+      "lines": 50,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/authentication.ts",
+      "sha256": "4a08ac094d8fb9f6b58b5edebaaabee1f6964591892736258749e919f22b060b",
+      "lines": 118,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/brandingDelivery.ts",
+      "sha256": "1ab2635e2100de1450819a14b5650573c61fef31cf8a823f19f780e01ebf5b7e",
+      "lines": 430,
+      "read": "end-to-end",
+      "group": "pages-assets-branding",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/brandingOperations.ts",
+      "sha256": "e0aa18de112d93ee369ca00bca8beca9977c0b942f357fdef0536dd7a00d5be2",
+      "lines": 210,
+      "read": "end-to-end",
+      "group": "pages-assets-branding",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/brandingUploads.ts",
+      "sha256": "68e6e9c87e432dcd3e73424ae111a3dab65aa36f4683be46c7ed259fce3d9586",
+      "lines": 133,
+      "read": "end-to-end",
+      "group": "pages-assets-branding",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/companion.ts",
+      "sha256": "582225f79ed273685cec04620e61ac4dcc4e650b74749b8f4c96f4493cefb84c",
+      "lines": 319,
+      "read": "end-to-end",
+      "group": "resumable-provider-progress-protocols",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/companionLogging.ts",
+      "sha256": "7fa7f64f7217c75b56c047f760c91c86921bbfbcc37b6dccd6d2e2130ba05c8b",
+      "lines": 49,
+      "read": "end-to-end",
+      "group": "resumable-provider-progress-protocols",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/companionSendToken.ts",
+      "sha256": "b5c45e3ccae28a18b62fec00cd951543f84c36540c8456252afcd6dfd73bc9bb",
+      "lines": 43,
+      "read": "end-to-end",
+      "group": "resumable-provider-progress-protocols",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/configuration.ts",
+      "sha256": "fb7412f92cb76b2b1a0d0080cda6a75e0d6b0cfd852ddc037517aa76076c4b17",
+      "lines": 183,
+      "read": "end-to-end",
+      "group": "configuration-form-and-metadata",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/configurationWrites.ts",
+      "sha256": "2d17deebd6baa799711a1ae1d6463dc63b6faad14b87b8e6e7e57d853b8ea91a",
+      "lines": 282,
+      "read": "end-to-end",
+      "group": "configuration-form-and-metadata",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/configuredActions.ts",
+      "sha256": "2724e91bb5e3d7b032be9d4cba2fecb5d716d8792da7f07434cd2bedebda87f3",
+      "lines": 86,
+      "read": "end-to-end",
+      "group": "integration-and-admin-operations",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/csrf.ts",
+      "sha256": "aaf2780ae2231a8018ac6969b41f09777016f7cdae01da6fd737f1a27e9c3423",
+      "lines": 69,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/dashboardResponses.ts",
+      "sha256": "56514b6baec8135bd440817e936cfac14691a50718c80b6958918d2d748e18af",
+      "lines": 33,
+      "read": "end-to-end",
+      "group": "query-report-dashboard",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+      "sha256": "8460c8bd3b39f4e7e6f974c8907727119cc6efb7e03d1fec032f7c688be5c18c",
+      "lines": 153,
+      "read": "end-to-end",
+      "group": "records-bytes-multipart",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/datastreamWrites.ts",
+      "sha256": "594544833d48ae760f8423491f5319f65d7606dd42a1f7e67a42a6727e29c97f",
+      "lines": 236,
+      "read": "end-to-end",
+      "group": "records-bytes-multipart",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/figshareAdministration.ts",
+      "sha256": "068ad8ae503858883851e9239c4586e3a91d5f68881e72d8c9cd0d052b3a03e1",
+      "lines": 358,
+      "read": "end-to-end",
+      "group": "integration-and-admin-operations",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/formDelivery.ts",
+      "sha256": "3a4abe84a687c7cb34ef0d42876472035fa077dd216b4b1f3412048b3ed0bdd5",
+      "lines": 87,
+      "read": "end-to-end",
+      "group": "configuration-form-and-metadata",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/formVocabulary.ts",
+      "sha256": "5ab740e0a152d1c92c41be4f33373e6a88803f9c7ce665cf48e9637dc2998e55",
+      "lines": 222,
+      "read": "end-to-end",
+      "group": "configuration-form-and-metadata",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/harvestMutations.ts",
+      "sha256": "9140fb41bc359cdbcce1b5c07dc76dea4fcb9fae61f75dd075546c094ba3e74c",
+      "lines": 125,
+      "read": "end-to-end",
+      "group": "records-bytes-multipart",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/identity.ts",
+      "sha256": "a5f46fecf45de4a19d39bf3637fcf71016b79ff550f4cda0e60fe3b40f6a8a79",
+      "lines": 90,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+      "sha256": "a6fab3f8055eb47fa36fdc58a7f196a5ed9ba6c7676e693a037ef6dc5ecad166",
+      "lines": 297,
+      "read": "end-to-end",
+      "group": "identity-administration-providers",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+      "sha256": "e3f96d2d6eeb9cf3eb5d7b32f5551917b4e50af747b4712f762595afb1915714",
+      "lines": 218,
+      "read": "end-to-end",
+      "group": "identity-administration-providers",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/identityProviders.ts",
+      "sha256": "2760ca2f20d1af3efb7d1061336c083210e607874aa2fd529213e8e4b69df80f",
+      "lines": 183,
+      "read": "end-to-end",
+      "group": "identity-administration-providers",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/index.ts",
+      "sha256": "587e9e8a1e27eae3f3bfd09a84e97c9963747fa99bad813e063bd3fb1418ca70",
+      "lines": 105,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/integrationOperations.ts",
+      "sha256": "1abf2eee7156866e74130fe3c03e204e73f1aa4477dccbde85b7952a8ff93e72",
+      "lines": 163,
+      "read": "end-to-end",
+      "group": "integration-and-admin-operations",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/login.ts",
+      "sha256": "ac13d15ee66b732d707798bf128eecef34232e590b3a646c00393bdc139be998",
+      "lines": 298,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [
+        "R16-SPEC-01"
+      ],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/metadata.ts",
+      "sha256": "b5b38bd9185bbd106b72dedee7200a06e804aa023808a5b893f48f42f3259efa",
+      "lines": 322,
+      "read": "end-to-end",
+      "group": "configuration-form-and-metadata",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/middleware.ts",
+      "sha256": "d40395e9741df1425aa220626d9ecfea1852bf534565f21e7a0e48f972cb73fb",
+      "lines": 214,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/multipart.ts",
+      "sha256": "4b203ea5a6890108a9716f096134683dcbaacb9f23d100dcc0129f32a9778a2c",
+      "lines": 163,
+      "read": "end-to-end",
+      "group": "records-bytes-multipart",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/ownedRoutes.ts",
+      "sha256": "884f929ee19bf48743f4bcb61f1f1cb26271aa2cc972add47df82903c515d16a",
+      "lines": 62,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+      "sha256": "b5aea3ac927a986041886985ae63f14f666a4a2ea562522c65de985aabac7c3b",
+      "lines": 310,
+      "read": "end-to-end",
+      "group": "pages-assets-branding",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/pageHeaders.ts",
+      "sha256": "5b991c38ab58802c882300d5f8025b7ce0d43d99de3ebb135a99b05709d48888",
+      "lines": 50,
+      "read": "end-to-end",
+      "group": "pages-assets-branding",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/pages.ts",
+      "sha256": "40ecbd192f878180831a689a42bee46e7a488be6e8098fa350226ac3a74c73bf",
+      "lines": 475,
+      "read": "end-to-end",
+      "group": "pages-assets-branding",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/policies.ts",
+      "sha256": "0e334597c2054abd2f513c66028e0c2e5385806bbe786899956a9e956ba37ffb",
+      "lines": 243,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+      "sha256": "c0d8656ce73ba70fe4b961be3f92c5d81b0ec3395217ed46ce70698aeb7f032d",
+      "lines": 196,
+      "read": "end-to-end",
+      "group": "resumable-provider-progress-protocols",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/progressSockets.ts",
+      "sha256": "a468b7582e937ec28e9d36c1748cf435b7b145c12fcb3dec295c7fd0d6466c35",
+      "lines": 229,
+      "read": "end-to-end",
+      "group": "resumable-provider-progress-protocols",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/queryReads.ts",
+      "sha256": "03487e4128cc5c1610485c68107b345f293d1d7fae6f8d2fa6fec13f19e51bdb",
+      "lines": 416,
+      "read": "end-to-end",
+      "group": "query-report-dashboard",
+      "classA": [],
+      "inheritedNotes": [
+        "B14"
+      ]
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/queryWrites.ts",
+      "sha256": "d920bf188e0a3f18638f585aa3899f76de2a12b53c95c0c707a80fe184300328",
+      "lines": 129,
+      "read": "end-to-end",
+      "group": "query-report-dashboard",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+      "sha256": "4f047c9813d00c1b5c708a0854afbf72ad4c8d67312652f110308640ca537131",
+      "lines": 546,
+      "read": "end-to-end",
+      "group": "records-bytes-multipart",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/recordReads.ts",
+      "sha256": "b71effc92b2d5ad8248b29126906c13f1ae687a16c24a24fb5b7794d718f2bee",
+      "lines": 458,
+      "read": "end-to-end",
+      "group": "records-bytes-multipart",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/recordSchemaReads.ts",
+      "sha256": "dc19e77ff9213695f490a0604a9cc24cd844a0ff9e531d0111d8d86415de3ecf",
+      "lines": 124,
+      "read": "end-to-end",
+      "group": "records-bytes-multipart",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/recordTypes.ts",
+      "sha256": "097a17a953504ef1816390e72e289b90b1f86cdee3e36c4bc1358a1ae7851f05",
+      "lines": 97,
+      "read": "end-to-end",
+      "group": "configuration-form-and-metadata",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/responses.ts",
+      "sha256": "5d1b6933c6af075fea233c5e23f6262d6e683d7c908dd1b2eecc7f58dd466a98",
+      "lines": 47,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+      "sha256": "7539ccc7e65536a3ee79044122b9463798893e0b21c42ee4c03b485662acb664",
+      "lines": 222,
+      "read": "end-to-end",
+      "group": "resumable-provider-progress-protocols",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/session.ts",
+      "sha256": "3e3d06b8fdb7a349dcfd555d10804b879b648fbf7650ebc5d673af710682bf03",
+      "lines": 224,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/sessionData.ts",
+      "sha256": "8517ed3f4f28bda4fa2ea6347b4117785c9826e65c109bbba3c1d2ae440b703d",
+      "lines": 7,
+      "read": "end-to-end",
+      "group": "host-admission-authentication-response",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/siemWrites.ts",
+      "sha256": "3243f18300da9cf63281bb6b27c98f31c8f2b4efc459b43f3cb58a8e0a726426",
+      "lines": 110,
+      "read": "end-to-end",
+      "group": "integration-and-admin-operations",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/vocabularyAdministration.ts",
+      "sha256": "0e3299be372c98ac3c8030d2a148a337b1addeb9484ec2629600dc0eb1af534e",
+      "lines": 169,
+      "read": "end-to-end",
+      "group": "integration-and-admin-operations",
+      "classA": [],
+      "inheritedNotes": []
+    },
+    {
+      "file": "packages/redbox-core/src/http/express/vocabularyIntegrations.ts",
+      "sha256": "ec2c5434486966e454d242359a4b8e752942726216fdc24a884891c1ea4adc99",
+      "lines": 107,
+      "read": "end-to-end",
+      "group": "integration-and-admin-operations",
+      "classA": [],
+      "inheritedNotes": []
+    }
+  ],
+  "productionBindings": [
+    {
+      "file": "packages/redbox-core/src/application/portal/http.ts",
+      "sha256": "cad31280fe054008a85284dae3376ed3cb8319e314913773e7d1539428870bc1",
+      "lines": 620,
+      "read": "end-to-end",
+      "notes": "Production login audit binding traced through Users.addUserAuditEvent to repository.create(useraudit)."
+    },
+    {
+      "file": "packages/redbox-core/src/application/portal/httpPolicies.ts",
+      "sha256": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
+      "lines": 24,
+      "read": "end-to-end",
+      "notes": "Effective policies checked against access gates in each adapter."
+    }
+  ],
+  "clientCausality": [
+    {
+      "client": "ReportComponent.gotoPage",
+      "route": "HTTP-084",
+      "baseline": "ReportController.getResults catches domain failures and sends status:false at HTTP200.",
+      "current": "queryReads getResults retains HTTP200 status:false for domain failures; outer scalar validation can reject malformed pagination.",
+      "inputReview": "Shipped ReportService sends integer page-derived start and configured rows; ordinary UI-generated inputs satisfy native integer checks. No concrete newly stranded ordinary request verified.",
+      "disposition": "No additional A; inherited incomplete recovery remains bounded to proven pre-existing failure cases."
+    },
+    {
+      "client": "LocalAuthComponent.onLogin",
+      "route": "HTTP-255",
+      "baseline": "localLogin registers userAuditEventLogin through actual recordBackgroundOperation without awaiting its failure; sends HTTP200 success.",
+      "current": "login.ts awaits audit after session save; audit rejection destroys session and propagates sanitized500.",
+      "inputReview": "Correct bounded credentials, valid brand/portal, actual Passport session and real CSRF; controlled audit insert failure.",
+      "disposition": "A/P2 R16-SPEC-01; correct parent ANG-095 classification."
+    },
+    {
+      "client": "DeletedRecordsComponent.gotoPage",
+      "route": "HTTP-107",
+      "baseline": "getDeletedRecordList sends500 for failed result/errors; CoreController defaults error-bearing sendResp to500.",
+      "current": "recordReads catches domain failures as500 and validates pagination/filter fields/mode.",
+      "inputReview": "RecordService sends rows10, integer page-derived start, scalar recordType/sort, fixed valid deletedRecordMetadata.metadata.title field and regex mode. No actual ordinary malformed builder found.",
+      "disposition": "No additional A; existing ignored typed lifecycle result is parent B13, not newly proved here."
+    },
+    {
+      "client": "ManageUsersComponent.refreshUsers",
+      "route": "HTTP-169",
+      "baseline": "AdminController.getUsers catch explicitly status500.",
+      "current": "identityLinks.getUsers still500 on backend failure.",
+      "inputReview": "Normal caller sends no searchBy/query; includeDisabled=true is accepted. New scalar search validation is not reached with malformed input from this caller. Current membership/Admin/path rules were checked; legacy policy denials already failed rather than completing a list.",
+      "disposition": "No additional A; R15 mutation catches correctly encompass failed post-save refresh too."
+    },
+    {
+      "client": "ManageRolesComponent.initComponent",
+      "route": "HTTP-158",
+      "baseline": "AdminController.getBrandRoles subscribes without an error handler; failing Observable never produces a successful list.",
+      "current": "identityAdministration returns sanitized500; no new normal GET arguments.",
+      "inputReview": "Caller supplies no dynamic arguments. Current actor/brand/path gates match documented deliberate authorization changes; no newly denied normal authorized request demonstrated.",
+      "disposition": "No additional A; native500 improves an already failed/unfinished backend path, not proof of formerly working recovery."
+    },
+    {
+      "client": "AppConfigComponent.initComponent",
+      "route": "HTTP-265",
+      "baseline": "AppConfigController.getAppConfigForm catches service failure with res.serverError; undefined ID yields badRequest.",
+      "current": "configuration.getAppConfigForm uses same domain method behind httpAction error dispatch; required path parameter check is unchanged for valid UI configKey.",
+      "inputReview": "Page supplies the existing configured key; no scalar-body coercion added for this browser form read.",
+      "disposition": "No additional A; inherited initialization failure handling remains."
+    },
+    {
+      "client": "ConfigService.initConfig",
+      "routes": [
+        "HTTP-264",
+        "HTTP-330"
+      ],
+      "baseline": "Chained csrf-token/config subscription has no RxJS error callback; failed bootstrap leaves initialization pending.",
+      "current": "Same consumer, public same-origin csrfToken and dynamic apiClientConfig bootstrap; current explicit session-token save and supported context checked.",
+      "inputReview": "Generated URL contains timestamp v and selected same-origin root. New cross/sibling-origin refusal is documented and not reached by this shipped same-origin bootstrap. No concrete new normal request failure independently verified.",
+      "disposition": "No additional A; do not infer all theoretically changed server errors are inherited merely from file equality."
+    }
+  ],
+  "finding": {
+    "id": "R16-SPEC-01",
+    "classification": "A",
+    "severity": "P2",
+    "consumer": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:87",
+    "newFailureBoundary": "packages/redbox-core/src/http/express/login.ts:187",
+    "productionBinding": "packages/redbox-core/src/application/portal/http.ts:302",
+    "realSink": "packages/redbox-core/src/identity/Users.ts:847",
+    "proof": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-results.json",
+    "recommendedFix": "Catch rejected loginLocal in local-auth onLogin, restore disabled=false and show safe failure message, keeping successful redirect and user:false cases. Do not revert awaited audit/session cleanup.",
+    "spec": [
+      {
+        "file": "support/specs/sails-retirement/design.md:53",
+        "quote": "Existing Angular applications and EJS pages remain consumers of the new host."
+      },
+      {
+        "file": "support/specs/sails-retirement/design.md:45",
+        "quote": "Preserve supported authentication methods, identity/account-linking behavior, authorization and tenant isolation."
+      }
+    ],
+    "parentDraftCritique": "ANG-095 consumer body equality proves inherited missing catch, not inherited causality: new awaited audit creates500 for valid credentials where actual baseline returns200 with failed audit recorded in background.",
+    "status": "Parent applied narrow client correction; independently verified green against current uncommitted source. Full qualification belongs to parent."
+  },
+  "inherited": {
+    "id": "B14",
+    "severity": "P2",
+    "current": "packages/redbox-core/src/http/express/queryReads.ts:336",
+    "domainReturn": "packages/redbox-core/src/queries/RecordAuditViews.ts:347",
+    "consumerAssignment": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.ts:161",
+    "consumerHref": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.html:72",
+    "baseline": "a49366803:packages/redbox-core/src/controllers/RecordAuditController.ts:86",
+    "proof": ".tmp/sails-retirement/final-review-r16/spec/audit-root-results.json",
+    "spec": {
+      "file": "support/specs/sails-retirement/design.md:643",
+      "quote": "institution root-context/proxy URLs and browser cache behavior."
+    },
+    "accessControlException": false,
+    "recommendation": "Separate follow-up: bind rootContext to QueryReadHttpInput and prefix generated rawAuditUrl once; keep inheritance and browser link controls."
+  },
+  "r15Critique": {
+    "commits": [
+      "8b091d8dc",
+      "e4a198691",
+      "709483c46"
+    ],
+    "conclusion": "All three fixes remain correct; no regression verified. Users/roles preserve draft/modal on rejection and show bounded errors; initial and delayed Companion headers reach each installed RequestClient for both widgets.",
+    "observations": {
+      "administrationHttpConsumers": 10,
+      "installedClientNativeCsrf": 24,
+      "requestClientSetterControls": 2,
+      "actualDelayedWidgetPrivateHeaders": 12
+    },
+    "limitations": "Method extraction and controlled domain/provider ports; no cloud OAuth/live transfer or new browser/full persistence qualification."
+  },
+  "knownP3": [
+    {
+      "id": "REC-P3-01",
+      "routes": [
+        "HTTP-003",
+        "HTTP-004",
+        "HTTP-005",
+        "HTTP-006",
+        "HTTP-007",
+        "HTTP-008",
+        "HTTP-013",
+        "HTTP-014",
+        "HTTP-015",
+        "HTTP-016",
+        "HTTP-017",
+        "HTTP-059",
+        "HTTP-060",
+        "HTTP-061",
+        "HTTP-063",
+        "HTTP-064",
+        "HTTP-082",
+        "HTTP-086",
+        "HTTP-087",
+        "HTTP-088",
+        "HTTP-089",
+        "HTTP-099",
+        "HTTP-100",
+        "HTTP-101",
+        "HTTP-102",
+        "HTTP-103",
+        "HTTP-104",
+        "HTTP-105",
+        "HTTP-106",
+        "HTTP-107",
+        "HTTP-108",
+        "HTTP-109",
+        "HTTP-110",
+        "HTTP-111",
+        "HTTP-112",
+        "HTTP-113",
+        "HTTP-120",
+        "HTTP-121",
+        "HTTP-122",
+        "HTTP-123",
+        "HTTP-124",
+        "HTTP-125",
+        "HTTP-126",
+        "HTTP-127",
+        "HTTP-128",
+        "HTTP-129",
+        "HTTP-130",
+        "HTTP-131",
+        "HTTP-132",
+        "HTTP-133",
+        "HTTP-134",
+        "HTTP-135",
+        "HTTP-136",
+        "HTTP-137",
+        "HTTP-138",
+        "HTTP-139",
+        "HTTP-140",
+        "HTTP-141",
+        "HTTP-142"
+      ],
+      "conclusion": "Cache-Control differs for baseline policy-only/global-only responses once the current helper applies no-cache/private. Both policies retain privacy/no-cache intent, and no concrete functional failure was demonstrated. No cache runtime changes made.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "REC-P3-02",
+      "routes": [
+        "HTTP-069",
+        "HTTP-070",
+        "HTTP-071",
+        "HTTP-096",
+        "HTTP-097",
+        "HTTP-098"
+      ],
+      "conclusion": "Baseline browser report-config sendReportConfigError/getConfig passes status>=400 and data without displayErrors, which CoreController handleV1/handleV2 falls back to500 generic errors. Current browser query handlers return typed status/data (and writes return standard error envelopes). This is a public status/envelope difference without an explicit compatibility exception. Success-path behavior is unchanged. Static finding; no additional runtime claim.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "REC-P3-03",
+      "routes": [
+        "HTTP-119"
+      ],
+      "conclusion": "Workspace redirect retains302 and path, but baseline global redirect wrapper directive set differs from current noCache policy. Current still has no-store; this is a directive difference rather than a missing cache boundary.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "REC-P3-04",
+      "routes": [
+        "HTTP-112"
+      ],
+      "conclusion": "Browser related-record graph current response adds root-record ETag and v2 oid/revision/entityTag meta; baseline sends graph with default empty meta/no validator. No demonstrated incorrect graph content; record extra response fields/validator as an unexplained compatibility difference.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "REC-P3-05",
+      "routes": [
+        "HTTP-074"
+      ],
+      "conclusion": "Missing named-query v2 response preserves404/detail but drops redundant errors[].status=\"404\" from baseline. No behavioral failure demonstrated.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "REC-P3-06",
+      "routes": [
+        "HTTP-090",
+        "HTTP-091",
+        "HTTP-092",
+        "HTTP-093",
+        "HTTP-094",
+        "HTTP-095",
+        "HTTP-096",
+        "HTTP-097",
+        "HTTP-098"
+      ],
+      "conclusion": "Current query/report definition write adapters add a brand-scoped administration audit after mutation; baseline controller actions have no corresponding explicit audit call. The audit is a new side effect and can fail after persisted mutation. No failure reproduced or runtime change made; record the scope/partial-effect difference.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "P3-cache",
+      "routes": [
+        "HTTP-233",
+        "HTTP-248",
+        "HTTP-252"
+      ],
+      "conclusion": "Figshare DELETE204 drops baseline explicit no-cache triple; API/browser attachment-list JSON responses add that triple where baseline sendResp supplied no headers. No demonstrated wrong data/access impact. Not called an intentional break.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "P3-index-message",
+      "routes": [
+        "HTTP-244"
+      ],
+      "conclusion": "Successful index response message adds word record. OID/details and status/envelope/queue behavior retained.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "P3-chronicle",
+      "routes": [
+        "HTTP-159",
+        "HTTP-160",
+        "HTTP-207",
+        "HTTP-208",
+        "HTTP-209",
+        "HTTP-210",
+        "HTTP-211",
+        "HTTP-212",
+        "HTTP-213",
+        "HTTP-214",
+        "HTTP-215",
+        "HTTP-216",
+        "HTTP-217",
+        "HTTP-222",
+        "HTTP-223",
+        "HTTP-224",
+        "HTTP-247",
+        "HTTP-301",
+        "HTTP-302",
+        "HTTP-303",
+        "HTTP-305",
+        "HTTP-306",
+        "HTTP-308"
+      ],
+      "conclusion": "Some prior safe operation success/context/error code chronicle markers are absent (brandingAppRetrieveSuccess/brandingAppErrorCode, formVocabulary*, userFind*, self key and notification stage markers). General request/actor/brand context and selected safe failures remain; no raw secret logging proposed. No comprehensive chronicle parity claim.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    },
+    {
+      "id": "P3-error-contract",
+      "routes": [
+        "HTTP-150",
+        "HTTP-153",
+        "HTTP-154",
+        "HTTP-155",
+        "HTTP-156",
+        "HTTP-157",
+        "HTTP-159",
+        "HTTP-160",
+        "HTTP-161",
+        "HTTP-225",
+        "HTTP-226",
+        "HTTP-227",
+        "HTTP-228",
+        "HTTP-229",
+        "HTTP-230",
+        "HTTP-231",
+        "HTTP-232",
+        "HTTP-233",
+        "HTTP-234",
+        "HTTP-235",
+        "HTTP-236",
+        "HTTP-237",
+        "HTTP-238",
+        "HTTP-239",
+        "HTTP-240",
+        "HTTP-241",
+        "HTTP-242",
+        "HTTP-243",
+        "HTTP-248",
+        "HTTP-249",
+        "HTTP-250",
+        "HTTP-251",
+        "HTTP-252",
+        "HTTP-253",
+        "HTTP-301",
+        "HTTP-302",
+        "HTTP-303",
+        "HTTP-304",
+        "HTTP-305",
+        "HTTP-306",
+        "HTTP-307",
+        "HTTP-308"
+      ],
+      "conclusion": "Residual failure-path differences are explicit in each route: browser identity backend status:false200->safe500; role-create/untyped Figshare exception400->500; user-find error-as-data200->500; datastream bare/translated/jsclient legacy errors ->explicit safe errors; form lookup translated details ->code literals. Sanitation is authorized, these status/envelope/text differences are not thereby proven intentional. Recorded P3 without demonstrated realistic lost work/incorrect success behavior; not silently claimed equivalent.",
+      "r16Disposition": "Retained P3; no new concrete realistic impact verified in this Spec review. R15 demonstrates graph/named-query consumed fields unaffected and handles report editor errors; identity error family already partly promoted/fixed in R15. This is not blanket equivalence."
+    }
+  ],
+  "documentationConsistency": {
+    "conclusion": "No new P1/P2 documentation inconsistency or material scope creep verified. Compatibility wiki explicitly records auth, validation, session, provider and protocol changes; historical qualification is not silently treated as current immutable images. R15 consumer evidence narrows earlier P3 dispositions rather than deleting them.",
+    "acceptedInstitutionGaps": [
+      "SR-005",
+      "SR-045",
+      "SR-049",
+      "SR-055"
+    ],
+    "specs": [
+      {
+        "file": "support/specs/sails-retirement/design.md",
+        "sha256AtCapture": "8a1ae2bb309dffbb84a2c36aa10fa517d28789e7fc002673850be6b9ac573697"
+      },
+      {
+        "file": "support/specs/sails-retirement/implementation_plan.md",
+        "sha256AtCapture": "e8c58422bd8a6aede8374539de5dea8d8b3c19622be871cd06023cd1f78e3ba8"
+      },
+      {
+        "file": "support/specs/sails-retirement/tasks.md",
+        "sha256AtCapture": "875ff99c52446907415dcbe3f492b7cc43f66404f9c2c43f0cc27c4eb7db6c30"
+      },
+      {
+        "file": "support/specs/sails-retirement/extensions-v6.md",
+        "sha256AtCapture": "dae54ecbb3516eb7871dc900e1552152e52060b06362e1ac3a5caada4cbcb9a1"
+      },
+      {
+        "file": "support/specs/sails-retirement/hook-migration-v6.md",
+        "sha256AtCapture": "557537b319f8d66a9ad083097b000b3830032746c89058c471cf2d4cdec3b01b"
+      },
+      {
+        "file": "support/specs/sails-retirement/maintenance-v6.md",
+        "sha256AtCapture": "028b17e1d457fdebbfaf73bc773202b0a5290eec08301727f6cbc3e8462b9bb7"
+      },
+      {
+        "file": "support/specs/sails-retirement/upgrade-recovery-v6.md",
+        "sha256AtCapture": "0f4613a9f60a6fa51c44c2196dd99bd9eee3bb7140c86aa8c5a84ab30c2eaf45"
+      },
+      {
+        "file": "support/specs/sails-retirement/configuration-v6.md",
+        "sha256AtCapture": "d99de13f27ac3d5c609a3bf4673e5d53291225883f2bbf386049cb0a81af55bd"
+      },
+      {
+        "file": "support/wiki/Architecture-Overview.md",
+        "sha256AtCapture": "c5c4df3287c2d2bc7330892f8d15cb5ea6c9bdeb3f855f872330fd4087085524"
+      },
+      {
+        "file": "support/wiki/V6-Client-Compatibility.md",
+        "sha256AtCapture": "961cbb0070c868ce0723128c43bd67f086ad9930988c220d35b4c93fdcb8c694"
+      }
+    ],
+    "priorEvidenceRead": [
+      "support/specs/sails-retirement/evidence/final-review-r1.md",
+      "support/specs/sails-retirement/evidence/final-review-r2.md",
+      "support/specs/sails-retirement/evidence/final-review-r3.md",
+      "support/specs/sails-retirement/evidence/final-review-r4.md",
+      "support/specs/sails-retirement/evidence/final-review-r5.md",
+      "support/specs/sails-retirement/evidence/final-review-r6.md",
+      "support/specs/sails-retirement/evidence/final-review-r7.md",
+      "support/specs/sails-retirement/evidence/final-review-r8.md",
+      "support/specs/sails-retirement/evidence/final-review-r9.md",
+      "support/specs/sails-retirement/evidence/final-review-r10.md",
+      "support/specs/sails-retirement/evidence/final-review-r11.md",
+      "support/specs/sails-retirement/evidence/final-review-r12.md",
+      "support/specs/sails-retirement/evidence/final-review-r13.md",
+      "support/specs/sails-retirement/evidence/final-review-r14.md",
+      "support/specs/sails-retirement/evidence/final-review-r15.md",
+      "support/specs/sails-retirement/evidence/inherited-defects-backlog.md"
+    ],
+    "relevantLedgersConsulted": [
+      "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance.md",
+      "support/specs/sails-retirement/evidence/final-review-r13/configuration-review.md",
+      "support/specs/sails-retirement/evidence/final-review-r13/http-acceptance.json",
+      "support/specs/sails-retirement/evidence/final-review-r13/configuration-acceptance.json",
+      "support/specs/sails-retirement/evidence/final-review-r14/records-review.md",
+      "support/specs/sails-retirement/evidence/final-review-r14/identity-review.md",
+      "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-review.md",
+      "support/specs/sails-retirement/evidence/final-review-r14/differential-summary.json",
+      "support/specs/sails-retirement/evidence/final-review-r14/records-differential.json",
+      "support/specs/sails-retirement/evidence/final-review-r14/identity-differential.json",
+      "support/specs/sails-retirement/evidence/final-review-r14/parent-differential.json",
+      "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-differential.json",
+      "support/specs/sails-retirement/evidence/final-review-r15/angular-review.md",
+      "support/specs/sails-retirement/evidence/final-review-r15/angular-findings.json",
+      "support/specs/sails-retirement/evidence/final-review-r15/angular-validation.json",
+      "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.json",
+      "support/specs/sails-retirement/evidence/final-review-r15/angular-network.json",
+      "support/specs/sails-retirement/evidence/final-review-r15/legacy-client-contracts.json"
+    ]
+  },
+  "rejectedCandidates": [
+    {
+      "candidate": "Multipart staging cleanup failure can replace an already committed save result with generic failure.",
+      "reason": "Baseline RecordController upload also awaits cleanup and retries cleanup in catch; persistent cleanup failure can already hide completion. No feature-introduced behavior demonstrated, so no A finding.",
+      "baseline": "a49366803:packages/redbox-core/src/controllers/webservice/RecordController.ts:1420",
+      "disposition": "Rejected causal-A lead; no runtime change requested."
+    }
+  ],
+  "probes": [
+    {
+      "result": ".tmp/sails-retirement/final-review-r16/spec/r15-consumer-results.json",
+      "sha256": "ba2e869cb07f0751636cb0c0167b56af4a5bb352b828f68e3c34cb894b8997e8",
+      "node": "v26.11.1",
+      "proof": "Real Express loopback + selected extracted Angular methods, controlled identity ports. Policy/session/CSRF deployed qualification remains parent-owned.",
+      "observations": 10,
+      "additionalControls": 0
+    },
+    {
+      "result": ".tmp/sails-retirement/final-review-r16/spec/r15-companion-results.json",
+      "sha256": "cb2a36c1d16dfdbf34eda83e4801c87a264910cac75a65efb7b13659a862f585",
+      "node": "v26.11.1",
+      "proof": "Actual installed RequestClient, extracted component methods, native mountCompanionRoutes and createHttpCsrf with express-session. Controlled provider dispatch; no OAuth/cloud transfer claimed.",
+      "observations": 24,
+      "additionalControls": 2
+    },
+    {
+      "result": ".tmp/sails-retirement/final-review-r16/spec/r15-delayed-widget-results.json",
+      "sha256": "0fe60c15a3ec34ed5338a8b392f24e863f4337e894faf5840b5fe4d963cf8389",
+      "node": "v26.11.1",
+      "proof": "Actual extracted ensureTusHeadersContainCsrf and helpers update installed RequestClient private headers after a controlled configuration Promise resolves. No provider/network/browser claim.",
+      "observations": 12,
+      "additionalControls": 0
+    },
+    {
+      "result": ".tmp/sails-retirement/final-review-r16/spec/audit-root-results.json",
+      "sha256": "620f2189b994afddb4476275c40a3c3a73358ee7efd298c123005ef928ae8799",
+      "node": "v26.11.1",
+      "proof": "Actual current native HTTP through /research, actual baseline method execution, source-backed shipped direct href. Controlled record ports; no deployed proxy/browser or historical HTTP claim.",
+      "observations": 5,
+      "additionalControls": 0
+    },
+    {
+      "result": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-results.json",
+      "sha256": "1b8b992cf0af3cc778353aed345a6b7288801aa5c7561dd1c90329deff0aad25",
+      "node": "v26.11.1",
+      "proof": "Native HTTP, real Passport sessions and CSRF; controlled identity/audit ports. Actual extracted Angular onLogin and pinned baseline localLogin/recordBackgroundOperation bodies. No Mongo, historical HTTP server or browser claim.",
+      "observations": 3,
+      "additionalControls": 0
+    },
+    {
+      "driver": ".tmp/sails-retirement/final-review-r16/spec/angular-companion-probe.cjs",
+      "sha256": "44b51687d91b3d760025090b8990462746943c92fa52d5096a49ad8976eb7853"
+    },
+    {
+      "driver": ".tmp/sails-retirement/final-review-r16/spec/angular-consumer-probes.cjs",
+      "sha256": "1b8d1bc078777a40b90cb437e2f0a7e6ca978c6b90300a2a6cfb411ce7232b4f"
+    },
+    {
+      "driver": ".tmp/sails-retirement/final-review-r16/spec/audit-root-probe.cjs",
+      "sha256": "648166be00c8f156ea3d4d0e5d88ac3bf55f0fa56457836f9adc69258482b691"
+    },
+    {
+      "driver": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-probe.cjs",
+      "sha256": "f1921186f854aafc488a0cfd4fdacd6f5b3f3c61ccc8547418bf219f4b6e9d12"
+    },
+    {
+      "driver": ".tmp/sails-retirement/final-review-r16/spec/r15-delayed-widget-probe.cjs",
+      "sha256": "cfca03bc2d7ea43e361d20f96579e5e0f9c3c9eb8ce893119e4fd4f36e43b1b3"
+    },
+    {
+      "artifact": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-green-probe.cjs",
+      "sha256": "4d9994c953c296606c4bcaa8e6623162804f0ecac0dd52ec9c6e5ea5d25d68b8"
+    },
+    {
+      "artifact": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-green-results.json",
+      "sha256": "804338c866935ed8c32e63c170708f9da43b22de90c77f3404946a746ec49044"
+    },
+    {
+      "artifact": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-incoming-probe.cjs",
+      "sha256": "1a170e846b0fc5092b934c56c1fa63ecef5de6504f405da60847cb0260b34aaa"
+    },
+    {
+      "artifact": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-incoming-replay-results.json",
+      "sha256": "1b8b992cf0af3cc778353aed345a6b7288801aa5c7561dd1c90329deff0aad25"
+    },
+    {
+      "artifact": ".tmp/sails-retirement/final-review-r16/spec/local-auth-incoming.component.ts",
+      "sha256": "91f78e5d8d8c69b341a8f5eba3f0c9ae73e15aaaa6df87a4ae78e6b7884b0ab4"
+    },
+    {
+      "artifact": ".tmp/sails-retirement/final-review-r16/spec/local-auth-fixed.component.ts",
+      "sha256": "edd86718fac145fa9facb7ef30dc34d832ce2fe700a19ea491762abb225d6fa4"
+    }
+  ],
+  "limitations": [
+    "No broad suites or Docker operations; no runtime/tests or tracked files edited by this reviewer.",
+    "Baseline executable controls run extracted pinned method bodies with controlled ports, not a historical Sails HTTP deployment.",
+    "Native routes use deterministic domain/audit/provider ports; real Passport/session/CSRF where explicitly reported, no new Mongo qualification.",
+    "Source end-to-end coverage does not imply per-route executed comparison; prior ledgers retain335 HTTP declarations but this round makes no335-route execution claim.",
+    "Parent owns exhaustive browser errors and full qualification.",
+    "Shared checkout can acquire parent-owned edits after the pinned review; hashes identify the exact source reviewed."
+  ],
+  "headAtCapture": "547370ac8a80e6f2af553e6958ad90343ff81d0a",
+  "sharedCheckoutStatusAtCapture": [
+    " M angular/projects/researchdatabox/local-auth/src/app/local-auth.component.spec.ts",
+    " M support/specs/sails-retirement/evidence/inherited-defects-backlog.md",
+    " M support/specs/sails-retirement/tasks.md",
+    " M support/wiki/Development-Guide.md",
+    " M support/wiki/Home.md",
+    " M support/wiki/ReDBox-Automated-Tests.md",
+    "?? support/specs/graphql-record-metadata/",
+    "?? support/specs/sails-retirement/evidence/final-review-r16/"
+  ],
+  "correctionValidation": {
+    "parentOwnedUncommittedConsumer": {
+      "file": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts",
+      "sha256": "edd86718fac145fa9facb7ef30dc34d832ce2fe700a19ea491762abb225d6fa4"
+    },
+    "nativeAdaptersUnchanged": true,
+    "greenObservations": 7,
+    "greenResult": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-green-results.json",
+    "pinnedIncomingReplayObservations": 3,
+    "pinnedIncomingReplayResult": ".tmp/sails-retirement/final-review-r16/spec/local-login-audit-incoming-replay-results.json",
+    "incomingOriginalArtifactsPreservedByteForByte": true,
+    "overlap": "Baseline and success controls repeat across incoming/replay/green phases. These counts are not additive independent HTTP coverage.",
+    "conclusion": "500 audit rejection and403 CSRF refusal recover with fields retained, disabled=false and refresh guidance in v1/v2; user:false200 denial still re-enables and success still redirects."
+  },
+  "finalSharedStatus": [
+    " M support/specs/sails-retirement/evidence/inherited-defects-backlog.md",
+    " M support/specs/sails-retirement/tasks.md",
+    " M support/wiki/Development-Guide.md",
+    " M support/wiki/Home.md",
+    " M support/wiki/ReDBox-Automated-Tests.md",
+    "?? support/specs/graphql-record-metadata/",
+    "?? support/specs/sails-retirement/evidence/final-review-r16/"
+  ]
+}

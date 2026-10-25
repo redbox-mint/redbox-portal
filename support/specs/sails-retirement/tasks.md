@@ -1,40 +1,40 @@
 # Sails retirement: v6 task list
 
-Status: SR-001–SR-054 are complete except SR-005/045/049, which remain partial
-only for the undesignated representative institution, supported production source,
-hooks/configuration and actual topology. SR-051/052/053/054 are accepted. SR-055's
-local final-artifact qualification is complete; it remains partial/unchecked only
-for that same inherited institution criterion and SR-049 dependency.
+Status: **51 of 55 tasks are complete.** SR-005/045/049/055 remain
+partial/unchecked solely for the accepted undesignated representative institution,
+its supported production source, hooks/configuration, actual topology and
+reconciliation owner. SR-051/052/053/054 are accepted. SR-055's local P8
+qualification is complete; its institution criterion and SR-049 dependency remain
+unmet.
 
-Clean application commit `5088f4a7a` passes 12 real npm packs/20 checks, all three
-immutable image/installed dependency graphs and zero executable Sails violations.
-Final suites pass: core Mocha 4498/7 unchanged pending, root 422/10 unchanged pending,
-full Playwright 124, general/OIDC/S3 Bruno 329 requests/582 tests/3 assertions,
-native PDF 4 requests/10 tests, Mongo 8/9 matrix 216 checks including independent
-three-member core/storage sets, elections and drain. All completed gates have 0
-failures; pending cases are not counted as passed coverage. Actual runtime-default
-fresh/restart/stop and complete released-v5 stand-in cutover/checkpoint recovery
-pass after removal. This does not designate an institution or grant production
-release acceptance. See [final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition)
+**Historical P8 artifact qualification:** clean application commit `5088f4a7a`
+passed 12 real npm packs/20 checks, all three immutable image/installed dependency
+graphs and zero executable Sails violations. That checkpoint passed core Mocha
+4498/7 unchanged pending, root 422/10 unchanged pending, full Playwright 124,
+general/OIDC/S3 Bruno 329 requests/582 tests/3 assertions, native PDF 4 requests/10
+tests, and the Mongo 8/9 matrix's 216 checks. Runtime-default fresh/restart/stop
+and released-v5 stand-in cutover/checkpoint recovery also passed. These artifacts
+qualify that exact source; subsequent fixes are absent from those images. See
+[P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition)
 and [exact artifacts/results](evidence/p8-artifacts.json).
 
-[Final-gate review round 1](evidence/final-review-r1.md) records subsequent
-runtime/test fixes and targeted verification. [Round 2](evidence/final-review-r2.md)
-records further corrections and full current mounted-source/compiled-tree suites
-at code/test commit `97155ef9a`, including real-service, browser, Bruno, PDF,
-typecheck/lint/docs and retirement inventory/closure checks. [Round 3](evidence/final-review-r3.md)
-records the enumerated authority/storage/async audit, 14 verified corrections and
-final mounted-source/compiled-tree qualification through `454eee512`, with Bruno-only
-fixture correction `ff7e2314d`. [Round 4](evidence/final-review-r4.md) records the
-critical R3 review and valid regression sensitivity controls, all prior P1
-provenance classifications, seven corrections and complete final qualification
-at runtime/test commit `f642ddaf8`. [Round 5](evidence/final-review-r5.md)
-records five feature corrections, including targeted concurrent upload/drain
-and login-fixture controls, and separates three unchanged inherited P2 items
-into the [follow-up backlog](evidence/inherited-defects-backlog.md). The `5088f4a7a`
-immutable-artifact results above remain historical; the reviews did not build replacement
-immutable images. SR-005/045/049/055's accepted institution gaps and checkboxes
-remain unchanged.
+**Latest completed qualification:** [R16](evidence/final-review-r16.md) records
+runtime/test revision `4bf60062fd2a9d1cf387d3ac993cf531c1b6032b`: core 5,631
+passed/7 unchanged pending; real-service core 224 passed; root 422 passed/10
+unchanged pending; full Playwright 124 and harness 19 passed; dedicated retirement
+browser 4 passed; general Bruno 309 requests/554 tests/3 assertions; OIDC 13/17,
+S3 7/12 and PDF 4/10 requests/tests; focused Angular 135 passed. All completed gates
+passed. Pending cases are separate. These current source/compiled-tree results do
+not claim replacement immutable images or a repeated topology matrix. They do
+not designate an institution or grant production release acceptance.
+
+Review evidence: [R1](evidence/final-review-r1.md), [R2](evidence/final-review-r2.md), [R3](evidence/final-review-r3.md), [R4](evidence/final-review-r4.md),
+[R5](evidence/final-review-r5.md), [R6](evidence/final-review-r6.md), [R7](evidence/final-review-r7.md), [R8](evidence/final-review-r8.md),
+[R9](evidence/final-review-r9.md), [R10](evidence/final-review-r10.md), [R11](evidence/final-review-r11.md), [R12](evidence/final-review-r12.md),
+[R13](evidence/final-review-r13.md), [R14](evidence/final-review-r14.md), [R15](evidence/final-review-r15.md), [R16](evidence/final-review-r16.md).
+The [inherited-defects backlog](evidence/inherited-defects-backlog.md) records 14
+unchanged groups separately from the feature gate. The four accepted institution
+gaps and their task checkboxes remain unchanged.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -881,12 +881,10 @@ Read the [design](design.md) for behavior and the
   therefore remain unmet. No P8 local gate remained unrun at that checkpoint and
   no stand-in is counted as an institution.
   [Final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition).
-  [Round-1 corrections and verification](evidence/final-review-r1.md) and
-  [round-2 corrections/full suites](evidence/final-review-r2.md) and
-  [round-3 enumerated review/corrections/full suites](evidence/final-review-r3.md) and
-  [round-4 review/corrections/full suites](evidence/final-review-r4.md) postdate those frozen
-  images. Current mounted/compiled qualification is recorded separately and does
-  not claim replacement immutable images or a newly repeated topology matrix.
+  [R1–R16 corrections and current qualification](evidence/final-review-r16.md)
+  postdate those frozen images. R16's runtime/test input is
+  `4bf60062fd2a9d1cf387d3ac993cf531c1b6032b`; current source/compiled qualification
+  remains separate from the historical immutable-image/topology evidence.
 
   **Depends on:** SR-052, SR-053, SR-054, SR-049, SR-050.
 

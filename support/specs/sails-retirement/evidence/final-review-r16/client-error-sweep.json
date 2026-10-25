@@ -1,0 +1,3973 @@
+{
+  "featureBase": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "reviewedHead": "547370ac8a80e6f2af553e6958ad90343ff81d0a",
+  "scope": "All shipped built-in browser initiators; finite source review plus explicitly bounded rejected-port probes. No arbitrary institution-hook coverage or new deployed/browser qualification claimed.",
+  "compatibilitySource": "support/wiki/V6-Client-Compatibility.md",
+  "statusReview": [
+    {
+      "statuses": [
+        401,
+        403
+      ],
+      "change": "Authentication, brand membership, ACL/admin and CSRF denial.",
+      "conclusion": "Modern catches/typed results handle either code. No shipped catch requires only 403. Older uncaught readers also rejected baseline auth/transport failures; B-11 is retained explicitly. Fresh same-origin config/CSRF bootstrap remains public."
+    },
+    {
+      "statuses": [
+        404
+      ],
+      "change": "Missing form/record targets and unregistered actions.",
+      "conclusion": "Form load dispatches missing-record; editor/selector catches finish with error. Existing report definition failure was already rejected (previously 500), so its missing catch remains B-11."
+    },
+    {
+      "statuses": [
+        400,
+        409,
+        413,
+        415,
+        422
+      ],
+      "change": "Strict scalar validation, identity input, revision conflicts and upload/parser limits.",
+      "conclusion": "Selected editors catch all rejection shapes or normalize typed outcomes. Shipped normal pagination/date/identity builders send declared scalar values. No new realistic ordinary input rejection with stranded state was verified."
+    },
+    {
+      "statuses": [
+        405,
+        410
+      ],
+      "change": "POST logout/unsafe HEAD; retired virtual socket HTTP.",
+      "conclusion": "All three shipped logout forms use POST+CSRF. Shipped progress uses grants/direct Socket.IO, never retired subscribe/unsubscribe HTTP; 401/403 disconnect and other grant failures retry with fresh authorization."
+    },
+    {
+      "statuses": [
+        0,
+        500,
+        503
+      ],
+      "change": "Network/backend/sanitized failures; provider failures may become typed errors.",
+      "conclusion": "Envelope-independent catches finalize without claiming rollback; R15 users/roles fixes cover newly typed mutation rejection. R16 fixes local-login recovery after the now-awaited audit can reject500. Existing legacy unhandled paths/fallbacks are separately retained."
+    },
+    {
+      "envelopes": [
+        "v1 message",
+        "v2 errors[].detail/title/code and meta",
+        "empty/non-JSON"
+      ],
+      "change": "Sanitized messages and versioned errors.",
+      "conclusion": "No selected error consumer depends on removed redundant errors[].status. Generic fallback detail may be less specific (existing R14 P3); pending flags still settle where recovery is implemented."
+    }
+  ],
+  "counts": {
+    "projects": 22,
+    "productionTypeScript": 259,
+    "productionTemplates": 80,
+    "sharedPackageTypeScript": 141,
+    "httpCallSites": 123,
+    "serviceOwners": 20,
+    "unmatched": 0,
+    "sourceHashInputsReverified": 560,
+    "supplementalResourceProtocolSites": 149,
+    "explicitNoHttpSites": 54,
+    "legacyEntrypointFiles": 58,
+    "legacyRequestInitiators": 15,
+    "recoveryMethodsProbed": 32,
+    "recoveryObservations": 1152,
+    "inheritedObservations": 32,
+    "inheritedIgnoredResultObservations": 4,
+    "dispositions": {
+      "recovery/typed completion in selected consumer": 95,
+      "public unselected helper: rejection propagates to extension caller": 6,
+      "B-11: unchanged incomplete rejection recovery": 14,
+      "B-12: unchanged quiet read fallback": 5,
+      "B-13: unchanged deleted-record consumer ignores failed typed result": 3
+    }
+  },
+  "rows": [
+    {
+      "id": "ANG-001",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 263,
+      "method": "discoverTaxonomies",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 218,
+          "method": "AdminFigshareVocabularyComponent.discoverTaxonomies"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-234"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-002",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 274,
+      "method": "listSources",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 147,
+          "method": "AdminFigshareVocabularyComponent.loadSources"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-235"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-003",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 288,
+      "method": "listSourceCategories",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/crosswalks/figshare-mapping-picker.component.ts",
+          "line": 219,
+          "method": "FigshareMappingPickerComponent.loadCategories"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-237"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-004",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 302,
+      "method": "listSyncRuns",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 202,
+          "method": "AdminFigshareVocabularyComponent.loadSyncRuns"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-240"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-005",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 309,
+      "method": "listLocalVocabularies",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 126,
+          "method": "AdminFigshareVocabularyComponent.startImport"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-178"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-006",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 329,
+      "method": "createPreview",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 232,
+          "method": "AdminFigshareVocabularyComponent.generatePreview"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-241"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-007",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 336,
+      "method": "createSourcePreview",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 164,
+          "method": "AdminFigshareVocabularyComponent.resyncSource"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-238"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-008",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 343,
+      "method": "cloneSource",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 179,
+          "method": "AdminFigshareVocabularyComponent.cloneSource"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-239"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-009",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 365,
+      "method": "getPreview",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 261,
+          "method": "AdminFigshareVocabularyComponent.loadPreview"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-242"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-010",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 380,
+      "method": "applyPreview",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 310,
+          "method": "AdminFigshareVocabularyComponent.applyPreview"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-243"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-011",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 393,
+      "method": "listCrosswalks",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 350,
+          "method": "AdminFigshareVocabularyComponent.loadCrosswalks"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-225"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-012",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 400,
+      "method": "getCrosswalk",
+      "consumerMethods": [],
+      "nativeRoutes": [
+        "HTTP-232"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "public unselected helper: rejection propagates to extension caller",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-013",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 407,
+      "method": "getCrosswalkUsage",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 372,
+          "method": "AdminFigshareVocabularyComponent.loadCrosswalkUsage"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-227"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-014",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 414,
+      "method": "listMappings",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 384,
+          "method": "AdminFigshareVocabularyComponent.loadMappings"
+        },
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/crosswalks/figshare-mapping-picker.component.ts",
+          "line": 253,
+          "method": "FigshareMappingPickerComponent.loadCurrentTargets"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-229"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-015",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 434,
+      "method": "listCrosswalkLocalEntries",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/crosswalks/figshare-mapping-picker.component.ts",
+          "line": 187,
+          "method": "FigshareMappingPickerComponent.loadLocalEntries"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-228"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-016",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 447,
+      "method": "saveMappings",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 432,
+          "method": "AdminFigshareVocabularyComponent.saveMappingChange"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-230"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-017",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 454,
+      "method": "approveCrosswalk",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 454,
+          "method": "AdminFigshareVocabularyComponent.approveCrosswalk"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-231"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-018",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "line": 461,
+      "method": "deleteCrosswalk",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+          "line": 470,
+          "method": "AdminFigshareVocabularyComponent.deleteCrosswalk"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-233"
+      ],
+      "sourceConclusion": "Figshare administration catches read/mutation failures, retains wizard drafts and finalizes busy state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-019",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocabulary-api.service.ts",
+      "line": 143,
+      "method": "list",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.ts",
+          "line": 128,
+          "method": "AdminVocabularyComponent.loadVocabularyPage"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-178"
+      ],
+      "sourceConclusion": "Vocabulary administration catches list/detail/write/import/sync failure; retains drafts and completes import state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-020",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocabulary-api.service.ts",
+      "line": 239,
+      "method": "get",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.ts",
+          "line": 150,
+          "method": "AdminVocabularyComponent.openVocabulary"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-179"
+      ],
+      "sourceConclusion": "Vocabulary administration catches list/detail/write/import/sync failure; retains drafts and completes import state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-021",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocabulary-api.service.ts",
+      "line": 249,
+      "method": "create",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.ts",
+          "line": 252,
+          "method": "AdminVocabularyComponent.save"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-180"
+      ],
+      "sourceConclusion": "Vocabulary administration catches list/detail/write/import/sync failure; retains drafts and completes import state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-022",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocabulary-api.service.ts",
+      "line": 255,
+      "method": "update",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.ts",
+          "line": 249,
+          "method": "AdminVocabularyComponent.save"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-181"
+      ],
+      "sourceConclusion": "Vocabulary administration catches list/detail/write/import/sync failure; retains drafts and completes import state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-023",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocabulary-api.service.ts",
+      "line": 261,
+      "method": "delete",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.ts",
+          "line": 271,
+          "method": "AdminVocabularyComponent.deleteVocabulary"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-183"
+      ],
+      "sourceConclusion": "Vocabulary administration catches list/detail/write/import/sync failure; retains drafts and completes import state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-024",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocabulary-api.service.ts",
+      "line": 267,
+      "method": "importRva",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.ts",
+          "line": 305,
+          "method": "AdminVocabularyComponent.importRva"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-174"
+      ],
+      "sourceConclusion": "Vocabulary administration catches list/detail/write/import/sync failure; retains drafts and completes import state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-025",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocabulary-api.service.ts",
+      "line": 275,
+      "method": "sync",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.ts",
+          "line": 356,
+          "method": "AdminVocabularyComponent.confirmSyncSelected"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-175"
+      ],
+      "sourceConclusion": "Vocabulary administration catches list/detail/write/import/sync failure; retains drafts and completes import state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-026",
+      "file": "angular/projects/researchdatabox/app-config/src/app/services/figshare-crosswalk-api.service.ts",
+      "line": 121,
+      "method": "listApprovedCrosswalks",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/app-config/src/app/services/figshare-crosswalk-api.service.ts",
+          "line": 91,
+          "method": "FigshareCrosswalkApiService.listAllApprovedCrosswalks"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-225"
+      ],
+      "sourceConclusion": "App-config crosswalk binding field catches catalogue rejection and displays loadError, clearing loading.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-027",
+      "file": "angular/projects/researchdatabox/app-config/src/app/services/figshare-crosswalk-api.service.ts",
+      "line": 130,
+      "method": "listLocalVocabularies",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/app-config/src/app/services/figshare-crosswalk-api.service.ts",
+          "line": 100,
+          "method": "FigshareCrosswalkApiService.listAllLocalVocabularies"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-178"
+      ],
+      "sourceConclusion": "App-config crosswalk binding field catches catalogue rejection and displays loadError, clearing loading.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-028",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+      "line": 73,
+      "method": "postState",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+          "line": 88,
+          "method": "BrandingAdminService.saveColourDraft"
+        },
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+          "line": 96,
+          "method": "BrandingAdminService.saveDraft"
+        },
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+          "line": 153,
+          "method": "BrandingAdminService.useDefaultTypography"
+        },
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+          "line": 158,
+          "method": "BrandingAdminService.revertTypefaceDraft"
+        },
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+          "line": 163,
+          "method": "BrandingAdminService.createPreview"
+        },
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+          "line": 174,
+          "method": "BrandingAdminService.previewVersion"
+        },
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+          "line": 179,
+          "method": "BrandingAdminService.publish"
+        },
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+          "line": 184,
+          "method": "BrandingAdminService.restore"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-208",
+        "HTTP-210",
+        "HTTP-211",
+        "HTTP-212",
+        "HTTP-214",
+        "HTTP-215",
+        "HTTP-216"
+      ],
+      "sourceConclusion": "Branding load catches failure; runMutation catches all statuses and clears inFlight in finally; 409/413 have specific guidance.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-029",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+      "line": 82,
+      "method": "loadConfig",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.component.ts",
+          "line": 246,
+          "method": "BrandingAdminComponent.loadConfig"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-207"
+      ],
+      "sourceConclusion": "Branding load catches failure; runMutation catches all statuses and clears inFlight in finally; 409/413 have specific guidance.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-030",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+      "line": 129,
+      "method": "uploadFace",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.component.ts",
+          "line": 635,
+          "method": "BrandingAdminComponent.uploadFace"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-222"
+      ],
+      "sourceConclusion": "Branding load catches failure; runMutation catches all statuses and clears inFlight in finally; 409/413 have specific guidance.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-031",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+      "line": 141,
+      "method": "removeFace",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.component.ts",
+          "line": 646,
+          "method": "BrandingAdminComponent.removeFace"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-209"
+      ],
+      "sourceConclusion": "Branding load catches failure; runMutation catches all statuses and clears inFlight in finally; 409/413 have specific guidance.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-032",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+      "line": 168,
+      "method": "listVersions",
+      "consumerMethods": [],
+      "nativeRoutes": [
+        "HTTP-213"
+      ],
+      "sourceConclusion": "Branding load catches failure; runMutation catches all statuses and clears inFlight in finally; 409/413 have specific guidance.",
+      "disposition": "public unselected helper: rejection propagates to extension caller",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-033",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+      "line": 202,
+      "method": "uploadLogo",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.component.ts",
+          "line": 717,
+          "method": "BrandingAdminComponent.uploadLogo"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-223"
+      ],
+      "sourceConclusion": "Branding load catches failure; runMutation catches all statuses and clears inFlight in finally; 409/413 have specific guidance.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-034",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+      "line": 221,
+      "method": "uploadFavicon",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.component.ts",
+          "line": 730,
+          "method": "BrandingAdminComponent.uploadFavicon"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-224"
+      ],
+      "sourceConclusion": "Branding load catches failure; runMutation catches all statuses and clears inFlight in finally; 409/413 have specific guidance.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-035",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-api.service.ts",
+      "line": 235,
+      "method": "getTargets",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 110,
+          "method": "DashboardConfigEditorComponent.reloadTargets"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-030"
+      ],
+      "sourceConclusion": "Dashboard editor converts v2 errors into DashboardConfigApiError; load/save/copy catches retain drafts and finalize flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-036",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-api.service.ts",
+      "line": 239,
+      "method": "getSettings",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 219,
+          "method": "DashboardConfigEditorComponent.loadSelected"
+        },
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 427,
+          "method": "DashboardConfigEditorComponent.previewCopyFrom"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-031",
+        "HTTP-032"
+      ],
+      "sourceConclusion": "Dashboard editor converts v2 errors into DashboardConfigApiError; load/save/copy catches retain drafts and finalize flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-037",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-api.service.ts",
+      "line": 243,
+      "method": "getFields",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 244,
+          "method": "DashboardConfigEditorComponent.loadFieldCatalogue"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-033",
+        "HTTP-034"
+      ],
+      "sourceConclusion": "Dashboard editor converts v2 errors into DashboardConfigApiError; load/save/copy catches retain drafts and finalize flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-038",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-api.service.ts",
+      "line": 247,
+      "method": "validate",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 307,
+          "method": "DashboardConfigEditorComponent.save"
+        },
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 434,
+          "method": "DashboardConfigEditorComponent.previewCopyFrom"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-056"
+      ],
+      "sourceConclusion": "Dashboard editor converts v2 errors into DashboardConfigApiError; load/save/copy catches retain drafts and finalize flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-039",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-api.service.ts",
+      "line": 251,
+      "method": "save",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 328,
+          "method": "DashboardConfigEditorComponent.save"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-054",
+        "HTTP-055"
+      ],
+      "sourceConclusion": "Dashboard editor converts v2 errors into DashboardConfigApiError; load/save/copy catches retain drafts and finalize flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-040",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-api.service.ts",
+      "line": 255,
+      "method": "previewCopy",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 503,
+          "method": "DashboardConfigEditorComponent.previewCopyTo"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-057"
+      ],
+      "sourceConclusion": "Dashboard editor converts v2 errors into DashboardConfigApiError; load/save/copy catches retain drafts and finalize flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-041",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-api.service.ts",
+      "line": 267,
+      "method": "applyCopy",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-editor.component.ts",
+          "line": 525,
+          "method": "DashboardConfigEditorComponent.applyCopyTo"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-058"
+      ],
+      "sourceConclusion": "Dashboard editor converts v2 errors into DashboardConfigApiError; load/save/copy catches retain drafts and finalize flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-042",
+      "file": "angular/projects/researchdatabox/form/src/app/form.service.ts",
+      "line": 875,
+      "method": "getFormConfig",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/form.service.ts",
+          "line": 225,
+          "method": "FormService.downloadFormComponents"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-063",
+        "HTTP-064"
+      ],
+      "sourceConclusion": "Form initial load catches rejection and dispatches loadInitialDataFailure; form/metadata 404 is missing-record.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-043",
+      "file": "angular/projects/researchdatabox/form/src/app/form.service.ts",
+      "line": 906,
+      "method": "getModelData",
+      "consumerMethods": [],
+      "nativeRoutes": [
+        "HTTP-108",
+        "HTTP-109"
+      ],
+      "sourceConclusion": "Form initial load catches rejection and dispatches loadInitialDataFailure; form/metadata 404 is missing-record.",
+      "disposition": "public unselected helper: rejection propagates to extension caller",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-044",
+      "file": "angular/projects/researchdatabox/form/src/app/service/typeahead-data.service.ts",
+      "line": 85,
+      "method": "fetchVocabularyEntries",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/service/typeahead-data.service.ts",
+          "line": 70,
+          "method": "TypeaheadDataService.searchVocabularyEntries"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-302"
+      ],
+      "sourceConclusion": "Typeahead/tree consumers catch failure, show a search error and clear loading; rejected tree-cache entries are evicted.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-045",
+      "file": "angular/projects/researchdatabox/form/src/app/service/typeahead-data.service.ts",
+      "line": 135,
+      "method": "fetchNamedQuery",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/service/typeahead-data.service.ts",
+          "line": 121,
+          "method": "TypeaheadDataService.searchNamedQuery"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-305"
+      ],
+      "sourceConclusion": "Typeahead/tree consumers catch failure, show a search error and clear loading; rejected tree-cache entries are evicted.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-046",
+      "file": "angular/projects/researchdatabox/form/src/app/service/typeahead-data.service.ts",
+      "line": 176,
+      "method": "searchService",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/typeahead-input.component.ts",
+          "line": 401,
+          "method": "TypeaheadInputComponent.lookup"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-307"
+      ],
+      "sourceConclusion": "Typeahead/tree consumers catch failure, show a search error and clear loading; rejected tree-cache entries are evicted.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-047",
+      "file": "angular/projects/researchdatabox/form/src/app/service/typeahead-data.service.ts",
+      "line": 229,
+      "method": "fetchExternal",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/service/typeahead-data.service.ts",
+          "line": 216,
+          "method": "TypeaheadDataService.searchExternal"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-306"
+      ],
+      "sourceConclusion": "Typeahead/tree consumers catch failure, show a search error and clear loading; rejected tree-cache entries are evicted.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-048",
+      "file": "angular/projects/researchdatabox/form/src/app/service/vocab-tree.service.ts",
+      "line": 120,
+      "method": "expandPath",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/checkbox-tree.component.ts",
+          "line": 767,
+          "method": "CheckboxTreeComponent.expandToSelectedNodes"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-304"
+      ],
+      "sourceConclusion": "Typeahead/tree consumers catch failure, show a search error and clear loading; rejected tree-cache entries are evicted.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-049",
+      "file": "angular/projects/researchdatabox/form/src/app/service/vocab-tree.service.ts",
+      "line": 277,
+      "method": "fetchChildren",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/service/vocab-tree.service.ts",
+          "line": 79,
+          "method": "VocabTreeService.getChildren"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-303"
+      ],
+      "sourceConclusion": "Typeahead/tree consumers catch failure, show a search error and clear loading; rejected tree-cache entries are evicted.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-050",
+      "file": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-run-api.service.ts",
+      "line": 145,
+      "method": "listRuns",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-runs.component.ts",
+          "line": 233,
+          "method": "HarvestRunsComponent.loadRuns"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-075"
+      ],
+      "sourceConclusion": "Harvest list/detail/events catch failure, populate visible error and clear loading in finally.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-051",
+      "file": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-run-api.service.ts",
+      "line": 157,
+      "method": "getRun",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-runs.component.ts",
+          "line": 84,
+          "method": "HarvestRunsComponent.selectRun"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-076"
+      ],
+      "sourceConclusion": "Harvest list/detail/events catch failure, populate visible error and clear loading in finally.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-052",
+      "file": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-run-api.service.ts",
+      "line": 166,
+      "method": "listRunEvents",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-runs.component.ts",
+          "line": 85,
+          "method": "HarvestRunsComponent.selectRun"
+        },
+        {
+          "file": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-runs.component.ts",
+          "line": 111,
+          "method": "HarvestRunsComponent.onEventPageChanged"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-077"
+      ],
+      "sourceConclusion": "Harvest list/detail/events catch failure, populate visible error and clear loading in finally.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-053",
+      "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-api.service.ts",
+      "line": 76,
+      "method": "list",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-editor.component.ts",
+          "line": 93,
+          "method": "NamedQueryEditorComponent.loadQueries"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-072"
+      ],
+      "sourceConclusion": "Named-query list/detail/mutations catch failure, retain draft/modal and clear pending state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-054",
+      "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-api.service.ts",
+      "line": 81,
+      "method": "getCollections",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-editor.component.ts",
+          "line": 49,
+          "method": "NamedQueryEditorComponent.loadCollections"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-073"
+      ],
+      "sourceConclusion": "Named-query list/detail/mutations catch failure, retain draft/modal and clear pending state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-055",
+      "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-api.service.ts",
+      "line": 87,
+      "method": "get",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-editor.component.ts",
+          "line": 134,
+          "method": "NamedQueryEditorComponent.openQuery"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-074"
+      ],
+      "sourceConclusion": "Named-query list/detail/mutations catch failure, retain draft/modal and clear pending state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-056",
+      "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-api.service.ts",
+      "line": 92,
+      "method": "create",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-editor.component.ts",
+          "line": 171,
+          "method": "NamedQueryEditorComponent.save"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-090"
+      ],
+      "sourceConclusion": "Named-query list/detail/mutations catch failure, retain draft/modal and clear pending state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-057",
+      "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-api.service.ts",
+      "line": 97,
+      "method": "update",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-editor.component.ts",
+          "line": 174,
+          "method": "NamedQueryEditorComponent.save"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-091"
+      ],
+      "sourceConclusion": "Named-query list/detail/mutations catch failure, retain draft/modal and clear pending state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-058",
+      "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-api.service.ts",
+      "line": 102,
+      "method": "delete",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-editor.component.ts",
+          "line": 208,
+          "method": "NamedQueryEditorComponent.confirmDelete"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-092"
+      ],
+      "sourceConclusion": "Named-query list/detail/mutations catch failure, retain draft/modal and clear pending state.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-059",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/appconfig.service.ts",
+      "line": 74,
+      "method": "getAppConfigForm",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/app-config/src/app/app-config.component.ts",
+          "line": 72,
+          "method": "AppConfigComponent.initComponent"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-265"
+      ],
+      "sourceConclusion": "App-config save catches rejection and sets unsuccessful; finally clears formSaving. Initial read exception is listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "AppConfigComponent.initComponent has no catch.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-060",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/appconfig.service.ts",
+      "line": 86,
+      "method": "saveAppConfig",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/app-config/src/app/app-config.component.ts",
+          "line": 187,
+          "method": "AppConfigComponent.onSubmit"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-059"
+      ],
+      "sourceConclusion": "App-config save catches rejection and sets unsuccessful; finally clears formSaving. Initial read exception is listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-061",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts",
+      "line": 73,
+      "method": "initConfig",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts",
+          "line": 51,
+          "method": "ConfigService.constructor"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-264"
+      ],
+      "sourceConclusion": "Shared bootstrap has inherited missing error callback; it is not a passing recovery path.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "ConfigService.initConfig has no RxJS error callback; dependent initialization stays pending.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-062",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts",
+      "line": 77,
+      "method": "initConfig",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts",
+          "line": 51,
+          "method": "ConfigService.constructor"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-330"
+      ],
+      "sourceConclusion": "Shared bootstrap has inherited missing error callback; it is not a passing recovery path.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "Same chained bootstrap subscription as ANG-061.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-063",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 327,
+      "method": "getWorkflowSteps",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+          "line": 292,
+          "method": "DashboardComponent.initWorkflowSteps"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-005"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "Dashboard initWorkflowSteps propagates rejection to uncaught initialization.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-064",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 337,
+      "method": "getRecordMeta",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/record-metadata-retriever.component.ts",
+          "line": 134,
+          "method": "RecordMetadataRetrieverComponent.fetchMetadata"
+        },
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-processors.ts",
+          "line": 129,
+          "method": "<module>.executeFetchMetadata"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-108"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "B-12: unchanged quiet read fallback",
+      "exception": "Metadata retriever logs failure without publishing a field event; behavior runner returns a failed behavior result.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-065",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 370,
+      "method": "getRecordMetaWithOptions",
+      "consumerMethods": [],
+      "nativeRoutes": [
+        "HTTP-108"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "public unselected helper: rejection propagates to extension caller",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-066",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 386,
+      "method": "getAttachments",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/pdf-list.component.ts",
+          "line": 116,
+          "method": "PDFListComponent.loadAttachments"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-252"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "B-12: unchanged quiet read fallback",
+      "exception": "PDF list logs failure and displays an empty attachment list.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-067",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 417,
+      "method": "getRecordAuditTab",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-audit/record-audit.component.ts",
+          "line": 162,
+          "method": "RecordAuditComponent.loadAuditTab"
+        },
+        {
+          "file": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.ts",
+          "line": 154,
+          "method": "RecordAuditComponent.loadAuditTab"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-086"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-068",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 435,
+      "method": "getRecordPermissionsTab",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-audit/record-audit.component.ts",
+          "line": 185,
+          "method": "RecordAuditComponent.loadPermissionsTab"
+        },
+        {
+          "file": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.ts",
+          "line": 177,
+          "method": "RecordAuditComponent.loadPermissionsTab"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-087"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-069",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 473,
+      "method": "getRecordIntegrationStatus",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/integration-status.component.ts",
+          "line": 352,
+          "method": "IntegrationStatusComponent.fetchStatus"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-089"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-070",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 524,
+      "method": "getRecordIntegrationAuditTab",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-audit/record-audit.component.ts",
+          "line": 201,
+          "method": "RecordAuditComponent.loadIntegrationTab"
+        },
+        {
+          "file": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.ts",
+          "line": 193,
+          "method": "RecordAuditComponent.loadIntegrationTab"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-088"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-071",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 572,
+      "method": "getRelationshipGraph",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+          "line": 590,
+          "method": "RecordService.getRelatedRecords"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-112"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-072",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 661,
+      "method": "getRecords",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+          "line": 346,
+          "method": "DashboardComponent.initStep"
+        },
+        {
+          "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+          "line": 382,
+          "method": "DashboardComponent.getAllItemsGroupedByRecordType"
+        },
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/record-selector.component.ts",
+          "line": 428,
+          "method": "RecordSelectorComponent.loadRecords"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-106"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "RecordSelector catches; Dashboard initStep/grouped loads propagate. Paging finally clears its pending flag but does not show the error.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-073",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 704,
+      "method": "getDeletedRecords",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.ts",
+          "line": 282,
+          "method": "DeletedRecordsComponent.getDeletedRecords"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-107"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "DeletedRecordsComponent.gotoPage leaves resultsReturned false.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-074",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 744,
+      "method": "getAllTypes",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.ts",
+          "line": 256,
+          "method": "DeletedRecordsComponent.initComponent"
+        },
+        {
+          "file": "angular/projects/researchdatabox/export/src/app/export.component.ts",
+          "line": 71,
+          "method": "ExportComponent.initComponent"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-003"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "Export and deleted-record initialization propagate failed type-list reads.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-075",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 761,
+      "method": "getType",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/record-selector.component.ts",
+          "line": 296,
+          "method": "RecordSelectorComponent.applyRelationshipConfigDefaults"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-004"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-076",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 768,
+      "method": "getDashboardType",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+          "line": 233,
+          "method": "DashboardComponent.initView"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-007"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "Dashboard initView propagates failed dashboard-type read.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-077",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 785,
+      "method": "getDashboardView",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+          "line": 266,
+          "method": "DashboardComponent.initDashboardView"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-008"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "Dashboard initDashboardView propagates failed view read.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-078",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 798,
+      "method": "getDashboardSettings",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+          "line": 175,
+          "method": "DashboardComponent.loadStepStates"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-009",
+        "HTTP-010"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-079",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 805,
+      "method": "getAllDashboardTypes",
+      "consumerMethods": [],
+      "nativeRoutes": [
+        "HTTP-006"
+      ],
+      "sourceConclusion": "Record read consumers vary: audit/selector/integration/graph/workspace use catches/finalization or fallback; dashboard/deleted/export initialization exceptions and quiet fallbacks are listed separately.",
+      "disposition": "public unselected helper: rejection propagates to extension caller",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-080",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 821,
+      "method": "create",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/form.component.ts",
+          "line": 1401,
+          "method": "FormComponent.saveForm"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-135"
+      ],
+      "sourceConclusion": "Record mutations/preflight normalize HTTP failures into RecordActionResult; form save/delete UI preserves failed/unknown outcomes. Deleted-record list ignores failed typed results (inherited note).",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-081",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 839,
+      "method": "update",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/form.component.ts",
+          "line": 1499,
+          "method": "FormComponent.saveForm"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-136"
+      ],
+      "sourceConclusion": "Record mutations/preflight normalize HTTP failures into RecordActionResult; form save/delete UI preserves failed/unknown outcomes. Deleted-record list ignores failed typed results (inherited note).",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-082",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 939,
+      "method": "executeLifecycleMutation",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+          "line": 714,
+          "method": "RecordService.restoreDeletedRecord"
+        },
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+          "line": 722,
+          "method": "RecordService.delete"
+        },
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+          "line": 730,
+          "method": "RecordService.destroyDeletedRecord"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-138"
+      ],
+      "sourceConclusion": "Record mutations/preflight normalize HTTP failures into RecordActionResult; form save/delete UI preserves failed/unknown outcomes. Deleted-record list ignores failed typed results (inherited note).",
+      "disposition": "B-13: unchanged deleted-record consumer ignores failed typed result",
+      "exception": "Form delete handles typed result; deleted-record restore/destroy only log it and refresh.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-083",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 940,
+      "method": "executeLifecycleMutation",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+          "line": 714,
+          "method": "RecordService.restoreDeletedRecord"
+        },
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+          "line": 722,
+          "method": "RecordService.delete"
+        },
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+          "line": 730,
+          "method": "RecordService.destroyDeletedRecord"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-137",
+        "HTTP-139"
+      ],
+      "sourceConclusion": "Record mutations/preflight normalize HTTP failures into RecordActionResult; form save/delete UI preserves failed/unknown outcomes. Deleted-record list ignores failed typed results (inherited note).",
+      "disposition": "B-13: unchanged deleted-record consumer ignores failed typed result",
+      "exception": "Form delete handles typed result; deleted-record restore/destroy only log it and refresh.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-084",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "line": 975,
+      "method": "resolveListMutationConcurrency",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+          "line": 931,
+          "method": "RecordService.executeLifecycleMutation"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-108",
+        "HTTP-110"
+      ],
+      "sourceConclusion": "Record mutations/preflight normalize HTTP failures into RecordActionResult; form save/delete UI preserves failed/unknown outcomes. Deleted-record list ignores failed typed results (inherited note).",
+      "disposition": "B-13: unchanged deleted-record consumer ignores failed typed result",
+      "exception": "Form delete handles typed result; deleted-record restore/destroy only log it and refresh.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-085",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts",
+      "line": 61,
+      "method": "getReportConfig",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/report/src/app/report.component.ts",
+          "line": 109,
+          "method": "ReportComponent.initComponent"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-083"
+      ],
+      "sourceConclusion": "Report initial/result loads propagate rejection without recovery (inherited); template-import failure is caught separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "ReportComponent.initComponent propagates failed definition load.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-086",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts",
+      "line": 83,
+      "method": "getReportResult",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/report/src/app/report.component.ts",
+          "line": 80,
+          "method": "ReportComponent.gotoPage"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-084"
+      ],
+      "sourceConclusion": "Report initial/result loads propagate rejection without recovery (inherited); template-import failure is caught separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "ReportComponent.gotoPage leaves resultsReturned false.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-087",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "line": 305,
+      "method": "listEntries",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+          "line": 616,
+          "method": "AppComponent.loadEntries"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-016"
+      ],
+      "sourceConclusion": "Translation edits/language changes catch failure and clear saving; read failures use inherited empty/default fallbacks and console diagnostics.",
+      "disposition": "B-12: unchanged quiet read fallback",
+      "exception": "Translation entry load logs failure and resets entries/view/categories to empty.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-088",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "line": 313,
+      "method": "setEntry",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+          "line": 783,
+          "method": "AppComponent.saveEdit"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-060"
+      ],
+      "sourceConclusion": "Translation edits/language changes catch failure and clear saving; read failures use inherited empty/default fallbacks and console diagnostics.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-089",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "line": 321,
+      "method": "listLanguages",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+          "line": 402,
+          "method": "TranslationService.ensureLanguageLabels"
+        },
+        {
+          "file": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+          "line": 570,
+          "method": "AppComponent.loadLanguages"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-013"
+      ],
+      "sourceConclusion": "Translation edits/language changes catch failure and clear saving; read failures use inherited empty/default fallbacks and console diagnostics.",
+      "disposition": "B-12: unchanged quiet read fallback",
+      "exception": "Translation language load logs failure and resets languages to empty.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-090",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "line": 329,
+      "method": "getBundle",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+          "line": 353,
+          "method": "TranslationService.createLanguage"
+        },
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+          "line": 382,
+          "method": "TranslationService.updateLanguageDisplayName"
+        },
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+          "line": 407,
+          "method": "TranslationService.ensureLanguageLabels"
+        },
+        {
+          "file": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+          "line": 589,
+          "method": "AppComponent.loadAvailableLanguagesFromBundles"
+        },
+        {
+          "file": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+          "line": 899,
+          "method": "AppComponent.loadCurrentDisplayName"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-017"
+      ],
+      "sourceConclusion": "Translation edits/language changes catch failure and clear saving; read failures use inherited empty/default fallbacks and console diagnostics.",
+      "disposition": "B-12: unchanged quiet read fallback",
+      "exception": "Translation bundle reads use logged/default fallbacks; write callers retain their own catches.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-091",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "line": 337,
+      "method": "setBundle",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+          "line": 359,
+          "method": "TranslationService.createLanguage"
+        },
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+          "line": 426,
+          "method": "TranslationService.ensureLanguageLabels"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-061"
+      ],
+      "sourceConclusion": "Translation edits/language changes catch failure and clear saving; read failures use inherited empty/default fallbacks and console diagnostics.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-092",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "line": 345,
+      "method": "updateBundleEnabled",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+          "line": 973,
+          "method": "AppComponent.saveLanguages"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-062"
+      ],
+      "sourceConclusion": "Translation edits/language changes catch failure and clear saving; read failures use inherited empty/default fallbacks and console diagnostics.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-093",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "line": 390,
+      "method": "updateLanguageDisplayName",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+          "line": 363,
+          "method": "TranslationService.createLanguage"
+        },
+        {
+          "file": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+          "line": 920,
+          "method": "AppComponent.updateDisplayName"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-061"
+      ],
+      "sourceConclusion": "Translation edits/language changes catch failure and clear saving; read failures use inherited empty/default fallbacks and console diagnostics.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-094",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 153,
+      "method": "getInfo",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+          "line": 126,
+          "method": "DashboardComponent.initComponent"
+        },
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/integration-status.component.ts",
+          "line": 321,
+          "method": "IntegrationStatusComponent.initRoleResolution"
+        },
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/record-audit/record-audit-launcher.component.ts",
+          "line": 30,
+          "method": "RecordAuditLauncherComponent.initRoleResolution"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-260"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "Dashboard initialization propagates getInfo rejection; IntegrationStatus catches the same operation.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-095",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 164,
+      "method": "loginLocal",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts",
+          "line": 87,
+          "method": "LocalAuthComponent.onLogin"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-255"
+      ],
+      "sourceConclusion": "R16-01: LocalAuth catches typed/empty rejected responses, re-enables login and shows safe detail plus refresh guidance for a potentially destroyed session. Normal credential denial and successful redirect are preserved.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-096",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 200,
+      "method": "getUsers",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 257,
+          "method": "ManageUsersComponent.refreshUsers"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-169"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "ManageUsersComponent.refreshUsers propagates failure and leaves old list.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-097",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 207,
+      "method": "updateUserDetails",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 422,
+          "method": "ManageUsersComponent.updateUserSubmit"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-156"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-098",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 214,
+      "method": "addLocalUser",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 454,
+          "method": "ManageUsersComponent.newUserSubmit"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-155"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-099",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 221,
+      "method": "genKey",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 370,
+          "method": "ManageUsersComponent.genKey"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-153"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-100",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 228,
+      "method": "revokeKey",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 389,
+          "method": "ManageUsersComponent.revokeKey"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-154"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-101",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 235,
+      "method": "getBrandRoles",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts",
+          "line": 52,
+          "method": "ManageRolesComponent.initComponent"
+        },
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 148,
+          "method": "ManageUsersComponent.initComponent"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-158"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "B-11: unchanged incomplete rejection recovery",
+      "exception": "ManageUsers/ManageRoles initial role read propagates failure.",
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-102",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 242,
+      "method": "updateUserRoles",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts",
+          "line": 116,
+          "method": "ManageRolesComponent.saveCurrentUser"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-157"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-103",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 249,
+      "method": "searchLinkCandidates",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 870,
+          "method": "ManageUsersComponent.searchCandidates"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-170"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-104",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 263,
+      "method": "getUserLinks",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 845,
+          "method": "ManageUsersComponent.refreshLinkModalData"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-171"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-105",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 273,
+      "method": "getUserAudit",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 598,
+          "method": "ManageUsersComponent.viewAudit"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-172"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-106",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 283,
+      "method": "disableUser",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 648,
+          "method": "ManageUsersComponent.disableUser"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-151"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-107",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 293,
+      "method": "enableUser",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 665,
+          "method": "ManageUsersComponent.enableUser"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-152"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-108",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "line": 303,
+      "method": "linkAccounts",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+          "line": 904,
+          "method": "ManageUsersComponent.submitLink"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-173"
+      ],
+      "sourceConclusion": "R15 users/roles catches cover typed mutation errors, preserve edits and complete pending text. Candidate/link/audit/enable/disable siblings catch and finalize. Initial identity/list exceptions are listed separately.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-109",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/workspace-type.service.ts",
+      "line": 29,
+      "method": "getWorkspaceTypes",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/form/src/app/component/workspace.component.ts",
+          "line": 66,
+          "method": "WorkspaceSelectorComponent.initData"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-011"
+      ],
+      "sourceConclusion": "Workspace field catches catalogue failure, clears loading and uses configured defaults with a loadError.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-110",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/workspace-type.service.ts",
+      "line": 41,
+      "method": "getWorkspaceType",
+      "consumerMethods": [],
+      "nativeRoutes": [
+        "HTTP-012"
+      ],
+      "sourceConclusion": "Workspace field catches catalogue failure, clears loading and uses configured defaults with a loadError.",
+      "disposition": "public unselected helper: rejection propagates to extension caller",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-111",
+      "file": "angular/projects/researchdatabox/record-search/src/app/search.service.ts",
+      "line": 68,
+      "method": "search",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/record-search/src/app/record-search.component.ts",
+          "line": 184,
+          "method": "RecordSearchComponent.doSearch"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-113"
+      ],
+      "sourceConclusion": "Search catches rejection, clears isSearching and displays danger message; type list load has its own catch.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-112",
+      "file": "angular/projects/researchdatabox/record-search/src/app/search.service.ts",
+      "line": 77,
+      "method": "getAllTypes",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/record-search/src/app/record-search.component.ts",
+          "line": 74,
+          "method": "RecordSearchComponent.initComponent"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-003"
+      ],
+      "sourceConclusion": "Search catches rejection, clears isSearching and displays danger message; type list load has its own catch.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-113",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.service.ts",
+      "line": 32,
+      "method": "list",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.ts",
+          "line": 58,
+          "method": "ReportConfigComponent.loadReports"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-069"
+      ],
+      "sourceConclusion": "Report editor catches list/definition/write/preview failures; finally clears saving/previewing.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-114",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.service.ts",
+      "line": 36,
+      "method": "create",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.ts",
+          "line": 124,
+          "method": "ReportConfigComponent.saveReport"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-096"
+      ],
+      "sourceConclusion": "Report editor catches list/definition/write/preview failures; finally clears saving/previewing.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-115",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.service.ts",
+      "line": 40,
+      "method": "update",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.ts",
+          "line": 126,
+          "method": "ReportConfigComponent.saveReport"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-097"
+      ],
+      "sourceConclusion": "Report editor catches list/definition/write/preview failures; finally clears saving/previewing.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-116",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.service.ts",
+      "line": 44,
+      "method": "delete",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.ts",
+          "line": 144,
+          "method": "ReportConfigComponent.deleteReport"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-098"
+      ],
+      "sourceConclusion": "Report editor catches list/definition/write/preview failures; finally clears saving/previewing.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-117",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.service.ts",
+      "line": 52,
+      "method": "preview",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.ts",
+          "line": 159,
+          "method": "ReportConfigComponent.previewReport"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-070"
+      ],
+      "sourceConclusion": "Report editor catches list/definition/write/preview failures; finally clears saving/previewing.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-118",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.service.ts",
+      "line": 60,
+      "method": "listNamedQueries",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.ts",
+          "line": 64,
+          "method": "ReportConfigComponent.loadNamedQueries"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-072"
+      ],
+      "sourceConclusion": "Report editor catches list/definition/write/preview failures; finally clears saving/previewing.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-119",
+      "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin-api.service.ts",
+      "line": 77,
+      "method": "getSiemConfig",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin.component.ts",
+          "line": 133,
+          "method": "SiemAdminComponent.loadConfig"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-078"
+      ],
+      "sourceConclusion": "SIEM config/test/events/delivery catch failure, retain draft and clear their respective pending flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-120",
+      "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin-api.service.ts",
+      "line": 85,
+      "method": "saveSiemConfig",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin.component.ts",
+          "line": 178,
+          "method": "SiemAdminComponent.save"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-189"
+      ],
+      "sourceConclusion": "SIEM config/test/events/delivery catch failure, retain draft and clear their respective pending flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-121",
+      "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin-api.service.ts",
+      "line": 97,
+      "method": "getEvents",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin.component.ts",
+          "line": 375,
+          "method": "SiemAdminComponent.loadEvents"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-079"
+      ],
+      "sourceConclusion": "SIEM config/test/events/delivery catch failure, retain draft and clear their respective pending flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-122",
+      "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin-api.service.ts",
+      "line": 110,
+      "method": "getDeliveryStatus",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin.component.ts",
+          "line": 409,
+          "method": "SiemAdminComponent.loadDelivery"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-080"
+      ],
+      "sourceConclusion": "SIEM config/test/events/delivery catch failure, retain draft and clear their respective pending flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    },
+    {
+      "id": "ANG-123",
+      "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin-api.service.ts",
+      "line": 121,
+      "method": "testDestination",
+      "consumerMethods": [
+        {
+          "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin.component.ts",
+          "line": 338,
+          "method": "SiemAdminComponent.testDestination"
+        }
+      ],
+      "nativeRoutes": [
+        "HTTP-190"
+      ],
+      "sourceConclusion": "SIEM config/test/events/delivery catch failure, retain draft and clear their respective pending flags.",
+      "disposition": "recovery/typed completion in selected consumer",
+      "exception": null,
+      "execution": "Source review; only methods in client-error-results.json are newly executed by the parent probe."
+    }
+  ],
+  "supplemental": [
+    {
+      "id": "NET-001",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.ts",
+      "line": 147,
+      "kind": "font-load",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-002",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.ts",
+      "line": 191,
+      "kind": "dom-resource-url",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-003",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.ts",
+      "line": 199,
+      "kind": "dom-resource-url",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-004",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/app/template-preview/template-preview.component.ts",
+      "line": 16,
+      "kind": "inline-rendered-html",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-005",
+      "file": "angular/projects/researchdatabox/export/src/app/export.component.ts",
+      "line": 91,
+      "kind": "window-navigation",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-006",
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "line": 410,
+      "kind": "tus-installation",
+      "recovery": "Installed Uppy owns transfer/provider errors and retry UI; widgets append attachments only on upload-success; both Tus and outer Companion CSRF are wired."
+    },
+    {
+      "id": "NET-007",
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "line": 429,
+      "kind": "companion-installation",
+      "recovery": "Installed Uppy owns transfer/provider errors and retry UI; widgets append attachments only on upload-success; both Tus and outer Companion CSRF are wired."
+    },
+    {
+      "id": "NET-008",
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "line": 432,
+      "kind": "companion-installation",
+      "recovery": "Installed Uppy owns transfer/provider errors and retry UI; widgets append attachments only on upload-success; both Tus and outer Companion CSRF are wired."
+    },
+    {
+      "id": "NET-009",
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "line": 436,
+      "kind": "companion-installation",
+      "recovery": "Installed Uppy owns transfer/provider errors and retry UI; widgets append attachments only on upload-success; both Tus and outer Companion CSRF are wired."
+    },
+    {
+      "id": "NET-010",
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "line": 829,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-011",
+      "file": "angular/projects/researchdatabox/form/src/app/component/default-layout.component.ts",
+      "line": 47,
+      "kind": "inline-rendered-html",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-012",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "line": 304,
+      "kind": "tus-installation",
+      "recovery": "Installed Uppy owns transfer/provider errors and retry UI; widgets append attachments only on upload-success; both Tus and outer Companion CSRF are wired."
+    },
+    {
+      "id": "NET-013",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "line": 316,
+      "kind": "companion-installation",
+      "recovery": "Installed Uppy owns transfer/provider errors and retry UI; widgets append attachments only on upload-success; both Tus and outer Companion CSRF are wired."
+    },
+    {
+      "id": "NET-014",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "line": 319,
+      "kind": "companion-installation",
+      "recovery": "Installed Uppy owns transfer/provider errors and retry UI; widgets append attachments only on upload-success; both Tus and outer Companion CSRF are wired."
+    },
+    {
+      "id": "NET-015",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "line": 323,
+      "kind": "companion-installation",
+      "recovery": "Installed Uppy owns transfer/provider errors and retry UI; widgets append attachments only on upload-success; both Tus and outer Companion CSRF are wired."
+    },
+    {
+      "id": "NET-016",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "line": 630,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-017",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.runtime.ts",
+      "line": 10,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-018",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.runtime.ts",
+      "line": 11,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-019",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.runtime.ts",
+      "line": 12,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-020",
+      "file": "angular/projects/researchdatabox/form/src/app/component/inline-layout.component.ts",
+      "line": 46,
+      "kind": "inline-rendered-html",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-021",
+      "file": "angular/projects/researchdatabox/form/src/app/component/integration-status.component.ts",
+      "line": 82,
+      "kind": "inline-template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-022",
+      "file": "angular/projects/researchdatabox/form/src/app/component/integration-status.component.ts",
+      "line": 112,
+      "kind": "inline-template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-023",
+      "file": "angular/projects/researchdatabox/form/src/app/component/integration-status.component.ts",
+      "line": 165,
+      "kind": "inline-template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-024",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 104,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-025",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 105,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-026",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 106,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-027",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 107,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-028",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 108,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-029",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 109,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-030",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 110,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-031",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 111,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-032",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 112,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-033",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 113,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-034",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 114,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-035",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 115,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-036",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 116,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-037",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 117,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-038",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 118,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-039",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 119,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-040",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 120,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-041",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 121,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-042",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "line": 819,
+      "kind": "external-tile-source",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-043",
+      "file": "angular/projects/researchdatabox/form/src/app/component/rich-text-editor.component.ts",
+      "line": 51,
+      "kind": "inline-rendered-html",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-044",
+      "file": "angular/projects/researchdatabox/form/src/app/component/rich-text-editor.component.ts",
+      "line": 258,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-045",
+      "file": "angular/projects/researchdatabox/form/src/app/component/suggested-validation-summary.component.ts",
+      "line": 32,
+      "kind": "inline-fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-046",
+      "file": "angular/projects/researchdatabox/form/src/app/component/tab.component.ts",
+      "line": 48,
+      "kind": "inline-rendered-html",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-047",
+      "file": "angular/projects/researchdatabox/form/src/app/component/validation-summary.component.ts",
+      "line": 43,
+      "kind": "inline-fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-048",
+      "file": "angular/projects/researchdatabox/form/src/app/form-debug/form-debug-panel.component.ts",
+      "line": 121,
+      "kind": "window-navigation",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-049",
+      "file": "angular/projects/researchdatabox/form/src/app/form.component.ts",
+      "line": 475,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-050",
+      "file": "angular/projects/researchdatabox/form/src/app/form.component.ts",
+      "line": 2191,
+      "kind": "local-blob-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-051",
+      "file": "angular/projects/researchdatabox/form/src/app/form.component.ts",
+      "line": 2224,
+      "kind": "reload-navigation",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-052",
+      "file": "angular/projects/researchdatabox/form/src/app/form.component.ts",
+      "line": 2720,
+      "kind": "location-navigation",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-053",
+      "file": "angular/projects/researchdatabox/form/src/app/form.service.ts",
+      "line": 931,
+      "kind": "dynamic-native-caller",
+      "recovery": "Import rejection reaches form failure, dashboard settings-unavailable or report template catch; failed import cache is evicted."
+    },
+    {
+      "id": "NET-054",
+      "file": "angular/projects/researchdatabox/form/src/app/record-audit/record-audit-launcher.component.ts",
+      "line": 53,
+      "kind": "window-navigation",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-055",
+      "file": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts",
+      "line": 91,
+      "kind": "location-navigation",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-056",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/handlebars-template.service.ts",
+      "line": 109,
+      "kind": "dynamic-native-caller",
+      "recovery": "Import rejection reaches form failure, dashboard settings-unavailable or report template catch; failed import cache is evicted."
+    },
+    {
+      "id": "NET-057",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/handlebars-template.service.ts",
+      "line": 141,
+      "kind": "dynamic-native-caller",
+      "recovery": "Import rejection reaches form failure, dashboard settings-unavailable or report template catch; failed import cache is evicted."
+    },
+    {
+      "id": "NET-058",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "line": 199,
+      "kind": "i18next-backend",
+      "recovery": "Installed backend uses failedLoading/fallback/retry; no portal JSON mutation response."
+    },
+    {
+      "id": "NET-059",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/utility.service.ts",
+      "line": 476,
+      "kind": "dynamic-native-module",
+      "recovery": "Import rejection reaches form failure, dashboard settings-unavailable or report template catch; failed import cache is evicted."
+    },
+    {
+      "id": "NET-060",
+      "file": "packages/sails-ng-common/src/markdown-parser.browser.ts",
+      "line": 7,
+      "kind": "build-chunk",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-061",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-062",
+      "file": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-063",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocab-list.component.html",
+      "line": 107,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-064",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-065",
+      "file": "angular/projects/researchdatabox/admin-vocabulary/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-066",
+      "file": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/value-binding-editor/value-binding-editor.type.html",
+      "line": 182,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-067",
+      "file": "angular/projects/researchdatabox/app-config/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-068",
+      "file": "angular/projects/researchdatabox/app-config/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-069",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-admin.component.html",
+      "line": 19,
+      "kind": "rendered-html",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-070",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 10,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-071",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 26,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-072",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 43,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-073",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 44,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-074",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 45,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-075",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 48,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-076",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 50,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-077",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 51,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-078",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 52,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-079",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 65,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-080",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 93,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-081",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 94,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-082",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 95,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-083",
+      "file": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.html",
+      "line": 96,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-084",
+      "file": "angular/projects/researchdatabox/branding/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-085",
+      "file": "angular/projects/researchdatabox/branding/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-086",
+      "file": "angular/projects/researchdatabox/dashboard-config-editor/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-087",
+      "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.html",
+      "line": 26,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-088",
+      "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.html",
+      "line": 29,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-089",
+      "file": "angular/projects/researchdatabox/dashboard/src/app/sort/sort.component.html",
+      "line": 1,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-090",
+      "file": "angular/projects/researchdatabox/dashboard/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-091",
+      "file": "angular/projects/researchdatabox/dashboard/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-092",
+      "file": "angular/projects/researchdatabox/deleted-records/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-093",
+      "file": "angular/projects/researchdatabox/deleted-records/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-094",
+      "file": "angular/projects/researchdatabox/export/src/app/export.component.html",
+      "line": 52,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-095",
+      "file": "angular/projects/researchdatabox/export/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-096",
+      "file": "angular/projects/researchdatabox/export/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-097",
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.html",
+      "line": 30,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-098",
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.html",
+      "line": 25,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-099",
+      "file": "angular/projects/researchdatabox/form/src/app/component/pdf-list.component.html",
+      "line": 5,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-100",
+      "file": "angular/projects/researchdatabox/form/src/app/component/pdf-list.component.html",
+      "line": 16,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-101",
+      "file": "angular/projects/researchdatabox/form/src/app/component/pdf-list.component.html",
+      "line": 37,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-102",
+      "file": "angular/projects/researchdatabox/form/src/app/component/pdf-list.component.html",
+      "line": 109,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-103",
+      "file": "angular/projects/researchdatabox/form/src/app/component/publish-data-location-selector.component.html",
+      "line": 42,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-104",
+      "file": "angular/projects/researchdatabox/form/src/app/component/workspace.component.html",
+      "line": 72,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-105",
+      "file": "angular/projects/researchdatabox/form/src/app/component/workspace.component.html",
+      "line": 68,
+      "kind": "rendered-html",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-106",
+      "file": "angular/projects/researchdatabox/form/src/app/form.component.html",
+      "line": 22,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-107",
+      "file": "angular/projects/researchdatabox/form/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-108",
+      "file": "angular/projects/researchdatabox/form/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-109",
+      "file": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-runs.component.html",
+      "line": 297,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-110",
+      "file": "angular/projects/researchdatabox/harvest-runs/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-111",
+      "file": "angular/projects/researchdatabox/local-auth/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-112",
+      "file": "angular/projects/researchdatabox/local-auth/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-113",
+      "file": "angular/projects/researchdatabox/manage-roles/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-114",
+      "file": "angular/projects/researchdatabox/manage-roles/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-115",
+      "file": "angular/projects/researchdatabox/manage-users/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-116",
+      "file": "angular/projects/researchdatabox/manage-users/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-117",
+      "file": "angular/projects/researchdatabox/named-query-editor/src/app/nq-list/nq-list.component.html",
+      "line": 47,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-118",
+      "file": "angular/projects/researchdatabox/named-query-editor/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-119",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-audit/record-audit.component.html",
+      "line": 14,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-120",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-audit/record-audit.component.html",
+      "line": 26,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-121",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-audit/record-audit.component.html",
+      "line": 39,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-122",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-audit/record-audit.component.html",
+      "line": 72,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-123",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-table.component.html",
+      "line": 40,
+      "kind": "rendered-html",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-124",
+      "file": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.html",
+      "line": 14,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-125",
+      "file": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.html",
+      "line": 26,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-126",
+      "file": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.html",
+      "line": 39,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-127",
+      "file": "angular/projects/researchdatabox/record-audit/src/app/record-audit.component.html",
+      "line": 72,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-128",
+      "file": "angular/projects/researchdatabox/record-audit/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-129",
+      "file": "angular/projects/researchdatabox/record-audit/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-130",
+      "file": "angular/projects/researchdatabox/record-search/src/app/record-search-refiner/record-search-refiner.component.html",
+      "line": 31,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-131",
+      "file": "angular/projects/researchdatabox/record-search/src/app/record-search.component.html",
+      "line": 49,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-132",
+      "file": "angular/projects/researchdatabox/record-search/src/app/record-search.component.html",
+      "line": 90,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-133",
+      "file": "angular/projects/researchdatabox/record-search/src/app/record-search.component.html",
+      "line": 96,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-134",
+      "file": "angular/projects/researchdatabox/record-search/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-135",
+      "file": "angular/projects/researchdatabox/record-search/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-136",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.html",
+      "line": 14,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-137",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.html",
+      "line": 62,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-138",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.html",
+      "line": 63,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-139",
+      "file": "angular/projects/researchdatabox/report-config/src/app/report-config.component.html",
+      "line": 74,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-140",
+      "file": "angular/projects/researchdatabox/report-config/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-141",
+      "file": "angular/projects/researchdatabox/report/src/app/report.component.html",
+      "line": 98,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-142",
+      "file": "angular/projects/researchdatabox/report/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-143",
+      "file": "angular/projects/researchdatabox/report/src/index.html",
+      "line": 8,
+      "kind": "template-resource",
+      "recovery": "Browser/vendor resource, import or navigation error; no JSON success-envelope dependency. Static paths retain baseline status behavior."
+    },
+    {
+      "id": "NET-144",
+      "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin.component.html",
+      "line": 69,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-145",
+      "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin.component.html",
+      "line": 74,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-146",
+      "file": "angular/projects/researchdatabox/siem-admin/src/app/siem-admin.component.html",
+      "line": 79,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-147",
+      "file": "angular/projects/researchdatabox/siem-admin/src/index.html",
+      "line": 6,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-148",
+      "file": "angular/projects/researchdatabox/translation/src/app/translation.component.html",
+      "line": 260,
+      "kind": "fragment-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    },
+    {
+      "id": "NET-149",
+      "file": "angular/projects/researchdatabox/translation/src/index.html",
+      "line": 7,
+      "kind": "base-no-http",
+      "recovery": "No HTTP; no status/envelope consumer."
+    }
+  ],
+  "legacy": [
+    {
+      "id": "LEGACY-001",
+      "source": {
+        "file": "assets/js/redbox-progress.js",
+        "line": 26,
+        "sha256": "b022a576a2868de83d1715794fd4567f1a1702212f15d1ebc94270583fec6dc4"
+      },
+      "statusHandling": [
+        "401/403 disconnect",
+        "other non-2xx/network/invalid JSON retry with fresh grant",
+        "2xx passes token to Socket.IO"
+      ],
+      "disposition": "compatible; coordinated websocket grant protocol, existing shipped-helper browser and state-machine controls"
+    },
+    {
+      "id": "LEGACY-002",
+      "source": {
+        "file": "assets/default/default/js/admin-api-docs-bootstrap.js",
+        "line": 8,
+        "sha256": "de8087347eabbbd2b400b419b2f4f2fb73aa57618d29da79ce70aa36343491aa"
+      },
+      "statusHandling": [
+        "Redoc owns failed-load display; no custom HTTP status dispatch"
+      ],
+      "disposition": "compatible; actual rendered URL under page.base"
+    },
+    {
+      "id": "LEGACY-003",
+      "source": {
+        "file": "assets/default/default/js/vocab_widget_v2.js",
+        "line": 460,
+        "sha256": "33667e52d260f95ac09254b73c545b99c7a0972b87becca85197b04da8a0baa1"
+      },
+      "statusHandling": [
+        "success/error callback; no explicit code comparison"
+      ],
+      "disposition": "external; unchanged packaged widget, no selected portal endpoint"
+    },
+    {
+      "id": "LEGACY-004",
+      "source": {
+        "file": "assets/default/default/js/v0_3_1-leaflet-omnivore.min.js",
+        "line": 1,
+        "sha256": "fb156c69ffdfb3b346f94dd4f9a57091e685cf490d1da268eb53d747516e9f20"
+      },
+      "statusHandling": [
+        "vendor XHR success for 2xx/304; error event otherwise"
+      ],
+      "disposition": "vendor; byte-identical to baseline"
+    },
+    {
+      "id": "LEGACY-005",
+      "source": {
+        "file": "typescript/assets/default/default/js/client-script.ts",
+        "line": 33,
+        "sha256": "11b5b57221523611cf1e920cb25beab0ce1946fc0a97c9450b5e5479b61ede45"
+      },
+      "statusHandling": [
+        "import rejection resets promise and rethrows; console diagnostic"
+      ],
+      "disposition": "compatible; no backend JSON contract"
+    },
+    {
+      "id": "LEGACY-006",
+      "source": {
+        "file": "views/default/default/layout.ejs",
+        "line": 76,
+        "sha256": "96fa2eab994565f872625969cb24ed6413ddad394ab4a60bbbb4e32a0a800dac"
+      },
+      "statusHandling": [
+        "302 redirect; forbidden token handled as HTML error"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-007",
+      "source": {
+        "file": "views/default/default/record/layout.ejs",
+        "line": 57,
+        "sha256": "42b8847b8d6faeefa10c0c93bbc53083e64c451bde549a28a9c5c57ee4e68c57"
+      },
+      "statusHandling": [
+        "302 redirect; forbidden token handled as HTML error"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-008",
+      "source": {
+        "file": "views/layout.ejs",
+        "line": 50,
+        "sha256": "cdbdcc110143287080909496b7fe76a3d5ffabdea49e03f16a3653d2c3c2abb5"
+      },
+      "statusHandling": [
+        "302 redirect; forbidden token handled as HTML error"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-009",
+      "source": {
+        "file": "views/default/default/layout/menu.ejs",
+        "line": 43,
+        "sha256": "704cb34a25ec0e8c03845e981f7215628dab71d83e8a79259234c6a63203af6b"
+      },
+      "statusHandling": [
+        "HTML navigation; browser errors otherwise"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-010",
+      "source": {
+        "file": "views/default/default/record/layout.ejs",
+        "line": 80,
+        "sha256": "42b8847b8d6faeefa10c0c93bbc53083e64c451bde549a28a9c5c57ee4e68c57"
+      },
+      "statusHandling": [
+        "HTML navigation"
+      ],
+      "disposition": "compatible; unchanged unnamed cosmetic search form"
+    },
+    {
+      "id": "LEGACY-011",
+      "source": {
+        "file": "views/layout.ejs",
+        "line": 73,
+        "sha256": "cdbdcc110143287080909496b7fe76a3d5ffabdea49e03f16a3653d2c3c2abb5"
+      },
+      "statusHandling": [
+        "HTML navigation"
+      ],
+      "disposition": "compatible; unchanged unnamed cosmetic search form"
+    },
+    {
+      "id": "LEGACY-012",
+      "source": {
+        "file": "views/default/default/user/openidconnect.ejs",
+        "line": 8,
+        "sha256": "90e070ec3b2962e437353b905cecdc4add51949489080f77e805c93c5ba2520e"
+      },
+      "statusHandling": [
+        "302 then callback navigation"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-013",
+      "source": {
+        "file": "views/default/default/user/aaf.ejs",
+        "line": 12,
+        "sha256": "13615796e32b4ca24deac1775282d4d4d6b48e5429ba327c0978314d4a2958e5"
+      },
+      "statusHandling": [
+        "browser navigation"
+      ],
+      "disposition": "external; existing configuration-driven provider link"
+    },
+    {
+      "id": "LEGACY-014",
+      "source": {
+        "file": "views/default/default/analytics.ejs",
+        "line": 26,
+        "sha256": "5f2a458f2ffb9bf99a1f0e4b8aa1d81a18f1e884207b227292299c72bf890642"
+      },
+      "statusHandling": [
+        "no status-dependent application behavior"
+      ],
+      "disposition": "external; no portal HTTP response contract"
+    },
+    {
+      "id": "LEGACY-015",
+      "source": {
+        "file": "views/default/default/analytics.ejs",
+        "line": 39,
+        "sha256": "5f2a458f2ffb9bf99a1f0e4b8aa1d81a18f1e884207b227292299c72bf890642"
+      },
+      "statusHandling": [
+        "no status-dependent application behavior"
+      ],
+      "disposition": "external; no portal HTTP response contract"
+    }
+  ],
+  "unchangedFiles": [
+    {
+      "file": "angular/projects/researchdatabox/report/src/app/report.component.ts",
+      "baselineAndCurrentSha256": "6d76480bc92705ef59abad5c94567e523246eec0c2df93f87e41d3bd2ef23446"
+    },
+    {
+      "file": "angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.ts",
+      "baselineAndCurrentSha256": "e55ccdb5388d533968a8846d9232118c45bf40cebd183d3a4d62b7d6be964a06"
+    },
+    {
+      "file": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+      "baselineAndCurrentSha256": "6678f47441b8b038ee52237f4a98098bf53f0abe07ef8b7b096f084b2cd264c3"
+    },
+    {
+      "file": "angular/projects/researchdatabox/export/src/app/export.component.ts",
+      "baselineAndCurrentSha256": "bc53fd251d7e9d16aa45efd54a7c89376c5a2fe04d6ae515c31de14d1b70ebc0"
+    },
+    {
+      "file": "angular/projects/researchdatabox/app-config/src/app/app-config.component.ts",
+      "baselineAndCurrentSha256": "3a2a5467717c87ffa9180b1015b9a2e538a2f52ad021347b88f79c51f50d0337"
+    },
+    {
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts",
+      "baselineAndCurrentSha256": "b9527f1e820e39d9b754f8a3cc74a3131e1e938f5fed072b42e316b0955e4760"
+    },
+    {
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/base.component.ts",
+      "baselineAndCurrentSha256": "d50e1a5005480b01d2b545e294e0fb361528a8097243f9f158defe413b66bcaf"
+    },
+    {
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "baselineAndCurrentSha256": "25eb59ece26330246fa2249193eb48a4a5188e1c336cb7619ea16f6365c86c3b"
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/record-metadata-retriever.component.ts",
+      "baselineAndCurrentSha256": "83e7f9d5f8842d3c452f8c96ac2da276537fc07d9ec021cac4e68e5ad5ecedf3"
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/pdf-list.component.ts",
+      "baselineAndCurrentSha256": "bbffeae4eef1eedba7097af53d4bfeae6868557474b2be6ba29a7d35098c8f27"
+    },
+    {
+      "file": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+      "baselineAndCurrentSha256": "a864f750e79f0581ec3d39ef9c42737703384b130827806f5dd05dcbc0a22499"
+    }
+  ],
+  "reviewedChanges": [
+    {
+      "file": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts",
+      "incomingSha256": "91f78e5d8d8c69b341a8f5eba3f0c9ae73e15aaaa6df87a4ae78e6b7884b0ab4",
+      "currentSha256": "edd86718fac145fa9facb7ef30dc34d832ce2fe700a19ea491762abb225d6fa4",
+      "reason": "R16-01 login HTTP rejection recovery, verified by browser and native-session probes."
+    }
+  ],
+  "limitations": [
+    "All statuses in the pure probes are injected; not every endpoint can emit all statuses.",
+    "Recovered means the specifically asserted method state completed. It does not mean all legacy clients now show errors or redirect to login.",
+    "R16 changes local-login runtime code; full final-tree qualification is recorded separately in qualification.json."
+  ]
+}

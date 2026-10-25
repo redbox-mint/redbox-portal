@@ -1,0 +1,181 @@
+{
+  "axis": "Standards",
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "reviewedHead": "547370ac8a80e6f2af553e6958ad90343ff81d0a",
+  "diffCommand": "git diff a49366803...HEAD",
+  "commitsCommand": "git log a49366803..HEAD --oneline",
+  "standardsSources": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "support/wiki/Coding-Standards-and-Conventions.md",
+    "/home/andrew/.agents/skills/code-review/SKILL.md"
+  ],
+  "specSources": [
+    "support/specs/sails-retirement/design.md",
+    "support/specs/sails-retirement/implementation_plan.md",
+    "support/specs/sails-retirement/tasks.md",
+    "support/specs/sails-retirement/extensions-v6.md",
+    "support/specs/sails-retirement/hook-migration-v6.md",
+    "support/specs/sails-retirement/maintenance-v6.md",
+    "support/specs/sails-retirement/upgrade-recovery-v6.md",
+    "support/specs/sails-retirement/configuration-v6.md"
+  ],
+  "priorReviewEvidence": [
+    "support/specs/sails-retirement/evidence/final-review-r1.md",
+    "support/specs/sails-retirement/evidence/final-review-r2.md",
+    "support/specs/sails-retirement/evidence/final-review-r3.md",
+    "support/specs/sails-retirement/evidence/final-review-r4.md",
+    "support/specs/sails-retirement/evidence/final-review-r5.md",
+    "support/specs/sails-retirement/evidence/final-review-r6.md",
+    "support/specs/sails-retirement/evidence/final-review-r7.md",
+    "support/specs/sails-retirement/evidence/final-review-r8.md",
+    "support/specs/sails-retirement/evidence/final-review-r9.md",
+    "support/specs/sails-retirement/evidence/final-review-r10.md",
+    "support/specs/sails-retirement/evidence/final-review-r11.md",
+    "support/specs/sails-retirement/evidence/final-review-r12.md",
+    "support/specs/sails-retirement/evidence/final-review-r13.md",
+    "support/specs/sails-retirement/evidence/final-review-r14.md",
+    "support/specs/sails-retirement/evidence/final-review-r15.md",
+    "support/specs/sails-retirement/evidence/inherited-defects-backlog.md"
+  ],
+  "priorLedgers": [
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r13/configuration-inventory.json",
+      "sha256": "b9e08daeada3e8c078a4c5cedb4fc5c747509c1c96024ed33b54de825ac76311"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r13/configuration-acceptance.json",
+      "sha256": "006bba13a0bbc3130a5a9200bf48aafdd735f20e8e2dbb7172ba58005e9403dd"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-differential.json",
+      "sha256": "4a1b653a08a99521efdfbcd48dd193c1c0089ca12d73d23d6bdabbfd1f869631"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r14/differential-summary.json",
+      "sha256": "8d08cbef623730926b6f7bed40d6a289b6c67b4b0ca960b4fb677b2729098740"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r14/r13-correctness.json",
+      "sha256": "a48e5c06da4d66ef2599a57876b1993bb3f6b53c7aef5b0821f034562b24c818"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/persistence-inventory.json",
+      "sha256": "e4c0062bb4bea95bbc7327fe3e240d9238d95f8b4f9d748dde9b3ca9cc9f7e47"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/persistence-review.json",
+      "sha256": "7c5a24c0c3fa86de0f62bf27087f8fc4367b60029a0a78de21b90a03c531f0e5"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.json",
+      "sha256": "61e29b44f38b2a5a10323814fa7d17eca7e5910c22582d1d69d00bee2c85f083"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/target-selection.json",
+      "sha256": "f044e0b58996b5c2291f627b2a7fc9b3816d7c30db70f949aab2f280b73e4144"
+    }
+  ],
+  "sourceReview": {
+    "endToEndTypeScript": {
+      "application": 13,
+      "extensions": 7,
+      "configuration": 11,
+      "queues": 5,
+      "maintenance": 1,
+      "ExpressHost": 1,
+      "total": 38,
+      "lines": 8352
+    },
+    "generatedConfigurationSchema": {
+      "files": 1,
+      "lines": 9715,
+      "reviewMethod": "Entire JSON parsed by generator equality and exercised through the 195 retained literal configuration fixtures in legacyInventory.test.ts; not represented as hand review of 9715 generated lines."
+    },
+    "details": "audit.json retains every source path, line count and SHA256. Fresh manual reading followed production plan inputs through initialization, bootstrap, host preparation, activation, producer quiescence, accepted work, backend completion, resource drain and cleanup retry."
+  },
+  "gates": [
+    {
+      "log": "lifecycle-focused.log",
+      "passed": 101,
+      "failed": 0,
+      "exitCode": 0,
+      "scope": "13 existing source-based files: Application, ExpressHost, ExpressPreparation, HostStateMachine, extension composition/handler lifetimes/HEAD/loading/resolution, configuration resolution/deployment/brand, ScheduledWork. Real loopback for HTTP; controlled domain/persistence ports; no real datastore."
+    },
+    {
+      "log": "queue-configuration-focused.log",
+      "passed": 293,
+      "failed": 0,
+      "exitCode": 0,
+      "scope": "9 existing files: AgendaQueueService, IndexMaintenanceConfiguration, IndexMaintenanceExtensions, PortalQueuePreflight, PortalDomain, PortalCompanionConfiguration, PortalStorageEntrypoint, legacyAcceptance, legacyInventory. Includes all 195 retained literal configuration inputs and controlled maintenance boundaries."
+    },
+    {
+      "log": "schema-check.log",
+      "exitCode": 0,
+      "command": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node packages/redbox-core/scripts/portal-configuration-schema.cjs --check"
+    },
+    {
+      "log": "r15-consumer.log",
+      "exitCode": 0,
+      "observations": 10,
+      "incomingExpectedRejections": 5,
+      "correctedCompletions": 5,
+      "result": "The actual five extracted user/role mutations consume native loopback Express500 responses and finish with safe messages."
+    },
+    {
+      "log": "r15-companion.log",
+      "exitCode": 0,
+      "observations": 24,
+      "delayedHeaderControls": 2,
+      "result": "Actual installed Uppy RequestClient + extracted initialization + native Companion/express-session/CSRF. Incoming outer-header omissions403, corrected requests200. Controlled provider dispatch, no live OAuth/cloud transfer."
+    },
+    {
+      "command": "git apply --check .tmp/sails-retirement/final-review-r16/standards/docs-reconciliation.patch",
+      "exitCode": 0,
+      "mutatesTrackedFiles": false
+    }
+  ],
+  "r15Critique": {
+    "R15-01": "Correct. Catches include response parsing and refresh; failure text does not promise rollback; drafts/modals are retained when native mutation rejects. No wrong fix proved.",
+    "R15-02": "Correct. Native rejection clears Saving text and preserves selected roles.",
+    "R15-03": "Correct. Immediate provider options carry outer CSRF; delayed configuration updates each installed client. Async callbacks run after synchronous plugin registration. Token is scoped to Companion headers; custom Tus-only headers are not copied. No live external OAuth assertion."
+  },
+  "findings": {
+    "classA_P1": [],
+    "classA_P2": [],
+    "classA_P3_Documentation": [
+      {
+        "id": "R16-STD-DOC-01",
+        "locations": [
+          "support/specs/sails-retirement/tasks.md:3",
+          "support/specs/sails-retirement/tasks.md:11",
+          "support/specs/sails-retirement/tasks.md:21",
+          "support/specs/sails-retirement/tasks.md:884",
+          "support/wiki/ReDBox-Automated-Tests.md:151"
+        ],
+        "proof": "Only review rounds1-5 linked in tasks; SR055 ends atR4; leading suite counts are P8 4498 rather than R15 5631. Wiki final-qualification section only records frozen5088f4a7a. Existing caveats avoid a false image claim, but the current summary is incomplete. 55 checkboxes:51 complete,4 correctly partial;72 current links resolve.",
+        "remediation": "Apply the supplied scratch proposal, then add actual R16 parent report/results once completed. Keep historical artifacts separate."
+      },
+      {
+        "id": "R16-STD-DOC-02",
+        "locations": [
+          "support/wiki/Home.md:54",
+          "support/wiki/Development-Guide.md:24"
+        ],
+        "proof": "Home still describes controller init/shim generation despite newly rewritten Controllers-Architecture explicitly removing shims; Development labels the newly rewritten v6 extension guide historicalv5.",
+        "remediation": "Use exact replacements in docs-reconciliation.patch."
+      }
+    ],
+    "newInheritedB": []
+  },
+  "inheritedNotes": "Retain existing B01-B10 only. In particular B07 declaration omissions are not new runtime schema failures; B08 TTL/hidden consumer omission is distinct from restored descriptor acceptance. No ordinary-signed-in-user severe access-control exception proved. Accepted SR005/045/049/055 institution gap unchanged.",
+  "smellDisposition": "The Fowler checklist was treated as heuristic. No demonstrated behavioral failure justified a refactor; tooling-enforced style findings are excluded. Neutral domain names and narrow composition ports match the repo architecture.",
+  "rejectedSetup": [
+    "An initial command created its scratch-output directory relative to the core package then attempted a root-relative redirect. The redirect failed before Mocha launched. Only the corrected completed runs are counted."
+  ],
+  "limitations": [
+    "This is a read-only Standards review, not full R16 qualification. No Docker management, live database, deployed browser, full suite, new immutable image or topology matrix was performed.",
+    "Parent owns all browser-error auditing and the untracked support/specs/sails-retirement/evidence/final-review-r16/client-error-probes.cjs seen during this review. It was not modified.",
+    "The pre-existing unrelated untracked support/specs/graphql-record-metadata/ was excluded."
+  ]
+}

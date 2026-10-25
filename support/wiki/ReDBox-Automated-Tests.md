@@ -148,7 +148,7 @@ When a test fails, inspect the generated `browser-diagnostics.json` and use
 `node_modules/.bin/playwright show-trace <trace.zip>` or
 `node_modules/.bin/playwright show-report .tmp/playwright/report`.
 
-## Final retirement qualification
+## Historical P8 and subsequent retirement qualification
 
 P8 reran every existing core/root Mocha suite, full Playwright, general/OIDC/S3
 and native PDF Bruno, packed consumers and MongoDB 8/9 standalone and independent
@@ -163,7 +163,13 @@ free space than the upload length plus `record.diskSpaceThreshold` (default
 a passing upload check. Qualification scripts are under
 `support/integration-testing/qualify-sails-retirement-*.sh`; commands, exact image
 IDs, counts and failures belong in [P8 evidence](../specs/sails-retirement/evidence/p8-retirement.md).
-Historical P7 results are not proof of the final artifact.
+Historical P7 results are not proof of the P8 artifact. Subsequent runtime/test
+fixes and the latest completed source/compiled-tree qualification are recorded in
+[R16](../specs/sails-retirement/evidence/final-review-r16.md), at runtime/test
+revision `4bf60062fd2a9d1cf387d3ac993cf531c1b6032b`. Those results include 5,631 core
+passes with seven unchanged pending cases, 224 real-service core passes, and 135
+focused Angular passes. They do not claim replacement immutable images or a newly
+repeated topology matrix; see [current task status](../specs/sails-retirement/tasks.md).
 
 The old `support/acceptance-testing` DLCF/Selenium deployment predates v5. Its
 Compose entry now includes the maintained Playwright stack; the old deployment

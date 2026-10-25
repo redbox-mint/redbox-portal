@@ -1,0 +1,402 @@
+{
+  "node": "v26.11.1",
+  "proof": "Actual installed RequestClient, extracted component methods, native mountCompanionRoutes and createHttpCsrf with express-session. Controlled provider dispatch; no OAuth/cloud transfer claimed.",
+  "observations": [
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "Dropbox",
+      "corrected": false,
+      "httpStatus": 403,
+      "outerCsrf": false,
+      "nestedCsrf": true,
+      "rejected": true,
+      "error": "Invalid CSRF token",
+      "providerReached": false
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "Dropbox",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "GoogleDrive",
+      "corrected": false,
+      "httpStatus": 403,
+      "outerCsrf": false,
+      "nestedCsrf": true,
+      "rejected": true,
+      "error": "Invalid CSRF token",
+      "providerReached": false
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "GoogleDrive",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "OneDrive",
+      "corrected": false,
+      "httpStatus": 403,
+      "outerCsrf": false,
+      "nestedCsrf": true,
+      "rejected": true,
+      "error": "Invalid CSRF token",
+      "providerReached": false
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "OneDrive",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "Dropbox",
+      "corrected": false,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "Dropbox",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "GoogleDrive",
+      "corrected": false,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "GoogleDrive",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "OneDrive",
+      "corrected": false,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "OneDrive",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "Dropbox",
+      "corrected": false,
+      "httpStatus": 403,
+      "outerCsrf": false,
+      "nestedCsrf": true,
+      "rejected": true,
+      "error": "Invalid CSRF token",
+      "providerReached": false
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "Dropbox",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "GoogleDrive",
+      "corrected": false,
+      "httpStatus": 403,
+      "outerCsrf": false,
+      "nestedCsrf": true,
+      "rejected": true,
+      "error": "Invalid CSRF token",
+      "providerReached": false
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "GoogleDrive",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "OneDrive",
+      "corrected": false,
+      "httpStatus": 403,
+      "outerCsrf": false,
+      "nestedCsrf": true,
+      "rejected": true,
+      "error": "Invalid CSRF token",
+      "providerReached": false
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "OneDrive",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "Dropbox",
+      "corrected": false,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "Dropbox",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "GoogleDrive",
+      "corrected": false,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "GoogleDrive",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "OneDrive",
+      "corrected": false,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "OneDrive",
+      "corrected": true,
+      "httpStatus": 200,
+      "outerCsrf": true,
+      "nestedCsrf": true,
+      "rejected": false,
+      "providerReached": true
+    }
+  ],
+  "delayedControls": [
+    {
+      "case": "changing public options after construction leaves private RequestClient headers unchanged",
+      "httpStatus": 403
+    },
+    {
+      "case": "setCompanionHeaders updates existing RequestClient",
+      "httpStatus": 200
+    }
+  ],
+  "dispatches": [
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    },
+    {
+      "path": "/companion/drive/get",
+      "method": "POST",
+      "outerToken": true,
+      "nestedToken": true
+    }
+  ]
+}

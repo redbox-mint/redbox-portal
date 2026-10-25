@@ -1,0 +1,90 @@
+{
+  "node": "v26.11.1",
+  "proof": "Actual extracted ensureTusHeadersContainCsrf and helpers update installed RequestClient private headers after a controlled configuration Promise resolves. No provider/network/browser claim.",
+  "observations": [
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "Dropbox",
+      "privateClientHeaderPresent": false,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "GoogleDrive",
+      "privateClientHeaderPresent": false,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "incoming",
+      "provider": "OneDrive",
+      "privateClientHeaderPresent": false,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "Dropbox",
+      "privateClientHeaderPresent": true,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "GoogleDrive",
+      "privateClientHeaderPresent": true,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "version": "current",
+      "provider": "OneDrive",
+      "privateClientHeaderPresent": true,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "Dropbox",
+      "privateClientHeaderPresent": false,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "GoogleDrive",
+      "privateClientHeaderPresent": false,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "incoming",
+      "provider": "OneDrive",
+      "privateClientHeaderPresent": false,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "Dropbox",
+      "privateClientHeaderPresent": true,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "GoogleDrive",
+      "privateClientHeaderPresent": true,
+      "tusHeaderPresent": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "version": "current",
+      "provider": "OneDrive",
+      "privateClientHeaderPresent": true,
+      "tusHeaderPresent": true
+    }
+  ]
+}

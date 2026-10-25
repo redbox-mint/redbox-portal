@@ -21,7 +21,7 @@ Welcome to our Development Guide! This resource aims to help developers effectiv
 
 ## Customisation
 
-- **[Customising ReDBox with a v6 extension](https://github.com/redbox-mint/redbox-portal/wiki/Using-a-Sails-Hook-to-customise-ReDBox)**: Historical v5 guidance; use [v6 hook migration](../specs/sails-retirement/hook-migration-v6.md) for current extensions.
+- **[Customising ReDBox with a v6 extension](https://github.com/redbox-mint/redbox-portal/wiki/Using-a-Sails-Hook-to-customise-ReDBox)**: Current v6 declarations, owned lifecycle and hook conversion; see [the full migration guide](../specs/sails-retirement/hook-migration-v6.md).
 
 Dive into each section for detailed instructions and best practices.
 

@@ -1,5 +1,9 @@
 # Inherited defects retained for separate follow-up
 
+Through R16 this cumulative backlog records **14 inherited groups**. The opening
+R5 context and later entries retain their original provenance; feature-introduced
+findings are fixed and recorded in their respective review reports.
+
 Round 5 applies the feature gate to `a49366803..39ad5813c`. These three P2
 items remain unchanged in behavior from the pre-retirement path. None is an
 unauthenticated or cross-tenant access/privilege-escalation exception. Already
@@ -250,3 +254,104 @@ applies. The executable source/static-HTTP comparison and results are retained i
 EJS bundle references to its actual output, and exercise visible profile/token
 success and failure behavior. Keep this separate from Sails retirement's
 coordinated administration-client corrections.
+
+## B-11 — P2: older browser initialization/list loads do not recover rejected requests
+
+**Locations:** under `angular/projects/researchdatabox/`: report
+`report.component.ts:78,85`; deleted-records
+`deleted-records.component.ts:167,239`; manage-users
+`manage-users.component.ts:147,256`; manage-roles `manage-roles.component.ts:51`;
+app-config `app-config.component.ts:71`; dashboard `dashboard.component.ts:119,224,258,291,342`;
+export `export.component.ts:60`; shared `portal-ng-common/src/lib/config.service.ts:72`
+and `base.component.ts:62`. Application component paths are below `src/app/`.
+
+**Reproduction:** report and deleted-record paging leave `resultsReturned` false.
+Initial app-config, role and
+user-list reads reject without an application error message. Shared config's
+subscription lacks an error callback, so RxJS reports the failure while waiting
+initializers never receive a completion. Dashboard/export initialization has the
+same uncaught propagation; dashboard paging clears its processing flag in
+`finally` but does not display the error.
+
+**Inheritance:** R16's [rejected-port probes](final-review-r16/client-error-probes.cjs)
+execute five identical baseline/current methods at status 0/403/500, plus the actual
+RxJS bootstrap subscription at both revisions: **32 observations**. The
+[client ledger](final-review-r16/client-error-sweep.json) retains whole-file
+baseline/current equality for unchanged consumers and 14 affected HttpClient
+callsites (some have both recovering and nonrecovering callers). R15-edited users
+and roles have method-level equality controls for these older reads. Baseline
+protected reads already denied authentication/authorization; transport failures
+already rejected and missing report definitions already failed. New native
+identity mutation rejections were fixed in R15. R16 separately fixes local login:
+the newly awaited audit can reject500 where baseline completed successfully, so
+that consumer is class A and is not included here. No newly failing realistic normal input
+or severe ordinary-user access-control exception was established.
+
+**Suggested fix:** add visible load errors and retry/login actions, clear
+pending flags in `finally`, and propagate bootstrap errors to dependents. Preserve
+drafts and distinguish an unknown write outcome from confirmed refusal. Exercise
+real expired sessions, CSRF rotation, network failures and retry in the browser.
+
+## B-12 — P3: some browser read failures silently use empty/default data
+
+**Locations:** under `angular/projects/researchdatabox/`: form
+`src/app/component/record-metadata-retriever.component.ts:127` and
+`src/app/component/pdf-list.component.ts:107`; translation
+`src/app/translation.component.ts:568,582,614` and its bundle-read callers.
+
+**Reproduction:** metadata retrieval logs failure without publishing a value;
+PDF attachments become an empty list; translation reads log failure and return
+empty entries/languages or assume bundle defaults. These paths settle, but users
+may mistake failed reads for absent data. Five HttpClient callsites have these
+quiet-fallback consumers; other callers of the same service can handle errors.
+
+**Inheritance:** the ledger's baseline/current hashes prove these complete
+consumer files are byte-identical to `a49366803`. Existing failures already use
+the same fallback. No write, lost data or access-control fault was demonstrated;
+this is recorded as P3, not promoted merely because the new host sanitizes errors.
+
+**Suggested fix:** retain safe fallback values while displaying a load warning
+and an explicit retry action where the distinction affects the user's decision.
+
+## B-13 — P2: deleted-record actions ignore unsuccessful typed mutation results
+
+**Locations:** `angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.ts:188,222`.
+
+**Reproduction:** return an unsuccessful result from restore/destroy. Both callers
+log it and reload the list; destroy also closes its confirmation modal. Neither
+displays the refusal/unknown outcome. R16's extracted-method probe observes these
+two methods at baseline and current (**four observations**). This does not prove
+that a failed action wrote data.
+
+**Inheritance:** the complete component and shared `record.service.ts` are
+byte-identical to the feature base. The pre-existing lifecycle service already
+normalized failures into `RecordActionResult`; consumers already ignored them.
+The ledger marks three shared mutation/preflight callsites, not three separate
+UI defects. Form-owned delete/save consumers handle their typed outcomes.
+
+**Suggested fix:** inspect the typed result before closing the modal or declaring
+completion, preserve unknown outcomes for reconciliation, and show a retryable
+failure without treating a network error as proof of rollback.
+
+## B-14 — P2: raw-audit download link omits a configured deployment root
+
+**Locations:** `packages/redbox-core/src/http/express/queryReads.ts:336`;
+`packages/redbox-core/src/queries/RecordAuditViews.ts:347`;
+`angular/projects/researchdatabox/record-audit/src/app/record-audit.component.ts:161`
+and `record-audit.component.html:72`.
+
+**Reproduction:** mount the native routes under `/research`. The audit tab
+returns `/default/portal/api/records/audit/record-1`; the shipped direct link
+returns404, while `/research` plus the same path returns200. The response and
+Angular consumer do not add the configured root.
+
+**Inheritance:** executing baseline `RecordAuditController.buildRawAuditUrl`
+(`a49366803`, line86) produces the identical URL. R16 records five observations
+using actual current loopback HTTP, the actual extracted baseline method and
+source-backed Angular assignment/href in
+[audit-root-results.json](final-review-r16/audit-root-results.json). Record ports
+are controlled; this is not a deployed proxy/browser or historical HTTP run.
+No authorization bypass or severe access-control exception was demonstrated.
+
+**Suggested fix:** construct the URL with the selected root context on the server
+and cover the rendered download link under both empty and nonempty roots.
