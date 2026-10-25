@@ -57,7 +57,7 @@ for (const [label, source, count] of [
 for (const [label, source, count] of [
   ['retained configuration data', "export const data = [{ function: 'sails.services.pdfservice.createPDF' }];", 0],
   ['live service access in the literal table', 'sails.services.pdfservice.createPDF();', 1],
-  ['unrelated retired path in the literal table', "const path = 'generateAllShims';", 1],
+  ['unrelated retired path in the literal table', "const path = 'sails.config.synthetic';", 1],
 ]) {
   test(`retirement audit checks ${label}`, () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-config-audit-'));
