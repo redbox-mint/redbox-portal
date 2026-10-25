@@ -316,7 +316,11 @@ export const routes: RoutesConfig = {
     policy: 'companionAttachmentUploadAuth',
     csrf: false,
   },
-  'get /:branding/:portal/record/:oid/datastream*': 'RecordController.getDataStream',
+  'get /:branding/:portal/record/:oid/datastream*': {
+    controller: 'RecordController',
+    action: 'getDataStream',
+    skipAssets: false,
+  },
   'get /:branding/:portal/record/:oid/attachments': 'RecordController.getAttachments',
   'get /:branding/:portal/record/:oid/permissions': 'RecordController.getPermissions',
   'get /:branding/:portal/record/:oid/relatedRecords': 'RecordController.getRelatedRecords',

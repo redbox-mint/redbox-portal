@@ -1,4 +1,5 @@
 import { apiRoute } from '../route-factory';
+import { defineApiRoute } from '../define';
 import { recordSchemaResolverOpenApiExtension } from '../record-schema-openapi';
 import {
   arrayField,
@@ -645,7 +646,7 @@ export const addDataStreamsRoute = apiRoute(
   }
 );
 
-export const getDataStreamRoute = apiRoute(
+export const getDataStreamRoute = defineApiRoute({ ...apiRoute(
   'get',
   '/:branding/:portal/api/records/datastreams/:oid/:datastreamId',
   'webservice/RecordController',
@@ -674,7 +675,10 @@ export const getDataStreamRoute = apiRoute(
       404: responseField(apiErrorResponseSchema, 'Record or datastream not found in the active brand'),
     },
   }
-);
+),
+  // Datastream identifiers are filenames, including .pdf and other extensions.
+  skipAssets: false,
+});
 
 export const listDatastreamsRoute = apiRoute(
   'get',

@@ -30,8 +30,8 @@ export const executeNamedQueryRoute = apiRoute(
     query: objectField(
       { queryName: stringField(), start: stringField(), rows: stringField() },
       ['queryName'],
-      'Named query parameters, including keys configured in queryParams',
-      true
+      'Named query name, pagination, and configured string filter parameters',
+      stringField('Configured named-query parameter value')
     ),
   },
   {

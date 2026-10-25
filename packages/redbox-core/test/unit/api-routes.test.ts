@@ -74,6 +74,7 @@ import {
   getDeletedRecordRoute,
   getMetaRoute,
   getPermissionsRoute,
+  getDataStreamRoute,
   listRecordsRoute,
   restoreRecordRoute,
   transitionWorkflowRoute,
@@ -169,6 +170,26 @@ function responseStatuses(route: { responses?: Record<number, unknown> }): numbe
 
 describe('API routes contract layer', function () {
   this.timeout(10_000);
+  it('routes datastream filenames with extensions to the protected download action', function () {
+    const routes = buildSailsRouteConfig([getDataStreamRoute]);
+    expect(routes['get /:branding/:portal/api/records/datastreams/:oid/:datastreamId']).to.include({
+      controller: 'webservice/RecordController', action: 'getDataStream', skipAssets: false,
+    });
+  });
+  it('preserves named-query string filters and rejects structured filter values', function () {
+    const request = (query: Record<string, unknown>) => ({ params: {}, query, headers: {}, body: {} }) as unknown as Sails.Req;
+    const query = { queryName: 'listRecordNotificationLogs', start: '0', rows: '10', oid: 'synthetic-log', dateFrom: '2026-10-01', empty: '' };
+    const result = validateApiRouteRequest(request(query), executeNamedQueryRoute);
+    expect(result.valid).to.equal(true);
+    if (!result.valid) throw new Error('Expected named-query filters to pass validation');
+    expect(result.query).to.deep.equal(query);
+    for (const value of [{ $ne: null }, ['a', 'b'], null, 123, true]) {
+      const invalid = validateApiRouteRequest(request({ queryName: query.queryName, oid: value }), executeNamedQueryRoute);
+      expect(invalid.valid, JSON.stringify(value)).to.equal(false);
+      expect(invalid.issues.some(issue => issue.path === 'query.oid')).to.equal(true);
+    }
+  });
+
   it('should specialize the OpenAPI paths for the requested branding and portal', async function () {
     const document = buildCoreApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
 
