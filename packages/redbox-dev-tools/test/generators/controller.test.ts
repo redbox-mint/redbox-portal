@@ -2,6 +2,7 @@ const { expect } = require('chai');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { request } = require('node:http') as typeof import('node:http');
 const loadTs = require('../support/load-ts.cjs');
 const controllerGeneratorModule = loadTs(module, '../../src/generators/controller');
 const pathsModule = loadTs(module, '../../src/utils/paths');
@@ -186,14 +187,25 @@ export const auth: any = {
       await new Promise(resolve => server.once('listening', resolve));
       const url = 'http://127.0.0.1:' + server.address().port;
       for (const route of routes) {
-        const response = await fetch(
-          url + route.path.replace(':branding', 'default').replace(':portal', 'portal').replace(':"item-id"', '123'),
-          {
-            method: route.method.toUpperCase(),
-          }
-        );
+        const response = await new Promise<{ status: number | undefined; body: string }>((resolve, reject) => {
+          const req = request(
+            url + route.path.replace(':branding', 'default').replace(':portal', 'portal').replace(':"item-id"', '123'),
+            { method: route.method.toUpperCase() },
+            res => {
+              let body = '';
+              res.setEncoding('utf8');
+              res.on('data', chunk => {
+                body += chunk;
+              });
+              res.on('error', reject);
+              res.on('end', () => resolve({ status: res.statusCode, body }));
+            }
+          );
+          req.on('error', reject);
+          req.end();
+        });
         expect(response.status).to.equal(200);
-        expect(await response.json()).to.deep.equal({ handler: 'TestController-index' });
+        expect(JSON.parse(response.body)).to.deep.equal({ handler: 'TestController-index' });
       }
     } finally {
       await new Promise<void>((resolve, reject) =>

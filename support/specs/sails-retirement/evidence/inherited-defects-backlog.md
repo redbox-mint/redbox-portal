@@ -80,3 +80,25 @@ their own post-save operations and do not call this wrapper.
 **Suggested fix:** return/await the Accounts Promise and require extension callers
 to retain it within their admitted lifetime; add a delayed success/rejection
 contract test. Do not replace the already-owned production account path.
+
+## B-04 — P3: translation tests leak their global Fetch stub into later suites
+
+**Location:** `packages/redbox-dev-tools/test/commands/sync-translation.test.ts:88`
+and its `afterEach` at line 26.
+
+**Reproduction:** R7's generated-route HTTP regression passes alone. In the full
+dev-tools run, the earlier translation suite assigns a standalone Sinon stub to
+`global.fetch`. Its teardown calls `sinon.restore()`, which does not restore that
+manual assignment. A subsequent real `fetch` hits the translation stub's fallback
+and throws at line 74: the full run has 52 passing / 1 failing. R7's new wire
+regression uses Node's HTTP transport independently; the inherited Fetch mutation
+remains unchanged.
+
+**Inheritance:** this file has no diff from `a49366803` to the incoming
+`768e1bbfe`; the baseline already assigns the callback directly and omits restoring
+the original global. This is test-order contamination, with no demonstrated
+production impact or access-control exception.
+
+**Suggested fix:** preserve and restore the original Fetch function in teardown,
+or install a Sinon-managed stub on the global property so `restore()` owns it.
+Qualify the translation tests followed by a real Fetch request in one process.
