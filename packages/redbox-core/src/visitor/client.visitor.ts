@@ -1,3 +1,4 @@
+import { RecordPermissionsFieldComponentDefinitionOutline, RecordPermissionsFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { cloneDeep as _cloneDeep } from 'lodash';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import {
@@ -808,7 +809,18 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  /* Save Button  */
+  /* Record Permissions */
+
+  async visitRecordPermissionsFieldComponentDefinition(item: RecordPermissionsFieldComponentDefinitionOutline): Promise<void> {
+    this.processFieldComponentDefinition(item);
+  }
+
+  async visitRecordPermissionsFormComponentDefinition(item: RecordPermissionsFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptCheckConstraintsCurrentPath(item);
+    this.processFormComponentDefinition(item);
+  }
+
+  /* Save Button */
 
   async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
     this.processFieldComponentDefinition(item);

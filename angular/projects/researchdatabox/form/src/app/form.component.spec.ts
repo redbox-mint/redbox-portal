@@ -2,7 +2,7 @@ import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { RecordActionResult } from '@researchdatabox/portal-ng-common';
@@ -1256,6 +1256,45 @@ describe('FormComponent', () => {
     expect(formComponent.conflictReview()).toBeNull();
   });
 
+  it('keeps an action-specific typed 403 editable with a form-level error and an ordinary Save retry', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Unsaved title');
+    formComponent.form?.get('title')?.markAsDirty();
+    const response = RecordActionResult.fromResponse({ meta: {
+      outcome: 'not-saved', oid: 'oid-123',
+      problems: [{
+        kind: 'authorization', phase: 'pre-save',
+        issues: [{ code: 'scu-rdmp-action-unauthorized', message: '@scu-rdmp-action-unauthorized' }],
+      }],
+    } }, 403, '44444444-4444-4444-8444-444444444444');
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+
+    await formComponent.saveForm({ targetStep: 'closed' });
+    fixture.detectChanges();
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(formComponent.saveResponse()?.outcome).toBe('not-saved');
+    expect(formComponent.conflictState()).toBeNull();
+    expect(formComponent.form?.get('title')?.value).toBe('Unsaved title');
+    expect(formComponent.form?.get('title')?.disabled).toBeFalse();
+    expect(formComponent.getValidationErrors()).toContain(jasmine.objectContaining({
+      message: '@validator-error-form-level',
+      errors: jasmine.arrayContaining([jasmine.objectContaining({ message: '@scu-rdmp-action-unauthorized' })]),
+    }));
+    expect(fixture.nativeElement.querySelector('.rb-form-conflict-review')).toBeNull();
+
+    updateSpy.and.resolveTo(RecordActionResult.fromResponse({ meta: {
+      outcome: 'saved', oid: 'oid-123', metadata: { title: 'Unsaved title', notes: 'Loaded notes' },
+      concurrency: { revision: 5, entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`, formFingerprint: 'sha256:form_1' },
+    } }, 200, '55555555-5555-4555-8555-555555555555'));
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(formComponent.saveResponse()?.wasPersisted()).toBeTrue();
+    expect(formComponent.form?.errors).toBeNull();
+    expect(formComponent.conflictState()).toBeNull();
+  });
+
   it('keeps deleted and permission-lost outcomes authoritative and retains no returned latest state', async () => {
     for (const variant of ['deleted', 'authorization-lost'] as const) {
       const { fixture, formComponent } = await createConcurrencyTestForm();
@@ -1397,6 +1436,22 @@ describe('FormComponent', () => {
       multi: ['one', 'two'],
       empty: ''
     });
+  });
+
+  it('exposes server role names and the current oid independently of request parameters', async () => {
+    const { formComponent } = await createFormAndWaitForReady({ name: 'runtime-context', componentDefinitions: [
+      { name: 'title', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' } },
+    ] });
+    formComponent.formDefMap!.formConfigMeta = { runtimeContext: { user: { roles: ['Admin', 'Researcher'] } } };
+    formComponent.oid.set('saved-oid');
+    formComponent.refreshRequestParamsFromUrl('http://localhost/?oid=spoofed&rdmpOid=source-oid');
+    expect(formComponent.getExpressionRuntimeContext()).toEqual({
+      user: { roles: ['Admin', 'Researcher'] }, oid: 'saved-oid',
+      requestParams: { oid: 'spoofed', rdmpOid: 'source-oid' },
+    });
+    expect(formComponent.getQuerySource()!.runtimeContext).toEqual(formComponent.getExpressionRuntimeContext());
+    formComponent.oid.set('updated-oid');
+    expect(formComponent.getExpressionRuntimeContext()['oid']).toBe('updated-oid');
   });
 
   it('returns an empty request-param map when the URL has no query string', () => {
@@ -1726,6 +1781,41 @@ describe('FormComponent', () => {
     await formComponent.saveForm();
 
     expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '', undefined, {});
+  });
+
+  it('persists read-only values in nested groups and preserves disabled repeatable row positions', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const author = new FormGroup({ name: new FormControl('Fixture Owner'), email: new FormControl('owner@example.test') });
+    const dates = new FormGroup({
+      calculated: new FormControl({ value: '2041-10-23', disabled: true }),
+      entered: new FormControl('2042-10-23'),
+    });
+    const firstRow = new FormGroup({ name: new FormControl('First'), id: new FormControl('row-1') });
+    const secondRow = new FormGroup({
+      name: new FormControl('Second'), id: new FormControl({ value: 'row-2', disabled: true }),
+    });
+    formComponent.form = new FormGroup({
+      title: new FormControl('Draft'), author, dates,
+      people: new FormArray([firstRow, secondRow]),
+    });
+    author.disable();
+    firstRow.disable();
+    formComponent.oid.set('oid-123');
+    formComponent.form.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
+
+    await formComponent.saveForm();
+
+    const expected = {
+      title: 'Draft', author: { name: 'Fixture Owner', email: 'owner@example.test' },
+      dates: { calculated: '2041-10-23', entered: '2042-10-23' },
+      people: [{ name: 'First', id: 'row-1' }, { name: 'Second', id: 'row-2' }],
+    };
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', expected, '', undefined, {});
+    expect(formComponent.getDebugFormValue()).toEqual(expected);
+    expect(author.disabled).toBeTrue();
+    expect(firstRow.disabled).toBeTrue();
   });
 
   it('does not save invalid forms when forced', async () => {
@@ -2341,6 +2431,7 @@ describe('FormComponent', () => {
     });
 
     expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven', 'submit-for-review']);
+    expect(formComponent.defaultSaveValidationGroups).toEqual(['all', 'value-driven']);
     expect(formComponent.form?.valid).toBeFalse();
     expect(formComponent.form?.get('review_required')?.hasError('required')).toBeTrue();
     expect(updateSpy).not.toHaveBeenCalled();
@@ -2351,6 +2442,7 @@ describe('FormComponent', () => {
     });
 
     expect(formComponent.enabledValidationGroups).toEqual(['all', 'value-driven', 'submit-for-review']);
+    expect(formComponent.defaultSaveValidationGroups).toEqual(['all', 'value-driven']);
     expect(formComponent.form?.valid).toBeFalse();
     expect(updateSpy).not.toHaveBeenCalled();
 
@@ -2445,7 +2537,7 @@ describe('FormComponent', () => {
     expect(formComponent.validationGroupNamesEqual(['all', 'value-driven'], ['all', 'submit-for-review'])).toBeFalse();
   });
 
-  it('omits disabled controls from Form Values Debug data', async () => {
+  it('omits controls disabled by static config from saved and debug values', async () => {
     const formConfig: FormConfigFrame = {
       name: 'debug-filter-disabled',
       debugValue: true,
@@ -2463,19 +2555,18 @@ describe('FormComponent', () => {
           }
         },
         {
-          name: 'disabled_group',
+          name: 'disabled_text',
           model: {
-            class: 'GroupModel',
+            class: 'SimpleInputModel',
             config: {
               disabled: true,
-              value: {}
+              value: 'excluded value'
             }
           },
           component: {
-            class: 'GroupComponent',
+            class: 'SimpleInputComponent',
             config: {
-              disabled: true,
-              componentDefinitions: []
+              disabled: true
             }
           }
         }
@@ -2486,7 +2577,12 @@ describe('FormComponent', () => {
     const debugValues = formComponent.getDebugFormValue();
 
     expect(debugValues['enabled_text']).toBe('enabled value');
-    expect(debugValues['disabled_group']).toBeUndefined();
+    expect(debugValues['disabled_text']).toBeUndefined();
+    expect(formComponent.getDebugRawFormValue()['disabled_text']).toBe('excluded value');
+    formComponent.oid.set('oid-123');
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
+    await formComponent.saveForm({ force: true });
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { enabled_text: 'enabled value' }, '', undefined, {});
   });
 
   it('updates URL to edit path and publishes event after successful create', async () => {
@@ -2529,6 +2625,7 @@ describe('FormComponent', () => {
       await formComponent.saveForm({force: true});
 
       expect(formComponent.oid()).toBe('oid-123');
+      expect(formComponent.getQuerySource()!.runtimeContext?.['oid']).toBe('oid-123');
       expect(replaceStateSpy).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-123');
 
       expect(events.length).toBe(1);

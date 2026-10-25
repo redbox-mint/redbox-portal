@@ -3,7 +3,7 @@ import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { ExpressionsConditionKind } from '@researchdatabox/sails-ng-common';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { matchBehaviourCondition } from './behaviour-condition-matcher';
-import { FormComponentEventType } from '../events/form-component-event.types';
+import { createFormDefinitionReadyEvent, FormComponentEvent, FormComponentEventType } from '../events/form-component-event.types';
 
 /**
  * Covers the condition semantics called out in the implementation plan, notably
@@ -57,6 +57,23 @@ describe('matchBehaviourCondition', () => {
     expect(result).toBeTrue();
   });
 
+  it('matches explicit lifecycle subscriptions without treating them as wildcard field broadcasts', async () => {
+    for (const type of [FormComponentEventType.FORM_DEFINITION_READY, FormComponentEventType.FORM_SAVE_SUCCESS]) {
+      const event: FormComponentEvent = { type, timestamp: 1 };
+      const ctx = {
+        behaviourIndex: 0, compiledTemplateEvaluator: createEvaluator(false), formValue: {}, requestParams: {},
+        querySource: { queryOrigSource: [], querySource: [], jsonPointerSource: {}, event },
+      };
+      const behaviour = { name: 'lifecycle', condition: `::${type}`, conditionKind: ExpressionsConditionKind.JSONPointer, actions: [] };
+      expect(await matchBehaviourCondition(behaviour.condition, behaviour.conditionKind, event, behaviour, ctx)).toBeTrue();
+      expect(await matchBehaviourCondition('::*', behaviour.conditionKind, event, { ...behaviour, condition: '::*' }, ctx)).toBeFalse();
+      expect(await matchBehaviourCondition('/title::' + type, behaviour.conditionKind, event, behaviour, ctx)).toBeFalse();
+      if (type === FormComponentEventType.FORM_DEFINITION_READY) {
+        expect(await matchBehaviourCondition(behaviour.condition, behaviour.conditionKind, event, { ...behaviour, runOnFormReady: false }, ctx)).toBeFalse();
+      }
+    }
+  });
+
   it('rejects jsonata conditions for scoped non-broadcast events', async () => {
     const evaluator = createEvaluator(true);
     const result = await matchBehaviourCondition(
@@ -93,11 +110,7 @@ describe('matchBehaviourCondition', () => {
     const result = await matchBehaviourCondition(
       '$exists(runtimeContext.requestParams.rdmpOid)',
       ExpressionsConditionKind.JSONataQuery,
-      {
-        type: FormComponentEventType.FORM_DEFINITION_READY,
-        sourceId: FormComponentEventType.FORM_DEFINITION_READY,
-        timestamp: Date.now(),
-      } as any,
+      { ...createFormDefinitionReadyEvent({}), timestamp: Date.now() },
       {
         name: 'jsonata-query-behaviour',
         condition: '$exists(runtimeContext.requestParams.rdmpOid)',
@@ -130,4 +143,37 @@ describe('matchBehaviourCondition', () => {
       })
     );
   });
+
+  for (const conditionKind of [ExpressionsConditionKind.JSONata, ExpressionsConditionKind.JSONataQuery]) {
+    it(`honours actual and legacy readiness without broadening scoped ${conditionKind} events`, async () => {
+      const evaluator = createEvaluator(true);
+      const evaluateSpy = spyOn(evaluator, 'evaluate').and.resolveTo(true);
+      const actualReady = { ...createFormDefinitionReadyEvent({}), timestamp: 1 };
+      expect(actualReady.sourceId).toBeUndefined();
+      const legacyReady: FormComponentEvent = {
+        type: FormComponentEventType.FIELD_VALUE_CHANGED,
+        sourceId: FormComponentEventType.FORM_DEFINITION_READY,
+        fieldId: '/main/source', value: null, timestamp: 1,
+      };
+      const scoped: FormComponentEvent = { ...legacyReady, sourceId: '/main/source' };
+      const broadcast: FormComponentEvent = { ...legacyReady, sourceId: '*' };
+      const ctx = {
+        behaviourIndex: 0, compiledTemplateEvaluator: evaluator, formValue: {}, requestParams: {},
+        querySource: undefined,
+      };
+      for (const runOnFormReady of [true, undefined, false]) {
+        const behaviour = { name: 'ready', condition: 'true', conditionKind, runOnFormReady, actions: [] };
+        for (const event of [actualReady, legacyReady]) {
+          evaluateSpy.calls.reset();
+          expect(await matchBehaviourCondition('true', conditionKind, event, behaviour, ctx))
+            .withContext(`ready ${event.type}, runOnFormReady=${runOnFormReady}`)
+            .toBe(runOnFormReady !== false);
+          expect(evaluateSpy.calls.count()).toBe(runOnFormReady === false ? 0 : 1);
+        }
+        expect(await matchBehaviourCondition('true', conditionKind, scoped, behaviour, ctx)).toBeFalse();
+        expect(await matchBehaviourCondition('true', conditionKind, broadcast, behaviour, ctx))
+          .toBe(runOnFormReady !== true);
+      }
+    });
+  }
 });

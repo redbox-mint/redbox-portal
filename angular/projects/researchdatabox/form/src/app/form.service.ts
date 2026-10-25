@@ -799,6 +799,7 @@ export class FormService extends HttpClientService {
 
     // Filter the validator configs to the enabled ones.
     const enabledValidators = this.validatorsSupport.enabledValidators(availableGroups, enabledValidationGroups, validators);
+    if (mapEntry?.model) mapEntry.model.activeValidators = enabledValidators;
     const validatorFns = this.getValidatorInstances(enabledValidators)
 
     // For debugging:

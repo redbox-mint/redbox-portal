@@ -32,6 +32,7 @@ import {
 /* QuestionTree Component */
 
 export class QuestionTreeFieldComponentConfig extends FieldComponentConfig implements QuestionTreeFieldComponentConfigOutline {
+    legacyFieldPrefix?: string;
     availableOutcomes: QuestionTreeOutcome[];
     availableMeta?: QuestionTreeMeta;
     questions: QuestionTreeQuestion[];

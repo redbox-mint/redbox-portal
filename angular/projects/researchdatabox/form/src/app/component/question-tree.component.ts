@@ -16,6 +16,8 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcome,
   isQuestionTreeQuestionActivated,
+  FormValidatorConfig,
+  QuestionTreeQuestion,
 } from "@researchdatabox/sails-ng-common";
 import { Component, DestroyRef, inject, ViewChild, ViewContainerRef } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -85,6 +87,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
 
   private eventBus = inject(FormComponentEventBus);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly configuredQuestionValidators = new Map<string, FormValidatorConfig[]>();
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
@@ -176,6 +179,12 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       // TODO: is this needed? See how other components with nested components do this?
       if (elemFieldEntry) {
         elemFieldEntry.componentRef = wrapperRef;
+        const question = componentConfigFormConfig.questions.find(question => question.id === key);
+        if (question && elemFieldEntry.model) {
+          this.configuredQuestionValidators.set(key, [...elemFieldEntry.model.validators]);
+          this.updateQuestionValidators(elemFieldEntry, question,
+            isQuestionTreeQuestionActivated(key, componentConfigFormConfig.questions, elemVals));
+        }
       }
     }
 
@@ -206,6 +215,27 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => this.moveTowardsConsistentModelDataAndComponents());
+    // Loaded answers also need a fresh outcome; legacy metadata has no native
+    // outcome-info control until this component is initialized.
+    this.moveTowardsConsistentModelDataAndComponents();
+  }
+
+  private updateQuestionValidators(entry: FormFieldCompMapEntry, question: QuestionTreeQuestion, active: boolean) {
+    const model = entry.model;
+    if (!model) return;
+    const validators = [...(this.configuredQuestionValidators.get(question.id) ?? [])];
+    if (active) {
+      validators.push({class: 'required'});
+      if (question.answersMax > 1) {
+        validators.push({class: 'minLength', config: {minLength: question.answersMin}},
+          {class: 'maxLength', config: {maxLength: question.answersMax}});
+      }
+    }
+    model.initConfig.config ??= {};
+    model.initConfig.config.validators = validators;
+    this.formService.setValidators(model.formControl, validators,
+      this.getFormComponent.enabledValidationGroups, this.getFormComponent.validationGroups,
+      {emitEvent: false}, entry);
   }
 
   /**
@@ -244,6 +274,11 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       if ((isLayoutChanged || isComponentChanged) && !shouldBeActivated) {
         // Emit the event so this question tree component can process nested components again.
         formFieldCompMapEntry?.model?.setValue( null);
+      }
+
+      if (isLayoutChanged || isComponentChanged) {
+        const question = questions.find(question => question.id === questionId);
+        if (question) this.updateQuestionValidators(formFieldCompMapEntry, question, shouldBeActivated);
       }
 
       // Change only one component at a time.

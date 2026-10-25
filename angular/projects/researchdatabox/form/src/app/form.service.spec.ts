@@ -3,6 +3,7 @@ import { FormService } from "./form.service";
 import {
   ConfigService,
   FormFieldCompMapEntry,
+  FormFieldModel,
   getStubConfigService,
   getStubTranslationService,
   LoggerService,
@@ -392,6 +393,27 @@ describe('The FormService', () => {
   });
 
   describe('calculate enabled validation groups', async () => {
+    it('keeps the model required indicator in sync with validators applied for each action', () => {
+      const model = new FormFieldModel({ class: 'SimpleInputModel', config: { validators: [{ class: 'required' }] } });
+      const entry: FormFieldCompMapEntry = {
+        compConfigJson: { name: 'required-example', component: { class: 'SimpleInputComponent' } },
+        model,
+      };
+      const groups: FormValidationGroups = {
+        all: { description: 'All validators', initialMembership: 'all' },
+        none: { description: 'No validators', initialMembership: 'none' },
+      };
+      service.setValidators(model.formControl, model.validators, ['all'], groups, undefined, entry);
+      expect(model.activeValidators?.map(v => v.class)).toEqual(['required']);
+      expect(model.formControl?.hasError('required')).toBeTrue();
+      service.setValidators(model.formControl, model.validators, ['none'], groups, undefined, entry);
+      expect(model.activeValidators).toEqual([]);
+      expect(model.formControl?.valid).toBeTrue();
+      service.setValidators(model.formControl, model.validators, ['all'], groups, undefined, entry);
+      expect(model.activeValidators?.map(v => v.class)).toEqual(['required']);
+      expect(model.formControl?.hasError('required')).toBeTrue();
+    });
+
     const cases: {
       title: string;
       args: {

@@ -32,6 +32,12 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
    */
   forceSave?: boolean;
   /**
+   * Allow an invalid form to request save-time validation. Defaults to false.
+   * This only affects button availability; it never bypasses validation or
+   * configured disabled, pending, saving and view-mode guards.
+   */
+  allowValidationAttempt?: boolean;
+  /**
    * The label to set to the button while saving.
    */
   labelSaving?: string;
@@ -59,6 +65,12 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
    * Default is 3 seconds delay.
    */
   redirectDelaySeconds?: number;
+  /** Ask for confirmation before publishing a save request. Blank or absent skips the dialog. */
+  confirmationMessage?: string;
+  /** Optional confirmation title and button labels; translation keys are supported. */
+  confirmationTitle?: string;
+  cancelButtonMessage?: string;
+  confirmButtonMessage?: string;
 }
 
 export interface SaveButtonFieldComponentConfigOutline extends SaveButtonFieldComponentConfigFrame, FieldComponentConfigOutline {

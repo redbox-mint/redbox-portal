@@ -62,6 +62,8 @@ export class FormFieldModel<ValueType> extends FormModel<ValueType, FieldModelDe
    * The angular form control this class wraps.
    */
   public formControl?: AbstractControl<ValueType>;
+  /** Validator definitions currently applied after validation-group filtering. */
+  public activeValidators?: FormValidatorConfig[];
 
   constructor(initConfig: FieldModelDefinitionFrame<ValueType>) {
     super(initConfig);

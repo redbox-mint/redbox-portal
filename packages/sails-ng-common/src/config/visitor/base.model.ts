@@ -1,3 +1,4 @@
+import { RecordPermissionsFieldComponentDefinitionOutline, RecordPermissionsFormComponentDefinitionOutline } from '../component/record-permissions.outline';
 import { FormConfigOutline } from '../form-config.outline';
 import { FormConfigVisitorOutline } from './base.outline';
 import {
@@ -332,7 +333,17 @@ export abstract class FormConfigVisitor implements FormConfigVisitorOutline {
     await this.notImplemented();
   }
 
-  /* Save Button  */
+  /* Record Permissions */
+
+  async visitRecordPermissionsFieldComponentDefinition(item: RecordPermissionsFieldComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  async visitRecordPermissionsFormComponentDefinition(item: RecordPermissionsFormComponentDefinitionOutline): Promise<void> {
+    await this.notImplemented();
+  }
+
+  /* Save Button */
 
   async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
     await this.notImplemented();

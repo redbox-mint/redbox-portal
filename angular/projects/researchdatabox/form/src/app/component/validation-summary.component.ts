@@ -25,12 +25,12 @@ import {FormService} from "../form.service";
   selector: 'redbox-validation-summary-field',
   template: `
     @let validationList = (validationErrorsDisplay$ | async) ?? [];
-    @if (validationList.length === 0 && showWhenValid) {
+    @if (formComponent.editMode() && validationList.length === 0 && showWhenValid) {
       <div class="alert alert-info" role="alert">
         {{ '@dmpt-form-validation-summary-valid' | i18next }}
       </div>
     }
-    @if (validationList.length > 0) {
+    @if (formComponent.editMode() && validationList.length > 0) {
       <div class="alert alert-danger validation-summary mt-3" role="alert">
         <i class="fa-solid fa-circle-exclamation validation-summary__icon" aria-hidden="true"></i>
         <div class="validation-summary__content">

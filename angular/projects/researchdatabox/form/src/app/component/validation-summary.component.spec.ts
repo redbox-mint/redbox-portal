@@ -1,7 +1,7 @@
+import { createFormAndWaitForReady, createTestbedModule, FormComponentProps } from "../helpers.spec";
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { ValidationSummaryFieldComponent } from "./validation-summary.component";
-import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
-import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
+import { FormConfigFrame, GroupFormComponentDefinitionFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from "./simple-input.component";
 import { GroupFieldComponent } from './group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
@@ -9,6 +9,14 @@ import { TabComponent } from './tab.component';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { By } from '@angular/platform-browser';
+import { TypeaheadModule, TypeaheadMatch } from 'ngx-bootstrap/typeahead';
+import { TypeaheadInputComponent } from './typeahead-input.component';
+
+const editableProps: FormComponentProps = {
+  oid: 'oid-generated-validation-summary', recordType: 'rdmp', editMode: true,
+  formName: 'default-1.0-draft', downloadAndCreateOnInit: false,
+};
 
 describe('ValidationSummaryFieldComponent', () => {
   let translationService: { translationMap: Record<string, string>; t: (key: string) => string };
@@ -21,7 +29,9 @@ describe('ValidationSummaryFieldComponent', () => {
         "GroupFieldComponent": GroupFieldComponent,
         "RepeatableComponent": RepeatableComponent,
         "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
-      }
+        "TypeaheadInputComponent": TypeaheadInputComponent,
+      },
+      imports: { TypeaheadModule: TypeaheadModule.forRoot() }
     });
 
     translationService = TestBed.inject(TranslationService as any);
@@ -33,6 +43,114 @@ describe('ValidationSummaryFieldComponent', () => {
     let fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
+  });
+
+  for (const repeatable of [false, true]) {
+    for (const hydrated of [false, true]) {
+      it(`refreshes required person errors after ${hydrated ? 'hydration' : 'lookup autofill'} and clear (${repeatable ? 'repeatable row' : 'group'})`, async () => {
+        const initialPerson = hydrated ? { name: 'Selected Person', email: 'selected@example.invalid' } : { name: null, email: null };
+        const person: GroupFormComponentDefinitionFrame = {
+          name: 'person',
+          component: { class: 'GroupComponent', config: { componentDefinitions: [
+            { name: 'name', component: { class: 'TypeaheadInputComponent', config: {
+              sourceType: 'static', valueMode: 'value', requireSelection: true,
+              staticOptions: [{ label: 'Selected Person', value: 'Selected Person', raw: { email: 'selected@example.invalid' } }],
+            } }, model: { class: 'TypeaheadInputModel', config: { value: null } } },
+            { name: 'email', component: { class: 'SimpleInputComponent', config: {
+              readonly: true, onItemSelect: { rawPath: 'email' },
+            } }, model: { class: 'SimpleInputModel', config: {} } },
+          ] } },
+          model: { class: 'GroupModel', config: { value: initialPerson, validators: [
+            { class: 'required', config: { anyOfFields: ['name'] }, message: 'Name required' },
+            { class: 'required', config: { anyOfFields: ['email'] }, message: 'Email required' },
+          ] } },
+        };
+        const formConfig: FormConfigFrame = {
+          name: 'lookup-required-summary', enabledValidationGroups: ['all'],
+          componentDefinitions: [
+            repeatable ? {
+              name: 'people', component: { class: 'RepeatableComponent', config: { elementTemplate: person } },
+              model: { class: 'RepeatableModel', config: { value: [initialPerson] } },
+            } : person,
+            { name: 'validation_summary', component: { class: 'ValidationSummaryComponent' } },
+          ],
+        };
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editableProps);
+        const control = formComponent.form!.get(repeatable ? ['people', 0] : 'person')!;
+        const root = fixture.nativeElement as HTMLElement;
+        const lookup = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        if (!hydrated) {
+          expect(control.invalid).toBeTrue();
+          expect(root.querySelector('.validation-summary')?.textContent).toContain('Email required');
+
+          fixture.ngZone!.run(() => lookup.onSelect({ item: { label: 'Selected Person', value: 'Selected Person', raw: { email: 'selected@example.invalid' } } } as TypeaheadMatch));
+        }
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(control.getRawValue()).toEqual({ name: 'Selected Person', email: 'selected@example.invalid' });
+        expect(control.valid).toBeTrue();
+        expect(root.querySelector('.validation-summary')).toBeNull();
+
+        const input = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).nativeElement.querySelector('input') as HTMLInputElement;
+        fixture.ngZone!.run(() => {
+          input.value = 'Unmatched edit';
+          input.dispatchEvent(new Event('input'));
+        });
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.ngZone!.run(() => input.dispatchEvent(new Event('blur')));
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(input.value).toBe('Selected Person');
+        expect(control.getRawValue()).toEqual({ name: 'Selected Person', email: 'selected@example.invalid' });
+        expect(root.querySelector('.validation-summary')).toBeNull();
+
+        fixture.ngZone!.run(() => {
+          input.value = '';
+          input.dispatchEvent(new Event('input'));
+        });
+        // A real user input renders before blur. It must not rehydrate the old
+        // selected name while the sibling-selection consumer clears the email.
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(input.value).toBe('');
+        expect(control.getRawValue()).toEqual({ name: null, email: null });
+        fixture.ngZone!.run(() => input.dispatchEvent(new Event('blur')));
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(control.getRawValue()).toEqual({ name: null, email: null });
+        expect(control.invalid).toBeTrue();
+        expect(root.querySelector('.validation-summary')?.textContent).toContain('Name required');
+        expect(root.querySelector('.validation-summary')?.textContent).toContain('Email required');
+      });
+    }
+  }
+
+  it('hides inline and summary editing prompts in view mode while retaining invalid model state', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'readonly-invalid-record', enabledValidationGroups: ['all'],
+      componentDefinitions: [
+        { name: 'required_field', component: { class: 'SimpleInputComponent' },
+          model: { class: 'SimpleInputModel', config: { value: '', validators: [{ class: 'required' }] } },
+          layout: { class: 'DefaultLayout', config: { label: 'Required field' } } },
+        { name: 'validation_summary', component: { class: 'ValidationSummaryComponent' } }
+      ]
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { ...editableProps, editMode: false });
+    const control = formComponent.form!.get('required_field')!;
+    const root = fixture.nativeElement as HTMLElement;
+    expect(control.hasError('required')).toBeTrue();
+    expect(formComponent.form!.invalid).toBeTrue();
+    expect(root.querySelector('.validation-summary')).toBeNull();
+    expect(root.querySelector('redbox-field-error-summary')).toBeNull();
+
+    formComponent.editMode.set(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(root.querySelector('.validation-summary [data-validation-error-class="required"]')).not.toBeNull();
+    expect(root.querySelector('redbox-field-error-summary')?.textContent).toContain('@validator-error-required');
+    expect(control.hasError('required')).toBeTrue();
+    expect(formComponent.enabledValidationGroups).toEqual(['all']);
   });
 
   it('should reveal tabs implemented by a dynamically loaded component instance', () => {
@@ -84,7 +202,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editableProps);
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
@@ -113,7 +231,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
 
     const nativeEl: HTMLElement = fixture.nativeElement;
     const el = nativeEl.querySelector('div.alert-info');
@@ -153,7 +271,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editableProps);
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
@@ -216,7 +334,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
 
     const link = (fixture.nativeElement as HTMLElement).querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]');
     expect(link?.textContent).toContain('Translated Text Field');
@@ -272,7 +390,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -329,7 +447,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editableProps);
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
     const initialSummaryErrors = await validationSummary.allValidationErrorsDisplay();
     expect(initialSummaryErrors.map((summary) => summary.id)).toContain('form-item-id-text-1-event');
@@ -394,7 +512,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
     const summaryErrors = await validationSummary.allValidationErrorsDisplay();
 
@@ -442,7 +560,7 @@ describe('ValidationSummaryFieldComponent', () => {
 
     const eventBus = TestBed.inject(FormComponentEventBus);
     const publishSpy = spyOn(eventBus, 'publish').and.callThrough();
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editableProps);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]') as HTMLAnchorElement | null;
 
@@ -542,7 +660,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(mainTab.activeTabId).toBe('tab1');
@@ -657,7 +775,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(mainTab.activeTabId).toBe('tab1');
@@ -732,7 +850,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -807,7 +925,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -885,8 +1003,8 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture: fixtureWithoutTabLabel } = await createFormAndWaitForReady(formConfigWithoutTabLabel);
-    const { fixture: fixtureWithTabLabel } = await createFormAndWaitForReady(formConfigWithTabLabel);
+    const { fixture: fixtureWithoutTabLabel } = await createFormAndWaitForReady(formConfigWithoutTabLabel, editableProps);
+    const { fixture: fixtureWithTabLabel } = await createFormAndWaitForReady(formConfigWithTabLabel, editableProps);
 
     const linkWithoutTabLabel = (fixtureWithoutTabLabel.nativeElement as HTMLElement).querySelector('.validation-summary-item a');
     expect(linkWithoutTabLabel?.textContent?.trim()).toBe('Project name');
@@ -955,7 +1073,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, editableProps);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -1005,7 +1123,7 @@ describe('ValidationSummaryFieldComponent', () => {
         },
       ]
     };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editableProps);
 
     // Trigger 'queueValidationErrorsRefresh' by making a change to the form.
     const control = fixture.componentInstance.componentDefArr[0].model?.formControl;

@@ -639,6 +639,7 @@ describe('RecordController getWorkflowSteps', () => {
         expect(sendView.calledOnce).to.be.true;
         expect(sendView.firstCall.args[2]).to.equal(edit === 'true' ? 'record/edit' : 'record/view');
         (controller.recordsService.hasViewAccess as sinon.SinonStub).resetHistory();
+        (controller.recordsService.hasEditAccess as sinon.SinonStub).resetHistory();
 
         await controller.getForm(req, res);
 
@@ -690,7 +691,7 @@ describe('RecordController getWorkflowSteps', () => {
         });
       }
 
-      it(`preserves permission errors for an existing form (API ${apiVersion}, edit=${edit})`, async () => {
+      it(`returns a versioned permission denial without loading the form (API ${apiVersion}, edit=${edit})`, async () => {
         const req = {
           param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : 'auto'),
           query: { apiVersion, edit },
@@ -706,7 +707,7 @@ describe('RecordController getWorkflowSteps', () => {
         await controller.getForm(req, res);
 
         expect(access.calledOnce).to.be.true;
-        expect(status.calledOnceWithExactly(500)).to.be.true;
+        expect(status.calledOnceWithExactly(apiVersion === '1.0' ? 500 : 403)).to.be.true;
         if (apiVersion === '1.0') {
           expect(json.firstCall.args[0]).to.include({ message: 'view-error-no-permissions' });
         } else {
@@ -718,6 +719,33 @@ describe('RecordController getWorkflowSteps', () => {
   }
 
   for (const formSelection of ['named', 'saved']) {
+    it(`denies an existing ${formSelection} edit page before form lookup or protected title rendering`, async () => {
+      const req = {
+        param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
+        query: {},
+        session: { branding: 'default' },
+        user: { username: 'view-only-reader', roles: [{ name: 'Researcher' }] },
+        options: { locals: formSelection === 'named' ? { localFormName: 'named-form' } : {} },
+      } as unknown as Sails.Req;
+      (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+        redboxOid: 'oid-1',
+        metaMetadata: { type: 'rdmp', form: 'saved-form' },
+        metadata: { title: 'Protected acceptance record title' },
+      });
+      (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(false);
+      const forbidden = sinon.stub();
+      const res = { forbidden } as unknown as Sails.Res;
+      const sendView = sinon.stub(controller, 'sendView');
+
+      await controller.edit(req, res);
+
+      expect(forbidden.calledOnceWithExactly()).to.equal(true);
+      expect(sendView.notCalled).to.equal(true);
+      expect((FormsService.getFormByName as sinon.SinonStub).notCalled).to.equal(true);
+      expect((FormsService.getFormByStartingWorkflowStep as sinon.SinonStub).notCalled).to.equal(true);
+      expect((controller.recordsService.hasEditAccess as sinon.SinonStub).calledOnce).to.equal(true);
+    });
+
     for (const recordType of ['rdmp', null]) {
       it(`uses saved record type ${JSON.stringify(recordType)} with a ${formSelection} form that has no configured type`, async () => {
         const req = {
@@ -1159,7 +1187,7 @@ describe('RecordController getWorkflowSteps', () => {
         .callsFake((name: string) => (name === 'name' ? 'dataset' : name === 'formName' ? 'dataset-draft' : undefined)),
       query: { edit: 'true' },
       session: { branding: 'default' },
-      user: { username: 'alice', roles: [] },
+      user: { username: 'alice', roles: [{ name: 'Researcher' }, { name: 'Admin' }] },
     } as unknown as Sails.Req;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -1170,6 +1198,7 @@ describe('RecordController getWorkflowSteps', () => {
       formFingerprint: 'form-fingerprint-1',
       recordType: 'dataset',
       oid: null,
+      runtimeContext: { user: { roles: ['Researcher', 'Admin'] }, record: { type: 'dataset', hasEditAccess: false } },
     });
     // A create has no stored record, so its contract is the starting step the
     // save will apply, not the form object this route happened to load.
@@ -1181,6 +1210,51 @@ describe('RecordController getWorkflowSteps', () => {
     expect(createArgs[1]).to.deep.equal({ name: 'dataset' });
     expect(createArgs[2]).to.equal(form);
   });
+
+  for (const editable of [true, false]) {
+    it(`reports authoritative edit access ${editable} while retaining view mode`, async function () {
+      const record = {
+        redboxOid: 'oid-1',
+        metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+        metadata: { title: 'Visible to both personas' },
+      };
+      const form = { name: 'dataset-draft', configuration: { type: 'dataset', componentDefinitions: [] } };
+      const forms = Reflect.get(globalThis, 'FormsService') as {
+        getForm: sinon.SinonStub;
+        buildClientFormConfig: sinon.SinonStub;
+        discoverValidationOperations: sinon.SinonStub;
+      };
+      const sails = Reflect.get(globalThis, 'sails');
+      sails.config = { reusableFormDefinitions: {} };
+      sails.services = { formpayloadprehydrateservice: { build: sinon.stub().resolves({}) } };
+      (controller.recordsService.getMeta as sinon.SinonStub).resolves(record);
+      (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(editable);
+      Object.assign(controller.recordsService, { getRecordFormFingerprint: sinon.stub().resolves('fingerprint') });
+      forms.getForm.resolves(form);
+      forms.buildClientFormConfig.resolves(form.configuration);
+      forms.discoverValidationOperations.resolves([]);
+      const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+      types.get.returns(of({ name: 'dataset' }));
+      const req = {
+        param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : name === 'name' ? 'auto' : undefined),
+        query: { edit: 'false', apiVersion: '2.0' },
+        session: { branding: 'default' },
+        user: { username: 'reader-or-owner', roles: [{ name: 'Researcher' }] },
+      } as unknown as Sails.Req;
+      const json = sinon.stub().returnsThis();
+      const res = { status: sinon.stub().returnsThis(), json, set: sinon.stub() } as unknown as Sails.Res;
+
+      await controller.getForm(req, res);
+
+      expect(forms.buildClientFormConfig.firstCall.args[1]).to.equal('view');
+      expect(json.firstCall.args[0].meta.runtimeContext).to.deep.equal({
+        user: { roles: ['Researcher'] },
+        record: { type: 'dataset', hasEditAccess: editable },
+      });
+      expect(json.firstCall.args[0].meta.recordType).to.equal('dataset');
+      expect((controller.recordsService.hasEditAccess as sinon.SinonStub).calledOnce).to.equal(true);
+    });
+  }
 
   it('fingerprints the authoritative delivered form independently of target intent', async function () {
     const currentRec = {

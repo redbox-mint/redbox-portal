@@ -15,7 +15,7 @@ import { createFieldValueChangedEvent } from '../events/form-component-event.typ
 import { applyExpressionTarget, ApplyExpressionTargetContext, ExpressionTargetHost } from '../apply-expression-target';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
-import { BehaviourFieldResolverContext, ResolvedField, resolveFieldByPointer } from './behaviour-field-resolver';
+import { BehaviourFieldResolverContext, ResolvedField, resolveFieldByPointer, resolveFieldEntryByPointer } from './behaviour-field-resolver';
 
 /**
  * Dependencies shared by action execution.
@@ -347,7 +347,7 @@ async function applySingleUIProperty(
     const resolved =
       fieldPathKind === FieldPathKind.Logical
         ? resolveLogicalField(ctx, logicalEntryIndex)
-        : await resolveDynamicField(fieldPathConfig, fieldPathKeyPath, pipelineContext, ctx, fieldPathKind);
+        : await resolveDynamicUIField(fieldPathConfig, fieldPathKeyPath, pipelineContext, ctx, fieldPathKind);
     if (!resolved) {
       ctx.logger.warn('Behaviour action setUIProperty: target field did not resolve.', {
         behaviourIndex: ctx.behaviourIndex,
@@ -449,6 +449,28 @@ async function resolveDynamicField(
   ctx: BehaviourActionExecutionContext,
   fieldPathKind: FieldPathKindType
 ): Promise<ResolvedField | undefined> {
+  const fieldPath = await resolveDynamicFieldPath(entryConfig, configKeyPath, pipelineContext, ctx, fieldPathKind);
+  return fieldPath ? resolveFieldByPointer(fieldPath, ctx.fieldResolverContext) : undefined;
+}
+
+async function resolveDynamicUIField(
+  entryConfig: { fieldPath?: string; hasFieldPathTemplate?: boolean },
+  configKeyPath: BehaviourActionConfigKeyPath,
+  pipelineContext: BehaviourPipelineContext,
+  ctx: BehaviourActionExecutionContext,
+  fieldPathKind: FieldPathKindType
+): Promise<{ entry: FormFieldCompMapEntry } | undefined> {
+  const fieldPath = await resolveDynamicFieldPath(entryConfig, configKeyPath, pipelineContext, ctx, fieldPathKind);
+  return fieldPath ? resolveFieldEntryByPointer(fieldPath, ctx.fieldResolverContext) : undefined;
+}
+
+async function resolveDynamicFieldPath(
+  entryConfig: { fieldPath?: string; hasFieldPathTemplate?: boolean },
+  configKeyPath: BehaviourActionConfigKeyPath,
+  pipelineContext: BehaviourPipelineContext,
+  ctx: BehaviourActionExecutionContext,
+  fieldPathKind: FieldPathKindType
+): Promise<string | undefined> {
   let fieldPath = entryConfig.fieldPath;
   if (fieldPathKind === FieldPathKind.JSONata && entryConfig.hasFieldPathTemplate && ctx.compiledTemplateEvaluator) {
     const evaluatedFieldPath = await ctx.compiledTemplateEvaluator.evaluate(
@@ -462,7 +484,7 @@ async function resolveDynamicField(
   if (!fieldPath) {
     return undefined;
   }
-  return resolveFieldByPointer(fieldPath, ctx.fieldResolverContext);
+  return fieldPath;
 }
 
 /**

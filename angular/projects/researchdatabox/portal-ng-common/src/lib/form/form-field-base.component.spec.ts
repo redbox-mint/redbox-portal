@@ -31,6 +31,18 @@ describe('FormFieldBaseComponent', () => {
     await expectAsync(component.waitForViewReady()).toBeResolved();
   });
 
+  it('shows required state only while the required validator is active', () => {
+    const model = new TestFormFieldModel({ class: 'SimpleInputModel', config: { validators: [{ class: 'required' }] } });
+    component.model = model;
+    expect(component.isRequired).toBeTrue();
+    model.activeValidators = [];
+    expect(component.isRequired).toBeFalse();
+    model.activeValidators = [{ class: 'required' }];
+    expect(component.isRequired).toBeTrue();
+    model.activeValidators = [{ class: 'email' }];
+    expect(component.isRequired).toBeFalse();
+  });
+
   it('should resolve when view status changes to initialised', async () => {
     const waitPromise = component.waitForViewReady();
     component.status.set(FormFieldComponentStatus.INIT_VIEW_READY);

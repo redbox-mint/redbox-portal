@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
-import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from '../helpers.spec';
+import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions, FormComponentProps} from '../helpers.spec';
 import { ConfirmationDialogService } from '../confirmation-dialog.service';
 import { FormComponentEventBus } from '../form-state';
 import { DeleteButtonComponent } from './delete-button.component';
@@ -44,6 +44,55 @@ describe('DeleteButtonComponent', () => {
         },
       ],
     };
+  });
+
+  it('updates native disabled state after configured disabling is changed without an OID change', async () => {
+    formConfig.componentDefinitions![0].component.config!.disabled = true;
+    const props: FormComponentProps = { oid: 'oid-123', editMode: true, recordType: 'rdmp', formName: 'delete-test', downloadAndCreateOnInit: false };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, props);
+    const component = formComponent.getComponentDefByName('delete_button')!.component as DeleteButtonComponent;
+    const button = fixture.nativeElement.querySelector('redbox-form-delete-button button') as HTMLButtonElement;
+    expect(button.disabled).toBeTrue();
+    component.setDisabled(false);
+    fixture.detectChanges();
+    expect(button.disabled).toBeFalse();
+    component.setDisabled(true);
+    fixture.detectChanges();
+    expect(button.disabled).toBeTrue();
+  });
+
+  it('cancels native deletion without publishing, and respects disabling while confirmation is pending', async () => {
+    // A redirect is irrelevant to Cancel and would otherwise require a compiled template fixture.
+    Object.assign(formConfig.componentDefinitions![0].component.config!, { redirectLocation: '' });
+    const props: FormComponentProps = { oid: 'oid-123', editMode: true, recordType: 'rdmp', formName: 'delete-test', downloadAndCreateOnInit: false };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, props);
+    const component = formComponent.getComponentDefByName('delete_button')!.component as DeleteButtonComponent;
+    const dialog = TestBed.inject(ConfirmationDialogService);
+    const events: unknown[] = [];
+    const sub = TestBed.inject(FormComponentEventBus).select$('form.delete.requested').subscribe(event => events.push(event));
+    try {
+      const pending = component.delete();
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.modal-footer .btn-secondary') as HTMLButtonElement).click();
+      await pending;
+      expect(events.length).toBe(0);
+      const next = component.delete();
+      component.setDisabled(true);
+      dialog.resolve(true);
+      await next;
+      expect(events.length).toBe(0);
+    } finally { sub.unsubscribe(); }
+  });
+
+  it('cannot render, confirm or publish deletion from a view-mode record', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const component = formComponent.getComponentDefByName('delete_button')!.component as DeleteButtonComponent;
+    const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish');
+    const confirm = spyOn(TestBed.inject(ConfirmationDialogService), 'confirm');
+    expect(fixture.nativeElement.querySelector('redbox-form-delete-button button')).toBeNull();
+    await component.delete();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it('should create DeleteButtonComponent', async () => {

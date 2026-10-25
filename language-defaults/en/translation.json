@@ -1933,5 +1933,9 @@
   "branding-admin-sidebar-name": "Admin Sidebar",
   "branding-admin-sidebar-help": "Controls text colours in the admin sidebar.",
   "branding-admin-sidebar-text-color-label": "Sidebar Text Colour",
-  "branding-admin-sidebar-text-color-help": "Sets the colour of section headings, hovered links, and footer links on the sidebar's light backgrounds."
+  "branding-admin-sidebar-text-color-help": "Sets the colour of section headings, hovered links, and footer links on the sidebar's light backgrounds.",
+  "@form-record-permissions-loading": "Loading record permissions…",
+  "@form-record-permissions-error": "Record permissions could not be loaded.",
+  "@form-record-permissions-retry": "Retry",
+  "@form-record-permissions-save-first": "Save this record to view its permissions."
 }

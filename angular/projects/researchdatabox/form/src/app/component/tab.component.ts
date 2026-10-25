@@ -27,7 +27,7 @@ import { DefaultLayoutComponent } from './default-layout.component';
       <div [class]="resolvedLayoutConfig.tabNavWrapperCssClass">
         <div [class]="resolvedLayoutConfig.buttonSectionCssClass" role="tablist" [attr.aria-orientation]="resolvedLayoutConfig.buttonSectionAriaOrientation">
           @if (initialSelectionDone) {
-            @for (tab of tabConfig.tabs; track $index) {
+            @for (tab of tabInstance?.tabs ?? []; track $index) {
               <button class="nav-link"
                       [class.active]="tabInstance && tab.name == tabInstance.selectedTabId"
                       [attr.id]="tab.name + '-tab-button'"
@@ -178,7 +178,9 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected override async initData() {
-    this.tabs = this.tabConfig?.tabs || [];
+    // Authorization pruning preserves config indexes with empty placeholders.
+    // They have no component/pane and must not become unnamed navigation tabs.
+    this.tabs = (this.tabConfig.tabs ?? []).filter(tab => !!tab?.component);
   }
 
   /**
@@ -209,7 +211,8 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
           angularComponents: [tab?.name],
           layout: [`${tab?.name}-layout`],
           dataModel: [],
-          formConfig: ['component', 'config', 'tabs', index],
+          // Compiled templates retain the original server-config index.
+          formConfig: ['component', 'config', 'tabs', this.tabConfig.tabs!.indexOf(tab)],
         }),
       };
 

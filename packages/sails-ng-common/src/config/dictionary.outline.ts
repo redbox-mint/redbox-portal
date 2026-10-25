@@ -4,6 +4,7 @@ import {
   RepeatableTypes,
 } from './component/repeatable.outline';
 import { GroupTypes } from './component/group.outline';
+import { RecordPermissionsTypes } from './component/record-permissions.outline';
 import { SaveButtonTypes } from './component/save-button.outline';
 import { SaveStatusTypes } from './component/save-status.outline';
 import { IntegrationStatusTypes } from './component/integration-status.outline';
@@ -64,6 +65,7 @@ export type AllTypes =
   | ActionRowLayoutTypes
   | RepeatableTypes
   | GroupTypes
+  | RecordPermissionsTypes
   | SaveButtonTypes
   | SaveStatusTypes
   | IntegrationStatusTypes

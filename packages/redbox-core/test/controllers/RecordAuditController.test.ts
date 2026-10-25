@@ -165,7 +165,7 @@ describe('RecordAuditController', () => {
     assert.equal(sendResp.firstCall.args[2]?.status, 400);
   });
 
-  it('renders the host view for users with view access', async () => {
+  it('renders the host view for brand admins with view access', async () => {
     const param = sinon.stub();
     param.withArgs('oid').returns('oid-1');
     const req = {
@@ -198,7 +198,7 @@ describe('RecordAuditController', () => {
       param,
       options: { locals: {} },
       session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [] },
+      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
@@ -242,7 +242,7 @@ describe('RecordAuditController', () => {
       param,
       options: { locals: {} },
       session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [] },
+      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
@@ -291,7 +291,7 @@ describe('RecordAuditController', () => {
     param.withArgs('oid').returns('oid-1');
     param.withArgs('dateFrom').returns('2026-03-01');
     param.withArgs('dateTo').returns('2026-03-02');
-    const req = { param, options: { locals: {} }, session: {}, user: { roles: [] } } as unknown as Sails.Req;
+    const req = { param, options: { locals: {} }, session: {}, user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] } } as unknown as Sails.Req;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.getAuditData(req, {} as Sails.Res);
@@ -323,7 +323,7 @@ describe('RecordAuditController', () => {
       param.withArgs('oid').returns('oid-1');
       param.withArgs('dateFrom').returns(bounds.dateFrom);
       param.withArgs('dateTo').returns(bounds.dateTo);
-      const req = { param, options: { locals: {} }, session: {}, user: { roles: [] } } as unknown as Sails.Req;
+      const req = { param, options: { locals: {} }, session: {}, user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] } } as unknown as Sails.Req;
       const sendResp = sinon.stub(controller as any, 'sendResp');
 
       await controller.getAuditData(req, {} as Sails.Res);
@@ -349,7 +349,7 @@ describe('RecordAuditController', () => {
       param,
       options: { locals: {} },
       session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [] },
+      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
@@ -371,7 +371,7 @@ describe('RecordAuditController', () => {
       param,
       options: { locals: { branding: 'default' } },
       session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [] },
+      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
@@ -380,6 +380,37 @@ describe('RecordAuditController', () => {
 
     assert.equal(sendResp.firstCall.args[2]?.data?.rawAuditUrl, '/default/rdmp/api/records/audit/oid-1');
   });
+
+  for (const roles of [
+    [{ name: 'Researcher', branding: { id: 'brand-1' } }],
+    [{ name: 'Librarians', branding: 'brand-1' }],
+    [{ name: 'Admin', branding: { id: 'other-brand' } }],
+    [],
+  ]) {
+    for (const action of ['render', 'getAuditData', 'getPermissionsData', 'getIntegrationAuditData'] as const) {
+      it(`denies ${action} before reading records for roles ${JSON.stringify(roles)}`, async () => {
+        const param = sinon.stub();
+        param.withArgs('oid').returns('oid-1');
+        param.withArgs('branding').returns('default');
+        const req = { param, options: { locals: {} }, user: { roles } } as unknown as Sails.Req;
+        const res = {} as Sails.Res;
+        const sendResp = sinon.stub(controller as any, 'sendResp');
+        const sendView = sinon.stub(controller as any, 'sendView');
+
+        await controller[action](req, res);
+
+        assert.equal(sendResp.calledOnce, true);
+        assert.equal(sendResp.firstCall.args[2]?.status, 403);
+        assert.equal(sendResp.firstCall.args[2]?.data, undefined);
+        assert.equal(sendView.called, false);
+        const service = (global as any).sails.services.recordsservice;
+        assert.equal(service.getMeta.called, false);
+        assert.equal(service.getRecordAudit.called, false);
+        assert.equal(service.getResolvedPermissionsSummary.called, false);
+        assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.called, false);
+      });
+    }
+  }
 
   it('blocks admin-only data for non-admin users', async () => {
     const param = sinon.stub();

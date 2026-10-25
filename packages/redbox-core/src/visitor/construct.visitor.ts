@@ -1,3 +1,4 @@
+import { RecordPermissionsComponentName, RecordPermissionsFieldComponentDefinitionFrame, RecordPermissionsFieldComponentDefinitionOutline, RecordPermissionsFieldComponentConfig, RecordPermissionsFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
 import { FormConfig, isLikelyNaturalLanguage, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
 
@@ -289,7 +290,9 @@ import {
   QuestionTreeFieldModelDefinitionFrame,
   QuestionTreeFieldModelDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline,
+  QuestionTreeFormComponentDefinitionFrame,
   QuestionTreeModelName,
+  isQuestionTreeQuestionActivated,
 } from '@researchdatabox/sails-ng-common';
 import { QuestionTreeFieldComponentConfig, QuestionTreeFieldModelConfig } from '@researchdatabox/sails-ng-common';
 import {
@@ -1252,7 +1255,29 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     await this.populateFormComponent(item);
   }
 
-  /* Save Button  */
+  /* Record Permissions */
+
+  async visitRecordPermissionsFieldComponentDefinition(item: RecordPermissionsFieldComponentDefinitionOutline): Promise<void> {
+    // Get the current raw data for constructing the class instance.
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<RecordPermissionsFieldComponentDefinitionFrame>(currentData, RecordPermissionsComponentName)) {
+      throw new Error(
+        `Invalid ${RecordPermissionsComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+
+    // Create the class instance for the config
+    item.config = new RecordPermissionsFieldComponentConfig();
+
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+  }
+
+  async visitRecordPermissionsFormComponentDefinition(item: RecordPermissionsFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  /* Save Button */
 
   async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
     // Get the current raw data for constructing the class instance.
@@ -1272,6 +1297,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('operation', item.config, config);
     this.sharedProps.setPropOverride('targetStep', item.config, config);
     this.sharedProps.setPropOverride('forceSave', item.config, config);
+    this.sharedProps.setPropOverride('allowValidationAttempt', item.config, config);
+    this.sharedProps.setPropOverride('confirmationMessage', item.config, config);
+    this.sharedProps.setPropOverride('confirmationTitle', item.config, config);
+    this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
+    this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
@@ -2222,6 +2252,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('availableOutcomes', item.config, configFrame);
     this.sharedProps.setPropOverride('availableMeta', item.config, configFrame);
     this.sharedProps.setPropOverride('questions', item.config, configFrame);
+    this.sharedProps.setPropOverride('legacyFieldPrefix', item.config, configFrame);
 
     // Transform the question tree questions DSL into reusable components.
     configFrame.componentDefinitions = this.formOverride.applyQuestionTreeDsl(
@@ -2229,7 +2260,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       this.formPathHelper.formPath,
       item,
       // Provide the model value so the component visible state can be set correctly.
-      this.currentModelValue()
+      this.currentModelValue() ?? undefined
     );
 
     // Apply the reusable component overrides.
@@ -2269,7 +2300,32 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   }
 
   async visitQuestionTreeFormComponentDefinition(item: QuestionTreeFormComponentDefinitionOutline): Promise<void> {
-    await this.populateFormComponent(item);
+    const data = this.getData() as QuestionTreeFormComponentDefinitionFrame;
+    const prefix = data.component?.config?.legacyFieldPrefix;
+    const questions = data.component?.config?.questions ?? [];
+    const originalRecord = this.recordValues;
+    const path = this.formPathHelper.formPath.dataModel;
+    const parent = path.length === 1 ? originalRecord : _get(originalRecord, path.slice(0, -1));
+    const nativeName = path.at(-1);
+    if (prefix && originalRecord && parent && typeof parent === 'object' && nativeName &&
+      !Object.prototype.hasOwnProperty.call(parent, nativeName)) {
+      const legacy = parent as Record<string, unknown>;
+      const answers = Object.fromEntries(questions
+        .filter(question => Object.prototype.hasOwnProperty.call(legacy, prefix + question.id))
+        .map(question => [question.id, _cloneDeep(legacy[prefix + question.id])]));
+      if (Object.keys(answers).length > 0) {
+        // Use a private construction snapshot. Neither the stored metadata nor
+        // the caller's record is changed by opening a legacy form.
+        const value = Object.fromEntries(questions.map(question => [question.id,
+          isQuestionTreeQuestionActivated(question.id, questions, answers) ? answers[question.id] ?? null : null]));
+        this.recordValues = _set(_cloneDeep(originalRecord), path, value);
+      }
+    }
+    try {
+      await this.populateFormComponent(item);
+    } finally {
+      this.recordValues = originalRecord;
+    }
   }
 
   /* Shared */

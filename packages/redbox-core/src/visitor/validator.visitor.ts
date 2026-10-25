@@ -1,3 +1,4 @@
+import { RecordPermissionsFieldComponentDefinitionOutline, RecordPermissionsFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import {
   FormConfigVisitor,
   FormValidatorConfig,
@@ -492,7 +493,15 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     await this.acceptFormComponentDefinition(item);
   }
 
-  /* Save Button  */
+  /* Record Permissions */
+
+  async visitRecordPermissionsFieldComponentDefinition(_item: RecordPermissionsFieldComponentDefinitionOutline): Promise<void> {}
+
+  async visitRecordPermissionsFormComponentDefinition(item: RecordPermissionsFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  /* Save Button */
 
   async visitSaveButtonFieldComponentDefinition(_item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {}
 

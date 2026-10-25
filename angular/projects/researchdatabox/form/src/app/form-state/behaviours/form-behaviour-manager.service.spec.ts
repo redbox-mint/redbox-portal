@@ -2,9 +2,10 @@ import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { LoggerService, RecordService } from '@researchdatabox/portal-ng-common';
+import { jsonataCompile } from '@researchdatabox/sails-ng-common';
 import { FormBehaviourManager } from './form-behaviour-manager.service';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { FormComponentEvent, FormComponentEventType } from '../events/form-component-event.types';
+import { createFormDefinitionReadyEvent, FormComponentEvent, FormComponentEventType } from '../events/form-component-event.types';
 import { FormComponentValueChangeEventProducer } from '../events/form-component-change-event-producer';
 
 /**
@@ -271,11 +272,7 @@ describe('FormBehaviourManager', () => {
 
     manager.bind(formComponent);
 
-    allEvents$.next({
-      type: FormComponentEventType.FORM_DEFINITION_READY,
-      sourceId: FormComponentEventType.FORM_DEFINITION_READY,
-      timestamp: Date.now(),
-    } as any);
+    allEvents$.next({ ...createFormDefinitionReadyEvent({}), timestamp: Date.now() });
     tick();
 
     expect(eventBus.publish).toHaveBeenCalledTimes(1);
@@ -286,6 +283,75 @@ describe('FormBehaviourManager', () => {
         sourceId: '*',
       })
     );
+  }));
+
+  it('fetches once for actual readiness amid synthetic initial fields and delayed metadata', fakeAsync(() => {
+    const source = new FormControl<unknown>(null);
+    const condition = jsonataCompile('event.type = "form.definition.ready" and $exists(runtimeContext.requestParams.rdmpOid)');
+    const oid = jsonataCompile('runtimeContext.requestParams.rdmpOid');
+    const evaluate = jasmine.createSpy('evaluate').and.callFake(
+      (key: (string | number)[], context: unknown) => {
+        if (key.join('.') === 'behaviours.0.condition') return condition.evaluate(context);
+        if (key.join('.') === 'behaviours.0.processors.0.config.template') return oid.evaluate(context);
+        throw new Error(`Unexpected compiled template: ${key.join('.')}`);
+      }
+    );
+    const formComponent = {
+      form: { value: {} },
+      formDefMap: { formConfig: { behaviours: [{
+        name: 'url-source', condition: 'compiled', conditionKind: 'jsonata_query', runOnFormReady: true,
+        processors: [
+          { type: 'jsonataTransform', config: { hasTemplate: true } },
+          { type: 'fetchMetadata' },
+        ],
+        actions: [
+          { type: 'setValue', config: { fieldPath: '/main/source', fieldPathKind: 'componentJsonPointer' } },
+          { type: 'emitEvent', config: { fieldId: '/main/source', sourceId: '*' } },
+        ],
+      }] } },
+      getRecordCompiledItems: jasmine.createSpy('getRecordCompiledItems').and.resolveTo({ evaluate }),
+      getQuerySource: () => ({
+        queryOrigSource: [], querySource: [], jsonPointerSource: { main: { source: { metadata: {
+          formFieldEntry: { model: { formControl: source }, lineagePaths: { angularComponentsJsonPointer: '/main/source' } },
+        } } } },
+      }),
+      requestParams: () => ({ rdmpOid: 'source-a' }),
+      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus'),
+    } as any;
+    let completeFetch!: (metadata: unknown) => void;
+    recordService.getRecordMeta.and.returnValue(new Promise(resolve => { completeFetch = resolve; }) as any);
+    eventBus.publish.and.callFake(event => allEvents$.next({ ...event, timestamp: Date.now() } as FormComponentEvent));
+    manager.bind(formComponent);
+
+    const initialFields = Array.from({ length: 87 }, (_, index): FormComponentEvent => ({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED, fieldId: `/main/field-${index}`,
+      sourceId: FormComponentEventType.FORM_DEFINITION_READY, value: null, timestamp: Date.now(),
+    }));
+    initialFields.slice(0, 43).forEach(event => allEvents$.next(event));
+    tick();
+    expect(recordService.getRecordMeta).not.toHaveBeenCalled();
+
+    allEvents$.next({ ...createFormDefinitionReadyEvent({}), timestamp: Date.now() });
+    tick();
+    expect(recordService.getRecordMeta).toHaveBeenCalledOnceWith('source-a');
+    initialFields.slice(43).forEach(event => allEvents$.next(event));
+    allEvents$.next({ ...initialFields[0], sourceId: '*' });
+    allEvents$.next({ type: FormComponentEventType.FORM_SAVE_SUCCESS, timestamp: Date.now() } as FormComponentEvent);
+    tick(100);
+    expect(recordService.getRecordMeta).toHaveBeenCalledTimes(1);
+    expect(source.value).toBeNull();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+
+    completeFetch({ title: 'Source A' });
+    tick();
+    expect(source.value).toEqual({ oid: 'source-a', title: 'Source A' });
+    expect(eventBus.publish).toHaveBeenCalledTimes(1);
+    expect(formComponent.broadcastFormStatus).toHaveBeenCalledTimes(1);
+    allEvents$.next({ ...initialFields[0], sourceId: '*' });
+    allEvents$.next({ type: FormComponentEventType.FORM_SAVE_SUCCESS, timestamp: Date.now() } as FormComponentEvent);
+    tick(100);
+    expect(recordService.getRecordMeta).toHaveBeenCalledTimes(1);
+    expect(eventBus.publish).toHaveBeenCalledTimes(1);
   }));
 
   /**
@@ -356,6 +422,51 @@ describe('FormBehaviourManager', () => {
         value,
         timestamp: Date.now(),
       }) as any;
+
+    it('updates a model-less button on source-less ready and save lifecycle events', fakeAsync(() => {
+      const componentSetProperty = jasmine.createSpy('button.setProperty');
+      const runtimeContext = { oid: '' };
+      const behaviours = [
+        { event: FormComponentEventType.FORM_DEFINITION_READY, runOnFormReady: true },
+        { event: FormComponentEventType.FORM_SAVE_SUCCESS, runOnFormReady: false },
+      ].map(({ event, runOnFormReady }) => ({
+        name: `button-${event}`,
+        condition: `::${event}`,
+        conditionKind: 'jsonpointer',
+        runOnFormReady,
+        actions: [{
+          type: 'setUIProperties',
+          config: { properties: [{
+            fieldPath: '/main/submit', target: 'field.disabled', hasValueTemplate: true,
+          }] },
+        }],
+      }));
+      const compiledEvaluate = jasmine.createSpy('evaluate').and.callFake(
+        async (_key: (string | number)[], context: { runtimeContext: { oid?: string } }) =>
+          !context.runtimeContext.oid
+      );
+      const formComponent = createFormComponent(behaviours, {
+        submit: { entry: { component: { setProperty: componentSetProperty } } },
+      }, compiledEvaluate);
+      const querySource = formComponent.getQuerySource();
+      formComponent.getQuerySource = () => ({ ...querySource, runtimeContext });
+      manager.bind(formComponent);
+
+      allEvents$.next({ type: FormComponentEventType.FORM_DEFINITION_READY, timestamp: Date.now() });
+      tick();
+      expect(componentSetProperty.calls.allArgs()).toEqual([['disabled', true]]);
+
+      allEvents$.next({ type: FormComponentEventType.FORM_SAVE_FAILURE, timestamp: Date.now() });
+      tick();
+      expect(componentSetProperty).toHaveBeenCalledTimes(1);
+
+      runtimeContext.oid = 'saved-record';
+      allEvents$.next({ type: FormComponentEventType.FORM_SAVE_SUCCESS, timestamp: Date.now() });
+      tick();
+      expect(componentSetProperty.calls.allArgs()).toEqual([['disabled', true], ['disabled', false]]);
+      expect(logger.warn).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    }));
 
     it('setValues updates several fields from one action', fakeAsync(() => {
       const title = createFieldEntry('/main/title');

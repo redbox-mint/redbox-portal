@@ -141,6 +141,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       branding: runtimeContext.branding,
       portal: runtimeContext.portal,
       oid: runtimeContext.oid,
+      runtimeContext: this.getFormComponent.getExpressionRuntimeContext(),
       workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
       outputFormat: config?.outputFormat,
     };

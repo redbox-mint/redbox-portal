@@ -3,7 +3,7 @@ import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from './simple-input.component';
 import { GroupFieldComponent } from "./group.component";
 import { SaveButtonComponent } from "./save-button.component";
-import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
+import { createFormAndWaitForReady, createTestbedModule, FormComponentProps } from "../helpers.spec";
 import { TestBed } from "@angular/core/testing";
 
 describe('GroupFieldComponent Buttons Rendering', () => {
@@ -63,7 +63,10 @@ describe('GroupFieldComponent Buttons Rendering', () => {
         };
 
         // act
-        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(formConfig, {
+            oid: 'oid-generated-group-buttons', recordType: 'rdmp', editMode: true,
+            formName: 'default-1.0-draft', downloadAndCreateOnInit: false,
+        } satisfies FormComponentProps);
 
         // assert
         const compiled = fixture.nativeElement as HTMLElement;

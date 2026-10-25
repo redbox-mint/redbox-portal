@@ -43,6 +43,7 @@ export const CORE_RECORD_CONTRACT_COMPONENT_INVENTORY = {
   QuestionTreeComponent: 'specialized',
   RadioInputComponent: 'scalar',
   RecordMetadataRetrieverComponent: 'non-persisting',
+  RecordPermissionsComponent: 'non-persisting',
   RecordSelectorComponent: 'specialized',
   RelatedObjectDataComponent: 'non-persisting',
   RepeatableComponent: 'array',
@@ -490,6 +491,7 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
     componentContributor('QuestionTreeComponent', 'configuration', questionTreeContribution),
     componentContributor('RadioInputComponent', 'nullable', context => choiceContribution(context, true)),
     nonPersisting('RecordMetadataRetrieverComponent'),
+    nonPersisting('RecordPermissionsComponent'),
     componentContributor('RecordSelectorComponent', 'nullable', recordSelectorContribution),
     nonPersisting('RelatedObjectDataComponent'),
     componentContributor('RepeatableComponent', 'configuration', async context => {

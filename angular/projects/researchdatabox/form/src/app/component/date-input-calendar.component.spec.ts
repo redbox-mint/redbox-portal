@@ -84,6 +84,49 @@ describe('DateInputComponent calendar dates', () => {
     expect(control.touched).toBeTrue();
   });
 
+  it('updates and clears dynamic bounds without replacing an existing calendar value', async () => {
+    const { fixture, component, control, formComponent } = await createDateField('2026-01-09');
+    component.setProperty('bsFullConfig.minDate', '2026-01-10');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(component.datepicker.minDate?.getDate()).toBe(10);
+    expect(control.value).toBe('2026-01-09');
+    expect(control.hasError('dateMin')).toBeTrue();
+    expect(formComponent.form?.invalid).toBeTrue();
+    // Native validation-group changes must not discard the date bound.
+    control.setValidators([Validators.required]);
+    control.updateValueAndValidity();
+    expect(control.hasError('dateMin')).toBeTrue();
+    component.setProperty('bsFullConfig.minDate', '2026-01-08');
+    fixture.detectChanges();
+    expect(control.valid).toBeTrue();
+    component.setProperty('bsFullConfig.minDate', null);
+    fixture.detectChanges();
+    expect(component.datepicker.minDate).toBeUndefined();
+    expect(control.value).toBe('2026-01-09');
+    expect(control.pristine).toBeTrue();
+  });
+
+  it('disables earlier calendar days and prevents typed dates bypassing the bound', async () => {
+    const { fixture, component, input, control } = await createDateField('2026-01-11');
+    component.setProperty('bsFullConfig', { minDate: '2026-01-10' });
+    fixture.detectChanges();
+    component.datepicker.show();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const ninth = Array.from(document.querySelectorAll('bs-datepicker-container .bs-datepicker-body span'))
+      .filter(element => element.textContent?.trim() === '9');
+    expect(ninth.some(element => element.classList.contains('disabled'))).toBeTrue();
+    component.datepicker.hide();
+    input.value = '09/01/2026';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(control.value === '2026-01-09' && control.valid).toBeFalse();
+    expect(typeof control.value).toBe('string');
+  });
+
   for (const robustParsing of [true, false]) {
     it(`uses the picker format for typed calendar dates with robust parsing ${robustParsing}`, async () => {
       const { fixture, component, input, control } = await createDateField(

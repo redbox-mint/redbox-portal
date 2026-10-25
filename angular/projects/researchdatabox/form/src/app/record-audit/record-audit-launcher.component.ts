@@ -13,7 +13,7 @@ export class RecordAuditLauncherComponent {
   readonly oid = input<string>('');
   readonly branding = input<string>('');
   readonly portal = input<string>('');
-  readonly allowedRoles = input<string[]>(['Admin', 'Librarians']);
+  readonly allowedRoles = input<string[]>(['Admin']);
 
   readonly isOpen = signal(false);
   readonly canView = signal(false);

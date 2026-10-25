@@ -183,7 +183,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         'requestParams'
       );
       const runtimeContext = this.cloneExpressionContextValue(
-        (additionalData as { runtimeContext?: unknown }).runtimeContext ?? { requestParams },
+        { ...(additionalData as { runtimeContext?: object }).runtimeContext, ...this.formComp?.getExpressionRuntimeContext?.(), requestParams },
         'runtimeContext'
       );
 

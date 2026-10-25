@@ -10,6 +10,7 @@ import { ActionRowLayoutMap } from './component/action-row-layout.model';
 import { InlineLayoutMap } from './component/inline-layout.model';
 import { RepeatableDefaults, RepeatableMap } from './component/repeatable.model';
 import { GroupDefaults, GroupMap } from './component/group.model';
+import { RecordPermissionsDefaults, RecordPermissionsMap } from './component/record-permissions.model';
 import { SaveButtonDefaults, SaveButtonMap } from './component/save-button.model';
 import { SaveStatusDefaults, SaveStatusMap } from './component/save-status.model';
 import { IntegrationStatusDefaults, IntegrationStatusMap } from './component/integration-status.model';
@@ -67,6 +68,7 @@ export const AllDefs = [
   ...InlineLayoutMap,
   ...RepeatableMap,
   ...GroupMap,
+  ...RecordPermissionsMap,
   ...SaveButtonMap,
   ...SaveStatusMap,
   ...IntegrationStatusMap,
@@ -112,6 +114,7 @@ const RawDefaults = [
   // DefaultLayoutDefaults,
   RepeatableDefaults,
   GroupDefaults,
+  RecordPermissionsDefaults,
   SaveButtonDefaults,
   SaveStatusDefaults,
   IntegrationStatusDefaults,

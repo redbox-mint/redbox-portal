@@ -3,6 +3,10 @@ import {createSinonStubLogger} from "../logger.test";
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { render } from 'ejs';
+import { Script } from 'node:vm';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('TemplateService', function () {
@@ -85,6 +89,22 @@ describe('TemplateService', function () {
   });
 
   describe('buildClientMapping', function () {
+    it('keeps quoted dashboard property keys intact in the rendered browser module', async function () {
+      const template = await readFile(resolve(__dirname, '../../../../views/dynamicScriptAsset.ejs'), 'utf8');
+      const properties = ["metadata['coversheet-id']", 'metadata["irma-id"]', 'quote\\slash\n<>&'];
+      const entries = properties.map((property, index) => ({
+        key: ['default', 'workflow', 'activity', 'draft', 'rowConfig', String(index), property].join('__'),
+        value: JSON.stringify(`rendered-${index}`),
+      }));
+      const module = render(template, { entries }).replace('export function evaluate', 'function evaluate');
+      const evaluate = new Script(module + '\nevaluate;').runInNewContext() as (key: string[]) => string;
+
+      properties.forEach((property, index) => {
+        expect(evaluate(['default', 'workflow', 'activity', 'draft', 'rowConfig', String(index), property])).to.equal(`rendered-${index}`);
+      });
+      expect(() => evaluate(['unknown'])).to.throw('Unknown key');
+    });
+
     it('should build mapping for JSONata inputs', function () {
       const inputs = [{ key: ['field1'], kind: 'jsonata', value: '$.name' }];
 

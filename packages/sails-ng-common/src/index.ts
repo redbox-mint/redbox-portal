@@ -136,3 +136,6 @@ export * from './validation/validation-groups';
 export * from './validation/validators';
 export * from './validation/validators-support';
 export * from './translation-html';
+
+export * from './config/component/record-permissions.outline';
+export * from './config/component/record-permissions.model';

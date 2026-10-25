@@ -160,6 +160,8 @@ describe('RecordAuditComponent', () => {
             '@record-audit-col-action': 'Action',
             '@record-audit-col-workflow-state': 'Workflow State',
             '@record-audit-col-updated-by': 'Updated By',
+            '@view-record-audit-email': 'Email Address',
+            '@view-record-audit-username': 'Username',
             '@record-audit-col-changed-fields': 'Changed Fields',
             '@record-audit-col-technical-data': 'Technical Data',
             '@record-audit-diff-col-field': 'Field',
@@ -270,6 +272,26 @@ describe('RecordAuditComponent', () => {
   it('renders actor fallback display names', async () => {
     await createComponent({ oid: 'oid-1', 'is-admin': 'false' });
     expect(fixture.nativeElement.textContent).toContain('Unknown');
+    const unknown = fixture.nativeElement.querySelector('td.rb-col-actor');
+    expect(unknown.querySelector('.rb-actor-email')).toBeNull();
+    expect(unknown.querySelector('.rb-actor-username')).toBeNull();
+  });
+
+  it('shows the historical actor email and username as escaped text beside the name', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'false' });
+    component.auditTab.records[0].actor = {
+      displayName: 'Historical Person',
+      name: 'Historical Person',
+      email: 'historical@example.invalid',
+      username: '<img src=x onerror=alert(1)>',
+    };
+    fixture.detectChanges();
+
+    const actor = fixture.nativeElement.querySelector('td.rb-col-actor');
+    expect(actor.textContent).toContain('Historical Person');
+    expect(actor.querySelector('.rb-actor-email').textContent).toContain('Email Address: historical@example.invalid');
+    expect(actor.querySelector('.rb-actor-username').textContent).toContain('Username: <img src=x onerror=alert(1)>');
+    expect(actor.querySelector('img')).toBeNull();
   });
 
   it('applies audit filters and reloads the audit tab', async () => {

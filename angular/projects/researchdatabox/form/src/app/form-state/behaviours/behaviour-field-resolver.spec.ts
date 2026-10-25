@@ -1,5 +1,5 @@
 import { FormControl } from '@angular/forms';
-import { resolveFieldByPointer } from './behaviour-field-resolver';
+import { resolveFieldByPointer, resolveFieldEntryByPointer } from './behaviour-field-resolver';
 
 /**
  * Verifies the pointer-to-control contract used by `setValue` actions.
@@ -46,5 +46,16 @@ describe('resolveFieldByPointer', () => {
     });
 
     expect(resolved).toBeUndefined();
+  });
+
+  it('resolves a model-less button for UI actions while rejecting it as a writable value target', () => {
+    const entry = { compConfigJson: { name: 'submit', component: { class: 'SaveButtonComponent' } } };
+    const context = {
+      formComponent: {
+        getQuerySource: () => ({ jsonPointerSource: { submit: { metadata: { formFieldEntry: entry } } } }),
+      },
+    } as Parameters<typeof resolveFieldEntryByPointer>[1];
+    expect(resolveFieldEntryByPointer('/submit', context)?.entry).toBe(entry);
+    expect(resolveFieldByPointer('/submit', context)).toBeUndefined();
   });
 });

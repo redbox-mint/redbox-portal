@@ -19,6 +19,18 @@ export interface ResolvedField {
   entry: FormFieldCompMapEntry;
 }
 
+/** Resolve a component or layout target, including buttons without a model. */
+export function resolveFieldEntryByPointer(
+  fieldPath: string,
+  ctx: BehaviourFieldResolverContext
+): { entry: FormFieldCompMapEntry } | undefined {
+  const querySource = ctx.formComponent.getQuerySource();
+  if (!querySource) return undefined;
+  const result = getObjectWithJsonPointer(querySource.jsonPointerSource, fieldPath);
+  const entry = result?.val?.metadata?.formFieldEntry as FormFieldCompMapEntry | undefined;
+  return entry ? { entry } : undefined;
+}
+
 /**
  * Resolve an `angularComponentsJsonPointer` to a writable control.
  *
@@ -35,13 +47,7 @@ export function resolveFieldByPointer(
   fieldPath: string,
   ctx: BehaviourFieldResolverContext
 ): ResolvedField | undefined {
-  const querySource = ctx.formComponent.getQuerySource();
-  if (!querySource) {
-    return undefined;
-  }
-
-  const result = getObjectWithJsonPointer(querySource.jsonPointerSource, fieldPath);
-  const entry = result?.val?.metadata?.formFieldEntry as FormFieldCompMapEntry | undefined;
+  const entry = resolveFieldEntryByPointer(fieldPath, ctx)?.entry;
   const control = entry?.model?.formControl as AbstractControl | undefined;
   if (!entry || !control) {
     return undefined;

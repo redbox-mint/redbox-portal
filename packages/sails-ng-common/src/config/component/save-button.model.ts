@@ -20,12 +20,17 @@ export class SaveButtonFieldComponentConfig extends FieldComponentConfig impleme
     operation?: string;
     targetStep?: string;
     forceSave?: boolean;
+    allowValidationAttempt?: boolean;
     labelSaving?: string;
     buttonCssClasses?: string;
     enabledValidationGroups?: string[];
     closeOnSave?: boolean;
     redirectLocation?: string;
     redirectDelaySeconds?: number;
+    confirmationMessage?: string;
+    confirmationTitle?: string;
+    cancelButtonMessage?: string;
+    confirmButtonMessage?: string;
 
     constructor() {
         super();

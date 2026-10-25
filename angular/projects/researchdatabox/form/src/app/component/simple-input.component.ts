@@ -21,7 +21,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
     template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <input [type]="inputType" [formControl]="formControl"
+      <input [type]="inputType" [formControl]="formControl" [attr.id]="labelableControlId"
             class="form-control"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"

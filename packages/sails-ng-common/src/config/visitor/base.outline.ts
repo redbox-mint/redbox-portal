@@ -1,3 +1,4 @@
+import { RecordPermissionsFieldComponentDefinitionOutline, RecordPermissionsFormComponentDefinitionOutline } from '../component/record-permissions.outline';
 import {
   SimpleInputFieldComponentDefinitionOutline,
   SimpleInputFieldModelDefinitionOutline,
@@ -262,7 +263,13 @@ export interface FormConfigVisitorOutline {
 
   visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void>;
 
-  /* Save Button  */
+  /* Record Permissions */
+
+  visitRecordPermissionsFieldComponentDefinition(item: RecordPermissionsFieldComponentDefinitionOutline): Promise<void>;
+
+  visitRecordPermissionsFormComponentDefinition(item: RecordPermissionsFormComponentDefinitionOutline): Promise<void>;
+
+  /* Save Button */
 
   visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void>;
 

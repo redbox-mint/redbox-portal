@@ -1,11 +1,13 @@
+import { createFormAndWaitForReady, createTestbedModule, FormComponentProps } from './helpers.spec';
 import { TestBed } from '@angular/core/testing';
 import { Actions } from '@ngrx/effects';
 import * as FormActions from './form-state/state/form.actions';
-import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { SaveButtonComponent } from './component/save-button.component';
+import { ValidationSummaryFieldComponent } from './component/validation-summary.component';
 import { FormComponentEventBus } from './form-state/events';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { HttpTestingController } from '@angular/common/http/testing';
 
 /**
  * Task 16: End-to-end integration test for the save orchestration flow
@@ -20,6 +22,7 @@ describe('Form Save Flow Integration', () => {
       declarations: {
         'SimpleInputComponent': SimpleInputComponent,
         'SaveButtonComponent': SaveButtonComponent,
+        'ValidationSummaryFieldComponent': ValidationSummaryFieldComponent,
       },
     });
 
@@ -62,8 +65,48 @@ describe('Form Save Flow Integration', () => {
     };
   });
 
+  for (const oid of ['', 'oid-save-invalid-publication']) {
+    it(`validates an incomplete publication attempt without ${oid ? 'update' : 'create'} HTTP`, async () => {
+      formConfig.enabledValidationGroups = ['all'];
+      formConfig.componentDefinitions![0].model!.config = { value: '', validators: [{ class: 'required' }] };
+      formConfig.componentDefinitions![1].component!.config = {
+        label: 'Submit for Publication', targetStep: 'queued', allowValidationAttempt: true
+      };
+      formConfig.componentDefinitions!.push({ name: 'validation_summary', component: { class: 'ValidationSummaryComponent' } });
+      const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, {
+        oid, recordType: 'rdmp', editMode: true,
+        formName: 'default-1.0-draft', downloadAndCreateOnInit: false,
+      } satisfies FormComponentProps);
+      const save = spyOn(formComponent, 'saveForm').and.callThrough();
+      const create = spyOn(formComponent.recordService, 'create').and.stub();
+      const update = spyOn(formComponent.recordService, 'update').and.stub();
+      const eventBus = TestBed.inject(FormComponentEventBus);
+      const publish = spyOn(eventBus, 'publish').and.callThrough();
+      const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      expect(formComponent.form!.invalid).toBeTrue();
+      expect(button.disabled).toBeFalse();
+      button.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({
+        type: 'form.save.requested', targetStep: 'queued', enabledValidationGroups: ['all']
+      }));
+      expect(save).toHaveBeenCalledWith(jasmine.objectContaining({ targetStep: 'queued', enabledValidationGroups: ['all'] }));
+      expect(formComponent.enabledValidationGroups).toEqual(['all']);
+      expect(formComponent.form!.get('text_input')!.hasError('required')).toBeTrue();
+      expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({ type: 'form.save.failure', error: '@dmpt-form-invalid' }));
+      expect(fixture.nativeElement.querySelector('.validation-summary [data-validation-error-class="required"]')).not.toBeNull();
+      expect(create).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
+      TestBed.inject(HttpTestingController).expectNone(request => /recordmeta|api\/records\/metadata/.test(request.url));
+    });
+  }
+
   it('clicking Save triggers requested -> submitForm -> execute -> FormComponent.saveForm', async () => {
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, {
+      oid: 'oid-save-flow', recordType: 'rdmp', editMode: true,
+      formName: 'default-1.0-draft', downloadAndCreateOnInit: false,
+    } satisfies FormComponentProps);
 
     // Arrange: observe events and actions across the whole pipeline
     const eventBus = TestBed.inject(FormComponentEventBus);

@@ -41,6 +41,7 @@ import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormBaseWrapperDirective } from './component/base-wrapper.directive';
 import { ContentComponent } from './component/content.component';
 import { RelatedObjectDataComponent } from './component/related-object-data.component';
+import { RecordPermissionsComponent } from './component/record-permissions.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
 import { IntegrationStatusComponent } from './component/integration-status.component';
@@ -111,6 +112,7 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
     ValidationSummaryFieldComponent,
     SuggestedValidationSummaryFieldComponent,
     GroupFieldComponent,
+    RecordPermissionsComponent,
     SaveButtonComponent,
     SaveStatusComponent,
     IntegrationStatusComponent,

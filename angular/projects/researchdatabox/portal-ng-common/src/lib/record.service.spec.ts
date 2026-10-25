@@ -517,6 +517,32 @@ describe('RecordService', () => {
     expect(result.metadata).toBeNull();
   });
 
+  for (const [code, expectedOutcome] of [
+    ['scu-rdmp-action-unauthorized', 'none'],
+    ['custom-action-unauthorized', 'none'],
+    ['record-validation-edit-unauthorized', 'authorization-lost'],
+  ] as const) {
+    it(`classifies typed authorization ${code} without confusing action permission with edit access`, async () => {
+      const updatePromise = recordService.update('oid-123', { title: 'Unsaved title' }, 'closed');
+      const request = httpTestingController.expectOne(request =>
+        request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+      expect(request.request.params.get('targetStep')).toBe('closed');
+      request.flush({ meta: {
+        outcome: 'not-saved', oid: 'oid-123',
+        problems: [{
+          kind: 'authorization', phase: 'pre-save',
+          issues: [{ code, message: 'You do not have permission to perform this action.' }],
+        }],
+      } }, { status: 403, statusText: 'Forbidden' });
+
+      const result = await updatePromise;
+      expect(result.outcome).toBe('not-saved');
+      expect(result.wasPersisted()).toBeFalse();
+      expect(result.concurrencyOutcome).toBe(expectedOutcome);
+      expect(result.problems[0].issues[0].code).toBe(code);
+    });
+  }
+
   it('synthesises a confirmed non-save for a policy-level 403', async () => {
     const createPromise = recordService.create({ title: 'Test record' }, 'rdmp');
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
@@ -527,6 +553,7 @@ describe('RecordService', () => {
     expect(result.wasPersisted()).toBeFalse();
     expect(result.problems[0].kind).toBe('authorization');
     expect(result.problems[0].issues[0].message).toBe('Not allowed');
+    expect(result.concurrencyOutcome).toBe('authorization-lost');
   });
 
   it('maps a validation 400 onto safe field issues', async () => {

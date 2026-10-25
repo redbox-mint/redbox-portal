@@ -90,6 +90,7 @@ import {
   isRecordFormFingerprint,
   isMatchingLineagePaths,
   JSONataQuerySource,
+  JSONataQueryRuntimeContext,
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
@@ -299,7 +300,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public readonly conflictReview = this.formConflictReviewState.asReadonly();
   public readonly manualConflictResolutionPending = signal(false);
 
-  readonly viewAuditRoles = signal<string[]>(['Admin', 'Librarians']);
+  readonly viewAuditRoles = signal<string[]>(['Admin']);
   // Backward-compatible aliases for existing tests and callers.
   debugFormComponents = this.debugState.debugFormComponents;
   debugFormValues = this.debugState.debugFormValues;
@@ -531,9 +532,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Set up the JSONata query source from component definitions
    */
   protected setupQuerySource() {
-    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, {
-      requestParams: this.requestParams(),
-    });
+    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, this.getExpressionRuntimeContext());
+  }
+
+  public getExpressionRuntimeContext(): JSONataQueryRuntimeContext {
+    const serverContext = this.formDefMap?.formConfigMeta?.['runtimeContext'] as JSONataQueryRuntimeContext | undefined;
+    return { ...serverContext, requestParams: this.requestParams(), oid: this.trimmedParams.oid() };
   }
   /**
    *
@@ -999,7 +1003,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private getPersistedFormValue(): Record<string, unknown> {
-    const formValue = structuredClone((this.form?.value ?? {}) as Record<string, unknown>);
+    // Runtime-disabled controls still hold record data (for example read-only
+    // owners and calculated values). Angular's value also drops disabled array
+    // rows, changing their positions. Only explicit config exclusions below
+    // should remove fields from the persisted snapshot.
+    const formValue = structuredClone((this.form?.getRawValue() ?? {}) as Record<string, unknown>);
     const groupMap = this.formDefMap?.completeGroupMap ?? {};
     for (const [name, compEntry] of Object.entries(groupMap)) {
       const includeByConfig = this.formService.shouldIncludeInFormControlMap(compEntry);
@@ -1468,6 +1476,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               const createdOid = String(response?.oid);
               this.oid.set(createdOid);
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
+              this.setupQuerySource();
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             const redirectLocation = isComplete
@@ -2504,6 +2513,13 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .filter(Boolean)
       .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'))
       .map(segment => /^\d+$/.test(segment) ? Number(segment) : segment);
+  }
+
+  /** Default groups for a new action, independent of the previous action's override. */
+  public get defaultSaveValidationGroups(): string[] {
+    return this.resetTemporaryValidationGroupsOnNextChange
+      ? [...this.preTemporarySaveValidationGroups]
+      : [...this.enabledValidationGroups];
   }
 
   public canRetryFormLevelServerErrors(): boolean {

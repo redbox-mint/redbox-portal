@@ -1,3 +1,4 @@
+import { RecordPermissionsComponentName, RecordPermissionsFieldComponentDefinitionOutline, RecordPermissionsFieldComponentConfig, RecordPermissionsFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
 import { cloneDeep as _cloneDeep, get as _get } from 'lodash';
 import {
   FormConfig,
@@ -448,6 +449,9 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
       componentClassName: DateInputComponentName,
       modelClassName: DateInputModelName,
     },
+  },
+  RecordPermissionsField: {
+    '': { componentClassName: RecordPermissionsComponentName },
   },
   SaveButton: {
     '': {
@@ -1498,7 +1502,19 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     await this.populateFormComponent(item);
   }
 
-  /* Save Button  */
+  /* Record Permissions */
+
+  async visitRecordPermissionsFieldComponentDefinition(item: RecordPermissionsFieldComponentDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config = new RecordPermissionsFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+  }
+
+  async visitRecordPermissionsFormComponentDefinition(item: RecordPermissionsFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  /* Save Button */
 
   async visitSaveButtonFieldComponentDefinition(item: SaveButtonFieldComponentDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
@@ -1516,6 +1532,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('operation', item.config, field?.definition);
     this.sharedProps.setPropOverride('targetStep', item.config, field?.definition);
     this.sharedProps.setPropOverride('forceSave', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmationMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmationTitle', item.config, field?.definition);
+    this.sharedProps.setPropOverride('cancelButtonMessage', item.config, field?.definition);
+    this.sharedProps.setPropOverride('confirmButtonMessage', item.config, field?.definition);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, field?.definition);
     this.sharedProps.setPropOverride('labelSaving', item.config, field?.definition);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, {

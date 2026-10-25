@@ -14,6 +14,8 @@ import { ContentComponent } from './component/content.component';
 import { RelatedObjectDataComponent } from './component/related-object-data.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './component/tab.component';
 import { AccordionComponent, AccordionPanelComponent } from './component/accordion.component';
+import { RecordPermissionsComponent } from './component/record-permissions.component';
+import { RecordPermissionsComponentName } from '@researchdatabox/sails-ng-common';
 import { SaveButtonComponent } from './component/save-button.component';
 import { SaveStatusComponent } from './component/save-status.component';
 import { IntegrationStatusComponent } from './component/integration-status.component';
@@ -119,6 +121,7 @@ export type AllComponentClassMapType = StaticClassMapType<string, typeof FormFie
 export const getStaticComponentClassMap = (): StaticComponentClassMapType => ({
   [RepeatableComponentName]: RepeatableComponent,
   [GroupFieldComponentName]: GroupFieldComponent,
+  [RecordPermissionsComponentName]: RecordPermissionsComponent,
   [SaveButtonComponentName]: SaveButtonComponent,
   [SaveStatusComponentName]: SaveStatusComponent,
   [IntegrationStatusComponentName]: IntegrationStatusComponent,

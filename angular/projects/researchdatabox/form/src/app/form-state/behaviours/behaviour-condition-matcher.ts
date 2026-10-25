@@ -63,7 +63,7 @@ function matchJSONPointerCondition(
   if (!querySource) {
     return false;
   }
-  if (event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady === false) {
+  if ((event.type === 'form.definition.ready' || event.sourceId === 'form.definition.ready') && behaviourConfig.runOnFormReady === false) {
     return false;
   }
 
@@ -78,8 +78,13 @@ function matchJSONPointerCondition(
     eventFieldId === pointerCondition.jsonPointer ||
     eventFieldId.startsWith(pointerCondition.jsonPointer + '/');
   const hasBroadcastMatch = (event.sourceId === '*' || isRunOnFormReady) && hasPointerMatch;
+  // Form lifecycle events have no field source. Only an explicit, empty-pointer
+  // subscription to this exact event can match them; wildcard field behaviours
+  // keep their existing scope.
+  const hasLifecycleMatch = pointerCondition.jsonPointer === '' &&
+    pointerCondition.event === event.type && event.type.startsWith('form.') && !event.sourceId;
 
-  return hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch);
+  return hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch || hasLifecycleMatch);
 }
 
 /**
@@ -97,7 +102,9 @@ async function matchJSONataCondition(
   ctx: BehaviourConditionMatchContext,
   includeQuerySource: boolean
 ): Promise<boolean> {
-  const isRunOnFormReady = event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false;
+  const isRunOnFormReady =
+    (event.type === 'form.definition.ready' || event.sourceId === 'form.definition.ready') &&
+    behaviourConfig.runOnFormReady !== false;
   // A runOnFormReady behaviour must only fire for the form-ready event itself.
   // Without this guard, any later broadcast event (sourceId="*") would also
   // pass the gate, re-evaluate the condition, and restart the pipeline in a loop.

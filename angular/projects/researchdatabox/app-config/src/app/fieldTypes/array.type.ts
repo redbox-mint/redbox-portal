@@ -23,6 +23,7 @@ import { FieldArrayType } from '@ngx-formly/core';
           <formly-field class="col-xs-10" [field]="field"></formly-field>
           <div class="col-xs-2 text-right">
             <button type="button" (click)="remove(i)"
+            [attr.aria-label]="'Remove ' + (props.label || 'item') + ' ' + (i + 1)"
             class="fa fa-minus-circle btn text-20 pull-right btn-danger" ></button>
           </div>
         </div>
@@ -31,6 +32,7 @@ import { FieldArrayType } from '@ngx-formly/core';
       <div class="row">
         <span class="col-xs-12">
           <button type='button' (click)="add()"
+          [attr.aria-label]="'Add ' + (props.label || 'item')"
           class="btn btn-primary fa fa-plus-circle btn text-20 pull-right btn-success"></button>
         </span>
       </div>

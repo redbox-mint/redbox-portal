@@ -54,14 +54,14 @@ describe('RecordAuditLauncherComponent', () => {
     expect(component.isAdmin()).toBeTrue();
   });
 
-  it('shows the button for Librarian users when oid is present', async () => {
+  it('hides the button for Librarian users when oid is present', async () => {
     createComponent({ oid: 'oid-123', roles: [{ name: 'Librarians' }] });
     await fixture.whenStable();
     fixture.detectChanges();
 
     const button = fixture.nativeElement.querySelector('.rb-form-audit-launch');
-    expect(button).toBeTruthy();
-    expect(component.canView()).toBeTrue();
+    expect(button).toBeFalsy();
+    expect(component.canView()).toBeFalse();
     expect(component.isAdmin()).toBeFalse();
   });
 

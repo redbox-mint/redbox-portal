@@ -280,6 +280,9 @@ export namespace Controllers {
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
       }
+      if (!this.isBrandAdmin(req)) {
+        return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'view-error-no-permissions' }] });
+      }
 
       try {
         const record = await this.recordsService.getMeta(oid);
@@ -315,6 +318,9 @@ export namespace Controllers {
       const oid = String(req.param('oid') ?? '').trim();
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
+      }
+      if (!this.isBrandAdmin(req)) {
+        return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'view-error-no-permissions' }] });
       }
 
       try {

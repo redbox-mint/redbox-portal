@@ -259,6 +259,11 @@ export type QuestionTreeComponentNameType = typeof QuestionTreeComponentName;
 
 export interface QuestionTreeFieldComponentConfigFrame extends FieldComponentConfigFrame {
     /**
+     * Optional prefix for legacy sibling metadata fields containing question answers.
+     * Used only when the native tree value is absent; loading never rewrites metadata.
+     */
+    legacyFieldPrefix?: string;
+    /**
      * The available outcome keys and values.
      *
      * The order of the outcomes is the importance / sensitivity,

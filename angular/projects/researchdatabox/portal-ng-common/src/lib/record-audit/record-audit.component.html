@@ -169,6 +169,12 @@
                     <i class="fa-solid fa-user rb-actor-icon"></i>
                     {{ row.actor?.displayName || row.actor?.name || row.actor?.username || '-' }}
                   </span>
+                  <small *ngIf="row.actor?.email" class="d-block text-muted rb-actor-email">
+                    {{ '@view-record-audit-email' | i18next }}: {{ row.actor?.email }}
+                  </small>
+                  <small *ngIf="row.actor?.username" class="d-block text-muted rb-actor-username">
+                    {{ '@view-record-audit-username' | i18next }}: {{ row.actor?.username }}
+                  </small>
                 </td>
                 <td class="rb-col-changes">
                   <button

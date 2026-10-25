@@ -1,6 +1,6 @@
 import {
   FormConfigFrame, KeyValueStringNested, KeyValueStringProperty,
-  TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame
+  TabContentFormComponentDefinitionFrame, TabFieldComponentConfigFrame, TabFieldLayoutConfigFrame
 } from '@researchdatabox/sails-ng-common';
 import {SimpleInputComponent} from './simple-input.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
@@ -322,6 +322,32 @@ describe('TabComponent', () => {
     expectedClasses.forEach((expectedClass:string) => {
       expect(classList).toContain(expectedClass);
     });
+  });
+
+  it('omits authorization-pruned placeholders while retaining compiled-template indexes and navigation', async () => {
+    const config = formConfig.componentDefinitions![0].component!.config as TabFieldComponentConfigFrame;
+    // The server preserves array positions when it removes unauthorized tabs.
+    // These wire placeholders deliberately have no component/name. The public
+    // authoring type describes complete tabs, before server authorization.
+    config.tabs!.splice(1, 0, {} as TabContentFormComponentDefinitionFrame);
+    config.tabs!.push({} as TabContentFormComponentDefinitionFrame);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const buttons = Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('[role="tab"]'));
+    expect(buttons.map(button => button.textContent?.trim())).toEqual(['Tab 1', 'Tab 2']);
+    const tab = formComponent.componentDefArr[0].component as TabComponent;
+    expect(tab.tabs.map(item => item.name)).toEqual(['tab1', 'tab2']);
+    expect(tab.formFieldCompMapEntries[1].lineagePaths?.formConfig).toEqual([
+      'componentDefinitions', 0, 'component', 'config', 'tabs', 2
+    ]);
+    buttons[0].click();
+    await fixture.whenStable();
+    expect(tab.selectedTabId).toBe('tab1');
+    expect(formComponent.form?.getRawValue()).toEqual(jasmine.objectContaining({
+      textfield_1: 'Hello from Tab 1!', textfield_2: 'Hello from Tab 2!'
+    }));
+    buttons[1].click();
+    await fixture.whenStable();
+    expect(tab.selectedTabId).toBe('tab2');
   });
 
   it('should apply tab layout convention defaults when config is minimal', async () => {

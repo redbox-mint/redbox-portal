@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormService } from '../form.service';
 import { FormComponentEventBus } from '../form-state';
-import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
+import { createFormAndWaitForReady, createTestbedModule, FormComponentProps } from '../helpers.spec';
 import { SimpleInputComponent } from './simple-input.component';
 import { SaveButtonComponent } from './save-button.component';
 import { SuggestedValidationSummaryFieldComponent } from './suggested-validation-summary.component';
@@ -95,7 +95,10 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     const saveConfig = config.componentDefinitions[2].component?.config as Record<string, unknown>;
     saveConfig['operation'] = 'submit';
     saveConfig['enabledValidationGroups'] = ['all', 'submit'];
-    const { fixture, formComponent } = await createFormAndWaitForReady(config);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'oid-generated-suggested-save', recordType: 'rdmp', editMode: true,
+      formName: 'default-1.0-draft', downloadAndCreateOnInit: false,
+    } satisfies FormComponentProps);
     const eventBus = TestBed.inject(FormComponentEventBus);
     const events: any[] = [];
     const sub = eventBus
