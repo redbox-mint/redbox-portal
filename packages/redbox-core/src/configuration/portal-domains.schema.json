@@ -917,7 +917,12 @@
         "active": { "type": "array", "items": { "type": "string" } },
         "local": { "$ref": "#/definitions/BrandAuthLocalConfig" },
         "aaf": { "$ref": "#/definitions/BrandAuthAafConfig" },
-        "oidc": { "$ref": "#/definitions/BrandAuthOidcConfig" }
+        "oidc": {
+          "anyOf": [
+            { "$ref": "#/definitions/BrandAuthOidcConfig" },
+            { "type": "array", "items": { "$ref": "#/definitions/BrandAuthOidcConfig" } }
+          ]
+        }
       },
       "required": ["aaf", "active", "defaultRole", "local", "oidc"]
     },
@@ -956,6 +961,7 @@
     "BrandAuthOidcConfig": {
       "type": "object",
       "properties": {
+        "identifier": { "type": "string" },
         "debugMode": { "type": "boolean" },
         "discoverAttemptsMax": { "type": "number" },
         "discoverFailureSleep": { "type": "number" },
@@ -965,7 +971,17 @@
         "opts": {
           "type": "object",
           "properties": {
-            "issuer": { "type": "string" },
+            "issuer": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {},
+                  "properties": { "issuer": { "type": "string" } },
+                  "required": ["issuer"]
+                },
+                { "type": "string" }
+              ]
+            },
             "client": {
               "type": "object",
               "properties": {
@@ -974,24 +990,15 @@
                 "redirect_uris": { "type": "array", "items": { "type": "string" } },
                 "post_logout_redirect_uris": { "type": "array", "items": { "type": "string" } }
               },
-              "required": ["client_id", "client_secret", "post_logout_redirect_uris", "redirect_uris"]
+              "required": ["client_id"]
             },
-            "params": { "type": "object", "properties": { "scope": { "type": "string" } }, "required": ["scope"] }
+            "params": { "type": "object", "properties": { "scope": { "type": "string" } } }
           },
-          "required": ["client", "issuer", "params"]
+          "required": ["client", "issuer"]
         },
         "templatePath": { "type": "string" }
       },
-      "required": [
-        "claimMappings",
-        "debugMode",
-        "defaultRole",
-        "discoverAttemptsMax",
-        "discoverFailureSleep",
-        "opts",
-        "postLoginRedir",
-        "templatePath"
-      ]
+      "required": ["opts"]
     },
     "BrandingMenuConfig": {
       "type": "object",

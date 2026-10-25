@@ -42,7 +42,7 @@ export interface OidcAuthConfig {
     client: unknown;
     params?: Record<string, unknown>;
   };
-  discoverAttemptsMax: number;
+  discoverAttemptsMax?: number;
   discoverFailureSleep?: number;
   userInfoSource?: string;
 }

@@ -33,25 +33,26 @@ export interface BrandAuthAafConfig {
 }
 
 export interface BrandAuthOidcConfig {
-  debugMode: boolean;
-  discoverAttemptsMax: number;
-  discoverFailureSleep: number;
-  defaultRole: string;
-  postLoginRedir: string;
-  claimMappings: Record<string, string>;
+  identifier?: string;
+  debugMode?: boolean;
+  discoverAttemptsMax?: number;
+  discoverFailureSleep?: number;
+  defaultRole?: string;
+  postLoginRedir?: string;
+  claimMappings?: Record<string, string>;
   opts: {
-    issuer: string;
+    issuer: string | { issuer: string; [key: string]: unknown };
     client: {
       client_id: string;
-      client_secret: string;
-      redirect_uris: string[];
-      post_logout_redirect_uris: string[];
+      client_secret?: string;
+      redirect_uris?: string[];
+      post_logout_redirect_uris?: string[];
     };
-    params: {
-      scope: string;
+    params?: {
+      scope?: string;
     };
   };
-  templatePath: string;
+  templatePath?: string;
 }
 
 export interface BrandAuthConfig {
@@ -59,7 +60,7 @@ export interface BrandAuthConfig {
   active: string[];
   local: BrandAuthLocalConfig;
   aaf: BrandAuthAafConfig;
-  oidc: BrandAuthOidcConfig;
+  oidc: BrandAuthOidcConfig | BrandAuthOidcConfig[];
 }
 
 export interface MenuItemConfig {

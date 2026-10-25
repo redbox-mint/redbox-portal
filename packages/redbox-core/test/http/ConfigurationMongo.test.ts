@@ -1,3 +1,10 @@
+import { Passport } from 'passport';
+import {
+  installLocalAuthentication,
+  installAafAuthentication,
+  installOidcAuthentication,
+} from '../../src/http/express/identityProviders';
+import type { AuthBrandConfig } from '../../src/authentication/Accounts';
 import { mountConfigurationWriteRoutes } from '../../src/http/express/configurationWrites';
 import { createHttpCsrf, mountCsrfTokenRoute } from '../../src/http/express/csrf';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
@@ -867,6 +874,48 @@ describe('configuration, translations and forms on standalone Mongo HTTP', funct
       await slow.close();
     }
   });
+  for (const method of ['local', 'aaf', 'oidc', 'oidc-named'])
+    it(`hydrates persisted ${method} authentication settings into real provider installation`, async () => {
+      const oidc = {
+        ...(method === 'oidc-named' ? { identifier: 'institution' } : {}),
+        opts: {
+          issuer: {
+            issuer: 'https://identity.example.invalid',
+            authorization_endpoint: 'https://identity.example.invalid/authorize',
+            token_endpoint: 'https://identity.example.invalid/token',
+            jwks_uri: 'https://identity.example.invalid/jwks',
+          },
+          client: { client_id: 'db-provider' },
+        },
+      };
+      const config = {
+        active: method === 'aaf' ? ['aaf'] : method.startsWith('oidc') ? ['oidc'] : [],
+        local: { usernameField: 'dbUser', passwordField: 'dbPassword', postLoginRedir: 'db/welcome' },
+        aaf: { opts: { secretOrKey: 'synthetic-db-aaf-secret' } },
+        oidc: method === 'oidc-named' ? [oidc] : oidc,
+      };
+      const brand = Object.assign(new BrandingModel(), f.brand);
+      try {
+        await f.appConfigs.createOrUpdateConfig(brand, 'auth', config);
+        // Explicit repository reload, rather than trusting the published save cache.
+        const hydrated = (await f.appConfigs.loadAppConfigurationModel(brand.id)).auth;
+        assert.deepEqual(hydrated.active, config.active);
+        assert.equal(hydrated.local.postLoginRedir, 'db/welcome');
+        const passport = new Passport();
+        const input = { passport, config: hydrated as AuthBrandConfig, accounts: {} as never, brand: () => brand };
+        installLocalAuthentication(input);
+        installAafAuthentication(input);
+        await installOidcAuthentication(input);
+        const strategy = (name: string) => Reflect.get(passport, '_strategy').call(passport, name);
+        assert.equal(strategy('local')._usernameField, 'dbUser');
+        assert.equal(strategy('local')._passwordField, 'dbPassword');
+        assert.equal(!!strategy('aaf-jwt'), method === 'aaf');
+        assert.equal(!!strategy(method === 'oidc-named' ? 'oidc-institution' : 'oidc'), method.startsWith('oidc'));
+      } finally {
+        await getConfigurationRepositories(f.owner).appConfigs.removeForBrandAndKey(brand.id, 'auth');
+        await f.appConfigs.bootstrap();
+      }
+    });
   it('executes the existing released-v5-selected Bruno form requests', async () => {
     const collection = path.resolve('../../test/bruno');
     const result = await promisify(execFile)(
