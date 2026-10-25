@@ -3,6 +3,7 @@ window.createRedboxProgress = function ({ io, endpoint, tokenUrl, csrfToken, onP
   const socket = io(endpoint.origin, {
     path: endpoint.path,
     autoConnect: false,
+    transports: ['websocket'],
     auth: async callback => {
       const response = await fetch(tokenUrl, {
         method: 'POST',

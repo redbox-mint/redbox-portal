@@ -158,37 +158,48 @@ test('SR-044 browser multipart tus resume Companion transfer and progress reconn
   expect(remote.action, JSON.stringify(remote)).toBe('success');
   expect((await control('/staged?key=' + remote.payload.url.split('/').pop())).bytes).toBe('companion-real-bytes!');
   await page.addScriptTag({ url: '/portal/progress/socket.io/socket.io.js' });
+  await page.addScriptTag({ url: '/portal/js/redbox-progress.js' });
   const progress = await page.evaluate(
     async ({ oid, csrf }) => {
       const base = '/portal/default/rdmp';
       const headers = { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf };
+      let receive: (event: unknown) => void = () => {};
       async function connect() {
-        const grant = await (
-          await fetch(base + '/asynch/socket-token', { method: 'POST', headers, body: '{}' })
-        ).json();
-        const socket = Reflect.get(
+        const helper = Reflect.get(
           window,
-          'io'
-        )({ path: '/portal/progress/socket.io', auth: { token: grant.token }, transports: ['websocket'] });
-        await new Promise<void>((resolve, reject) => {
-          socket.once('connect', () => resolve());
-          socket.once('connect_error', reject);
+          'createRedboxProgress'
+        )({
+          io: Reflect.get(window, 'io'),
+          endpoint: { origin: location.origin, path: '/portal/progress/socket.io' },
+          tokenUrl: base + '/asynch/socket-token',
+          csrfToken: () => csrf,
+          onProgress: (event: string, progress: unknown) => {
+            if (event === 'start') receive(progress);
+          },
         });
-        const status = await new Promise<any>(resolve => socket.emit('subscribe', oid, resolve));
-        if (!status.status) throw new Error('Denied progress room');
-        return socket;
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('Shipped progress helper did not subscribe')), 10000);
+          helper.subscribe(oid, (status: { status: boolean }) => {
+            clearTimeout(timer);
+            if (status.status) resolve();
+            else reject(new Error('Denied progress room'));
+          });
+        });
+        return helper;
       }
-      let socket = await connect();
-      socket.disconnect();
-      socket = await connect();
-      const received = new Promise<any>(resolve => socket.once('start', resolve));
+      let helper = await connect();
+      helper.close();
+      helper = await connect();
+      const received = new Promise<any>(resolve => {
+        receive = resolve;
+      });
       const response = await fetch(base + '/asynch', {
         method: 'POST',
         headers,
         body: JSON.stringify({ relatedRecordId: oid, name: 'Browser progress', taskType: 'upload' }),
       });
       const event = await received;
-      socket.disconnect();
+      helper.close();
       return { status: response.status, event };
     },
     { oid, csrf }
