@@ -42,7 +42,8 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
       return {
         ...provider,
         declaration: {
-          ...provider.declaration,
+          apiVersion: provider.declaration.apiVersion,
+          jobs: provider.declaration.jobs,
           config: Object.fromEntries(
             Object.entries(provider.declaration.config ?? {}).filter(([name]) => sections.has(name))
           ),
