@@ -106,8 +106,8 @@ describe('v6 extension declarations', () => {
       const address = server.address();
       assert(address && typeof address !== 'string');
       for (const requestPath of ['/items/example', '/items/example/']) {
-        const url = `http://127.0.0.1:${address.port}${requestPath}`;
-        const response = await fetch(url);
+        const url: string = `http://127.0.0.1:${address.port}${requestPath}`;
+        const response: Awaited<ReturnType<typeof fetch>> = await fetch(url);
         assert.equal(response.status, 200);
         assert.equal(await response.text(), 'matched');
         assert.equal((await fetch(url, { method: 'HEAD' })).status, 200);
