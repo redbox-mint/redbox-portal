@@ -114,9 +114,11 @@ async function fixture(
     priorLogout?: boolean;
     logoutDisabled?: boolean;
     logoutAllowed?: boolean;
+    logoutMissing?: boolean;
   } = {}
 ) {
   const idp = await provider();
+  if (options.logoutMissing) Reflect.deleteProperty(idp.metadata, 'end_session_endpoint');
   const brand = (name: string) =>
     Object.assign(new BrandingModel(), {
       id: 'brand-' + name,
@@ -592,6 +594,23 @@ describe('authentication method compatibility matrix', function () {
             await seed.arrayBuffer();
             const response = await f.login({ cookie: initial });
             await response.arrayBuffer();
+            const logout = await f.logout(cookie(response));
+            await logout.arrayBuffer();
+            assert.equal(logout.headers.get('location'), root + '/default/rdmp/home');
+          } finally {
+            await f.close();
+          }
+        });
+      if (isOidc(method))
+        it('clears prior provider logout when the completed provider has no logout endpoint', async () => {
+          const f = await fixture(method, { priorLogout: true, logoutMissing: true });
+          try {
+            const seed = await fetch(f.url + '/seed');
+            const previous = cookie(seed);
+            await seed.arrayBuffer();
+            const response = await f.login({ cookie: previous });
+            await response.arrayBuffer();
+            assert.equal(response.status, 302);
             const logout = await f.logout(cookie(response));
             await logout.arrayBuffer();
             assert.equal(logout.headers.get('location'), root + '/default/rdmp/home');

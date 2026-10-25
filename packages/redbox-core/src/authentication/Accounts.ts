@@ -352,6 +352,7 @@ export class AuthenticationAccounts {
   ): Promise<AnyRecord | null> {
     const { session } = context;
     if (config.debugMode === true) throw new AuthenticationRejected('oidc-debug-mode');
+    delete session.logoutUrl;
     if (_.get(config, 'logoutFromAuthServer', true)) {
       const endpoint = issuer.end_session_endpoint;
       const redirect = _.get(config, 'opts.client.post_logout_redirect_uris[0]');
