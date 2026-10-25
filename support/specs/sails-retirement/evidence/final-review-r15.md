@@ -207,3 +207,11 @@ The restored isolated daemon/containerd and temporary `/run` namespace are
 stopped/removed. No images were built and no new dangling images remain;
 pre-existing images/data are preserved. Generated Bruno environment and lock
 files are restored byte-for-byte. The unrelated GraphQL directory is untouched.
+
+After evidence commit `af52030d2`, [closing committed-tree checks](final-review-r15/closing-checks.json)
+scan **1,174 source files**, classify **1,145 inventory matches**, reconcile all
+**1,261 baseline files** and find zero closure/dependency violations. Exact pins
+and six lock roots pass again; all **288 scratch hashes and 43 review artifact
+hashes** reverify. Only evidence differs from the qualified runtime revision.
+The following commit adds this accounting artifact and report link only. Authored
+whitespace checks pass; captured raw `.log` output is preserved byte-for-byte.

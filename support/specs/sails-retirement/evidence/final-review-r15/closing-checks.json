@@ -1,0 +1,64 @@
+{
+  "checkedEvidenceCommit": "af52030d279d5eb91c269f5a24f8d6d4a330813a",
+  "qualifiedRuntimeAndTests": "709483c4670583677e8318cb9dadc14fa362b549",
+  "onlyEvidenceChangedSinceQualification": true,
+  "changedEvidenceFiles": 46,
+  "sourceClosure": {
+    "commit": "af52030d279d5eb91c269f5a24f8d6d4a330813a",
+    "tree": null,
+    "scannedFiles": 1174,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates.",
+    "violations": [],
+    "dependencies": []
+  },
+  "inventory": {
+    "matchedFiles": 1145,
+    "unclassified": []
+  },
+  "reconciliation": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "sourceCommit": "af52030d279d5eb91c269f5a24f8d6d4a330813a",
+    "method": "Rerun original SR-001 method; reconcile every baseline file against committed paths/candidates and successful AST/dependency closure. Removed/renamed source retains original migration owner. Historical names, finite conversions and explicit neutral parameter inputs are classified.",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1145,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "pins": {
+    "manifests": 23,
+    "declarations": 377,
+    "localReferences": 20,
+    "violations": []
+  },
+  "lockRoots": {
+    "locks": [
+      "package-lock.json",
+      "packages/redbox-core/package-lock.json",
+      "packages/redbox-dev-tools/package-lock.json",
+      "packages/redbox-hook-dev/package-lock.json",
+      "packages/sails-hook-redbox-pdfgen/package-lock.json",
+      "packages/sails-hook-redbox-storage-mongo/package-lock.json"
+    ],
+    "violations": []
+  },
+  "qualifiedArtifactHashesReverified": {
+    "logSha256": 288,
+    "evidenceArtifactSha256": 43
+  },
+  "rawTerminalLogsAreBytePreserved": true,
+  "authoredWhitespaceCheck": "Passed for staged round 15 changes excluding captured raw .log terminal output, which is preserved byte for byte.",
+  "closingArtifactSha256": {
+    "closing-source-closure.json": "1b4b974eaad2b40f3ea79d3b3f233bf566333eb8e0b7776891119883e95dc5cb",
+    "closing-source-inventory.json": "81d3b11dc130f7fe23d0cf158f971e27c2804c9a40729e83c982bb85f3bf58a8",
+    "closing-reconciliation.json": "8f7f7694601a4bfe60928d16b78937d7c2ae5b0f0dbe54e95af074ba45d16312"
+  },
+  "scope": "The subsequent commit adds this accounting artifact and its report link only; qualified runtime/test inputs remain unchanged."
+}
