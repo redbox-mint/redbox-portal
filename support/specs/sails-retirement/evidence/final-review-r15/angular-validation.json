@@ -1,0 +1,221 @@
+{
+  "frozenHead": "709483c4670583677e8318cb9dadc14fa362b549",
+  "fixedDiff": "a49366803...HEAD",
+  "scopeStatus": "complete; evidence only after parent frozen commits",
+  "counts": {
+    "projects": 22,
+    "applications": 20,
+    "projectLibraries": 2,
+    "projectProductionTypeScript": 259,
+    "externalHtml": 80,
+    "sharedClientTypeScript": 141,
+    "httpCalls": 123,
+    "httpMethods": {
+      "GET": 73,
+      "POST": 35,
+      "PUT": 9,
+      "DELETE": 6
+    },
+    "httpServiceOwners": 20,
+    "nativeRouteIds": 128,
+    "unmatchedHttpCalls": 0,
+    "projectGraphEdges": 3129,
+    "supplementalSites": 149,
+    "noHttpSites": 54,
+    "supplementalNetworkOrWrapperSites": 95,
+    "browserSpecsGreen": 98,
+    "newBrowserRegressions": 24,
+    "contractFamilies": 2,
+    "appBoundaryIssues": 3,
+    "identityHttpConsumerCases": 10,
+    "companionRequestCases": 24,
+    "companionDelayedControls": 2,
+    "p3ConsumerCases": 59,
+    "ledgerNegativeControls": 3
+  },
+  "commands": {
+    "cwd": "repository root (browser commands from angular/)",
+    "node": ".tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+    "ledgers": [
+      "angular-inventory.cjs",
+      "angular-contracts.cjs",
+      "angular-network-inventory.cjs"
+    ],
+    "probes": [
+      "node --no-experimental-strip-types angular-consumer-probes.cjs",
+      "node --no-experimental-strip-types angular-companion-probe.cjs",
+      "node angular-p3-probes.cjs"
+    ],
+    "browser": "CI=true CHROME_BIN=/home/andrew/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome ../.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node node_modules/@angular/cli/bin/ng.js test @researchdatabox/<app> --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage=false --progress=false",
+    "formFocus": [
+      "--include=projects/researchdatabox/form/src/app/component/file-upload.component.spec.ts",
+      "--include=projects/researchdatabox/form/src/app/component/data-location.component.spec.ts"
+    ]
+  },
+  "runtimeSpecInputs": [
+    {
+      "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+      "sha256": "86f75127a79a251b4a378e41c339e8adbd1ad648984e6665716c0ac55c056369",
+      "matchesFrozenCommit": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.spec.ts",
+      "sha256": "99696be62b0e970a54daff58f4f4ffc8c31ed6642b94300c0743901f3dd1f8c3",
+      "matchesFrozenCommit": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts",
+      "sha256": "2e9ce8fc6e9a723959fd0507079c6f3d3fa6c93036bb48686254c7332eee92ff",
+      "matchesFrozenCommit": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.spec.ts",
+      "sha256": "0e9760fb1169b243916ba518c7e5a6fb4545350014ddcda7348e920bc07362d1",
+      "matchesFrozenCommit": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "sha256": "90313fdc9e1ed6a6f809c83f3198bb14258f02d9f62b80dbca99c148c8e9d383",
+      "matchesFrozenCommit": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.spec.ts",
+      "sha256": "a07c828c1b7f537a1450b7c0cf2ec234d45d9c99855bc559ea325baf760f28e4",
+      "matchesFrozenCommit": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "sha256": "2324e001356264358fce1f21daddf320289a3aa36ab3054dff676c360b8cd15a",
+      "matchesFrozenCommit": true
+    },
+    {
+      "file": "angular/projects/researchdatabox/form/src/app/component/data-location.component.spec.ts",
+      "sha256": "12ccd76fe30256f65ba3348d4eb4c33d7c7d31df4e604fea80357090fa111a2c",
+      "matchesFrozenCommit": true
+    }
+  ],
+  "checks": [
+    "Every source input hash matches current frozen files.",
+    "Every owned runtime/spec byte matches frozen parent commit.",
+    "All123call IDs map and methods match native declarations.",
+    "Omitted site, wrong method and absent native mapping controls rejected.",
+    "Expected green and incoming-red raw totals verified.",
+    "No runtime/spec working-tree difference remains."
+  ],
+  "limitations": [
+    "Parent full clean build/full qualification is separate and in progress at handoff.",
+    "Source mapping is not per-route new runtime execution.",
+    "Companion provider boundary is controlled, no live OAuth/cloud transfer claimed.",
+    "P3 probes use supplied payloads/extracted production methods."
+  ],
+  "artifactHashes": [
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-companion-probe.cjs",
+      "sha256": "d3a27502f477ffeb54821b591b96be047428f111c6eff295b806df38df9c21d3"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-companion-results.json",
+      "sha256": "cb2a36c1d16dfdbf34eda83e4801c87a264910cac75a65efb7b13659a862f585"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-consumer-probes.cjs",
+      "sha256": "b5f755d29b6ecb281b1d15edfc63b21d90977fe16c445985b87aa9b792910fb4"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-consumer-results.json",
+      "sha256": "ba2e869cb07f0751636cb0c0167b56af4a5bb352b828f68e3c34cb894b8997e8"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.cjs",
+      "sha256": "7d59a915f64cb19307babaff7f84d759a721188d61bb08af28f2baf98ab56110"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.json",
+      "sha256": "61e29b44f38b2a5a10323814fa7d17eca7e5910c22582d1d69d00bee2c85f083"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-findings.json",
+      "sha256": "16828c17d8aa69c691037d0bc42c3379b843f9dec99b3c98a25c88052882958a"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-inventory.cjs",
+      "sha256": "0571c7c31a907c36729b0de3c2635a5d33394b42c68ffd409afa3f85b2303d5c"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-network-inventory.cjs",
+      "sha256": "9b215ea4ecd4695260112eb50bc872b8aa8f10b7460643b2222e6245ee27260c"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-network.json",
+      "sha256": "6253d4b9ab5cfbfd413f234d3dfad8761ffdcbe1f290b8534bf9cb4ac9321c6e"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-p3-probes.cjs",
+      "sha256": "fbca44643dd398faa6a10b9f340aa14c4c4cac811b8c66d915bcccdfe5c7a302"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-p3-results.json",
+      "sha256": "2e538b72ed44a2d8917e516a4076452be41157aab155b21a28acfba4a0e32c2e"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-rejected-attempts.json",
+      "sha256": "3f444c0c6b19ed66f11e8d1161d1dfdb978ba73d380378fa325b1ca106026970"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-review.md",
+      "sha256": "8c6f4897f36b5ba8500d8511f74e1669fa96001a984208ab28b19c3579f60a8d"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-source.json",
+      "sha256": "017fd02db04ec58161f63470c1cc2f6c948e6256501126b1d8b0f14f1b1b8b93"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-components-green.log",
+      "sha256": "2c129d8d65d43a53e81dc56d752ec04500e8d7c3d49ec8933c0c424736e6f122"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-components-rejected-fixture.log",
+      "sha256": "4afee5a1981466eefecd60c04461beab92bf5aba5abfef674c33eb1c3d58bf38"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-probe.log",
+      "sha256": "98df304f6f8e53e915a4d7c1dc772dca0595a1a550d8d7dc6b70ddc6fbb68a9f"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/consumer-probes.log",
+      "sha256": "1cc9526511f781f428192ee9340f4507973c3a144ed695560e732cba5b915a2a"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-green.log",
+      "sha256": "b33b5054118fe7c94b1c7d56b96fa51a35650fcbab2f87250bc25b060f15c48e"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-negative-v2.log",
+      "sha256": "ba2d1d3cf75ede6d4586e1ea04ec16c6e71b1376e8bf2d813bc0aaf8b77ae70a"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-negative.log",
+      "sha256": "1d5ed1c0fda891c304b403cdca1a0373a0b554e54911ff54eaa5ebb2a4632533"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-green.log",
+      "sha256": "4eb79f3a8301c7fae8d5fe655e1aa4c615da775a4a2274f93cc4e956873f1028"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative-v2.log",
+      "sha256": "c9db27b5cfb0bd5fe6ff12ce518c40b7b49107f41ebc0c8807bbae994c19f265"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative-v3.log",
+      "sha256": "9d7ec3ce1f007d53acf45a0c46cbed69e6ebbac286d6822da6645b5c802d51f1"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative.log",
+      "sha256": "534729bb8a4afa942059068291bf715f3e5e8928b379e62b507fd5bb5aa97a82"
+    },
+    {
+      "file": "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/p3-consumers.log",
+      "sha256": "26d386e408b9fbbef95c2d40c93d0670c185758523b1fcd90579667010d9358b"
+    }
+  ]
+}

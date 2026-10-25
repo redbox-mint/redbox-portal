@@ -226,3 +226,27 @@ unchanged in this review.
 **Suggested fix:** use a normalized requested-brand predicate in count and list,
 retain total/pagination consistency, and cover mixed-brand administrator fixtures
 through HTTP and persistence.
+
+## B-10 — P2: profile page references an absent legacy Angular application
+
+**Location:** `views/default/default/user/profile.ejs:13`.
+
+**Reproduction:** the profile page emits six `/angular/userProfile/*.bundle.js`
+URLs (`inline`, `polyfills`, `scripts`, `styles`, `vendor`, `main`). The actual
+current `mountStaticPageArtifacts` handler returns **404 for all six** against
+the built public tree plus source assets. Neither current `angular/angular.json`
+nor the pre-feature project inventory contains a user-profile application to
+produce those files. The profile screen consequently has no shipped component
+that can replace its loading indicator or call the self-profile/token endpoints.
+
+**Inheritance:** the template at `a49366803` emits the exact same six filenames;
+only the root-context helper changed during retirement. Both project inventories
+omit the client. This is an unchanged missing build artifact, not a new failure
+of the supported Express profile/token HTTP routes. No access-control exception
+applies. The executable source/static-HTTP comparison and results are retained in
+`final-review-r15/legacy-profile-probe.cjs` and `legacy-profile-results.json`.
+
+**Suggested fix:** provide and build a maintained profile application, update the
+EJS bundle references to its actual output, and exercise visible profile/token
+success and failure behavior. Keep this separate from Sails retirement's
+coordinated administration-client corrections.

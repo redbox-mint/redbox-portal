@@ -1,0 +1,1718 @@
+{
+  "baseline": "a49366803",
+  "incoming": "bda01cb25",
+  "count": 95,
+  "rows": [
+    {
+      "id": "HTTP-039",
+      "method": "get",
+      "path": "/:branding/:portal/api/forms/get",
+      "action": "getForm",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/FormManagementController.ts",
+        "line": 39,
+        "action": "getForm"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/configuration.ts",
+        "export": "configurationReadRoutes"
+      },
+      "selection": "query.oid for form/index operations; authenticated context for token and owned task progress",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-063",
+      "method": "get",
+      "path": "/:branding/:portal/record/form/:name",
+      "action": "getForm",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 979,
+        "action": "getForm"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/formDelivery.ts",
+        "export": "formDeliveryRoutes"
+      },
+      "selection": "path.oid before optional query.oid; neither substitutes create target when absent",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-064",
+      "method": "get",
+      "path": "/:branding/:portal/record/form/:name/:oid",
+      "action": "getForm",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 979,
+        "action": "getForm"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/formDelivery.ts",
+        "export": "formDeliveryRoutes"
+      },
+      "selection": "path.oid before optional query.oid; neither substitutes create target when absent",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-077",
+      "method": "get",
+      "path": "/:branding/:portal/api/harvest-runs/:id/events",
+      "action": "listRunEvents",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/HarvestRunController.ts",
+        "line": 109,
+        "action": "listRunEvents"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/queryReads.ts",
+        "export": "queryReadRoutes"
+      },
+      "selection": "query.oid for form/index operations; authenticated context for token and owned task progress",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-082",
+      "method": "get",
+      "path": "/:branding/:portal/api/integration-audit/:oid",
+      "action": "getAuditLog",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/IntegrationAuditController.ts",
+        "line": 18,
+        "action": "getAuditLog"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/queryReads.ts",
+        "export": "queryReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-086",
+      "method": "get",
+      "path": "/:branding/:portal/record/viewAudit/:oid/audit",
+      "action": "getAuditData",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordAuditController.ts",
+        "line": 314,
+        "action": "getAuditData"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/queryReads.ts",
+        "export": "queryReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-087",
+      "method": "get",
+      "path": "/:branding/:portal/record/viewAudit/:oid/permissions",
+      "action": "getPermissionsData",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordAuditController.ts",
+        "line": 445,
+        "action": "getPermissionsData"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/queryReads.ts",
+        "export": "queryReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-088",
+      "method": "get",
+      "path": "/:branding/:portal/record/viewAudit/:oid/integration-audit",
+      "action": "getIntegrationAuditData",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordAuditController.ts",
+        "line": 538,
+        "action": "getIntegrationAuditData"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/queryReads.ts",
+        "export": "queryReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-089",
+      "method": "get",
+      "path": "/:branding/:portal/record/integrationStatus/:oid",
+      "action": "getIntegrationStatusData",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordAuditController.ts",
+        "line": 475,
+        "action": "getIntegrationStatusData"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/queryReads.ts",
+        "export": "queryReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-101",
+      "method": "get",
+      "path": "/:branding/:portal/api/records/metadata/:oid",
+      "action": "getMeta",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 813,
+        "action": "getMeta"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-102",
+      "method": "get",
+      "path": "/:branding/:portal/api/records/audit/:oid",
+      "action": "getRecordAudit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 861,
+        "action": "getRecordAudit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-103",
+      "method": "get",
+      "path": "/:branding/:portal/api/deletedrecords/:oid",
+      "action": "getDeletedRecord",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1714,
+        "action": "getDeletedRecord"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-104",
+      "method": "get",
+      "path": "/:branding/:portal/api/records/objectmetadata/:oid",
+      "action": "getObjectMeta",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 890,
+        "action": "getObjectMeta"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-105",
+      "method": "get",
+      "path": "/:branding/:portal/api/records/permissions/:oid",
+      "action": "getPermissions",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 586,
+        "action": "getPermissions"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-108",
+      "method": "get",
+      "path": "/:branding/:portal/record/metadata/:oid",
+      "action": "getMeta",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 695,
+        "action": "getMeta"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-110",
+      "method": "get",
+      "path": "/:branding/:portal/record/delete/:oid",
+      "action": "getDeletedRecord",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 1289,
+        "action": "getDeletedRecord"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-111",
+      "method": "get",
+      "path": "/:branding/:portal/record/:oid/permissions",
+      "action": "getPermissions",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2324,
+        "action": "getPermissions"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-112",
+      "method": "get",
+      "path": "/:branding/:portal/record/:oid/relatedRecords",
+      "action": "getRelatedRecords",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2269,
+        "action": "getRelatedRecords"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-117",
+      "method": "get",
+      "path": "/:branding/:portal/api/records/schemas/update/:oid",
+      "action": "update",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordSchemaController.ts",
+        "line": 381,
+        "action": "update"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordReads.ts",
+        "export": "recordReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-121",
+      "method": "put",
+      "path": "/:branding/:portal/api/records/metadata/:oid",
+      "action": "updateMeta",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 919,
+        "action": "updateMeta"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-122",
+      "method": "put",
+      "path": "/:branding/:portal/api/records/objectmetadata/:oid",
+      "action": "updateObjectMeta",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 996,
+        "action": "updateObjectMeta"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-123",
+      "method": "put",
+      "path": "/:branding/:portal/api/deletedrecords/:oid",
+      "action": "restoreRecord",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1738,
+        "action": "restoreRecord"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-124",
+      "method": "delete",
+      "path": "/:branding/:portal/api/deletedrecords/:oid",
+      "action": "destroyDeletedRecord",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1800,
+        "action": "destroyDeletedRecord"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-125",
+      "method": "delete",
+      "path": "/:branding/:portal/api/records/metadata/:oid",
+      "action": "deleteRecord",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1761,
+        "action": "deleteRecord"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-126",
+      "method": "post",
+      "path": "/:branding/:portal/api/records/permissions/edit/:oid",
+      "action": "addUserEdit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 613,
+        "action": "addUserEdit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-127",
+      "method": "delete",
+      "path": "/:branding/:portal/api/records/permissions/edit/:oid",
+      "action": "removeUserEdit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 713,
+        "action": "removeUserEdit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-128",
+      "method": "post",
+      "path": "/:branding/:portal/api/records/permissions/view/:oid",
+      "action": "addUserView",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 663,
+        "action": "addUserView"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-129",
+      "method": "delete",
+      "path": "/:branding/:portal/api/records/permissions/view/:oid",
+      "action": "removeUserView",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 763,
+        "action": "removeUserView"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-130",
+      "method": "post",
+      "path": "/:branding/:portal/api/records/permissions/editRole/:oid",
+      "action": "addRoleEdit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1952,
+        "action": "addRoleEdit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-131",
+      "method": "delete",
+      "path": "/:branding/:portal/api/records/permissions/editRole/:oid",
+      "action": "removeRoleEdit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 2044,
+        "action": "removeRoleEdit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-132",
+      "method": "post",
+      "path": "/:branding/:portal/api/records/permissions/viewRole/:oid",
+      "action": "addRoleView",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1998,
+        "action": "addRoleView"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-133",
+      "method": "delete",
+      "path": "/:branding/:portal/api/records/permissions/viewRole/:oid",
+      "action": "removeRoleView",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 2090,
+        "action": "removeRoleView"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-134",
+      "method": "post",
+      "path": "/:branding/:portal/api/records/workflow/step/:targetStep/:oid",
+      "action": "transitionWorkflow",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1820,
+        "action": "transitionWorkflow"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-136",
+      "method": "put",
+      "path": "/:branding/:portal/recordmeta/:oid",
+      "action": "update",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 1395,
+        "action": "update"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-137",
+      "method": "delete",
+      "path": "/:branding/:portal/record/delete/:oid",
+      "action": "delete",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 1243,
+        "action": "delete"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-138",
+      "method": "put",
+      "path": "/:branding/:portal/record/delete/:oid",
+      "action": "restoreRecord",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 1342,
+        "action": "restoreRecord"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-139",
+      "method": "delete",
+      "path": "/:branding/:portal/record/destroy/:oid",
+      "action": "destroyDeletedRecord",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 1369,
+        "action": "destroyDeletedRecord"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-140",
+      "method": "post",
+      "path": "/:branding/:portal/record/workflow/step/:targetStep/:oid",
+      "action": "stepTo",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 1603,
+        "action": "stepTo"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/recordMutations.ts",
+        "export": "recordMutationRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-143",
+      "method": "put",
+      "path": "/:branding/:portal/api/users",
+      "action": "createUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 250,
+        "action": "createUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "body.username lookup/create; request IDs never select account",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-144",
+      "method": "post",
+      "path": "/:branding/:portal/api/users",
+      "action": "updateUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 380,
+        "action": "updateUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "validated body.id exclusively; query ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-145",
+      "method": "post",
+      "path": "/:branding/:portal/api/users/:id/disable",
+      "action": "disableUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 799,
+        "action": "disableUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "path.id; body/query IDs ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-146",
+      "method": "post",
+      "path": "/:branding/:portal/api/users/:id/enable",
+      "action": "enableUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 845,
+        "action": "enableUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "path.id; body/query IDs ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-147",
+      "method": "post",
+      "path": "/:branding/:portal/api/users/token/generate",
+      "action": "generateAPIToken",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 483,
+        "action": "generateAPIToken"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "validated query.id; body IDs ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-148",
+      "method": "post",
+      "path": "/:branding/:portal/api/users/token/revoke",
+      "action": "revokeAPIToken",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 533,
+        "action": "revokeAPIToken"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "validated query.id; body IDs ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-149",
+      "method": "get",
+      "path": "/:branding/:portal/api/roles",
+      "action": "listSystemRoles",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 764,
+        "action": "listSystemRoles"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "requested brand roles; no target user ID",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-150",
+      "method": "post",
+      "path": "/:branding/:portal/api/roles/:roleName",
+      "action": "createSystemRole",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 774,
+        "action": "createSystemRole"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "requested brand roles; no target user ID",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-151",
+      "method": "post",
+      "path": "/:branding/:portal/admin/users/:id/disable",
+      "action": "disableUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 298,
+        "action": "disableUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "path.id; body/query IDs ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-152",
+      "method": "post",
+      "path": "/:branding/:portal/admin/users/:id/enable",
+      "action": "enableUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 335,
+        "action": "enableUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "path.id; body/query IDs ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-153",
+      "method": "post",
+      "path": "/:branding/:portal/admin/users/genKey",
+      "action": "generateUserKey",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 365,
+        "action": "generateUserKey"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "body.userid exclusively; no id/query fallback",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-154",
+      "method": "post",
+      "path": "/:branding/:portal/admin/users/revokeKey",
+      "action": "revokeUserKey",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 383,
+        "action": "revokeUserKey"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "body.userid exclusively; no id/query fallback",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-155",
+      "method": "post",
+      "path": "/:branding/:portal/admin/users/newUser",
+      "action": "addLocalUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 401,
+        "action": "addLocalUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "body.username lookup/create; request IDs never select account",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-156",
+      "method": "post",
+      "path": "/:branding/:portal/admin/users/update",
+      "action": "updateUserDetails",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 435,
+        "action": "updateUserDetails"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "body.userid exclusively; no id/query fallback",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-157",
+      "method": "post",
+      "path": "/:branding/:portal/admin/roles/user",
+      "action": "updateUserRoles",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 470,
+        "action": "updateUserRoles"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "body.userid exclusively; no id/query fallback",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-158",
+      "method": "get",
+      "path": "/:branding/:portal/admin/roles/get",
+      "action": "getBrandRoles",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 116,
+        "action": "getBrandRoles"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "requested brand roles; no target user ID",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-159",
+      "method": "post",
+      "path": "/:branding/:portal/user/genKey",
+      "action": "generateUserKey",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/UserController.ts",
+        "line": 233,
+        "action": "generateUserKey"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "authenticated actor.id, all request ID fields ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-160",
+      "method": "post",
+      "path": "/:branding/:portal/user/revokeKey",
+      "action": "revokeUserKey",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/UserController.ts",
+        "line": 273,
+        "action": "revokeUserKey"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "authenticated actor.id, all request ID fields ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-161",
+      "method": "post",
+      "path": "/:branding/:portal/user/update",
+      "action": "update",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/UserController.ts",
+        "line": 172,
+        "action": "update"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+        "export": "identityAdministrationRoutes"
+      },
+      "selection": "authenticated actor.id, all request ID fields ignored",
+      "authority": "selected brand membership, Admin except owner-self; requireUserInBrand; shared global mutations denied; scoped role writes preserve foreign brands",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-162",
+      "method": "get",
+      "path": "/:branding/:portal/api/users",
+      "action": "listUsers",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 172,
+        "action": "listUsers"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "brand-scoped listing; no selected user ID",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-163",
+      "method": "get",
+      "path": "/:branding/:portal/api/users/find",
+      "action": "getUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 215,
+        "action": "getUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "validated query.searchBy + query.query",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-164",
+      "method": "get",
+      "path": "/:branding/:portal/api/users/get",
+      "action": "getUser",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 215,
+        "action": "getUser"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "validated query.searchBy + query.query",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-165",
+      "method": "get",
+      "path": "/:branding/:portal/api/users/link/candidates",
+      "action": "searchLinkCandidates",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 583,
+        "action": "searchLinkCandidates"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "query.primaryUserId and query.query",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-166",
+      "method": "get",
+      "path": "/:branding/:portal/api/users/:id/links",
+      "action": "getUserLinks",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 616,
+        "action": "getUserLinks"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "path.id",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-167",
+      "method": "get",
+      "path": "/:branding/:portal/api/users/:id/audit",
+      "action": "getUserAudit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 643,
+        "action": "getUserAudit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "path.id",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-168",
+      "method": "post",
+      "path": "/:branding/:portal/api/users/link",
+      "action": "linkAccounts",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+        "line": 692,
+        "action": "linkAccounts"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "body.primaryUserId and body.secondaryUserId; query ignored",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-169",
+      "method": "get",
+      "path": "/:branding/:portal/admin/users/get",
+      "action": "getUsers",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 75,
+        "action": "getUsers"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "brand-scoped browser listing; no selected user ID",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-170",
+      "method": "get",
+      "path": "/:branding/:portal/admin/users/link/candidates",
+      "action": "searchLinkCandidates",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 137,
+        "action": "searchLinkCandidates"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "query.primaryUserId and query.query",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-171",
+      "method": "get",
+      "path": "/:branding/:portal/admin/users/:id/links",
+      "action": "getUserLinks",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 166,
+        "action": "getUserLinks"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "path.id",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-172",
+      "method": "get",
+      "path": "/:branding/:portal/admin/users/:id/audit",
+      "action": "getUserAudit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 183,
+        "action": "getUserAudit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "path.id",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-173",
+      "method": "post",
+      "path": "/:branding/:portal/admin/users/link",
+      "action": "linkAccounts",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AdminController.ts",
+        "line": 231,
+        "action": "linkAccounts"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/identityLinks.ts",
+        "export": "identityLinkRoutes"
+      },
+      "selection": "body.primaryUserId and body.secondaryUserId; query ignored",
+      "authority": "brand Admin; explicit primary/path target requireUserInBrand; link domain guards both accounts; safe response omits secrets and foreign roles",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-244",
+      "method": "post",
+      "path": "/:branding/:portal/api/search/index",
+      "action": "index",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/SearchController.ts",
+        "line": 60,
+        "action": "index"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/integrationOperations.ts",
+        "export": "integrationOperationRoutes"
+      },
+      "selection": "query.oid for form/index operations; authenticated context for token and owned task progress",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-248",
+      "method": "get",
+      "path": "/:branding/:portal/api/records/datastreams/:oid",
+      "action": "listDatastreams",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1916,
+        "action": "listDatastreams"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "export": "datastreamReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-249",
+      "method": "get",
+      "path": "/:branding/:portal/api/records/datastreams/:oid/:datastreamId",
+      "action": "getDataStream",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1179,
+        "action": "getDataStream"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "export": "datastreamReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-250",
+      "method": "get",
+      "path": "/:branding/:portal/record/:oid/attach/:attachId",
+      "action": "doAttachment",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2019,
+        "action": "doAttachment"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "export": "datastreamReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-251",
+      "method": "get",
+      "path": "/:branding/:portal/companion/record/:oid/attach/:attachId",
+      "action": "doAttachment",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2019,
+        "action": "doAttachment"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "export": "datastreamReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-252",
+      "method": "get",
+      "path": "/:branding/:portal/record/:oid/attachments",
+      "action": "getAttachments",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2358,
+        "action": "getAttachments"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "export": "datastreamReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-253",
+      "method": "get",
+      "path": "/:branding/:portal/record/:oid/datastream{*tail}",
+      "action": "getDataStream",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2388,
+        "action": "getDataStream"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/datastreamReads.ts",
+        "export": "datastreamReadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-254",
+      "method": "post",
+      "path": "/:branding/:portal/api/records/datastreams/:oid",
+      "action": "addDataStreams",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+        "line": 1271,
+        "action": "addDataStreams"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/datastreamWrites.ts",
+        "export": "datastreamWriteRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-292",
+      "method": "get",
+      "path": "/:branding/:portal/record/:recordType/edit",
+      "action": "edit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 851,
+        "action": "edit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "export": "pageRoutes"
+      },
+      "selection": "path.oid before optional query.oid; neither substitutes create target when absent",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-293",
+      "method": "get",
+      "path": "/:branding/:portal/record/edit/:oid",
+      "action": "edit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 851,
+        "action": "edit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "export": "pageRoutes"
+      },
+      "selection": "path.oid before optional query.oid; neither substitutes create target when absent",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-294",
+      "method": "get",
+      "path": "/:branding/:portal/record/finalise/:recordType/edit/:oid",
+      "action": "edit",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 851,
+        "action": "edit"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "export": "pageRoutes"
+      },
+      "selection": "path.oid before optional query.oid; neither substitutes create target when absent",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-295",
+      "method": "all",
+      "path": "/:branding/:portal/record/view/:oid",
+      "action": "view",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 821,
+        "action": "view"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "export": "pageRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-296",
+      "method": "all",
+      "path": "/:branding/:portal/record/view-orig/:oid",
+      "action": "view",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 821,
+        "action": "view"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "export": "pageRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-297",
+      "method": "get",
+      "path": "/:branding/:portal/record/viewAudit/:oid",
+      "action": "render",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordAuditController.ts",
+        "line": 278,
+        "action": "render"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "export": "pageRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-310",
+      "method": "all",
+      "path": "/:branding/:portal/record/:oid/attach",
+      "action": "doAttachment",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2019,
+        "action": "doAttachment"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+        "export": "resumableUploadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-311",
+      "method": "all",
+      "path": "/:branding/:portal/companion/record/:oid/attach",
+      "action": "doAttachment",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2019,
+        "action": "doAttachment"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+        "export": "resumableUploadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-312",
+      "method": "all",
+      "path": "/:branding/:portal/record/:oid/attach/:attachId",
+      "action": "doAttachment",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2019,
+        "action": "doAttachment"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+        "export": "resumableUploadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-313",
+      "method": "all",
+      "path": "/:branding/:portal/companion/record/:oid/attach/:attachId",
+      "action": "doAttachment",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/RecordController.ts",
+        "line": 2019,
+        "action": "doAttachment"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/resumableUploads.ts",
+        "export": "resumableUploadRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-314",
+      "method": "post",
+      "path": "/:branding/:portal/asynch",
+      "action": "start",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AsynchController.ts",
+        "line": 34,
+        "action": "start"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "export": "progressOperationRoutes"
+      },
+      "selection": "body.id before query.id for persisted progress entity; progress.relatedRecordId selects authorized record; token uses actor, no record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-315",
+      "method": "put",
+      "path": "/:branding/:portal/asynch",
+      "action": "update",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AsynchController.ts",
+        "line": 58,
+        "action": "update"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "export": "progressOperationRoutes"
+      },
+      "selection": "body.id before query.id for persisted progress entity; progress.relatedRecordId selects authorized record; token uses actor, no record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-316",
+      "method": "delete",
+      "path": "/:branding/:portal/asynch",
+      "action": "stop",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AsynchController.ts",
+        "line": 42,
+        "action": "stop"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "export": "progressOperationRoutes"
+      },
+      "selection": "body.id before query.id for persisted progress entity; progress.relatedRecordId selects authorized record; token uses actor, no record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-317",
+      "method": "get",
+      "path": "/:branding/:portal/asynch",
+      "action": "progress",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AsynchController.ts",
+        "line": 101,
+        "action": "progress"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "export": "progressOperationRoutes"
+      },
+      "selection": "body.id before query.id for persisted progress entity; progress.relatedRecordId selects authorized record; token uses actor, no record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-318",
+      "method": "get",
+      "path": "/:branding/:portal/asynch/subscribe/:roomId",
+      "action": "subscribe",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AsynchController.ts",
+        "line": 124,
+        "action": "subscribe"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "export": "progressOperationRoutes"
+      },
+      "selection": "body.id before query.id for persisted progress entity; progress.relatedRecordId selects authorized record; token uses actor, no record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-319",
+      "method": "delete",
+      "path": "/:branding/:portal/asynch/subscribe/:roomId",
+      "action": "unsubscribe",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AsynchController.ts",
+        "line": 258,
+        "action": "unsubscribe"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "export": "progressOperationRoutes"
+      },
+      "selection": "body.id before query.id for persisted progress entity; progress.relatedRecordId selects authorized record; token uses actor, no record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-320",
+      "method": "post",
+      "path": "/:branding/:portal/asynch/socket-token",
+      "action": "subscribe",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/AsynchController.ts",
+        "line": 124,
+        "action": "subscribe"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/progressOperations.ts",
+        "export": "progressSocketGrantRoute"
+      },
+      "selection": "body.id before query.id for persisted progress entity; progress.relatedRecordId selects authorized record; token uses actor, no record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    },
+    {
+      "id": "HTTP-332",
+      "method": "get",
+      "path": "/:branding/:portal/dynamicAsset/formCompiledItems/:recordType{/:oid}",
+      "action": "getFormCompiledItems",
+      "baseline": {
+        "file": "packages/redbox-core/src/controllers/DynamicAssetController.ts",
+        "line": 70,
+        "action": "getFormCompiledItems"
+      },
+      "current": {
+        "file": "packages/redbox-core/src/http/express/pageAssets.ts",
+        "export": "dynamicAssetRoutes"
+      },
+      "selection": "path.oid is authoritative; body/query oid never changes selected record",
+      "authority": "stored brand and current view/edit ACL before data/effects; lifecycle targets deleted collection for restore/destroy; tus owner and current record edit grant revalidated",
+      "coverage": "source-comparison; executed subsets identified in target-controls.json and qualification results"
+    }
+  ],
+  "r14Fixes": "Both R14 soft-delete intent and REST body.id selection remain correct; no R14 fix reverted. Native controls exercise conflicting IDs and delete/restore/destroy siblings."
+}

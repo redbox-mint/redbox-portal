@@ -1,0 +1,126 @@
+{
+  "node": "v26.11.1",
+  "proof": "Real Express loopback + selected extracted Angular methods, controlled identity ports. Policy/session/CSRF deployed qualification remains parent-owned.",
+  "results": [
+    {
+      "kind": "users",
+      "method": "genKey",
+      "version": "incoming",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": true,
+      "message": "Generating..."
+    },
+    {
+      "kind": "users",
+      "method": "genKey",
+      "version": "current",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": false,
+      "message": "User administration failed."
+    },
+    {
+      "kind": "users",
+      "method": "revokeKey",
+      "version": "incoming",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": true,
+      "message": "Revoking..."
+    },
+    {
+      "kind": "users",
+      "method": "revokeKey",
+      "version": "current",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": false,
+      "message": "User administration failed."
+    },
+    {
+      "kind": "users",
+      "method": "updateUserSubmit",
+      "version": "incoming",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": true,
+      "message": "Saving..."
+    },
+    {
+      "kind": "users",
+      "method": "updateUserSubmit",
+      "version": "current",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": false,
+      "message": "User administration failed."
+    },
+    {
+      "kind": "users",
+      "method": "newUserSubmit",
+      "version": "incoming",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": true,
+      "message": "Saving..."
+    },
+    {
+      "kind": "users",
+      "method": "newUserSubmit",
+      "version": "current",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": false,
+      "message": "User administration failed."
+    },
+    {
+      "kind": "roles",
+      "method": "saveCurrentUser",
+      "version": "incoming",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": true,
+      "message": "Saving..."
+    },
+    {
+      "kind": "roles",
+      "method": "saveCurrentUser",
+      "version": "current",
+      "httpStatus": 500,
+      "body": {
+        "message": "User administration failed.",
+        "details": ""
+      },
+      "rejected": false,
+      "message": "User administration failed."
+    }
+  ]
+}

@@ -1,0 +1,1680 @@
+{
+  "baseline": "a49366803",
+  "incoming": "bda01cb25",
+  "scope": "all tracked raw browser scripts, TypeScript browser entrypoint and EJS; generated Angular/vendor artifacts excluded from duplicate enumeration",
+  "counts": {
+    "sourceFiles": 58,
+    "requestInitiators": 15,
+    "passiveReferences": 164
+  },
+  "rows": [
+    {
+      "id": "LEGACY-001",
+      "source": {
+        "file": "assets/js/redbox-progress.js",
+        "line": 26,
+        "sha256": "b022a576a2868de83d1715794fd4567f1a1702212f15d1ebc94270583fec6dc4"
+      },
+      "method": "POST",
+      "urlTemplate": "tokenUrl from page root + /:branding/:portal/asynch/socket-token",
+      "request": "no body",
+      "headers": [
+        "same-origin credentials",
+        "X-CSRF-Token from csrfToken()",
+        "X-ReDBox-Api-Version: 2.0"
+      ],
+      "responseReads": [
+        "data.token nonempty string"
+      ],
+      "statusHandling": [
+        "401/403 disconnect",
+        "other non-2xx/network/invalid JSON retry with fresh grant",
+        "2xx passes token to Socket.IO"
+      ],
+      "server": [
+        "src/http/express/progressOperations.ts issue token",
+        "src/http/express/progressSockets.ts grant consumption; websocket Origin"
+      ],
+      "disposition": "compatible; coordinated websocket grant protocol, existing shipped-helper browser and state-machine controls"
+    },
+    {
+      "id": "LEGACY-002",
+      "source": {
+        "file": "assets/default/default/js/admin-api-docs-bootstrap.js",
+        "line": 8,
+        "sha256": "de8087347eabbbd2b400b419b2f4f2fb73aa57618d29da79ce70aa36343491aa"
+      },
+      "method": "GET",
+      "urlTemplate": "page.base + /admin/api-docs/openapi.json",
+      "request": "Redoc schema fetch",
+      "headers": [
+        "same-origin cookie; no CSRF for GET"
+      ],
+      "responseReads": [
+        "OpenAPI document consumed by pinned Redoc"
+      ],
+      "statusHandling": [
+        "Redoc owns failed-load display; no custom HTTP status dispatch"
+      ],
+      "server": [
+        "src/http/express/pages.ts admin OpenAPI JSON; brand Admin"
+      ],
+      "disposition": "compatible; actual rendered URL under page.base"
+    },
+    {
+      "id": "LEGACY-003",
+      "source": {
+        "file": "assets/default/default/js/vocab_widget_v2.js",
+        "line": 460,
+        "sha256": "33667e52d260f95ac09254b73c545b99c7a0972b87becca85197b04da8a0baa1"
+      },
+      "method": "GET",
+      "urlTemplate": "settings.endpoint + ?api_key=&action=&repository=&limit=&lookfor=&sqc=&sqc_op=",
+      "request": "JSONP callback transport; actions search/narrow/collection/top and all variants",
+      "headers": [
+        "JSONP script fetch, no portal CSRF"
+      ],
+      "responseReads": [
+        "success payload forwarded to action.vocab.ands events; widget reads external result objects",
+        "xhr.responseText on errors"
+      ],
+      "statusHandling": [
+        "success/error callback; no explicit code comparison"
+      ],
+      "server": [
+        "external configured vocabulary provider"
+      ],
+      "disposition": "external; unchanged packaged widget, no selected portal endpoint"
+    },
+    {
+      "id": "LEGACY-004",
+      "source": {
+        "file": "assets/default/default/js/v0_3_1-leaflet-omnivore.min.js",
+        "line": 1,
+        "sha256": "fb156c69ffdfb3b346f94dd4f9a57091e685cf490d1da268eb53d747516e9f20"
+      },
+      "method": "GET",
+      "urlTemplate": "caller-supplied URL for geojson/csv/gpx/kml/wkt/topojson/polyline",
+      "request": "generic vendor XHR download",
+      "headers": [
+        "vendor default XHR; no portal mutation"
+      ],
+      "responseReads": [
+        "responseText, responseXML; parses selected geometry format"
+      ],
+      "statusHandling": [
+        "vendor XHR success for 2xx/304; error event otherwise"
+      ],
+      "server": [
+        "external/caller-selected geometry URL; authorized datastream GET is supported"
+      ],
+      "disposition": "vendor; byte-identical to baseline"
+    },
+    {
+      "id": "LEGACY-005",
+      "source": {
+        "file": "typescript/assets/default/default/js/client-script.ts",
+        "line": 33,
+        "sha256": "11b5b57221523611cf1e920cb25beab0ce1946fc0a97c9450b5e5479b61ede45"
+      },
+      "method": "GET",
+      "urlTemplate": "page.root + /<webpack validator chunk>",
+      "request": "dynamic import produced by webpack; public path from currentScript.dataset.redboxRoot",
+      "headers": [
+        "browser script fetch; no CSRF"
+      ],
+      "responseReads": [
+        "module.formValidatorsSharedDefinitions must be array"
+      ],
+      "statusHandling": [
+        "import rejection resets promise and rethrows; console diagnostic"
+      ],
+      "server": [
+        "src/http/express/pageAssets.ts artifact roots; webpack output"
+      ],
+      "disposition": "compatible; no backend JSON contract"
+    },
+    {
+      "id": "LEGACY-006",
+      "source": {
+        "file": "views/default/default/layout.ejs",
+        "line": 76,
+        "sha256": "96fa2eab994565f872625969cb24ed6413ddad394ab4a60bbbb4e32a0a800dac"
+      },
+      "method": "POST",
+      "urlTemplate": "page.base + /user/logout",
+      "request": "application/x-www-form-urlencoded {_csrf}",
+      "headers": [
+        "browser session cookie",
+        "synchronizer token body._csrf"
+      ],
+      "responseReads": [
+        "browser follows Location"
+      ],
+      "statusHandling": [
+        "302 redirect; forbidden token handled as HTML error"
+      ],
+      "server": [
+        "src/http/express/login.ts POST logout, destroy session, clear cookie, redirect"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-007",
+      "source": {
+        "file": "views/default/default/record/layout.ejs",
+        "line": 57,
+        "sha256": "42b8847b8d6faeefa10c0c93bbc53083e64c451bde549a28a9c5c57ee4e68c57"
+      },
+      "method": "POST",
+      "urlTemplate": "page.base + /user/logout",
+      "request": "application/x-www-form-urlencoded {_csrf}",
+      "headers": [
+        "browser session cookie",
+        "synchronizer token body._csrf"
+      ],
+      "responseReads": [
+        "browser follows Location"
+      ],
+      "statusHandling": [
+        "302 redirect; forbidden token handled as HTML error"
+      ],
+      "server": [
+        "src/http/express/login.ts POST logout, destroy session, clear cookie, redirect"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-008",
+      "source": {
+        "file": "views/layout.ejs",
+        "line": 50,
+        "sha256": "cdbdcc110143287080909496b7fe76a3d5ffabdea49e03f16a3653d2c3c2abb5"
+      },
+      "method": "POST",
+      "urlTemplate": "page.base + /user/logout",
+      "request": "application/x-www-form-urlencoded {_csrf}",
+      "headers": [
+        "browser session cookie",
+        "synchronizer token body._csrf"
+      ],
+      "responseReads": [
+        "browser follows Location"
+      ],
+      "statusHandling": [
+        "302 redirect; forbidden token handled as HTML error"
+      ],
+      "server": [
+        "src/http/express/login.ts POST logout, destroy session, clear cookie, redirect"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-009",
+      "source": {
+        "file": "views/default/default/layout/menu.ejs",
+        "line": 43,
+        "sha256": "704cb34a25ec0e8c03845e981f7215628dab71d83e8a79259234c6a63203af6b"
+      },
+      "method": "GET",
+      "urlTemplate": "page.base + /record/search",
+      "request": "query {q: input value}",
+      "headers": [
+        "browser session cookie; safe GET"
+      ],
+      "responseReads": [
+        "rendered search page boots record-search Angular app"
+      ],
+      "statusHandling": [
+        "HTML navigation; browser errors otherwise"
+      ],
+      "server": [
+        "src/http/express/pages.ts search query initial value; recordReads search"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-010",
+      "source": {
+        "file": "views/default/default/record/layout.ejs",
+        "line": 80,
+        "sha256": "42b8847b8d6faeefa10c0c93bbc53083e64c451bde549a28a9c5c57ee4e68c57"
+      },
+      "method": "GET",
+      "urlTemplate": "current document URL",
+      "request": "unnamed search input; no submitted query fields",
+      "headers": [
+        "browser default form navigation"
+      ],
+      "responseReads": [
+        "current HTML page"
+      ],
+      "statusHandling": [
+        "HTML navigation"
+      ],
+      "server": [
+        "same current page route"
+      ],
+      "disposition": "compatible; unchanged unnamed cosmetic search form"
+    },
+    {
+      "id": "LEGACY-011",
+      "source": {
+        "file": "views/layout.ejs",
+        "line": 73,
+        "sha256": "cdbdcc110143287080909496b7fe76a3d5ffabdea49e03f16a3653d2c3c2abb5"
+      },
+      "method": "GET",
+      "urlTemplate": "current document URL",
+      "request": "unnamed search input; no submitted query fields",
+      "headers": [
+        "browser default form navigation"
+      ],
+      "responseReads": [
+        "current HTML page"
+      ],
+      "statusHandling": [
+        "HTML navigation"
+      ],
+      "server": [
+        "same current page route"
+      ],
+      "disposition": "compatible; unchanged unnamed cosmetic search form"
+    },
+    {
+      "id": "LEGACY-012",
+      "source": {
+        "file": "views/default/default/user/openidconnect.ejs",
+        "line": 8,
+        "sha256": "90e070ec3b2962e437353b905cecdc4add51949489080f77e805c93c5ba2520e"
+      },
+      "method": "GET",
+      "urlTemplate": "page.root + /user/begin_oidc",
+      "request": "no query; brand/portal retained in session from login page",
+      "headers": [
+        "session cookie; state/PKCE established server-side"
+      ],
+      "responseReads": [
+        "browser follows authorization redirect"
+      ],
+      "statusHandling": [
+        "302 then callback navigation"
+      ],
+      "server": [
+        "src/http/express/login.ts global OIDC start; retained selected session context"
+      ],
+      "disposition": "compatible"
+    },
+    {
+      "id": "LEGACY-013",
+      "source": {
+        "file": "views/default/default/user/aaf.ejs",
+        "line": 12,
+        "sha256": "13615796e32b4ca24deac1775282d4d4d6b48e5429ba327c0978314d4a2958e5"
+      },
+      "method": "GET",
+      "urlTemplate": "page.settings.auth.aaf.loginUrl or #",
+      "request": "configured external navigation",
+      "headers": [
+        "browser navigation"
+      ],
+      "responseReads": [
+        "external provider page followed by signed callback"
+      ],
+      "statusHandling": [
+        "browser navigation"
+      ],
+      "server": [
+        "external identity provider; callback in login.ts"
+      ],
+      "disposition": "external; existing configuration-driven provider link"
+    },
+    {
+      "id": "LEGACY-014",
+      "source": {
+        "file": "views/default/default/analytics.ejs",
+        "line": 26,
+        "sha256": "5f2a458f2ffb9bf99a1f0e4b8aa1d81a18f1e884207b227292299c72bf890642"
+      },
+      "method": "GET",
+      "urlTemplate": "https://www.googletagmanager.com/gtag/js?id=<tracking id>",
+      "request": "configured analytics script",
+      "headers": [
+        "cross-origin script; no portal credentials"
+      ],
+      "responseReads": [
+        "global gtag analytics API"
+      ],
+      "statusHandling": [
+        "no status-dependent application behavior"
+      ],
+      "server": [
+        "external Google analytics"
+      ],
+      "disposition": "external; no portal HTTP response contract"
+    },
+    {
+      "id": "LEGACY-015",
+      "source": {
+        "file": "views/default/default/analytics.ejs",
+        "line": 39,
+        "sha256": "5f2a458f2ffb9bf99a1f0e4b8aa1d81a18f1e884207b227292299c72bf890642"
+      },
+      "method": "GET",
+      "urlTemplate": "https://www.googletagmanager.com/gtm.js?id=<container id> + &l=<dataLayer>",
+      "request": "script insertion and noscript iframe",
+      "headers": [
+        "external script/iframe"
+      ],
+      "responseReads": [
+        "external analytics globals"
+      ],
+      "statusHandling": [
+        "no status-dependent application behavior"
+      ],
+      "server": [
+        "external Google tag manager"
+      ],
+      "disposition": "external; no portal HTTP response contract"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "file": "assets/default/default/js/admin-api-docs-bootstrap.js",
+      "sha256": "de8087347eabbbd2b400b419b2f4f2fb73aa57618d29da79ce70aa36343491aa",
+      "requestRows": [
+        "LEGACY-002"
+      ],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "assets/default/default/js/admin-api-docs-init.js",
+      "sha256": "a3fb0d3f9dbf1d2d0f1be38eb441e617046f31e384c80fe7aa6c1335bd415338",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "assets/default/default/js/v0_3_1-leaflet-omnivore.min.js",
+      "sha256": "fb156c69ffdfb3b346f94dd4f9a57091e685cf490d1da268eb53d747516e9f20",
+      "requestRows": [
+        "LEGACY-004"
+      ],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "vendor; unchanged baseline bytes"
+    },
+    {
+      "file": "assets/default/default/js/vocab_widget_v2.js",
+      "sha256": "33667e52d260f95ac09254b73c545b99c7a0972b87becca85197b04da8a0baa1",
+      "requestRows": [
+        "LEGACY-003"
+      ],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "assets/js/index.js",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "assets/js/redbox-progress.js",
+      "sha256": "b022a576a2868de83d1715794fd4567f1a1702212f15d1ebc94270583fec6dc4",
+      "requestRows": [
+        "LEGACY-001"
+      ],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "typescript/assets/default/default/js/client-script.ts",
+      "sha256": "11b5b57221523611cf1e920cb25beab0ce1946fc0a97c9450b5e5479b61ede45",
+      "requestRows": [
+        "LEGACY-005"
+      ],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/400.ejs",
+      "sha256": "6ddf1547beb5f6d6fb0aa96eaa794fb56497df2dd95a6bf1294471cfa3e4593a",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/403.ejs",
+      "sha256": "3b063cdaf353aaf66db08703e6a358b5337a629d9a6312e6b5a218b5e4fe65bb",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 63,
+          "attribute": "href",
+          "value": "<%= page.base %>/home"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/404.ejs",
+      "sha256": "845fbe224dd1b89705948baa4893da44583f9662d00323a9cdd818644feee590",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/500.ejs",
+      "sha256": "506aa0f1095fc5e4270d61301d264b61e7b71717e3cd019d7459d6d988b47ef6",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/apiClientConfig.ejs",
+      "sha256": "cb283506ef35fbc1cd7bd2920341ff7c0f651656286b74f7e0448cc61f5cfc05",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/api-docs.ejs",
+      "sha256": "44794be4c11f13435e85a8762507674f805f7349c31a34002451f48e8eed31ab",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 41,
+          "attribute": "src",
+          "value": "<%= rootContext %>/default/default/js/admin-api-docs-init.js"
+        },
+        {
+          "line": 42,
+          "attribute": "src",
+          "value": "<%= rootContext %>/default/default/js/redoc.standalone.js"
+        },
+        {
+          "line": 47,
+          "attribute": "src",
+          "value": "<%= rootContext %>/images/loading.svg"
+        },
+        {
+          "line": 50,
+          "attribute": "src",
+          "value": "<%= rootContext %>/default/default/js/admin-api-docs-bootstrap.js"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/appconfig.ejs",
+      "sha256": "a3dd2e2e27920dcdf6a2b4362fbc39f591e8d5c59016397ab3532ebcece5caee",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 11,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 16,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 18,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/branding.ejs",
+      "sha256": "839e9f6faa8d43ff4d3fc8e86af418d620b04e3a945c6c11e45a570a8dd0c45b",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 15,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 16,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/dashboard-config.ejs",
+      "sha256": "b09038a9204c4759561da184b34f4100785e2afd3fe46b6a02565fa20117aea9",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 14,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 15,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/deletedRecords.ejs",
+      "sha256": "844a62c3c253902f1fad87210326ebdbfa2d8555fec96ef5b3581e5a49887352",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 16,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 19,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/harvest-runs.ejs",
+      "sha256": "cfd7e6dec99e977bee0b8e7f9915e0b48f5fd80196e0176514e0b48cb1dded2c",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 15,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 17,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/home.ejs",
+      "sha256": "1f708f763dfbec49872647811827fc8022ead556d4dc152af37e99a0c7ec1537",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/index.ejs",
+      "sha256": "c5ab0f175c45ee44dc54cb60b1115c0679e26beb4d309621b222ef58d580dd55",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/integrations/figshare/vocabularies.ejs",
+      "sha256": "2487124b32dca634c731f15aa2077b2063c14b679363bb6ba2bd53901659238d",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 14,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 15,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/layout/sidebar.ejs",
+      "sha256": "f644da7fb3b65d6cc8e25bd7c5c059487858028127bc7480b41be05d02c7a2db",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 13,
+          "attribute": "href",
+          "value": "#<%= section.id %>Section"
+        },
+        {
+          "line": 21,
+          "attribute": "href",
+          "value": "<%= item.href %>"
+        },
+        {
+          "line": 33,
+          "attribute": "href",
+          "value": "<%= link.href %>"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/named-query.ejs",
+      "sha256": "57703efc3ec84d13525e893487da837b628205dc00cc0007eb6ef9ab182c0072",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 14,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 15,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/report.ejs",
+      "sha256": "d86c1e2bfb455303484011044a5fa335b38fcb407ece4e4333d2c27f90bf302c",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 7,
+          "attribute": "href",
+          "value": "<%= page.base %>/admin/reports"
+        },
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 14,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 16,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/reports.ejs",
+      "sha256": "0f483fabff46b08775d6a156d88f1fac71a8a15c776f71a1f917e96d192a1db0",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 10,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 17,
+          "attribute": "href",
+          "value": "<%= page.base %>/admin/report/<%= reports[i].name %>"
+        },
+        {
+          "line": 25,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 27,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/roles.ejs",
+      "sha256": "c7235b4734b2f9dc976a4f684b877e12a274405f61f9bca0658295cd8957f795",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 15,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 17,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/siem.ejs",
+      "sha256": "0a8414850e9abcca907afd33c45adce202cf12923324cdd6b6bba71a60abcae5",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 11,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 16,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 18,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/translation.ejs",
+      "sha256": "c5180cc4ff1e038ebc0dc23a47b090bfad7bc945e99c1df35aa033378eb6c913",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 14,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 16,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/users.ejs",
+      "sha256": "3d1372a7faf66959984f4c69223bb29c67df3caee660d1dd42977e6b73b26d9e",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 15,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 17,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/admin/vocabulary.ejs",
+      "sha256": "581c8583cb1eca94a30707963b9259243dd80c8249462ed5793389c9b1031d8f",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 14,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 15,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/analytics.ejs",
+      "sha256": "5f2a458f2ffb9bf99a1f0e4b8aa1d81a18f1e884207b227292299c72bf890642",
+      "requestRows": [
+        "LEGACY-014",
+        "LEGACY-015"
+      ],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 26,
+          "attribute": "src",
+          "value": "https://www.googletagmanager.com/gtag/js?id=<%= analyticsTrackingId %>"
+        },
+        {
+          "line": 38,
+          "attribute": "src",
+          "value": "https://www.googletagmanager.com/gtm.js?id="
+        },
+        {
+          "line": 47,
+          "attribute": "src",
+          "value": "https://www.googletagmanager.com/ns.html?id=<%= analyticsTrackingId %>"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/availableServicesList.ejs",
+      "sha256": "e4550b2b0e0a17f5579b0af522c9c644a85403de055541b97ef6bad9d37d1833",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 4,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Open+Sans:400italic,600"
+        },
+        {
+          "line": 16,
+          "attribute": "href",
+          "value": "<%= page.base %>/researcher/home"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/export/index.ejs",
+      "sha256": "639783526db2b298b92359c3430c7eee9503ac27706dd4f747ca54c37149d64c",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 15,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 17,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/getAdvice.ejs",
+      "sha256": "eb7549762f0d83385051a5c6edc5363f06fa547c2a54666890b14b2c12febc61",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 4,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Open+Sans:400italic,600"
+        },
+        {
+          "line": 16,
+          "attribute": "href",
+          "value": "<%= page.base %>/researcher/home"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/homepage.ejs",
+      "sha256": "fc9c49bbc3d2a22ad177218da3997306d3ea1a94233c91c930946707b6471b34",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 4,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Open+Sans:400italic,600"
+        },
+        {
+          "line": 40,
+          "attribute": "href",
+          "value": "<%= page.base %>/researcher/home"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/layout.ejs",
+      "sha256": "96fa2eab994565f872625969cb24ed6413ddad394ab4a60bbbb4e32a0a800dac",
+      "requestRows": [
+        "LEGACY-006"
+      ],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 6,
+          "attribute": "href",
+          "value": "<%= page.root ? page.root : '/'  %>"
+        },
+        {
+          "line": 11,
+          "attribute": "href",
+          "value": "<%= page.root %>/apple-touch-icon.png"
+        },
+        {
+          "line": 12,
+          "attribute": "href",
+          "value": "<%= page.faviconUrl %>"
+        },
+        {
+          "line": 21,
+          "attribute": "href",
+          "value": "<%= __brandTypefaceFont.regularUrl %>"
+        },
+        {
+          "line": 24,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap"
+        },
+        {
+          "line": 25,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap"
+        },
+        {
+          "line": 26,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap"
+        },
+        {
+          "line": 31,
+          "attribute": "href",
+          "value": "<%= page.base %>/styles/style.min.css"
+        },
+        {
+          "line": 33,
+          "attribute": "href",
+          "value": "<%= page.base %>/preview/<%= req.query.previewToken %>.css"
+        },
+        {
+          "line": 38,
+          "attribute": "href",
+          "value": "<%= page.base %>/styles/theme.css<%= __themeCssVer %>"
+        },
+        {
+          "line": 46,
+          "attribute": "href",
+          "value": "<%= page.root %>/styles/print.css"
+        },
+        {
+          "line": 49,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/jquery.min.js"
+        },
+        {
+          "line": 51,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/bootstrap.bundle.min.js"
+        },
+        {
+          "line": 52,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/index.bundle.js"
+        },
+        {
+          "line": 71,
+          "attribute": "href",
+          "value": "<%= page.base %>/user/login"
+        },
+        {
+          "line": 95,
+          "attribute": "href",
+          "value": "#"
+        },
+        {
+          "line": 107,
+          "attribute": "href",
+          "value": "<%= langUrl.pathname + langUrl.search %>"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/layout/footer.ejs",
+      "sha256": "4885f9d81d0163fcdb09451d229bfa5b318868a05c6d7b5c5046240ff588c461",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/layout/head-extra.ejs",
+      "sha256": "dbd628ac43cae5e922e8432aa18de5029478f9a6a8b88d317a4837592a0d3f15",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/layout/logo.ejs",
+      "sha256": "99a70939bde3110e5c2d3366e80044eeb4b2e3275f622f3dad4221faad98019f",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 8,
+          "attribute": "src",
+          "value": "<%= page.base %>/images/logo"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/layout/menu.ejs",
+      "sha256": "704cb34a25ec0e8c03845e981f7215628dab71d83e8a79259234c6a63203af6b",
+      "requestRows": [
+        "LEGACY-009"
+      ],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 21,
+          "attribute": "href",
+          "value": "#"
+        },
+        {
+          "line": 25,
+          "attribute": "href",
+          "value": "<%= child.href %>"
+        },
+        {
+          "line": 33,
+          "attribute": "href",
+          "value": "<%= item.href %>"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/listWorkspaces.ejs",
+      "sha256": "137a2d8dead1cb6c5705793fcb895fea906db4d87a6914b0b0ca59a1e2a001ac",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 4,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Open+Sans:400italic,600"
+        },
+        {
+          "line": 17,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 25,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/workspace_list/inline.bundle.js?ts=<%= page.config.startupMinute %>"
+        },
+        {
+          "line": 26,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/workspace_list/polyfills.bundle.js?ts=<%= page.config.startupMinute %>"
+        },
+        {
+          "line": 27,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/workspace_list/scripts.bundle.js?ts=<%= page.config.startupMinute %>"
+        },
+        {
+          "line": 29,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/workspace_list/vendor.bundle.js?ts=<%= page.config.startupMinute %>"
+        },
+        {
+          "line": 31,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/workspace_list/main.bundle.js?ts=<%= page.config.startupMinute %>"
+        },
+        {
+          "line": 33,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/workspace_list/styles.bundle.js?ts=<%= page.config.startupMinute %>"
+        },
+        {
+          "line": 35,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/workspace_list/styles.bundle.css?ts=<%= page.config.startupMinute %>"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/record/edit.ejs",
+      "sha256": "95d73e1f6dd92375207537a35037d9354fe189fff277a88e5554a0db0a35e563",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 19,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/index.bundle.js"
+        },
+        {
+          "line": 20,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 22,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/record/layout.ejs",
+      "sha256": "42b8847b8d6faeefa10c0c93bbc53083e64c451bde549a28a9c5c57ee4e68c57",
+      "requestRows": [
+        "LEGACY-007",
+        "LEGACY-010"
+      ],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 16,
+          "attribute": "href",
+          "value": "<%= __brandTypefaceFont.regularUrl %>"
+        },
+        {
+          "line": 19,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap"
+        },
+        {
+          "line": 20,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap"
+        },
+        {
+          "line": 21,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap"
+        },
+        {
+          "line": 25,
+          "attribute": "href",
+          "value": "<%= page.base %>/styles/4_1_3-bootstrap.min.css"
+        },
+        {
+          "line": 30,
+          "attribute": "href",
+          "value": "<%= page.config.appUrl %><%= page.root %>/styles/style.min.css"
+        },
+        {
+          "line": 32,
+          "attribute": "href",
+          "value": "<%= page.config.appUrl %><%= page.root %>/<%= typeof theme == 'undefined' ? page.param('theme') : theme %>/<%= typeof portal == 'undefined' ? page.param('portal') : portal %>/preview/<%= req.query.previewToken %>.css"
+        },
+        {
+          "line": 37,
+          "attribute": "href",
+          "value": "<%= page.config.appUrl %><%= page.root %>/<%= typeof theme == 'undefined' ? page.param('theme') : theme %>/<%= typeof portal == 'undefined' ? page.param('portal') : portal %>/styles/theme.css<%= __themeCssVer %>"
+        },
+        {
+          "line": 54,
+          "attribute": "href",
+          "value": "user/login"
+        },
+        {
+          "line": 75,
+          "attribute": "src",
+          "value": "images/<%= page.config.static_assets.logoName %>"
+        },
+        {
+          "line": 105,
+          "attribute": "href",
+          "value": "<%= page.root %>/"
+        },
+        {
+          "line": 146,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/jquery.min.js"
+        },
+        {
+          "line": 149,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/3_4_1-bootstrap.min.js"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/record/search.ejs",
+      "sha256": "dd2e3653105408d7a76f0b6907aeb1898a86604d7e892f194f482eb915e5e60a",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 6,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 16,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/record/view.ejs",
+      "sha256": "9616c80901963bfab202d7a2cc8e69a5792fe5aea131b97130af99487212e9b0",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 12,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 17,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 19,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css"
+        },
+        {
+          "line": 22,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/index.bundle.js"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/record/viewAudit.ejs",
+      "sha256": "de76e9dcc7db1da82be56270a7e464346dc12e75aca4942e1e427a7c73f43483",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 9,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= resolvedAppName %>/browser/main<%= page.bundleHash(resolvedAppName, 'main', '-') %>.js"
+        },
+        {
+          "line": 14,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= resolvedAppName %>/browser/styles<%= page.bundleHash(resolvedAppName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/researcher/home.ejs",
+      "sha256": "627e2cd5581b6125a73cb279e2f1b6c09d35ae413650e060a214545e585298b4",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 18,
+          "attribute": "href",
+          "value": "<%= item.href %>"
+        },
+        {
+          "line": 35,
+          "attribute": "href",
+          "value": "<%= page.base %>/record/rdmp/edit"
+        },
+        {
+          "line": 36,
+          "attribute": "href",
+          "value": "<%= page.base %>/dashboard/rdmp"
+        },
+        {
+          "line": 39,
+          "attribute": "href",
+          "value": "<%= page.t('get-advice-link') %>"
+        },
+        {
+          "line": 41,
+          "attribute": "href",
+          "value": "<%= page.base %>/getAdvice"
+        },
+        {
+          "line": 53,
+          "attribute": "href",
+          "value": "<%= page.base %>/workspaces/list"
+        },
+        {
+          "line": 56,
+          "attribute": "href",
+          "value": "<%= page.t('workspace-services-list-link') %>"
+        },
+        {
+          "line": 58,
+          "attribute": "href",
+          "value": "<%= page.base %>/availableServicesList"
+        },
+        {
+          "line": 70,
+          "attribute": "href",
+          "value": "<%= page.base %>/record/dataRecord/edit"
+        },
+        {
+          "line": 71,
+          "attribute": "href",
+          "value": "<%= page.base %>/dashboard/dataRecord"
+        },
+        {
+          "line": 82,
+          "attribute": "href",
+          "value": "<%= page.base %>/record/dataPublication/edit"
+        },
+        {
+          "line": 83,
+          "attribute": "href",
+          "value": "<%= page.base %>/dashboard/dataPublication"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/user/aaf.ejs",
+      "sha256": "13615796e32b4ca24deac1775282d4d4d6b48e5429ba327c0978314d4a2958e5",
+      "requestRows": [
+        "LEGACY-013"
+      ],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 14,
+          "attribute": "href",
+          "value": "<%= aafLoginUrl %>"
+        },
+        {
+          "line": 14,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/aaf_service_223x54.png"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/user/local.ejs",
+      "sha256": "1887184aa3c8df9aca3ab60e894629e0db50deda5f2498a0d1d0ab92bd55c66e",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 6,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 12,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/local-auth/browser/main<%=page.bundleHash('local-auth', 'main', '-') %>.js"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/user/login.ejs",
+      "sha256": "8e2bde94acaf30cd2d439dcd334e9b76791f5b5837ec400a89388dda0b4f042e",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/user/openidconnect.ejs",
+      "sha256": "90e070ec3b2962e437353b905cecdc4add51949489080f77e805c93c5ba2520e",
+      "requestRows": [
+        "LEGACY-012"
+      ],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 8,
+          "attribute": "href",
+          "value": "<%= page.root %>/user/begin_oidc"
+        },
+        {
+          "line": 8,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/Openid_connect_logo.png"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/default/user/profile.ejs",
+      "sha256": "deabcdbb091d53740a18615ea652eee98e27a4e4db9656d37a8f79f83c490601",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 5,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/userProfile/inline.bundle.js"
+        },
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/userProfile/polyfills.bundle.js"
+        },
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/userProfile/scripts.bundle.js"
+        },
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/userProfile/styles.bundle.js"
+        },
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/userProfile/vendor.bundle.js"
+        },
+        {
+          "line": 13,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/userProfile/main.bundle.js"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/default/rdmp/dashboard.ejs",
+      "sha256": "2cf4951f9f5cb76dd1902371686a88ffcdc28c77b3c4e5c8caac32929e11c513",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 3,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Open+Sans:400italic,600"
+        },
+        {
+          "line": 24,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 47,
+          "attribute": "src",
+          "value": "<%= page.root %>/images/loading.svg"
+        },
+        {
+          "line": 56,
+          "attribute": "src",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
+        },
+        {
+          "line": 59,
+          "attribute": "href",
+          "value": "<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/dynamicScriptAsset.ejs",
+      "sha256": "ca793e6d0c4e3771f3eb43137d51fe302324cba5127ea6589d8889414fb32365",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/functions.ejs",
+      "sha256": "7a299b24918d6f28814da81458b1e7d44a414ee03376402b44f5bc1f181a3acd",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/layout.ejs",
+      "sha256": "cdbdcc110143287080909496b7fe76a3d5ffabdea49e03f16a3653d2c3c2abb5",
+      "requestRows": [
+        "LEGACY-008",
+        "LEGACY-011"
+      ],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 16,
+          "attribute": "href",
+          "value": "<%= __brandTypefaceFont.regularUrl %>"
+        },
+        {
+          "line": 19,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap"
+        },
+        {
+          "line": 20,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap"
+        },
+        {
+          "line": 21,
+          "attribute": "href",
+          "value": "https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap"
+        },
+        {
+          "line": 25,
+          "attribute": "href",
+          "value": "<%= page.base %>/styles/4_1_3-bootstrap.min.css"
+        },
+        {
+          "line": 30,
+          "attribute": "href",
+          "value": "<%= page.config.appUrl %><%= page.root %>/styles/style.min.css"
+        },
+        {
+          "line": 34,
+          "attribute": "href",
+          "value": "<%= page.config.appUrl %><%= page.root %>/<%= typeof theme == 'undefined' ? page.param('theme') : theme %>/<%= typeof portal == 'undefined' ? page.param('portal') : portal %>/styles/theme.css<%= __themeCssVer %>"
+        },
+        {
+          "line": 47,
+          "attribute": "href",
+          "value": "user/login"
+        },
+        {
+          "line": 68,
+          "attribute": "src",
+          "value": "images/<%= page.config.static_assets.logoName %>"
+        },
+        {
+          "line": 98,
+          "attribute": "href",
+          "value": "<%= page.root %>"
+        },
+        {
+          "line": 140,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/jquery.min.js"
+        },
+        {
+          "line": 145,
+          "attribute": "src",
+          "value": "<%= page.base %>/js/3_4_1-bootstrap.min.js"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/misc/ng2-apps.ejs",
+      "sha256": "eb89f00bcc21737a4b6c76e3fde822965084a5e7856a4d20dd0548a77226a7f9",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    },
+    {
+      "file": "views/misc/script-tag.ejs",
+      "sha256": "c1497d02062e5508d7b995f562b48cd43090a4b4cdc69323b1dfa1cd3beeb1a8",
+      "requestRows": [],
+      "passiveResourceOrNavigationReferences": [
+        {
+          "line": 4,
+          "attribute": "src",
+          "value": "<%= src %>"
+        }
+      ],
+      "disposition": "reviewed network initiators listed; remaining EJS emits Angular mounts/ordinary assets/navigation, delegated Angular contracts cover mounted apps"
+    }
+  ],
+  "limitations": [
+    "Static resource src/href references are enumerated separately from HTTP callsites. Their delivery is covered by current page/artifact suites and prior R14 HTTP ledger.",
+    "External providers are identified, not live-qualified or represented as new server contracts.",
+    "Vendor omnivore has generic URL transport, not a concrete ReDBox API call."
+  ]
+}

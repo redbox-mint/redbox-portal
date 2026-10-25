@@ -1,0 +1,185 @@
+The "@angular-devkit/build-angular:karma" builder is deprecated as part of Angular's Webpack support deprecation. Use "@angular/build:karma" instead. For more information, see https://angular.dev/tools/cli/build-system-migration.
+26 10 2026 03:32:01.496:INFO [karma-server]: Karma v6.4.4 server started at http://localhost:9876/
+26 10 2026 03:32:01.501:INFO [launcher]: Launching browsers ChromeHeadlessNoSandbox with concurrency unlimited
+26 10 2026 03:32:01.507:INFO [launcher]: Starting browser ChromeHeadless
+26 10 2026 03:32:03.217:INFO [Chrome Headless 153.0.0.0 (Linux 0.0.0)]: Connected on socket u41Nd0d1BEDOiYXmAAAB with id 60793099
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 0 of 39 SUCCESS (0 secs / 0 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 0 of 39 SUCCESS (0 secs / 0 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 1 of 39 SUCCESS (0 secs / 0.356 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 1 of 39 SUCCESS (0 secs / 0.356 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 2 of 39 SUCCESS (0 secs / 0.361 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 2 of 39 SUCCESS (0 secs / 0.361 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 3 of 39 SUCCESS (0 secs / 0.367 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 3 of 39 SUCCESS (0 secs / 0.367 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 4 of 39 SUCCESS (0 secs / 0.371 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 4 of 39 SUCCESS (0 secs / 0.371 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 5 of 39 SUCCESS (0 secs / 0.376 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 5 of 39 SUCCESS (0 secs / 0.376 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 6 of 39 SUCCESS (0 secs / 0.381 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 6 of 39 SUCCESS (0 secs / 0.381 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 7 of 39 SUCCESS (0 secs / 0.386 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 7 of 39 SUCCESS (0 secs / 0.386 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 8 of 39 SUCCESS (0 secs / 0.391 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 8 of 39 SUCCESS (0 secs / 0.391 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 9 of 39 SUCCESS (0 secs / 0.4 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 9 of 39 SUCCESS (0 secs / 0.4 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 10 of 39 SUCCESS (0 secs / 0.404 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 10 of 39 SUCCESS (0 secs / 0.404 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KERROR: '%s', 'Failed to load user audit:', Object{name: 'Error', _type: 'Error'}
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 10 of 39 SUCCESS (0 secs / 0.404 secs)
+ERROR: '%s', 'Failed to load user audit:', Object{name: 'Error', _type: 'Error'}
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 11 of 39 SUCCESS (0 secs / 0.409 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 11 of 39 SUCCESS (0 secs / 0.409 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 12 of 39 SUCCESS (0 secs / 0.414 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 12 of 39 SUCCESS (0 secs / 0.414 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 13 of 39 SUCCESS (0 secs / 0.418 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 13 of 39 SUCCESS (0 secs / 0.418 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 14 of 39 SUCCESS (0 secs / 0.422 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 14 of 39 SUCCESS (0 secs / 0.422 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 15 of 39 SUCCESS (0 secs / 0.448 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 15 of 39 SUCCESS (0 secs / 0.448 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 16 of 39 SUCCESS (0 secs / 0.457 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 16 of 39 SUCCESS (0 secs / 0.457 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 17 of 39 SUCCESS (0 secs / 0.46 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 17 of 39 SUCCESS (0 secs / 0.46 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 18 of 39 SUCCESS (0 secs / 0.463 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 18 of 39 SUCCESS (0 secs / 0.463 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 19 of 39 SUCCESS (0 secs / 0.466 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 19 of 39 SUCCESS (0 secs / 0.466 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KERROR: '%s', 'Failed to search link candidates:', Object{name: 'Error', _type: 'Error'}
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 19 of 39 SUCCESS (0 secs / 0.466 secs)
+ERROR: '%s', 'Failed to search link candidates:', Object{name: 'Error', _type: 'Error'}
+[1A[2KERROR: '%s', 'Failed to load linked accounts:', Object{name: 'Error', _type: 'Error'}
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 19 of 39 SUCCESS (0 secs / 0.466 secs)
+ERROR: '%s', 'Failed to load linked accounts:', Object{name: 'Error', _type: 'Error'}
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 20 of 39 SUCCESS (0 secs / 0.471 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 20 of 39 SUCCESS (0 secs / 0.471 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 21 of 39 SUCCESS (0 secs / 0.474 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 21 of 39 SUCCESS (0 secs / 0.474 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 22 of 39 SUCCESS (0 secs / 1.058 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 22 of 39 SUCCESS (0 secs / 1.058 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 23 of 39 SUCCESS (0 secs / 1.062 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 23 of 39 SUCCESS (0 secs / 1.062 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 24 of 39 SUCCESS (0 secs / 1.065 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 24 of 39 SUCCESS (0 secs / 1.065 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 25 of 39 SUCCESS (0 secs / 1.077 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 25 of 39 SUCCESS (0 secs / 1.077 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 26 of 39 SUCCESS (0 secs / 1.08 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 26 of 39 SUCCESS (0 secs / 1.08 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KWARN: 'NG0953: Unexpected emit for destroyed `OutputRef`. The owning directive/component is destroyed.'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 26 of 39 SUCCESS (0 secs / 1.08 secs)
+WARN: 'NG0953: Unexpected emit for destroyed `OutputRef`. The owning directive/component is destroyed.'
+[1A[2KERROR: '%s', 'Failed to load user audit:', Object{name: 'Error', _type: 'Error'}
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 26 of 39 SUCCESS (0 secs / 1.08 secs)
+ERROR: '%s', 'Failed to load user audit:', Object{name: 'Error', _type: 'Error'}
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 27 of 39 SUCCESS (0 secs / 1.554 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 27 of 39 SUCCESS (0 secs / 1.554 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 28 of 39 SUCCESS (0 secs / 1.556 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 28 of 39 SUCCESS (0 secs / 1.556 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 29 of 39 SUCCESS (0 secs / 1.558 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 29 of 39 SUCCESS (0 secs / 1.558 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KWARN: 'NG0953: Unexpected emit for destroyed `OutputRef`. The owning directive/component is destroyed.'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 29 of 39 SUCCESS (0 secs / 1.558 secs)
+WARN: 'NG0953: Unexpected emit for destroyed `OutputRef`. The owning directive/component is destroyed.'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 30 of 39 SUCCESS (0 secs / 2.034 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 30 of 39 SUCCESS (0 secs / 2.034 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 31 of 39 SUCCESS (0 secs / 2.036 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 31 of 39 SUCCESS (0 secs / 2.036 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 32 of 39 SUCCESS (0 secs / 2.039 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 32 of 39 SUCCESS (0 secs / 2.039 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 33 of 39 SUCCESS (0 secs / 2.041 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 33 of 39 SUCCESS (0 secs / 2.041 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 34 of 39 SUCCESS (0 secs / 2.044 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 34 of 39 SUCCESS (0 secs / 2.044 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 35 of 39 SUCCESS (0 secs / 2.046 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 35 of 39 SUCCESS (0 secs / 2.046 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 36 of 39 SUCCESS (0 secs / 2.049 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 36 of 39 SUCCESS (0 secs / 2.049 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KWARN: 'NG0953: Unexpected emit for destroyed `OutputRef`. The owning directive/component is destroyed.'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 36 of 39 SUCCESS (0 secs / 2.049 secs)
+WARN: 'NG0953: Unexpected emit for destroyed `OutputRef`. The owning directive/component is destroyed.'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 37 of 39 SUCCESS (0 secs / 2.524 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 37 of 39 SUCCESS (0 secs / 2.524 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 38 of 39 SUCCESS (0 secs / 2.531 secs)
+[1A[2KDEBUG: 'Manage Users waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 38 of 39 SUCCESS (0 secs / 2.531 secs)
+DEBUG: 'Manage Users waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 39 of 39 SUCCESS (0 secs / 2.537 secs)
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 39 of 39 SUCCESS (2.619 secs / 2.537 secs)
+TOTAL: 39 SUCCESS

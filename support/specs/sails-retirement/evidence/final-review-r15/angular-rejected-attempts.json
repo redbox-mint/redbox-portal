@@ -1,0 +1,53 @@
+{
+  "rejectedAttempts": [
+    {
+      "artifact": "angular-logs/manage-users-negative.log",
+      "accepted": false,
+      "reason": "Typed fixture omitted required User fields; TypeScript compile/load error, no valid incoming runtime reproduction."
+    },
+    {
+      "artifact": "angular-logs/manage-users-negative-v2.log",
+      "accepted": false,
+      "reason": "Typed fixture Role entries still omitted required users/hasRole fields; TypeScript compile/load error, no valid incoming runtime reproduction."
+    },
+    {
+      "artifact": "angular-logs/manage-roles-negative.log",
+      "accepted": false,
+      "reason": "Shared mutable fixture polluted selected roles. Two cases returned Please select at least one role. Superseded by isolated fixtures in negative-v2."
+    },
+    {
+      "artifact": "angular-logs/companion-components-rejected-fixture.log",
+      "accepted": false,
+      "reason": "New browser fixture assigned read-only isVisible getter. Superseded by spyOnProperty fixture; no runtime defect inferred from this failure."
+    },
+    {
+      "artifact": null,
+      "accepted": false,
+      "reason": "Initial focused form invocation used unsupported ng test --port; command rejected before test execution. Terminal error retained in session, no valid runtime proof."
+    },
+    {
+      "artifact": null,
+      "accepted": false,
+      "reason": "Earlier focused form compile was cancelled while finalizing specs before browser execution. Not accepted as a gate."
+    }
+  ],
+  "acceptedIncomingControls": [
+    {
+      "artifact": "angular-logs/manage-users-negative-v3.log",
+      "expectedFailures": 16,
+      "passingControls": 23,
+      "reason": "Actual incoming consumer rejects HttpErrorResponse at all4 methods \u00d74 statuses; validated fixtures."
+    },
+    {
+      "artifact": "angular-logs/manage-roles-negative-v2.log",
+      "expectedFailures": 4,
+      "passingControls": 1,
+      "reason": "Actual incoming role save rejects HttpErrorResponse at4 statuses; fresh nonempty role selection each case."
+    },
+    {
+      "artifact": "angular-companion-results.json",
+      "expectedIncoming403": 6,
+      "reason": "Installed RequestClient + extracted incoming provider options + native session/CSRF. Valid nested Tus token; outer missing token denied403 before provider dispatch."
+    }
+  ]
+}

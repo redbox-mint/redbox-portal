@@ -1,0 +1,33 @@
+{
+  "kind": "actual-static-mount-http-plus-baseline-source-comparison",
+  "inherited": true,
+  "baselineProjects": [],
+  "currentProjects": [],
+  "referencesUnchanged": true,
+  "results": [
+    {
+      "url": "/angular/userProfile/inline.bundle.js",
+      "status": 404
+    },
+    {
+      "url": "/angular/userProfile/polyfills.bundle.js",
+      "status": 404
+    },
+    {
+      "url": "/angular/userProfile/scripts.bundle.js",
+      "status": 404
+    },
+    {
+      "url": "/angular/userProfile/styles.bundle.js",
+      "status": 404
+    },
+    {
+      "url": "/angular/userProfile/vendor.bundle.js",
+      "status": 404
+    },
+    {
+      "url": "/angular/userProfile/main.bundle.js",
+      "status": 404
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "kind": "native-http-with-domain-ports",
+  "baselineServer": false,
+  "count": 30,
+  "results": [
+    {
+      "scope": "identity",
+      "route": "POST /api/users/token/generate",
+      "selection": "query.id",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "POST /api/users/token/revoke",
+      "selection": "query.id",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "GET /api/users/:id/links",
+      "selection": "path.id",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "GET /api/users/:id/audit",
+      "selection": "path.id",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "GET /admin/users/:id/links",
+      "selection": "path.id",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "GET /admin/users/:id/audit",
+      "selection": "path.id",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "GET /api/users/link/candidates",
+      "selection": "query.primaryUserId",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "POST /api/users/link",
+      "selection": "body.primaryUserId,body.secondaryUserId",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "GET /admin/users/link/candidates",
+      "selection": "query.primaryUserId",
+      "status": 200
+    },
+    {
+      "scope": "identity",
+      "route": "POST /admin/users/link",
+      "selection": "body.primaryUserId,body.secondaryUserId",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "PUT /api/records/metadata/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "PUT /api/records/objectmetadata/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "PUT /api/deletedrecords/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /api/deletedrecords/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /api/records/metadata/record-1",
+      "selection": "path.oid",
+      "status": 200,
+      "permanent": false,
+      "intent": "delete"
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /api/records/metadata/record-1?permanent=true",
+      "selection": "path.oid",
+      "status": 200,
+      "permanent": true,
+      "intent": "purge"
+    },
+    {
+      "scope": "record",
+      "route": "POST /api/records/permissions/edit/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /api/records/permissions/edit/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "POST /api/records/permissions/view/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /api/records/permissions/view/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "POST /api/records/permissions/editRole/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /api/records/permissions/editRole/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "POST /api/records/permissions/viewRole/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /api/records/permissions/viewRole/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "POST /api/records/workflow/step/review/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "PUT /recordmeta/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /record/delete/record-1?permanent=true",
+      "selection": "path.oid",
+      "status": 200,
+      "permanent": false,
+      "intent": "delete"
+    },
+    {
+      "scope": "record",
+      "route": "PUT /record/delete/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "DELETE /record/destroy/record-1",
+      "selection": "path.oid",
+      "status": 200
+    },
+    {
+      "scope": "record",
+      "route": "POST /record/workflow/step/review/record-1",
+      "selection": "path.oid",
+      "status": 200
+    }
+  ]
+}

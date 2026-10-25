@@ -1,0 +1,1342 @@
+{
+  "featureBase": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "initialHead": "bda01cb2525ef31bdb1f449ddb7ea52e52deafb3",
+  "finalRuntimeTestInputs": "709483c4670583677e8318cb9dadc14fa362b549",
+  "compiledRuntimeAndConfiguration": "709483c4670583677e8318cb9dadc14fa362b549",
+  "localEvidenceDirectory": ".tmp/sails-retirement/final-review-r15",
+  "toolchain": {
+    "node": "v26.11.1",
+    "npm": "11.20.0",
+    "mongo": "db version v9.0.4\nBuild Info: {\n    \"version\": \"9.0.4\",\n    \"gitVersion\": \"64ade602b836c9adeffba7fa038c887ffab56196\",\n    \"openSSLVersion\": \"OpenSSL 3.5.5 27 Jan 2026\",\n    \"modules\": [],\n    \"allocator\": \"tcmalloc-google\",\n    \"javascriptEngine\": \"mozjs-wasm\",\n    \"environment\": {\n        \"distmod\": \"ubuntu2604\",\n        \"distarch\": \"x86_64\",\n        \"target_arch\": \"x86_64\"\n    }\n}",
+    "images": [
+      {
+        "name": "sr-final-r15-compile",
+        "image": "redbox-portal:sr-p8-5088f4a7a-test"
+      },
+      {
+        "name": "sr-final-r15-builder",
+        "image": "redbox-portal:sr-p8-5088f4a7a-test"
+      },
+      {
+        "name": "sr-final-r15-mailpit",
+        "image": "d5ecbb067db3"
+      },
+      {
+        "name": "sr-final-r15-keycloak",
+        "image": "8d44614c7479"
+      },
+      {
+        "name": "sr-final-r15-solr",
+        "image": "8a731ef4d814"
+      },
+      {
+        "name": "sr-final-r15-auth-mongo",
+        "image": "dc28ed5a9d0f"
+      },
+      {
+        "name": "sr-final-r15-mongo",
+        "image": "dc28ed5a9d0f"
+      }
+    ],
+    "dockerHost": "unix:///run/sr-p7-isolated/docker.sock",
+    "imagesBuilt": 0
+  },
+  "suiteResults": {
+    "core-default-final.log": {
+      "passed": 5631,
+      "pending": 7,
+      "failures": 0
+    },
+    "core-real-final.log": {
+      "passed": 224,
+      "pending": 0,
+      "failures": 0
+    },
+    "CompanionLifecycleProbe-final.log": {
+      "passed": 2,
+      "pending": 0,
+      "failures": 0
+    },
+    "CompanionUploadsMongo-final.log": {
+      "passed": 6,
+      "pending": 0,
+      "failures": 0
+    },
+    "root-final.log": {
+      "passed": 422,
+      "pending": 10,
+      "failures": 0
+    },
+    "storage-final-clean.log": {
+      "passed": 306,
+      "pending": 0,
+      "failures": 0
+    },
+    "dev-tools-final-clean.log": {
+      "passed": 53,
+      "pending": 0,
+      "failures": 0
+    },
+    "pdf-unit-final.log": {
+      "passed": 79,
+      "pending": 0,
+      "failures": 0
+    },
+    "docs-test-final.log": {
+      "passed": 4,
+      "pending": 0,
+      "failures": 0
+    },
+    "playwright-harness-final.log": {
+      "passed": 19,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "production-host-final.log": {
+      "passed": 1,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "generated-institution-final.log": {
+      "passed": 1,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "hook-qualification-final.log": {
+      "passed": 5,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "closure-tests-final.log": {
+      "passed": 17,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "playwright-full-final.xml": {
+      "testcases": 124,
+      "suites": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "retirement-browser-final.xml": {
+      "testcases": 4,
+      "suites": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-general-final.xml": {
+      "testcases": 557,
+      "suites": 309,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-oidc-final.xml": {
+      "testcases": 17,
+      "suites": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-s3-final.xml": {
+      "testcases": 12,
+      "suites": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "pdf-final.xml": {
+      "testcases": 10,
+      "suites": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "inputAudit": {
+    "commit": "709483c4670583677e8318cb9dadc14fa362b549",
+    "checkedFiles": 1347,
+    "differences": []
+  },
+  "runtimeDependencyOverlay": {
+    "runtime": [
+      {
+        "owner": "./packages/redbox-core/package.json",
+        "path": "/opt/redbox-portal/packages/redbox-core/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      },
+      {
+        "owner": "./node_modules/router/package.json",
+        "path": "/opt/redbox-portal/node_modules/router/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      }
+    ],
+    "cleanSource": [
+      {
+        "owner": "./packages/redbox-core/package.json",
+        "path": "/tmp/sr-r15-clean-source/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      },
+      {
+        "owner": "./node_modules/router/package.json",
+        "path": "/tmp/sr-r15-clean-source/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      }
+    ]
+  },
+  "reviewDisposition": {
+    "classA": {
+      "P1": 0,
+      "P2": 3,
+      "underlyingContractFamilies": 2
+    },
+    "fixes": [
+      {
+        "id": "R15-ANG-01",
+        "classification": "A",
+        "priority": "P2",
+        "family": "native HTTP rejection handling",
+        "app": "manage-users",
+        "methods": [
+          "genKey",
+          "revokeKey",
+          "updateUserSubmit",
+          "newUserSubmit"
+        ],
+        "wrongBehavior": "Visible pending text remains and failure is not displayed when native typed HTTP error rejects awaited promise.",
+        "fix": "Narrow local catches preserve draft/modal and show safe error/fallback.",
+        "parentCommit": "8b091d8dc",
+        "browserGreen": 39,
+        "newRegressionCases": 16,
+        "proofs": [
+          "angular-consumer-results.json",
+          "angular-logs/manage-users-negative-v3.log"
+        ]
+      },
+      {
+        "id": "R15-ANG-02",
+        "classification": "A",
+        "priority": "P2",
+        "family": "native HTTP rejection handling",
+        "app": "manage-roles",
+        "methods": [
+          "saveCurrentUser"
+        ],
+        "wrongBehavior": "Role save remains Saving and failure is not displayed when native typed HTTP error rejects awaited promise.",
+        "fix": "Narrow local catch preserves selected roles and displays failure.",
+        "parentCommit": "e4a198691",
+        "browserGreen": 5,
+        "newRegressionCases": 4,
+        "proofs": [
+          "angular-consumer-results.json",
+          "angular-logs/manage-roles-negative-v2.log"
+        ]
+      },
+      {
+        "id": "R15-ANG-03",
+        "classification": "A",
+        "priority": "P2",
+        "family": "Companion outer CSRF wiring",
+        "app": "form",
+        "components": [
+          "FileUploadComponent",
+          "DataLocationComponent"
+        ],
+        "wrongBehavior": "All6cloud-provider configurations omit outer X-CSRF-Token; native Companion POST returns403 despite valid nested Tus token.",
+        "fix": "Initial CSRF-only companionHeaders and delayed provider.setCompanionHeaders; unrelated Tus headers are not forwarded.",
+        "parentCommit": "709483c46",
+        "browserGreen": 54,
+        "newRegressionCases": 4,
+        "proofs": [
+          "angular-companion-results.json",
+          "angular-logs/companion-components-green.log"
+        ]
+      }
+    ],
+    "standards": {
+      "additionalConfirmedP1P2": 0,
+      "additionalConfirmedP3": 0,
+      "review": "persistence-review.md"
+    },
+    "spec": {
+      "confirmedAppBoundaryP2": 3,
+      "review": "angular-review.md"
+    },
+    "angular": {
+      "projects": 22,
+      "productionTypeScript": 259,
+      "productionTemplates": 80,
+      "httpCallSites": 123,
+      "consumerEdges": 3129,
+      "indirectSites": 33,
+      "contracts": 123,
+      "distinctNativeRoutes": 128,
+      "unmatchedCalls": 0,
+      "negativeControls": 3
+    },
+    "otherAngularNetwork": {
+      "sites": 149,
+      "byKind": {
+        "font-load": 1,
+        "dom-resource-url": 2,
+        "inline-rendered-html": 5,
+        "window-navigation": 3,
+        "tus-installation": 2,
+        "companion-installation": 6,
+        "build-chunk": 26,
+        "inline-template-resource": 3,
+        "external-tile-source": 1,
+        "inline-fragment-no-http": 2,
+        "local-blob-no-http": 1,
+        "reload-navigation": 1,
+        "location-navigation": 2,
+        "dynamic-native-caller": 3,
+        "i18next-backend": 1,
+        "dynamic-native-module": 1,
+        "base-no-http": 20,
+        "template-resource": 35,
+        "fragment-no-http": 31,
+        "rendered-html": 3
+      },
+      "sharedPackageTypeScript": 141
+    },
+    "legacyEjs": {
+      "sourceFiles": 58,
+      "requestInitiators": 15,
+      "passiveReferences": 164
+    },
+    "persistence": {
+      "files": 693,
+      "fileStates": {
+        "changed-or-moved-file": 253,
+        "new-or-extracted-file": 156,
+        "unchanged-file-control": 284
+      },
+      "methods": 4452,
+      "methodStates": {
+        "changed-body": 863,
+        "new-or-extracted": 782,
+        "unchanged-body-control": 2807
+      },
+      "writeCandidates": 1485,
+      "excludedCandidates": 27,
+      "argumentStates": {
+        "changed-arguments-review": 63,
+        "new-or-extracted-call": 307,
+        "unchanged-argument-tokens": 1088
+      },
+      "contractFields": 643,
+      "contractFieldStates": {
+        "added-or-changed": 2,
+        "unchanged": 641
+      },
+      "defaultSources": {
+        "changed": 2,
+        "unchanged": 17
+      }
+    },
+    "persistedModels": 49,
+    "executed": {
+      "angularBrowser": 98,
+      "angularNewRegressions": 24,
+      "nativeIdentityConsumers": 10,
+      "nativeCompanionRequests": 24,
+      "nativeCompanionDelayedControls": 2,
+      "extractedP3Consumers": 59,
+      "nativeTargetControls": 30,
+      "adjacentParentTests": 173,
+      "persistenceObservations": 18,
+      "pairedDocuments": 5,
+      "focusedPrisma": 30
+    },
+    "idTargetRoutes": 95,
+    "r14WrongFixes": 0,
+    "r14P3Disposition": "Added/omitted-fields and residual error/cache/audit/wording notes retained. Identity HTTP-rejection subset promoted to two app-boundary P2s.",
+    "backlogAdded": [
+      "B-10"
+    ],
+    "acceptedInstitutionGap": [
+      "SR-005",
+      "SR-045",
+      "SR-049",
+      "SR-055"
+    ],
+    "runtimeTestRevision": "709483c4670583677e8318cb9dadc14fa362b549",
+    "noFurtherRuntimeOrTestChanges": true
+  },
+  "acceptedInstitutionGap": [
+    "SR-005",
+    "SR-045",
+    "SR-049",
+    "SR-055"
+  ],
+  "cleanup": {
+    "ownedContainersRemaining": 0,
+    "ownedNetworksRemaining": 0,
+    "ownedVolumesRemaining": 0,
+    "ownedFirewallRulesRemaining": 0,
+    "temporaryArtifactMountsRemaining": 0,
+    "artifactCacheRelocationUsed": false,
+    "imagesBuilt": 0,
+    "restoredIsolatedDaemonAndContainerdStopped": true,
+    "roundHostsAliasesRemaining": 0
+  },
+  "evidenceScope": "Final suite/static results are accepted qualification; expected negative controls and explicitly rejected fixture/driver attempts remain hashed separately and supply no final gate. Existing images with current compiled overlays were reused; no replacement immutable-image or topology-matrix qualification is claimed.",
+  "pins": {
+    "manifests": 23,
+    "declarations": 377,
+    "localReferences": 20,
+    "violations": []
+  },
+  "lockRoots": {
+    "locks": [
+      "package-lock.json",
+      "packages/redbox-core/package-lock.json",
+      "packages/redbox-dev-tools/package-lock.json",
+      "packages/redbox-hook-dev/package-lock.json",
+      "packages/sails-hook-redbox-pdfgen/package-lock.json",
+      "packages/sails-hook-redbox-storage-mongo/package-lock.json"
+    ],
+    "violations": []
+  },
+  "sourceClosure": {
+    "commit": "709483c4670583677e8318cb9dadc14fa362b549",
+    "tree": null,
+    "scannedFiles": 1153,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates.",
+    "violations": [],
+    "dependencies": []
+  },
+  "compiledClosure": {
+    "commit": null,
+    "tree": "/opt/redbox-portal",
+    "scannedFiles": 6259,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates.",
+    "violations": [],
+    "dependencies": []
+  },
+  "sourceInventory": {
+    "sourceCommit": "709483c4670583677e8318cb9dadc14fa362b549",
+    "method": {
+      "trackedFiles": 4979,
+      "pattern": "sails|Sails|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket",
+      "committedTreeOnly": true,
+      "limitation": "Text inventory plus manually documented native owners/routes; symbols in comments are candidates, not proof of execution. Ignored/generated working-tree output and installed dependencies require separate probes."
+    },
+    "counts": {
+      "build-deployment-tooling": 15,
+      "repository-metadata": 3,
+      "dependency-lock": 9,
+      "package-metadata": 9,
+      "browser-views": 158,
+      "reference-only": 546,
+      "application-owned-config": 6,
+      "maintenance-entrypoint": 1,
+      "core-domain": 152,
+      "route-policy-contract": 4,
+      "http-config-middleware": 9,
+      "core-lifecycle-cache": 1,
+      "persistence-owner": 5,
+      "test-harness": 153,
+      "scaffold-tooling": 11,
+      "development-hook": 30,
+      "pdf-hook": 4,
+      "storage-hook": 3,
+      "shared-contract": 4,
+      "app-types": 1
+    },
+    "matchedFiles": 1124,
+    "matchedLines": 16476,
+    "unclassified": []
+  },
+  "baselineReconciliation": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "sourceCommit": "709483c4670583677e8318cb9dadc14fa362b549",
+    "method": "Rerun original SR-001 method; reconcile every baseline file against committed paths/candidates and successful AST/dependency closure. Removed/renamed source retains original migration owner. Historical names, finite conversions and explicit neutral parameter inputs are classified.",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1124,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "logSha256": {
+    "CompanionLifecycleProbe-final.log": "d4423fd2f4fd474b0569d888413aae0cd52ec25cdc54004ef72e9679515e22ad",
+    "CompanionUploadsMongo-final.log": "ea756807993cbb6e0f8ea2d2840194c5896c8ed10fddf12181b7dd681f55267e",
+    "angular/all-call-candidates.txt": "7525dc76b21c5745af1cfddde66a92c0477430a68cbfe7670d51ab1b14198274",
+    "angular/calls.txt": "1c8921b215c30d4d9db6a27d4b8155bca758bce616b98b6b569f1455d6e9b356",
+    "angular/companion-components-green.log": "2c129d8d65d43a53e81dc56d752ec04500e8d7c3d49ec8933c0c424736e6f122",
+    "angular/companion-components-rejected-fixture.log": "4afee5a1981466eefecd60c04461beab92bf5aba5abfef674c33eb1c3d58bf38",
+    "angular/companion-probe.log": "98df304f6f8e53e915a4d7c1dc772dca0595a1a550d8d7dc6b70ddc6fbb68a9f",
+    "angular/consumer-probes.log": "1cc9526511f781f428192ee9340f4507973c3a144ed695560e732cba5b915a2a",
+    "angular/manage-roles-green.log": "b33b5054118fe7c94b1c7d56b96fa51a35650fcbab2f87250bc25b060f15c48e",
+    "angular/manage-roles-negative-v2.log": "ba2d1d3cf75ede6d4586e1ea04ec16c6e71b1376e8bf2d813bc0aaf8b77ae70a",
+    "angular/manage-roles-negative.log": "1d5ed1c0fda891c304b403cdca1a0373a0b554e54911ff54eaa5ebb2a4632533",
+    "angular/manage-users-green.log": "4eb79f3a8301c7fae8d5fe655e1aa4c615da775a4a2274f93cc4e956873f1028",
+    "angular/manage-users-negative-v2.log": "c9db27b5cfb0bd5fe6ff12ce518c40b7b49107f41ebc0c8807bbae994c19f265",
+    "angular/manage-users-negative-v3.log": "9d7ec3ce1f007d53acf45a0c46cbed69e6ebbac286d6822da6645b5c802d51f1",
+    "angular/manage-users-negative.log": "534729bb8a4afa942059068291bf715f3e5e8928b379e62b507fd5bb5aa97a82",
+    "angular/network-search.txt": "53627a9de32b9c04956cbb12b8709fccdf662f9cdeaf3c7b43b873b82edec1d9",
+    "angular/non-http-client-candidates.txt": "4d0d11ffbaa7bee844b9116e92fe18c316db651a5ac5634d3dcf262c9c02b084",
+    "angular/p3-consumers.log": "26d386e408b9fbbef95c2d40c93d0670c185758523b1fcd90579667010d9358b",
+    "angular-built-overlay.json": "ada36e38fe9f598394e2384f6d8943b29ee8521afb5803ca5304b69568ee0b15",
+    "angular-built-overlay.log": "df9ef5d3a2e620116add674653d2471eea31a5e925ac3afcdee66e67ef9d9461",
+    "asset-baseline-probe.cjs": "f4b2642bb1693bfb39f985be5b9a55501945e8267ed538670b5bd57c07ac8e8b",
+    "audit-clean-source.py": "b8f7d33e7e17b719c67fd547943c865573ad6e7af57bc4f56fd8bf45f64f4a9f",
+    "audit-inputs.py": "981b0b87f0a4461edf4c96e46f0f0d674e34534f556259fea681c8f3fdd9b2d9",
+    "audit-root-pages.py": "2dbfbcc009487a3f0255550faa8ab4be704bac1cbb495f9aed5fddd50e2e8272",
+    "auth-failure-cleanup.cjs": "4e385c3e2c4c70099202e8856323cdd58c5f50f0c33ae57ac407b7268543c145",
+    "await-clean-and-qualify.sh": "40947ced5ae0a5d0cca48e17d0a2af8839b9af01e60b0a820bb8ec060d770d5b",
+    "body-parser-before.cjs": "72bf457a1b1ceff3ee8912a5474a5afbca251c39a05927760d466c916ccc6982",
+    "browser-environment-repair.json": "c2390364be066b9382c1c19b5fae6fd6431ef85b68e32487a1952cffdaa7d6cb",
+    "browser-libs-prepare.log": "c9d1b1440a56777641812580d12889b20cf82cf00192da0e9b08314ec43a0786",
+    "browser-native-libraries-final.log": "58face8eaffeb75a3cb4a1f81d3bbc83d685997aa9f4a965a85f1663204f1f26",
+    "bruno-file-restoration.json": "51f46871e4ae2ab6a97e71a430ccbfec27a75048344cf7329c2471b40ce562ab",
+    "bruno-general-cleanup.log": "f325121b20da9abee984717487d5bd9e727c7dfa899c9e62e33fd6c651d8ec22",
+    "bruno-general-containers.log": "630f32fd98a74c0ea56ca981968f91231ca11748bd3a79b42d29ece3a438b3cd",
+    "bruno-general-final.log": "5ea75ff220cabd1a0a1d58eca89a2250131828fc7566bdbbce877af0a23ba256",
+    "bruno-general-final.xml": "0853edc7b044e8ec249233fae51f08d1a1216ba15bab757bf17c693bfe9ceb53",
+    "bruno-general-providers.log": "bd83012f5757b054f3e07077f8cbb8ea912c9008fae67f797e7ffe6a106e9be7",
+    "bruno-general-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bruno-oidc-cleanup.log": "51a19e6676bc2894d399b6fb53b8f5d02bcb402eedad09c2851e8ab994b57862",
+    "bruno-oidc-containers.log": "75fd870268876dafe8a4454e1d1c0aef329bba0002d24a89c1f422973a60c242",
+    "bruno-oidc-final.log": "bfe1cc66c110534dea257da3fc5e03c4373284113f6569de0b11b92822797943",
+    "bruno-oidc-final.xml": "750da20ff0147faceecb362c587b86216935bc68ec1f9a3a680782b668263282",
+    "bruno-oidc-providers.log": "0283817eb5dd58433360857396e4d29708442dcb3820f58a691d75414ac9a9c0",
+    "bruno-oidc-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bruno-s3-cleanup.log": "3bee6bb6a4d869425cf802514df4aff0cab5adcaf663d87a5c6b7e8a40c4bab3",
+    "bruno-s3-containers.log": "d916cba2acb08d2656680df4228ab84149c33140af848bf3472cd6455a5dae4c",
+    "bruno-s3-final.log": "026f67c9d2c3947eb7437c53a3859ef2a8b7a18c988a403a83c76fdf73b30aa8",
+    "bruno-s3-final.xml": "cacdbed6e2b003bcac479601a4bf7afc234c1957a040644010ca5c8028cbf2e4",
+    "bruno-s3-providers.log": "db828bf2e7ad78350848b7dd311ad75aab22b1cde02802294df81aa08efd5d33",
+    "bruno-s3-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build-entrypoints-ledger.py": "bb16a6d72278febeabf296aac66a69dd1387d2aa864c4a44274d118ac1263148",
+    "build-final.log": "be244fa76fc5461dc4471f34bbd14d4b86cab2b266e3da3b83e23b9e872e0758",
+    "build-parent-ledger.py": "1e7a93b859e12fd100fa5c69fe8b6af4e2905819fe25d3df268b5d9600d44a5a",
+    "build-parent-ledgers.py": "457fcb07c9c59963a7f147233aade1432dd64f80b720c4a1abfe15e1b01b756f",
+    "cache-inheritance-probe.cjs": "71f8cc2832350a9b15956b1c8c1fad35e3d6e493aa529e44c9cbb15e698baecd",
+    "clean-install-preparation.log": "2d263438b43de8a9bec7f93f14ff26569de9fbc60afe7a71bd0213239e63c1d4",
+    "clean-source-after-build.log": "bede09ea8956c4c3850d7588a9e88da7799abc3be13f846bd709a19b4c57ce90",
+    "clean-source-before-build.log": "bede09ea8956c4c3850d7588a9e88da7799abc3be13f846bd709a19b4c57ce90",
+    "clean-source-input-audit.json": "222cf4a40d6e3414df5651a854c025b477ae36b8160effdfafeab2e5fcf1d6ac",
+    "cleanup-extras.sh": "1d59ac3480c2ebae71379f2a7281fe4db89bf47fdb91368feaaea8876fd00c72",
+    "cleanup-final.log": "469bf494b9c067268a9626c03310fb2efc777900cd3f28c63eb488a14d243140",
+    "cleanup-private-engine.sh": "1b4c681318737ff8967d9bfce6874051d606ffc4e9cefb84748b9629885a946b",
+    "cleanup-restored-engine.py": "2161f6adc10ab920fe44e107f9044d509ba6da4268f31ee7ca27cc1ac3af130a",
+    "cleanup-round.sh": "5f059257812f99f9405670501a10fd05de4a726fc312b88d09bbbded345b6249",
+    "cleanup.py": "ca572e39b45c5dd17c83b2d37f3e0f1275e0c0baf95bfa8d67d677565928e152",
+    "closing-checks.py": "44ec8d9bb74a1042a883beff0460f79af63bd670b46518d7cf77f588af20107e",
+    "closure-tests-final.log": "8bef9cbf0cee903f3e4862e706b74c297b823536bc1bbd65c5a7e2ecd666fb5a",
+    "collect-r10.py": "e316cb891265157adcb5e89c8bd9785ce1d07b9b016698a1ef5460b900e8b30e",
+    "collect-r11.py": "279d149c27a5909d7ca033948d7f8b4e21c09db97fcd0bd2899cd37fb5b86576",
+    "collect-r12.py": "7a2ad0df5b1f07bce9125afd765f3cb478901b3c693b5ee82cc80e049059f7a0",
+    "collect-r13.py": "39a388f4601c7721835bc3ba45da239d9846fc64f465d96202bbb43545c31bfe",
+    "collect-r14.py": "a159d82950450bf0fda222b5795c9bebc72e376045a616bca5430f879cb47207",
+    "collect-r15.py": "c387cebe46e63371e5d91e82b5050a41bdb641c77f571f664161c1f80706cb7f",
+    "collect-results.py": "d88329e47565b5ff3aecbfd1ba2d485641d715cfaba185009c905871d5b5b1a6",
+    "collect-walkthrough.py": "216428b98297bd33866e7ae8dbf1b41f01793c72a19fbc2f171211b1655092fb",
+    "collection-first-output.log": "24824c9b001a7b6dd52fde2efb25ec9ef06be5354d362427e214ddb64f6c6162",
+    "companion-prefix-rejected/clean-source-before-build.log": "5cee70021072a2ba05b67dc0ea3c06d36aa8fbb85354ac675f7b68261bf20555",
+    "companion-prefix-rejected/clean-source-input-audit.json": "0a1e3be0fa77688017e79f1dbe9a7a300045db7fa85c9894f7d1fc2db2a09569",
+    "companion-prefix-rejected/compile-all-clean-literal.log": "38ad3496be0a4cdb687afb38ae89273d46b962f2147e54fbb954400e941e596b",
+    "companion-prefix-rejected/completion-input-audit.json": "25259ec542c43aca6c4b4efe45f390e815009681cfeab7f3ce5842faf06c15e9",
+    "companion-prefix-rejected/qualification-launch.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "companion-prefix-rejected/reason.txt": "473a911bc8b7c6fffb7b36dba65694214cfac99022c6a73a9703776871150238",
+    "companion-prefix-rejected/source-preparation-final.log": "f1b469deb669f22514ca43c2cc46eb34431f6528b64b120d10ad5071d3739b18",
+    "companion-prefix-stop.log": "72bd40baca04422b50eff55429c0e1b66e3501d36ae9b54a3df6ab16be40a820",
+    "compile-all-clean-literal.log": "22abd639275aa6a6c4dbbc2ff9752bce33905755846112b4556271afdbe8520b",
+    "compile-all-clean-result.json": "efc4091b09a218028d65d88f77240edf8d287d69cb3d4e3e005b5df32fb566ad",
+    "compiled-tree-closure-final.json": "32d3539f2a3c97e0d458a8c58ce9796fd9f30c165d60ac173fea5fd7cbd69abe",
+    "compiled-tree-closure-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compiled.revision": "3d79691248dac4ac572244630b89bc63698712e27fae0008e3c3272647b7b3f5",
+    "compiler-restart.log": "f75e1454086870a691e87fd0dd6beb782b0cc3f722ddf320245a440e72aa07c5",
+    "complete-browser-libs.py": "eb0d87d4f4512e9310a2525307222a75809353d106e96fbd3d37a1f20561b9f2",
+    "completion-input-audit.json": "c07e0e825001fc5c33ee909abe701b341c2807956e78c406e1aeeff09d3560c0",
+    "compose-maintenance-regression.py": "5a3699aa9d828f807056b2499562834c041259c06f07d61f2f67b2284dc57455",
+    "configuration-guide-application.cjs": "aa9163e6007a5feb3d9eed3906a6fd99281e622b590cbc5e298c9d52a31c4fe0",
+    "configuration-guide-local.cjs": "83c05e97f5d9def3e1e7f75952cb728938882afd7024a926fdcfe7b66a7894ab",
+    "configuration-guide-probe.cjs": "267e56fd2d8b39ac415dbe62acd192c0114809f538e949e20aceff602c4b87fa",
+    "container-cleanup.log": "cc12fbaee761acac43d071c29dbcc5ff2e35cbca1f32d934e213445a02601929",
+    "containerd-restored-version.log": "913b560fc8a5621d7fe8c25c7f5531e74ce436d448dcd1b5667d17664b06b53a",
+    "containerd.log": "ae94c0926f3b00a4d55295b13d02a9e0941b3e545745b869e4658b81a4814421",
+    "core-default-final.log": "beeb4ea28a660af3da6e2e30640c4a628a127e6c1499fbeb91ce05e6daa72297",
+    "core-fixture-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "core-real-files.txt": "00ee26047d8dee394f3a51adbe91c3d004b197de95c9015f0a4f13050118bf41",
+    "core-real-final.log": "6dc75388be0ab1066cac9be856919e281c852fbb23759e1ce2df1d5de116d7e6",
+    "dangling-images-after-cleanup.log": "ef3eca3dd24c0522ed26ca8a2fef7904358165b93598c8f6b6e382f047d2443e",
+    "dangling-images-before-cleanup.log": "ef3eca3dd24c0522ed26ca8a2fef7904358165b93598c8f6b6e382f047d2443e",
+    "dependency-pins.json": "115284cabd95943688203a51d4a1f2df4067faede1a05ad7e5a4f1a59e8f2020",
+    "dev-tools-final-clean.log": "6802bf3fd7f648b7bde017e34b2f9ba5208c234f7631ba2af11a9cb230a2791a",
+    "development-compiled.yml": "7794ca1f84f9cadbfdef3a786ccf2a801747110bb3e6a89fc61ac92ee7c304ce",
+    "disk-after-cleanup.log": "d0fd853a9b9a2c9ade3873f926314bd8a4126154c9127b0ad59bf849767e4590",
+    "doc-api-final.log": "ec255f504a977e8ccd79d66fe814581b11adf30a6ba354ae5ca898183ceb8517",
+    "docker-restored-version.log": "bc1bc40306a0264925fcf82eefa513da1e5ef8a91d0300b12373fc801f46006a",
+    "docker.log": "43b2ed6b199fd5c8e7b168c559644eb5dd70eb36157c7443b3d618adf75d8918",
+    "docs-audit-final.log": "0e1eec794e07725e3070ec101bf8bcb3766fed42a8577f03cb3f133ef6ba6a8a",
+    "docs-generation-final.log": "768414753d45bfbe9ef65b0ada19a99841e1b551a032ae7a1a8c5d87e7ef641a",
+    "docs-test-final.log": "0226fd32d9203311cba4e1d453c0c2a5504126a64a8520b85563546ee2f5413f",
+    "extract-entrypoints.cjs": "3ea97e97b78a7c51f5498eaf5eee848cded3be8ffec2b4115ab3689a8af0e6f3",
+    "failure-brand.cjs": "6b0b45512f01575d4d8dc25f218047a6c6b803ed159fab6db0f053eeed3eaf93",
+    "final-compiled.revision": "3d79691248dac4ac572244630b89bc63698712e27fae0008e3c3272647b7b3f5",
+    "final-sequence.tsv": "b8a2977a024a63b24489d95cd4f28531361eede7546527d90f363d241a76c08c",
+    "final-test-inputs.revision": "3d79691248dac4ac572244630b89bc63698712e27fae0008e3c3272647b7b3f5",
+    "finalize-entrypoints-evidence.py": "276681338d7e7cde40552522d6583e18e66d862ca95731a2e799d776692e3299",
+    "firewall-after-cleanup.log": "6e587520c0ae7a6078cd8a3282be4c6fc087954dd5064be519f286984cd1c45c",
+    "fresh-recovery-fixture.cjs": "4dd7de532915a17fe71bf1990831f82c72127dada226e3845a0d8ae03fa8f704",
+    "full-driver.log": "d56a8a160d1aa39317d17abc708a23c9a63ccdc1c933d96d952786cd08228196",
+    "full-sequence.tsv": "8a3e855e2a8d91b3cf6132750121b9c92ea87b1847e74c73f5c62755ba045093",
+    "generated-institution-final.log": "f25db0c6efcd5215c4b7c2cf83e50d9d89660746573285fb3c8038d9d6ac8d0e",
+    "generated-package-lock.json": "fc4ea60f95a4bbe22ab7f17ada3b6aa4e1731c73add58e245784480ec7bfba9c",
+    "hook-qualification-final.log": "82cf75facb6906620e5df9d407a7adcc8d8b7cf2b0aa39f5ba6840621df6c485",
+    "independent-query-only-probe.cjs": "4a2bbca006251aee615c6356a46bfe770c93217dfd059c9bd017f75223085afb",
+    "inspect-real-service-timers-rejected.cjs": "54277db0da8b256ed046912755e09392533452e3a9558dcc271ec1dc27f46789",
+    "install-qualified-angular.py": "3245fc6654a5a079a41c45d72491fa65ecb9a74991c45c4e817f8e47e83eba87",
+    "installation-secret-regression.py": "3e5e84e560ec41bb83f1e560c08fe440bda486a0e76d3b1283056420630120c8",
+    "keepalive-probe.cjs": "056d574085fe2ceb280ce2bdeb6e48e87943feb452ea233d7e969d7858d0a7ef",
+    "lint-final.log": "d796f88352bf1e0d4e70eb566ea2a1a7fee87ce4e22a3f711afa17caed7b76bb",
+    "lockfile-consistency.json": "40fcde68131f238215d2ddf0e879202cc3964556b731698db7b2f28b32e061fe",
+    "logout-endpoint-baseline.cjs": "3c6f1cc341911ddcc4815190e89867d793029df47d7bd1c7654b129e513750cb",
+    "logout-provider-state.cjs": "af7a1d1d4b616025dba32f2480db478621f240b1b9a0d550f28b5ab25103b493",
+    "maintenance-core-graph-probe.cjs": "08197ace704bab966facaf70c747ae2136b55299367d04e117f6ef2e52c84045",
+    "maintenance-packed-final.log": "24b8834c70022580ad8cbc95c7374f1dcdc38e4780a5113b4def660e4abbdb33",
+    "matcher-dependency-overlay.json": "846aa11044d2cfaff3a2181d8ddd4965a7d1f0ee99cf4c2d5f7d75d3052b056b",
+    "matcher-verification.log": "846aa11044d2cfaff3a2181d8ddd4965a7d1f0ee99cf4c2d5f7d75d3052b056b",
+    "network-cleanup.log": "c7122bc218d373054f5f170628489e01c97088740587c7bde7284237ddb3d3cc",
+    "oidc-startup-shapes.cjs": "88de9e2fc03cdd6d22947525223ef1898d94bf92c27df2d4bf94324661230a70",
+    "old-auth.cjs": "c47a1035bdf42eea2be2517bb65ed56eed04af467d500ef6487ee9e0872caa1f",
+    "old-host.cjs": "0bc4b8d2aabd7bb4e44be373dda7eb040d2140176069586decbabf646bf6a5dd",
+    "owned-anonymous-volumes.json": "a8af0a1379353c69012b5776f9462a54d8b36d611be6ce1986eaa75c1fab7333",
+    "package-pages-clean-literal.log": "bafed88ed53dcbcd99b2cbb715f9742ae00472d581a81a138e628ac369c1330f",
+    "parent-contract-controls.log": "eea9d8d6b36b4eec5e40219c05f18ff058f6c7e196a7d37452757328dd875da0",
+    "pdf-cleanup.log": "43712449896f2e36a716ee4a5352db5c14b788c9ea82eda1ea42e62eb200fe82",
+    "pdf-containers.log": "b8b2f2de6e92d80af1c7e622171e0b3c0e878783f40aba5325dbf86ed62c0048",
+    "pdf-final.log": "fbcf18c9013696a7cd72b02cb36c1da0ebe1503adf838689cf8f2b37de7d0b67",
+    "pdf-final.xml": "57601902cba0acc2f4f1dfd7d23aa632b31f303ecf21139a325f5bdd4907094c",
+    "pdf-image.yml": "e2642c04ab8d2c5e6c9ee4b35b748a3f98ba17372c503f0e5f0095122d96a26f",
+    "pdf-unit-final.log": "e5badac5c9a866f1ecbe42b66c5a4b9a013c7845f0ba9e1aa90eb88365d122c0",
+    "persistence/existing-prisma.log": "8c57364de4a97863d549b4690777dc5dc445db53445e890b79c094fb8669c083",
+    "persistence/finalize.py": "7ae05e2b22a7cb46c0d66f10376975fd3e430d45a4764d27020dc112b8ce4752",
+    "persistence/inventory.log": "f01e77ce85b6cb82044ada1b032474ddabf2bf323bc5a7b9f4773ff244fc3693",
+    "persistence/probes.log": "a395bc1ba25fe6f6ed0852a916d55770b175a970a8fc869784ab1b1c57e49e26",
+    "persistence/rejected-undeclared-root.log": "602804175844e793670f419477fe10561f462f6ef9d81f2531138ca49e877d61",
+    "playwright-final.log": "4448446d3dfff107dd2118b4bed471a8be01aa6aab2799fa0e562d94f422339f",
+    "playwright-full-final.xml": "91f516e1abf80e7dfa0974b76ba36dba983cbcd96cb2a5d5a80a053e4743a319",
+    "playwright-harness-final.log": "c080cc617a94cf6cbfa76d76124cde65a5f1c30b15350c27d54b29eb0428ccf1",
+    "playwright-index.log": "359cd437bad6e38e63f83ce8356c5033e6aa312ab9e88b9ddfab749b78d7f76c",
+    "playwright-portal.log": "8c0900346c35f20e00ea936df6a652683486847fe52e6dc3148ccc6719d1fc34",
+    "playwright-ready.json": "b342fc286d0216cc212e0d7ba234894e2e7283ddf14f959adf0fe7fd5924308a",
+    "playwright-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "playwright-solr-reset.log": "082376c64b0f2382b0728cc8da744d1b109840b5ad5abac2930e35d30f26e6d7",
+    "playwright-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "playwright-stubs.log": "daab40a4632331b48782aca31e6003aacc341093f49071cb1ff8acf415e08338",
+    "portal-config-check.log": "bb7b37790ec6f972222ce1639f646467f333a864a50715191c95400b580d73b4",
+    "preload-reviewed-login.cjs": "6c610cd5e774147e3ce47a7700a0246e7996062cb500344fa80fb9b33b47899f",
+    "prepare-browser-libs.py": "e8cca7570a64263311b16aba1e04a777b30afe213ccd08fff9e93db537f187ea",
+    "prepare-final-source.sh": "e39e3681e2004f3d8f5af6db397d4de455535325f7f1188adefdc4c9da5b6416",
+    "prisma-check.log": "1e248fd0749f94a7d335b41fb386f666258e75bf40b1662e4bad731f8f598a5d",
+    "probe-utils.cjs": "14b6eab340799bd499fb317bc3513c304d63e50e4e10faaa2167da005899e655",
+    "production-host-final.log": "e826d91cf895dce2e65c6c31db55855fb08cf80f18baddd4667a9d7a2e02fc42",
+    "production-qualifiers-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "profile-network.yml": "7f7f5a641ca656f0bf7241efeafb4bff15e78f3305d1f74085dc762e02c513af",
+    "progress-asset-byte-audit.json": "79bad4a3334bac0965b98615e48c884360f0d35e8a2a840921d44391e5c90519",
+    "progress-snapshot.py": "85723233eb8ca9670591847f52b729a769db51ffb0a2cd6e14627aba77f6b428",
+    "progress-status.py": "46a4acbaf25fb7713e5fd284dea5f47ef00d4f89a8bbf8ea6ff614f8133a1c85",
+    "qualification-launch.log": "bc4d2f7fdcc0b9f17ee01737062b14eecbc2d41a925849fa4db1f9d7c02a464a",
+    "qualify-final.sh": "9772e553114f0e07c627957d3f9b988af2e3bc75a78decd184260a39a4561b57",
+    "reconciliation-qualified.json": "289080e10c9ac27de8f2fcb399c221e411566be91503c9b220979c520c1dc17c",
+    "rehearsal-package.json": "11fe23dd02f5a758c431fbc5c3250abb2fff87cf331be3a7958a550988efa4c2",
+    "remaining-owned-containers.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "remaining-owned-networks.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "remaining-owned-volumes.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "render-route-table.cjs": "e8ac1e1cbd84b89d315504e99e522aa53119c6ed0112a9c7db01a2b7e5426f9e",
+    "reset-oidc-provider.sh": "11195f2c6820f67cfa03d74e57344d62169270ab0b8c4c14e1e4b656bc7056c5",
+    "restore-artifact-storage.py": "dbe52a8d4925a9d42e81baeb97616f29f10d10893e94197e925458de8d62c33b",
+    "restore-bruno-files.py": "b5fb03d1ceae7472de899d7450353521f0f8a135aae612d0171ccfb589379a06",
+    "restored-engine-cleanup.log": "85db4fe3be8e578db8db870898eeb2b2ac904d37a04a90c5864b44de30ee0a0b",
+    "resume-after-oidc-provider.sh": "a47501039322c73f16ff5eabe56ef80b296bd18a60f14255775486e86718579f",
+    "resume-after-pdf-fixture.sh": "52f2decc9fa1ac26715db164de9f1377bfd2e5bda6e035ef8c0560ecd9206f0a",
+    "resume-final-after-diagnostic.sh": "f14755db90370d4cc0c2a105e50bcc7edf79cb5fa88a798a8187238f559cea2f",
+    "resume-final-after-provider.sh": "ef695d0bf1d163390866c025e7a3ccb2ab13d35cb822d8558e8f07d4104bf68e",
+    "resume-final-post.sh": "b3e8cbcfc99b7ffe2e2c6c7983c78e76037c6e57f4da279350a913192f940aaf",
+    "retirement-browser-chromium-preflight.log": "dda01c13b4e730c9c5f5cb71be35ebec555c280068671c5f9211085502f4f02f",
+    "retirement-browser-environment-rejected/chromium-preflight.log": "40e2aabcb1af4f95e1e480aff4c8cea16173bcaa0bf752a56ac41a5ac6a0cf5e",
+    "retirement-browser-environment-rejected/full-driver.log": "43aa50595e78d1083fd1c570d4df6f47cb7343842cbb9f3be65e63791fd09fc2",
+    "retirement-browser-environment-rejected/full-sequence.tsv": "b80af588f8e6bdf332f478e16a7ddb8d39f5a516b6fc12f49b76dbc855df6c20",
+    "retirement-browser-environment-rejected/reason.txt": "d10585647b25d2abac6c40c86fc670796e187912f8ea2e488cd9d5acf2b2ad6f",
+    "retirement-browser-environment-rejected/retirement-browser-failed.xml": "e697b6eb7cfc6a590c6dca9bf5efeaf39aa888b6e6eb946e0f6795831cd99976",
+    "retirement-browser-environment-rejected/retirement-browser-final.log": "55f8d24ee0ffa4b59f3dba30cbcd92fb1467ceb4ee5bfe2e758bdae37b95a14d",
+    "retirement-browser-environment-rejected/retirement-browser-host.log": "caface9d9f0ce0de00291ebdb874340bc542d62fd8115d8c46e50d78840b07c4",
+    "retirement-browser-environment-rejected/retirement-browser-package.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retirement-browser-environment-rejected/retirement-browser-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retirement-browser-environment-rejected/test-results/.last-run.json": "cdd9347724a1f87f15b68f129e16a8f11f2d5da43f12fcebbaf99ba31f05dfab",
+    "retirement-browser-environment-rejected/test-results/sails-retirement-SR-044-ab-5b19c-then-persist-and-retry-stop/test-failed-1.png": "d797f185d08af2fb061d41e2a51051746353b9c04a737ad26fb28de0b2d4f82d",
+    "retirement-browser-environment-rejected/test-results/sails-retirement-SR-044-ab-5b19c-then-persist-and-retry-stop/trace.zip": "2228d31c2d2e3bad9d6bf53627da03792b78f7cd7e3262e7bf3c337f6159c1e2",
+    "retirement-browser-environment-rejected/test-results/sails-retirement-SR-044-ab-5b19c-then-persist-and-retry-stop/video.webm": "f48e9fa172c4fd589c4f3a8448a727474312e1b30725d95899d009455e34fee1",
+    "retirement-browser-final.log": "cdb1b304139705ab41b8a50683aaba102e06928d6c59956eaa2df367e7b89dbd",
+    "retirement-browser-final.xml": "fec984db99ba061f9836038d4f1c3b2df7c67a4119a5c9fbf66ec1b352a93def",
+    "retirement-browser-host.log": "2615bc5e02118965ed29dd7fedd70fa1beca62a5dd2f495594c62ed12e921967",
+    "retirement-browser-package.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retirement-browser-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "review-artifact-reverification.json": "b1ae6e8f8f00e488c0cab1f5d4eccf353a91d4ebfa77376d8d23b6985634b8cd",
+    "review-disposition.json": "540dafc90259263d4b1123383d33405bae14a3052342aa338436415f37399e38",
+    "root-final.log": "650580c8b45df906caa21bb52aad29b23aa6c46397907aed40a65b951c582473",
+    "root-page-input-audit.json": "997871b53ac16b800cc92e105fcca878aa46621b235e90c1fcc9082a8ac9f242",
+    "root-reset.log": "fd8c6f91fbc45f8ee1109eb46d9e5588c5237a295bfe3d838ec794365ebf9477",
+    "root-solr-reset.log": "408982d92ddcb5ac2ad066b78c44d99208cac08c8cef21a7d7136d6f118f5a60",
+    "routes-incoming-control.cjs": "77fb27e5dff93d9f0ea195362289d310b691f583d83a03835044abaaf415f1c1",
+    "run-bruno.sh": "95ec505280710281c0556f45b61bc3a164a1363d5536a90ad8fb927aae77733c",
+    "run-build-typechecks.sh": "d23f302d9963394ea9b8e1b08df9a28d25e55239912b1f7a19a6a8d29192434d",
+    "run-clean-literal-final.sh": "62dcb5d7126f4c6090de755edf0f024f650364a92e6ce51e35e18d872ed52129",
+    "run-completion-tail.sh": "137aa8cc7d7d1df50f525e4f05658b8459b2a317e55c98a7c54aeeec822b9ead",
+    "run-core.sh": "e2b05a1aaa34cb12087ba75e96c9b6dd303825e1b8291fd9b5a9a3b8d04238ab",
+    "run-development-mount.sh": "5f571b7989a37221cc0ffb19df82784a952046c5783c9f4d5b9a3a5b6262b38f",
+    "run-development-walkthrough.sh": "c85d14a6f2c83c6fd92c9826f3413981aa1f911a032fe76773c473608ecadd16",
+    "run-docs-lint-original.sh": "aed68f4346931f7f43c4b7dbcd6f12806e16a135cce64995c6265f47056011ca",
+    "run-docs-lint.sh": "aed68f4346931f7f43c4b7dbcd6f12806e16a135cce64995c6265f47056011ca",
+    "run-f17-repro.sh": "1f3fbc2811d1d951d55a36e43a9d8e711fda7a2824abca374c1a6cdcc2b112ea",
+    "run-final-additional.sh": "2bdbaaecd235b974d3c4b895063537ab15343dedc068106a61ac7034bc304e3c",
+    "run-final-static.sh": "3b50713c2e042884ddd45582eced286f18ac87f4c8932b751866e25b6c2042ab",
+    "run-final-typechecks.sh": "b2b184438ad1fcf9159d49fc801101803c2d3b16fd99e72aa2eca580dfdfe956",
+    "run-fresh-source-restore.sh": "3803a79a0668f20bd674310c334a637d22cedcf4758208c66323c412c4a27728",
+    "run-full-final.sh": "af357ba65885aa1f93dbca7c9d0b3bf6340f0a6e03d7ad71acbb0a34ef0694b9",
+    "run-full-qualified.sh": "88fd9fa46fd8ca505daf4e974bf35f95c2ae0e0fb63a3956dd055f23a546cbc1",
+    "run-hook-guide-final.sh": "4918eaeb49d3692d2ca554c8c5077a5c2786a346835ff4f2078fcc1cf42f4f7b",
+    "run-hook-qualification.sh": "ff858b96b26f732d8e1acd0380339f74b00b54d85c1cef5246430afd2a1a8069",
+    "run-last-qualification.sh": "e296e92a34d289395aace2de17a4e3ac632d42697f430a71bd2d8e3d5f0e4370",
+    "run-pdf-unit.sh": "5730a324b6295b53c0b801dde61a69ddcbef2f75ed345ab7420b52dd770b614f",
+    "run-pdf.sh": "493a4854f3220f9bdbc3d0ec3d5104b4350359a3401fae13485b49d5831d556c",
+    "run-playwright.sh": "ef726bcd776e4e739780fb110b09adfc33b3f2d7da14bda539e7bbdf4451922f",
+    "run-post-qualification.sh": "d164b19ab825f45d11abb692c5e5fc317ea0aa4f84b7298e17fbc8697a918f45",
+    "run-production-qualifiers.sh": "48958abe18191872aa70e0ed28ab3039eb8bc206a3ac9eb45a0a1087395a30bb",
+    "run-real-core.sh": "9f4fba84a06ef950a22998ff4fc616b20d1124084b48c9a1f2bb238a6f6189bc",
+    "run-remaining-qualification.sh": "30415c752fa74b06f72f3a417e6d75faf17cece9324b9d78c743f6203e0bf8ba",
+    "run-retirement-browser.sh": "c4f4683012512a8e7088b193220d2962ff1fe3b751df7f23c9b42ae73840e949",
+    "run-root.sh": "3b20456028edb9094c30947816d9e6a8eb44f44907228ba6b90c0e6740044af2",
+    "run-s3-final.sh": "0ba7272d0dbb68642ae7acc42f01d74934d608e989901c51bbe43a95c6e90b95",
+    "run-serial-tail.sh": "392d70733623096373119b50316ce59390cd10d3aaa6c4b71af1e26b510b843e",
+    "run-storage.sh": "ef75028760b3281595f0d32f6aebb27f0850def27bbcd09c35b1b86c4655fee3",
+    "s3-compiled.yml": "df71d2e2d5d9ec624aec973c86bdb7d698ff6900d6641be9f74e48da69247974",
+    "setup.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "setup.sh": "55edce64ca67882a2849e6ef1832da67c1a35343ec37eee10436f91dccb80b11",
+    "smtp-url-probe.cjs": "6732a09db18e484cd31398ae79ae4a7f52f5a40156d53e08548fd6c089ec614c",
+    "source-closure-qualified.json": "cf61dcde695907bf99ee0b70fe1c387f3d17ff12e169277d8c81b29c626175ee",
+    "source-inventory-qualified.json": "044811bdd9ddc8d4b549817c0292e286ca83ef1f9122d5a8515a3dbe3b466b39",
+    "source-preparation-final.log": "450b3007cc8cab96e8df4c451d0e7aad839394faadd016d912913173782db3dc",
+    "source-preparation.log": "e6fc7445048a1de7e255a3bb6fdbe6f4af12862402f26dcefaac4aec15703b13",
+    "start-engine.sh": "a550d0a163a48112fb4e8368677c96821b43365c9f8ab8faf707e7216e409660",
+    "start-final-after-clean.sh": "042586d28ef4b5de6c99dcf7b3a0aac93759a86792ea4a2683e30831ebf10bca",
+    "static-extras.cjs": "0a09071532cdd1f01017d63fd59dd8b383aa97a70512425c13e48e7a510ded0e",
+    "static-extras.log": "3727589d010437431d3410463a12646ffce7a4b88008a8bab5eda35e001d4570",
+    "storage-final-clean.log": "a3cac807ef31dafe0208f9ebfc062375614b843cdce821e4ff85ad631b9562e2",
+    "target-controls.log": "206ceb0a8efc180cd5628ccec28e0ee94d7083fc4c0b7cef6e4966727a67d7a8",
+    "toolchain-images.log": "780cc3a4fe4d96e8a09bcfc6998931f80e337ab0b710220309506e9d923bf763",
+    "toolchain-mongo.log": "02b6d74e2b9f08a82ce7d5a9c878b5dd55767e45cd526a6ed46bef6cccad264a",
+    "toolchain-node.log": "ff9f714664f5d87ac6548bb3700b0c18bd57add52ac986b01d4aec21543ccfda",
+    "toolchain-npm.log": "6784d6c924df1c8341f9f841f5b5b20c37255de3d34f923baebc0a557d5d5201",
+    "typecheck-application-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-application.log": "fa71e1ed8f1f18337b5a04afaa8663668eb14be00931c7774e66bf9837188fe3",
+    "typecheck-effect-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-effect.log": "e9ec258f1bbf256d1e05047f3ebd9d50f9691d6d336e660014de037137f271ea",
+    "typecheck-persistence-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-persistence.log": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f",
+    "typecheck-record-contracts-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-record-contracts.log": "1220e085e059c79b8fcab164f50d5e23b3c317121fc2c539c5f9bdc74a4386ae",
+    "typecheck-record-schema-tests-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-record-schema-tests.log": "f76db3ac633f0373dfba04a11cb719f7fec9f586f420a3a194e48031a9cbe908",
+    "typecheck-root-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-strict-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-strict.log": "4bed0e01e91d8edccb9a1a2132408da584d2d22b36d55291c33415b233974f54",
+    "verify-matchers.py": "59747f330d7bfb866a1f56eca5d4f42c45e40728908c7cd6b75863f8c336f186",
+    "verify-review-artifacts.py": "cb20d440bb9e0ef9ec09fe0a553685b188d63a26d10213d00d59b86138e7d1e3",
+    "verify-s3-result.cjs": "0d1eb1ba7d600c5b3c2f45144394737e591b9a914d8d85aee4a26565b9922f69"
+  },
+  "cleanSourceInputAudit": {
+    "commit": "709483c4670583677e8318cb9dadc14fa362b549",
+    "checkedFiles": 1942,
+    "differences": []
+  },
+  "generatedBrunoFiles": {
+    "test/bruno/environments/int-test.bru": {
+      "originalSha256": "06c23ad0aa72e5d68f90f3c685d00d5fa50d6aa8bddc7a14ba8c98e16396d8e3",
+      "generatedSha256": "fadd03e76d75f85e07fb61dfa01915a9aee15934cab3482df4bac3f1a8152189",
+      "restoredSha256": "06c23ad0aa72e5d68f90f3c685d00d5fa50d6aa8bddc7a14ba8c98e16396d8e3",
+      "matchesOriginal": true
+    },
+    "test/bruno/package-lock.json": {
+      "originalSha256": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+      "generatedSha256": "fc4ea60f95a4bbe22ab7f17ada3b6aa4e1731c73add58e245784480ec7bfba9c",
+      "restoredSha256": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+      "matchesOriginal": true
+    }
+  },
+  "portableReviewProbes": {
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-consumer-probes.cjs": "b5f755d29b6ecb281b1d15edfc63b21d90977fe16c445985b87aa9b792910fb4",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-companion-probe.cjs": "d3a27502f477ffeb54821b591b96be047428f111c6eff295b806df38df9c21d3",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.cjs": "7d59a915f64cb19307babaff7f84d759a721188d61bb08af28f2baf98ab56110",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-inventory.cjs": "0571c7c31a907c36729b0de3c2635a5d33394b42c68ffd409afa3f85b2303d5c",
+    "support/specs/sails-retirement/evidence/final-review-r15/target-controls.cjs": "c865baaa387d0a97c11631ae8fbd1f8855229b85c66cbca5de0d100120c3e63d",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-probes.cjs": "8f1041091086261e6b9f9e20dd2fe28a40b4f66a85b25bd4794f0007f2b35f8e",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-network-inventory.cjs": "9b215ea4ecd4695260112eb50bc872b8aa8f10b7460643b2222e6245ee27260c",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-inventory.cjs": "3bf74e4a3b316a89e179ad5761a4d5f851c2d57afb75263e97d988f3072c1c86",
+    "support/specs/sails-retirement/evidence/final-review-r15/legacy-profile-probe.cjs": "0d5efe530ac53a8a4f42b2f6bb0cfc019385d7150c47c6e8509a2262e7886224",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-p3-probes.cjs": "fbca44643dd398faa6a10b9f340aa14c4c4cac811b8c66d915bcccdfe5c7a302"
+  },
+  "rootPageInputAudit": {
+    "checkedFiles": 48,
+    "differences": []
+  },
+  "progressAssetBytes": {
+    "sha256": "b022a576a2868de83d1715794fd4567f1a1702212f15d1ebc94270583fec6dc4",
+    "rawEqualsCompiled": true
+  },
+  "packedMaintenance": {
+    "scopes": 102,
+    "agendaScopes": 3,
+    "commands": 10,
+    "pending": 0,
+    "failures": 0,
+    "explicitBackfill": "1 then 0",
+    "poolCount": 0
+  },
+  "browserFixtureEnvironment": {
+    "reason": "Fixture provider Chromium required a native library absent from the manually assembled browser dependency directory. No runtime/test source changes.",
+    "nativeImage": "sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1",
+    "library": "libwayland-server.so.0",
+    "sha256": "55bad26cd3cb8a4a5824f1ba619a409f391f6435bcfd0e6cd94278899f99de35",
+    "builderCopyMatches": true,
+    "unresolvedLibraries": 0,
+    "executablePreflight": "Google Chrome for Testing 156.0.8078.4",
+    "rejectedAttempt": "retirement-browser-environment-rejected",
+    "acceptedRetry": "all four unmodified retirement browser tests"
+  },
+  "reviewArtifactReverification": {
+    "angularRuntimeSpecInputs": 8,
+    "angularArtifacts": 27,
+    "angularSourceInputs": 480,
+    "angularSupplementalSourceInputs": 532,
+    "persistenceArtifacts": 8,
+    "persistenceSourceInputs": 693,
+    "persistenceBaselineExtractor": 1
+  },
+  "cleanSourceBuild": {
+    "exitCode": 0,
+    "npmCiExitCode": 0,
+    "packagePagesExitCode": 0,
+    "node": "v26.11.1",
+    "npm": "11.20.0",
+    "inputRevision": "709483c4670583677e8318cb9dadc14fa362b549",
+    "checkedAuthoredFiles": 1942,
+    "setup": [
+      "nvm install",
+      "nvm use",
+      "npm ci --ignore-scripts --strict-peer-deps",
+      "npm run compile:all",
+      "npm run package:pages"
+    ],
+    "compileLog": "compile-all-clean-literal.log",
+    "packageLog": "package-pages-clean-literal.log"
+  },
+  "qualificationRestarts": {
+    "voidedPrefixes": [
+      "companion-prefix-rejected: stopped e4a198691 compiler after third P2 proof, rebuilt at709483c46"
+    ],
+    "rejectedEnvironmentAttempts": [
+      "retirement-browser-environment-rejected: missing libwayland-server.so.0 prevented provider Chromium launch; all four unchanged tests rerun after copying missing native image library and verifying preflight"
+    ],
+    "interruptedPrefixesAccepted": false,
+    "observedHostRestarts": 0,
+    "finalStrategy": "pinned clean-source install/build/page packaging before browser timing qualification; fresh backend package builds/typechecks; changed Angular artifacts overlaid byte-for-byte; successful unchanged-source gates retained across environment-only browser retry"
+  },
+  "qualificationBootId": "3ba9700e-fa48-43eb-8996-88d76c6255b7",
+  "baselineAssets": {
+    "kind": "actual-static-mount-http-plus-baseline-source-comparison",
+    "inherited": true,
+    "baselineProjects": [],
+    "currentProjects": [],
+    "referencesUnchanged": true,
+    "results": [
+      {
+        "url": "/angular/userProfile/inline.bundle.js",
+        "status": 404
+      },
+      {
+        "url": "/angular/userProfile/polyfills.bundle.js",
+        "status": 404
+      },
+      {
+        "url": "/angular/userProfile/scripts.bundle.js",
+        "status": 404
+      },
+      {
+        "url": "/angular/userProfile/styles.bundle.js",
+        "status": 404
+      },
+      {
+        "url": "/angular/userProfile/vendor.bundle.js",
+        "status": 404
+      },
+      {
+        "url": "/angular/userProfile/main.bundle.js",
+        "status": 404
+      }
+    ]
+  },
+  "reviewSummary": {
+    "classA": {
+      "P1": 0,
+      "P2": 3,
+      "underlyingContractFamilies": 2
+    },
+    "fixes": [
+      {
+        "id": "R15-ANG-01",
+        "classification": "A",
+        "priority": "P2",
+        "family": "native HTTP rejection handling",
+        "app": "manage-users",
+        "methods": [
+          "genKey",
+          "revokeKey",
+          "updateUserSubmit",
+          "newUserSubmit"
+        ],
+        "wrongBehavior": "Visible pending text remains and failure is not displayed when native typed HTTP error rejects awaited promise.",
+        "fix": "Narrow local catches preserve draft/modal and show safe error/fallback.",
+        "parentCommit": "8b091d8dc",
+        "browserGreen": 39,
+        "newRegressionCases": 16,
+        "proofs": [
+          "angular-consumer-results.json",
+          "angular-logs/manage-users-negative-v3.log"
+        ]
+      },
+      {
+        "id": "R15-ANG-02",
+        "classification": "A",
+        "priority": "P2",
+        "family": "native HTTP rejection handling",
+        "app": "manage-roles",
+        "methods": [
+          "saveCurrentUser"
+        ],
+        "wrongBehavior": "Role save remains Saving and failure is not displayed when native typed HTTP error rejects awaited promise.",
+        "fix": "Narrow local catch preserves selected roles and displays failure.",
+        "parentCommit": "e4a198691",
+        "browserGreen": 5,
+        "newRegressionCases": 4,
+        "proofs": [
+          "angular-consumer-results.json",
+          "angular-logs/manage-roles-negative-v2.log"
+        ]
+      },
+      {
+        "id": "R15-ANG-03",
+        "classification": "A",
+        "priority": "P2",
+        "family": "Companion outer CSRF wiring",
+        "app": "form",
+        "components": [
+          "FileUploadComponent",
+          "DataLocationComponent"
+        ],
+        "wrongBehavior": "All6cloud-provider configurations omit outer X-CSRF-Token; native Companion POST returns403 despite valid nested Tus token.",
+        "fix": "Initial CSRF-only companionHeaders and delayed provider.setCompanionHeaders; unrelated Tus headers are not forwarded.",
+        "parentCommit": "709483c46",
+        "browserGreen": 54,
+        "newRegressionCases": 4,
+        "proofs": [
+          "angular-companion-results.json",
+          "angular-logs/companion-components-green.log"
+        ]
+      }
+    ],
+    "standards": {
+      "additionalConfirmedP1P2": 0,
+      "additionalConfirmedP3": 0,
+      "review": "persistence-review.md"
+    },
+    "spec": {
+      "confirmedAppBoundaryP2": 3,
+      "review": "angular-review.md"
+    },
+    "angular": {
+      "projects": 22,
+      "productionTypeScript": 259,
+      "productionTemplates": 80,
+      "httpCallSites": 123,
+      "consumerEdges": 3129,
+      "indirectSites": 33,
+      "contracts": 123,
+      "distinctNativeRoutes": 128,
+      "unmatchedCalls": 0,
+      "negativeControls": 3
+    },
+    "otherAngularNetwork": {
+      "sites": 149,
+      "byKind": {
+        "font-load": 1,
+        "dom-resource-url": 2,
+        "inline-rendered-html": 5,
+        "window-navigation": 3,
+        "tus-installation": 2,
+        "companion-installation": 6,
+        "build-chunk": 26,
+        "inline-template-resource": 3,
+        "external-tile-source": 1,
+        "inline-fragment-no-http": 2,
+        "local-blob-no-http": 1,
+        "reload-navigation": 1,
+        "location-navigation": 2,
+        "dynamic-native-caller": 3,
+        "i18next-backend": 1,
+        "dynamic-native-module": 1,
+        "base-no-http": 20,
+        "template-resource": 35,
+        "fragment-no-http": 31,
+        "rendered-html": 3
+      },
+      "sharedPackageTypeScript": 141
+    },
+    "legacyEjs": {
+      "sourceFiles": 58,
+      "requestInitiators": 15,
+      "passiveReferences": 164
+    },
+    "persistence": {
+      "files": 693,
+      "fileStates": {
+        "changed-or-moved-file": 253,
+        "new-or-extracted-file": 156,
+        "unchanged-file-control": 284
+      },
+      "methods": 4452,
+      "methodStates": {
+        "changed-body": 863,
+        "new-or-extracted": 782,
+        "unchanged-body-control": 2807
+      },
+      "writeCandidates": 1485,
+      "excludedCandidates": 27,
+      "argumentStates": {
+        "changed-arguments-review": 63,
+        "new-or-extracted-call": 307,
+        "unchanged-argument-tokens": 1088
+      },
+      "contractFields": 643,
+      "contractFieldStates": {
+        "added-or-changed": 2,
+        "unchanged": 641
+      },
+      "defaultSources": {
+        "changed": 2,
+        "unchanged": 17
+      }
+    },
+    "persistedModels": 49,
+    "executed": {
+      "angularBrowser": 98,
+      "angularNewRegressions": 24,
+      "nativeIdentityConsumers": 10,
+      "nativeCompanionRequests": 24,
+      "nativeCompanionDelayedControls": 2,
+      "extractedP3Consumers": 59,
+      "nativeTargetControls": 30,
+      "adjacentParentTests": 173,
+      "persistenceObservations": 18,
+      "pairedDocuments": 5,
+      "focusedPrisma": 30
+    },
+    "idTargetRoutes": 95,
+    "r14WrongFixes": 0,
+    "r14P3Disposition": "Added/omitted-fields and residual error/cache/audit/wording notes retained. Identity HTTP-rejection subset promoted to two app-boundary P2s.",
+    "backlogAdded": [
+      "B-10"
+    ],
+    "acceptedInstitutionGap": [
+      "SR-005",
+      "SR-045",
+      "SR-049",
+      "SR-055"
+    ],
+    "runtimeTestRevision": "709483c4670583677e8318cb9dadc14fa362b549",
+    "noFurtherRuntimeOrTestChanges": true
+  },
+  "angularBuiltOverlay": [
+    {
+      "application": "manage-users",
+      "source": "literal final-source Angular build",
+      "cleanPath": "/tmp/sr-r15-clean-source/.tmp/public/angular/manage-users",
+      "runtimePath": "/opt/redbox-portal/.tmp/public/angular/manage-users",
+      "files": {
+        "browser/index.html": "d3f7a73119f61a4ab59cde3047650d0ef32aababceeb71b76f6973c985ee48b6",
+        "browser/main.js.map": "6ad0d79e7e42b5b2d4d8e5cb3f7f95f8f4de55f57267ad930ccb7e8539548f70",
+        "browser/chunk-FDMHZOCR.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/main.js": "77efb5a368e69a9a5217b8e56c6aca90e56233c8b57047c735239ceb1013dcd4",
+        "browser/main.js.LICENSE.txt": "d1e2bb1552b04457d16989d0e06d879c8ed32f789db90855c92ffb825faba8b5",
+        "browser/styles.css": "d22625334c6c9a62f8b37d5d7305160bf7bd5888d0f6fbd499dc46ce06869c6f",
+        "browser/favicon.ico": "2d0a4f5a77c788b084919b1b8cad5713d9dfc3388ef29969c4cb66c28092e683",
+        "browser/styles.css.map": "f86aaec8e2a702adb597e60f3f93514336300f46748590c00cecfd99774be594",
+        "browser/chunk-FDMHZOCR.js": "e82f5b3a7a4756be73840ed7e908ff49539669578a4cd2f9fbc56ba0bccd77c2",
+        "browser/marked.esm-Y47LPW43.js": "ce30f13d8247321229e062e493291a747a52d22aa625daea84f6e7417eb83175",
+        "browser/marked.esm-Y47LPW43.js.map": "31bdd219301ecb45b882ff75cc0fecc05a243b103f1114fcfb7e2a6eef1d0a3a"
+      }
+    },
+    {
+      "application": "manage-roles",
+      "source": "literal final-source Angular build",
+      "cleanPath": "/tmp/sr-r15-clean-source/.tmp/public/angular/manage-roles",
+      "runtimePath": "/opt/redbox-portal/.tmp/public/angular/manage-roles",
+      "files": {
+        "browser/index.html": "4a8499c8a281de869c08e8310fa65d9ca80c346567c670c9b70b6cdecab9e7e1",
+        "browser/main.js.map": "a81124d5ffbf642fad1efb5fee6cdc4230880ff4e9f07f21f0a042a10f8b2bce",
+        "browser/chunk-FDMHZOCR.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/main.js": "4b0c46f8b6d391ff6db81692df916b87aa5d2b42074c494a5d9b1fd1bf33c980",
+        "browser/main.js.LICENSE.txt": "d1e2bb1552b04457d16989d0e06d879c8ed32f789db90855c92ffb825faba8b5",
+        "browser/styles.css": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "browser/favicon.ico": "2d0a4f5a77c788b084919b1b8cad5713d9dfc3388ef29969c4cb66c28092e683",
+        "browser/styles.css.map": "ed562b0bba7ee7214e56ac7f728054b3496bec4597c94a4eb7b4179e6f5cb1c9",
+        "browser/chunk-FDMHZOCR.js": "e82f5b3a7a4756be73840ed7e908ff49539669578a4cd2f9fbc56ba0bccd77c2",
+        "browser/marked.esm-Y47LPW43.js": "ce30f13d8247321229e062e493291a747a52d22aa625daea84f6e7417eb83175",
+        "browser/marked.esm-Y47LPW43.js.map": "31bdd219301ecb45b882ff75cc0fecc05a243b103f1114fcfb7e2a6eef1d0a3a"
+      }
+    },
+    {
+      "application": "form",
+      "source": "literal final-source Angular build",
+      "cleanPath": "/tmp/sr-r15-clean-source/.tmp/public/angular/form",
+      "runtimePath": "/opt/redbox-portal/.tmp/public/angular/form",
+      "files": {
+        "browser/terra-draw-openlayers-adapter.modern-5WICOSUN.js.map": "7394d49ca9cb49a4aeffe57c0c05ffd7afc85846eef3813190e0fa3e60a1cfda",
+        "browser/date-input.component.css.map": "b454e7d34e5a71705feaa777e3d44a0eabc2f3093491cc7b134eb5b07f5758e2",
+        "browser/validation-summary.component.css.map": "98fc1adea7c4969d3ed5c227d7d62aacf2ddc2f5f41dcbe94038b55b2587cbd6",
+        "browser/terra-draw.modern-M6CRMTXG.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/Circle-YPBGERFE.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/chunk-MRKBIVYN.js": "462b00ae80eab3140eb0cb2d0feddfa17421f5381ffb309cc4b32cea4b4f9586",
+        "browser/chunk-TO7IAQIF.js.map": "8f0f3678cd40fb5e76f619edf28fc86c80b89728f82cea95113bd8d7c524733b",
+        "browser/chunk-DDIIHRTJ.js": "88fd2be68e4b94212835523db8c20e2f20e53fef738ceaaf171d0c958424589f",
+        "browser/index.html": "d3b8ec1944f1807671923d72a3e33c8518be67f97ed337aeb04b2e7f6bd47ea6",
+        "browser/chunk-6NSJ53FV.js.map": "d494506bddaa6530f32b621f95debb832d68b34f73b0070b91945b809f4da182",
+        "browser/chunk-EDKG7B4N.js.map": "a3e67e70562f3aaaf8588025673d016719627ffd32e01b5fda82c16020129969",
+        "browser/togeojson.es-44SBOGEE.js": "1b95044686488ed98c96c107e64fd4f382597b7184c3546b77658f0ec4da84af",
+        "browser/typeahead-input.component.css.map": "4a46cecb46628c45b46d030c0e8e8bccaadeb1d598a55cbbc496ee7ae59a8b37",
+        "browser/rich-text-editor.runtime-S6RRVRFV.js.map": "ff2830513c79f2138d22af91df8401d9a3976f769ad88145786681dccbec1eb8",
+        "browser/main.js.map": "e079896f7d8a5a9f2b29109988f4095bc68aea221284cd4257264368a507bc40",
+        "browser/chunk-TO7IAQIF.js": "e8d22c54b22b201fe6d3e95ba0f798dc94aae0eef4ce42aff064a94bc1fb5a00",
+        "browser/XYZ-7ULRCSTB.js": "a07cbfdcc073428ea37c461d0356640c33d9862fd8a3148325d3f49c1f53f9cf",
+        "browser/chunk-3UR25OMA.js.map": "24db1f26128279212cca2f5b2873bd94fe70e1ec614ea963b19c4d835116c465",
+        "browser/chunk-363FJYBT.js": "e8b6ccb430af957285b4e2786e97ef84bb9d11d423d764c67f847734dae8e4d5",
+        "browser/Feature-PTY6BYQ3.js": "578eb542ec28c1df934551903de02ce2b4317db420545e5a25539bcb6c5705e8",
+        "browser/chunk-AMLFQB6H.js.LICENSE.txt": "3e6b31f4e28667347341e70ab5adf0d206a46c765198a2e03a64aaef739d8b72",
+        "browser/chunk-KMQHWYZO.js.map": "25d2a244b038ea6afb6e6cc6f51aae3f279cdc500dfa3a2583e78900b914ae47",
+        "browser/chunk-VBLBQI36.js.map": "df9e32b9dd6693db051ffc0771b71876b094b361b667b9bf201a20b6db3f0904",
+        "browser/Map-GDYJR4DP.js.map": "71f8316ea7e47f132700968ae8d2672af13a7551c8334f809d1e625a5bf900a9",
+        "browser/terra-draw.modern-M6CRMTXG.js": "50c2558c44ac1bc45da49870668a98e5e27dc6520cc285820b2e973a3dda24f6",
+        "browser/data-location.component.css.map": "1b459b34cd5f0583597729c0d98d1b714a8bfde0f56bae984965572364a38e55",
+        "browser/chunk-N26QIQIX.js": "70f4f248fae5b16ed6a53e994ad0b90465e65ce37b71c72c5ae519cc8957643d",
+        "browser/chunk-WIGZT4RZ.js.map": "f8a583963173a048160bb3a1522497cb78611506634e402c1b3b9ac7e0d2d017",
+        "browser/Stroke-Q3U7YYQT.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/chunk-64F5A4LN.js.map": "7d86ab7082a10dfdb840b4512ad228e35bf4ca63771f03e37571b36a95ad3b2d",
+        "browser/chunk-NCMOGJIM.js": "9b755154951c57610333488ff7c0a4ec3287828d90dcfb95878a7eb9cd014a45",
+        "browser/main.js": "71741e657ea950bd54076fe6ef0a08e9d7e65c941a44670cce235f0caf0deddb",
+        "browser/map.component.css.map": "9d6a2e81ad41cc4da8b64c00bde354fd1f731ba02e8ad397ce65ca4311dab115",
+        "browser/chunk-4PTDSQLC.js": "90e1caea860a0a341ab1bc629087c077b6822dec6e57e77deb879920db7056f2",
+        "browser/extent-OFJF6BO4.js": "f23b5c7bafa27cea68c541cde44ab5d29a3e2552778414a580454b0b298c95db",
+        "browser/chunk-NT6P466M.js.map": "b2563d9e1a94def6a2b3006fba9aac2cda8988abb5563e146b76ff9f423cd5bb",
+        "browser/Map-GDYJR4DP.js": "5202a92d62c3f188b927c55e65ac99482cf5424a7133c63762c5654c5b2fb09b",
+        "browser/chunk-5GFLWH2U.js": "6760074d4a5efc1b7ad84e7fdd6b9233b2a9942df8f71a36c61a0e24276a161d",
+        "browser/chunk-6NSJ53FV.js": "9ac1c78e8cc385a63a0d557bd91952493d643b4a913680632c2cfb92e8bcda1b",
+        "browser/chunk-C7SJZNBU.js.map": "3e96c15ee0f078be9922fafeb8c6a227ab58125402be148366c1a5a175898840",
+        "browser/chunk-GAQEBGKH.js": "63d6286b370590c9d8c9ebc8fcaa4c8afcab934072739fff4f8ff5bb21ce6b1a",
+        "browser/chunk-UE42UBIM.js": "64241269a2cdc2143b0d8bada5a682821cbacfb4ac5a2e9ec69028803d0307ec",
+        "browser/chunk-WIGZT4RZ.js": "d8721d3386550ea88a37c97472ab96d441de2f6c211b20222c99c2e7c8c435df",
+        "browser/chunk-6KPSXYGT.js": "d00c043a8964e7ba42ccc46297a85400f573f235be4346a31332f28d144d6fae",
+        "browser/chunk-MRKBIVYN.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/chunk-IL3V5PQR.js.map": "08f975c6e9f552d7d287a50e3fb8e82f2ecb30f4e8060f9963b0586df0f54a35",
+        "browser/chunk-N26QIQIX.js.map": "1b78130b70a053caed83c3646537d17afaaf89285e34d11ddad2860d2c6501ae",
+        "browser/Fill-KJCYTOPY.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/chunk-AMLFQB6H.js.map": "2b74e6e0163db3f819626135cbf8e9fe06f17080dc9deef5c87a7611114543bf",
+        "browser/chunk-UE42UBIM.js.LICENSE.txt": "3fd48b1b50748369a5018a0bd46c73398b442e5ffd42ba9405598c9e3c1ac70e",
+        "browser/terra-draw-openlayers-adapter.modern-5WICOSUN.js": "bd1620452040f72129bbf7ff100c72704c75f736e244e4f55db3028803e9d3d2",
+        "browser/chunk-7QRHOLQP.js.map": "328dfe57fb5fd9c8c2248cdc394da370d420e3bbc8f8cfd2253845ac16db0206",
+        "browser/form-debug-panel.component-SXJCES5D.js": "d863bb8cccddcfb34e5cb2b1d2d1bc7caf92f5a2d030198b86645539443d84b1",
+        "browser/Vector-PKLDFYUF.js.map": "b93e4e5114b31aee57b27814f65cfbc0c0559f963e7f4b8c43c35f67724b5117",
+        "browser/lib-J7CGKWRJ.js.map": "c76b80099ae9809627b30bd966b92a2b843e6a5b7e9c23b7d6ef4d7f17edd269",
+        "browser/chunk-MKVA2EVB.js": "1d4d3cb49984b40ab0d5a80d426dfab0c189a97350b56da4e6b7e287184d8035",
+        "browser/chunk-GNCJS7LC.js": "85d18a1fbbec514a0fe0a8507f94158db323b020ac8a255c4900fad3d495d913",
+        "browser/chunk-7JRQXL62.js": "37aa83f52ec657199fdc7b4ecbf0767b670a5debe2c9a07cfe9b2aaf443c5fc1",
+        "browser/chunk-CLMLBWLT.js": "bdc6ed8c5d8863a6b42a47df4ef2e58afc8c3b9616ec880f8e3e0d96c3e18395",
+        "browser/chunk-KMQHWYZO.js": "03ba0acdf1782752436ce0c38612ff98ef458c3f980ff33bebff7ff23398df21",
+        "browser/chunk-LYUM2TNW.js": "93b973968329d67ebea831ab7d2b1f6d7368463e9d7fe520f78a63499562ca16",
+        "browser/chunk-AIK4AWDV.js.map": "c45a30ec78a5d5ae1572c9008e5975ea230c07866d2981ec580ebea3e2b160ea",
+        "browser/checkbox-tree.component.css.map": "a04debdba91be6388528ad3b44e1b99ad5c8b44dffcb99eae88d5ab433e74a5a",
+        "browser/chunk-AMLFQB6H.js": "6cb3f90b78be20eed8e4c7b4c00d1b785d860323d76374f914e0bc59be0fafcd",
+        "browser/GeoJSON-MGVJOOW6.js.map": "335fed438a04c9aa0c1a42a200020cc1c15bcee77a9b28979c1c3ba1c5031832",
+        "browser/Vector-PKLDFYUF.js": "dff5c1d1026c304ab076cd6352b06c4c7eb5d2e30a7cb18a36996d679532fe80",
+        "browser/file-upload.runtime-7YNLUDT3.js.LICENSE.txt": "cdf963ced7d25a0f98901a547647b4d6e2dbe0197fd78c87a059a87b0e542fe2",
+        "browser/file-upload.component.css.map": "88844ffb98de2cf6ee3e57e8d7adad75b39372626aabbe47f0556ca0e6562a69",
+        "browser/record-audit-launcher.component.css.map": "732049da1271602bdb6d874aa418b88db5d0307caa424fc0909c8f1f7241494a",
+        "browser/suggested-validation-summary.component.css.map": "ac12c0018640a286541ec872994decc822206674d65e7f972160d40e2ea0c72f",
+        "browser/lib-I3YKMIBP.js": "89b429244e2f83653954a3a2280d1adb964c3937a2f9a78921335de29e9c3136",
+        "browser/chunk-64F5A4LN.js": "e7d55c3e5c0998e71601c0e3b02e82d27f7a80fc33b09060a990f96ef0fec9ef",
+        "browser/main.js.LICENSE.txt": "2b72c207322f85a84e11a3c40ef8137d8b6bc34e910fcc185f4740213261d0c0",
+        "browser/accordion.component.css.map": "c1dc7a1940d83709fe7e81d6d4b1ebb77671480a1ce85f6182f5f9a459cd09a9",
+        "browser/Tile-D5XL4ZIO.js.map": "0c2d5fa4c91eec32800dc7dae198e1c9cac189def051b0aaf799703383107399",
+        "browser/chunk-7JRQXL62.js.map": "1be0ad7357b8810b279cd3a4161aaffcb2b6fe9669ef5187ce2c0c87b46105ca",
+        "browser/chunk-IDIK3ZLV.js.map": "a610d4948b55169956aff3abcd0fa0be45bd434da78f84e77b9a53da29eb1c3f",
+        "browser/Vector-TPZ5QHIX.js": "81e24dd0432bb5da0869ac9263572346c3b75511108274a7b6fe2e012eb5218a",
+        "browser/form-debug-panel.component.css.map": "521c099c94bda50c369466a408563e9e011142711bd4c7686507cd35600e0a09",
+        "browser/lib-J7CGKWRJ.js": "7bb390eb873b774d7608f169c821931daf06c0aae089a56538cb8b97c3ab2591",
+        "browser/chunk-JH6OZDEZ.js.map": "b408a89ae8ba86809b83bd64f8ecdacd60fbee0b09f819ce885932b8e8e2d308",
+        "browser/chunk-EDKG7B4N.js": "639e4fd8fae40befe5659bf371aca96ecb2d33d90d7ff2b5a7fea19b213c589d",
+        "browser/chunk-APOOFZNJ.js.map": "0702f763660d046f85011778d1cc7483f20958feb0d870e52c29af8927b46c4b",
+        "browser/pdf-list.component.css.map": "b6b24fb93759a76907f55f454958bf428265c33300d41e7be7d91d40788281aa",
+        "browser/chunk-MKVA2EVB.js.map": "7fff3927381725d423194967320c89bc862fce937b6cf549d213b8269ae0d4b5",
+        "browser/styles.css": "db58198e26a92864a3dc38fa71f1ca6a6aa7e700ba6ed797892436c5d790455a",
+        "browser/chunk-IL3V5PQR.js": "0b33d54ee23327480507396d119ffb9d9be768125436b7660aa473cd4a3752b8",
+        "browser/proj-N2FHXLKO.js": "933d2cd036ac54fe32b8d4da92fd55ef49e98aec6b465d9146746206821e4e05",
+        "browser/Circle-YPBGERFE.js": "4f821d059abee925ea9c12c2f79912c7ded42f18f8eb29912e7bd76f1ba5e814",
+        "browser/chunk-3UR25OMA.js": "60e9c4eaf5a3c43b88bf5f08b398efc99736d0dc3f8756e693070855121c7d45",
+        "browser/marked.esm-S66ZV7DG.js": "18960bb659ec863bd097d34574824d49064aeb7ef3fe393b5c205417517838eb",
+        "browser/Vector-TPZ5QHIX.js.map": "1e9892bfb0b3b51388c48a01e1ab9276243310761a5528d47695ec5e7bcd5011",
+        "browser/lib-ZNVNTH7S.js.map": "c741f498a43a5cbe7bd90c80af6653077f2793da35819a3de1c6af0ee6ed3144",
+        "browser/Stroke-Q3U7YYQT.js": "7d2b488e1889af213bbe18d57867c2cb1e9eecea2d947364dc24cf048560e69a",
+        "browser/Icon-ZF2DHJAB.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/chunk-E5GEYXJK.js": "398390bbdfd859e75fe17c23d7caf5779af39ff7cbb932654a1924c76f480a74",
+        "browser/chunk-AIK4AWDV.js": "24f228252ad19da123e1cde4dd6c4ad5649db2f30f32305e316d4dcf36c9b093",
+        "browser/chunk-CLMLBWLT.js.map": "22776c3a973e575855d4f87f738001bae20ea8f16a64fcec6735d4787f58828f",
+        "browser/chunk-APOOFZNJ.js": "0b921fb70a3fc5bda7792488fff564c3a328d3be40af45b16dcf609ac630d322",
+        "browser/lib-I3YKMIBP.js.map": "50c3a9d1b9212151182ff029294d092991165bb7945155e09415df7a7aedbf53",
+        "browser/Feature-PTY6BYQ3.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/chunk-BYRKPEXI.js": "a02a6698d23e0bc4c4501b3794181ab613fa85aadd69ce39b8cc0d96027647e3",
+        "browser/chunk-VBLBQI36.js": "5755e025d31b4d2ba3d7926fd3afd50d5941ba1979e02a1962a1a4f8cc1b4a1f",
+        "browser/chunk-363FJYBT.js.map": "eabed92aa131bbe009c586228b37452b01861946614298d349c610b8cf7c7616",
+        "browser/GeoJSON-MGVJOOW6.js": "114aa277cbf431dc3a66c6e055b1e2d29da9879e7b275743a78e2e28efb10606",
+        "browser/chunk-BYRKPEXI.js.map": "9f013328e715b6385107a37f58c2c96bda778301b14b666d6fdb0777e9230704",
+        "browser/form-debug-events-tab.component.css.map": "92a13e945a523ce99a79523c5334579aee0cec7d1593ed3a25aaf389c755989a",
+        "browser/XYZ-7ULRCSTB.js.map": "92785d8662675d5b3ddd9c04ee12e3855e1badeb40e0ace063847a9a7d5df7c7",
+        "browser/favicon.ico": "2d0a4f5a77c788b084919b1b8cad5713d9dfc3388ef29969c4cb66c28092e683",
+        "browser/styles.css.map": "0a6eb63dc9332ba2bca3f0d4a96d4cbbfc77cafa10528a53552e5790d70ceb66",
+        "browser/View-UWVBN43A.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/file-upload.runtime-7YNLUDT3.js": "198ee882011e5598cb07044fc5a4220fc994df8c9537c150436e094f36bc8284",
+        "browser/chunk-NCMOGJIM.js.map": "4fe6bb1bf097b89b134b7cc3fb8f84507b50afce9705dc57b0d64ffcf286be60",
+        "browser/chunk-GAQEBGKH.js.map": "89c4c0d4da739e19d384dedea8fc18d1e6b9f73921331b273efb895285a1244d",
+        "browser/proj-N2FHXLKO.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/chunk-5GFLWH2U.js.map": "54424a968d1c07ac233d5abefdbce523b4666e4eea413ce24c426029c93967f7",
+        "browser/chunk-ZYOZ7HRN.js": "6838ef99563254f455c30f26d9addd3bd36a6b499643c8c9a07a6b57cb922658",
+        "browser/Style-UK2PXO2K.js": "3c93ff76e7a7e855722c4d2321b0559fb0ef169e3c590361edfe31e807cf6856",
+        "browser/chunk-IDIK3ZLV.js": "0d535d80d3b75ccef80478eadf2143cbf74134662f89da296d2a66f9a54ddf1c",
+        "browser/chunk-GFTK3YFO.js": "ebcd18672fa01aea6135bf9b6db5e87aff8e14277cae0115ff7eec74e7c4d6e3",
+        "browser/Fill-KJCYTOPY.js": "5d03ba718f12ec3cca882966c2cdbe4b20241d7f4446f9185b2aaf1f0305911d",
+        "browser/chunk-C7SJZNBU.js": "d89010e4898b795e2f500129f38aa5dc06c6fdd2b89561b9efb37ad364a13b98",
+        "browser/chunk-GNCJS7LC.js.map": "25f15040cde9cff3a3c5e027ae56426a8119d5c5bcac1c08da8c224601d2ae0e",
+        "browser/chunk-LYUM2TNW.js.map": "bf32779a07563a7b6cccb1830b0897ec40660a47a6ef326b2ace2d229d3bb1f2",
+        "browser/record-selector.component.css.map": "f5f1c1a49229211ef0157f90d70903f32d60c88886d3b23ce99ec25cb9757b75",
+        "browser/file-upload.runtime-7YNLUDT3.js.map": "35fbdcf4174ce4db63f236bb3eb7b3ce32d027c0dce8910df2886bdacc0c8b75",
+        "browser/rich-text-editor.runtime-S6RRVRFV.js": "7e2c76f6d56946866cddf5a3eb494d6e8e35b94566ded04e56eda733170ec074",
+        "browser/chunk-N7VKOH72.js.map": "7d64dae42878e5c6824caf1beb0390acc4e544763e1dadf6a163ffc2b5d99db1",
+        "browser/rich-text-editor.component.css.map": "51637f1786340139aa3fb8f9e6ab801f68b6ec8fae9ea727cddf07b0f991353e",
+        "browser/View-UWVBN43A.js": "2a0f371189f3961b97654550a360322ab045c70501a0960b15dff754666887b5",
+        "browser/chunk-JH6OZDEZ.js": "c48b05ce71c789d54797a43ea9cb9884da64db2b0dcd25782ed0c1dda743bc0b",
+        "browser/form.component.css.map": "b6dc9896ea50c0ebc67c6ecff7858fcd97337dd15a81cb22c6e68f1540d5ba4d",
+        "browser/lib-ZNVNTH7S.js": "22ab082fad075eb4900c817ff3d9a42a9f0e4180c794f3f7faabdc9415a324c4",
+        "browser/chunk-E5GEYXJK.js.map": "0f2a5af5045ecbff519f865c0200edf081693f54c26329be8cec2418f960f573",
+        "browser/chunk-UE42UBIM.js.map": "7020010d6b3c98e9a0df448fd11f28addf5b01f822d0ea8bfd4f1a29e5a88918",
+        "browser/workspace.component.css.map": "3af0ddbd9950774b48fbb50e61a8eaf08debb3477cfafff9fa6d870df38b5129",
+        "browser/chunk-7QRHOLQP.js": "98d95b4861c6fe24bb59f3f54bb87dd52cb673056dd339ba32a4021eaca02f4f",
+        "browser/Style-UK2PXO2K.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/chunk-NT6P466M.js": "c4afe22a9215ebd78354149a98af6396e48affacb63a2cad94f7c6c9a7f4a35b",
+        "browser/Icon-ZF2DHJAB.js": "2b9e029993bc75e915aa2468874d2f5890639ce723a55f86786bfdd85a691e8f",
+        "browser/extent-OFJF6BO4.js.map": "0e843eb3c3fc3dd9ecc3ae6031817b51a0e75aac95ae8879f10488a887a99095",
+        "browser/marked.esm-S66ZV7DG.js.map": "31bdd219301ecb45b882ff75cc0fecc05a243b103f1114fcfb7e2a6eef1d0a3a",
+        "browser/chunk-ZYOZ7HRN.js.map": "48aa3b41124ae4d8fb193b0c7ae8b463cd02c3ea96c24a9eb7fd38eee67d36ce",
+        "browser/Tile-D5XL4ZIO.js": "5f2c50c35a6e5a3042cd98c53bb003c03d11a5d2123a8b70978e8a4d8530b8f0",
+        "browser/form-conflict-presenter.component.css.map": "862a940a0a3c40ccc7828cc1febce58475dfe040d4d53fe0f809007c4e254ba6",
+        "browser/togeojson.es-44SBOGEE.js.map": "e04d987726d3d66c17b26855b7da1dd8792d5e75a5f18a1b547657c23c68d655",
+        "browser/chunk-DDIIHRTJ.js.map": "b7309aed4806c8f7230eabd05e89511fcfb44274221b2d9f5f6c326a91ef3fed",
+        "browser/chunk-6KPSXYGT.js.map": "b5d4c7bf8fb177c8af1a0a0d22d4a92686f6c6b5f7cb21f24f611ad44cc1840a",
+        "browser/chunk-GFTK3YFO.js.map": "900ccc841a1ce177954c3ca01c338d01b822b5650d8c9944a90feb1cfd17417c",
+        "browser/chunk-4PTDSQLC.js.map": "3b43f8ecb3622201d1ed357422833575d62a15aafa5601f42caef8a820e77bd7",
+        "browser/chunk-N7VKOH72.js": "43e526dc049cd4a49ea436a38131985527876f2525e9837311f4ac0df4bd5552",
+        "browser/form-debug-panel.component-SXJCES5D.js.map": "44f86b7753ad77d462b54a9aa57ceba4ad466d00786a23512a39a433155dad95"
+      }
+    }
+  ],
+  "focusedAngular": {
+    "manage-users": {
+      "passed": 39,
+      "failures": 0
+    },
+    "manage-roles": {
+      "passed": 5,
+      "failures": 0
+    },
+    "companion-components": {
+      "passed": 54,
+      "failures": 0
+    }
+  },
+  "evidenceArtifactSha256": {
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-probe-results.json": "9be83c65115271d227081f89d3df809622c615f36898cd8e9caa975a2802dac3",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-consumer-probes.cjs": "b5f755d29b6ecb281b1d15edfc63b21d90977fe16c445985b87aa9b792910fb4",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-review.json": "7c5a24c0c3fa86de0f62bf27087f8fc4367b60029a0a78de21b90a03c531f0e5",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-probes.log": "a395bc1ba25fe6f6ed0852a916d55770b175a970a8fc869784ab1b1c57e49e26",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-consumer-results.json": "ba2e869cb07f0751636cb0c0167b56af4a5bb352b828f68e3c34cb894b8997e8",
+    "support/specs/sails-retirement/evidence/final-review-r15/target-controls.json": "206ceb0a8efc180cd5628ccec28e0ee94d7083fc4c0b7cef6e4966727a67d7a8",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-review.md": "b89ae4d9eb3afe4b535bb9de2374d3516743b238ab9c2d8509a5039fda99e8e2",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.json": "61e29b44f38b2a5a10323814fa7d17eca7e5910c22582d1d69d00bee2c85f083",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-rejected-attempts.json": "3f444c0c6b19ed66f11e8d1161d1dfdb978ba73d380378fa325b1ca106026970",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-companion-probe.cjs": "d3a27502f477ffeb54821b591b96be047428f111c6eff295b806df38df9c21d3",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-findings.json": "16828c17d8aa69c691037d0bc42c3379b843f9dec99b3c98a25c88052882958a",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-source.json": "017fd02db04ec58161f63470c1cc2f6c948e6256501126b1d8b0f14f1b1b8b93",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-prisma.log": "8c57364de4a97863d549b4690777dc5dc445db53445e890b79c094fb8669c083",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-contracts.cjs": "7d59a915f64cb19307babaff7f84d759a721188d61bb08af28f2baf98ab56110",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-inventory.cjs": "0571c7c31a907c36729b0de3c2635a5d33394b42c68ffd409afa3f85b2303d5c",
+    "support/specs/sails-retirement/evidence/final-review-r15/target-controls.cjs": "c865baaa387d0a97c11631ae8fbd1f8855229b85c66cbca5de0d100120c3e63d",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-probes.cjs": "8f1041091086261e6b9f9e20dd2fe28a40b4f66a85b25bd4794f0007f2b35f8e",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-network-inventory.cjs": "9b215ea4ecd4695260112eb50bc872b8aa8f10b7460643b2222e6245ee27260c",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-network.json": "6253d4b9ab5cfbfd413f234d3dfad8761ffdcbe1f290b8534bf9cb4ac9321c6e",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-inventory.cjs": "3bf74e4a3b316a89e179ad5761a4d5f851c2d57afb75263e97d988f3072c1c86",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-review.md": "8c6f4897f36b5ba8500d8511f74e1669fa96001a984208ab28b19c3579f60a8d",
+    "support/specs/sails-retirement/evidence/final-review-r15/legacy-profile-results.json": "596a9e2ec74748869416e7c9a20169fdcfa78dc610b1fd9fd00d25236faf0665",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-p3-results.json": "2e538b72ed44a2d8917e516a4076452be41157aab155b21a28acfba4a0e32c2e",
+    "support/specs/sails-retirement/evidence/final-review-r15/legacy-client-contracts.json": "b61297ed777dc4c98d091f8650bf5e7ec643b95b613b0047243df40799ad818b",
+    "support/specs/sails-retirement/evidence/final-review-r15/legacy-profile-probe.cjs": "0d5efe530ac53a8a4f42b2f6bb0cfc019385d7150c47c6e8509a2262e7886224",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-p3-probes.cjs": "fbca44643dd398faa6a10b9f340aa14c4c4cac811b8c66d915bcccdfe5c7a302",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-manifest.json": "c274ad87231abeb01b245fc38391b1ba96aba23e1e0632649a087fab00d0b2da",
+    "support/specs/sails-retirement/evidence/final-review-r15/target-selection.json": "f044e0b58996b5c2291f627b2a7fc9b3816d7c30db70f949aab2f280b73e4144",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-companion-results.json": "cb2a36c1d16dfdbf34eda83e4801c87a264910cac75a65efb7b13659a862f585",
+    "support/specs/sails-retirement/evidence/final-review-r15/persistence-inventory.json": "e4c0062bb4bea95bbc7327fe3e240d9238d95f8b4f9d748dde9b3ca9cc9f7e47",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-validation.json": "aca868ca4ca8f6d10ff9e1e6f1862001f8054a1b1d4e799672b67ba87820363f",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-probe.log": "98df304f6f8e53e915a4d7c1dc772dca0595a1a550d8d7dc6b70ddc6fbb68a9f",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/consumer-probes.log": "1cc9526511f781f428192ee9340f4507973c3a144ed695560e732cba5b915a2a",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative-v2.log": "c9db27b5cfb0bd5fe6ff12ce518c40b7b49107f41ebc0c8807bbae994c19f265",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/p3-consumers.log": "26d386e408b9fbbef95c2d40c93d0670c185758523b1fcd90579667010d9358b",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-green.log": "b33b5054118fe7c94b1c7d56b96fa51a35650fcbab2f87250bc25b060f15c48e",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative.log": "534729bb8a4afa942059068291bf715f3e5e8928b379e62b507fd5bb5aa97a82",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-negative-v2.log": "ba2d1d3cf75ede6d4586e1ea04ec16c6e71b1376e8bf2d813bc0aaf8b77ae70a",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-components-rejected-fixture.log": "4afee5a1981466eefecd60c04461beab92bf5aba5abfef674c33eb1c3d58bf38",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/companion-components-green.log": "2c129d8d65d43a53e81dc56d752ec04500e8d7c3d49ec8933c0c424736e6f122",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-green.log": "4eb79f3a8301c7fae8d5fe655e1aa4c615da775a4a2274f93cc4e956873f1028",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-roles-negative.log": "1d5ed1c0fda891c304b403cdca1a0373a0b554e54911ff54eaa5ebb2a4632533",
+    "support/specs/sails-retirement/evidence/final-review-r15/angular-logs/manage-users-negative-v3.log": "9d7ec3ce1f007d53acf45a0c46cbed69e6ebbac286d6822da6645b5c802d51f1"
+  }
+}

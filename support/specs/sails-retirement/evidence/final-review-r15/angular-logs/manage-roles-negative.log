@@ -1,0 +1,49 @@
+The "@angular-devkit/build-angular:karma" builder is deprecated as part of Angular's Webpack support deprecation. Use "@angular/build:karma" instead. For more information, see https://angular.dev/tools/cli/build-system-migration.
+26 10 2026 03:28:54.832:INFO [karma-server]: Karma v6.4.4 server started at http://localhost:9877/
+26 10 2026 03:28:54.835:INFO [launcher]: Launching browsers ChromeHeadlessNoSandbox with concurrency unlimited
+26 10 2026 03:28:54.849:INFO [launcher]: Starting browser ChromeHeadless
+26 10 2026 03:28:59.965:INFO [Chrome Headless 153.0.0.0 (Linux 0.0.0)]: Connected on socket ka6g5dAc1hN56P74AAAB with id 75940175
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 0 of 5 SUCCESS (0 secs / 0 secs)
+[1A[2KDEBUG: 'Manage Roles waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 0 of 5 SUCCESS (0 secs / 0 secs)
+DEBUG: 'Manage Roles waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0) AppComponent displays a completed role-save failure for HTTP 500 and keeps the selection FAILED
+	HttpErrorResponse: Http failure response for (unknown url): 500 undefined
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 1 of 5 (1 FAILED) (0 secs / 0.274 secs)
+[1A[2KDEBUG: 'Manage Roles waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 1 of 5 (1 FAILED) (0 secs / 0.274 secs)
+DEBUG: 'Manage Roles waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0) AppComponent displays a completed role-save failure for HTTP 403 and keeps the selection FAILED
+	HttpErrorResponse: Http failure response for (unknown url): 403 undefined
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 2 of 5 (2 FAILED) (0 secs / 0.28 secs)
+[1A[2KDEBUG: 'Manage Roles waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 2 of 5 (2 FAILED) (0 secs / 0.28 secs)
+DEBUG: 'Manage Roles waiting for deps to init...'
+[1A[2KDEBUG: 'Manage Roles initComponent done'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 2 of 5 (2 FAILED) (0 secs / 0.28 secs)
+DEBUG: 'Manage Roles initComponent done'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 3 of 5 (2 FAILED) (0 secs / 0.332 secs)
+[1A[2KDEBUG: 'Manage Roles waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 3 of 5 (2 FAILED) (0 secs / 0.332 secs)
+DEBUG: 'Manage Roles waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0) AppComponent displays a completed role-save failure for HTTP 400 and keeps the selection FAILED
+	Expected 'Please select at least one role!' to contain 'Unknown role for brand'.
+	    at <Jasmine>
+	    at UserContext.<anonymous> (projects/researchdatabox/manage-roles/src/app/manage-roles.component.spec.ts:67:29)
+	    at Generator.next (<anonymous>)
+	    at asyncGeneratorStep (main.js:39:70)
+	    at _next (main.js:40:163)
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 4 of 5 (3 FAILED) (0 secs / 0.34 secs)
+[1A[2KDEBUG: 'Manage Roles waiting for deps to init...'
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 4 of 5 (3 FAILED) (0 secs / 0.34 secs)
+DEBUG: 'Manage Roles waiting for deps to init...'
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0) AppComponent displays a completed role-save failure for HTTP 0 and keeps the selection FAILED
+	Expected 'Please select at least one role!' to contain 'check the current account state'.
+	    at <Jasmine>
+	    at UserContext.<anonymous> (projects/researchdatabox/manage-roles/src/app/manage-roles.component.spec.ts:67:29)
+	    at Generator.next (<anonymous>)
+	    at asyncGeneratorStep (main.js:39:70)
+	    at _next (main.js:40:163)
+Chrome Headless 153.0.0.0 (Linux 0.0.0): Executed 5 of 5 (4 FAILED) (0 secs / 0.345 secs)
+[1A[2KChrome Headless 153.0.0.0 (Linux 0.0.0): Executed 5 of 5 (4 FAILED) (0.376 secs / 0.345 secs)
+TOTAL: 4 FAILED, 1 SUCCESS

@@ -1,0 +1,79 @@
+'use strict';
+// Supplemental non-HttpClient initiators. A source site is counted once even
+// when an uploader produces multiple protocol requests or a template repeats it.
+const fs=require('node:fs'),cp=require('node:child_process'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const ts=require(process.cwd()+'/node_modules/typescript');
+const here='support/specs/sails-retirement/evidence/final-review-r15/';
+const files=cp.execFileSync('git',['ls-files','angular/projects','packages/sails-ng-common/src'],{encoding:'utf8'}).trim().split('\n').filter(f=>!/\.(spec|test)\.ts$/.test(f));
+const native=JSON.parse(fs.readFileSync('support/specs/sails-retirement/evidence/final-review-r13/http-acceptance.json','utf8')).rows;
+const rows=[];
+function add(file,line,kind,source,contract){rows.push({id:`NET-${String(rows.length+1).padStart(3,'0')}`,file,line,kind,source,contract});}
+const resource={method:'GET',request:'URL only; no JSON body or Angular HttpContext',headersCsrf:'Browser resource/navigation headers and same-origin cookies. GET requires no CSRF. External origins use browser cookie/CORS rules.',response:'Browser consumes document/bytes; no Angular JSON field or HttpErrorResponse inspection.',status:'Resource load or navigation error; separate from HttpClient promises.'};
+const build={...resource,url:'Builder-emitted local JS chunk path. Literal package specifiers are bundled; never requested directly as bare names.',server:'Express static asset mount; generated output is parent clean-build qualified.',status:'Dynamic import rejects on load/evaluation failure; uploader, rich text, map, debug boundaries handle failure at their callers.'};
+const upload={method:'POST / HEAD / PATCH / DELETE / OPTIONS',url:'${brandingAndPortalUrl}/record/:oid/attach and returned upload URL; remote transfer selects /companion/record/:oid/attach',request:'Tus protocol headers Upload-Length/Upload-Metadata, Upload-Offset, Tus-Resumable; POST creation then PATCH byte chunks, HEAD resume, DELETE termination.',headersCsrf:'Same-origin credentials and buildTusHeaders X-CSRF-Token; current token may arrive asynchronously. Remote Tus headers live inside Companion request body, distinct from outer Companion headers.',response:'201 Location -> uploadURL/fileId; PATCH/HEAD offset/protocol headers; Uppy upload-success updates formControl attachment location/name/type/notes/size/pending.',status:'Uppy emits upload-error on protocol failure, component logs/notifies via uploader UI. Native ResumableUploads owns size/auth/protocol checks.',server:'packages/redbox-core/src/http/express/resumableUploads.ts',nativeIds:['HTTP-310','HTTP-311','HTTP-312','HTTP-313']};
+const companion={method:'GET / POST / DELETE; WebSocket remote progress',url:'configured companionUrl (defaults rootContext+/companion), provider drive/dropbox/onedrive login/list/get/mutation paths; returned websocket URL',request:'Provider query/auth metadata and remote file transfer body {protocol,endpoint,headers,metadata,...}; provider authentication adds uppy-auth-token.',headersCsrf:'Initial companionHeaders contains only X-CSRF-Token from existing getter. Delayed config calls existing provider.setCompanionHeaders, which updates RequestClient private header storage. Tus custom headers are not copied outward.',response:'Provider list/auth/remote token consumed by installed Uppy; upload socket drives completion/progress. Outer POST/DELETE must pass native apiProtect.',status:'A/P2 confirmed and fixed; angular-companion-results.json executes actual installed RequestClient with real native CSRF/session HTTP. Provider dispatch controlled; no live OAuth/cloud transfer claimed.',server:'packages/redbox-core/src/http/express/companion.ts',nativeMount:{file:'packages/redbox-core/src/http/express/companion.ts',export:'mountCompanionRoutes',path:'/companion/{*companionPath}',method:'ALL'}};
+for(const file of files.filter(f=>f.endsWith('.ts'))){
+ const source=fs.readFileSync(file,'utf8'),tree=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true);
+ const pos=n=>tree.getLineAndCharacterOfPosition(n.getStart()).line+1,txt=n=>n.getText(tree);
+ function visit(n){
+  if(ts.isCallExpression(n)){
+   const expression=txt(n.expression),first=n.arguments[0]?txt(n.arguments[0]):'',text=txt(n);
+   if(n.expression.kind===ts.SyntaxKind.ImportKeyword){
+    add(file,pos(n),ts.isStringLiteral(n.arguments[0])?'build-chunk':'dynamic-native-module',text,ts.isStringLiteral(n.arguments[0])?build:{...resource,url:'getDynamicImport constructs apiVersion=2.0 + explicit params + timestamp, retains same-origin session',request:'See dynamic module caller rows; module evaluation returns exported evaluate/form/behaviour/validator members.',response:'JavaScript module exports, not JSON envelope',status:'Rejected import is evicted from cache and propagated; dashboard/report callers catch and use their fallback.',server:'packages/redbox-core/src/http/express/pageAssets.ts',nativeIds:['HTTP-332','HTTP-333','HTTP-334','HTTP-335']});
+   } else if(expression.endsWith('.getDynamicImport')){
+    const ids=file.includes('form.service')?['HTTP-332']:text.includes('settingsFingerprint')?['HTTP-334','HTTP-335']:['HTTP-333'];
+    add(file,pos(n),'dynamic-native-caller',text,{...resource,url:file.includes('form.service')?'dynamicAsset/formCompiledItems/:recordType{/:oid}?edit=true (edit mode only)&apiVersion=2.0':text.includes('settingsFingerprint')?'dynamicAsset/{recordDashboardTemplates/:recordType/:stage|dashboardViewTemplates/:view/:step}?settingsFingerprint&apiVersion=2.0':'dynamicAsset/adminReportTemplates/:reportName?apiVersion=2.0',response:file.includes('form.service')?'Compiled form classes/validators/behaviours exports':'evaluate/template renderer exports',status:'Form failure propagated; dashboard catches and returns false/reloads settings; report catches and logs template failure.',nativeIds:ids});
+   } else if(expression.endsWith('.use')&&/TusPlugin/.test(first))add(file,pos(n),'tus-installation',text,upload);
+   else if(expression.endsWith('.use')&&/DropboxPlugin|GoogleDrivePlugin|OneDrivePlugin/.test(first))add(file,pos(n),'companion-installation',text,companion);
+   else if(expression.endsWith('.use')&&first==='HttpApi')add(file,pos(n),'i18next-backend',text,{...resource,url:'rootContext/:branding/:portal/locales/{{lng}}/{{ns}}.json; configured i18NextOpts.backend.loadPath may override (including external origin)',response:'Translation namespace object; i18next owns resource load/fallback and emits initialization errors.',status:'i18NextService init errors logged, initialization resolves fallback; no Angular mutation state.',server:'packages/redbox-core/src/http/express/metadata.ts',nativeIds:['HTTP-014','HTTP-015']});
+   else if(/(?:window|this.window)\.open$/.test(expression))add(file,pos(n),'window-navigation',text,{...resource,url:file.includes('export.component')?'/:branding/:portal/export/record/download/:format?before&after&recType':file.includes('record-audit-launcher')?'/:branding/:portal/record/viewAudit/:oid':'Current form URL plus formDebug=1&formDebugPopout=1',server:'Express protected export/page route; root-context issue if present is unchanged baseline, parent owns page host',nativeIds:file.includes('export.component')?['HTTP-115']:[]});
+   else if(/\.location\.reload$/.test(expression))add(file,pos(n),'reload-navigation',text,{...resource,url:'Current form URL after explicit conflict reload'});
+   else if(/\.setAttribute$/.test(expression)&&/^["'](?:src|href)["']$/.test(first))add(file,pos(n),'dom-resource-url',text,{...resource,url:'baseCssHref/preview cssHref returned by branding server or local base stylesheet',response:'CSS stylesheet then @font-face sources; preview URL is single-use, fetched once',status:'Preview stylesheet load triggers font loading; font failure sets data-font-status=error',server:'packages/redbox-core/src/http/express/brandingDelivery.ts',nativeIds:['HTTP-321','HTTP-322']});
+   else if(/\.load$/.test(expression)&&expression==='face.load')add(file,pos(n),'font-load',text,{...resource,url:'@font-face src URLs resolved relative to already-loaded branding preview CSS',response:'FontFace bytes; Promise.all updates preview fontStatus',server:'Protected branding typeface byte routes / static base fonts',nativeIds:['HTTP-329']});
+   else if(/^(?:fetch|(?:globalThis|window)\.fetch)$/.test(expression)||/XMLHttpRequest|WebSocket|EventSource/.test(expression))add(file,pos(n),'raw-network',text,{review:'Must be separately classified; expected none in built-in production source.'});
+  }
+  if(ts.isNewExpression(n)&&txt(n.expression)==='deps.XYZ')add(file,pos(n),'external-tile-source',txt(n),{...resource,url:'tileLayers[0].url; default https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png; expands configured subdomains',request:'Tile x/y/z substitutions and configured crossOrigin option',response:'Raster image bytes consumed by OpenLayers',status:'OpenLayers tile load error handling; no portal Express API for external default.'});
+  if(ts.isPropertyAssignment(n)&&txt(n.name)==='template'&&(ts.isNoSubstitutionTemplateLiteral(n.initializer)||ts.isStringLiteral(n.initializer))){
+   const markup=n.initializer.text,offset=pos(n.initializer)-1;
+   for(const m of markup.matchAll(/(?:\[(?:attr\.)?(href|src|action)\]|\b(href|src|action))\s*=\s*("([^"]*)"|'([^']*)')/g)){
+    const value=m[4]??m[5],fragment=value==='#'||value.startsWith("'#'");
+    add(file,offset+markup.slice(0,m.index).split('\n').length,fragment?'inline-fragment-no-http':'inline-template-resource',m[0],fragment?{method:'none',url:value,review:'In-page validation-summary fragment; click focuses existing control.'}:{...resource,url:value,review:'Inline integration-status links resolve DOI URLs on external https://doi.org; browser navigation, no portal API response consumed.'});
+   }
+   for(const m of markup.matchAll(/\[innerHTML\]\s*=\s*"([^"]*)"/g))add(file,offset+markup.slice(0,m.index).split('\n').length,'inline-rendered-html',m[0],{...resource,url:'URLs contained in sanitized/rendered configured template, content, labels or rich text HTML',review:'Dynamic HTML may contain anchors/images; finite source rendering entrypoint counted here. Content/configuration values are not enumerable built-in endpoints.'});
+  }
+  if(ts.isBinaryExpression(n)&&n.operatorToken.kind===ts.SyntaxKind.EqualsToken&&/\.(?:href|src)$/.test(txt(n.left))){
+   const text=txt(n),blob=file.includes('form.component')&&txt(n.left)==='link.href';
+   add(file,pos(n),blob?'local-blob-no-http':'location-navigation',text,blob?{method:'none',url:'URL.createObjectURL(new Blob(...))',review:'Local unsaved-values export; no HTTP request.'}:{...resource,url:'Successful login result.url or configured post-save redirectLocation. Server controls/validates native target; arbitrary institution configuration is outside finite built-ins.'});
+  }
+  ts.forEachChild(n,visit);
+ }visit(tree);
+}
+for(const file of files.filter(f=>f.endsWith('.html'))){
+ const source=fs.readFileSync(file,'utf8');
+ // Includes non-network fragments/base tags as explicit negative controls.
+ const re=/(?:\[(?:attr\.)?(href|src|action)\]|\b(href|src|action))\s*=\s*("([^"]*)"|'([^']*)')/g;
+ for(const match of source.matchAll(re)){
+  const value=match[4]??match[5],line=source.slice(0,match.index).split('\n').length;
+  const kind=value==='#'||value===''?'fragment-no-http':source.slice(Math.max(0,source.lastIndexOf('<',match.index)),match.index).startsWith('<base')?'base-no-http':'template-resource';
+  let contract={...resource,url:value};
+  if(kind.endsWith('no-http'))contract={method:'none',url:value,review:'Fragment click handler/base URL does not itself issue HTTP.'};
+  else if(file.includes('/src/index.html'))contract={...resource,url:value,review:'Development index favicon; production embedded application host is EJS (parent scope).'};
+  else if(/pdf-list/.test(file))contract={...resource,url:'/:branding/:portal/record/:oid/datastream?datastreamId=label[&fileName]',response:'Download bytes / Content-Disposition',nativeIds:['HTTP-253']};
+  else if(/getDownloadCSVUrl/.test(value))contract={...resource,url:'/:branding/:portal/admin/downloadReportCSV?name&filterValues',response:'CSV bytes / Content-Disposition',nativeIds:['HTTP-085']};
+  else if(/rawAuditUrl/.test(value))contract={...resource,url:'rawAuditUrl from native audit-tab DTO',response:'Authenticated raw audit download; browser handles status',nativeIds:['HTTP-102']};
+  else if(/getLocation|workspace.logo|logoSrc/.test(value))contract={...resource,url:value,review:'Resolved attachment URL or configured external URL/image. Helpers only produce URL; navigation/image load handles response.'};
+  else contract={...resource,url:value,review:'Read-only page/static navigation, including record view/edit, report, named-query and vocabulary-admin links; native page mounts are parent-reviewed.'};
+  add(file,line,kind,match[0],contract);
+ }
+ for(const m of source.matchAll(/\[innerHTML\]\s*=\s*"([^"]*)"/g))add(file,source.slice(0,m.index).split('\n').length,'rendered-html',m[0],{...resource,url:'URLs in sanitized record/table/workspace/help HTML from configuration or server-returned templates',review:'Dynamic content entrypoint counted; concrete endpoint for arbitrary institution values is not a finite built-in source list.'});
+}
+for(const file of files.filter(f=>/\.(css|scss)$/.test(f))){
+ const source=fs.readFileSync(file,'utf8').replace(/\/\*[\s\S]*?\*\//g,m=>m.replace(/[^\n]/g,' '));
+ for(const match of source.matchAll(/url\(([^)]+)\)/g))add(file,source.slice(0,match.index).split('\n').length,'css-resource',match[0],{...resource,url:match[1],review:'CSS browser resource load; data URLs are local and require no server.'});
+}
+for(const row of rows)if(row.contract.nativeIds)row.contract.nativeTargets=row.contract.nativeIds.map(id=>{const r=native.find(r=>r.id===id);assert(r,id);return{id,path:r.path,method:r.method,current:r.current};});
+const kinds=Object.fromEntries([...new Set(rows.map(r=>r.kind))].map(k=>[k,rows.filter(r=>r.kind===k).length]));
+assert.equal(kinds['tus-installation'],2);assert.equal(kinds['companion-installation'],6);assert.equal(kinds['raw-network']??0,0);
+const result={schemaVersion:1,headAtGeneration:cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),scope:'All tracked projects production TS, inline/external HTML and CSS/SCSS, plus shared sails-ng-common browser package; includes declared no-HTTP cases. These initiator counts are not wire-request counts; protocols and repeated template resources are finite families.',counts:{sites:rows.length,byKind:kinds,sharedPackageTypeScript:files.filter(f=>f.startsWith('packages/sails-ng-common/src/')&&f.endsWith('.ts')).length},rows,sourceHashes:files.filter(f=>/\.(ts|html|scss|css)$/.test(f)).map(file=>({file,sha256:crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')})),outsideProjects:'Shared sails-ng-common is imported by Angular and its browser markdown-parser.browser.ts has one bundled marked import. Other tracked Angular/HttpClient imports outside projects are developer generators or test/qualification harnesses. No outside HttpClient API callsites.',limitations:['External institution URLs, dynamic server-supplied templates/configuration and transitive library implementation requests are described by their concrete initiator/protocol. No finite list can enumerate arbitrary deployment values.','Literal imports can share one emitted chunk; counts refer to source callsites, not a promised chunk count.','Parent owns root assets/EJS and final build/static/page qualification. No claim of cloud credentials/OAuth or every external provider being contacted.']};
+fs.writeFileSync(here+'angular-network.json',JSON.stringify(result,null,2)+'\n');
+console.log(JSON.stringify(result.counts));

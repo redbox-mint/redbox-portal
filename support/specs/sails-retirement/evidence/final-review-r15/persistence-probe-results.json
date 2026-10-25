@@ -1,0 +1,2580 @@
+{
+  "node": "v26.11.1",
+  "mongoVersion": "9.0.4",
+  "mongoGitVersion": "64ade602b836c9adeffba7fa038c887ffab56196",
+  "databases": [
+    "sr_r15_persistence",
+    "sr_r15_persistence_storage"
+  ],
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "observed": [
+    {
+      "id": "baseline-legacy-soft-delete-restore",
+      "mode": "actual-domain-methods-and-real-Mongo",
+      "source": {
+        "file": "packages/sails-hook-redbox-storage-mongo/src/persistence/StorageProtocol.ts",
+        "sha256": "957d4f7b465a1ef55a74e0f64d165aceb3b883f87b7819a86752f4fd50856376"
+      },
+      "before": {
+        "_id": {
+          "$oid": "6ade3701f24d63b39b3bc95c"
+        },
+        "redboxOid": "baseline-soft-delete",
+        "revision": {
+          "$numberInt": "0"
+        },
+        "metadata": {
+          "title": "Legacy record",
+          "nested": {
+            "number": {
+              "$numberInt": "7"
+            },
+            "flag": false,
+            "list": [
+              "x",
+              null
+            ]
+          },
+          "legacyExtension": {
+            "preserve": true
+          }
+        },
+        "metaMetadata": {
+          "brandId": "brand-1",
+          "type": "rdmp",
+          "form": "default",
+          "createdBy": "alice",
+          "lastSaveDate": "2026-08-01T00:00:00.000Z"
+        },
+        "workflow": {
+          "stage": "draft",
+          "stageLabel": "Draft"
+        },
+        "authorization": {
+          "view": [
+            "alice"
+          ],
+          "edit": [
+            "alice"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "dateCreated": "2026-08-01T00:00:00.000Z"
+      },
+      "deleted": {
+        "_id": {
+          "$oid": "6ade3701c24547c366357f02"
+        },
+        "redboxOid": "baseline-soft-delete",
+        "revision": {
+          "$numberInt": "2"
+        },
+        "brandId": "brand-1",
+        "lifecycleState": "deleted",
+        "lifecycleOperation": {
+          "operationId": "fad5d406-8d03-4199-89f5-e64dd953dc4b",
+          "kind": "delete",
+          "requestId": "ac9f554f-f6ea-43d7-99c2-ee9203a3cd12",
+          "sourceRevision": {
+            "$numberInt": "0"
+          },
+          "targetRevision": {
+            "$numberInt": "2"
+          },
+          "startedAt": "2026-10-25T17:06:09.886Z",
+          "updatedAt": "2026-10-25T17:06:09.915Z",
+          "attempts": {
+            "$numberInt": "2"
+          },
+          "resolution": "internal"
+        },
+        "deletedRecordMetadata": {
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": []
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z",
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "default",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "redboxOid": "baseline-soft-delete",
+          "workflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          },
+          "incarnationId": "3d4e5b2b-0a84-44a7-b08a-36af9b07d98a"
+        },
+        "dateDeleted": "2026-10-25T17:06:09.889Z",
+        "incarnationId": "3d4e5b2b-0a84-44a7-b08a-36af9b07d98a"
+      },
+      "restored": {
+        "_id": {
+          "$oid": "6ade3701c24547c366357f03"
+        },
+        "authorization": {
+          "view": [
+            "alice"
+          ],
+          "edit": [
+            "alice"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "dateCreated": "2026-08-01T00:00:00.000Z",
+        "metaMetadata": {
+          "brandId": "brand-1",
+          "type": "rdmp",
+          "form": "default",
+          "createdBy": "alice",
+          "lastSaveDate": "2026-08-01T00:00:00.000Z"
+        },
+        "metadata": {
+          "title": "Legacy record",
+          "nested": {
+            "number": {
+              "$numberInt": "7"
+            },
+            "flag": false,
+            "list": [
+              "x",
+              null
+            ]
+          },
+          "legacyExtension": {
+            "preserve": true
+          }
+        },
+        "redboxOid": "baseline-soft-delete",
+        "workflow": {
+          "stage": "draft",
+          "stageLabel": "Draft"
+        },
+        "revision": {
+          "$numberInt": "4"
+        },
+        "incarnationId": "3d4e5b2b-0a84-44a7-b08a-36af9b07d98a",
+        "lifecycleOperationId": "bf6620f9-dc16-4981-bf52-3b96991d2fb7",
+        "lastSaveDate": "2026-10-25T17:06:09.950Z"
+      },
+      "result": {
+        "delete": {
+          "success": true,
+          "oid": "baseline-soft-delete",
+          "message": "",
+          "data": null,
+          "metadata": null,
+          "details": null,
+          "totalItems": {
+            "$numberInt": "0"
+          },
+          "items": [],
+          "outcome": "saved",
+          "problems": [],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "ac9f554f-f6ea-43d7-99c2-ee9203a3cd12",
+          "context": {
+            "requestId": "ac9f554f-f6ea-43d7-99c2-ee9203a3cd12",
+            "routeFamily": null,
+            "operation": null,
+            "portal": null,
+            "targetStep": null,
+            "validationOperation": null,
+            "schemaOperation": null,
+            "ifMatch": null,
+            "validationRequestParameters": null,
+            "validationRuntimeContext": null,
+            "validationBypass": null
+          },
+          "concurrency": {
+            "mode": "last-write-wins",
+            "revision": {
+              "$numberInt": "2"
+            },
+            "currentRevision": {
+              "$numberInt": "2"
+            },
+            "entityTag": "\"rb-record-v1.2.vCMQFnti1ULmYq6PII2X3Xbnr_HY5R8Uw9A5nJ65CXQ\"",
+            "resolution": "internal"
+          },
+          "workspaceOid": null,
+          "workspaceData": null,
+          "schemaOutcome": null
+        },
+        "restore": {
+          "success": true,
+          "oid": "baseline-soft-delete",
+          "message": "",
+          "data": {
+            "authorization": {
+              "view": [
+                "alice"
+              ],
+              "edit": [
+                "alice"
+              ],
+              "viewRoles": [],
+              "editRoles": []
+            },
+            "dateCreated": "2026-08-01T00:00:00.000Z",
+            "incarnationId": "3d4e5b2b-0a84-44a7-b08a-36af9b07d98a",
+            "lastSaveDate": "2026-10-25T17:06:09.950Z",
+            "lifecycleOperationId": "bf6620f9-dc16-4981-bf52-3b96991d2fb7",
+            "metaMetadata": {
+              "brandId": "brand-1",
+              "type": "rdmp",
+              "form": "default",
+              "createdBy": "alice",
+              "lastSaveDate": "2026-08-01T00:00:00.000Z"
+            },
+            "metadata": {
+              "title": "Legacy record",
+              "nested": {
+                "number": {
+                  "$numberInt": "7"
+                },
+                "flag": false,
+                "list": [
+                  "x",
+                  null
+                ]
+              },
+              "legacyExtension": {
+                "preserve": true
+              }
+            },
+            "redboxOid": "baseline-soft-delete",
+            "revision": {
+              "$numberInt": "4"
+            },
+            "workflow": {
+              "stage": "draft",
+              "stageLabel": "Draft"
+            },
+            "id": "6ade3701c24547c366357f03"
+          },
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "details": null,
+          "totalItems": {
+            "$numberInt": "0"
+          },
+          "items": [],
+          "outcome": "saved",
+          "problems": [],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "99bb1ee5-397d-45db-bc09-cb76a14ca610",
+          "context": {
+            "requestId": "99bb1ee5-397d-45db-bc09-cb76a14ca610",
+            "routeFamily": null,
+            "operation": null,
+            "portal": null,
+            "targetStep": null,
+            "validationOperation": null,
+            "schemaOperation": null,
+            "ifMatch": null,
+            "validationRequestParameters": null,
+            "validationRuntimeContext": null,
+            "validationBypass": null
+          },
+          "concurrency": {
+            "mode": "last-write-wins",
+            "revision": {
+              "$numberInt": "4"
+            },
+            "currentRevision": {
+              "$numberInt": "4"
+            },
+            "entityTag": "\"rb-record-v1.4.t2R1ZFX-ke-LEV8YvZ92iQe2iMPWEse7sD6VGfA59ME\"",
+            "resolution": "internal"
+          },
+          "workspaceOid": null,
+          "workspaceData": null,
+          "schemaOutcome": null
+        }
+      }
+    },
+    {
+      "id": "baseline-legacy-deleted-backfill-restore",
+      "mode": "actual-methods-and-real-Mongo",
+      "before": {
+        "_id": {
+          "$oid": "6ade3701f24d63b39b3bc95d"
+        },
+        "redboxOid": "baseline-legacy-deleted",
+        "deletedRecordMetadata": {
+          "redboxOid": "baseline-legacy-deleted",
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "default",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "workflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": []
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z"
+        },
+        "dateDeleted": "2026-08-02T00:00:00.000Z"
+      },
+      "backfilled": {
+        "_id": {
+          "$oid": "6ade3701f24d63b39b3bc95d"
+        },
+        "redboxOid": "baseline-legacy-deleted",
+        "deletedRecordMetadata": {
+          "redboxOid": "baseline-legacy-deleted",
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "default",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "workflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": []
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z"
+        },
+        "dateDeleted": "2026-08-02T00:00:00.000Z",
+        "revision": {
+          "$numberInt": "0"
+        },
+        "lifecycleState": "deleted"
+      },
+      "restored": {
+        "_id": {
+          "$oid": "6ade3702c24547c366357f05"
+        },
+        "redboxOid": "baseline-legacy-deleted",
+        "metadata": {
+          "title": "Legacy record",
+          "nested": {
+            "number": {
+              "$numberInt": "7"
+            },
+            "flag": false,
+            "list": [
+              "x",
+              null
+            ]
+          },
+          "legacyExtension": {
+            "preserve": true
+          }
+        },
+        "metaMetadata": {
+          "brandId": "brand-1",
+          "type": "rdmp",
+          "form": "default",
+          "createdBy": "alice",
+          "lastSaveDate": "2026-08-01T00:00:00.000Z"
+        },
+        "workflow": {
+          "stage": "draft",
+          "stageLabel": "Draft"
+        },
+        "authorization": {
+          "view": [
+            "alice"
+          ],
+          "edit": [
+            "alice"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "dateCreated": "2026-08-01T00:00:00.000Z",
+        "revision": {
+          "$numberInt": "2"
+        },
+        "incarnationId": "dc08c673-61f2-4167-b841-ef4ddeb101bf",
+        "lifecycleOperationId": "e5e3f6c1-3819-4686-a125-d2937eb0f5a5",
+        "lastSaveDate": "2026-10-25T17:06:10.037Z"
+      },
+      "migration": {
+        "updated": 1,
+        "batches": 1
+      }
+    },
+    {
+      "id": "current-legacy-soft-delete-restore",
+      "mode": "actual-domain-methods-and-real-Mongo",
+      "source": {
+        "file": "packages/sails-hook-redbox-storage-mongo/src/persistence/StorageProtocol.ts",
+        "sha256": "ec374b211399fa7118402244441d6f95f64bd68cdeb931f889d8aeb6e79091b2"
+      },
+      "before": {
+        "_id": {
+          "$oid": "6ade3702f24d63b39b3bc95e"
+        },
+        "redboxOid": "current-soft-delete",
+        "revision": {
+          "$numberInt": "0"
+        },
+        "metadata": {
+          "title": "Legacy record",
+          "nested": {
+            "number": {
+              "$numberInt": "7"
+            },
+            "flag": false,
+            "list": [
+              "x",
+              null
+            ]
+          },
+          "legacyExtension": {
+            "preserve": true
+          }
+        },
+        "metaMetadata": {
+          "brandId": "brand-1",
+          "type": "rdmp",
+          "form": "default",
+          "createdBy": "alice",
+          "lastSaveDate": "2026-08-01T00:00:00.000Z"
+        },
+        "workflow": {
+          "stage": "draft",
+          "stageLabel": "Draft"
+        },
+        "authorization": {
+          "view": [
+            "alice"
+          ],
+          "edit": [
+            "alice"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "dateCreated": "2026-08-01T00:00:00.000Z"
+      },
+      "deleted": {
+        "_id": {
+          "$oid": "6ade3702c24547c366357f07"
+        },
+        "redboxOid": "current-soft-delete",
+        "revision": {
+          "$numberInt": "2"
+        },
+        "brandId": "brand-1",
+        "lifecycleState": "deleted",
+        "lifecycleOperation": {
+          "operationId": "f7b7ea55-f8c9-4ab5-9cb3-85d9c2955827",
+          "kind": "delete",
+          "requestId": "510b4427-c71e-404b-bd11-d3895053bbc0",
+          "sourceRevision": {
+            "$numberInt": "0"
+          },
+          "targetRevision": {
+            "$numberInt": "2"
+          },
+          "startedAt": "2026-10-25T17:06:10.062Z",
+          "updatedAt": "2026-10-25T17:06:10.076Z",
+          "attempts": {
+            "$numberInt": "2"
+          },
+          "resolution": "internal"
+        },
+        "deletedRecordMetadata": {
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": []
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z",
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "default",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "redboxOid": "current-soft-delete",
+          "workflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          },
+          "incarnationId": "6e294c19-8065-4f98-baac-478dff341d1a"
+        },
+        "dateDeleted": "2026-10-25T17:06:10.062Z",
+        "incarnationId": "6e294c19-8065-4f98-baac-478dff341d1a"
+      },
+      "restored": {
+        "_id": {
+          "$oid": "6ade3702c24547c366357f08"
+        },
+        "authorization": {
+          "view": [
+            "alice"
+          ],
+          "edit": [
+            "alice"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "dateCreated": "2026-08-01T00:00:00.000Z",
+        "metaMetadata": {
+          "brandId": "brand-1",
+          "type": "rdmp",
+          "form": "default",
+          "createdBy": "alice",
+          "lastSaveDate": "2026-08-01T00:00:00.000Z"
+        },
+        "metadata": {
+          "title": "Legacy record",
+          "nested": {
+            "number": {
+              "$numberInt": "7"
+            },
+            "flag": false,
+            "list": [
+              "x",
+              null
+            ]
+          },
+          "legacyExtension": {
+            "preserve": true
+          }
+        },
+        "redboxOid": "current-soft-delete",
+        "workflow": {
+          "stage": "draft",
+          "stageLabel": "Draft"
+        },
+        "revision": {
+          "$numberInt": "4"
+        },
+        "incarnationId": "6e294c19-8065-4f98-baac-478dff341d1a",
+        "lifecycleOperationId": "2489b4c0-5841-4ee1-aac5-d9909d21b1f1",
+        "lastSaveDate": "2026-10-25T17:06:10.104Z"
+      },
+      "result": {
+        "delete": {
+          "success": true,
+          "oid": "current-soft-delete",
+          "message": "",
+          "data": null,
+          "metadata": null,
+          "details": null,
+          "totalItems": {
+            "$numberInt": "0"
+          },
+          "items": [],
+          "outcome": "saved",
+          "problems": [],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "510b4427-c71e-404b-bd11-d3895053bbc0",
+          "context": {
+            "requestId": "510b4427-c71e-404b-bd11-d3895053bbc0",
+            "routeFamily": null,
+            "operation": null,
+            "portal": null,
+            "targetStep": null,
+            "validationOperation": null,
+            "schemaOperation": null,
+            "ifMatch": null,
+            "validationRequestParameters": null,
+            "validationRuntimeContext": null,
+            "validationBypass": null
+          },
+          "concurrency": {
+            "mode": "last-write-wins",
+            "revision": {
+              "$numberInt": "2"
+            },
+            "currentRevision": {
+              "$numberInt": "2"
+            },
+            "entityTag": "\"rb-record-v1.2.xoKF_uaTbuB12cvapHSFXPpvot9Rhn8wUtb9k1ttItw\"",
+            "resolution": "internal"
+          },
+          "workspaceOid": null,
+          "workspaceData": null,
+          "schemaOutcome": null
+        },
+        "restore": {
+          "success": true,
+          "oid": "current-soft-delete",
+          "message": "",
+          "data": {
+            "authorization": {
+              "view": [
+                "alice"
+              ],
+              "edit": [
+                "alice"
+              ],
+              "viewRoles": [],
+              "editRoles": []
+            },
+            "dateCreated": "2026-08-01T00:00:00.000Z",
+            "incarnationId": "6e294c19-8065-4f98-baac-478dff341d1a",
+            "lastSaveDate": "2026-10-25T17:06:10.104Z",
+            "lifecycleOperationId": "2489b4c0-5841-4ee1-aac5-d9909d21b1f1",
+            "metaMetadata": {
+              "brandId": "brand-1",
+              "type": "rdmp",
+              "form": "default",
+              "createdBy": "alice",
+              "lastSaveDate": "2026-08-01T00:00:00.000Z"
+            },
+            "metadata": {
+              "title": "Legacy record",
+              "nested": {
+                "number": {
+                  "$numberInt": "7"
+                },
+                "flag": false,
+                "list": [
+                  "x",
+                  null
+                ]
+              },
+              "legacyExtension": {
+                "preserve": true
+              }
+            },
+            "redboxOid": "current-soft-delete",
+            "revision": {
+              "$numberInt": "4"
+            },
+            "workflow": {
+              "stage": "draft",
+              "stageLabel": "Draft"
+            },
+            "id": "6ade3702c24547c366357f08"
+          },
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "details": null,
+          "totalItems": {
+            "$numberInt": "0"
+          },
+          "items": [],
+          "outcome": "saved",
+          "problems": [],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "58f8518f-0471-4e0e-8419-455b095d675b",
+          "context": {
+            "requestId": "58f8518f-0471-4e0e-8419-455b095d675b",
+            "routeFamily": null,
+            "operation": null,
+            "portal": null,
+            "targetStep": null,
+            "validationOperation": null,
+            "schemaOperation": null,
+            "ifMatch": null,
+            "validationRequestParameters": null,
+            "validationRuntimeContext": null,
+            "validationBypass": null
+          },
+          "concurrency": {
+            "mode": "last-write-wins",
+            "revision": {
+              "$numberInt": "4"
+            },
+            "currentRevision": {
+              "$numberInt": "4"
+            },
+            "entityTag": "\"rb-record-v1.4.6OhibfFtCWzivEwrwPDmYDx4UCkey_URB7XtpXs3euM\"",
+            "resolution": "internal"
+          },
+          "workspaceOid": null,
+          "workspaceData": null,
+          "schemaOutcome": null
+        }
+      }
+    },
+    {
+      "id": "current-legacy-deleted-backfill-restore",
+      "mode": "actual-methods-and-real-Mongo",
+      "before": {
+        "_id": {
+          "$oid": "6ade3702f24d63b39b3bc95f"
+        },
+        "redboxOid": "current-legacy-deleted",
+        "deletedRecordMetadata": {
+          "redboxOid": "current-legacy-deleted",
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "default",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "workflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": []
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z"
+        },
+        "dateDeleted": "2026-08-02T00:00:00.000Z"
+      },
+      "backfilled": {
+        "_id": {
+          "$oid": "6ade3702f24d63b39b3bc95f"
+        },
+        "redboxOid": "current-legacy-deleted",
+        "deletedRecordMetadata": {
+          "redboxOid": "current-legacy-deleted",
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "default",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "workflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": []
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z"
+        },
+        "dateDeleted": "2026-08-02T00:00:00.000Z",
+        "revision": {
+          "$numberInt": "0"
+        },
+        "lifecycleState": "deleted"
+      },
+      "restored": {
+        "_id": {
+          "$oid": "6ade3702c24547c366357f0a"
+        },
+        "redboxOid": "current-legacy-deleted",
+        "metadata": {
+          "title": "Legacy record",
+          "nested": {
+            "number": {
+              "$numberInt": "7"
+            },
+            "flag": false,
+            "list": [
+              "x",
+              null
+            ]
+          },
+          "legacyExtension": {
+            "preserve": true
+          }
+        },
+        "metaMetadata": {
+          "brandId": "brand-1",
+          "type": "rdmp",
+          "form": "default",
+          "createdBy": "alice",
+          "lastSaveDate": "2026-08-01T00:00:00.000Z"
+        },
+        "workflow": {
+          "stage": "draft",
+          "stageLabel": "Draft"
+        },
+        "authorization": {
+          "view": [
+            "alice"
+          ],
+          "edit": [
+            "alice"
+          ],
+          "viewRoles": [],
+          "editRoles": []
+        },
+        "dateCreated": "2026-08-01T00:00:00.000Z",
+        "revision": {
+          "$numberInt": "2"
+        },
+        "incarnationId": "a8bf5218-4a72-45e0-bf28-3bb4df2a7e83",
+        "lifecycleOperationId": "59bb873d-5ac6-4a44-97a9-780793bcf926",
+        "lastSaveDate": "2026-10-25T17:06:10.160Z"
+      },
+      "migration": {
+        "updated": 1,
+        "batches": 1
+      }
+    },
+    {
+      "id": "baseline-identity-legacy-patch-membership-audit",
+      "raw": {
+        "user": [
+          {
+            "_id": {
+              "$oid": "222222222222222222222222"
+            },
+            "username": "legacy",
+            "name": "Renamed",
+            "email": "legacy@example.invalid",
+            "type": "oidc",
+            "createdAt": "2026-08-01T00:00:00.000Z",
+            "updatedAt": "2026-10-25T17:06:10.482Z",
+            "additionalAttributes": {
+              "custom": [
+                false,
+                {
+                  "$numberInt": "0"
+                },
+                null
+              ]
+            }
+          },
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f0c"
+            },
+            "username": "alice",
+            "password": "$2b$10$NsInrer9M3MuF/.MKHNlbOMc5rr2dRRYnLd18BAEnlSrT.FwBDn/y",
+            "lastLogin": "",
+            "type": "local",
+            "name": "Alice",
+            "email": "alice@example.invalid",
+            "token": "",
+            "additionalAttributes": null,
+            "linkedPrimaryUserId": "",
+            "accountLinkState": "active",
+            "loginDisabled": false,
+            "createdAt": "2026-10-25T17:06:10.293Z",
+            "updatedAt": "2026-10-25T17:06:10.293Z"
+          }
+        ],
+        "role": [
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f0b"
+            },
+            "name": "Researcher",
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "createdAt": "2026-10-25T17:06:10.289Z",
+            "updatedAt": "2026-10-25T17:06:10.289Z"
+          }
+        ],
+        "memberships": [
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f0d"
+            },
+            "user_roles": {
+              "$oid": "6ade3702c24547c366357f0c"
+            },
+            "role_users": {
+              "$oid": "6ade3702c24547c366357f0b"
+            }
+          }
+        ],
+        "audit": [
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f0e"
+            },
+            "user": {
+              "id": "6ade3702c24547c366357f0c",
+              "username": "alice"
+            },
+            "action": "profile-updated",
+            "additionalContext": {
+              "brandId": "111111111111111111111111",
+              "notes": "Fixture"
+            },
+            "createdAt": "2026-10-25T17:06:10.489Z",
+            "updatedAt": "2026-10-25T17:06:10.489Z"
+          }
+        ]
+      },
+      "legacyBefore": {
+        "_id": {
+          "$oid": "222222222222222222222222"
+        },
+        "username": "legacy",
+        "name": "Legacy",
+        "email": "legacy@example.invalid",
+        "type": "oidc",
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "updatedAt": "2026-08-01T00:00:00.000Z",
+        "additionalAttributes": {
+          "custom": [
+            false,
+            {
+              "$numberInt": "0"
+            },
+            null
+          ]
+        }
+      },
+      "legacyRead": {
+        "id": "222222222222222222222222",
+        "accountLinkState": null,
+        "cn": null,
+        "displayname": null,
+        "edupersonprincipalname": null,
+        "edupersonscopedaffiliation": null,
+        "edupersontargetedid": null,
+        "givenname": null,
+        "lastLogin": null,
+        "linkedPrimaryUserId": null,
+        "loginDisabled": null,
+        "surname": null,
+        "additionalAttributes": {
+          "custom": [
+            false,
+            {
+              "$numberInt": "0"
+            },
+            null
+          ]
+        },
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "email": "legacy@example.invalid",
+        "name": "Legacy",
+        "type": "oidc",
+        "updatedAt": "2026-08-01T00:00:00.000Z",
+        "username": "legacy",
+        "hasApiKey": false
+      },
+      "legacyAfter": {
+        "_id": {
+          "$oid": "222222222222222222222222"
+        },
+        "username": "legacy",
+        "name": "Renamed",
+        "email": "legacy@example.invalid",
+        "type": "oidc",
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "updatedAt": "2026-10-25T17:06:10.482Z",
+        "additionalAttributes": {
+          "custom": [
+            false,
+            {
+              "$numberInt": "0"
+            },
+            null
+          ]
+        }
+      }
+    },
+    {
+      "id": "baseline-configuration-legacy-json-cas",
+      "raw": {
+        "appconfig": [
+          {
+            "_id": {
+              "$oid": "333333333333333333333333"
+            },
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "configKey": "system",
+            "configData": {
+              "message": "New",
+              "nested": {
+                "values": [
+                  false,
+                  {
+                    "$numberInt": "0"
+                  },
+                  null
+                ]
+              }
+            },
+            "createdAt": "2026-08-01T00:00:00.000Z",
+            "legacyPhysicalField": "retain",
+            "updatedAt": "2026-10-25T17:06:10.586Z"
+          },
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f0f"
+            },
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "configKey": "new",
+            "configData": {
+              "enabled": false,
+              "limit": {
+                "$numberInt": "0"
+              },
+              "list": []
+            },
+            "createdAt": "2026-10-25T17:06:10.590Z",
+            "updatedAt": "2026-10-25T17:06:10.590Z"
+          }
+        ],
+        "dashboard": [
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f10"
+            },
+            "branding": "111111111111111111111111",
+            "revision": {
+              "$numberInt": "2"
+            },
+            "configData": {
+              "dashboardViews": {
+                "published": true
+              }
+            },
+            "provenance": {},
+            "createdAt": "2026-10-25T17:06:10.593Z",
+            "updatedAt": "2026-08-01T00:00:00.000Z"
+          }
+        ]
+      },
+      "legacyRead": {
+        "id": "333333333333333333333333",
+        "updatedAt": null,
+        "branding": "111111111111111111111111",
+        "configData": {
+          "message": "Old",
+          "nested": {
+            "values": [
+              false,
+              {
+                "$numberInt": "0"
+              },
+              null
+            ]
+          }
+        },
+        "configKey": "system",
+        "createdAt": "2026-08-01T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "baseline-vocabulary-legacy-normalization",
+      "raw": {
+        "vocabulary": [
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f11"
+            },
+            "name": "Test vocabulary",
+            "description": "",
+            "type": "flat",
+            "source": "local",
+            "sourceId": "",
+            "sourceVersionId": "",
+            "lastSyncedAt": "",
+            "slug": "test-vocabulary",
+            "owner": "",
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "figshareSourceKey": "",
+            "createdAt": "2026-10-25T17:06:10.782Z",
+            "updatedAt": "2026-10-25T17:06:10.782Z"
+          }
+        ],
+        "entries": [
+          {
+            "_id": {
+              "$oid": "444444444444444444444444"
+            },
+            "vocabulary": {
+              "$oid": "6ade3702c24547c366357f11"
+            },
+            "label": "Renamed Label",
+            "value": "OldValue",
+            "labelLower": "renamed label",
+            "valueLower": "oldvalue",
+            "createdAt": "2026-08-01T00:00:00.000Z",
+            "updatedAt": "2026-10-25T17:06:10.802Z"
+          },
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f12"
+            },
+            "vocabulary": {
+              "$oid": "6ade3702c24547c366357f11"
+            },
+            "label": "Mixed Case",
+            "labelLower": "mixed case",
+            "value": "ABC",
+            "valueLower": "abc",
+            "parent": null,
+            "identifier": "abc",
+            "order": {
+              "$numberInt": "0"
+            },
+            "historical": false,
+            "createdAt": "2026-10-25T17:06:10.793Z",
+            "updatedAt": "2026-10-25T17:06:10.793Z"
+          }
+        ]
+      },
+      "legacyRead": {
+        "id": "444444444444444444444444",
+        "historical": null,
+        "identifier": null,
+        "order": null,
+        "parent": null,
+        "updatedAt": null,
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "label": "Legacy Label",
+        "labelLower": "legacy label",
+        "value": "OldValue",
+        "valueLower": "oldvalue",
+        "vocabulary": "6ade3702c24547c366357f11"
+      }
+    },
+    {
+      "id": "baseline-recordtype-form-workflow-definition",
+      "raw": {
+        "recordType": [
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f13"
+            },
+            "key": "111111111111111111111111_rdmp",
+            "name": "rdmp",
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "packageType": "",
+            "searchCore": "default",
+            "searchFilters": null,
+            "searchable": true,
+            "transferResponsibility": null,
+            "relatedTo": null,
+            "hooks": null,
+            "dashboard": null,
+            "recordValidation": null,
+            "concurrentModification": null,
+            "recordSchema": null,
+            "createdAt": "2026-10-25T17:06:10.882Z",
+            "updatedAt": "2026-10-25T17:06:10.882Z"
+          }
+        ],
+        "form": [
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f14"
+            },
+            "name": "record-form",
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "configuration": [
+              {
+                "class": "TextField",
+                "definition": {
+                  "name": "title"
+                }
+              }
+            ],
+            "createdAt": "2026-10-25T17:06:10.885Z",
+            "updatedAt": "2026-10-25T17:06:10.885Z"
+          }
+        ],
+        "workflow": [
+          {
+            "_id": {
+              "$oid": "6ade3702c24547c366357f15"
+            },
+            "name": "draft",
+            "form": {
+              "$oid": "6ade3702c24547c366357f14"
+            },
+            "config": {
+              "workflow": {
+                "stage": "draft"
+              },
+              "form": "record-form",
+              "authorization": {
+                "editRoles": [
+                  "Researcher"
+                ],
+                "viewRoles": [
+                  "Researcher"
+                ]
+              }
+            },
+            "starting": true,
+            "recordType": {
+              "$oid": "6ade3702c24547c366357f13"
+            },
+            "hidden": false,
+            "createdAt": "2026-10-25T17:06:10.888Z",
+            "updatedAt": "2026-10-25T17:06:10.890Z"
+          }
+        ]
+      },
+      "read": {
+        "id": "6ade3702c24547c366357f15",
+        "config": {
+          "workflow": {
+            "stage": "draft"
+          },
+          "form": "record-form",
+          "authorization": {
+            "editRoles": [
+              "Researcher"
+            ],
+            "viewRoles": [
+              "Researcher"
+            ]
+          }
+        },
+        "createdAt": "2026-10-25T17:06:10.888Z",
+        "form": "6ade3702c24547c366357f14",
+        "hidden": false,
+        "name": "draft",
+        "recordType": "6ade3702c24547c366357f13",
+        "starting": true,
+        "updatedAt": "2026-10-25T17:06:10.890Z"
+      }
+    },
+    {
+      "id": "baseline-attachment-legacy-patch-access-audit",
+      "raw": {
+        "attachments": [
+          {
+            "_id": {
+              "$oid": "555555555555555555555555"
+            },
+            "oid": "attachment-record",
+            "fileId": "file-a",
+            "storageKey": "attachment-record/file-a",
+            "filename": "legacy.txt",
+            "contentLength": {
+              "$numberInt": "3"
+            },
+            "uploadedBy": "alice",
+            "createdAt": "2026-08-01T00:00:00.000Z",
+            "accessCount": {
+              "$numberInt": "3"
+            },
+            "legacyPhysicalField": "retained",
+            "contentType": "text/plain",
+            "updatedAt": "2026-10-25T17:06:11.058Z",
+            "lastAccessedAt": "2026-10-25T17:06:11.056Z",
+            "lastAccessedBy": "alice"
+          },
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f17"
+            },
+            "oid": "attachment-record",
+            "fileId": "file-b",
+            "storageKey": "attachment-record/file-b",
+            "isJournal": false,
+            "attachmentId": null,
+            "operation": null,
+            "mutationState": null,
+            "generation": null,
+            "mutationFileId": null,
+            "stagingActorId": "",
+            "stagingBrandId": "",
+            "coordinationToken": null,
+            "attemptCount": {
+              "$numberInt": "0"
+            },
+            "lastAttemptAt": null,
+            "coordinationLeaseExpiresAt": null,
+            "lastSafeErrorCode": null,
+            "contentType": "",
+            "contentLength": {
+              "$numberInt": "0"
+            },
+            "etag": "",
+            "lastModified": "",
+            "filename": "new.txt",
+            "mimeType": "",
+            "uploadedBy": "",
+            "attachmentField": "",
+            "lastAccessedAt": "",
+            "lastAccessedBy": "",
+            "accessCount": {
+              "$numberInt": "0"
+            },
+            "createdAt": "2026-10-25T17:06:11.067Z",
+            "updatedAt": "2026-10-25T17:06:11.067Z"
+          }
+        ],
+        "audit": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f16"
+            },
+            "oid": "attachment-record",
+            "fileId": "file-a",
+            "storageKey": "attachment-record/file-a",
+            "action": "download",
+            "accessedBy": "alice",
+            "accessedAt": "2026-10-25T17:06:11.056Z",
+            "itemCount": {
+              "$numberInt": "0"
+            },
+            "createdAt": "2026-10-25T17:06:11.061Z",
+            "updatedAt": "2026-10-25T17:06:11.061Z"
+          }
+        ]
+      },
+      "legacyRead": {
+        "attachmentField": null,
+        "attachmentId": null,
+        "attemptCount": null,
+        "contentType": null,
+        "coordinationLeaseExpiresAt": null,
+        "coordinationToken": null,
+        "etag": null,
+        "generation": null,
+        "isJournal": null,
+        "lastAccessedAt": null,
+        "lastAccessedBy": null,
+        "lastAttemptAt": null,
+        "lastModified": null,
+        "lastSafeErrorCode": null,
+        "mimeType": null,
+        "mutationFileId": null,
+        "mutationState": null,
+        "operation": null,
+        "stagingActorId": null,
+        "stagingBrandId": null,
+        "updatedAt": null,
+        "accessCount": {
+          "$numberInt": "2"
+        },
+        "contentLength": {
+          "$numberInt": "3"
+        },
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "fileId": "file-a",
+        "filename": "legacy.txt",
+        "oid": "attachment-record",
+        "storageKey": "attachment-record/file-a",
+        "uploadedBy": "alice",
+        "id": "555555555555555555555555"
+      }
+    },
+    {
+      "id": "current-identity-legacy-patch-membership-audit",
+      "raw": {
+        "user": [
+          {
+            "_id": {
+              "$oid": "222222222222222222222222"
+            },
+            "username": "legacy",
+            "name": "Renamed",
+            "email": "legacy@example.invalid",
+            "type": "oidc",
+            "createdAt": "2026-08-01T00:00:00.000Z",
+            "updatedAt": "2026-10-25T17:06:11.307Z",
+            "additionalAttributes": {
+              "custom": [
+                false,
+                {
+                  "$numberInt": "0"
+                },
+                null
+              ]
+            }
+          },
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f19"
+            },
+            "username": "alice",
+            "password": "$2b$10$an09anNzQy.j08EPL6qMuORqX93XWLtGui7a02yZBBBAn5L8hqrXK",
+            "lastLogin": "",
+            "type": "local",
+            "name": "Alice",
+            "email": "alice@example.invalid",
+            "token": "",
+            "additionalAttributes": null,
+            "linkedPrimaryUserId": "",
+            "accountLinkState": "active",
+            "loginDisabled": false,
+            "createdAt": "2026-10-25T17:06:11.116Z",
+            "updatedAt": "2026-10-25T17:06:11.116Z"
+          }
+        ],
+        "role": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f18"
+            },
+            "name": "Researcher",
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "createdAt": "2026-10-25T17:06:11.114Z",
+            "updatedAt": "2026-10-25T17:06:11.114Z"
+          }
+        ],
+        "memberships": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f1a"
+            },
+            "user_roles": {
+              "$oid": "6ade3703c24547c366357f19"
+            },
+            "role_users": {
+              "$oid": "6ade3703c24547c366357f18"
+            }
+          }
+        ],
+        "audit": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f1b"
+            },
+            "user": {
+              "id": "6ade3703c24547c366357f19",
+              "username": "alice"
+            },
+            "action": "profile-updated",
+            "additionalContext": {
+              "brandId": "111111111111111111111111",
+              "notes": "Fixture"
+            },
+            "createdAt": "2026-10-25T17:06:11.312Z",
+            "updatedAt": "2026-10-25T17:06:11.312Z"
+          }
+        ]
+      },
+      "legacyBefore": {
+        "_id": {
+          "$oid": "222222222222222222222222"
+        },
+        "username": "legacy",
+        "name": "Legacy",
+        "email": "legacy@example.invalid",
+        "type": "oidc",
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "updatedAt": "2026-08-01T00:00:00.000Z",
+        "additionalAttributes": {
+          "custom": [
+            false,
+            {
+              "$numberInt": "0"
+            },
+            null
+          ]
+        }
+      },
+      "legacyRead": {
+        "id": "222222222222222222222222",
+        "accountLinkState": null,
+        "cn": null,
+        "displayname": null,
+        "edupersonprincipalname": null,
+        "edupersonscopedaffiliation": null,
+        "edupersontargetedid": null,
+        "givenname": null,
+        "lastLogin": null,
+        "linkedPrimaryUserId": null,
+        "loginDisabled": null,
+        "surname": null,
+        "additionalAttributes": {
+          "custom": [
+            false,
+            {
+              "$numberInt": "0"
+            },
+            null
+          ]
+        },
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "email": "legacy@example.invalid",
+        "name": "Legacy",
+        "type": "oidc",
+        "updatedAt": "2026-08-01T00:00:00.000Z",
+        "username": "legacy",
+        "hasApiKey": false
+      },
+      "legacyAfter": {
+        "_id": {
+          "$oid": "222222222222222222222222"
+        },
+        "username": "legacy",
+        "name": "Renamed",
+        "email": "legacy@example.invalid",
+        "type": "oidc",
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "updatedAt": "2026-10-25T17:06:11.307Z",
+        "additionalAttributes": {
+          "custom": [
+            false,
+            {
+              "$numberInt": "0"
+            },
+            null
+          ]
+        }
+      }
+    },
+    {
+      "id": "current-configuration-legacy-json-cas",
+      "raw": {
+        "appconfig": [
+          {
+            "_id": {
+              "$oid": "333333333333333333333333"
+            },
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "configKey": "system",
+            "configData": {
+              "message": "New",
+              "nested": {
+                "values": [
+                  false,
+                  {
+                    "$numberInt": "0"
+                  },
+                  null
+                ]
+              }
+            },
+            "createdAt": "2026-08-01T00:00:00.000Z",
+            "legacyPhysicalField": "retain",
+            "updatedAt": "2026-10-25T17:06:11.340Z"
+          },
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f1c"
+            },
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "configKey": "new",
+            "configData": {
+              "enabled": false,
+              "limit": {
+                "$numberInt": "0"
+              },
+              "list": []
+            },
+            "createdAt": "2026-10-25T17:06:11.344Z",
+            "updatedAt": "2026-10-25T17:06:11.344Z"
+          }
+        ],
+        "dashboard": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f1d"
+            },
+            "branding": "111111111111111111111111",
+            "revision": {
+              "$numberInt": "2"
+            },
+            "configData": {
+              "dashboardViews": {
+                "published": true
+              }
+            },
+            "provenance": {},
+            "createdAt": "2026-10-25T17:06:11.346Z",
+            "updatedAt": "2026-08-01T00:00:00.000Z"
+          }
+        ]
+      },
+      "legacyRead": {
+        "id": "333333333333333333333333",
+        "updatedAt": null,
+        "branding": "111111111111111111111111",
+        "configData": {
+          "message": "Old",
+          "nested": {
+            "values": [
+              false,
+              {
+                "$numberInt": "0"
+              },
+              null
+            ]
+          }
+        },
+        "configKey": "system",
+        "createdAt": "2026-08-01T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "current-vocabulary-legacy-normalization",
+      "raw": {
+        "vocabulary": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f1e"
+            },
+            "name": "Test vocabulary",
+            "description": "",
+            "type": "flat",
+            "source": "local",
+            "sourceId": "",
+            "sourceVersionId": "",
+            "lastSyncedAt": "",
+            "slug": "test-vocabulary",
+            "owner": "",
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "figshareSourceKey": "",
+            "createdAt": "2026-10-25T17:06:11.373Z",
+            "updatedAt": "2026-10-25T17:06:11.373Z"
+          }
+        ],
+        "entries": [
+          {
+            "_id": {
+              "$oid": "444444444444444444444444"
+            },
+            "vocabulary": {
+              "$oid": "6ade3703c24547c366357f1e"
+            },
+            "label": "Renamed Label",
+            "value": "OldValue",
+            "labelLower": "renamed label",
+            "valueLower": "oldvalue",
+            "createdAt": "2026-08-01T00:00:00.000Z",
+            "updatedAt": "2026-10-25T17:06:11.381Z"
+          },
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f1f"
+            },
+            "vocabulary": {
+              "$oid": "6ade3703c24547c366357f1e"
+            },
+            "label": "Mixed Case",
+            "labelLower": "mixed case",
+            "value": "ABC",
+            "valueLower": "abc",
+            "parent": null,
+            "identifier": "abc",
+            "order": {
+              "$numberInt": "0"
+            },
+            "historical": false,
+            "createdAt": "2026-10-25T17:06:11.375Z",
+            "updatedAt": "2026-10-25T17:06:11.375Z"
+          }
+        ]
+      },
+      "legacyRead": {
+        "id": "444444444444444444444444",
+        "historical": null,
+        "identifier": null,
+        "order": null,
+        "parent": null,
+        "updatedAt": null,
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "label": "Legacy Label",
+        "labelLower": "legacy label",
+        "value": "OldValue",
+        "valueLower": "oldvalue",
+        "vocabulary": "6ade3703c24547c366357f1e"
+      }
+    },
+    {
+      "id": "current-recordtype-form-workflow-definition",
+      "raw": {
+        "recordType": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f20"
+            },
+            "key": "111111111111111111111111_rdmp",
+            "name": "rdmp",
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "packageType": "",
+            "searchCore": "default",
+            "searchFilters": null,
+            "searchable": true,
+            "transferResponsibility": null,
+            "relatedTo": null,
+            "hooks": null,
+            "dashboard": null,
+            "recordValidation": null,
+            "concurrentModification": null,
+            "recordSchema": null,
+            "createdAt": "2026-10-25T17:06:11.406Z",
+            "updatedAt": "2026-10-25T17:06:11.406Z"
+          }
+        ],
+        "form": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f21"
+            },
+            "name": "record-form",
+            "branding": {
+              "$oid": "111111111111111111111111"
+            },
+            "configuration": [
+              {
+                "class": "TextField",
+                "definition": {
+                  "name": "title"
+                }
+              }
+            ],
+            "createdAt": "2026-10-25T17:06:11.414Z",
+            "updatedAt": "2026-10-25T17:06:11.414Z"
+          }
+        ],
+        "workflow": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f22"
+            },
+            "name": "draft",
+            "form": {
+              "$oid": "6ade3703c24547c366357f21"
+            },
+            "config": {
+              "workflow": {
+                "stage": "draft"
+              },
+              "form": "record-form",
+              "authorization": {
+                "editRoles": [
+                  "Researcher"
+                ],
+                "viewRoles": [
+                  "Researcher"
+                ]
+              }
+            },
+            "starting": true,
+            "recordType": {
+              "$oid": "6ade3703c24547c366357f20"
+            },
+            "hidden": false,
+            "createdAt": "2026-10-25T17:06:11.416Z",
+            "updatedAt": "2026-10-25T17:06:11.418Z"
+          }
+        ]
+      },
+      "read": {
+        "id": "6ade3703c24547c366357f22",
+        "config": {
+          "workflow": {
+            "stage": "draft"
+          },
+          "form": "record-form",
+          "authorization": {
+            "editRoles": [
+              "Researcher"
+            ],
+            "viewRoles": [
+              "Researcher"
+            ]
+          }
+        },
+        "createdAt": "2026-10-25T17:06:11.416Z",
+        "form": "6ade3703c24547c366357f21",
+        "hidden": false,
+        "name": "draft",
+        "recordType": "6ade3703c24547c366357f20",
+        "starting": true,
+        "updatedAt": "2026-10-25T17:06:11.418Z"
+      }
+    },
+    {
+      "id": "current-attachment-legacy-patch-access-audit",
+      "raw": {
+        "attachments": [
+          {
+            "_id": {
+              "$oid": "555555555555555555555555"
+            },
+            "oid": "attachment-record",
+            "fileId": "file-a",
+            "storageKey": "attachment-record/file-a",
+            "filename": "legacy.txt",
+            "contentLength": {
+              "$numberInt": "3"
+            },
+            "uploadedBy": "alice",
+            "createdAt": "2026-08-01T00:00:00.000Z",
+            "accessCount": {
+              "$numberInt": "3"
+            },
+            "legacyPhysicalField": "retained",
+            "contentType": "text/plain",
+            "updatedAt": "2026-10-25T17:06:11.530Z",
+            "lastAccessedAt": "2026-10-25T17:06:11.526Z",
+            "lastAccessedBy": "alice"
+          },
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f24"
+            },
+            "oid": "attachment-record",
+            "fileId": "file-b",
+            "storageKey": "attachment-record/file-b",
+            "isJournal": false,
+            "attachmentId": null,
+            "operation": null,
+            "mutationState": null,
+            "generation": null,
+            "mutationFileId": null,
+            "stagingActorId": "",
+            "stagingBrandId": "",
+            "coordinationToken": null,
+            "attemptCount": {
+              "$numberInt": "0"
+            },
+            "lastAttemptAt": null,
+            "coordinationLeaseExpiresAt": null,
+            "lastSafeErrorCode": null,
+            "contentType": "",
+            "contentLength": {
+              "$numberInt": "0"
+            },
+            "etag": "",
+            "lastModified": "",
+            "filename": "new.txt",
+            "mimeType": "",
+            "uploadedBy": "",
+            "attachmentField": "",
+            "lastAccessedAt": "",
+            "lastAccessedBy": "",
+            "accessCount": {
+              "$numberInt": "0"
+            },
+            "createdAt": "2026-10-25T17:06:11.542Z",
+            "updatedAt": "2026-10-25T17:06:11.542Z"
+          }
+        ],
+        "audit": [
+          {
+            "_id": {
+              "$oid": "6ade3703c24547c366357f23"
+            },
+            "oid": "attachment-record",
+            "fileId": "file-a",
+            "storageKey": "attachment-record/file-a",
+            "action": "download",
+            "accessedBy": "alice",
+            "accessedAt": "2026-10-25T17:06:11.526Z",
+            "itemCount": {
+              "$numberInt": "0"
+            },
+            "createdAt": "2026-10-25T17:06:11.534Z",
+            "updatedAt": "2026-10-25T17:06:11.534Z"
+          }
+        ]
+      },
+      "legacyRead": {
+        "attachmentField": null,
+        "attachmentId": null,
+        "attemptCount": null,
+        "contentType": null,
+        "coordinationLeaseExpiresAt": null,
+        "coordinationToken": null,
+        "etag": null,
+        "generation": null,
+        "isJournal": null,
+        "lastAccessedAt": null,
+        "lastAccessedBy": null,
+        "lastAttemptAt": null,
+        "lastModified": null,
+        "lastSafeErrorCode": null,
+        "mimeType": null,
+        "mutationFileId": null,
+        "mutationState": null,
+        "operation": null,
+        "stagingActorId": null,
+        "stagingBrandId": null,
+        "updatedAt": null,
+        "accessCount": {
+          "$numberInt": "2"
+        },
+        "contentLength": {
+          "$numberInt": "3"
+        },
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "fileId": "file-a",
+        "filename": "legacy.txt",
+        "oid": "attachment-record",
+        "storageKey": "attachment-record/file-a",
+        "uploadedBy": "alice",
+        "id": "555555555555555555555555"
+      }
+    },
+    {
+      "id": "baseline-fresh-create-workflow-transition",
+      "raw": {
+        "fresh": {
+          "_id": {
+            "$oid": "6ade3703c24547c366357f26"
+          },
+          "redboxOid": "baseline-fresh-record",
+          "revision": {
+            "$numberInt": "0"
+          },
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "default",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "workflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": []
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z",
+          "recordVersion": {
+            "$numberInt": "1"
+          },
+          "incarnationId": "08505808-1423-4855-83db-b0d27a9ca88a",
+          "lastSaveDate": "2026-10-25T17:06:11.791Z"
+        },
+        "transitioned": {
+          "_id": {
+            "$oid": "6ade3703c24547c366357f26"
+          },
+          "redboxOid": "baseline-fresh-record",
+          "revision": {
+            "$numberInt": "1"
+          },
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            },
+            "@context": {
+              "@vocab": "https://example.invalid/vocabulary/"
+            }
+          },
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "review",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "workflow": {
+            "stage": "review",
+            "stageLabel": "Review"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": [],
+            "editPending": null,
+            "viewPending": null
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z",
+          "recordVersion": {
+            "$numberInt": "2"
+          },
+          "incarnationId": "08505808-1423-4855-83db-b0d27a9ca88a",
+          "lastSaveDate": "2026-10-25T17:06:11.859Z",
+          "previousWorkflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          }
+        }
+      }
+    },
+    {
+      "id": "baseline-record-audit-gridfs-bytes",
+      "raw": {
+        "audit": {
+          "_id": {
+            "$oid": "6ade3703c24547c366357f27"
+          },
+          "redboxOid": "baseline-fresh-record",
+          "occurredAt": "2026-10-25T17:06:11.859Z",
+          "user": {
+            "id": "actor-1",
+            "username": "alice"
+          },
+          "record": {
+            "_id": "6ade3703c24547c366357f26",
+            "redboxOid": "baseline-fresh-record",
+            "revision": {
+              "$numberInt": "1"
+            },
+            "metadata": {
+              "title": "Legacy record",
+              "nested": {
+                "number": {
+                  "$numberInt": "7"
+                },
+                "flag": false,
+                "list": [
+                  "x",
+                  null
+                ]
+              },
+              "legacyExtension": {
+                "preserve": true
+              },
+              "@context": {
+                "@vocab": "https://example.invalid/vocabulary/"
+              }
+            },
+            "metaMetadata": {
+              "brandId": "brand-1",
+              "type": "rdmp",
+              "form": "review",
+              "createdBy": "alice",
+              "lastSaveDate": "2026-08-01T00:00:00.000Z"
+            },
+            "workflow": {
+              "stage": "review",
+              "stageLabel": "Review"
+            },
+            "authorization": {
+              "view": [
+                "alice"
+              ],
+              "edit": [
+                "alice"
+              ],
+              "viewRoles": [],
+              "editRoles": [],
+              "editPending": null,
+              "viewPending": null
+            },
+            "dateCreated": "2026-08-01T00:00:00.000Z",
+            "recordVersion": {
+              "$numberInt": "2"
+            },
+            "incarnationId": "08505808-1423-4855-83db-b0d27a9ca88a",
+            "lastSaveDate": "2026-10-25T17:06:11.859Z",
+            "previousWorkflow": {
+              "stage": "draft",
+              "stageLabel": "Draft"
+            }
+          },
+          "dateCreated": "2026-10-25T17:06:11.873Z",
+          "action": "updated",
+          "executionSummary": null,
+          "concurrency": null,
+          "createdAt": "2026-10-25T17:06:11.873Z",
+          "updatedAt": "2026-10-25T17:06:11.873Z"
+        },
+        "storedFile": {
+          "_id": {
+            "$oid": "6ade3703f24d63b39b3bc960"
+          },
+          "length": {
+            "$numberInt": "25"
+          },
+          "chunkSize": {
+            "$numberInt": "261120"
+          },
+          "uploadDate": {
+            "$date": {
+              "$numberLong": "1792947971891"
+            }
+          },
+          "filename": "baseline-fresh-record/file-a",
+          "metadata": {
+            "filename": "legacy.txt",
+            "contentType": "text/plain",
+            "contentLength": {
+              "$numberInt": "25"
+            },
+            "redboxOid": "baseline-fresh-record"
+          }
+        }
+      },
+      "readBytesSha256": "b6af3efb0f62debde3dadad1da98147e863269835bac8c57e18a8c666f2f5c22"
+    },
+    {
+      "id": "current-fresh-create-workflow-transition",
+      "raw": {
+        "fresh": {
+          "_id": {
+            "$oid": "6ade3703c24547c366357f29"
+          },
+          "redboxOid": "current-fresh-record",
+          "revision": {
+            "$numberInt": "0"
+          },
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            }
+          },
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "default",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "workflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": []
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z",
+          "recordVersion": {
+            "$numberInt": "1"
+          },
+          "incarnationId": "c207aa2b-0995-44bb-b6cc-2019107287ec",
+          "lastSaveDate": "2026-10-25T17:06:11.908Z"
+        },
+        "transitioned": {
+          "_id": {
+            "$oid": "6ade3703c24547c366357f29"
+          },
+          "redboxOid": "current-fresh-record",
+          "revision": {
+            "$numberInt": "1"
+          },
+          "metadata": {
+            "title": "Legacy record",
+            "nested": {
+              "number": {
+                "$numberInt": "7"
+              },
+              "flag": false,
+              "list": [
+                "x",
+                null
+              ]
+            },
+            "legacyExtension": {
+              "preserve": true
+            },
+            "@context": {
+              "@vocab": "https://example.invalid/vocabulary/"
+            }
+          },
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "rdmp",
+            "form": "review",
+            "createdBy": "alice",
+            "lastSaveDate": "2026-08-01T00:00:00.000Z"
+          },
+          "workflow": {
+            "stage": "review",
+            "stageLabel": "Review"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ],
+            "viewRoles": [],
+            "editRoles": [],
+            "editPending": null,
+            "viewPending": null
+          },
+          "dateCreated": "2026-08-01T00:00:00.000Z",
+          "recordVersion": {
+            "$numberInt": "2"
+          },
+          "incarnationId": "c207aa2b-0995-44bb-b6cc-2019107287ec",
+          "lastSaveDate": "2026-10-25T17:06:11.912Z",
+          "previousWorkflow": {
+            "stage": "draft",
+            "stageLabel": "Draft"
+          }
+        }
+      }
+    },
+    {
+      "id": "current-record-audit-gridfs-bytes",
+      "raw": {
+        "audit": {
+          "_id": {
+            "$oid": "6ade3703c24547c366357f2a"
+          },
+          "redboxOid": "current-fresh-record",
+          "occurredAt": "2026-10-25T17:06:11.912Z",
+          "user": {
+            "id": "actor-1",
+            "username": "alice"
+          },
+          "record": {
+            "_id": "6ade3703c24547c366357f29",
+            "redboxOid": "current-fresh-record",
+            "revision": {
+              "$numberInt": "1"
+            },
+            "metadata": {
+              "title": "Legacy record",
+              "nested": {
+                "number": {
+                  "$numberInt": "7"
+                },
+                "flag": false,
+                "list": [
+                  "x",
+                  null
+                ]
+              },
+              "legacyExtension": {
+                "preserve": true
+              },
+              "@context": {
+                "@vocab": "https://example.invalid/vocabulary/"
+              }
+            },
+            "metaMetadata": {
+              "brandId": "brand-1",
+              "type": "rdmp",
+              "form": "review",
+              "createdBy": "alice",
+              "lastSaveDate": "2026-08-01T00:00:00.000Z"
+            },
+            "workflow": {
+              "stage": "review",
+              "stageLabel": "Review"
+            },
+            "authorization": {
+              "view": [
+                "alice"
+              ],
+              "edit": [
+                "alice"
+              ],
+              "viewRoles": [],
+              "editRoles": [],
+              "editPending": null,
+              "viewPending": null
+            },
+            "dateCreated": "2026-08-01T00:00:00.000Z",
+            "recordVersion": {
+              "$numberInt": "2"
+            },
+            "incarnationId": "c207aa2b-0995-44bb-b6cc-2019107287ec",
+            "lastSaveDate": "2026-10-25T17:06:11.912Z",
+            "previousWorkflow": {
+              "stage": "draft",
+              "stageLabel": "Draft"
+            }
+          },
+          "dateCreated": "2026-10-25T17:06:11.917Z",
+          "action": "updated",
+          "executionSummary": null,
+          "concurrency": null,
+          "createdAt": "2026-10-25T17:06:11.917Z",
+          "updatedAt": "2026-10-25T17:06:11.917Z"
+        },
+        "storedFile": {
+          "_id": {
+            "$oid": "6ade3703f24d63b39b3bc962"
+          },
+          "length": {
+            "$numberInt": "25"
+          },
+          "chunkSize": {
+            "$numberInt": "261120"
+          },
+          "uploadDate": {
+            "$date": {
+              "$numberLong": "1792947971927"
+            }
+          },
+          "filename": "current-fresh-record/file-a",
+          "metadata": {
+            "filename": "legacy.txt",
+            "contentType": "text/plain",
+            "contentLength": {
+              "$numberInt": "25"
+            },
+            "redboxOid": "current-fresh-record"
+          }
+        }
+      },
+      "readBytesSha256": "b6af3efb0f62debde3dadad1da98147e863269835bac8c57e18a8c666f2f5c22"
+    }
+  ],
+  "paired": [
+    {
+      "family": "identity-legacy-patch-membership-audit",
+      "result": "equal after normalizing generated ObjectIds, timestamps and salted bcrypt bytes; actual raw typed BSON retained separately"
+    },
+    {
+      "family": "configuration-legacy-json-cas",
+      "result": "equal after normalizing generated ObjectIds, timestamps and salted bcrypt bytes; actual raw typed BSON retained separately"
+    },
+    {
+      "family": "vocabulary-legacy-normalization",
+      "result": "equal after normalizing generated ObjectIds, timestamps and salted bcrypt bytes; actual raw typed BSON retained separately"
+    },
+    {
+      "family": "recordtype-form-workflow-definition",
+      "result": "equal after normalizing generated ObjectIds, timestamps and salted bcrypt bytes; actual raw typed BSON retained separately"
+    },
+    {
+      "family": "attachment-legacy-patch-access-audit",
+      "result": "equal after normalizing generated ObjectIds, timestamps and salted bcrypt bytes; actual raw typed BSON retained separately"
+    }
+  ]
+}

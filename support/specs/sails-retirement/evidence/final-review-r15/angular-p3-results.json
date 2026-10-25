@@ -1,0 +1,388 @@
+{
+  "node": "v26.11.1",
+  "proof": "Executed extracted production methods; supplied success/error payloads. No route dispatch or deployed browser claimed. Params stub only allows graph option construction; RxJS is installed actual library.",
+  "results": [
+    {
+      "family": "graph-added-fields",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "case": "raw v1",
+      "pass": true
+    },
+    {
+      "family": "graph-added-fields",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "case": "versioned data + ignored meta",
+      "pass": true
+    },
+    {
+      "family": "graph-added-fields",
+      "file": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "case": "versioned data + ignored meta",
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 0,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 0,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 0,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 0,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 0,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 0,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 0,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 0,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 400,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 400,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 400,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 400,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 400,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 400,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 400,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 400,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 403,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 403,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 403,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 403,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 403,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 403,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 403,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 403,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 404,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 404,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 404,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 404,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 404,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 404,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 404,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 404,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 409,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 409,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 409,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 409,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 409,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 409,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 409,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 409,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 413,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 413,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 413,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 413,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 413,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 413,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 413,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 413,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 500,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 500,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 500,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 500,
+      "withItemStatus": false,
+      "pass": true
+    },
+    {
+      "family": "named-query-missing/error",
+      "status": 500,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "saveReport",
+      "status": 500,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "report-config-error-finalization",
+      "method": "previewReport",
+      "status": 500,
+      "withItemStatus": true,
+      "pass": true
+    },
+    {
+      "family": "branding-error-finalization",
+      "status": 500,
+      "withItemStatus": true,
+      "pass": true
+    }
+  ]
+}

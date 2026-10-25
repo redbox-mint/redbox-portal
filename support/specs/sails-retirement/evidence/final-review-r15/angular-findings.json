@@ -1,0 +1,89 @@
+{
+  "baseline": "a49366803",
+  "incoming": "bda01cb2525ef31bdb1f449ddb7ea52e52deafb3",
+  "frozenHead": "709483c4670583677e8318cb9dadc14fa362b549",
+  "contractFamilies": 2,
+  "appBoundaryIssues": 3,
+  "findings": [
+    {
+      "id": "R15-ANG-01",
+      "classification": "A",
+      "priority": "P2",
+      "family": "native HTTP rejection handling",
+      "app": "manage-users",
+      "methods": [
+        "genKey",
+        "revokeKey",
+        "updateUserSubmit",
+        "newUserSubmit"
+      ],
+      "wrongBehavior": "Visible pending text remains and failure is not displayed when native typed HTTP error rejects awaited promise.",
+      "fix": "Narrow local catches preserve draft/modal and show safe error/fallback.",
+      "parentCommit": "8b091d8dc",
+      "browserGreen": 39,
+      "newRegressionCases": 16,
+      "proofs": [
+        "angular-consumer-results.json",
+        "angular-logs/manage-users-negative-v3.log"
+      ]
+    },
+    {
+      "id": "R15-ANG-02",
+      "classification": "A",
+      "priority": "P2",
+      "family": "native HTTP rejection handling",
+      "app": "manage-roles",
+      "methods": [
+        "saveCurrentUser"
+      ],
+      "wrongBehavior": "Role save remains Saving and failure is not displayed when native typed HTTP error rejects awaited promise.",
+      "fix": "Narrow local catch preserves selected roles and displays failure.",
+      "parentCommit": "e4a198691",
+      "browserGreen": 5,
+      "newRegressionCases": 4,
+      "proofs": [
+        "angular-consumer-results.json",
+        "angular-logs/manage-roles-negative-v2.log"
+      ]
+    },
+    {
+      "id": "R15-ANG-03",
+      "classification": "A",
+      "priority": "P2",
+      "family": "Companion outer CSRF wiring",
+      "app": "form",
+      "components": [
+        "FileUploadComponent",
+        "DataLocationComponent"
+      ],
+      "wrongBehavior": "All6cloud-provider configurations omit outer X-CSRF-Token; native Companion POST returns403 despite valid nested Tus token.",
+      "fix": "Initial CSRF-only companionHeaders and delayed provider.setCompanionHeaders; unrelated Tus headers are not forwarded.",
+      "parentCommit": "709483c46",
+      "browserGreen": 54,
+      "newRegressionCases": 4,
+      "proofs": [
+        "angular-companion-results.json",
+        "angular-logs/companion-components-green.log"
+      ]
+    }
+  ],
+  "spec": {
+    "file": "support/specs/sails-retirement/design.md",
+    "lines": [
+      34,
+      53
+    ],
+    "quotes": [
+      "Preserve externally used HTTP URLs, response envelopes, status codes and normal record/form/workflow behavior by default.",
+      "Existing Angular applications and EJS pages remain consumers of the new host. Coordinated integration changes, such as socket or CSRF client wiring, are permitted and documented; a general frontend migration is outside this task."
+    ]
+  },
+  "additionalConfirmedP1P2": 0,
+  "inheritedProfile": "Parent records B10; no tracked profile Angular consumer found.",
+  "acceptedInstitutionGaps": [
+    "SR-005",
+    "SR-045",
+    "SR-049",
+    "SR-055"
+  ]
+}
