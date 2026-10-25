@@ -151,3 +151,33 @@ exception was demonstrated.
 **Suggested fix:** consume the validated boolean directly and cover both query
 values through real HTTP, including returned users and summary counts. Preserve
 requested-brand scoping and the default exclusion of disabled users.
+
+## B-07 — P3: configuration declarations omit five accepted baseline shapes
+
+**Locations and inheritance:** the source-derived R13 table checks each declaration
+at `a49366803164429f9d8bdd249dadcdf856c9d13e` and in the current source. Both omit:
+
+| Accepted shape | Inherited declaration location |
+| --- | --- |
+| AAF `loginUrl` | `packages/redbox-core/src/config/brandingConfigurationDefaults.config.ts:26`, `BrandAuthAafConfig` |
+| OIDC `claimMappingOptions` | Same file, line 35, `BrandAuthOidcConfig` |
+| Solr transform `jsonString` | `packages/redbox-core/src/config/solr.config.ts:56`, `SolrPreIndexConfig` |
+| i18n `defaultNS` | `packages/redbox-core/src/config/i18n.config.ts:16`, `I18nNextInitConfig` |
+| Reusable form placeholders | `packages/sails-ng-common/src/config/dictionary.outline.ts:209`, `ReusableFormDefinitions` and its component-frame union |
+
+**Reproduction:** all 195 retained literal configuration fixtures pass the actual
+v6 loader and AJV validation. Compiling those same literal values against the
+public configuration type produces ten inherited diagnostics across nine fixtures
+in these five categories. This is one grouped typing backlog item with five
+subcases; these are not runtime input rejections or additional incoming P2 defects.
+The generated table retains each value and marks only the exact inherited
+diagnostic with `@ts-expect-error`; no cast or runtime exclusion hides the input.
+
+**Evidence:** `final-review-r13/configuration-acceptance.json` retains baseline
+declaration text, line provenance, exact diagnostics and fixture indices in
+`typingBacklog` and `typingDiagnostics`. Its generator verifies the omissions in
+both source versions and rejects unexpected compiler failures.
+
+**Suggested fix:** align the original declarations with the existing runtime
+contracts and retain the full literal table as the regression. No runtime change
+or access-control exception is warranted in this retirement review.

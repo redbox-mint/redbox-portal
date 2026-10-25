@@ -62,6 +62,65 @@ pre-upgrade checkpoint and matching artifacts. MongoDB engine/FCV transitions
 remain separate vendor-supported procedures. See the
 [upgrade/recovery runbook](../specs/sails-retirement/upgrade-recovery-v6.md).
 
+## Configuration input dispositions
+
+Startup modules supply typed plain data. Number-valued settings require actual
+numbers: this includes `api.max_requests`, record row/byte/time limits,
+`form.prehydrate.maxVocabSelections`, PDF/Agenda limits, SMTP ports, session
+TTL/cookie durations and typed native driver options. Numeric strings such as
+`api.max_requests: "20"`, booleans and numeric prefixes are rejected; the named
+environment/CLI conversion owners parse their documented numeric inputs explicitly.
+String/boolean/array/object settings likewise do not apply incidental coercion or
+comma splitting. In particular `"false"` does not disable a boolean setting.
+Native open JSON option maps preserve data without recursively coercing it.
+
+Mongo index configuration uses arrays of plain descriptors with object `key`
+values, for example `{ key: { redboxOid: 1 }, unique: true }`. Convert driver `Map`
+and entry-array key representations to plain objects before returning the data.
+Functions, class instances, `Map`, `Set`, `Date`, raw `RegExp` and injected clients
+or stores are rejected in startup data. Use selected factories/named operations;
+the only startup function exceptions are the three documented DOMPurify hooks.
+URI patterns use `{ source, flags }` instead of a `RegExp` instance.
+
+The [complete conversion table](../specs/sails-retirement/configuration-v6.md#baseline-input-dispositions)
+covers every inventoried legacy family. Convert `form.forms/defaultForm/formConfigRegistry`
+and executable validator/workspace registries to neutral declarations; HTTP
+routes/controllers/policies/views/dynamic assets, CORS, `security`, middleware and
+service/queue wiring become explicit host/extension inputs. Logging uses
+`logging.level`, selected/domain loggers and `PortalHttpOptions.requestLogging`,
+including the former `log.requestChronicle` options. Convert `crontab` and bootstrap
+callbacks/timeouts/readiness polling to named schedules and awaited owned work.
+Sails reload/blueprint/global/hook/pubsub/compiler/webpack and legacy loader copying
+settings are retired. Authentication/brand/lifecycle registries and generated
+runtime state (`passport`, `brandingAware`, `beforeShutdown`, `appPath`,
+`startupMinute`, `recordContractContributorState`, `configmodels`, `dynamicconfig`)
+are owned inputs/state rather than startup domain keys. Redis-only
+`redboxSession.host/port/db/pass/prefix` were ignored by the baseline Mongo store;
+Redis adapters remain unsupported. Export-only defaults, build fragments and
+illustrative/unimplemented wiki/spec keys are separately identified in the ledger.
+
+Legacy top-level `raid` data must be converted to the brand's `raidPublishing`
+AppConfig or `brandingConfigurationDefaults.raidPublishing`; retain its credentials,
+connections and mappings. Baseline preferred the branded block and seeded core
+branded defaults before consulting its legacy fallback. Explicitly call
+`resolveCompanionConfiguration(selectedEnvironment)` in a selected data module for
+legacy `UPPY_*` environment parsing; ambient provider secrets are not auto-discovered.
+
+Preserved inputs include the independent API limit (default **20**), public
+`api.additionalClientConfig` overrides, form prehydration, SVG byte limits,
+institution navigation flags, `angularDev`, native Mongo index declarations and
+`redboxSession.stringify`, sparse email templates, native transport objects and
+`smtp://`/`smtps://` URL strings, and uppercase record API method equivalents.
+Public client overrides merge last into the existing
+whitelist; the server/session/provider configuration is not serialized wholesale.
+Configured OIDC identifiers remain unrestricted strings.
+
+The [source inventory](../specs/sails-retirement/evidence/final-review-r13/configuration-inventory.json)
+and [acceptance ledger](../specs/sails-retirement/evidence/final-review-r13/configuration-acceptance.json)
+retain all paths/fixtures, unresolved expressions, environment reads and excluded
+files with their owner, disposition and provenance. These synthetic/source checks
+leave the representative institution acceptance gate outstanding.
+
 ## HTTP request input scope
 
 Native read routes consume their declared URL path and query fields. The generic

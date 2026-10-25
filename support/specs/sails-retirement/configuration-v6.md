@@ -191,3 +191,49 @@ reconciliation). The existing per-item failure logging and retry policy remain;
 a timeout does not prove cancellation. Application stop drains the original
 imports before closing dependencies, or fails its deadline retaining cleanup for
 retry. OCFL writable abort likewise joins the disk upload's actual cleanup.
+
+## Baseline input dispositions
+
+The source-derived [R13 inventory](evidence/final-review-r13/configuration-inventory.json)
+pins `a49366803164429f9d8bdd249dadcdf856c9d13e`. Its companion
+[acceptance ledger](evidence/final-review-r13/configuration-acceptance.json) records
+every discovered path, literal fixture, unresolved expression, environment read and
+excluded file, with a disposition and provenance. It distinguishes request/record
+snapshots and deliberately malformed test fixtures from startup data. A dynamic
+property expression is retained as a wildcard, not presented as a new literal key.
+This source audit is not the outstanding institution qualification.
+
+Retained settings include `api.max_requests` (default **20**, independent of
+`record.search.maxRecordsPerPage`), `api.additionalClientConfig`,
+`form.prehydrate.enabled/maxVocabSelections`, `record.form.svgMaxBytes`, arbitrary
+JSON `appmode` navigation feature flags, `angularDev`, `storage.mongodb` index
+arrays and `redboxSession.stringify`. Record API method declarations accept their
+existing lower-case methods and upper-case equivalents. Email templates may supply
+only a subject or template; native Nodemailer transport objects and `smtp://` or
+`smtps://` URL strings remain supported.
+`api.additionalClientConfig` is explicitly public and merges last into the existing
+browser whitelist. Server/session/provider configuration is not exported wholesale.
+OIDC identifiers remain arbitrary strings, including dots, colons and Unicode.
+
+| Baseline input | Conversion or disposition |
+| --- | --- |
+| Number-valued startup data, including `api.max_requests`, `record` row/byte/time limits, `form.prehydrate.maxVocabSelections`, Mongo index directions/TTL options, SMTP ports, PDF limits, Agenda limits, datastore driver options and session TTL/cookie durations | Supply actual JavaScript/JSON numbers, not numeric strings, booleans or numeric prefixes. Startup data is typed and does not apply the old incidental `Number(...)`/driver coercions. Declared positive/integer/nonnegative/timer bounds apply. Canonical numeric environment/CLI inputs are parsed explicitly by their named owner. Native JSON option maps preserve their declared driver data; they do not recursively coerce strings. |
+| String-, boolean-, array- and object-valued startup data | Supply the declared type; no implicit stringification, truthiness conversion, comma splitting or scalar-to-array conversion. In particular `"false"` is not `false`, a port number is not a URL string, and provider arrays remain arrays. Explicit conversion helpers may parse the documented environment spelling before returning typed data. |
+| Mongo `storage.mongodb.indices/deletedRecordIndices/recordIdentityIndices` | Arrays of plain descriptors with `key` as a plain object, e.g. `{ key: { redboxOid: 1 }, unique: true }`. Directions use native numbers or `2d`, `2dsphere`, `text`, `geoHaystack`, `hashed`. Convert driver `Map` or entry-array key representations to an object in the selected module; no `Map`, class instance or function belongs in startup data. Keep native options as JSON data. |
+| Functions, constructors, registries, instances, `Map`, `Set`, `Date`, `RegExp`, client/store injection | Convert to plain data or a selected factory/named operation. The only startup executable exceptions are the three declared `dompurify.hooks` callbacks (`afterSanitizeAttributes`, `beforeSanitizeElements`, `afterSanitizeElements`). URI regular expressions use `{ source, flags }`; core defaults perform that conversion explicitly. Datastore/session pools remain runtime-owned. |
+| `form.forms`, `form.formConfigRegistry`, `form.defaultForm`, `validators`, `workspacetype_services` | Port generated registries and executable validators/workspace handlers to explicit extension forms, registered validators and selected factories. Form/workflow references and field-validator DSL data retain their domain meaning. `form.prehydrate` remains startup data. |
+| `routes`, `controllers`, `policies`, `views`, `dynamicasset`, `cors`, `security`, `http.middleware`, `services`, `queue.serviceName` | Convert executable/discovered HTTP and service wiring to owned route/policy declarations, `PortalHttpOptions` and selected factories. Keep `csp` data and supported `server` root/proxy settings. Dynamic page routes remain owned; add custom dynamic routes explicitly. Supply the Email domain's `disabled` input through its selected factory instead of `services.email.disabled`. |
+| `log`, `lognamespace`, `log.requestChronicle` | Use `logging.level`, the selected logger, explicit domain logger inputs and `PortalHttpOptions.requestLogging`. Logger destination/formatter objects and Sails namespace discovery are not startup domain data. |
+| `raid` | Convert legacy RAiD data to `brandingConfigurationDefaults.raidPublishing` and the brand's `raidPublishing` AppConfig. Baseline already seeded that branded block from core RAiD defaults and preferred it over the old top-level fallback. Convert the fallback explicitly for a legacy installation that omitted branded RAiD configuration; do not discard its credentials/mappings. |
+| `crontab`, `bootstrapTimeout`, `db.waitRetries/waitSleep`, bootstrap callbacks | Use named `schedules`, awaited bootstrap operations and explicit lifecycle/deadline/readiness handling. Sails hook timeouts and startup polling are retired. |
+| `dynamicconfig`, `brandingAware`, `passport`, `beforeShutdown`, `recordContractContributorState`, `configmodels`, `appPath`, `startupMinute` | These described discovery or generated runtime state. Use owned AppConfig hydration/brand resolution, authentication/lifecycle/record registries and host `appPath`; a generated startup timestamp is not operator configuration. |
+| `autoreload`, `blueprints`, `globals`, `hooks`, `pubsub`, `typescript`, `webpack`, `dontBackupCoreLanguageFilesWhenMerging` | Retired Sails/dev-loader machinery; use explicit extension selection and owned builds. No implicit copying, backup, auto-routing or global injection. |
+| `UPPY_*`/provider environment values | Explicitly call `resolveCompanionConfiguration(selectedEnvironment)` in the selected data module and contribute its returned `companion` data. Loading core defaults does not discover ambient provider secrets. This also preserves the documented boolean and upload-URL parsing performed by that helper. |
+| `redboxSession.host/port/db/pass/prefix` | Historical Redis comments; baseline selected Mongo and ignored those Redis fields. Redis session adapters are unsupported. Use Mongo URL/options/dbName and the supported native serialization setting. |
+| `redboxToCkan`, `enableNewForm`, `datapubs`, `api.endpoint`, `record.customFields`, `features`, separate `reusable*FormDefinitions` fragments | No bundled baseline startup consumer (some are examples, an unimplemented proposal, or build-time fragments included in `reusableFormDefinitions`). They are not silently accepted arbitrary extension namespaces. Move actual extension-owned data into an explicitly owned schema/selected factory. |
+
+The machine ledger's `strictShapes` rows associate scalar/container/function
+validation with this section and the matching client-compatibility section. The
+recorded inventory's unresolved expressions are never executed to manufacture a
+fixture or a credential. Their owning source module and migration disposition
+remain visible for review.

@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { render } from 'ejs';
 import sinon from 'sinon';
 import { createTransport } from 'nodemailer';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import {
   nothingLogger,
   FormConfig,
@@ -265,7 +266,9 @@ describe('baseline configuration acceptance and production consumers', () => {
       assert(typeof serverOptions === 'string');
       const transport = createTransport(serverOptions);
       try {
-        const nativeOptions = Reflect.get(transport, 'transporter').options;
+        const nativeTransport = transport.transporter;
+        assert(nativeTransport instanceof SMTPTransport);
+        const nativeOptions = nativeTransport.options;
         assert.equal(nativeOptions.host, 'mail.example.invalid');
         assert.equal(nativeOptions.port, port);
         assert.equal(nativeOptions.secure, secure);
