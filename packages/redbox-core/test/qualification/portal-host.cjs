@@ -224,6 +224,11 @@ test(
         await request(path, {}, 401);
         assert.deepEqual(JSON.parse((await request(path, { headers })).text), { generated: true });
       }
+      for (const path of ['/default/rdmp/api/forms', '/default/rdmp/api/forms/']) {
+        const options = await request(path, { method: 'OPTIONS' });
+        assert.deepEqual(options.response.headers.get('allow').split(/,\s*/).sort(), ['GET', 'HEAD']);
+      }
+      await request('/default/rdmp/unknown-options', { method: 'OPTIONS' }, 404);
       const generatedPath = '/default/rdmp/generated-write';
       await request(generatedPath, { method: 'POST' }, 401);
       assert.deepEqual(JSON.parse((await request(generatedPath, { method: 'POST', headers })).text), {

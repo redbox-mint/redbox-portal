@@ -429,8 +429,11 @@ export async function preparePage(req: Request, res: Response, input: PagesHttpI
 
 /** Mount after dynamic and static delivery so only unmatched branded pages reach it. */
 export function mountPageNotFound(router: Router, input: PagesHttpInput): void {
-  router.use(
-    '/:branding/:portal',
+  router.all(
+    '/:branding/:portal{/*pageNotFound}',
+    // Leave OPTIONS to Express's accumulated method response before page policies
+    // or rendering can turn an otherwise matched API path into a 404/redirect.
+    (req, _res, next) => next(req.method === 'OPTIONS' ? 'route' : undefined),
     ...bindHttpPolicies(['nocache', 'brandingandportal', 'browseractor', 'checkauth'], input.policies),
     (req, res, next) => (['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? next() : input.csrf.protect(req, res, next)),
     httpAction(async (req, res) => {

@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import ejs from 'ejs';
 import * as sinon from 'sinon';
+import { mountConfigurationReadRoutes } from '../../src/http/express/configuration';
 import { PageArtifacts } from '../../src/pages/Artifacts';
 import { preparePage, mountPageNotFound } from '../../src/http/express/pages';
 import { pageInputFixture } from '../helpers/pageInputFixture';
@@ -102,6 +103,30 @@ describe('Declared extension view resolution', function () {
     sinon.assert.calledWithExactly(f.response.status, 404);
     sinon.assert.calledWithExactly(Reflect.get(f.response, 'send'), '<main>not found</main>');
   });
+  it('preserves automatic API OPTIONS when the production page fallback is mounted', async () => {
+    await artifacts.initialize();
+    const http = await httpRouteFixture((router, input) => {
+      router.use((req, _res, next) => {
+        req.session = {} as typeof req.session;
+        next();
+      });
+      mountConfigurationReadRoutes(router, { ...input, forms: {} } as any);
+      mountPageNotFound(router, { ...f.input, ...input, csrf: { ...f.input.csrf, ...input.csrf }, artifacts });
+    });
+    try {
+      for (const suffix of ['', '/']) {
+        const response = await http.request('/default/portal/api/forms' + suffix, { method: 'OPTIONS' });
+        assert.equal(response.status, 200);
+        assert.deepEqual(response.headers.get('Allow')?.split(/,\s*/).sort(), ['GET', 'HEAD']);
+      }
+      const unknown = await http.request('/default/portal/api/unknown', { method: 'OPTIONS' });
+      assert.equal(unknown.status, 404);
+      assert.equal(unknown.headers.get('Allow'), null);
+    } finally {
+      await http.close();
+    }
+  });
+
   it('recovers branding and portal from an unmatched branded URL', async function () {
     write(path.join(core, '404.ejs'), '<%= branding %>/<%= portal %>:not found');
     write(path.join(hook, 'brand/portal/layout/layout.ejs'), '<main><%- body %></main>');
