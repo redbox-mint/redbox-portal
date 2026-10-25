@@ -70,6 +70,21 @@ function safeLocalRedirect(value: unknown, root: string, fallback: string): stri
     : fallback;
 }
 
+/** Match passport-local's bracket lookup and body-before-query fallback. */
+function localCredential(req: Request, field: string): unknown {
+  const lookup = (input: unknown): unknown => {
+    for (const part of field.replaceAll(']', '').split('[')) {
+      if (!input || typeof input !== 'object') return undefined;
+      const value: unknown = Reflect.get(input, part);
+      if (value === undefined) return undefined;
+      if (typeof value !== 'object') return value;
+      input = value;
+    }
+    return undefined;
+  };
+  return lookup(req.body) || lookup(req.query);
+}
+
 export function mountAuthenticationRoutes(router: Router, input: AuthenticationHttpInput): void {
   const root = input.rootContext ?? '';
   const context = (req: Request) => {
@@ -108,9 +123,10 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
       req.params.portal = selected.portal;
       if (
         local &&
-        (input.credentialFields ?? ['username', 'password']).some(
-          field => typeof req.body?.[field] !== 'string' || !req.body[field] || req.body[field].length > 4096
-        )
+        ['username', 'password'].some((fallbackField, index) => {
+          const value = localCredential(req, input.credentialFields?.[index] || fallbackField);
+          return typeof value !== 'string' || !value || value.length > 4096;
+        })
       ) {
         await input.loginFailure(req);
         res.status(400).json({ message: 'Invalid login parameters' });

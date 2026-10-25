@@ -109,6 +109,7 @@ async function fixture(
     orphan?: boolean;
     active?: boolean;
     customFields?: boolean;
+    credentialFields?: readonly [string, string];
     denyEmail?: boolean;
     userInfo?: boolean;
     priorLogout?: boolean;
@@ -205,7 +206,11 @@ async function fixture(
   } as never);
   const config: AuthBrandConfig = {
     active: options.active === false ? [] : ['aaf', 'oidc'],
-    local: options.customFields ? { usernameField: 'loginName', passwordField: 'loginSecret' } : {},
+    local: options.credentialFields
+      ? { usernameField: options.credentialFields[0], passwordField: options.credentialFields[1] }
+      : options.customFields
+        ? { usernameField: 'loginName', passwordField: 'loginSecret' }
+        : {},
     aaf: { opts: { secretOrKey: aafKey } },
     oidc: {
       logoutFromAuthServer: !options.logoutDisabled,
@@ -222,8 +227,9 @@ async function fixture(
   };
   const auth = createHttpAuthentication(identity);
   const app = express();
+  app.set('query parser', 'extended');
   app.use(express.json());
-  app.use(express.urlencoded({ extended: false }));
+  app.use(express.urlencoded({ extended: true }));
   const store = new session.MemoryStore();
   app.use(
     session({
@@ -293,7 +299,7 @@ async function fixture(
     postLoginPath: (name, portal) => `${root}/${name}/${portal}/welcome`,
     logoutOrigins: options.logoutAllowed === false ? [] : [idp.issuer],
     sessionCookie: { name: 'matrix.sid' },
-    credentialFields: options.customFields ? ['loginName', 'loginSecret'] : undefined,
+    credentialFields: options.credentialFields ?? (options.customFields ? ['loginName', 'loginSecret'] : undefined),
     csrf: csrf.protect,
     audit: async action => {
       audits.push(action);
@@ -312,6 +318,9 @@ async function fixture(
       assertion?: string;
       noCsrf?: boolean;
       badState?: boolean;
+      credentialBody?: Record<string, unknown> | null;
+      credentialQuery?: Record<string, string>;
+      credentialForm?: Record<string, string>;
     } = {}
   ) {
     if (isOidc(method)) {
@@ -364,23 +373,25 @@ async function fixture(
         : options.customFields
           ? { loginName: username(method), loginSecret: input.password ?? 'password' }
           : { username: username(method), password: input.password ?? 'password' };
-    return fetch(
-      url +
-        '/user/login_' +
-        (method === 'aaf' ? 'aaf' : 'local') +
-        (input.redirUrl === undefined ? '' : '?redirUrl=' + encodeURIComponent(input.redirUrl)),
-      {
-        method: 'POST',
-        redirect: 'manual',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-source': 'jsclient',
-          Cookie: current,
-          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
-        },
-        body: JSON.stringify({ ...body, branding: input.brand ?? 'default', portal: 'rdmp' }),
-      }
-    );
+    const query = new URLSearchParams({
+      ...input.credentialQuery,
+      ...(input.redirUrl === undefined ? {} : { redirUrl: input.redirUrl }),
+    });
+    return fetch(url + '/user/login_' + (method === 'aaf' ? 'aaf' : 'local') + (query.size ? '?' + query : ''), {
+      method: 'POST',
+      redirect: 'manual',
+      headers: {
+        'Content-Type': input.credentialForm ? 'application/x-www-form-urlencoded' : 'application/json',
+        'x-source': 'jsclient',
+        Cookie: current,
+        ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+      },
+      body: input.credentialForm
+        ? new URLSearchParams(input.credentialForm)
+        : input.credentialBody === null
+          ? undefined
+          : JSON.stringify({ ...(input.credentialBody ?? body), branding: input.brand ?? 'default', portal: 'rdmp' }),
+    });
   }
   async function logout(current: string) {
     const response = await fetch(url + '/csrfToken', { headers: { Cookie: current } });
@@ -410,6 +421,102 @@ async function fixture(
 
 describe('authentication method compatibility matrix', function () {
   this.timeout(15000);
+  const credentialInputs: {
+    name: string;
+    fields?: readonly [string, string];
+    body: Record<string, unknown> | null;
+    query?: Record<string, string>;
+    form?: Record<string, string>;
+    status?: number;
+    allowed?: boolean;
+  }[] = [
+    { name: 'body', body: { username: 'person', password: 'password' } },
+    { name: 'query without body', body: null, query: { username: 'person', password: 'password' } },
+    {
+      name: 'empty configured fields retain strategy defaults',
+      fields: ['', ''],
+      body: { username: 'person', password: 'password' },
+    },
+    { name: 'body username and query password', body: { username: 'person' }, query: { password: 'password' } },
+    { name: 'query username and body password', body: { password: 'password' }, query: { username: 'person' } },
+    {
+      name: 'empty body fields use query fallback',
+      body: { username: '', password: '' },
+      query: { username: 'person', password: 'password' },
+    },
+    {
+      name: 'body takes precedence',
+      body: { username: 'person', password: 'wrong' },
+      query: { username: 'person', password: 'password' },
+      allowed: false,
+    },
+    {
+      name: 'custom query fields',
+      fields: ['loginName', 'loginSecret'],
+      body: null,
+      query: { loginName: 'person', loginSecret: 'password' },
+    },
+    {
+      name: 'nested body fields',
+      fields: ['credentials[name]', 'credentials[secret]'],
+      body: { credentials: { name: 'person', secret: 'password' } },
+    },
+    {
+      name: 'nested query fields',
+      fields: ['credentials[name]', 'credentials[secret]'],
+      body: null,
+      query: { 'credentials[name]': 'person', 'credentials[secret]': 'password' },
+    },
+    {
+      name: 'nested form fields',
+      fields: ['credentials[name]', 'credentials[secret]'],
+      body: null,
+      form: { 'credentials[name]': 'person', 'credentials[secret]': 'password' },
+    },
+    {
+      name: 'form username and query password',
+      body: null,
+      form: { username: 'person' },
+      query: { password: 'password' },
+    },
+    { name: 'missing credential', body: { username: 'person' }, status: 400, allowed: false },
+    {
+      name: 'structured credential',
+      body: { username: ['person'], password: 'password' },
+      status: 400,
+      allowed: false,
+    },
+    {
+      name: 'overlong credential',
+      body: { username: 'person', password: 'x'.repeat(4097) },
+      status: 400,
+      allowed: false,
+    },
+  ];
+  for (const row of credentialInputs)
+    it('local input acceptance: ' + row.name, async () => {
+      const f = await fixture('local', { credentialFields: row.fields });
+      try {
+        const response = await f.login({
+          credentialBody: row.body,
+          credentialQuery: row.query,
+          credentialForm: row.form,
+        });
+        const result = (await response.json()) as { message: string; user?: unknown };
+        assert.equal(response.status, row.status ?? 200, JSON.stringify(result));
+        if (row.allowed !== false) {
+          assert.equal(result.message, 'Login OK');
+          assert(cookie(response));
+          assert.deepEqual(f.audits, ['login']);
+        } else {
+          assert.equal(cookie(response), '');
+          assert.deepEqual(f.audits, []);
+          if (response.status === 200) assert.equal(result.user, false);
+        }
+      } finally {
+        await f.close();
+      }
+    });
   for (const method of methods)
     describe(method, () => {
       for (const state of [
