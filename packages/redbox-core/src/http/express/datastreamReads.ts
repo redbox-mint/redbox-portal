@@ -73,7 +73,10 @@ export function mountDatastreamReadRoutes(
             sendApiErrors(req, res, 403, [{ detail: 'Access Denied' }]);
             return;
           }
-          const attachments = await input.records.getAttachments(oid, undefined, { username: actor.username });
+          const genericDatastream = route.controller === 'RecordController' && route.action === 'getDataStream';
+          const attachments = genericDatastream
+            ? []
+            : await input.records.getAttachments(oid, undefined, { username: actor.username });
           if (route.action === 'getAttachments') {
             sendApiData(req, res, attachments);
             return;
@@ -96,7 +99,7 @@ export function mountDatastreamReadRoutes(
             else sendApiErrors(req, res, 404, [{ detail: 'Attachment not found' }]);
           };
           const found = attachments.find(a => a.fileId === id);
-          if (!found) {
+          if (!found && !genericDatastream) {
             await missing();
             return;
           }
@@ -117,16 +120,19 @@ export function mountDatastreamReadRoutes(
             }
             throw error;
           }
-          const fileName = typeof req.query.fileName === 'string' ? req.query.fileName : String(found.name ?? id);
+          const fileName =
+            typeof req.query.fileName === 'string' && req.query.fileName
+              ? req.query.fileName
+              : String(genericDatastream ? id : (found?.name ?? id));
           res
             .set(
               'Content-Type',
               route.action === 'doAttachment'
-                ? String(found.mimeType ?? 'application/octet-stream')
+                ? String(found?.mimeType ?? 'application/octet-stream')
                 : 'application/octet-stream'
             )
             .attachment(fileName);
-          if (route.action === 'doAttachment' && Number.isSafeInteger(Number(found.size)) && Number(found.size) >= 0)
+          if (found?.size !== undefined && Number.isSafeInteger(Number(found.size)) && Number(found.size) >= 0)
             res.set('Content-Length', String(found.size));
           if (response.readstream) {
             if (res.destroyed) {
