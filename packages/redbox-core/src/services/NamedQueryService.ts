@@ -315,8 +315,14 @@ export namespace Services {
       return flattened;
     }
 
-    private toNativeMongoCriteria(criteria: Record<string, unknown>): Record<string, unknown> {
+    private toNativeMongoCriteria(
+      criteria: Record<string, unknown>,
+      queryParams: Record<string, QueryParameterDefinition>
+    ): Record<string, unknown> {
       const mongoCriteria: Record<string, unknown> = {};
+      const datePaths = new Set(Object.values(queryParams).filter(param => param.type === DataType.Date).map(param => param.path));
+      const dateComparisons: Record<string, unknown>[] = [];
+      const dateOperators = new Set(['$gt', '$gte', '$lt', '$lte', '$eq', '$ne']);
       const operatorMap: Record<string, string> = {
         '>': '$gt',
         '>=': '$gte',
@@ -331,20 +337,41 @@ export namespace Services {
         if (_.isPlainObject(value)) {
           const mappedValue: Record<string, unknown> = {};
           for (const [operator, operatorValue] of Object.entries(value as Record<string, unknown>)) {
-            if (operator === 'contains') {
+            const nativeOperator = operatorMap[operator] ?? operator;
+            if (datePaths.has(key) && dateOperators.has(nativeOperator)) {
+              // Stored UTC strings and offset ISO strings must compare as instants.
+              // Conversion also accepts BSON dates without rewriting stored records.
+              dateComparisons.push({
+                $let: {
+                  vars: {
+                    stored: { $convert: { input: `$${key}`, to: 'date', onError: null, onNull: null } },
+                    bound: { $convert: { input: { $literal: operatorValue }, to: 'date', onError: null, onNull: null } },
+                  },
+                  in: {
+                    $and: [
+                      { $ne: ['$$stored', null] },
+                      { $ne: ['$$bound', null] },
+                      { [nativeOperator]: ['$$stored', '$$bound'] },
+                    ],
+                  },
+                },
+              });
+            } else if (operator === 'contains') {
               mappedValue.$regex = _.escapeRegExp(String(operatorValue ?? ''));
               mappedValue.$options = 'i';
             } else {
-              mappedValue[operatorMap[operator] ?? operator] = operatorValue;
+              mappedValue[nativeOperator] = operatorValue;
             }
           }
-          mongoCriteria[key] = mappedValue;
+          if (!_.isEmpty(mappedValue)) mongoCriteria[key] = mappedValue;
         } else {
           mongoCriteria[key] = value;
         }
       }
 
-      return mongoCriteria;
+      return dateComparisons.length > 0
+        ? { $and: [mongoCriteria, { $expr: { $and: dateComparisons } }] }
+        : mongoCriteria;
     }
 
     private toNativeMongoSort(sort: NamedQuerySortConfig | undefined): Record<string, 1 | -1> {
@@ -534,7 +561,7 @@ export namespace Services {
       let results: Array<RecordLike | UserLike> = [];
       if (collectionName === 'record') {
         const nativeCollection = await this.getNativeRecordCollection(model);
-        const nativeCriteria = this.toNativeMongoCriteria(waterlineQuery);
+        const nativeCriteria = this.toNativeMongoCriteria(waterlineQuery, queryParams);
         totalItems = await nativeCollection.countDocuments(nativeCriteria);
         if (totalItems > 0) {
           let nativeQuery = nativeCollection.find(nativeCriteria);
