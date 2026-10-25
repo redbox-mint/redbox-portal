@@ -57,8 +57,9 @@ export class PortalHttp implements ApplicationModule {
       new http.PageArtifacts(
         [...(this.options.viewRoots ?? []), ...resolved.views, path.resolve(this.options.appPath, 'views')],
         [
-          ...(this.options.assetRoots ?? [path.resolve(this.options.appPath, '.tmp/public')]),
+          ...(this.options.assetRoots ?? []),
           ...resolved.assets,
+          ...(this.options.assetRoots ? [] : [path.resolve(this.options.appPath, '.tmp/public')]),
           path.resolve(this.options.appPath, 'assets'),
         ]
       )
