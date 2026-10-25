@@ -1,0 +1,565 @@
+{
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "node": "v26.7.0",
+  "qualification": "actual baseline controller methods with deterministic domain ports; not baseline HTTP",
+  "observations": [
+    {
+      "id": "HTTP-108",
+      "version": "1.0",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/RecordController.ts",
+      "action": "getMeta",
+      "build": {
+        "data": {
+          "title": "Current"
+        },
+        "meta": {
+          "oid": "oid-1",
+          "revision": 3,
+          "entityTag": "\"rb-record-v1.3.396FhKrFVKTv6zPbDbGvYVlte5v2m53uDchSyhffMms\"",
+          "relationships": {
+            "rootOid": "oid-1",
+            "edges": [],
+            "relatedObjects": {
+              "dataset": [
+                {
+                  "redboxOid": "oid-1",
+                  "revision": 3,
+                  "metaMetadata": {
+                    "brandId": "brand-1",
+                    "type": "dataset"
+                  },
+                  "metadata": {
+                    "title": "Current"
+                  },
+                  "authorization": {
+                    "view": [
+                      "alice"
+                    ],
+                    "edit": [
+                      "alice"
+                    ]
+                  }
+                }
+              ]
+            },
+            "omittedByAccess": {}
+          }
+        },
+        "v1": {
+          "title": "Current",
+          "relationships": {
+            "rootOid": "oid-1",
+            "edges": [],
+            "relatedObjects": {
+              "dataset": [
+                {
+                  "redboxOid": "oid-1",
+                  "revision": 3,
+                  "metaMetadata": {
+                    "brandId": "brand-1",
+                    "type": "dataset"
+                  },
+                  "metadata": {
+                    "title": "Current"
+                  },
+                  "authorization": {
+                    "view": [
+                      "alice"
+                    ],
+                    "edit": [
+                      "alice"
+                    ]
+                  }
+                }
+              ]
+            },
+            "omittedByAccess": {}
+          }
+        },
+        "headers": {
+          "ETag": "\"rb-record-v1.3.396FhKrFVKTv6zPbDbGvYVlte5v2m53uDchSyhffMms\""
+        }
+      }
+    },
+    {
+      "id": "HTTP-108",
+      "version": "2.0",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/RecordController.ts",
+      "action": "getMeta",
+      "build": {
+        "data": {
+          "title": "Current"
+        },
+        "meta": {
+          "oid": "oid-1",
+          "revision": 3,
+          "entityTag": "\"rb-record-v1.3.396FhKrFVKTv6zPbDbGvYVlte5v2m53uDchSyhffMms\"",
+          "relationships": {
+            "rootOid": "oid-1",
+            "edges": [],
+            "relatedObjects": {
+              "dataset": [
+                {
+                  "redboxOid": "oid-1",
+                  "revision": 3,
+                  "metaMetadata": {
+                    "brandId": "brand-1",
+                    "type": "dataset"
+                  },
+                  "metadata": {
+                    "title": "Current"
+                  },
+                  "authorization": {
+                    "view": [
+                      "alice"
+                    ],
+                    "edit": [
+                      "alice"
+                    ]
+                  }
+                }
+              ]
+            },
+            "omittedByAccess": {}
+          }
+        },
+        "v1": {
+          "title": "Current",
+          "relationships": {
+            "rootOid": "oid-1",
+            "edges": [],
+            "relatedObjects": {
+              "dataset": [
+                {
+                  "redboxOid": "oid-1",
+                  "revision": 3,
+                  "metaMetadata": {
+                    "brandId": "brand-1",
+                    "type": "dataset"
+                  },
+                  "metadata": {
+                    "title": "Current"
+                  },
+                  "authorization": {
+                    "view": [
+                      "alice"
+                    ],
+                    "edit": [
+                      "alice"
+                    ]
+                  }
+                }
+              ]
+            },
+            "omittedByAccess": {}
+          }
+        },
+        "headers": {
+          "ETag": "\"rb-record-v1.3.396FhKrFVKTv6zPbDbGvYVlte5v2m53uDchSyhffMms\""
+        }
+      }
+    },
+    {
+      "id": "HTTP-137",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/RecordController.ts",
+      "action": "delete",
+      "permanent": false,
+      "operation": "delete"
+    },
+    {
+      "id": "HTTP-135",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/RecordController.ts",
+      "action": "createInternal",
+      "failure": "read",
+      "build": {
+        "data": null,
+        "meta": {
+          "success": true,
+          "oid": "oid-1",
+          "message": "",
+          "metadata": null,
+          "totalItems": 0,
+          "items": [],
+          "outcome": "saved-with-warnings",
+          "problems": [
+            {
+              "kind": "system",
+              "phase": "response",
+              "issues": [
+                {
+                  "message": "@record-save-response-projection-failed",
+                  "code": "response-projection-failed"
+                }
+              ]
+            }
+          ],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "00000000-0000-4000-8000-000000000001",
+          "context": {
+            "requestId": "00000000-0000-4000-8000-000000000001"
+          },
+          "concurrency": {
+            "revision": 4,
+            "entityTag": "\"rb-record-v1.4.z_8kAw_R0zGH5Pip1RFZJw778RJnifZIG_aIrCX9kdo\""
+          }
+        },
+        "headers": {
+          "ETag": "\"rb-record-v1.4.z_8kAw_R0zGH5Pip1RFZJw778RJnifZIG_aIrCX9kdo\""
+        }
+      }
+    },
+    {
+      "id": "HTTP-135",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/RecordController.ts",
+      "action": "createInternal",
+      "failure": "projection",
+      "build": {
+        "data": {
+          "redboxOid": "oid-1",
+          "revision": 3,
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "dataset"
+          },
+          "metadata": {
+            "title": "Current"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ]
+          }
+        },
+        "meta": {
+          "success": true,
+          "oid": "oid-1",
+          "message": "",
+          "metadata": null,
+          "totalItems": 0,
+          "items": [],
+          "outcome": "saved-with-warnings",
+          "problems": [
+            {
+              "kind": "system",
+              "phase": "response",
+              "issues": [
+                {
+                  "message": "@record-save-response-projection-failed",
+                  "code": "response-projection-failed"
+                }
+              ]
+            }
+          ],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "00000000-0000-4000-8000-000000000001",
+          "context": {
+            "requestId": "00000000-0000-4000-8000-000000000001"
+          },
+          "concurrency": {
+            "revision": 4,
+            "entityTag": "\"rb-record-v1.4.z_8kAw_R0zGH5Pip1RFZJw778RJnifZIG_aIrCX9kdo\""
+          }
+        },
+        "headers": {
+          "ETag": "\"rb-record-v1.4.z_8kAw_R0zGH5Pip1RFZJw778RJnifZIG_aIrCX9kdo\""
+        }
+      }
+    },
+    {
+      "id": "HTTP-136",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/RecordController.ts",
+      "action": "updateInternal",
+      "failure": "read",
+      "build": {
+        "data": null,
+        "meta": {
+          "success": true,
+          "oid": "oid-1",
+          "message": "",
+          "metadata": null,
+          "totalItems": 0,
+          "items": [],
+          "outcome": "saved-with-warnings",
+          "problems": [
+            {
+              "kind": "system",
+              "phase": "response",
+              "issues": [
+                {
+                  "message": "@record-save-response-projection-failed",
+                  "code": "response-projection-failed"
+                }
+              ]
+            }
+          ],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "00000000-0000-4000-8000-000000000001",
+          "context": {
+            "requestId": "00000000-0000-4000-8000-000000000001"
+          },
+          "concurrency": {
+            "revision": 4,
+            "entityTag": "\"rb-record-v1.4.z_8kAw_R0zGH5Pip1RFZJw778RJnifZIG_aIrCX9kdo\""
+          }
+        },
+        "headers": {
+          "ETag": "\"rb-record-v1.4.z_8kAw_R0zGH5Pip1RFZJw778RJnifZIG_aIrCX9kdo\""
+        }
+      }
+    },
+    {
+      "id": "HTTP-136",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/RecordController.ts",
+      "action": "updateInternal",
+      "failure": "projection",
+      "build": {
+        "data": {
+          "redboxOid": "oid-1",
+          "revision": 3,
+          "metaMetadata": {
+            "brandId": "brand-1",
+            "type": "dataset"
+          },
+          "metadata": {
+            "title": "Current"
+          },
+          "authorization": {
+            "view": [
+              "alice"
+            ],
+            "edit": [
+              "alice"
+            ]
+          }
+        },
+        "meta": {
+          "success": true,
+          "oid": "oid-1",
+          "message": "",
+          "metadata": null,
+          "totalItems": 0,
+          "items": [],
+          "outcome": "saved-with-warnings",
+          "problems": [
+            {
+              "kind": "system",
+              "phase": "response",
+              "issues": [
+                {
+                  "message": "@record-save-response-projection-failed",
+                  "code": "response-projection-failed"
+                }
+              ]
+            }
+          ],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "00000000-0000-4000-8000-000000000001",
+          "context": {
+            "requestId": "00000000-0000-4000-8000-000000000001"
+          },
+          "concurrency": {
+            "revision": 4,
+            "entityTag": "\"rb-record-v1.4.z_8kAw_R0zGH5Pip1RFZJw778RJnifZIG_aIrCX9kdo\""
+          }
+        },
+        "headers": {
+          "ETag": "\"rb-record-v1.4.z_8kAw_R0zGH5Pip1RFZJw778RJnifZIG_aIrCX9kdo\""
+        }
+      }
+    },
+    {
+      "id": "HTTP-120",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+      "action": "create",
+      "publicUrl": "https://public.example.edu",
+      "rootContext": "",
+      "build": {
+        "status": 201,
+        "data": {
+          "success": true,
+          "oid": "oid-1",
+          "message": "",
+          "metadata": null,
+          "totalItems": 0,
+          "items": [],
+          "outcome": "saved",
+          "problems": [],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "37d48f87-20ee-4d40-8914-8313462d3e53",
+          "context": {
+            "requestId": "37d48f87-20ee-4d40-8914-8313462d3e53"
+          }
+        },
+        "meta": {
+          "success": true,
+          "oid": "oid-1",
+          "message": "",
+          "metadata": null,
+          "totalItems": 0,
+          "items": [],
+          "outcome": "saved",
+          "problems": [],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "37d48f87-20ee-4d40-8914-8313462d3e53",
+          "context": {
+            "requestId": "37d48f87-20ee-4d40-8914-8313462d3e53"
+          }
+        },
+        "headers": {
+          "Location": "https://public.example.edu/default/portal/api/records/metadata/oid-1"
+        }
+      }
+    },
+    {
+      "id": "HTTP-120",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+      "action": "create",
+      "publicUrl": "https://public.example.edu/research",
+      "rootContext": "/research",
+      "build": {
+        "status": 201,
+        "data": {
+          "success": true,
+          "oid": "oid-1",
+          "message": "",
+          "metadata": null,
+          "totalItems": 0,
+          "items": [],
+          "outcome": "saved",
+          "problems": [],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "6af353d6-4723-49ec-ac17-4b17d673ed69",
+          "context": {
+            "requestId": "6af353d6-4723-49ec-ac17-4b17d673ed69"
+          }
+        },
+        "meta": {
+          "success": true,
+          "oid": "oid-1",
+          "message": "",
+          "metadata": null,
+          "totalItems": 0,
+          "items": [],
+          "outcome": "saved",
+          "problems": [],
+          "completion": {
+            "attachments": {
+              "status": "not-required",
+              "items": []
+            }
+          },
+          "requestId": "6af353d6-4723-49ec-ac17-4b17d673ed69",
+          "context": {
+            "requestId": "6af353d6-4723-49ec-ac17-4b17d673ed69"
+          }
+        },
+        "headers": {
+          "Location": "https://public.example.edu/research/default/portal/api/records/metadata/oid-1"
+        }
+      }
+    },
+    {
+      "id": "HTTP-067",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/webservice/ReportController.ts",
+      "action": "previewConfig",
+      "build": {
+        "data": {
+          "owner": "body-owner",
+          "date": "2026-01-02"
+        },
+        "status": 200,
+        "headers": {}
+      }
+    },
+    {
+      "id": "HTTP-067",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/webservice/ReportController.ts",
+      "action": "previewConfig",
+      "queryOwner": "query-owner",
+      "build": {
+        "data": {
+          "owner": "body-owner",
+          "date": "2026-01-02"
+        },
+        "status": 200,
+        "headers": {}
+      }
+    },
+    {
+      "id": "HTTP-070",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/ReportController.ts",
+      "action": "previewConfig",
+      "build": {
+        "data": {
+          "owner": "body-owner",
+          "date": "2026-01-02"
+        },
+        "headers": {}
+      }
+    },
+    {
+      "id": "HTTP-070",
+      "mode": "baseline-method",
+      "file": "packages/redbox-core/src/controllers/ReportController.ts",
+      "action": "previewConfig",
+      "queryOwner": "query-owner",
+      "build": {
+        "data": {
+          "owner": "body-owner",
+          "date": "2026-01-02"
+        },
+        "headers": {}
+      }
+    }
+  ]
+}

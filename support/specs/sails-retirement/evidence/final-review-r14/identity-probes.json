@@ -1,0 +1,950 @@
+{
+  "schemaVersion": 1,
+  "node": "26.11.1",
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "incomingNative": "9bb858218075dec4d77c1302063c134d8f3133f2",
+  "limitations": [
+    "Native HTTP uses ephemeral loopback Express listeners with deterministic service/repository ports, not a full deployed portal or real provider/Mongo qualification.",
+    "Baseline evidence executes actual extracted TypeScript methods with response/domain ports. It does not run a Sails HTTP server.",
+    "Negative control substitutes ONLY four incoming handler modules; current shared dependencies/tests remain. It does not claim a complete historical checkout execution.",
+    "Combined green includes parent datastream-write tests; counts overlap parent qualification and are not additive."
+  ],
+  "incomingNegative": {
+    "command": "TS_NODE_PROJECT=test/tsconfig.json NODE26 --no-experimental-strip-types ../../node_modules/mocha/bin/mocha.js --no-config -r ts-node/register/transpile-only -r ../../support/specs/sails-retirement/evidence/final-review-r14/identity-negative.cjs --timeout 20000 --reporter json test/http/identityDifferential.test.ts test/http/datastreamReadDifferential.test.ts test/http/vocabularyVersionDifferential.test.ts",
+    "cwd": "packages/redbox-core",
+    "stats": {
+      "suites": 3,
+      "tests": 49,
+      "passes": 32,
+      "pending": 0,
+      "failures": 17,
+      "start": "2026-10-25T15:41:38.550Z",
+      "end": "2026-10-25T15:41:39.714Z",
+      "duration": 1164
+    },
+    "exitCode": 17
+  },
+  "currentGreen": {
+    "command": "TS_NODE_PROJECT=test/tsconfig.json NODE26 --no-experimental-strip-types ../../node_modules/mocha/bin/mocha.js --no-config -r ts-node/register/transpile-only --timeout 20000 --reporter json test/http/identityDifferential.test.ts test/http/datastreamReadDifferential.test.ts test/http/vocabularyVersionDifferential.test.ts test/http/httpInputAcceptance.test.ts test/http/recordDatastreamContracts.test.ts",
+    "cwd": "packages/redbox-core",
+    "stats": {
+      "suites": 5,
+      "tests": 126,
+      "passes": 126,
+      "pending": 0,
+      "failures": 0,
+      "start": "2026-10-25T15:41:38.837Z",
+      "end": "2026-10-25T15:41:41.109Z",
+      "duration": 2272
+    },
+    "exitCode": 0
+  },
+  "NODE26": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+  "newRegressionCases": [
+    {
+      "case": "Identity route target precedence REST update selects its declared body.id ?id=222222222222222222222222",
+      "routes": [
+        "HTTP-144"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST update selects its declared body.id ?userid=222222222222222222222222",
+      "routes": [
+        "HTTP-144"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST update selects its declared body.id ?id=222222222222222222222222&userid=222222222222222222222222",
+      "routes": [
+        "HTTP-144"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST update selects its declared body.id ",
+      "routes": [
+        "HTTP-144"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST update rejects an omitted body.id with fallback {\"userid\":\"222222222222222222222222\"}",
+      "routes": [
+        "HTTP-144"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST update rejects an omitted body.id with fallback {\"userid\":\"222222222222222222222222\"}",
+      "routes": [
+        "HTTP-144"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST update rejects an omitted body.id with fallback {}",
+      "routes": [
+        "HTTP-144"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence browser genKey keeps body.userid under simultaneous body/query conflicts",
+      "routes": [
+        "HTTP-153"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence browser genKey rejects omitted body.userid despite every unrelated ID source",
+      "routes": [
+        "HTTP-153"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence browser revokeKey keeps body.userid under simultaneous body/query conflicts",
+      "routes": [
+        "HTTP-154"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence browser revokeKey rejects omitted body.userid despite every unrelated ID source",
+      "routes": [
+        "HTTP-154"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence browser update keeps body.userid under simultaneous body/query conflicts",
+      "routes": [
+        "HTTP-156"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence browser update rejects omitted body.userid despite every unrelated ID source",
+      "routes": [
+        "HTTP-156"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence browser roles keeps body.userid under simultaneous body/query conflicts",
+      "routes": [
+        "HTTP-157"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence browser roles rejects omitted body.userid despite every unrelated ID source",
+      "routes": [
+        "HTTP-157"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence api disable selects path ID despite conflicting body and query",
+      "routes": [
+        "HTTP-145"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence api enable selects path ID despite conflicting body and query",
+      "routes": [
+        "HTTP-146"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence admin disable selects path ID despite conflicting body and query",
+      "routes": [
+        "HTTP-151"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence admin enable selects path ID despite conflicting body and query",
+      "routes": [
+        "HTTP-152"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence self genKey selects authenticated actor despite conflicting IDs",
+      "routes": [
+        "HTTP-159"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence self revokeKey selects authenticated actor despite conflicting IDs",
+      "routes": [
+        "HTTP-160"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence self update selects authenticated actor despite conflicting IDs",
+      "routes": [
+        "HTTP-161"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST find returns a disabled account in API 1.0",
+      "routes": [
+        "HTTP-163"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST find returns a disabled account in API 2.0",
+      "routes": [
+        "HTTP-163"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST get returns a disabled account in API 1.0",
+      "routes": [
+        "HTTP-164"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST get returns a disabled account in API 2.0",
+      "routes": [
+        "HTTP-164"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence REST list still excludes disabled accounts by default",
+      "routes": [
+        "HTTP-162"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users",
+      "routes": [
+        "HTTP-162",
+        "HTTP-169"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users/find?searchBy=username&query=hidden",
+      "routes": [
+        "HTTP-163",
+        "HTTP-169"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Identity route target precedence keeps hiddenUsers as a browser setting for /api/users/get?searchBy=username&query=hidden",
+      "routes": [
+        "HTTP-164",
+        "HTTP-169"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Datastream read compatibility downloads an authorized generic datastream without attachment metadata",
+      "routes": [
+        "HTTP-253"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Datastream read compatibility uses the datastream ID as the generic download filename",
+      "routes": [
+        "HTTP-253"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Datastream read compatibility retains API download length and filename ?fileName=",
+      "routes": [
+        "HTTP-249"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Datastream read compatibility retains API download length and filename ?fileName=renamed.csv",
+      "routes": [
+        "HTTP-249"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Datastream read compatibility keeps the API attachment metadata gate",
+      "routes": [
+        "HTTP-249"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Datastream read compatibility denies generic datastream access for brand",
+      "routes": [
+        "HTTP-253"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Datastream read compatibility denies generic datastream access for acl",
+      "routes": [
+        "HTTP-253"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version api import preserves version \"\"",
+      "routes": [
+        "HTTP-174"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version api import preserves version undefined",
+      "routes": [
+        "HTTP-174"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version api import preserves version \"123\"",
+      "routes": [
+        "HTTP-174"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version api sync preserves version \"\"",
+      "routes": [
+        "HTTP-175"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version api sync preserves version undefined",
+      "routes": [
+        "HTTP-175"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version api sync preserves version \"123\"",
+      "routes": [
+        "HTTP-175"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version admin import preserves version \"\"",
+      "routes": [
+        "HTTP-176"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version admin import preserves version undefined",
+      "routes": [
+        "HTTP-176"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version admin import preserves version \"123\"",
+      "routes": [
+        "HTTP-176"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version admin sync preserves version \"\"",
+      "routes": [
+        "HTTP-177"
+      ],
+      "incoming": "fail",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version admin sync preserves version undefined",
+      "routes": [
+        "HTTP-177"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    },
+    {
+      "case": "Optional RVA vocabulary version admin sync preserves version \"123\"",
+      "routes": [
+        "HTTP-177"
+      ],
+      "incoming": "pass",
+      "current": "pass",
+      "evidenceKind": "native-http-loopback-with-deterministic-domain-ports"
+    }
+  ],
+  "additionalGreenCases": [
+    {
+      "case": "Legacy HTTP input acceptance retains a bodyless browser vocabulary sync for the latest version",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains existing-record editing and route identifier precedence /record/rdmp/edit?oid=oid-1",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains existing-record editing and route identifier precedence /record/edit/oid-1?oid=other-record",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains existing-record form delivery and route identifier precedence /record/form/rdmp?oid=oid-1",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains existing-record form delivery and route identifier precedence /record/form/rdmp/oid-1?oid=other-record",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains optional translation listing filters ",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=en",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=en&namespace=",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=&namespace=custom",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin genKey",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin revokeKey",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin update",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin roles",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select query.id when browser admin genKey omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select body.id when browser admin genKey omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select both when browser admin genKey omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select query.id when browser admin revokeKey omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select body.id when browser admin revokeKey omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select both when browser admin revokeKey omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select query.id when browser admin update omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select body.id when browser admin update omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select both when browser admin update omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select query.id when browser admin roles omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select body.id when browser admin roles omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance does not select both when browser admin roles omits userid",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance rejects structured translation filters ?locale[bad]=en",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance rejects structured translation filters ?namespace[bad]=translation",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance rejects structured translation filters ?keyPrefix[bad]=a",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation toggle query=true body=undefined",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation toggle query=false body=undefined",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation toggle query=false body={\"enabled\":true}",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation toggle query=true body={\"enabled\":false}",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation toggle query= body={\"enabled\":\"false\"}",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation write validation /enabled?enabled=true []",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation write validation  undefined",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation write validation /enabled?enabled[bad]=true undefined",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains translation write validation /enabled {\"enabled\":{}}",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"true\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"TRUE\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\" t \"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"1\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"yes\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"y\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"on\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"enable\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"enabled\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"false\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"0\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"no\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance retains includeHistoricalValues=\"\"",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance splits and deduplicates 2 notation parameters before the unique-value limit",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance splits and deduplicates 4 notation parameters before the unique-value limit",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance splits and deduplicates 1 notation parameters before the unique-value limit",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance splits and deduplicates 1 notation parameters before the unique-value limit",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation[bad]=value",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=a&notation[bad]=value",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: includeHistoricalValues[bad]=true",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts authorizes getDataStream before attachment access with non-disclosing 404/403",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts authorizes listDatastreams before attachment access with non-disclosing 404/403",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts lists attachments only after current active-brand authorization",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts rejects malformed preconditions and missing edit authority before accepting bytes",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts claims the record through CAS before finalizing staged bytes and always cleans staging",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts reports returned finalization failure with the committed save contract in API 1.0",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts reports thrown finalization failure with the committed save contract in API 1.0",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts reports returned finalization failure with the committed save contract in API 2.0",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts reports thrown finalization failure with the committed save contract in API 2.0",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts reloads tokenless metadata after upload and skips the onUpdate hook chain",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts retains supplied stale revision after upload reload and removes staging",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts returns safe current metadata and typed conflicts for a refused upload claim",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts withholds upload-conflict state after view access is revoked in API 1.0",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts withholds upload-conflict state after view access is revoked in API 2.0",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts retains the legacy validation-refusal status in API 1.0",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts retains the legacy validation-refusal status in API 2.0",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts rechecks edit permission after bytes arrive without disclosing record state",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    },
+    {
+      "case": "Owned datastream HTTP contracts never finalizes strict missing or stale claims and cleans each certified abandoned upload",
+      "evidenceKind": "existing-native-http-test",
+      "result": "pass"
+    }
+  ],
+  "baselineMethodExecutions": 13,
+  "inheritedServiceExecutions": 2,
+  "sourceHashes": {
+    "packages/redbox-core/src/http/express/identityAdministration.ts": "a6fab3f8055eb47fa36fdc58a7f196a5ed9ba6c7676e693a037ef6dc5ecad166",
+    "packages/redbox-core/src/http/express/identityLinks.ts": "e3f96d2d6eeb9cf3eb5d7b32f5551917b4e50af747b4712f762595afb1915714",
+    "packages/redbox-core/src/http/express/datastreamReads.ts": "8460c8bd3b39f4e7e6f974c8907727119cc6efb7e03d1fec032f7c688be5c18c",
+    "packages/redbox-core/src/http/express/vocabularyIntegrations.ts": "ec2c5434486966e454d242359a4b8e752942726216fdc24a884891c1ea4adc99",
+    "packages/redbox-core/test/http/identityDifferential.test.ts": "38dd54aa04ea4a5e38343349f34f7bdefc44632e9bddd3f711e8966b83912532",
+    "packages/redbox-core/test/http/datastreamReadDifferential.test.ts": "e3abaccae43a7f1cf8cea08fc4c09a9672ade6f7718e479bf20d7de0e7d3662a",
+    "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts": "6b4bf87c6a88ef5285920ecac26549861f5fccbe97cf32e7aff13fe5786e6011"
+  },
+  "committedSourceRef": "0e4c310960b9b1d270adf695e5cb0d8f6a88f557",
+  "committedSourceHashesMatch": true,
+  "originalFocusedSource": {
+    "ref": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+    "sourceHashes": {
+      "packages/redbox-core/src/http/express/identityAdministration.ts": "a6fab3f8055eb47fa36fdc58a7f196a5ed9ba6c7676e693a037ef6dc5ecad166",
+      "packages/redbox-core/src/http/express/identityLinks.ts": "e3f96d2d6eeb9cf3eb5d7b32f5551917b4e50af747b4712f762595afb1915714",
+      "packages/redbox-core/src/http/express/datastreamReads.ts": "8460c8bd3b39f4e7e6f974c8907727119cc6efb7e03d1fec032f7c688be5c18c",
+      "packages/redbox-core/src/http/express/vocabularyIntegrations.ts": "ec2c5434486966e454d242359a4b8e752942726216fdc24a884891c1ea4adc99",
+      "packages/redbox-core/test/http/identityDifferential.test.ts": "b2859d72979c6fcd744def061789c85d81768311147e512bf189dce210a3e2b1",
+      "packages/redbox-core/test/http/datastreamReadDifferential.test.ts": "e3abaccae43a7f1cf8cea08fc4c09a9672ade6f7718e479bf20d7de0e7d3662a",
+      "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts": "6b4bf87c6a88ef5285920ecac26549861f5fccbe97cf32e7aff13fe5786e6011"
+    },
+    "note": "Final focused logs were produced before the parent type-only fixture correction; native counts are not relabelled as a post-correction rerun."
+  },
+  "parentTypeOnlyAmendment": {
+    "file": "packages/redbox-core/test/http/identityDifferential.test.ts",
+    "evidenceKind": "transpilation-syntax-tree-equivalence-not-http",
+    "rows": [
+      {
+        "ref": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+        "sourceSha256": "b2859d72979c6fcd744def061789c85d81768311147e512bf189dce210a3e2b1",
+        "emittedJavaScriptSha256": "d4147d66c785c7395e1ba14a9aee5cb2465e0e3f38591ebc04aaebcab83bb2d3",
+        "emittedAstSha256": "2f81b643ce126276bc661899fffb47da98e0b70e03d0bb92bf9dde42c0e06faa"
+      },
+      {
+        "ref": "0e4c310960b9b1d270adf695e5cb0d8f6a88f557",
+        "sourceSha256": "38dd54aa04ea4a5e38343349f34f7bdefc44632e9bddd3f711e8966b83912532",
+        "emittedJavaScriptSha256": "a69cb1fc5e0b52ec444bff2356bdb8c143c4f4818764c289cf7a9980cea65cd0",
+        "emittedAstSha256": "2f81b643ce126276bc661899fffb47da98e0b70e03d0bb92bf9dde42c0e06faa"
+      }
+    ],
+    "emittedJavaScriptBytesIdentical": false,
+    "emittedAstIdentical": true,
+    "diff": "diff --git a/packages/redbox-core/test/http/identityDifferential.test.ts b/packages/redbox-core/test/http/identityDifferential.test.ts\nindex 499038ca3..0e793ec58 100644\n--- a/packages/redbox-core/test/http/identityDifferential.test.ts\n+++ b/packages/redbox-core/test/http/identityDifferential.test.ts\n@@ -55,7 +55,7 @@ describe('Identity route target precedence', () => {\n       assert.equal(response.status, 200);\n       assert.equal(f.users.getUserWithId.firstCall.args[0], selected);\n       assert.equal(f.users[operation].firstCall.args[0], selected);\n-      assert(f.users[operation].getCalls().every(call => call.args[0] !== other));\n+      assert(f.users[operation].getCalls().every((call: sinon.SinonSpyCall) => call.args[0] !== other));\n     });\n     it(`browser ${action} rejects omitted body.userid despite every unrelated ID source`, async () => {\n       const response = await f.request(`/default/portal${suffix}?id=${other}&userid=${other}`, {\n@@ -126,7 +126,7 @@ describe('Identity route target precedence', () => {\n             getUsersForBrand: () => of([user]),\n             enrichUsersWithLinkMetadata: async value => value,\n             enrichUsersWithEffectiveDisabledState: async value => value,\n-          } as Parameters<typeof mountIdentityLinkRoutes>[1]['users'],\n+          } as never,\n         })\n       );\n       try {\n",
+    "note": "Parent fixed Sinon callback annotation and partial fixture cast. Emitted bytes differ in arrow-parameter parentheses, but syntax-tree node kinds/identifier/literal values are equal (positions/trivia ignored). Original49/126 native probe results remain tied to fb08b5447 source. No post-annotation native rerun claimed."
+  },
+  "focusedOxlint": {
+    "result": "pass",
+    "warnings": 0,
+    "errors": 0,
+    "filesChecked": 4,
+    "note": "Repository oxlint ignores test files; result is four changed runtime files."
+  },
+  "scratchRaw": {
+    "incoming-negative-final.json": "94335a8953ad407cdf0f66ca22829cab2ee058691d5383806df83d63f2564f49",
+    "focused-green-final.json": "07dae6bcc2043bcfa7f0ca0f5e81542b8e543f10ff878d66a5ef5a89735a9468",
+    "baseline-results-final.json": "34cae896e6e8c040989fbacca110f8db5646a219d54fc5c0964c8f6ca478189c",
+    "inherited-vocabulary-final.json": "f2d54c6cfd1b3a166d058003bf1c5766f9957b0c9fc342df9a897c57c7332563",
+    "oxlint-final.txt": "eda3db01db50bac0618713311e3511e42807e935f455d0c19948386d3e9f895e"
+  },
+  "parentFinalTypeOnlyChanges": {
+    "revision": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+    "files": [
+      "packages/redbox-core/test/http/identityDifferential.test.ts",
+      "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+    ],
+    "purpose": "Test-only strict type annotations/casts; no handler changes. Original focused logs retain original hashes. Full final-tree qualification reruns these tests.",
+    "sha256": {
+      "packages/redbox-core/test/http/identityDifferential.test.ts": "9c0714800cd88fb6d39dba390b945d4f4205634173483a8275aef704af27cf4e",
+      "packages/redbox-core/test/http/recordDifferentialR14.test.ts": "aff8f77ffeccc917956750d4b94e8b4393ab64fd08680bd62ae993727f184ea2"
+    }
+  }
+}

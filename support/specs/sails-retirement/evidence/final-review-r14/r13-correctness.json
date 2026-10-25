@@ -1,0 +1,154 @@
+{
+  "incomingHead": "9bb858218075dec4d77c1302063c134d8f3133f2",
+  "sourceReview": "All 18 R13 corrections rechecked against their consumers and the behavioral ledgers. No R13 correction is reverted.",
+  "rows": [
+    {
+      "id": "R13-01",
+      "conclusion": "Correct: nested local credential body/query lookup still matches pinned Passport and preserves safe failures.",
+      "evidence": [
+        "parent-differential.json#HTTP-255",
+        "packages/redbox-core/test/http/authentication-matrix.test.ts"
+      ]
+    },
+    {
+      "id": "R13-02",
+      "conclusion": "Correct: configured OIDC identifiers retain unrestricted strings through strategy registration/selection; malformed structured/control inputs remain rejected.",
+      "evidence": [
+        "parent-differential.json#HTTP-257",
+        "parent-differential.json#HTTP-258"
+      ]
+    },
+    {
+      "id": "R13-03",
+      "conclusion": "Correct: REST max_requests default20 and browser search maxRecordsPerPage remain separate; final R13 correction retained.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-04",
+      "conclusion": "Correct: public extras merge last into whitelist, without spreading server/session/provider configuration.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-05",
+      "conclusion": "Correct: prehydrate is consumed by production form delivery.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-06",
+      "conclusion": "Correct: SVG byte limits reach the branding delivery consumer.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-07",
+      "conclusion": "Correct: institution navigation flags remain accepted and consumed.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-08",
+      "conclusion": "Acceptance fix correct: native descriptors survive validation. Older storageIndexes TTL/hidden allowlist omission is unchanged and recorded as B-08.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-09",
+      "conclusion": "Correct: accepted uppercase method spellings normalize into configured method policy.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-10",
+      "conclusion": "Correct: sparse email/native transport/SMTP URL data reach neutral email factory; callbacks remain awaited.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-11",
+      "conclusion": "Correct: session stringify reaches the selected connect-mongo store options.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-12",
+      "conclusion": "Correct: workspace angularDev selects development bundle behavior.",
+      "evidence": [
+        "entrypoints-differential.json",
+        "packages/redbox-core/test/configuration/legacyAcceptance.test.ts"
+      ]
+    },
+    {
+      "id": "R13-13",
+      "conclusion": "Browser correction is correct and retained. It was incomplete across sibling routes: REST update had query-first selection before and after afaf6ef01. R14-06 restores body.id. R13 did not introduce the REST fault.",
+      "evidence": [
+        "identity-differential.json",
+        "packages/redbox-core/test/http/identityDifferential.test.ts",
+        "git show afaf6ef01 -- packages/redbox-core/src/http/express/identityAdministration.ts"
+      ]
+    },
+    {
+      "id": "R13-14",
+      "conclusion": "Correct: omitted/empty translation listing filters still flow to the expected unrestricted listing calls.",
+      "evidence": [
+        "records-differential.json"
+      ]
+    },
+    {
+      "id": "R13-15",
+      "conclusion": "Correct: vocabulary boolean legacy spellings retain normalized flags and expected operations.",
+      "evidence": [
+        "records-differential.json"
+      ]
+    },
+    {
+      "id": "R13-16",
+      "conclusion": "Correct: comma/repeated notation list splitting and deduplication retain requested order/values.",
+      "evidence": [
+        "records-differential.json"
+      ]
+    },
+    {
+      "id": "R13-17",
+      "conclusion": "Bodyless browser sync correction is correct and retained; optional versionId empty-string was another missed legacy value, fixed by R14-10.",
+      "evidence": [
+        "identity-differential.json",
+        "packages/redbox-core/test/http/vocabularyVersionDifferential.test.ts"
+      ]
+    },
+    {
+      "id": "R13-18",
+      "conclusion": "Correct: query oid for editor/form delivery still selects stored record before form/ACL resolution; declared path id retains priority.",
+      "evidence": [
+        "records-differential.json",
+        "parent-differential.json#HTTP-292"
+      ]
+    }
+  ],
+  "wrongR13Fixes": [],
+  "incompleteSiblingCoverage": [
+    "R13-13 -> R14-06",
+    "R13-17 -> R14-10"
+  ],
+  "newWrongTargetWritesElsewhere": "No additional proven wrong-target write in 335-row review. Mutation targets, self-service actor, role lists, workflow, attachment claims and selected brand scopes were checked; full native/persistence qualification is recorded separately."
+}

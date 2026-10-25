@@ -1,0 +1,115 @@
+
+
+  Pre-retirement browser record response and side-effect contracts (R14)
+    ✔ retains the browser metadata relationship envelope (1.0) (86ms)
+    ✔ retains the browser metadata relationship envelope (2.0)
+    ✔ keeps browser deletion recoverable even if the REST-only permanent flag is supplied
+    ✔ retains committed create outcome, warning and headers after read failure
+    ✔ retains committed create outcome, warning and headers after projection failure
+    ✔ retains committed update outcome, warning and headers after read failure
+    ✔ retains committed update outcome, warning and headers after projection failure
+    ✔ uses the configured public URL for API create Location under root ''
+    ✔ uses the configured public URL for API create Location under root '/research'
+    1) retains POST preview body filter values before query values (api, conflict=false)
+    2) retains POST preview body filter values before query values (api, conflict=true)
+    3) retains POST preview body filter values before query values (admin, conflict=false)
+    4) retains POST preview body filter values before query values (admin, conflict=true)
+
+
+  9 passing (356ms)
+  4 failing
+
+  1) Pre-retirement browser record response and side-effect contracts (R14)
+       retains POST preview body filter values before query values (api, conflict=false):
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ {}
+- {
+-   date: '2026-01-02',
+-   owner: 'body-owner'
+- }
+
+      + expected - actual
+
+      -{}
+      +{
+      +  "date": "2026-01-02"
+      +  "owner": "body-owner"
+      +}
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:101:18)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  2) Pre-retirement browser record response and side-effect contracts (R14)
+       retains POST preview body filter values before query values (api, conflict=true):
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
++   owner: 'query-owner'
+-   date: '2026-01-02',
+-   owner: 'body-owner'
+  }
+
+      + expected - actual
+
+       {
+      -  "owner": "query-owner"
+      +  "date": "2026-01-02"
+      +  "owner": "body-owner"
+       }
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:101:18)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  3) Pre-retirement browser record response and side-effect contracts (R14)
+       retains POST preview body filter values before query values (admin, conflict=false):
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ {}
+- {
+-   date: '2026-01-02',
+-   owner: 'body-owner'
+- }
+
+      + expected - actual
+
+      -{}
+      +{
+      +  "date": "2026-01-02"
+      +  "owner": "body-owner"
+      +}
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:101:18)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  4) Pre-retirement browser record response and side-effect contracts (R14)
+       retains POST preview body filter values before query values (admin, conflict=true):
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  {
++   owner: 'query-owner'
+-   date: '2026-01-02',
+-   owner: 'body-owner'
+  }
+
+      + expected - actual
+
+       {
+      -  "owner": "query-owner"
+      +  "date": "2026-01-02"
+      +  "owner": "body-owner"
+       }
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:101:18)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+
+

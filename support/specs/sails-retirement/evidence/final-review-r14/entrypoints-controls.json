@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 1,
+  "scope": "Standards and non-HTTP external entrypoint differential; no HTTP routes assigned",
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "incomingHead": "9bb858218075dec4d77c1302063c134d8f3133f2",
+  "disposition": {
+    "newClassAP1P2": 0,
+    "newP3": 0,
+    "runtimeOrTestEdits": [],
+    "commitsCreated": 0,
+    "inheritedFinding": "Native storage index TTL/hidden options omitted in both revisions; parent owns backlog ID/disposition.",
+    "intentionalChanges": "See ledger per-entry intentionalDifferences and review report. Accepted institution gaps untouched."
+  },
+  "green": {
+    "mochaPassed": 339,
+    "mochaFailed": 0,
+    "sourceMethodCliNativeConsumerProbesPassed": 64,
+    "probesFailed": 0,
+    "runs": [
+      {
+        "id": "focused",
+        "cwd": "packages/redbox-core",
+        "environment": {
+          "TS_NODE_PROJECT": "test/tsconfig.json"
+        },
+        "argv": [
+          "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+          "--no-experimental-strip-types",
+          "/home/andrew/src/github/redbox-portal/node_modules/mocha/bin/mocha.js",
+          "--no-config",
+          "--require",
+          "chai",
+          "--require",
+          "ts-node/register/transpile-only",
+          "--require",
+          "test/setup.ts",
+          "--timeout",
+          "20000",
+          "test/services/AgendaQueueService.test.ts",
+          "test/queues/ScheduledWork.test.ts",
+          "test/application/PortalQueuePreflight.test.ts",
+          "test/application/ExecutableMaintenance.test.ts",
+          "test/application/IndexMaintenanceConfiguration.test.ts",
+          "test/application/IndexMaintenanceExtensions.test.ts",
+          "test/application/EmailFollowupOwnership.test.ts",
+          "test/configuration/legacyAcceptance.test.ts",
+          "test/configuration/legacyInventory.test.ts"
+        ],
+        "passed": 302,
+        "reportedDuration": "11s",
+        "log": ".tmp/sails-retirement/final-review-r14/entrypoints-focused-tests.log",
+        "exitCode": 0,
+        "failed": 0,
+        "logSha256": "78ded0217dc5261dbf74bac8d17bac918be53a2e243f973c6f9c8e0852b0f8f9"
+      },
+      {
+        "id": "callbacks",
+        "cwd": "packages/redbox-core",
+        "environment": {
+          "TS_NODE_PROJECT": "test/tsconfig.json"
+        },
+        "argv": [
+          "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+          "--no-experimental-strip-types",
+          "/home/andrew/src/github/redbox-portal/node_modules/mocha/bin/mocha.js",
+          "--no-config",
+          "--require",
+          "chai",
+          "--require",
+          "ts-node/register/transpile-only",
+          "--require",
+          "test/setup.ts",
+          "--timeout",
+          "20000",
+          "test/extensions/loading.test.ts",
+          "test/extensions/composition.test.ts",
+          "test/services/EmailService.test.ts",
+          "test/services/WorkspaceAsyncService.test.ts"
+        ],
+        "passed": 29,
+        "reportedDuration": "602ms",
+        "log": ".tmp/sails-retirement/final-review-r14/entrypoints-callback-tests.log",
+        "exitCode": 0,
+        "failed": 0,
+        "logSha256": "f0058558bd3bfc0f9668462faf8cc51320b551a2ddbec70ea7bef97cfcd6ecbd"
+      },
+      {
+        "id": "devtools-cli",
+        "cwd": "packages/redbox-dev-tools",
+        "environment": {
+          "TS_NODE_PROJECT": "tsconfig.json"
+        },
+        "argv": [
+          "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+          "--no-experimental-strip-types",
+          "/home/andrew/src/github/redbox-portal/node_modules/mocha/bin/mocha.js",
+          "--no-config",
+          "--require",
+          "ts-node/register/transpile-only",
+          "--timeout",
+          "30000",
+          "test/cli.test.ts"
+        ],
+        "passed": 8,
+        "reportedDuration": "30s",
+        "log": ".tmp/sails-retirement/final-review-r14/entrypoints-devtools-cli-tests.log",
+        "exitCode": 0,
+        "failed": 0,
+        "logSha256": "c0e215900217af631e1e9bb36b19a9385c15d98b17e5c0e08b394e21aee8d1f3"
+      }
+    ],
+    "probeRun": {
+      "cwd": ".",
+      "argv": [
+        "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin/node",
+        "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-probes.cjs"
+      ],
+      "exitCode": 0,
+      "output": ".tmp/sails-retirement/final-review-r14/entrypoints-probes.json",
+      "outputSha256": "9687110725b0d29bad289a3d8cb55224f90df1f8898e10b25b317ff31bf3df51",
+      "compactResults": "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-probe-results.json"
+    },
+    "exactPins": {
+      "files": [
+        "angular/package.json",
+        "angular/projects/researchdatabox/portal-ng-common/ng-package.json",
+        "angular/projects/researchdatabox/portal-ng-common/package.json",
+        "angular/projects/researchdatabox/portal-ng-form-custom/ng-package.json",
+        "angular/projects/researchdatabox/portal-ng-form-custom/package.json",
+        "package.json",
+        "packages/agenda-sqs-backend/package.json",
+        "packages/raido/package.json",
+        "packages/redbox-core/package.json",
+        "packages/redbox-core/test/extensions/fixtures/commonjs-hook/package.json",
+        "packages/redbox-core/test/extensions/fixtures/esm-hook/package.json",
+        "packages/redbox-core/test/extensions/fixtures/esm-only/package.json",
+        "packages/redbox-core/test/maintenance/fixtures/probe/package.json",
+        "packages/redbox-dev-tools/package.json",
+        "packages/redbox-hook-dev/package.json",
+        "packages/rva-registry/package.json",
+        "packages/sails-hook-redbox-pdfgen/package.json",
+        "packages/sails-hook-redbox-pdfgen/test/bruno/package.json",
+        "packages/sails-hook-redbox-storage-mongo/package.json",
+        "packages/sails-ng-common/package.json",
+        "support/build/api-descriptors/package.json",
+        "support/documentation/package.json",
+        "support/ng19-forms-migration/package.json",
+        "support/tools/figshare-metadata-inspector/package.json",
+        "test/bruno/package.json"
+      ],
+      "counts": {
+        "manifests": 25,
+        "dependencyDeclarations": 377,
+        "allowedLocal": 20
+      },
+      "violations": []
+    }
+  },
+  "negativeControls": {
+    "description": "These are expected-error/omission assertions within successful probe runs. No product modification was made, so there is no class-A failing-before/passing-after regression claim.",
+    "groups": {
+      "handlerRejection": {
+        "count": 34,
+        "probeIds": [
+          "queue-dispatch:baseline:solrsearchservice.solrAddOrUpdate",
+          "queue-dispatch:baseline:solrsearchservice.solrDelete",
+          "queue-dispatch:baseline:recordsservice.storeRecordAudit",
+          "queue-dispatch:baseline:recordsservice.reconcilePostCommitSave",
+          "queue-dispatch:baseline:integrationauditservice.storeIntegrationAudit",
+          "queue-dispatch:baseline:integrationnotificationservice.dispatch",
+          "queue-dispatch:baseline:securityeventservice.storeSecurityEvent",
+          "queue-dispatch:baseline:siemforwardingservice.forwardSecurityEvents",
+          "queue-dispatch:baseline:siemforwardingservice.retryFailedDeliveries",
+          "queue-dispatch:baseline:raidservice.mintRetryJob",
+          "queue-dispatch:baseline:agendaqueueservice.moveCompletedJobsToHistory",
+          "queue-dispatch:baseline:figshareservice.syncRecordJob",
+          "queue-dispatch:baseline:figshareservice.dispatchSyncJob",
+          "queue-dispatch:baseline:figshareservice.publishAfterUploadFilesJob",
+          "queue-dispatch:baseline:figshareservice.deleteFilesFromRedbox",
+          "queue-dispatch:baseline:brandingtypefaceservice.reconcileAssets",
+          "queue-dispatch:baseline:rdmpservice.queuedTriggerSubscriptionHandler",
+          "queue-dispatch:current:solrsearchservice.solrAddOrUpdate",
+          "queue-dispatch:current:solrsearchservice.solrDelete",
+          "queue-dispatch:current:recordsservice.storeRecordAudit",
+          "queue-dispatch:current:recordsservice.reconcilePostCommitSave",
+          "queue-dispatch:current:integrationauditservice.storeIntegrationAudit",
+          "queue-dispatch:current:integrationnotificationservice.dispatch",
+          "queue-dispatch:current:securityeventservice.storeSecurityEvent",
+          "queue-dispatch:current:siemforwardingservice.forwardSecurityEvents",
+          "queue-dispatch:current:siemforwardingservice.retryFailedDeliveries",
+          "queue-dispatch:current:raidservice.mintRetryJob",
+          "queue-dispatch:current:agendaqueueservice.moveCompletedJobsToHistory",
+          "queue-dispatch:current:figshareservice.syncRecordJob",
+          "queue-dispatch:current:figshareservice.dispatchSyncJob",
+          "queue-dispatch:current:figshareservice.publishAfterUploadFilesJob",
+          "queue-dispatch:current:figshareservice.deleteFilesFromRedbox",
+          "queue-dispatch:current:brandingtypefaceservice.reconcileAssets",
+          "queue-dispatch:current:rdmpservice.queuedTriggerSubscriptionHandler"
+        ]
+      },
+      "queuedCallbackThrowOrReject": {
+        "count": 4,
+        "probeIds": [
+          "queued-hook:baseline:throw",
+          "queued-hook:baseline:reject",
+          "queued-hook:current:throw",
+          "queued-hook:current:reject"
+        ]
+      },
+      "accountCallbackRejectionContract": {
+        "count": 6,
+        "probeIds": [
+          "account-hook:baseline:triggerPreSaveTriggers:reject",
+          "account-hook:baseline:triggerPostSaveSyncTriggers:reject",
+          "account-hook:baseline:triggerPostSaveTriggers:reject",
+          "account-hook:current:triggerPreSaveTriggers:reject",
+          "account-hook:current:triggerPostSaveSyncTriggers:reject",
+          "account-hook:current:triggerPostSaveTriggers:reject"
+        ]
+      },
+      "cliInvalidUsage": {
+        "count": 4,
+        "probeIds": [
+          "cli:baseline:--unknown",
+          "cli:baseline:--ensure --inspect",
+          "cli:current:--unknown",
+          "cli:current:--ensure --inspect"
+        ]
+      },
+      "inheritedNativeOptionOmission": {
+        "count": 2,
+        "probeIds": [
+          "storage-native-options:baseline",
+          "storage-native-options:current"
+        ]
+      }
+    },
+    "inheritedOmissionMeaning": "Two passing reproductions confirm the known undesirable omission exists in baseline and current; passing does not assert that TTL omission is correct.",
+    "preliminaryRejectedFixtureAttempts": [
+      "Probe helper initially invoked a synchronous-throw callback outside the rejection assertion; corrected helper.",
+      "Isolated CLI script initially retained its shebang after process.argv injection; stripped shebang before evaluation.",
+      "Pinned connect-mongo CommonJS import exposes its class under default; normalized fixture import."
+    ],
+    "preliminaryAttemptsEvidenceStatus": "Excluded from green counts; corrected harness completed all 64 checks. No production defects inferred from harness errors."
+  },
+  "ledgerValidation": {
+    "uniqueEntries": 189,
+    "dimensionsPerEntry": 7,
+    "nonemptyDimensionConclusionsAndProvenance": 1323,
+    "countsMatchKinds": true,
+    "baselineCurrentSourceMethodPairs": 49,
+    "sourceMethodPairsMissingEitherSide": 0,
+    "entrySideFileLineChecks": 368,
+    "sourceExcerptChecks": "Present excerpts match named revision source lines. Some comparison anchors intentionally refer to specs/contracts rather than nonexistent baseline v6 APIs.",
+    "httpRoutesAssigned": 0,
+    "claim": "Completeness of the stated source-derived entrypoint universe; execution coverage is separately bounded."
+  },
+  "bounds": "No baseline server, HTTP route differential, real Mongo/SQS/SMTP provider, Docker setup, full suite, package build or institution qualification performed. Source-method fixtures and native-store-on-fake-driver execution are labeled precisely.",
+  "artifacts": [
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-differential.json",
+      "role": "review artifact intended for parent tracking",
+      "bytes": 638088,
+      "sha256": "4a1b653a08a99521efdfbcd48dd193c1c0089ca12d73d23d6bdabbfd1f869631"
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-probes.cjs",
+      "role": "review artifact intended for parent tracking",
+      "bytes": 13377,
+      "sha256": "d74748d50e77e3d089bca72f4c7a25fd61b925dc01678f03fe154b3fdaab6a1d"
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-probe-results.json",
+      "role": "review artifact intended for parent tracking",
+      "bytes": 31310,
+      "sha256": "377958d5b2a20ecf2a80ce2b94daa8a1a621752c9392f2ecb5728f0c035efba6"
+    },
+    {
+      "path": "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-review.md",
+      "role": "review artifact intended for parent tracking",
+      "bytes": 2612,
+      "sha256": "29c1d794b306e208ac96794b096ed230dc49afe3f004cf4e2773271f649939d1"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/entrypoints-commits.txt",
+      "role": "durable scratch",
+      "bytes": 27592,
+      "sha256": "f8271cde6c649cff0d1188eea798f073b59c2abb7ca4383d1434d4ceac83d647"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/entrypoints-full.diff",
+      "role": "durable scratch",
+      "bytes": 34521273,
+      "sha256": "f995ebaff5cf89514ee7f6c1dff3df910bc41c6b65cab111c5b63db599128480"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/extract-entrypoints.cjs",
+      "role": "durable scratch",
+      "bytes": 3830,
+      "sha256": "53852dbbf7904b185bc6a3dc1a6342113add41842a7213d59c1a944185d8e182"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/source-methods.json",
+      "role": "durable scratch",
+      "bytes": 202295,
+      "sha256": "150d4ac8f1c754a1d0b3c7525a7d0a2ecb425980df6126a46a2b8141201df2d7"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/method-diffs.txt",
+      "role": "durable scratch",
+      "bytes": 80120,
+      "sha256": "0bc882e4d009fb6d39bbfcdb717ce8bece7fbe86aad023abc8ecdc13d66e76af"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/method-before.tmp",
+      "role": "durable scratch",
+      "bytes": 322,
+      "sha256": "a770f9041ff9c50ebdd47035ecae3d5afaf8af77fd45b134f8897f3348c2b2b1"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/method-after.tmp",
+      "role": "durable scratch",
+      "bytes": 352,
+      "sha256": "b728b46d8ec8e9443dd818fa349b8b0554efafc5eaa3e372f87ee20bc2534e60"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/build-entrypoints-ledger.py",
+      "role": "durable scratch",
+      "bytes": 40700,
+      "sha256": "4c8b6ee89441d58977cb0b661f0f202070be8144e41f80ff025ab291c5d1ec5b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/entrypoints-probes.json",
+      "role": "durable scratch",
+      "bytes": 98873,
+      "sha256": "9687110725b0d29bad289a3d8cb55224f90df1f8898e10b25b317ff31bf3df51"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/entrypoints-pins.json",
+      "role": "durable scratch",
+      "bytes": 1501,
+      "sha256": "65637ae0a5a66aa53e858507339842284b5ec0d4a93955d92d6a2b14663a1fd2"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/entrypoints-focused-tests.log",
+      "role": "durable scratch",
+      "bytes": 28790,
+      "sha256": "78ded0217dc5261dbf74bac8d17bac918be53a2e243f973c6f9c8e0852b0f8f9"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/entrypoints-callback-tests.log",
+      "role": "durable scratch",
+      "bytes": 2275,
+      "sha256": "f0058558bd3bfc0f9668462faf8cc51320b551a2ddbec70ea7bef97cfcd6ecbd"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/entrypoints-devtools-cli-tests.log",
+      "role": "durable scratch",
+      "bytes": 607,
+      "sha256": "c0e215900217af631e1e9bb36b19a9385c15d98b17e5c0e08b394e21aee8d1f3"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/finalize-entrypoints-evidence.py",
+      "role": "durable scratch",
+      "bytes": 12521,
+      "sha256": "66b7769d30583b7f8e64ee70247e397b2dc9dea4603d03bf5d696a39a7cc0826"
+    }
+  ],
+  "selfArtifact": "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-controls.json",
+  "artifactOwnership": "Only the five entrypoints review artifacts and listed scratch files are owned by this reviewer. Other shared-checkout edits belong to parent/other reviewers. All five review artifacts were untracked when handed off; no git add/commit performed."
+}

@@ -1,0 +1,13 @@
+No new class-A P1/P2 defect was verified in the assigned Standards/non-HTTP differential. No runtime/test fixes or commits were made.
+
+One inherited P2 candidate is handed to the parent for backlog disposition: `storageIndexes` drops configured `expireAfterSeconds` and `hidden` in both baseline and current code. Actual extracted-method execution reproduces identical omission; no MongoDB execution is claimed. No new P3 findings were asserted. Accepted SR-005/045/049/055 gaps were untouched.
+
+The [ledger](entrypoints-differential.json) contains 189 source-derived entries: 17 queue jobs, 32 record-operation mappings, 44 core factories, 13 capabilities, 3 bundled registrations, 6 lifecycle contracts, 7 domain callbacks, 12 record phases, 8 migrations, 15 bootstrap operations, 9 maintenance commands, 13 hook-tooling commands and 10 R13 consumer checks. Every entry records seven dimensions with provenance. This inventory is broader than executed coverage.
+
+Intentional changes include finite named dispatch, offline extension declarations and narrow factories, awaited initialization/activation/draining, explicit maintenance configuration, v6 hook scaffolding and documented configuration conversions. References and bounded observations appear per entry. Disabled email uses its selected factory input; migration version/global discovery removal is documented. No additional defect was inferred from unsupported unknown notification branding.
+
+Accepted final runs on Node 26.11.1: **339 tests passed** (302 queue/maintenance/configuration; 29 extension/email/workspace; 8 CLI), plus **64 probes passed**, zero failures. The probes include handler rejection, callback failure and CLI usage errors, not only success. Exact-pin audit: 25 manifests, 377 declarations, 20 allowed local references, zero violations.
+
+Review artifacts, currently untracked: [ledger](entrypoints-differential.json), [probe source](entrypoints-probes.cjs), [compact probe results](entrypoints-probe-results.json), [controls and artifact inventory](entrypoints-controls.json), and this report. The controls file enumerates every owned durable scratch file under `.tmp/sails-retirement/final-review-r14/`, including three test logs, raw probe/pin results, source extracts, full diff/commit list and generators.
+
+No HTTP differential, baseline server, real provider integration, Docker setup, full suite, build or institution qualification was performed. Parent owns combined qualification, backlog and commits. Preliminary fixture mistakes were corrected and excluded; no class-A fix required a product red/green regression gate.

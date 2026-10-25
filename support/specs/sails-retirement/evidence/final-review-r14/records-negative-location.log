@@ -1,0 +1,53 @@
+
+
+  Pre-retirement browser record response and side-effect contracts (R14)
+    ✔ retains the browser metadata relationship envelope (1.0) (75ms)
+    ✔ retains the browser metadata relationship envelope (2.0)
+    ✔ keeps browser deletion recoverable even if the REST-only permanent flag is supplied
+    ✔ retains committed create outcome, warning and headers after read failure
+    ✔ retains committed create outcome, warning and headers after projection failure
+    ✔ retains committed update outcome, warning and headers after read failure
+    ✔ retains committed update outcome, warning and headers after projection failure
+    1) uses the configured public URL for API create Location under root ''
+    2) uses the configured public URL for API create Location under root '/research'
+
+
+  7 passing (267ms)
+  2 failing
+
+  1) Pre-retirement browser record response and side-effect contracts (R14)
+       uses the configured public URL for API create Location under root '':
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'http://127.0.0.1:40017/default/portal/api/records/metadata/record-1'
+- 'https://public.example.edu/default/portal/api/records/metadata/record-1'
+
+      + expected - actual
+
+      -http://127.0.0.1:40017/default/portal/api/records/metadata/record-1
+      +https://public.example.edu/default/portal/api/records/metadata/record-1
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:79:16)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  2) Pre-retirement browser record response and side-effect contracts (R14)
+       uses the configured public URL for API create Location under root '/research':
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'http://127.0.0.1:33181/research/default/portal/api/records/metadata/record-1'
+- 'https://public.example.edu/research/default/portal/api/records/metadata/record-1'
+
+      + expected - actual
+
+      -http://127.0.0.1:33181/research/default/portal/api/records/metadata/record-1
+      +https://public.example.edu/research/default/portal/api/records/metadata/record-1
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:79:16)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+
+

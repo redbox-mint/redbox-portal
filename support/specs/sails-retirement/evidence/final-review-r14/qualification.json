@@ -1,0 +1,1327 @@
+{
+  "featureBase": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "initialHead": "9bb858218075dec4d77c1302063c134d8f3133f2",
+  "finalRuntimeTestInputs": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+  "compiledRuntimeAndConfiguration": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+  "localEvidenceDirectory": ".tmp/sails-retirement/final-review-r14",
+  "toolchain": {
+    "node": "v26.11.1",
+    "npm": "11.20.0",
+    "mongo": "db version v9.0.4\nBuild Info: {\n    \"version\": \"9.0.4\",\n    \"gitVersion\": \"64ade602b836c9adeffba7fa038c887ffab56196\",\n    \"openSSLVersion\": \"OpenSSL 3.5.5 27 Jan 2026\",\n    \"modules\": [],\n    \"allocator\": \"tcmalloc-google\",\n    \"javascriptEngine\": \"mozjs-wasm\",\n    \"environment\": {\n        \"distmod\": \"ubuntu2604\",\n        \"distarch\": \"x86_64\",\n        \"target_arch\": \"x86_64\"\n    }\n}",
+    "images": [
+      {
+        "name": "/sr-final-r14-builder",
+        "image": "sha256:2e86451c0651b1102d928a82a20e5c9c5460bb819688580ae06bc5c9835d3658"
+      },
+      {
+        "name": "/sr-final-r14-mongo",
+        "image": "sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8"
+      },
+      {
+        "name": "/sr-final-r14-auth-mongo",
+        "image": "sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8"
+      },
+      {
+        "name": "/sr-final-r14-solr",
+        "image": "sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69"
+      },
+      {
+        "name": "/sr-final-r14-keycloak",
+        "image": "sha256:8d44614c74798322c4e07fbe0ecb15cfbb5879d69b484628555f58ade06f0d8c"
+      },
+      {
+        "name": "/sr-final-r14-mailpit",
+        "image": "sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a"
+      },
+      {
+        "name": "/sr-final-r14-compile",
+        "image": "sha256:2e86451c0651b1102d928a82a20e5c9c5460bb819688580ae06bc5c9835d3658"
+      }
+    ],
+    "dockerHost": "unix:///run/sr-p7-isolated/docker.sock",
+    "imagesBuilt": 0
+  },
+  "suiteResults": {
+    "core-default-final.log": {
+      "passed": 5631,
+      "pending": 7,
+      "failures": 0
+    },
+    "core-real-final.log": {
+      "passed": 224,
+      "pending": 0,
+      "failures": 0
+    },
+    "CompanionLifecycleProbe-final.log": {
+      "passed": 2,
+      "pending": 0,
+      "failures": 0
+    },
+    "CompanionUploadsMongo-final.log": {
+      "passed": 6,
+      "pending": 0,
+      "failures": 0
+    },
+    "root-final.log": {
+      "passed": 422,
+      "pending": 10,
+      "failures": 0
+    },
+    "storage-final-clean.log": {
+      "passed": 306,
+      "pending": 0,
+      "failures": 0
+    },
+    "dev-tools-final-clean.log": {
+      "passed": 53,
+      "pending": 0,
+      "failures": 0
+    },
+    "pdf-unit-final.log": {
+      "passed": 79,
+      "pending": 0,
+      "failures": 0
+    },
+    "docs-test-final.log": {
+      "passed": 4,
+      "pending": 0,
+      "failures": 0
+    },
+    "playwright-harness-final.log": {
+      "passed": 19,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "production-host-final.log": {
+      "passed": 1,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "generated-institution-final.log": {
+      "passed": 1,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "hook-qualification-final.log": {
+      "passed": 5,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "closure-tests-final.log": {
+      "passed": 17,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "playwright-full-final.xml": {
+      "testcases": 124,
+      "suites": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "retirement-browser-final.xml": {
+      "testcases": 4,
+      "suites": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-general-final.xml": {
+      "testcases": 557,
+      "suites": 309,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-oidc-final.xml": {
+      "testcases": 17,
+      "suites": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-s3-final.xml": {
+      "testcases": 12,
+      "suites": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "pdf-final.xml": {
+      "testcases": 10,
+      "suites": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "inputAudit": {
+    "commit": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+    "checkedFiles": 1347,
+    "differences": []
+  },
+  "runtimeDependencyOverlay": {
+    "runtime": [
+      {
+        "owner": "./packages/redbox-core/package.json",
+        "path": "/opt/redbox-portal/packages/redbox-core/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      },
+      {
+        "owner": "./node_modules/router/package.json",
+        "path": "/opt/redbox-portal/node_modules/router/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      }
+    ],
+    "cleanSource": [
+      {
+        "owner": "./packages/redbox-core/package.json",
+        "path": "/tmp/sr-r14-clean-source/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      },
+      {
+        "owner": "./node_modules/router/package.json",
+        "path": "/tmp/sr-r14-clean-source/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      }
+    ]
+  },
+  "reviewDisposition": {
+    "classA": {
+      "P1": 2,
+      "P2": 10,
+      "total": 12,
+      "fixed": 12
+    },
+    "issues": [
+      {
+        "id": "R14-01",
+        "severity": "P2",
+        "problem": "Browser relationship reads used the nested REST envelope; retain flattened v1 and `meta.relationships` in v2.",
+        "location": "src/http/express/recordReads.ts:410",
+        "fixCommits": [
+          "8b64e7f69"
+        ]
+      },
+      {
+        "id": "R14-02",
+        "severity": "P1",
+        "problem": "Browser `DELETE ?permanent=true` purged instead of preserving recoverability; browser deletion always passes false/delete.",
+        "location": "src/http/express/recordMutations.ts:200",
+        "fixCommits": [
+          "8c9fef62f"
+        ]
+      },
+      {
+        "id": "R14-03",
+        "severity": "P2",
+        "problem": "Browser post-save reread/projection failure lost committed state/ETag or warnings; retain saved-with-warnings and `response-projection-failed`.",
+        "location": "src/http/express/recordMutations.ts:513",
+        "fixCommits": [
+          "8c9fef62f"
+        ]
+      },
+      {
+        "id": "R14-04",
+        "severity": "P2",
+        "problem": "Create Location used internal HTTP Host behind a proxy; use configured public URL including deployment root.",
+        "location": "src/http/express/recordMutations.ts:524; src/application/portal/http.ts:480",
+        "fixCommits": [
+          "8c9fef62f"
+        ]
+      },
+      {
+        "id": "R14-05",
+        "severity": "P2",
+        "problem": "POST report previews ignored body filters and let query win; restore path > validated body > query.",
+        "location": "src/http/express/queryReads.ts:153",
+        "fixCommits": [
+          "fb08b5447"
+        ]
+      },
+      {
+        "id": "R14-06",
+        "severity": "P1",
+        "problem": "REST user update preferred query.id over declared body.id and updated the wrong account; use body.id.",
+        "location": "src/http/express/identityAdministration.ts:171",
+        "fixCommits": [
+          "4c3261530"
+        ]
+      },
+      {
+        "id": "R14-07",
+        "severity": "P2",
+        "problem": "REST lookups hid disabled accounts and inherited browser-only hiddenUsers filtering; restore REST list/find/get visibility.",
+        "location": "src/http/express/identityLinks.ts:170",
+        "fixCommits": [
+          "4c3261530"
+        ]
+      },
+      {
+        "id": "R14-08",
+        "severity": "P2",
+        "problem": "Generic browser storage downloads required attachment metadata and changed the default filename; permit authorized generic IDs and default filename=id.",
+        "location": "src/http/express/datastreamReads.ts:76",
+        "fixCommits": [
+          "ea2a97c6c"
+        ]
+      },
+      {
+        "id": "R14-09",
+        "severity": "P2",
+        "problem": "Streamed API downloads lost Content-Length and empty fileName lost the metadata fallback.",
+        "location": "src/http/express/datastreamReads.ts:123",
+        "fixCommits": [
+          "ea2a97c6c"
+        ]
+      },
+      {
+        "id": "R14-10",
+        "severity": "P2",
+        "problem": "Empty optional RVA version failed400 instead of selecting latest; normalize it to undefined.",
+        "location": "src/http/express/vocabularyIntegrations.ts:69",
+        "fixCommits": [
+          "da600162f"
+        ]
+      },
+      {
+        "id": "R14-11",
+        "severity": "P2",
+        "problem": "Upload finalization failure returned200 or lost committed meta/ETag; refused claims also lost typed outcome/current authorized projection and v1 status semantics.",
+        "location": "src/http/express/datastreamWrites.ts:147",
+        "fixCommits": [
+          "17504071e"
+        ]
+      },
+      {
+        "id": "R14-12",
+        "severity": "P2",
+        "problem": "Original-record URL ignored institution `record/view-orig` override; honor it with core view fallback.",
+        "location": "src/http/express/pages.ts:56",
+        "fixCommits": [
+          "c33416372"
+        ]
+      }
+    ],
+    "newP3": [
+      {
+        "id": "REC-P3-01",
+        "routes": [
+          "HTTP-003",
+          "HTTP-004",
+          "HTTP-005",
+          "HTTP-006",
+          "HTTP-007",
+          "HTTP-008",
+          "HTTP-013",
+          "HTTP-014",
+          "HTTP-015",
+          "HTTP-016",
+          "HTTP-017",
+          "HTTP-059",
+          "HTTP-060",
+          "HTTP-061",
+          "HTTP-063",
+          "HTTP-064",
+          "HTTP-082",
+          "HTTP-086",
+          "HTTP-087",
+          "HTTP-088",
+          "HTTP-089",
+          "HTTP-099",
+          "HTTP-100",
+          "HTTP-101",
+          "HTTP-102",
+          "HTTP-103",
+          "HTTP-104",
+          "HTTP-105",
+          "HTTP-106",
+          "HTTP-107",
+          "HTTP-108",
+          "HTTP-109",
+          "HTTP-110",
+          "HTTP-111",
+          "HTTP-112",
+          "HTTP-113",
+          "HTTP-120",
+          "HTTP-121",
+          "HTTP-122",
+          "HTTP-123",
+          "HTTP-124",
+          "HTTP-125",
+          "HTTP-126",
+          "HTTP-127",
+          "HTTP-128",
+          "HTTP-129",
+          "HTTP-130",
+          "HTTP-131",
+          "HTTP-132",
+          "HTTP-133",
+          "HTTP-134",
+          "HTTP-135",
+          "HTTP-136",
+          "HTTP-137",
+          "HTTP-138",
+          "HTTP-139",
+          "HTTP-140",
+          "HTTP-141",
+          "HTTP-142"
+        ],
+        "conclusion": "Cache-Control differs for baseline policy-only/global-only responses once the current helper applies no-cache/private. Both policies retain privacy/no-cache intent, and no concrete functional failure was demonstrated. No cache runtime changes made."
+      },
+      {
+        "id": "REC-P3-02",
+        "routes": [
+          "HTTP-069",
+          "HTTP-070",
+          "HTTP-071",
+          "HTTP-096",
+          "HTTP-097",
+          "HTTP-098"
+        ],
+        "conclusion": "Baseline browser report-config sendReportConfigError/getConfig passes status>=400 and data without displayErrors, which CoreController handleV1/handleV2 falls back to500 generic errors. Current browser query handlers return typed status/data (and writes return standard error envelopes). This is a public status/envelope difference without an explicit compatibility exception. Success-path behavior is unchanged. Static finding; no additional runtime claim."
+      },
+      {
+        "id": "REC-P3-03",
+        "routes": [
+          "HTTP-119"
+        ],
+        "conclusion": "Workspace redirect retains302 and path, but baseline global redirect wrapper directive set differs from current noCache policy. Current still has no-store; this is a directive difference rather than a missing cache boundary."
+      },
+      {
+        "id": "REC-P3-04",
+        "routes": [
+          "HTTP-112"
+        ],
+        "conclusion": "Browser related-record graph current response adds root-record ETag and v2 oid/revision/entityTag meta; baseline sends graph with default empty meta/no validator. No demonstrated incorrect graph content; record extra response fields/validator as an unexplained compatibility difference."
+      },
+      {
+        "id": "REC-P3-05",
+        "routes": [
+          "HTTP-074"
+        ],
+        "conclusion": "Missing named-query v2 response preserves404/detail but drops redundant errors[].status=\"404\" from baseline. No behavioral failure demonstrated."
+      },
+      {
+        "id": "REC-P3-06",
+        "routes": [
+          "HTTP-090",
+          "HTTP-091",
+          "HTTP-092",
+          "HTTP-093",
+          "HTTP-094",
+          "HTTP-095",
+          "HTTP-096",
+          "HTTP-097",
+          "HTTP-098"
+        ],
+        "conclusion": "Current query/report definition write adapters add a brand-scoped administration audit after mutation; baseline controller actions have no corresponding explicit audit call. The audit is a new side effect and can fail after persisted mutation. No failure reproduced or runtime change made; record the scope/partial-effect difference."
+      },
+      {
+        "id": "P3-cache",
+        "routes": [
+          "HTTP-233",
+          "HTTP-248",
+          "HTTP-252"
+        ],
+        "conclusion": "Figshare DELETE204 drops baseline explicit no-cache triple; API/browser attachment-list JSON responses add that triple where baseline sendResp supplied no headers. No demonstrated wrong data/access impact. Not called an intentional break."
+      },
+      {
+        "id": "P3-index-message",
+        "routes": [
+          "HTTP-244"
+        ],
+        "conclusion": "Successful index response message adds word record. OID/details and status/envelope/queue behavior retained."
+      },
+      {
+        "id": "P3-chronicle",
+        "routes": [
+          "HTTP-159",
+          "HTTP-160",
+          "HTTP-207",
+          "HTTP-208",
+          "HTTP-209",
+          "HTTP-210",
+          "HTTP-211",
+          "HTTP-212",
+          "HTTP-213",
+          "HTTP-214",
+          "HTTP-215",
+          "HTTP-216",
+          "HTTP-217",
+          "HTTP-222",
+          "HTTP-223",
+          "HTTP-224",
+          "HTTP-247",
+          "HTTP-301",
+          "HTTP-302",
+          "HTTP-303",
+          "HTTP-305",
+          "HTTP-306",
+          "HTTP-308"
+        ],
+        "conclusion": "Some prior safe operation success/context/error code chronicle markers are absent (brandingAppRetrieveSuccess/brandingAppErrorCode, formVocabulary*, userFind*, self key and notification stage markers). General request/actor/brand context and selected safe failures remain; no raw secret logging proposed. No comprehensive chronicle parity claim."
+      },
+      {
+        "id": "P3-error-contract",
+        "routes": [
+          "HTTP-150",
+          "HTTP-153",
+          "HTTP-154",
+          "HTTP-155",
+          "HTTP-156",
+          "HTTP-157",
+          "HTTP-159",
+          "HTTP-160",
+          "HTTP-161",
+          "HTTP-225",
+          "HTTP-226",
+          "HTTP-227",
+          "HTTP-228",
+          "HTTP-229",
+          "HTTP-230",
+          "HTTP-231",
+          "HTTP-232",
+          "HTTP-233",
+          "HTTP-234",
+          "HTTP-235",
+          "HTTP-236",
+          "HTTP-237",
+          "HTTP-238",
+          "HTTP-239",
+          "HTTP-240",
+          "HTTP-241",
+          "HTTP-242",
+          "HTTP-243",
+          "HTTP-248",
+          "HTTP-249",
+          "HTTP-250",
+          "HTTP-251",
+          "HTTP-252",
+          "HTTP-253",
+          "HTTP-301",
+          "HTTP-302",
+          "HTTP-303",
+          "HTTP-304",
+          "HTTP-305",
+          "HTTP-306",
+          "HTTP-307",
+          "HTTP-308"
+        ],
+        "conclusion": "Residual failure-path differences are explicit in each route: browser identity backend status:false200->safe500; role-create/untyped Figshare exception400->500; user-find error-as-data200->500; datastream bare/translated/jsclient legacy errors ->explicit safe errors; form lookup translated details ->code literals. Sanitation is authorized, these status/envelope/text differences are not thereby proven intentional. Recorded P3 without demonstrated realistic lost work/incorrect success behavior; not silently claimed equivalent."
+      }
+    ],
+    "inheritedBacklogAdditions": [
+      {
+        "id": "B-08",
+        "severity": "P2",
+        "problem": "Native index TTL/hidden options omitted in both revisions"
+      },
+      {
+        "id": "B-09",
+        "severity": "P2",
+        "problem": "Vocabulary administration listing omits brand in both revisions"
+      }
+    ],
+    "wrongR13Fixes": [],
+    "runtimeRevision": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+    "finalRuntimeAndTestRevision": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b"
+  },
+  "acceptedInstitutionGap": [
+    "SR-005",
+    "SR-045",
+    "SR-049",
+    "SR-055"
+  ],
+  "cleanup": {
+    "ownedContainersRemaining": 0,
+    "ownedNetworksRemaining": 0,
+    "ownedVolumesRemaining": 0,
+    "ownedFirewallRulesRemaining": 0,
+    "temporaryArtifactMountsRemaining": 0,
+    "artifactCacheRelocationUsed": false,
+    "imagesBuilt": 0,
+    "restoredIsolatedDaemonAndContainerdStopped": true,
+    "roundHostsAliasesRemaining": 0
+  },
+  "evidenceScope": "Final suite/static results are accepted qualification; expected negative controls and explicitly rejected fixture/driver attempts remain hashed separately and supply no final gate. Existing images with current compiled overlays were reused; no replacement immutable-image or topology-matrix qualification is claimed.",
+  "pins": {
+    "manifests": 23,
+    "declarations": 377,
+    "localReferences": 20,
+    "violations": []
+  },
+  "lockRoots": {
+    "locks": [
+      "package-lock.json",
+      "packages/redbox-core/package-lock.json",
+      "packages/redbox-dev-tools/package-lock.json",
+      "packages/redbox-hook-dev/package-lock.json",
+      "packages/sails-hook-redbox-pdfgen/package-lock.json",
+      "packages/sails-hook-redbox-storage-mongo/package-lock.json"
+    ],
+    "violations": []
+  },
+  "sourceClosure": {
+    "commit": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+    "tree": null,
+    "scannedFiles": 1129,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates.",
+    "violations": [],
+    "dependencies": []
+  },
+  "compiledClosure": {
+    "commit": null,
+    "tree": "/opt/redbox-portal",
+    "scannedFiles": 6226,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates.",
+    "violations": [],
+    "dependencies": []
+  },
+  "sourceInventory": {
+    "sourceCommit": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+    "method": {
+      "trackedFiles": 4942,
+      "pattern": "sails|Sails|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket",
+      "committedTreeOnly": true,
+      "limitation": "Text inventory plus manually documented native owners/routes; symbols in comments are candidates, not proof of execution. Ignored/generated working-tree output and installed dependencies require separate probes."
+    },
+    "counts": {
+      "build-deployment-tooling": 15,
+      "repository-metadata": 3,
+      "dependency-lock": 9,
+      "package-metadata": 9,
+      "browser-views": 158,
+      "reference-only": 522,
+      "application-owned-config": 6,
+      "maintenance-entrypoint": 1,
+      "core-domain": 152,
+      "route-policy-contract": 4,
+      "http-config-middleware": 9,
+      "core-lifecycle-cache": 1,
+      "persistence-owner": 5,
+      "test-harness": 153,
+      "scaffold-tooling": 11,
+      "development-hook": 30,
+      "pdf-hook": 4,
+      "storage-hook": 3,
+      "shared-contract": 4,
+      "app-types": 1
+    },
+    "matchedFiles": 1100,
+    "matchedLines": 14981,
+    "unclassified": []
+  },
+  "baselineReconciliation": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "sourceCommit": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+    "method": "Rerun original SR-001 method; reconcile every baseline file against committed paths/candidates and successful AST/dependency closure. Removed/renamed source retains original migration owner. Historical names, finite conversions and explicit neutral parameter inputs are classified.",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1100,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "logSha256": {
+    "CompanionLifecycleProbe-final.log": "0a9957b578accb68ea9b8934b819589e2f1ae06926790fa64e47a5f1bafe3669",
+    "CompanionUploadsMongo-final.log": "50eec40376587eb1395bc9c49dab4989432f78931c2b3e17c6ea34b11ddd1757",
+    "artifact-storage-cleanup.log": "8954e836279d4932ebd7d093bb2bf14fe1a4d5920fd996fd116da7b9327e23da",
+    "asset-baseline-probe.cjs": "f4b2642bb1693bfb39f985be5b9a55501945e8267ed538670b5bd57c07ac8e8b",
+    "asset-baseline-probe.log": "1248cdfa7a2c47cfcc792f12bac502d384932ac0e04101144e70693af4961d26",
+    "audit-clean-source.py": "8ec5fca9d1fbc6670814e0adad3e88b8750e36877d6e7135f905df10fba145d5",
+    "audit-inputs.py": "0d3457cf0eb982ffc5c366c43d45d94d5ff36cdb2e61e12bcc845719c29780c2",
+    "audit-root-pages.py": "254f429f9d4e5b36b96e4cf86c275da7a2bf205c1e2dd9fd0dd2746c306313cf",
+    "auth-failure-cleanup.cjs": "4e385c3e2c4c70099202e8856323cdd58c5f50f0c33ae57ac407b7268543c145",
+    "await-clean-and-qualify.sh": "27b91fbd3979d37038ace21c52cf389ed8729333a7156897bf3ff14a6de4f0f0",
+    "before-package-lock.json": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+    "body-parser-before.cjs": "72bf457a1b1ceff3ee8912a5474a5afbca251c39a05927760d466c916ccc6982",
+    "browser-libs-complete.log": "b7629ebc9b78cceef9851e43e7e760fac5ee70a03d868718dc719dc45656af61",
+    "browser-libs.log": "88d99a7d5066a5298ac34fc193c9d22886ad381405dfa8c6a09a01639705da96",
+    "bruno-file-restoration.json": "5b4e9d2a40e0ebbcfb600c4aba6752eb2aca8bb3b8a1fbb81455adab62cccd4b",
+    "bruno-general-cleanup.log": "4578859a392dce6e033440dd2ab09254591059d3cc763c4f63652fbe71422064",
+    "bruno-general-containers.log": "813eacb2ace28ab589514e874501d4a1b1deb2730429f8e2b3fad9541d0806c4",
+    "bruno-general-final.log": "e38fccff281b898158af675467e2266612bba6525d6c3c0a87f8b8d047c2c3a1",
+    "bruno-general-final.xml": "0b624112c381d0ffbb51bd373c382f8f595845e39eae05548c8977a5f54b905f",
+    "bruno-general-providers.log": "7afe229528b3bb87308a14b80a2cdf6d31cc09bd9c0ca8cbf99540a97b56107a",
+    "bruno-general-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bruno-oidc-cleanup.log": "5e4f3ad7a05f30c5082c3e82ce02aba14e83dc01edf61c22f76d9302ee83ed28",
+    "bruno-oidc-containers.log": "4c471e564fd8ea9c457c96e9bd72e62be1b8494aaaf69a3dbaf0432bf72da5a4",
+    "bruno-oidc-final.log": "326942fd48046b0fc7a81b2495a0b32ac2d2ed372e75cd3a452b4d8320a15e03",
+    "bruno-oidc-final.xml": "2d2f63d4f23056d06be90468d7c1950f98e266197b36431488e66575b961578f",
+    "bruno-oidc-providers.log": "4d7bfec0fad58a22e7dc431ab3deb43df2a5cbaf109c58e6b2658436d87d5c3b",
+    "bruno-oidc-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bruno-s3-cleanup.log": "6bef37863d16be14879f492780b124de26fbd805c745bc3f88b58db2e9b8ef4b",
+    "bruno-s3-containers.log": "78da640df4907914104c88fd6065169f5a1cb10aff61a84b5277f4311538b776",
+    "bruno-s3-final.log": "fcdb3c2dbb8ba071432108533c8759da688a4b160132424b84165b4d90988672",
+    "bruno-s3-final.xml": "b41803f7d77fc88b00c91ba37399d6ce86d98bdef0671517056e43c5869bbdeb",
+    "bruno-s3-providers.log": "68382a42e8e861967ff28047b4620186a7593a24ba440555936da044de7e70eb",
+    "bruno-s3-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build-entrypoints-ledger.py": "4c8b6ee89441d58977cb0b661f0f202070be8144e41f80ff025ab291c5d1ec5b",
+    "build-final-matcher-overlay-rejected.log": "2b3995be5c814fcd9eacef5a493f52040c54f94c6124846f117373f65fc650a1",
+    "build-final.log": "be244fa76fc5461dc4471f34bbd14d4b86cab2b266e3da3b83e23b9e872e0758",
+    "build-parent-ledger.py": "15b8ca9b18ec6f9b7c708c2e6573c2b9b927222a77b739d983226770ff1b1358",
+    "cache-inheritance-probe.cjs": "ddf01dc126990506bbccf290b8301b034736c78a8d9ba506530ce244e096b158",
+    "clean-driver.log": "bc4d2f7fdcc0b9f17ee01737062b14eecbc2d41a925849fa4db1f9d7c02a464a",
+    "clean-source-after-build.log": "4313cfd1b932c066c3b35f5ca2c07cbc705be0ebf7b514386bba42fc2d79aaa0",
+    "clean-source-before-build.log": "48ccc06b6ed722db0aefee8e3096fac709bd4f85342671dcf816c6ca760891e6",
+    "clean-source-input-audit.json": "a3ef0b24cd6dc92f37ecbf15d796b133cacbd37ae8f6fff48470b491a84451e0",
+    "cleanup-accounting.json": "11fef75645b3b0e54c6b466323bcd292d8ff36b88c5ae230c667e42c2cee8b3d",
+    "cleanup-extras.sh": "bdca9b98569337fda64c9fcc759242c47af7767649a8d7df59dbdab8fc118d6b",
+    "cleanup-private-engine.sh": "9c67cf49d3b6f4073466092b2c102ef9dbaad14a433b3b3d37ad7a7fbfbfde04",
+    "cleanup-restored-engine.py": "59bdd5d96f3bef5fc0e0f60c88c895a73669cd063062599b2a89cb63d09be15c",
+    "cleanup-round.sh": "00792b4da17d7ec21de13a69686a7f6ffd684b5b9ba93ed0ebee04b329c5551d",
+    "closure-tests-final.log": "39aa967b21062e88d208a530bc641411b13f787b40041faa69e57212b1868bdb",
+    "collect-r10.py": "b2cfc15dcff38fd438d5e7af66dcb0754284ddac88ba70b26798823bff45044f",
+    "collect-r11.py": "0409088bf83baf225e2474f9ef34900f71aba6904fffb80cdc38d78c94c81834",
+    "collect-r12.py": "7626534581e339a6a80fe64885101c435558c61e22613dd99181851251c5e1b7",
+    "collect-r13.py": "69d2060a1d96cf93ae6e8bddf1fffd1f25209337130080819adf47d4cc4ad7c5",
+    "collect-r14.py": "8b0acc8917a7c33a9c36b317bba8181ddb6dbfb7f5579bcab872828b1f4dece0",
+    "collect-results.py": "f1fd209ee8f25efd1eb25ba9d05cfb2079074491e0a58ca1258ad015c8a13413",
+    "collect-walkthrough.py": "dce4dbb74ac8a4a088b059f6695430825aa6ba5ed1c1bb77716a9b1d1b130454",
+    "combined-native-green.log": "15d2acdadf39f467cbbb370dab25f32ef5cfdf14d5f9fd8a99829dab381ab080",
+    "compile-all-clean-literal.log": "ad0ce0bb7d4f269cb2bd03335d1da4462e7ee836c9c0ec488fee16888e1370f5",
+    "compile-all-clean-result.json": "000b1e9760ebf5cf858dd56e3b087c6e9ec7ed317decfdfa83e2a61dbd8d93cb",
+    "compiled-tree-closure-final.json": "6369455691b9dba9e100cd553f45b573fd86258de5a9b13ee939f53e80f94981",
+    "compiled-tree-closure-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compiled.revision": "f88d1efaa8b5d5aa27ed86c47f27183677e58e2c6010827027083509a12bc1d7",
+    "complete-browser-libs.py": "dcd78fc56e591b717823a066f97d03604ce93425c9abe7fc01df38bcaad1baa0",
+    "completion-input-audit.json": "a3ef0b24cd6dc92f37ecbf15d796b133cacbd37ae8f6fff48470b491a84451e0",
+    "compose-maintenance-regression.py": "a7e1991491a058e24569eb3cbbd7a6e1d847d3e47057db19adae5b33fb57a479",
+    "configuration-guide-application.cjs": "aa9163e6007a5feb3d9eed3906a6fd99281e622b590cbc5e298c9d52a31c4fe0",
+    "configuration-guide-local.cjs": "83c05e97f5d9def3e1e7f75952cb728938882afd7024a926fdcfe7b66a7894ab",
+    "configuration-guide-probe.cjs": "267e56fd2d8b39ac415dbe62acd192c0114809f538e949e20aceff602c4b87fa",
+    "container-cleanup.log": "94f45384c12939512145ef4d58b7f678c01865266262145c0aa0ad80067a75fd",
+    "containerd-restored-version.log": "913b560fc8a5621d7fe8c25c7f5531e74ce436d448dcd1b5667d17664b06b53a",
+    "containerd.log": "820e5bfee63df2fa48280cfb9e8036587b477f9cce8cd66b63e8896ba2faa0a5",
+    "core-default-final.log": "beaddf93b1d5a649401cfb995cf8ec6fc30a370dc7aa3d147843adad61be28cd",
+    "core-fixture-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "core-real-final.log": "78e0d5bc11d1ccdd2f8b949584b32ab6ca5f5cfa5245fc71e446d9e409711f06",
+    "dangling-images-after-cleanup-full.log": "a124c0bad65e8c6af4584cc21ff3292feda50d420ed73237033fc5af0bf47e13",
+    "dangling-images-after-cleanup.log": "d5dca4ba3bba3af6ebed3656919e510df1f8d7139cfdab5ced2f5dfe44d37a1d",
+    "dangling-images-before-cleanup.log": "073aaf97cb735d2d9fe2efac600814ca94fb9c13a712c018df36a3309ee73c18",
+    "datastream-claim-green.log": "22a88ed0e76a74d61dc353b78754538cc2a2c29305027d45b1daf95d7d851be1",
+    "datastream-claim-red.log": "482629de17eb8cd30511ca733a8bce405d92599b7753c095a51e563fc2a933a8",
+    "datastream-failure-green.log": "5c3aacea0420e011018f5590cc10bcf68d58e312f537bceebcc6591f8c98d78f",
+    "datastream-failure-red.log": "e34d9f3f2ce27716250884acedc742b22f0ed77e630ece1451b66efa347d9c5a",
+    "dependency-pins.json": "115284cabd95943688203a51d4a1f2df4067faede1a05ad7e5a4f1a59e8f2020",
+    "dev-tools-final-clean.log": "154126738816060d41418daf750f0792d14d2c8ccdefe7e776e90215702f628e",
+    "development-compiled.yml": "1c52305d099a7899db7b18b36096fda5bf67f0ba06bff8bc78f11a9803153fa7",
+    "disk-after-cleanup.log": "5c37a43c1c2a1c56d482b20bd3ed661bce17b5bb532342e9eeb53154132671a4",
+    "doc-api-final.log": "ec255f504a977e8ccd79d66fe814581b11adf30a6ba354ae5ca898183ceb8517",
+    "docker-restored-version.log": "bc1bc40306a0264925fcf82eefa513da1e5ef8a91d0300b12373fc801f46006a",
+    "docker.log": "08a0d9791a505d096025e93fb8524f574683fe79bf541243ab6da3a5b0364116",
+    "docs-audit-final.log": "0e1eec794e07725e3070ec101bf8bcb3766fed42a8577f03cb3f133ef6ba6a8a",
+    "docs-generation-final.log": "768414753d45bfbe9ef65b0ada19a99841e1b551a032ae7a1a8c5d87e7ef641a",
+    "docs-test-final.log": "dcbaf9763eff9e1b9b0c931b7c9826111dd255eefcf9abc49c79c2cbfd3c80be",
+    "engine-setup.log": "10bd0be4ba4a5b28b88fff045d67fa0a0e991f084b44969d1eae657dbb4bee96",
+    "entrypoints-callback-tests.log": "f0058558bd3bfc0f9668462faf8cc51320b551a2ddbec70ea7bef97cfcd6ecbd",
+    "entrypoints-devtools-cli-tests.log": "c0e215900217af631e1e9bb36b19a9385c15d98b17e5c0e08b394e21aee8d1f3",
+    "entrypoints-focused-tests.log": "78ded0217dc5261dbf74bac8d17bac918be53a2e243f973c6f9c8e0852b0f8f9",
+    "entrypoints-pins.json": "65637ae0a5a66aa53e858507339842284b5ec0d4a93955d92d6a2b14663a1fd2",
+    "entrypoints-probes.json": "9687110725b0d29bad289a3d8cb55224f90df1f8898e10b25b317ff31bf3df51",
+    "extract-entrypoints.cjs": "53852dbbf7904b185bc6a3dc1a6342113add41842a7213d59c1a944185d8e182",
+    "failure-brand.cjs": "6b0b45512f01575d4d8dc25f218047a6c6b803ed159fab6db0f053eeed3eaf93",
+    "final-compiled.revision": "f88d1efaa8b5d5aa27ed86c47f27183677e58e2c6010827027083509a12bc1d7",
+    "final-sequence.tsv": "b8a2977a024a63b24489d95cd4f28531361eede7546527d90f363d241a76c08c",
+    "final-start-input-audit.log": "4313cfd1b932c066c3b35f5ca2c07cbc705be0ebf7b514386bba42fc2d79aaa0",
+    "final-start-pages-audit.log": "692efdd1470cdc923625f691cb948ff885ec1dde65485f7d4111ccb0ed7299e7",
+    "final-test-inputs.revision": "f88d1efaa8b5d5aa27ed86c47f27183677e58e2c6010827027083509a12bc1d7",
+    "finalize-entrypoints-evidence.py": "66b7769d30583b7f8e64ee70247e397b2dc9dea4603d03bf5d696a39a7cc0826",
+    "firewall-cleanup.log": "326d45ec45f034b628ec0635c2b2e267826a29baf7ec89c9e96bf7cb3511a40a",
+    "fresh-recovery-fixture.cjs": "4dd7de532915a17fe71bf1990831f82c72127dada226e3845a0d8ae03fa8f704",
+    "full-driver.log": "164082953442c1c7a081f593af939869d251a44ebd7e36a03880ed8856a6e446",
+    "full-sequence.tsv": "8a3e855e2a8d91b3cf6132750121b9c92ea87b1847e74c73f5c62755ba045093",
+    "generated-institution-final.log": "265f7e711fbe3073de5d89ae09ce7993498d2db513d01b1fa095702bf402f659",
+    "generated-package-lock.json": "fc4ea60f95a4bbe22ab7f17ada3b6aa4e1731c73add58e245784480ec7bfba9c",
+    "hook-qualification-final.log": "9db56732cfc9610b94ac8f833d08e0457f32a711f961be678f204fbb5f13f3d4",
+    "identity/assigned.json": "09788181a9da76d07b26603215834ff221b5cf11d8634d89257fd373d577e55c",
+    "identity/baseline-results-final.json": "34cae896e6e8c040989fbacca110f8db5646a219d54fc5c0964c8f6ca478189c",
+    "identity/baseline-results.json": "34cae896e6e8c040989fbacca110f8db5646a219d54fc5c0964c8f6ca478189c",
+    "identity/build-ledger.py": "18ad16c776cb05d99439cc44e1ee057fc6cbd353edb496db8e97995b744366a5",
+    "identity/extract.cjs": "5bde4593f2f18bafb6afbd6d5c44471e1a51bbb76763e196fcb33951d8e271a7",
+    "identity/focused-green-final.json": "07dae6bcc2043bcfa7f0ca0f5e81542b8e543f10ff878d66a5ef5a89735a9468",
+    "identity/focused-green.json": "294da38fecf560f10b1f47300c9a919ffa71499a244889c4ee9435a9fc947274",
+    "identity/hidden-red.json": "319bef4fbbce9a4151ed880aa13889fffffe33ec4778de116c33330055a3d43a",
+    "identity/incoming-negative-final.json": "94335a8953ad407cdf0f66ca22829cab2ee058691d5383806df83d63f2564f49",
+    "identity/incoming-negative.json": "b96761d86b6051ecca2d6aeb267e02c2fac86ed348d8b997cc6d55793f5a047f",
+    "identity/inherited-vocabulary-final.json": "f2d54c6cfd1b3a166d058003bf1c5766f9957b0c9fc342df9a897c57c7332563",
+    "identity/inherited-vocabulary.json": "f2d54c6cfd1b3a166d058003bf1c5766f9957b0c9fc342df9a897c57c7332563",
+    "identity/methods.json": "fdb14df670cb91a86fdca94eb94216039840efe927aa5c88ae336350d0def8b3",
+    "identity/reads-red.json": "921fdbfb63a8af09b86f9da9d6dbd16a8f5e2b56a8c38d7cd1f3e81a2bc7c448",
+    "identity/target-baseline.json": "5aa32dc07bb5ff955452037c0920c560b8778ab829e3c9a1b61c52a39effe81b",
+    "identity/target-green.json": "7aaa25d41a3d4d3c631d00b1d706da3cb3cab51522633c29ff5e62c6f1f9db07",
+    "identity/target-red.json": "286e0f0554975b912787a7bedb3d869653fb740d599a3b41e84a4d0f7075c695",
+    "identity/typing-amendment.json": "e8444a038f2d287644665cd2911861987905f4743e968e1e94f3289a10d174df",
+    "identity/version-red.json": "9c6aaa20d571c7fd0552cc9ec07ace34d18dd7a70c30a36eb82db9ff6877fc70",
+    "independent-query-only-probe.cjs": "4a2bbca006251aee615c6356a46bfe770c93217dfd059c9bd017f75223085afb",
+    "inspect-real-service-timers-rejected.cjs": "54277db0da8b256ed046912755e09392533452e3a9558dcc271ec1dc27f46789",
+    "installation-secret-regression.py": "f99ce32e676583be7ce836fe68fdda61f9de1dfeb083e252bd5a17ca491bcb46",
+    "junit-verification.json": "18f559bd3f934d8f556db86889c9479e1b95435cb945550bad40273a9cc8aefc",
+    "keepalive-probe.cjs": "056d574085fe2ceb280ce2bdeb6e48e87943feb452ea233d7e969d7858d0a7ef",
+    "lint-final.log": "11707e0ab9f38b6e381da78813ffab75e63bd9935384dedd2f3db79fb362bc80",
+    "lockfile-consistency.json": "40fcde68131f238215d2ddf0e879202cc3964556b731698db7b2f28b32e061fe",
+    "logout-endpoint-baseline.cjs": "3c6f1cc341911ddcc4815190e89867d793029df47d7bd1c7654b129e513750cb",
+    "logout-provider-state.cjs": "af7a1d1d4b616025dba32f2480db478621f240b1b9a0d550f28b5ab25103b493",
+    "maintenance-core-graph-probe.cjs": "08197ace704bab966facaf70c747ae2136b55299367d04e117f6ef2e52c84045",
+    "maintenance-packed-final.log": "b8fe21a922452c614f7844776f131fa9e5eb38e2ed54306e4d606a7b09fd5c18",
+    "matcher-dependency-overlay-final.log": "c0bc8e26f8378f549f893115671262015d701761cfce53d43267395e3d52a072",
+    "matcher-dependency-overlay.json": "c0bc8e26f8378f549f893115671262015d701761cfce53d43267395e3d52a072",
+    "network-cleanup.log": "14a13e90e7c265b96ea158787ce59ddc828397fb0bae00b2a956749278174cbc",
+    "oidc-startup-shapes.cjs": "88de9e2fc03cdd6d22947525223ef1898d94bf92c27df2d4bf94324661230a70",
+    "old-auth.cjs": "c47a1035bdf42eea2be2517bb65ed56eed04af467d500ef6487ee9e0872caa1f",
+    "old-host.cjs": "0bc4b8d2aabd7bb4e44be373dda7eb040d2140176069586decbabf646bf6a5dd",
+    "owned-anonymous-volumes.json": "7602509c608f7b2de1e14723088881a569f5f479547021482bf5423033093501",
+    "package-pages-clean-literal.log": "56700b75a642cf9be2d30eaab4bd0b49be9e9508105530c32c373e316601a9a3",
+    "page-override-red.log": "7d57396487aee1fcc7c760aced265abc09402efb4081daf032b8814f0f377ea3",
+    "parent-baseline.json": "4b45f8e71c69ae9253934381a39163ca1497e07a8e9b0526446c54371ec226ad",
+    "parent-contracts-green.log": "6b5454616ab5a39bc787664be67c194f735fb3ea334c712fbb023708a7ce1f61",
+    "parent-negative.json": "eb63a6161954515c6726c48ca1d80d3c12a8b89f3b2e119bacf2aa4cb34e8c55",
+    "pdf-cleanup.log": "afe14ac1d4fbfce8363b671d506980720794ebaddb4bf52423915d3f024cb200",
+    "pdf-containers.log": "e2d443a08f5591fce24812f12d677e4b28eae4be53ddd6a4dfbe5a054dd3a80e",
+    "pdf-final.log": "3a30e7e3b3fcdb67daaa90e27bf4bbe318563ddc7f567fb49ef834690a2f6404",
+    "pdf-final.xml": "449d06f51741f65818f2b56fefa49cc64c81e2a1420da1c93c92ab55a50c3799",
+    "pdf-image.yml": "629d31709d663329601a269ffc86dbd630fad020958ffd6ca552f75652433b29",
+    "pdf-unit-final.log": "680048c1845b3af756131d98b8fa442bb023c3e95a73201a99244c107519e11b",
+    "playwright-final.log": "82b79d5d1939c1c71ff3b4a5a18e32022bd32aed6038f56c561c6a10d451715c",
+    "playwright-full-final.xml": "6d4d2365125b9587becfa9fedd01eb0794e6c9cccd85838666928cb93382467f",
+    "playwright-harness-final.log": "e7cca6a10f2cc43fa2f7298bad639fa29b0a8bb2aaabf408428b5b4c21e98204",
+    "playwright-index.log": "359cd437bad6e38e63f83ce8356c5033e6aa312ab9e88b9ddfab749b78d7f76c",
+    "playwright-portal.log": "c7a90df57e8bf3088da2e13848f753e512c4fa10f024a8fed247e0fbb0779517",
+    "playwright-ready.json": "b342fc286d0216cc212e0d7ba234894e2e7283ddf14f959adf0fe7fd5924308a",
+    "playwright-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "playwright-solr-reset.log": "80003ff18329c1ef7a8a694c73c981488c18c671707952742979caf8e07b1d23",
+    "playwright-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "playwright-stubs.log": "daab40a4632331b48782aca31e6003aacc341093f49071cb1ff8acf415e08338",
+    "portal-config-check.log": "bb7b37790ec6f972222ce1639f646467f333a864a50715191c95400b580d73b4",
+    "preload-reviewed-login.cjs": "6c610cd5e774147e3ce47a7700a0246e7996062cb500344fa80fb9b33b47899f",
+    "prepare-browser-libs.py": "585f4c695d10b493eea142bf612f5d74171fbf9ab5b1a437663ab7026d59af68",
+    "prepare-final-source.sh": "4c42fd250c85f2f31dc68e3d26329fbd8e0213141f825bf79bd7afbc2c7c3347",
+    "prisma-check.log": "821ddc956c729812059aa5a2047d5ae0402078357d3677d76f6ac971fed72af7",
+    "probe-utils.cjs": "14b6eab340799bd499fb317bc3513c304d63e50e4e10faaa2167da005899e655",
+    "production-host-final.log": "5df7e0c933c81674be9786b304fb6032b0b47fd3994862072f2d8bad0f9126fe",
+    "production-qualifiers-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "profile-network.yml": "a98ba5702c5f211d3a435cf4249830a4a76155873a8b8fa2a32ab211695ffc20",
+    "progress-asset-byte-audit.json": "79bad4a3334bac0965b98615e48c884360f0d35e8a2a840921d44391e5c90519",
+    "progress-snapshot.py": "f788d7288f1bb877b47d077b28ecf25b9bb937fb4a43127b485c2ad6b2af9922",
+    "progress-status.py": "46326d22c54e039f429c7a20974655a77030b63b9256d034b8df2bd4fe30b111",
+    "reconciliation-qualified.json": "fc904259378587e60052560334b3c4411751f4096fc2d289a8561872c306b283",
+    "records/baseline-methods.json": "bcf4bb39550450bbe5962cc229a12afbfd831199739681884b59d481bd787260",
+    "records/build-ledger.py": "bc51b8d1fba8cf816914b26036c93cbe4ea010d7e9283b0efe135903c629761b",
+    "records/extract.cjs": "3b0296dee080140bf1b078a6d860b34cfa17f03288d9a8696b408b523b4e2b54",
+    "records/green-final-focused.log": "39c4ff0d1746e3beefed8debde5674de27d8a7477d82e80b497e29f4da4d0d27",
+    "records/green-focused.log": "b826f28bbcf4811801baaf02586eabace6de64258cc43371169ef420a44cab44",
+    "records/green-location.log": "ceca4ea9d885c253dd49b78ccdb1df1218c26752eca585fcce7077b892e52633",
+    "records/ledger-build-result.json": "c27faeddaa77a0674c025850354a1996012310ad888bc25330f501fbfdb6f876",
+    "records/red-focused.log": "253b995694fc5a9e1674a748fd2d12db2c7d14a398b675c78b59711195602472",
+    "records/red-location.log": "1fd1c090af74397f71e5ae7157b1c29ca3a0cb5a6ebaf829d61ea167ae8c9da0",
+    "records/red-preview.log": "7b09c6063c734ae415131054bebab3f2392c254cec571d2e6f73719091e3fee7",
+    "records/routes.json": "fc2665e47d0b2d64169d6750c0b5421eca61252e1121508557ac8b3373d71c65",
+    "rehearsal-manifest-provenance.json": "c3b4abfba4e2daa1d8b0a9672eff6c612cd767571a9c438ff31cff7947fdde32",
+    "rehearsal-package.json": "11fe23dd02f5a758c431fbc5c3250abb2fff87cf331be3a7958a550988efa4c2",
+    "remaining-owned-containers.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "remaining-owned-networks.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "render-route-table.cjs": "6b5caa2f7acfd592e5a3d850ed61f0832fb08e03661fffc629b4a36d96b57425",
+    "reset-oidc-provider.sh": "38a3fafd575c682d5a0e66990ee95bff385d311a2f2e32f3474d64231f562ede",
+    "restore-artifact-storage.py": "f42401c12dcca36ed5aedd81d82b6f1195dd7ec0c53abe48f1bde60a781a8182",
+    "restore-bruno-files.py": "b56b5d3bef2fb91b3bf82b3cc9a3a9b268ef51367fe2de2691e7a3c4b126b1ca",
+    "restored-engine-cleanup.log": "85db4fe3be8e578db8db870898eeb2b2ac904d37a04a90c5864b44de30ee0a0b",
+    "resume-after-oidc-provider.sh": "656400a343938a42bf1b75ea4f73f710d92ea948267a003e0ad8bd610fbff66b",
+    "resume-after-pdf-fixture.sh": "6b3ce85215e8eeda460272466915797d602a9070ab0200dd8a7286f5e827155f",
+    "resume-final-after-diagnostic.sh": "55e74f9a1f41f9e51d13a82644c8625a01a5195bac142c9319eba284909078fb",
+    "resume-final-after-provider.sh": "651edd98acd9d64a8caeeb4cb9aeeb29f1ab0d07122f95eef6af1bf782ce7eb2",
+    "retirement-browser-final.log": "dbac2bd34ca7530f1862c881253c8c81700a7e3323ec930f71c6cd345782757d",
+    "retirement-browser-final.xml": "ba39628303409d88e836570eb15113c8f2be01e7a746aee902de63e0e8faa9fe",
+    "retirement-browser-host.log": "2615bc5e02118965ed29dd7fedd70fa1beca62a5dd2f495594c62ed12e921967",
+    "retirement-browser-package.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retirement-browser-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "review-disposition.json": "3396301dea04cf56ee9e26e00e6e15c3afeeaa250e66dd5c9130313253fb10ad",
+    "root-final.log": "9f63aa9ba9f17c88c2526d3e8f210aa2173feb3e4d8c6a4ebf40e6a62eaa4d19",
+    "root-page-input-audit.json": "997871b53ac16b800cc92e105fcca878aa46621b235e90c1fcc9082a8ac9f242",
+    "root-reset.log": "fd8c6f91fbc45f8ee1109eb46d9e5588c5237a295bfe3d838ec794365ebf9477",
+    "root-solr-reset.log": "b5cb58ec6d5673702c4d36bdeaf455d0025c3140e26b0309c24cb62d4975d990",
+    "routes-incoming-control.cjs": "77fb27e5dff93d9f0ea195362289d310b691f583d83a03835044abaaf415f1c1",
+    "run-bruno.sh": "69a9e71e010044fc10c40e428dd010308780f1fd274d1610e2f22cb93a1f72e3",
+    "run-build-typechecks.sh": "d90efe566c889b9f26091e47eb433e0c88391f2c39d6a4751678424ba7b68aa4",
+    "run-clean-literal-final.sh": "1fd7fbc1317ea0c153781730fd03dce507a14a17b36e83b4958b4c36e2c7958b",
+    "run-completion-tail.sh": "472ca436fa90d9decfe9c4475115d383e4ffa4ae9ae358abc35d10dea743a804",
+    "run-core.sh": "f31a8809ec90b91ed0dd1f157e58062404b93acae51fb786f33881c0ad616632",
+    "run-development-mount.sh": "db7b46ffcedd30d6f5c6685b41d23672592fb576c9b20855f77f7dd8a26c2a3c",
+    "run-development-walkthrough.sh": "59ab2767c67af3df23b21bfe7fbdcf0ad0ab1e1b96042272719b7faba7824218",
+    "run-docs-lint-original.sh": "240aea416928e51e81c08ca420d4e84d179127a74c0f0f50dfd501921a2dbe23",
+    "run-docs-lint.sh": "240aea416928e51e81c08ca420d4e84d179127a74c0f0f50dfd501921a2dbe23",
+    "run-f17-repro.sh": "34a65413e12ca104682fdc1811ac6a55a95219b2ed5a9cc9ddeadc09b4d499f5",
+    "run-final-additional.sh": "73de0d6880c92a9d70c20a58c5204a2120e5674e4f4624718dd94530e1dc3871",
+    "run-final-static.sh": "139cadfc4a91f48a51bbb38dcaf96781402e25064fb14f4fff18a7ac76c3e355",
+    "run-final-typechecks.sh": "aa9ef7732df77587640c939cb4f903cbcd4bee0cc663035dbe00e87685ae7a49",
+    "run-fresh-source-restore.sh": "c992100e7d646f4f980c9cac2feaa8dd119e25cc87310a02f3dbdf2dfc57bc73",
+    "run-full-final.sh": "db6f86562509d78c9751e9e531ffcf97ddca6345ff3c6713a9878a2df0b6142c",
+    "run-full-qualified.sh": "08be9a8083b5c2621bf9b912d31b4109465a410435cd7d9f2fb7457423f73c19",
+    "run-hook-guide-final.sh": "15537a16276b02c5ddc3f8f41e7ba5c3424d3be0bb50d0995d5b80eb5718d144",
+    "run-hook-qualification.sh": "a78a562fd48d492c3df362886fe85010348b7dcdf11fcda3e821fc1dbdc550d8",
+    "run-last-qualification.sh": "7248c71e9c10e3949e225293826b3f403e73fde06ec6217cae0c4815b9fd85ec",
+    "run-pdf-unit.sh": "79f2347a98a9f726aec80e12fee2b35f6556980649c17604848f50cd66009170",
+    "run-pdf.sh": "848fbc654297fa737cc9a5d284819b86c977e6404790745e9d808eb947be87a2",
+    "run-playwright.sh": "b406a5a617224dcf19e1f8ac1f82a0bfe38c8d7b31069a8e06fe87fa23f4446a",
+    "run-post-qualification.sh": "5730f8c10dff571da0da9ed6af5569b77995e70f3c39d058bedcd496cf482f61",
+    "run-production-qualifiers.sh": "6d32ba534b45a33e68914ca62dd9d7317539a047261461e4398620551ac357e5",
+    "run-real-core.sh": "d5c2f2b53d0ee5b7f40c2731e35955d15972d6613d7d2536bf96ba90efc8b1e5",
+    "run-remaining-qualification.sh": "3675b81a1f068e66bb3a61ff6183bb90c1503687cbe2d03d63d2b25e601c4dad",
+    "run-retirement-browser.sh": "dfb4d5803ea4f062092808b727f205782832e9255d33b9eace4517cee19db7e6",
+    "run-root.sh": "1b97032b4796a2475680ba61464d7c351fde80fdd85455234d06b234fd2607d4",
+    "run-s3-final.sh": "f01e0e77ad1c185d4a5dd393298a46028911f3be86de363a4770be698dddc4d3",
+    "run-serial-tail.sh": "eabf8d5216c77a0a05f77de336b324d90bffff35f1bdbbff48ffbe12e48b2b02",
+    "run-storage.sh": "1e9475bea19ffab4c3a5788b62e6a0aec475ff27b16af352e7f07d2a2352eb04",
+    "s3-compiled.yml": "df71d2e2d5d9ec624aec973c86bdb7d698ff6900d6641be9f74e48da69247974",
+    "setup.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "setup.sh": "bfd3a892862dcd1e1f50d7e46091dd65e02b1cfbfa9ca3e480ffafb6de156238",
+    "smtp-url-probe.cjs": "6732a09db18e484cd31398ae79ae4a7f52f5a40156d53e08548fd6c089ec614c",
+    "source-closure-qualified.json": "77722cd88662c2d36da73d91c066d66d7abbdfae54204555c9f9ca0dfd50c122",
+    "source-inventory-qualified.json": "cf16c780dcc7d560331f1b3120039fd81369a59e0927717a1e80e73bf741ce77",
+    "source-methods.json": "150d4ac8f1c754a1d0b3c7525a7d0a2ecb425980df6126a46a2b8141201df2d7",
+    "start-engine.sh": "e0cd100344918d78de089ec41beba46392546791bdded468971ded39cac8f3d5",
+    "start-final-after-clean.sh": "5e4f5c3f438cff24733a18a8a95b98d474ea5248746fd3883ce6918b611cf85b",
+    "static-extras.cjs": "67aa8abb7b5ec2e6c852c36301adb9a867878a39355daaa5a6f08c19509496ef",
+    "static-extras.log": "3727589d010437431d3410463a12646ffce7a4b88008a8bab5eda35e001d4570",
+    "storage-final-clean.log": "3b25a0766c3de7e59d73830b05a21e8c7ee68c458d6accaa2d62456808e9d66f",
+    "toolchain-images.log": "7957730853af03e919d9b46b0fb14765b123793fba1b66266b8a6164bc7cf355",
+    "toolchain-mongo.log": "02b6d74e2b9f08a82ce7d5a9c878b5dd55767e45cd526a6ed46bef6cccad264a",
+    "toolchain-node.log": "ff9f714664f5d87ac6548bb3700b0c18bd57add52ac986b01d4aec21543ccfda",
+    "toolchain-npm.log": "6784d6c924df1c8341f9f841f5b5b20c37255de3d34f923baebc0a557d5d5201",
+    "typecheck-application-context-rejected.log": "34db9095ac5140436922907172ce0a0d74e3918071ecfb40832afb33c9c5391a",
+    "typecheck-application-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-application-fixtures-rejected.log": "8a30a1d05f334b520541c71c3cc1f3dfcf31a2836bc98bc7261051be23d9041e",
+    "typecheck-application-preflight.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-application.log": "fa71e1ed8f1f18337b5a04afaa8663668eb14be00931c7774e66bf9837188fe3",
+    "typecheck-effect-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-effect.log": "e9ec258f1bbf256d1e05047f3ebd9d50f9691d6d336e660014de037137f271ea",
+    "typecheck-persistence-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-persistence.log": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f",
+    "typecheck-record-contracts-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-record-contracts.log": "1220e085e059c79b8fcab164f50d5e23b3c317121fc2c539c5f9bdc74a4386ae",
+    "typecheck-record-schema-tests-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-record-schema-tests.log": "f76db3ac633f0373dfba04a11cb719f7fec9f586f420a3a194e48031a9cbe908",
+    "typecheck-root-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-strict-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-strict.log": "4bed0e01e91d8edccb9a1a2132408da584d2d22b36d55291c33415b233974f54",
+    "verify-matchers.py": "52839a566e233c693dc3a4abf93bfad564eea289d5dd59a1660d178cf6d8e9f3",
+    "verify-s3-result.cjs": "1340e6737f8fc4581f93c803044ef2aa15fae3c0e9d4049b76fb100a83d5fc57",
+    "volume-cleanup.log": "8b7820919f3c371b74f7e0df9d89760141c0de7bad9b7709879570dc139b2a41"
+  },
+  "cleanSourceInputAudit": {
+    "commit": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+    "checkedFiles": 1347,
+    "differences": []
+  },
+  "generatedBrunoFiles": {
+    "test/bruno/environments/int-test.bru": {
+      "originalSha256": "06c23ad0aa72e5d68f90f3c685d00d5fa50d6aa8bddc7a14ba8c98e16396d8e3",
+      "generatedSha256": "b7924e5d6addd992d782b5b648765c0b9644d8cb06d6c95e0bb861e86c34eeac",
+      "restoredSha256": "06c23ad0aa72e5d68f90f3c685d00d5fa50d6aa8bddc7a14ba8c98e16396d8e3",
+      "matchesOriginal": true
+    },
+    "test/bruno/package-lock.json": {
+      "originalSha256": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+      "generatedSha256": "fc4ea60f95a4bbe22ab7f17ada3b6aa4e1731c73add58e245784480ec7bfba9c",
+      "restoredSha256": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+      "matchesOriginal": true
+    }
+  },
+  "portableReviewProbes": {
+    "support/specs/sails-retirement/evidence/final-review-r14/identity-negative.cjs": "e7d069e32ddf2b96e3f10d8409f570f0c609c51c0a9caa46760031d2693b4184",
+    "support/specs/sails-retirement/evidence/final-review-r14/identity-baseline.cjs": "c5bb7a782f066acff9f81bb5a7eed131d6f48fd2f387169a0c3a469de36eebfb",
+    "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-probes.cjs": "d74748d50e77e3d089bca72f4c7a25fd61b925dc01678f03fe154b3fdaab6a1d",
+    "support/specs/sails-retirement/evidence/final-review-r14/parent-negative.cjs": "220b66370f1ea897a71067fe6c05f77be3699444018530308f331f57d828af42",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-baseline-probes.cjs": "cebf3707516cb676ae28469c0cbfcaebfdd96133ee17d35ef1dc940ca9235d53",
+    "support/specs/sails-retirement/evidence/final-review-r14/parent-baseline.cjs": "29d11a433cd40df4f99db3d1d47741711f1f34d5438a00d09471d4194760c87a",
+    "support/specs/sails-retirement/evidence/final-review-r14/identity-inherited.cjs": "5929bfa79dfc03c2a1a1548a4d7e533c2fa7d128322ef041b47231cad734d3e3",
+    "support/specs/sails-retirement/evidence/final-review-r14/baseline-method.cjs": "70b3965dc22fdaadc19ad6b345d3d7afc3ef7918ca5c64bac689c185c6531bfd",
+    "support/specs/sails-retirement/evidence/final-review-r14/validate-differentials.cjs": "2cf12b3d71b7610b682098a376b6e9fc203f024e409c3021c3c08bbfb1c6c257"
+  },
+  "rootPageInputAudit": {
+    "checkedFiles": 48,
+    "differences": []
+  },
+  "progressAssetBytes": {
+    "sha256": "b022a576a2868de83d1715794fd4567f1a1702212f15d1ebc94270583fec6dc4",
+    "rawEqualsCompiled": true
+  },
+  "packedMaintenance": {
+    "scopes": 102,
+    "agendaScopes": 3,
+    "commands": 10,
+    "pending": 0,
+    "failures": 0,
+    "explicitBackfill": "1 then 0",
+    "poolCount": 0
+  },
+  "cleanSourceBuild": {
+    "exitCode": 0,
+    "npmCiExitCode": 0,
+    "packagePagesExitCode": 0,
+    "node": "v26.11.1",
+    "npm": "11.20.0",
+    "inputRevision": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+    "checkedAuthoredFiles": 1347,
+    "setup": [
+      "nvm install",
+      "nvm use",
+      "npm ci --ignore-scripts --strict-peer-deps",
+      "npm run compile:all",
+      "npm run package:pages"
+    ],
+    "compileLog": "compile-all-clean-literal.log",
+    "packageLog": "package-pages-clean-literal.log"
+  },
+  "qualificationRestarts": {
+    "interruptedPrefixesAccepted": false,
+    "observedHostRestarts": 0,
+    "finalStrategy": "pinned clean-source install/build/page packaging completed before browser timing qualification; backend builds/typechecks run independently",
+    "supersededPrefixes": [
+      "matcher-overlay-prefix-rejected: host root package was 0.1.13 instead of the pinned direct 8.4.2; corrected before accepted build",
+      "test-double-typecheck-prefix-rejected: three new fixture annotations/casts corrected; no product runtime change",
+      "contextual-typing-prefix-rejected: explicit unknown[] annotations restored after the partial-port cast removed contextual typing; test-only c31ac2862"
+    ]
+  },
+  "qualificationBootId": "3ba9700e-fa48-43eb-8996-88d76c6255b7",
+  "baselineAssets": {
+    "baseline": "a49366803",
+    "rows": 19,
+    "checks": 105,
+    "candidateOrder": [
+      "brand/portal",
+      "default/portal",
+      "default/default"
+    ],
+    "rootsPerCandidate": [
+      "compiled public",
+      "high hook",
+      "low hook"
+    ],
+    "nonAllowlistedFiles": "compiled public only",
+    "rawSource": "build input only",
+    "explicitLegacyCopies": "initialization mutates both source and compiled trees"
+  },
+  "differentialSummary": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "incomingHead": "9bb858218075dec4d77c1302063c134d8f3133f2",
+    "runtimeRevision": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+    "finalRuntimeAndTestRevision": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+    "http": {
+      "routes": 335,
+      "dimensionsPerRoute": 7,
+      "populatedDimensionCells": 2345,
+      "scopes": [
+        {
+          "ledger": "records-differential.json",
+          "routes": 142,
+          "cells": 994,
+          "classAFamilies": 5
+        },
+        {
+          "ledger": "identity-differential.json",
+          "routes": 119,
+          "cells": 833,
+          "classAFamilies": 5
+        },
+        {
+          "ledger": "parent-differential.json",
+          "routes": 74,
+          "cells": 518,
+          "classAFamilies": 2
+        }
+      ],
+      "fixedRouteCount": 19,
+      "fixedRoutes": [
+        "HTTP-067",
+        "HTTP-070",
+        "HTTP-108",
+        "HTTP-120",
+        "HTTP-135",
+        "HTTP-136",
+        "HTTP-137",
+        "HTTP-144",
+        "HTTP-162",
+        "HTTP-163",
+        "HTTP-164",
+        "HTTP-174",
+        "HTTP-175",
+        "HTTP-176",
+        "HTTP-177",
+        "HTTP-249",
+        "HTTP-253",
+        "HTTP-254",
+        "HTTP-296"
+      ],
+      "noAdditionalClassAP1P2Routes": 316,
+      "newNativeHttpCases": 72,
+      "newProductionBindingCases": 2,
+      "nativeExpectedIncomingFailures": 40,
+      "bindingExpectedIncomingFailures": 2,
+      "unchangedIncomingControls": 32,
+      "actualBaselineMethodObservations": 31,
+      "finalCombinedFocusedPassed": 138,
+      "caveat": "Every row has static comparison. Focused baseline method probes do not run Sails HTTP; incoming-module loaders retain current shared dependencies. These are not 335 executed route comparisons."
+    },
+    "nonHttp": {
+      "entries": 189,
+      "populatedDimensionCells": 1323,
+      "categories": {
+        "queue-job": 17,
+        "record-operation": 32,
+        "extension-capability": 13,
+        "bundled-registration": 3,
+        "core-domain-factory": 44,
+        "lifecycle-contract": 6,
+        "domain-extension-callback": 7,
+        "record-phase-callback": 12,
+        "migration": 8,
+        "bootstrap-work": 15,
+        "maintenance-command": 9,
+        "hook-tooling-command": 13,
+        "r13-native-consumer": 10
+      },
+      "focusedTests": 339,
+      "actualMethodAndCliProbes": 64,
+      "newClassAP1P2": 0
+    },
+    "findings": {
+      "classA": 12,
+      "P1": 2,
+      "P2": 10,
+      "fixed": 12,
+      "sourceOnlyP3Groups": 10,
+      "inheritedBacklogAdditions": [
+        "B-08",
+        "B-09"
+      ],
+      "wrongR13Fixes": []
+    },
+    "p3": [
+      {
+        "id": "REC-P3-01",
+        "routes": [
+          "HTTP-003",
+          "HTTP-004",
+          "HTTP-005",
+          "HTTP-006",
+          "HTTP-007",
+          "HTTP-008",
+          "HTTP-013",
+          "HTTP-014",
+          "HTTP-015",
+          "HTTP-016",
+          "HTTP-017",
+          "HTTP-059",
+          "HTTP-060",
+          "HTTP-061",
+          "HTTP-063",
+          "HTTP-064",
+          "HTTP-082",
+          "HTTP-086",
+          "HTTP-087",
+          "HTTP-088",
+          "HTTP-089",
+          "HTTP-099",
+          "HTTP-100",
+          "HTTP-101",
+          "HTTP-102",
+          "HTTP-103",
+          "HTTP-104",
+          "HTTP-105",
+          "HTTP-106",
+          "HTTP-107",
+          "HTTP-108",
+          "HTTP-109",
+          "HTTP-110",
+          "HTTP-111",
+          "HTTP-112",
+          "HTTP-113",
+          "HTTP-120",
+          "HTTP-121",
+          "HTTP-122",
+          "HTTP-123",
+          "HTTP-124",
+          "HTTP-125",
+          "HTTP-126",
+          "HTTP-127",
+          "HTTP-128",
+          "HTTP-129",
+          "HTTP-130",
+          "HTTP-131",
+          "HTTP-132",
+          "HTTP-133",
+          "HTTP-134",
+          "HTTP-135",
+          "HTTP-136",
+          "HTTP-137",
+          "HTTP-138",
+          "HTTP-139",
+          "HTTP-140",
+          "HTTP-141",
+          "HTTP-142"
+        ],
+        "conclusion": "Cache-Control differs for baseline policy-only/global-only responses once the current helper applies no-cache/private. Both policies retain privacy/no-cache intent, and no concrete functional failure was demonstrated. No cache runtime changes made."
+      },
+      {
+        "id": "REC-P3-02",
+        "routes": [
+          "HTTP-069",
+          "HTTP-070",
+          "HTTP-071",
+          "HTTP-096",
+          "HTTP-097",
+          "HTTP-098"
+        ],
+        "conclusion": "Baseline browser report-config sendReportConfigError/getConfig passes status>=400 and data without displayErrors, which CoreController handleV1/handleV2 falls back to500 generic errors. Current browser query handlers return typed status/data (and writes return standard error envelopes). This is a public status/envelope difference without an explicit compatibility exception. Success-path behavior is unchanged. Static finding; no additional runtime claim."
+      },
+      {
+        "id": "REC-P3-03",
+        "routes": [
+          "HTTP-119"
+        ],
+        "conclusion": "Workspace redirect retains302 and path, but baseline global redirect wrapper directive set differs from current noCache policy. Current still has no-store; this is a directive difference rather than a missing cache boundary."
+      },
+      {
+        "id": "REC-P3-04",
+        "routes": [
+          "HTTP-112"
+        ],
+        "conclusion": "Browser related-record graph current response adds root-record ETag and v2 oid/revision/entityTag meta; baseline sends graph with default empty meta/no validator. No demonstrated incorrect graph content; record extra response fields/validator as an unexplained compatibility difference."
+      },
+      {
+        "id": "REC-P3-05",
+        "routes": [
+          "HTTP-074"
+        ],
+        "conclusion": "Missing named-query v2 response preserves404/detail but drops redundant errors[].status=\"404\" from baseline. No behavioral failure demonstrated."
+      },
+      {
+        "id": "REC-P3-06",
+        "routes": [
+          "HTTP-090",
+          "HTTP-091",
+          "HTTP-092",
+          "HTTP-093",
+          "HTTP-094",
+          "HTTP-095",
+          "HTTP-096",
+          "HTTP-097",
+          "HTTP-098"
+        ],
+        "conclusion": "Current query/report definition write adapters add a brand-scoped administration audit after mutation; baseline controller actions have no corresponding explicit audit call. The audit is a new side effect and can fail after persisted mutation. No failure reproduced or runtime change made; record the scope/partial-effect difference."
+      },
+      {
+        "id": "P3-cache",
+        "routes": [
+          "HTTP-233",
+          "HTTP-248",
+          "HTTP-252"
+        ],
+        "conclusion": "Figshare DELETE204 drops baseline explicit no-cache triple; API/browser attachment-list JSON responses add that triple where baseline sendResp supplied no headers. No demonstrated wrong data/access impact. Not called an intentional break."
+      },
+      {
+        "id": "P3-index-message",
+        "routes": [
+          "HTTP-244"
+        ],
+        "conclusion": "Successful index response message adds word record. OID/details and status/envelope/queue behavior retained."
+      },
+      {
+        "id": "P3-chronicle",
+        "routes": [
+          "HTTP-159",
+          "HTTP-160",
+          "HTTP-207",
+          "HTTP-208",
+          "HTTP-209",
+          "HTTP-210",
+          "HTTP-211",
+          "HTTP-212",
+          "HTTP-213",
+          "HTTP-214",
+          "HTTP-215",
+          "HTTP-216",
+          "HTTP-217",
+          "HTTP-222",
+          "HTTP-223",
+          "HTTP-224",
+          "HTTP-247",
+          "HTTP-301",
+          "HTTP-302",
+          "HTTP-303",
+          "HTTP-305",
+          "HTTP-306",
+          "HTTP-308"
+        ],
+        "conclusion": "Some prior safe operation success/context/error code chronicle markers are absent (brandingAppRetrieveSuccess/brandingAppErrorCode, formVocabulary*, userFind*, self key and notification stage markers). General request/actor/brand context and selected safe failures remain; no raw secret logging proposed. No comprehensive chronicle parity claim."
+      },
+      {
+        "id": "P3-error-contract",
+        "routes": [
+          "HTTP-150",
+          "HTTP-153",
+          "HTTP-154",
+          "HTTP-155",
+          "HTTP-156",
+          "HTTP-157",
+          "HTTP-159",
+          "HTTP-160",
+          "HTTP-161",
+          "HTTP-225",
+          "HTTP-226",
+          "HTTP-227",
+          "HTTP-228",
+          "HTTP-229",
+          "HTTP-230",
+          "HTTP-231",
+          "HTTP-232",
+          "HTTP-233",
+          "HTTP-234",
+          "HTTP-235",
+          "HTTP-236",
+          "HTTP-237",
+          "HTTP-238",
+          "HTTP-239",
+          "HTTP-240",
+          "HTTP-241",
+          "HTTP-242",
+          "HTTP-243",
+          "HTTP-248",
+          "HTTP-249",
+          "HTTP-250",
+          "HTTP-251",
+          "HTTP-252",
+          "HTTP-253",
+          "HTTP-301",
+          "HTTP-302",
+          "HTTP-303",
+          "HTTP-304",
+          "HTTP-305",
+          "HTTP-306",
+          "HTTP-307",
+          "HTTP-308"
+        ],
+        "conclusion": "Residual failure-path differences are explicit in each route: browser identity backend status:false200->safe500; role-create/untyped Figshare exception400->500; user-find error-as-data200->500; datastream bare/translated/jsclient legacy errors ->explicit safe errors; form lookup translated details ->code literals. Sanitation is authorized, these status/envelope/text differences are not thereby proven intentional. Recorded P3 without demonstrated realistic lost work/incorrect success behavior; not silently claimed equivalent."
+      }
+    ],
+    "totalPopulatedDimensionCells": 3668
+  }
+}

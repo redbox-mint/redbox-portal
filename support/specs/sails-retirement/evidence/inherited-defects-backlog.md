@@ -181,3 +181,48 @@ both source versions and rejects unexpected compiler failures.
 **Suggested fix:** align the original declarations with the existing runtime
 contracts and retain the full literal table as the regression. No runtime change
 or access-control exception is warranted in this retirement review.
+
+## B-08 — P2: configured native index TTL and hidden options are dropped
+
+**Location:** `packages/sails-hook-redbox-storage-mongo/src/persistence/preflight.ts:105`,
+`storageIndexes`.
+
+**Reproduction:** execute the actual baseline and current descriptor builders with
+`{ key: { expires: 1 }, name: 'institution-expiry', expireAfterSeconds: 60,
+hidden: true, sparse: true }`. Both emit datastore/collection/name/keys/sparse
+without the TTL or hidden options. Configured expiration therefore cannot reach
+the index creation descriptor. This is an extracted-method probe, not a claim
+that a MongoDB TTL expiry was observed.
+
+**Inheritance:** the baseline builder at
+`a49366803:packages/sails-hook-redbox-storage-mongo/src/persistence/preflight.ts:97`
+has the same option allowlist. R13 correctly restored acceptance of native
+descriptor shapes; it did not introduce this consumer omission. There is no
+ordinary-user access-control exception. Reproduction and provenance are in
+`final-review-r14/entrypoints-probes.cjs`, `entrypoints-probe-results.json` and
+`entrypoints-differential.json`.
+
+**Suggested fix:** preserve supported native options through the common index
+descriptor, inspection and ensure comparison; qualify actual creation, TTL and
+existing-index conflicts separately.
+
+## B-09 — P2: vocabulary administration listing ignores the requested brand
+
+**Location:** `packages/redbox-core/src/vocabulary/Vocabulary.ts:252`, `list`.
+
+**Reproduction:** request `branding: 'brand-1'` from the actual service method
+with repository ports containing one local and one foreign vocabulary. Both
+count/list predicates omit branding and both rows are returned. The explicit
+comment treats this administration feature as single-tenant. The deterministic
+port probe is retained in `final-review-r14/identity-inherited.cjs`; no public HTTP
+or real database exploit is claimed.
+
+**Inheritance:** `a49366803:packages/redbox-core/src/services/VocabularyService.ts`
+contains the same method/comment/predicate. The native administration entrance
+requires a brand Admin; ordinary signed-in users cannot reach this list. No severe
+ordinary-user access-control exception applies, so runtime behavior remains
+unchanged in this review.
+
+**Suggested fix:** use a normalized requested-brand predicate in count and list,
+retain total/pagination consistency, and cover mixed-brand administrator fixtures
+through HTTP and persistence.

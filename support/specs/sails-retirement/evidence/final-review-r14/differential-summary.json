@@ -1,0 +1,305 @@
+{
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "incomingHead": "9bb858218075dec4d77c1302063c134d8f3133f2",
+  "runtimeRevision": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+  "finalRuntimeAndTestRevision": "c31ac286281dfa3bf8efa1bc2b122cdc430cf07b",
+  "http": {
+    "routes": 335,
+    "dimensionsPerRoute": 7,
+    "populatedDimensionCells": 2345,
+    "scopes": [
+      {
+        "ledger": "records-differential.json",
+        "routes": 142,
+        "cells": 994,
+        "classAFamilies": 5
+      },
+      {
+        "ledger": "identity-differential.json",
+        "routes": 119,
+        "cells": 833,
+        "classAFamilies": 5
+      },
+      {
+        "ledger": "parent-differential.json",
+        "routes": 74,
+        "cells": 518,
+        "classAFamilies": 2
+      }
+    ],
+    "fixedRouteCount": 19,
+    "fixedRoutes": [
+      "HTTP-067",
+      "HTTP-070",
+      "HTTP-108",
+      "HTTP-120",
+      "HTTP-135",
+      "HTTP-136",
+      "HTTP-137",
+      "HTTP-144",
+      "HTTP-162",
+      "HTTP-163",
+      "HTTP-164",
+      "HTTP-174",
+      "HTTP-175",
+      "HTTP-176",
+      "HTTP-177",
+      "HTTP-249",
+      "HTTP-253",
+      "HTTP-254",
+      "HTTP-296"
+    ],
+    "noAdditionalClassAP1P2Routes": 316,
+    "newNativeHttpCases": 72,
+    "newProductionBindingCases": 2,
+    "nativeExpectedIncomingFailures": 40,
+    "bindingExpectedIncomingFailures": 2,
+    "unchangedIncomingControls": 32,
+    "actualBaselineMethodObservations": 31,
+    "finalCombinedFocusedPassed": 138,
+    "caveat": "Every row has static comparison. Focused baseline method probes do not run Sails HTTP; incoming-module loaders retain current shared dependencies. These are not 335 executed route comparisons."
+  },
+  "nonHttp": {
+    "entries": 189,
+    "populatedDimensionCells": 1323,
+    "categories": {
+      "queue-job": 17,
+      "record-operation": 32,
+      "extension-capability": 13,
+      "bundled-registration": 3,
+      "core-domain-factory": 44,
+      "lifecycle-contract": 6,
+      "domain-extension-callback": 7,
+      "record-phase-callback": 12,
+      "migration": 8,
+      "bootstrap-work": 15,
+      "maintenance-command": 9,
+      "hook-tooling-command": 13,
+      "r13-native-consumer": 10
+    },
+    "focusedTests": 339,
+    "actualMethodAndCliProbes": 64,
+    "newClassAP1P2": 0
+  },
+  "findings": {
+    "classA": 12,
+    "P1": 2,
+    "P2": 10,
+    "fixed": 12,
+    "sourceOnlyP3Groups": 10,
+    "inheritedBacklogAdditions": [
+      "B-08",
+      "B-09"
+    ],
+    "wrongR13Fixes": []
+  },
+  "p3": [
+    {
+      "id": "REC-P3-01",
+      "routes": [
+        "HTTP-003",
+        "HTTP-004",
+        "HTTP-005",
+        "HTTP-006",
+        "HTTP-007",
+        "HTTP-008",
+        "HTTP-013",
+        "HTTP-014",
+        "HTTP-015",
+        "HTTP-016",
+        "HTTP-017",
+        "HTTP-059",
+        "HTTP-060",
+        "HTTP-061",
+        "HTTP-063",
+        "HTTP-064",
+        "HTTP-082",
+        "HTTP-086",
+        "HTTP-087",
+        "HTTP-088",
+        "HTTP-089",
+        "HTTP-099",
+        "HTTP-100",
+        "HTTP-101",
+        "HTTP-102",
+        "HTTP-103",
+        "HTTP-104",
+        "HTTP-105",
+        "HTTP-106",
+        "HTTP-107",
+        "HTTP-108",
+        "HTTP-109",
+        "HTTP-110",
+        "HTTP-111",
+        "HTTP-112",
+        "HTTP-113",
+        "HTTP-120",
+        "HTTP-121",
+        "HTTP-122",
+        "HTTP-123",
+        "HTTP-124",
+        "HTTP-125",
+        "HTTP-126",
+        "HTTP-127",
+        "HTTP-128",
+        "HTTP-129",
+        "HTTP-130",
+        "HTTP-131",
+        "HTTP-132",
+        "HTTP-133",
+        "HTTP-134",
+        "HTTP-135",
+        "HTTP-136",
+        "HTTP-137",
+        "HTTP-138",
+        "HTTP-139",
+        "HTTP-140",
+        "HTTP-141",
+        "HTTP-142"
+      ],
+      "conclusion": "Cache-Control differs for baseline policy-only/global-only responses once the current helper applies no-cache/private. Both policies retain privacy/no-cache intent, and no concrete functional failure was demonstrated. No cache runtime changes made."
+    },
+    {
+      "id": "REC-P3-02",
+      "routes": [
+        "HTTP-069",
+        "HTTP-070",
+        "HTTP-071",
+        "HTTP-096",
+        "HTTP-097",
+        "HTTP-098"
+      ],
+      "conclusion": "Baseline browser report-config sendReportConfigError/getConfig passes status>=400 and data without displayErrors, which CoreController handleV1/handleV2 falls back to500 generic errors. Current browser query handlers return typed status/data (and writes return standard error envelopes). This is a public status/envelope difference without an explicit compatibility exception. Success-path behavior is unchanged. Static finding; no additional runtime claim."
+    },
+    {
+      "id": "REC-P3-03",
+      "routes": [
+        "HTTP-119"
+      ],
+      "conclusion": "Workspace redirect retains302 and path, but baseline global redirect wrapper directive set differs from current noCache policy. Current still has no-store; this is a directive difference rather than a missing cache boundary."
+    },
+    {
+      "id": "REC-P3-04",
+      "routes": [
+        "HTTP-112"
+      ],
+      "conclusion": "Browser related-record graph current response adds root-record ETag and v2 oid/revision/entityTag meta; baseline sends graph with default empty meta/no validator. No demonstrated incorrect graph content; record extra response fields/validator as an unexplained compatibility difference."
+    },
+    {
+      "id": "REC-P3-05",
+      "routes": [
+        "HTTP-074"
+      ],
+      "conclusion": "Missing named-query v2 response preserves404/detail but drops redundant errors[].status=\"404\" from baseline. No behavioral failure demonstrated."
+    },
+    {
+      "id": "REC-P3-06",
+      "routes": [
+        "HTTP-090",
+        "HTTP-091",
+        "HTTP-092",
+        "HTTP-093",
+        "HTTP-094",
+        "HTTP-095",
+        "HTTP-096",
+        "HTTP-097",
+        "HTTP-098"
+      ],
+      "conclusion": "Current query/report definition write adapters add a brand-scoped administration audit after mutation; baseline controller actions have no corresponding explicit audit call. The audit is a new side effect and can fail after persisted mutation. No failure reproduced or runtime change made; record the scope/partial-effect difference."
+    },
+    {
+      "id": "P3-cache",
+      "routes": [
+        "HTTP-233",
+        "HTTP-248",
+        "HTTP-252"
+      ],
+      "conclusion": "Figshare DELETE204 drops baseline explicit no-cache triple; API/browser attachment-list JSON responses add that triple where baseline sendResp supplied no headers. No demonstrated wrong data/access impact. Not called an intentional break."
+    },
+    {
+      "id": "P3-index-message",
+      "routes": [
+        "HTTP-244"
+      ],
+      "conclusion": "Successful index response message adds word record. OID/details and status/envelope/queue behavior retained."
+    },
+    {
+      "id": "P3-chronicle",
+      "routes": [
+        "HTTP-159",
+        "HTTP-160",
+        "HTTP-207",
+        "HTTP-208",
+        "HTTP-209",
+        "HTTP-210",
+        "HTTP-211",
+        "HTTP-212",
+        "HTTP-213",
+        "HTTP-214",
+        "HTTP-215",
+        "HTTP-216",
+        "HTTP-217",
+        "HTTP-222",
+        "HTTP-223",
+        "HTTP-224",
+        "HTTP-247",
+        "HTTP-301",
+        "HTTP-302",
+        "HTTP-303",
+        "HTTP-305",
+        "HTTP-306",
+        "HTTP-308"
+      ],
+      "conclusion": "Some prior safe operation success/context/error code chronicle markers are absent (brandingAppRetrieveSuccess/brandingAppErrorCode, formVocabulary*, userFind*, self key and notification stage markers). General request/actor/brand context and selected safe failures remain; no raw secret logging proposed. No comprehensive chronicle parity claim."
+    },
+    {
+      "id": "P3-error-contract",
+      "routes": [
+        "HTTP-150",
+        "HTTP-153",
+        "HTTP-154",
+        "HTTP-155",
+        "HTTP-156",
+        "HTTP-157",
+        "HTTP-159",
+        "HTTP-160",
+        "HTTP-161",
+        "HTTP-225",
+        "HTTP-226",
+        "HTTP-227",
+        "HTTP-228",
+        "HTTP-229",
+        "HTTP-230",
+        "HTTP-231",
+        "HTTP-232",
+        "HTTP-233",
+        "HTTP-234",
+        "HTTP-235",
+        "HTTP-236",
+        "HTTP-237",
+        "HTTP-238",
+        "HTTP-239",
+        "HTTP-240",
+        "HTTP-241",
+        "HTTP-242",
+        "HTTP-243",
+        "HTTP-248",
+        "HTTP-249",
+        "HTTP-250",
+        "HTTP-251",
+        "HTTP-252",
+        "HTTP-253",
+        "HTTP-301",
+        "HTTP-302",
+        "HTTP-303",
+        "HTTP-304",
+        "HTTP-305",
+        "HTTP-306",
+        "HTTP-307",
+        "HTTP-308"
+      ],
+      "conclusion": "Residual failure-path differences are explicit in each route: browser identity backend status:false200->safe500; role-create/untyped Figshare exception400->500; user-find error-as-data200->500; datastream bare/translated/jsclient legacy errors ->explicit safe errors; form lookup translated details ->code literals. Sanitation is authorized, these status/envelope/text differences are not thereby proven intentional. Recorded P3 without demonstrated realistic lost work/incorrect success behavior; not silently claimed equivalent."
+    }
+  ],
+  "totalPopulatedDimensionCells": 3668
+}

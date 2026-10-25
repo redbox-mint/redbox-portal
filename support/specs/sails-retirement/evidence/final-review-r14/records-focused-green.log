@@ -1,0 +1,181 @@
+
+
+  Pre-retirement browser record response and side-effect contracts (R14)
+    ✔ retains the browser metadata relationship envelope (1.0) (124ms)
+    ✔ retains the browser metadata relationship envelope (2.0)
+    ✔ keeps browser deletion recoverable even if the REST-only permanent flag is supplied
+    ✔ retains committed create outcome, warning and headers after read failure (56ms)
+    ✔ retains committed create outcome, warning and headers after projection failure
+    ✔ retains committed update outcome, warning and headers after read failure
+    ✔ retains committed update outcome, warning and headers after projection failure
+    ✔ uses the configured public URL for API create Location under root ''
+    ✔ uses the configured public URL for API create Location under root '/research'
+    ✔ retains POST preview body filter values before query values (api, conflict=false)
+    ✔ retains POST preview body filter values before query values (api, conflict=true)
+    ✔ retains POST preview body filter values before query values (admin, conflict=false)
+    ✔ retains POST preview body filter values before query values (admin, conflict=true)
+
+  Owned browser record reads
+    ✔ returns serializable404 before deleted lookup without oid
+    ✔ returns serializable404 before deleted lookup without brand
+    ✔ returns serializable404 before deleted lookup without brand ID
+    ✔ returns serializable404 for purged deleted records (1.0)
+    ✔ refuses deleted metadata without current permission (1.0)
+    ✔ returns serializable404 for purged deleted records (2.0)
+    ✔ refuses deleted metadata without current permission (2.0)
+    ✔ returns resolved browser permission summary after view authorization
+    ✔ returns revision metadata and strong tag for authorized browser reads
+    ✔ projects Data Locations and Data Manager with the actual projection and HTTP response (46ms)
+    ✔ does not build a client form when current view access is denied
+    ✔ never discloses raw metadata after projection failure
+    ✔ refuses resolved permissions without view access
+    ✔ returns404 for missing permission record metadata
+    ✔ retains authoritative revision on actionable browser list rows
+    ✔ retains authoritative revision on deleted browser list rows
+    ✔ builds effective client forms using the current record brand and role context
+
+  Owned browser record mutations
+    ✔ uses only query operation and route intent for trusted validation context
+    ✔ keeps the literal v1 save failure while exposing typed v2 problems
+    ✔ normalizes tags, form fingerprints and fresh resolution linkage once
+    ✔ maps certified concurrency refusals and unknown outcomes without status inference
+    ✔ projects latest conflicts only while current view permission remains
+    ✔ never falls back to unrestricted conflict metadata when safe form projection is unavailable
+    ✔ keeps browser lifecycle conflicts private after tombstone view revocation
+    ✔ omits post-save projection when there is no record, a transition, no form, or syncing is disabled
+    ✔ projects post-save metadata and records safe projection failures
+    ✔ routes browser stepTo through the authoritative transition save boundary without pre-mutation
+    ✔ keeps body metadata from initiating transitions or validation operations on update
+    ✔ retains strict, stale and form-drift statuses on browser update
+    ✔ rejects malformed and wildcard browser tags before record work
+    ✔ passes raw merge deltas with browser array replacement while preserving stored metadata
+    ✔ keeps create body metadata from initiating transitions
+    ✔ returns safe missing, storage-failure and authorization outcomes on update and delete
+    ✔ sanitizes unexpected update and transition failures and their logs
+
+  Owned record API mutations
+    ✔ restores and permanently destroys deleted records in the active brand
+    ✔ does not mutate deleted records outside the active brand
+    ✔ passes only requested-brand roles into workflow authorization
+    save response schema discovery
+      ✔ builds successful create/update discovery from route context under a deployment root
+      ✔ adds exact create/update described-by links without changing 1.0 bodies
+      ✔ adds exact create/update described-by links without changing 2.0 bodies
+      ✔ keeps successful create/update headers unchanged when no schema outcome was resolved
+    permission handlers
+      ✔ uses validated HTTP body in addUserEdit
+      ✔ uses validated HTTP body in addUserView
+      ✔ uses validated HTTP body in removeUserEdit
+      ✔ uses validated HTTP body in removeUserView
+      ✔ uses validated HTTP body in addRoleEdit
+      ✔ uses validated HTTP body in addRoleView
+      ✔ uses validated HTTP body in removeRoleEdit
+      ✔ uses validated HTTP body in removeRoleView
+      ✔ does not disclose permissions after a successful mutation removes current view access
+      ✔ preserves the literal v1 error body for all permission mutation failures
+    metadata submission and concurrency
+      ✔ preserves detached complete replacement submission
+      ✔ preserves detached recursive merge with array concatenation submission
+      ✔ keeps attachment metadata separate from its persisted baseline and normalizes operation
+      ✔ rejects malformed, weak, list and wildcard tags in both API versions before lookup
+      ✔ keeps tokenless last-write-wins updates compatible with final tags
+      ✔ keeps tokenless observe updates compatible with final tags
+      ✔ preserves strict 428 and the 1.0 contract
+      ✔ preserves strict 428 and the 2.0 contract
+      ✔ returns latest safe v2 projection for a stale tag
+      ✔ redacts stale conflicts after current view access is lost
+      ✔ redacts lifecycle conflict when tombstone view permission is revoked
+      ✔ returns latest authorized projection when edit access is lost but view remains
+      ✔ retains 1.0 confirmed non-save status and envelope
+      ✔ retains 2.0 confirmed non-save status and envelope
+      ✔ uses validated object metadata independently
+      ✔ preserves literal v1 object-metadata failure
+      ✔ isolates create metadata and authorization from forged trusted context
+      ✔ preserves targeted-create intent before workflow resolution
+      ✔ detaches unwrapped create metadata with schema enabled
+      ✔ detaches unwrapped create metadata with schema disabled
+      ✔ keeps omitted validation operations optional on create and update
+      ✔ maps transition operation independently and preserves authorization refusal
+      ✔ rejects transition outside the active brand before authority or workflow lookup
+      ✔ retains literal v1 transition refusal as an HTTP 200 result
+      ✔ retains typed v1 transition conflict and its legacy result
+      ✔ keeps omitted transition operation optional
+      ✔ sanitizes operation contract failures with the v1 literal
+    lifecycle mutation boundaries
+      ✔ passes exact revision and fresh resolution linkage to restore
+      ✔ keeps tokenless last-write-wins lifecycle requests compatible
+      ✔ keeps tokenless observe lifecycle requests compatible
+      ✔ retains strict 428 and the tombstone revision
+      ✔ rejects malformed lifecycle tags before lookup or mutation
+      ✔ maps permanent deletion to purge intent
+      ✔ does not restoreRecord an active record without a tombstone
+      ✔ rejects restoreRecord across brands
+      ✔ does not destroyDeletedRecord an active record without a tombstone
+      ✔ rejects destroyDeletedRecord across brands
+      ✔ returns sanitized 500 for tombstone storage failures
+    schema digest request boundary
+      ✔ returns typed stale-schema 412 with retained failure metadata
+      ✔ keeps omitted schema precondition compatible
+      ✔ keeps API create free of record revision preconditions
+      ✔ keeps record revision and schema digest independent for update and transition
+      ✔ does not accept a body-forged schema digest without the validated header
+      ✔ keeps stale, malformed and multi-value schema failures typed in v1 update and transition
+
+  Query HTTP failure boundaries
+    ✔ sanitizes untrusted failures (object, status undefined) in both API versions
+    ✔ sanitizes untrusted failures (object, status 401) in both API versions
+    ✔ sanitizes untrusted failures (string, status undefined) in both API versions
+    ✔ retains controlled 403 domain refusals
+    ✔ retains controlled 404 domain refusals
+    ✔ retains controlled 404 domain refusals
+    ✔ retains the report-results failure envelope while sanitizing unexpected messages
+
+  Named query and notification parameters through owned HTTP
+    ✔ preserves configured query keys through validation and query execution
+    ✔ documents pagination and configured query parameters in OpenAPI
+    ✔ forwards only public replyTo in API 1.0
+    ✔ forwards only public replyTo in API 2.0
+    ✔ layers public replyTo over trusted default send options
+    ✔ retains service defaults when public replyTo is omitted
+    ✔ rejects non-string replyTo before delivery
+
+  Owned HTTP request chronicle integration
+    ✔ refuses an unknown brand before getNamespace delegation
+    ✔ captures a getNamespace service failure once without response or log payload leakage
+    ✔ refuses an unknown brand before getLanguages delegation
+    ✔ captures a getLanguages service failure once without response or log payload leakage
+    ✔ refuses an unknown brand before listEntriesApp delegation
+    ✔ captures a listEntriesApp service failure once without response or log payload leakage
+    ✔ refuses an unknown brand before getBundleApp delegation
+    ✔ captures a getBundleApp service failure once without response or log payload leakage
+    ✔ refuses an unknown brand before setEntryApp delegation
+    ✔ captures a setEntryApp service failure once without response or log payload leakage
+    ✔ refuses an unknown brand before setBundleApp delegation
+    ✔ captures a setBundleApp service failure once without response or log payload leakage
+    ✔ serves namespace JSON without metadata and captures only identifiers
+    ✔ preserves a successful setEntryApp write when its owned resource reload fails
+    ✔ preserves a successful setBundleApp write when its owned resource reload fails
+    ✔ returns a safe failed local login without password or provider claims in observation
+    ✔ does not redirect or audit after a localLogin session callback failure
+    ✔ does not redirect or audit after a openidConnectLogin session callback failure
+    ✔ does not redirect or audit after a aafLogin session callback failure
+    ✔ returns a safe vocabulary failure even with a cyclic service cause
+    ✔ keeps vocabulary import failure 400 while sanitizing backend details
+    ✔ keeps vocabulary sync failure 400 while sanitizing backend details
+    ✔ returns a truthful sanitized failure when a profile update fails
+    ✔ returns a truthful sanitized failure when generating a user key fails
+    ✔ retains the 200 status:false report result failure with safe paging observation
+    ✔ retains CSV failure without capturing exported data
+    ✔ returns full report data but observes only paging and record counts
+    ✔ retains an empty report result with finite defaults and rejects malformed paging
+    ✔ does not create a request chronicle when observation is absent
+    ✔ logs one safe failure when observation is absent
+    ✔ correlates a failed owned audit and refuses a misleading logout redirect
+    ✔ keeps successful completed audits free of warnings
+    ✔ retains correlated late-operation reporting without mutating a completed request
+    ✔ captures safe email failure metadata while excluding body and subject
+    ✔ does not observe branding preview tokens or urls
+
+
+  157 passing (4s)
+

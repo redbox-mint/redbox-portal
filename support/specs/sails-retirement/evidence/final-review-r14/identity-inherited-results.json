@@ -1,0 +1,51 @@
+{
+  "evidenceKind": "actual-baseline-and-current-service-methods; deterministic repository ports; not HTTP",
+  "results": [
+    {
+      "ref": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+      "file": "packages/redbox-core/src/services/VocabularyService.ts",
+      "requestedBrand": "brand-1",
+      "where": [{}, {}],
+      "result": {
+        "data": [
+          {
+            "id": "local",
+            "branding": "brand-1"
+          },
+          {
+            "id": "foreign",
+            "branding": "brand-2"
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "limit": 25,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "ref": "current-source",
+      "file": "packages/redbox-core/src/vocabulary/Vocabulary.ts",
+      "requestedBrand": "brand-1",
+      "where": [{}, {}],
+      "result": {
+        "data": [
+          {
+            "id": "local",
+            "branding": "brand-1"
+          },
+          {
+            "id": "foreign",
+            "branding": "brand-2"
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "limit": 25,
+          "offset": 0
+        }
+      }
+    }
+  ]
+}

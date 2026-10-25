@@ -1,0 +1,39 @@
+{
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "kind": "actual-baseline-methods-with-fixture-ports",
+  "checks": 5,
+  "results": [
+    {
+      "case": "datastream-finalization-returned",
+      "status": 500,
+      "metaOutcome": "saved-with-warnings",
+      "headers": {
+        "Cache-Control": "no-cache, private",
+        "ETag": "\"rb-record-v1.6.GR1Uh5lTILibHvdzr0We9vvPTqZvSC6pETbV2z7BOpk\""
+      }
+    },
+    {
+      "case": "datastream-finalization-thrown",
+      "status": 500,
+      "metaOutcome": "saved-with-warnings",
+      "headers": {
+        "Cache-Control": "no-cache, private",
+        "ETag": "\"rb-record-v1.6.GR1Uh5lTILibHvdzr0We9vvPTqZvSC6pETbV2z7BOpk\""
+      }
+    },
+    {
+      "case": "datastream-refusal-1.0",
+      "status": 500,
+      "typedMeta": false
+    },
+    {
+      "case": "datastream-refusal-2.0",
+      "status": 400,
+      "typedMeta": true
+    },
+    {
+      "case": "original-record-view",
+      "view": "record/view-orig"
+    }
+  ]
+}

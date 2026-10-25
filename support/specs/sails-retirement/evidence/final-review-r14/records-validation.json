@@ -1,0 +1,36 @@
+{
+  "node": "v26.7.0",
+  "baseline_observations": 13,
+  "native_regressions": 13,
+  "negative_controls": [
+    {
+      "artifact": "records-negative-incoming.log",
+      "failed": 7
+    },
+    {
+      "artifact": "records-negative-location.log",
+      "failed": 2,
+      "previous_regressions_green": 7
+    },
+    {
+      "artifact": "records-negative-preview.log",
+      "failed": 4,
+      "previous_regressions_green": 9
+    }
+  ],
+  "focused_green": {
+    "artifact": "records-focused-green.log",
+    "passed": 157,
+    "failed": 0
+  },
+  "static_checks": {
+    "prettier": "5 edited TS source/test files formatted",
+    "oxlint": "3 assigned handlers; 0 warnings, 0 errors"
+  },
+  "limitations": "Local focused tests use real HTTP handlers with deterministic ports. Combined pinned26.11.1 production/persistence qualification belongs to parent.",
+  "commands": {
+    "baseline": "TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json /home/andrew/.nvm/versions/node/v26.7.0/bin/node --no-experimental-strip-types -r ts-node/register/transpile-only support/specs/sails-retirement/evidence/final-review-r14/records-baseline-probes.cjs support/specs/sails-retirement/evidence/final-review-r14/records-baseline-results.json",
+    "focused_green": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json /home/andrew/.nvm/versions/node/v26.7.0/bin/node --no-experimental-strip-types ../../node_modules/mocha/bin/mocha.js --no-config --require ts-node/register/transpile-only --timeout 20000 test/http/recordDifferentialR14.test.ts test/http/recordBrowserReads.test.ts test/http/recordBrowserMutations.test.ts test/http/recordApiMutations.test.ts test/http/queryReadErrors.test.ts test/controllers/NamedQueryNotificationParams.test.ts test/controllers/RequestChronicleControllers.test.ts",
+    "lint": "node node_modules/oxlint/bin/oxlint packages/redbox-core/src/http/express/recordMutations.ts packages/redbox-core/src/http/express/recordReads.ts packages/redbox-core/src/http/express/queryReads.ts"
+  }
+}

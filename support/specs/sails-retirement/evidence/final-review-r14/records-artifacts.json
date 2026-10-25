@@ -1,0 +1,246 @@
+{
+  "owned_source_test_edits": [
+    "packages/redbox-core/src/http/express/recordReads.ts",
+    "packages/redbox-core/src/http/express/recordMutations.ts",
+    "packages/redbox-core/src/http/express/queryReads.ts",
+    "packages/redbox-core/test/helpers/httpRecordMutationsFixture.ts",
+    "packages/redbox-core/test/http/recordDifferentialR14.test.ts"
+  ],
+  "parent_owned_composition_binding": "packages/redbox-core/src/application/portal/http.ts:478",
+  "owned_evidence": [
+    "support/specs/sails-retirement/evidence/final-review-r14/records-baseline-probes.cjs",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-baseline-results.json",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-differential.json",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-focused-green.log",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-negative-incoming.log",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-negative-location.log",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-negative-preview.log",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-review.md",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-validation.json",
+    "support/specs/sails-retirement/evidence/final-review-r14/records-artifacts.json"
+  ],
+  "scratch_root": ".tmp/sails-retirement/final-review-r14/records",
+  "scratch_files": [
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/AppConfigController-api.txt",
+      "bytes": 3262
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/AppConfigController-browser.txt",
+      "bytes": 2544
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/CoreController.ts",
+      "bytes": 41451
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/DashboardConfigController-api.txt",
+      "bytes": 7317
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/ExportController-api.txt",
+      "bytes": 2002
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/ExportController-browser.txt",
+      "bytes": 1258
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/FormManagementController-api.txt",
+      "bytes": 4309
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/HarvestRunController-api.txt",
+      "bytes": 6392
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/IntegrationAuditController-api.txt",
+      "bytes": 3742
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/NamedQueryController-api.txt",
+      "bytes": 5702
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/RecordAuditController-browser.txt",
+      "bytes": 25720
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/RecordController-api.txt",
+      "bytes": 91495
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/RecordController-browser.txt",
+      "bytes": 111973
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/RecordSchemaController-api.txt",
+      "bytes": 14371
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/RecordTypeController-api.txt",
+      "bytes": 3517
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/ReportController-api.txt",
+      "bytes": 7047
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/ReportController-browser.txt",
+      "bytes": 8063
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/SearchController-api.txt",
+      "bytes": 5698
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/SiemController-api.txt",
+      "bytes": 12030
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/TranslationController-api.txt",
+      "bytes": 10674
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/TranslationController-browser.txt",
+      "bytes": 9951
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/WorkspaceTypesController-browser.txt",
+      "bytes": 7109
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/AppConfigController.ts",
+      "bytes": 3536
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/ExportController.ts",
+      "bytes": 3358
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/RecordAuditController.ts",
+      "bytes": 24940
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/RecordController.ts",
+      "bytes": 112847
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/ReportController.ts",
+      "bytes": 8567
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/TranslationController.ts",
+      "bytes": 11329
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/WorkspaceTypesController.ts",
+      "bytes": 7244
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/AppConfigController.ts",
+      "bytes": 3851
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/DashboardConfigController.ts",
+      "bytes": 7349
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/ExportController.ts",
+      "bytes": 2613
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/FormManagementController.ts",
+      "bytes": 5439
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/HarvestRunController.ts",
+      "bytes": 6344
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/IntegrationAuditController.ts",
+      "bytes": 4018
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/NamedQueryController.ts",
+      "bytes": 5372
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/RecordController.ts",
+      "bytes": 92862
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/RecordSchemaController.ts",
+      "bytes": 18213
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/RecordTypeController.ts",
+      "bytes": 4610
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/ReportController.ts",
+      "bytes": 7814
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/SearchController.ts",
+      "bytes": 7157
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/SiemController.ts",
+      "bytes": 11838
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline/packages/redbox-core/src/controllers/webservice/TranslationController.ts",
+      "bytes": 10653
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/baseline-methods.json",
+      "bytes": 212460
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/build-ledger.py",
+      "bytes": 51110
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/extract.cjs",
+      "bytes": 1187
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/full.diff",
+      "bytes": 34521273
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/green-final-focused.log",
+      "bytes": 12055
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/green-focused.log",
+      "bytes": 7829
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/green-location.log",
+      "bytes": 7928
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/ledger-build-result.json",
+      "bytes": 1050
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/red-focused.log",
+      "bytes": 5678
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/red-location.log",
+      "bytes": 2369
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/red-preview.log",
+      "bytes": 3724
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r14/records/routes.json",
+      "bytes": 1897398
+    }
+  ],
+  "notes": "No edits to unrelated shared R14 source/tests/evidence, inherited backlog, dependency manifests, or untracked graphql-record-metadata. Scratch full.diff is original git diff a49366803...HEAD; baseline sources and extraction maps are durable but are not production HTTP evidence."
+}

@@ -1,0 +1,204 @@
+
+
+  Pre-retirement browser record response and side-effect contracts (R14)
+    1) retains the browser metadata relationship envelope (1.0)
+    2) retains the browser metadata relationship envelope (2.0)
+    3) keeps browser deletion recoverable even if the REST-only permanent flag is supplied
+    4) retains committed create outcome, warning and headers after read failure
+    5) retains committed create outcome, warning and headers after projection failure
+    6) retains committed update outcome, warning and headers after read failure
+    7) retains committed update outcome, warning and headers after projection failure
+
+
+  0 passing (233ms)
+  7 failing
+
+  1) Pre-retirement browser record response and side-effect contracts (R14)
+       retains the browser metadata relationship envelope (1.0):
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  {
++   metadata: {
++     title: 'Current'
++   },
+    relationships: {
+      edges: [],
+      omittedByAccess: {},
+      relatedObjects: {
+        dataset: [
+...
+    },
+-   title: 'Current'
+  }
+
+      + expected - actual
+
+       {
+      -  "metadata": {
+      -    "title": "Current"
+      -  }
+         "relationships": {
+           "edges": []
+           "omittedByAccess": {}
+           "relatedObjects": {
+--
+             ]
+           }
+           "rootOid": "oid-1"
+         }
+      +  "title": "Current"
+       }
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:23:16)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  2) Pre-retirement browser record response and side-effect contracts (R14)
+       retains the browser metadata relationship envelope (2.0):
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  {
+    data: {
++     metadata: {
++       title: 'Current'
++     },
+-     title: 'Current'
+-   },
+-   meta: {
+-     entityTag: '"rb-record-v1.3.396FhKrFVKTv6zPbDbGvYVlte5v2m53uDchSyhffMms"',
+-     oid: 'oid-1',
+      relationships: {
+        edges: [],
+        omittedByAccess: {},
+        relatedObjects: {
+          dataset: [
+...
+      },
++   },
++   meta: {
++     entityTag: '"rb-record-v1.3.396FhKrFVKTv6zPbDbGvYVlte5v2m53uDchSyhffMms"',
++     oid: 'oid-1',
+      revision: 3
+    }
+  }
+
+      + expected - actual
+
+       {
+         "data": {
+      -    "metadata": {
+      -      "title": "Current"
+      -    }
+      +    "title": "Current"
+      +  }
+      +  "meta": {
+      +    "entityTag": "\"rb-record-v1.3.396FhKrFVKTv6zPbDbGvYVlte5v2m53uDchSyhffMms\""
+      +    "oid": "oid-1"
+           "relationships": {
+             "edges": []
+             "omittedByAccess": {}
+             "relatedObjects": {
+--
+               ]
+             }
+             "rootOid": "oid-1"
+           }
+      -  }
+      -  "meta": {
+      -    "entityTag": "\"rb-record-v1.3.396FhKrFVKTv6zPbDbGvYVlte5v2m53uDchSyhffMms\""
+      -    "oid": "oid-1"
+           "revision": 3
+         }
+       }
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:23:16)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  3) Pre-retirement browser record response and side-effect contracts (R14)
+       keeps browser deletion recoverable even if the REST-only permanent flag is supplied:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+true !== false
+
+      + expected - actual
+
+      -true
+      +false
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:35:14)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  4) Pre-retirement browser record response and side-effect contracts (R14)
+       retains committed create outcome, warning and headers after read failure:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+500 !== 200
+
+      + expected - actual
+
+      -500
+      +200
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:60:18)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  5) Pre-retirement browser record response and side-effect contracts (R14)
+       retains committed create outcome, warning and headers after projection failure:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'saved'
+- 'saved-with-warnings'
+        ^
+
+      + expected - actual
+
+      -saved
+      +saved-with-warnings
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:62:18)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  6) Pre-retirement browser record response and side-effect contracts (R14)
+       retains committed update outcome, warning and headers after read failure:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+500 !== 200
+
+      + expected - actual
+
+      -500
+      +200
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:60:18)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  7) Pre-retirement browser record response and side-effect contracts (R14)
+       retains committed update outcome, warning and headers after projection failure:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'saved'
+- 'saved-with-warnings'
+        ^
+
+      + expected - actual
+
+      -saved
+      +saved-with-warnings
+      
+      at Context.<anonymous> (test/http/recordDifferentialR14.test.ts:62:18)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+
+

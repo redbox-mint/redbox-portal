@@ -1,0 +1,68 @@
+{
+  "incomingHead": "9bb858218075dec4d77c1302063c134d8f3133f2",
+  "owners": [
+    "datastreamWrites.ts",
+    "pages.ts",
+    "application/portal/http.ts"
+  ],
+  "stats": {
+    "suites": 3,
+    "tests": 76,
+    "passes": 64,
+    "pending": 0,
+    "failures": 12,
+    "start": "2026-10-25T15:40:07.049Z",
+    "end": "2026-10-25T15:40:11.304Z",
+    "duration": 4255
+  },
+  "expectedFailures": [
+    {
+      "title": "baseline configuration acceptance and production consumers binds the canonical creation Location base (root)",
+      "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ undefined\n- 'https://public.example.edu'\n"
+    },
+    {
+      "title": "baseline configuration acceptance and production consumers binds the canonical creation Location base (/research)",
+      "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ undefined\n- 'https://public.example.edu/research'\n"
+    },
+    {
+      "title": "Owned datastream HTTP contracts reports returned finalization failure with the committed save contract in API 1.0",
+      "message": "expected 200 to equal 500"
+    },
+    {
+      "title": "Owned datastream HTTP contracts reports thrown finalization failure with the committed save contract in API 1.0",
+      "message": "expected null to equal '\"rb-record-v1.6.GR1Uh5lTILibHvdzr0We9\u2026'"
+    },
+    {
+      "title": "Owned datastream HTTP contracts reports returned finalization failure with the committed save contract in API 2.0",
+      "message": "expected 200 to equal 500"
+    },
+    {
+      "title": "Owned datastream HTTP contracts reports thrown finalization failure with the committed save contract in API 2.0",
+      "message": "expected null to equal '\"rb-record-v1.6.GR1Uh5lTILibHvdzr0We9\u2026'"
+    },
+    {
+      "title": "Owned datastream HTTP contracts returns safe current metadata and typed conflicts for a refused upload claim",
+      "message": "expected undefined to equal 'record-revision-stale'"
+    },
+    {
+      "title": "Owned datastream HTTP contracts withholds upload-conflict state after view access is revoked in API 1.0",
+      "message": "expected 412 to equal 403"
+    },
+    {
+      "title": "Owned datastream HTTP contracts withholds upload-conflict state after view access is revoked in API 2.0",
+      "message": "expected 412 to equal 403"
+    },
+    {
+      "title": "Owned datastream HTTP contracts retains the legacy validation-refusal status in API 1.0",
+      "message": "expected 400 to equal 500"
+    },
+    {
+      "title": "Owned datastream HTTP contracts retains the legacy validation-refusal status in API 2.0",
+      "message": "expected undefined to equal 'not-saved'"
+    },
+    {
+      "title": "Owned record browser pages renders an institution record/view-orig override at its legacy URL",
+      "message": "expected '\\n<!DOCTYPE html>\\n<html lang=\"en\">\\n\u2026' to include 'Institution original view: oid-1'"
+    }
+  ]
+}

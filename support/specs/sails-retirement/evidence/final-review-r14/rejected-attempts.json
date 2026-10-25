@@ -1,0 +1,31 @@
+{
+  "accepted": false,
+  "hostReboots": 0,
+  "scope": "These preliminary probe/setup/typecheck failures contribute no accepted final gate.",
+  "attempts": [
+    {
+      "name": "baseline-vm-realm",
+      "kind": "probe fixture",
+      "reason": "Host RecordSaveResponse sanitizer dropped issue keys on foreign-realm objects constructed by vm.runInNewContext. Evaluate extracted method in host realm with explicit globals. Valid entity tag fixture replaced as well.",
+      "acceptedReplacement": "parent-baseline-results.json: five checks passed"
+    },
+    {
+      "name": "matcher-overlay-prefix",
+      "kind": "qualification environment",
+      "reason": "Host root path-to-regexp is 0.1.13; copying that instead of the direct core pin caused missing declarations. Replace overlay with packages/redbox-core/node_modules/path-to-regexp 8.4.2 and verify both consumers by version and SHA.",
+      "log": ".tmp/sails-retirement/final-review-r14/build-final-matcher-overlay-rejected.log"
+    },
+    {
+      "name": "test-double-typing-prefix",
+      "kind": "new regression fixtures",
+      "reason": "Application typecheck detected untyped Sinon call and two structurally incomplete test-port assertions. Test-only correction 0e4c31096.",
+      "log": ".tmp/sails-retirement/final-review-r14/typecheck-application-fixtures-rejected.log"
+    },
+    {
+      "name": "contextual-typing-prefix",
+      "kind": "new regression fixtures",
+      "reason": "Marking a partial test port removed contextual typing from two enrichment parameters. Explicit unknown[] annotations added in c31ac2862; complete application preflight passed.",
+      "log": ".tmp/sails-retirement/final-review-r14/typecheck-application-context-rejected.log"
+    }
+  ]
+}

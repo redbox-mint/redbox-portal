@@ -1,0 +1,141 @@
+{
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "evidenceKind": "actual-baseline-method-execution",
+  "rows": [
+    {
+      "id": "HTTP-144",
+      "query": {
+        "id": "222222222222222222222222"
+      },
+      "operation": ["111111111111111111111111", "Updated", "", ""],
+      "status": 201,
+      "selected": "111111111111111111111111"
+    },
+    {
+      "id": "HTTP-144",
+      "query": {
+        "userid": "222222222222222222222222"
+      },
+      "operation": ["111111111111111111111111", "Updated", "", ""],
+      "status": 201,
+      "selected": "111111111111111111111111"
+    },
+    {
+      "id": "HTTP-144",
+      "query": {
+        "id": "222222222222222222222222",
+        "userid": "222222222222222222222222"
+      },
+      "operation": ["111111111111111111111111", "Updated", "", ""],
+      "status": 201,
+      "selected": "111111111111111111111111"
+    },
+    {
+      "id": "HTTP-144",
+      "query": {},
+      "operation": ["111111111111111111111111", "Updated", "", ""],
+      "status": 201,
+      "selected": "111111111111111111111111"
+    },
+    {
+      "id": "HTTP-163",
+      "status": 200,
+      "result": {
+        "id": "111111111111111111111111",
+        "username": "disabled-user",
+        "name": "Hidden",
+        "loginDisabled": true
+      }
+    },
+    {
+      "id": "HTTP-164",
+      "status": 200,
+      "result": {
+        "id": "111111111111111111111111",
+        "username": "disabled-user",
+        "name": "Hidden",
+        "loginDisabled": true
+      }
+    },
+    {
+      "id": "HTTP-162",
+      "status": 200,
+      "result": {
+        "summary": {
+          "numFound": 1,
+          "page": 1
+        },
+        "records": [
+          {
+            "id": "111111111111111111111111",
+            "username": "hidden",
+            "name": "Hidden"
+          }
+        ]
+      }
+    },
+    {
+      "id": "HTTP-249",
+      "evidenceKind": "actual-method-with-response-port",
+      "headers": {
+        "Content-Type": "application/octet-stream",
+        "Content-Length": "5",
+        "filename": "metadata-name.txt"
+      },
+      "calls": [
+        [
+          "record-1",
+          "export.csv",
+          {
+            "username": "alice"
+          }
+        ]
+      ],
+      "body": "bytes",
+      "metadataRequired": true
+    },
+    {
+      "id": "HTTP-253",
+      "evidenceKind": "actual-method-with-response-port",
+      "headers": {
+        "Content-Type": "application/octet-stream",
+        "filename": "export.csv"
+      },
+      "calls": [
+        [
+          "record-1",
+          "export.csv",
+          {
+            "username": "alice"
+          }
+        ]
+      ],
+      "body": "bytes",
+      "metadataRequired": false
+    },
+    {
+      "id": "HTTP-174",
+      "inputVersion": "",
+      "selectedVersion": null,
+      "status": 200
+    },
+    {
+      "id": "HTTP-175",
+      "inputVersion": "",
+      "selectedVersion": null,
+      "status": 200
+    },
+    {
+      "id": "HTTP-176",
+      "inputVersion": "",
+      "selectedVersion": null,
+      "status": 200
+    },
+    {
+      "id": "HTTP-177",
+      "inputVersion": "",
+      "selectedVersion": null,
+      "status": 200
+    }
+  ]
+}

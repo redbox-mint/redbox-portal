@@ -1,0 +1,778 @@
+{
+  "schemaVersion": 1,
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "incomingHead": "9bb858218075dec4d77c1302063c134d8f3133f2",
+  "node": "v26.11.1",
+  "passed": 64,
+  "failed": 0,
+  "scope": "Actual extracted source-method execution, actual isolated CLI processes and actual native session store serialization on a fake driver. No HTTP server, real MongoDB, SQS or SMTP.",
+  "rawArtifact": ".tmp/sails-retirement/final-review-r14/entrypoints-probes.json",
+  "rawArtifactSha256": "9687110725b0d29bad289a3d8cb55224f90df1f8898e10b25b317ff31bf3df51",
+  "probeScript": "support/specs/sails-retirement/evidence/final-review-r14/entrypoints-probes.cjs",
+  "observations": [
+    {
+      "id": "queue-dispatch:baseline:solrsearchservice.solrAddOrUpdate",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:solrsearchservice.solrDelete",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:recordsservice.storeRecordAudit",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:recordsservice.reconcilePostCommitSave",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:integrationauditservice.storeIntegrationAudit",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:integrationnotificationservice.dispatch",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:securityeventservice.storeSecurityEvent",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:siemforwardingservice.forwardSecurityEvents",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:siemforwardingservice.retryFailedDeliveries",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:raidservice.mintRetryJob",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:agendaqueueservice.moveCompletedJobsToHistory",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:figshareservice.syncRecordJob",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:figshareservice.dispatchSyncJob",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:figshareservice.publishAfterUploadFilesJob",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:figshareservice.deleteFilesFromRedbox",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:brandingtypefaceservice.reconcileAssets",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:baseline:rdmpservice.queuedTriggerSubscriptionHandler",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+        "line": 515,
+        "extractedSourceSha256": "31329acc9a25da85566ee0a758ebe0ddad3d782af0bc2ccd0b10e68d4940149a"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:solrsearchservice.solrAddOrUpdate",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:solrsearchservice.solrDelete",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:recordsservice.storeRecordAudit",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:recordsservice.reconcilePostCommitSave",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:integrationauditservice.storeIntegrationAudit",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:integrationnotificationservice.dispatch",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:securityeventservice.storeSecurityEvent",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:siemforwardingservice.forwardSecurityEvents",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:siemforwardingservice.retryFailedDeliveries",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:raidservice.mintRetryJob",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:agendaqueueservice.moveCompletedJobsToHistory",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:figshareservice.syncRecordJob",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:figshareservice.dispatchSyncJob",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:figshareservice.publishAfterUploadFilesJob",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:figshareservice.deleteFilesFromRedbox",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:brandingtypefaceservice.reconcileAssets",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queue-dispatch:current:rdmpservice.queuedTriggerSubscriptionHandler",
+      "result": "same job identity/options/handler value and rejection",
+      "transport": "source-method, backend fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/queues/AgendaQueue.ts",
+        "line": 495,
+        "extractedSourceSha256": "9963d4e19a5e955f560bb69c3a69cdeb189468c0b9af2ca0cf658964f417b91d"
+      }
+    },
+    {
+      "id": "queued-hook:baseline:observable",
+      "result": "four argument identities, first Observable value / Promise value / identical failure",
+      "limitation": "nested validation stubbed; permanent tests cover validation",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/RDMPService.ts",
+        "line": 426,
+        "extractedSourceSha256": "3d1818cf285696c28d63d584602e4d7564378ab8702cd077866de25b3327f1c4"
+      }
+    },
+    {
+      "id": "queued-hook:baseline:promise",
+      "result": "four argument identities, first Observable value / Promise value / identical failure",
+      "limitation": "nested validation stubbed; permanent tests cover validation",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/RDMPService.ts",
+        "line": 426,
+        "extractedSourceSha256": "3d1818cf285696c28d63d584602e4d7564378ab8702cd077866de25b3327f1c4"
+      }
+    },
+    {
+      "id": "queued-hook:baseline:throw",
+      "result": "four argument identities, first Observable value / Promise value / identical failure",
+      "limitation": "nested validation stubbed; permanent tests cover validation",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/RDMPService.ts",
+        "line": 426,
+        "extractedSourceSha256": "3d1818cf285696c28d63d584602e4d7564378ab8702cd077866de25b3327f1c4"
+      }
+    },
+    {
+      "id": "queued-hook:baseline:reject",
+      "result": "four argument identities, first Observable value / Promise value / identical failure",
+      "limitation": "nested validation stubbed; permanent tests cover validation",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/RDMPService.ts",
+        "line": 426,
+        "extractedSourceSha256": "3d1818cf285696c28d63d584602e4d7564378ab8702cd077866de25b3327f1c4"
+      }
+    },
+    {
+      "id": "account-hook:baseline:triggerPreSaveTriggers:resolve",
+      "result": "three arguments, callback value / same rejection",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/UsersService.ts",
+        "line": 920,
+        "extractedSourceSha256": "78264d7097033a6ca52ae247e21c2b55e8c146f64867ef7037818943b68f1dd7"
+      }
+    },
+    {
+      "id": "account-hook:baseline:triggerPreSaveTriggers:reject",
+      "result": "three arguments, callback value / same rejection",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/UsersService.ts",
+        "line": 920,
+        "extractedSourceSha256": "78264d7097033a6ca52ae247e21c2b55e8c146f64867ef7037818943b68f1dd7"
+      }
+    },
+    {
+      "id": "account-hook:baseline:triggerPostSaveSyncTriggers:resolve",
+      "result": "three arguments, callback value / same rejection",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/UsersService.ts",
+        "line": 955,
+        "extractedSourceSha256": "0500b7d51ccd548f24030f8db43cc79301db534df810d053aa385c9c98552e1f"
+      }
+    },
+    {
+      "id": "account-hook:baseline:triggerPostSaveSyncTriggers:reject",
+      "result": "three arguments, callback value / same rejection",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/UsersService.ts",
+        "line": 955,
+        "extractedSourceSha256": "0500b7d51ccd548f24030f8db43cc79301db534df810d053aa385c9c98552e1f"
+      }
+    },
+    {
+      "id": "account-hook:baseline:triggerPostSaveTriggers:resolve",
+      "result": "two arguments; callback rejection logged/swallowed; v6 awaits completion",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/UsersService.ts",
+        "line": 992,
+        "extractedSourceSha256": "6c31bb35223a533f2954b13d4ab5ad056e4c3e94292981bca0521509137b05e3"
+      }
+    },
+    {
+      "id": "account-hook:baseline:triggerPostSaveTriggers:reject",
+      "result": "two arguments; callback rejection logged/swallowed; v6 awaits completion",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/services/UsersService.ts",
+        "line": 992,
+        "extractedSourceSha256": "6c31bb35223a533f2954b13d4ab5ad056e4c3e94292981bca0521509137b05e3"
+      }
+    },
+    {
+      "id": "queued-hook:current:observable",
+      "result": "four argument identities, first Observable value / Promise value / identical failure",
+      "limitation": "nested validation stubbed; permanent tests cover validation",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/records/RecordTriggers.ts",
+        "line": 496,
+        "extractedSourceSha256": "45c1fce0f67400724d6bc87ac9e3f883aa597e60329bbde7070339d7a772e127"
+      }
+    },
+    {
+      "id": "queued-hook:current:promise",
+      "result": "four argument identities, first Observable value / Promise value / identical failure",
+      "limitation": "nested validation stubbed; permanent tests cover validation",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/records/RecordTriggers.ts",
+        "line": 496,
+        "extractedSourceSha256": "45c1fce0f67400724d6bc87ac9e3f883aa597e60329bbde7070339d7a772e127"
+      }
+    },
+    {
+      "id": "queued-hook:current:throw",
+      "result": "four argument identities, first Observable value / Promise value / identical failure",
+      "limitation": "nested validation stubbed; permanent tests cover validation",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/records/RecordTriggers.ts",
+        "line": 496,
+        "extractedSourceSha256": "45c1fce0f67400724d6bc87ac9e3f883aa597e60329bbde7070339d7a772e127"
+      }
+    },
+    {
+      "id": "queued-hook:current:reject",
+      "result": "four argument identities, first Observable value / Promise value / identical failure",
+      "limitation": "nested validation stubbed; permanent tests cover validation",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/records/RecordTriggers.ts",
+        "line": 496,
+        "extractedSourceSha256": "45c1fce0f67400724d6bc87ac9e3f883aa597e60329bbde7070339d7a772e127"
+      }
+    },
+    {
+      "id": "account-hook:current:triggerPreSaveTriggers:resolve",
+      "result": "three arguments, callback value / same rejection",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/authentication/Accounts.ts",
+        "line": 183,
+        "extractedSourceSha256": "a452e1ffbd8c079835a43a11ffe41c5ec33ffce1b889c1c5501e3865f26f70a7"
+      }
+    },
+    {
+      "id": "account-hook:current:triggerPreSaveTriggers:reject",
+      "result": "three arguments, callback value / same rejection",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/authentication/Accounts.ts",
+        "line": 183,
+        "extractedSourceSha256": "a452e1ffbd8c079835a43a11ffe41c5ec33ffce1b889c1c5501e3865f26f70a7"
+      }
+    },
+    {
+      "id": "account-hook:current:triggerPostSaveSyncTriggers:resolve",
+      "result": "three arguments, callback value / same rejection",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/authentication/Accounts.ts",
+        "line": 216,
+        "extractedSourceSha256": "9c39d47c8f650d6bd09413cd3472dad9b978367069e95863f3fb5a756a9c5799"
+      }
+    },
+    {
+      "id": "account-hook:current:triggerPostSaveSyncTriggers:reject",
+      "result": "three arguments, callback value / same rejection",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/authentication/Accounts.ts",
+        "line": 216,
+        "extractedSourceSha256": "9c39d47c8f650d6bd09413cd3472dad9b978367069e95863f3fb5a756a9c5799"
+      }
+    },
+    {
+      "id": "account-hook:current:triggerPostSaveTriggers:resolve",
+      "result": "two arguments; callback rejection logged/swallowed; v6 awaits completion",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/authentication/Accounts.ts",
+        "line": 251,
+        "extractedSourceSha256": "3e630351f62f82ac10005250c94650eea9a8388aeed63574d4184c777f89526d"
+      }
+    },
+    {
+      "id": "account-hook:current:triggerPostSaveTriggers:reject",
+      "result": "two arguments; callback rejection logged/swallowed; v6 awaits completion",
+      "transport": "source-method fixture",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/authentication/Accounts.ts",
+        "line": 251,
+        "extractedSourceSha256": "3e630351f62f82ac10005250c94650eea9a8388aeed63574d4184c777f89526d"
+      }
+    },
+    {
+      "id": "storage-native-options:baseline",
+      "result": {
+        "datastore": "redboxStorage",
+        "collection": "record",
+        "name": "institution-expiry",
+        "keys": {
+          "expires": 1
+        },
+        "sparse": true
+      },
+      "disposition": "inherited B: expireAfterSeconds and hidden options are dropped in both sources; no database used",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/sails-hook-redbox-storage-mongo/src/persistence/preflight.ts",
+        "line": 97,
+        "extractedSourceSha256": "da84bf6a9b2b1f088c48418ffe3fac24928a02ea483fe8d04df324d593364451"
+      }
+    },
+    {
+      "id": "storage-native-options:current",
+      "result": {
+        "datastore": "redboxStorage",
+        "collection": "record",
+        "name": "institution-expiry",
+        "keys": {
+          "expires": 1
+        },
+        "sparse": true
+      },
+      "disposition": "inherited B: expireAfterSeconds and hidden options are dropped in both sources; no database used",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/sails-hook-redbox-storage-mongo/src/persistence/preflight.ts",
+        "line": 105,
+        "extractedSourceSha256": "f2035b8b7ec3eb755c4059479fa6429fe78edf3ab8dc296ba9cb65e1a29fc7c1"
+      }
+    },
+    {
+      "id": "r13-session-native-consumer:stringify=false",
+      "result": {
+        "stringify": false,
+        "nativeStoredType": "object"
+      },
+      "limitation": "actual composition and native serialization on fake driver; no MongoDB or HTTP",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/http/express/session.ts",
+        "line": 44,
+        "extractedSourceSha256": "82c38bbb2eb30cb8fdd15bd153558af185c9b8faf752c574e62d65740352f53f"
+      }
+    },
+    {
+      "id": "r13-session-native-consumer:stringify=true",
+      "result": {
+        "stringify": true,
+        "nativeStoredType": "string"
+      },
+      "limitation": "actual composition and native serialization on fake driver; no MongoDB or HTTP",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/src/http/express/session.ts",
+        "line": 44,
+        "extractedSourceSha256": "82c38bbb2eb30cb8fdd15bd153558af185c9b8faf752c574e62d65740352f53f"
+      }
+    },
+    {
+      "id": "cli:baseline:--help",
+      "result": {
+        "args": [
+          "--help"
+        ],
+        "exitCode": 0,
+        "stdout": "Usage: npm run persistence:indexes -- [--inspect|--ensure] [--app <application directory>]",
+        "stderr": ""
+      },
+      "transport": "actual isolated CLI process; help/usage only",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/bin/persistence-indexes.cjs",
+        "revision": "a49366803"
+      }
+    },
+    {
+      "id": "cli:baseline:--unknown",
+      "result": {
+        "args": [
+          "--unknown"
+        ],
+        "exitCode": 2,
+        "stdout": "",
+        "stderr": "Usage: npm run persistence:indexes -- [--inspect|--ensure] [--app <application directory>]"
+      },
+      "transport": "actual isolated CLI process; help/usage only",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/bin/persistence-indexes.cjs",
+        "revision": "a49366803"
+      }
+    },
+    {
+      "id": "cli:baseline:--ensure --inspect",
+      "result": {
+        "args": [
+          "--ensure",
+          "--inspect"
+        ],
+        "exitCode": 2,
+        "stdout": "",
+        "stderr": "Usage: npm run persistence:indexes -- [--inspect|--ensure] [--app <application directory>]"
+      },
+      "transport": "actual isolated CLI process; help/usage only",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/bin/persistence-indexes.cjs",
+        "revision": "a49366803"
+      }
+    },
+    {
+      "id": "cli:current:--help",
+      "result": {
+        "args": [
+          "--help"
+        ],
+        "exitCode": 0,
+        "stdout": "Usage: npm run persistence:indexes -- [--inspect|--ensure] [--app <directory>] [--config <module>] [--environment <name>] [--environment-config <module>] [--local-config <module>]",
+        "stderr": ""
+      },
+      "transport": "actual isolated CLI process; help/usage only",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/bin/persistence-indexes.cjs",
+        "revision": "working-tree"
+      }
+    },
+    {
+      "id": "cli:current:--unknown",
+      "result": {
+        "args": [
+          "--unknown"
+        ],
+        "exitCode": 2,
+        "stdout": "",
+        "stderr": "Usage: npm run persistence:indexes -- [--inspect|--ensure] [--app <directory>] [--config <module>] [--environment <name>] [--environment-config <module>] [--local-config <module>]"
+      },
+      "transport": "actual isolated CLI process; help/usage only",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/bin/persistence-indexes.cjs",
+        "revision": "working-tree"
+      }
+    },
+    {
+      "id": "cli:current:--ensure --inspect",
+      "result": {
+        "args": [
+          "--ensure",
+          "--inspect"
+        ],
+        "exitCode": 2,
+        "stdout": "",
+        "stderr": "Usage: npm run persistence:indexes -- [--inspect|--ensure] [--app <directory>] [--config <module>] [--environment <name>] [--environment-config <module>] [--local-config <module>]"
+      },
+      "transport": "actual isolated CLI process; help/usage only",
+      "status": "pass",
+      "provenance": {
+        "file": "packages/redbox-core/bin/persistence-indexes.cjs",
+        "revision": "working-tree"
+      }
+    }
+  ]
+}

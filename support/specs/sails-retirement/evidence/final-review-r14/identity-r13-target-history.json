@@ -1,0 +1,80 @@
+{
+  "evidenceKind": "static-git-history-comparison-not-http",
+  "classification": "R13 browser fix correct; pre-existing REST sibling miss in newly rewritten feature adapter, Class A relative to a49366803, not introduced by R13.",
+  "proof": [
+    {
+      "ref": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+      "file": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+      "sha256": "2e371041b7a417c9bd637a99c8d703f2cad8ab9362b97f2264a7aaa22dcab0fe",
+      "excerpts": [
+        {
+          "line": 252,
+          "text": "const userReq: UserModel = validated.body as UserModel;"
+        },
+        {
+          "line": 382,
+          "text": "const userReq: UserModel = validated.body as UserModel;"
+        },
+        {
+          "line": 386,
+          "text": "targetUser = await this.requireUserInBrand(userReq.id || '', brand.id);"
+        },
+        {
+          "line": 398,
+          "text": "userReq.id || '',"
+        }
+      ]
+    },
+    {
+      "ref": "7f49cbe79f0a2939a28f49a939387d4a0025e29f",
+      "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+      "sha256": "76dd62dd35c2e85378ccf23cffa105baa64029d6ef6128bc0176e28ae474e24f",
+      "excerpts": [
+        {
+          "line": 171,
+          "text": ": text(req.params.id ?? query.id ?? body.userid ?? body.id);"
+        }
+      ]
+    },
+    {
+      "ref": "03b1d724e5902ebc25ff740c88ac687e06bb666c",
+      "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+      "sha256": "1bdf149551e2f63908cfbc38d17bffa2e4e993c83ebe905607a21013189e7683",
+      "excerpts": [
+        {
+          "line": 171,
+          "text": ": text(req.params.id ?? query.id ?? body.userid ?? body.id);"
+        }
+      ]
+    },
+    {
+      "ref": "afaf6ef010ff00e4cdf6f98b8bce62daf2c64db4",
+      "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+      "sha256": "0eaf12d87e71c6e784c09eb64376599f5c69bffe360a46045ea0b1c056c4f9fc",
+      "excerpts": [
+        {
+          "line": 171,
+          "text": ": text(req.params.id ?? (browser ? body.userid : (query.id ?? body.userid ?? body.id)));"
+        }
+      ]
+    },
+    {
+      "ref": "fb08b54473e21f61d8fd4fd431ca47a00e7a69b0",
+      "file": "packages/redbox-core/src/http/express/identityAdministration.ts",
+      "sha256": "a6fab3f8055eb47fa36fdc58a7f196a5ed9ba6c7676e693a037ef6dc5ecad166",
+      "excerpts": [
+        {
+          "line": 171,
+          "text": ": text(req.params.id ?? (browser ? body.userid : action === 'updateUser' ? body.id : query.id));"
+        }
+      ]
+    }
+  ],
+  "requirement": {
+    "file": "support/specs/sails-retirement/design.md",
+    "line": 124,
+    "quote": "legacy body/query aliases are absent. Valid body/query precedence is retained."
+  },
+  "runtimeProbeRefs": ["identity-baseline-results.json", "identity-probes.json"],
+  "controls": "R13 existing browser conflicts4/omissions12 plus new browser simultaneous-source conflicts4/omissions4; REST conflicts4/required-ID omissions3; API/browser enable-disable path4; self actor3. These are test cases, not distinct complete route qualification."
+}
