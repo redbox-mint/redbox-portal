@@ -282,6 +282,17 @@ for (const file of files) {
       if (/\/(?:src|dist)\/recordTypes\/RecordHookNames\.[cm]?[jt]s$/.test(file))
         classify(node, 'Finite persisted-declaration conversion key or rejected legacy prefix; never evaluated');
       else if (
+        file.endsWith('/test/qualification/installed-dependency-graph.cjs') &&
+        ts.isStringLiteralLike(node) && node.text === 'sails.io.js' &&
+        ts.isArrayLiteralExpression(node.parent) &&
+        node.parent.elements.every(element => ts.isStringLiteralLike(element)) &&
+        node.parent.elements.map(element => element.text).join(',') === 'sails,sails.io.js,skipper,waterline' &&
+        ts.isPropertyAccessExpression(node.parent.parent) && node.parent.parent.name.text === 'includes' &&
+        ts.isCallExpression(node.parent.parent.parent) &&
+        node.parent.parent.parent.arguments.length === 1 && node.parent.parent.parent.arguments[0].getText(ast) === 'leaf'
+      )
+        classify(node, 'Exact forbidden installed-package membership table; never imported');
+      else if (
         /(?:^|\/)redbox-hook-wsu\/(?:src|dist)\/migration-data\.[jt]s$/.test(file) &&
         ts.isStringLiteralLike(node) && ts.isPropertyAssignment(node.parent) && node.parent.name === node &&
         ts.isStringLiteralLike(node.parent.initializer) &&

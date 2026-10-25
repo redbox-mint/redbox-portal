@@ -8,6 +8,25 @@ const { test } = require('node:test');
 const auditor = path.resolve(__dirname, '../../support/specs/sails-retirement/evidence/retirement-closure.cjs');
 
 for (const [label, source, count] of [
+  ['forbidden package table', "const rejected = ['sails','sails.io.js','skipper','waterline'].includes(leaf);", 0],
+  ['actual forbidden package import', "require('sails.io.js');", 1],
+  ['unrelated runtime path', "const rejected = ['sails','sails.config.synthetic','skipper','waterline'].includes(leaf);", 1],
+]) {
+  test(`retirement audit distinguishes ${label}`, () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(),'redbox-retirement-graph-audit-'));
+    try {
+      const fixture = path.join(directory,'packages/redbox-core/test/qualification');
+      fs.mkdirSync(fixture,{recursive:true});
+      fs.writeFileSync(path.join(fixture,'installed-dependency-graph.cjs'),source);
+      const result = spawnSync(process.execPath,[auditor,'--tree',directory],{encoding:'utf8'});
+      const audit = JSON.parse(result.stdout);
+      assert.equal(audit.executableViolations,count,result.stdout+result.stderr);
+      assert.equal(result.status,count?1:0);
+    } finally {fs.rmSync(directory,{recursive:true,force:true});}
+  });
+}
+
+for (const [label, source, count] of [
   ['known finite conversion', "const names = {'sails.services.planattachmentservice.preserveIds':'wsu.plan.preserveIds'};", 0],
   ['unknown conversion', "const names = {'sails.services.unknown.run':'wsu.unknown'};", 1],
   ['live access', 'sails.services.planattachmentservice.preserveIds();', 1],
