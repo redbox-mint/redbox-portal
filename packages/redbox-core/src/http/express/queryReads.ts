@@ -149,7 +149,12 @@ export function mountQueryReadRoutes(router: Router, input: QueryReadHttpInput):
           }
           // Reject structured values before they reach query paths, dates, or report templates.
           const scalar = (name: string, fallback = '') => {
-            const value = req.params[name] ?? query[name] ?? fallback;
+            // POST preview filters historically use path > body > query.
+            const previewBody =
+              route.action === 'previewConfig' && body && typeof body === 'object' && !Array.isArray(body)
+                ? (body as Record<string, unknown>)[name]
+                : undefined;
+            const value = req.params[name] ?? previewBody ?? query[name] ?? fallback;
             if (typeof value !== 'string' || [...value].some(character => character.charCodeAt(0) < 32))
               throw new QueryInputError('Invalid parameter: ' + name);
             return value;

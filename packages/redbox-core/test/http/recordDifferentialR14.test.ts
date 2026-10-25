@@ -5,6 +5,8 @@ import { httpRecordMutationsFixture } from '../helpers/httpRecordMutationsFixtur
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { RecordSaveResponse } from '../../src/RecordSaveResponse';
 
+import { httpRouteFixture } from '../helpers/httpRouteFixture';
+import { mountQueryReadRoutes } from '../../src/http/express/queryReads';
 
 const base = '/default/portal';
 describe('Pre-retirement browser record response and side-effect contracts (R14)', () => {
@@ -107,4 +109,41 @@ describe('Pre-retirement browser record response and side-effect contracts (R14)
       }
     });
 
+  for (const alias of ['api', 'admin'])
+    for (const conflict of [false, true])
+      it(`retains POST preview body filter values before query values (${alias}, conflict=${conflict})`, async () => {
+        const previewConfig = async (
+          _brand: unknown,
+          _config: unknown,
+          parameters: { param(name: string): unknown }
+        ) => ({
+          owner: parameters.param('owner'),
+          date: parameters.param('changed_fromDate'),
+        });
+        const f = await httpRouteFixture((router, input) =>
+          mountQueryReadRoutes(router, {
+            ...input,
+            reports: { previewConfig },
+          } as Parameters<typeof mountQueryReadRoutes>[1])
+        );
+        try {
+          const response = await f.request(
+            base + '/' + alias + '/report-config/preview' + (conflict ? '?owner=query-owner' : ''),
+            {
+              method: 'POST',
+              body: {
+                name: 'preview',
+                title: 'Preview',
+                reportSource: 'database',
+                owner: 'body-owner',
+                changed_fromDate: '2026-01-02',
+              },
+            }
+          );
+          assert.equal(response.status, 200);
+          assert.deepEqual(response.body, { owner: 'body-owner', date: '2026-01-02' });
+        } finally {
+          await f.close();
+        }
+      });
 });
