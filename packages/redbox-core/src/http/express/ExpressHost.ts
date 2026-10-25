@@ -280,7 +280,9 @@ export class ExpressHost {
 
   private async failed(error: unknown, phase: 'initialize' | 'activate'): Promise<never> {
     this.failure = phase;
-    if (!this.stopRequested) await this.stop().catch(() => {});
+    // Application rollback quiesces the HTTP resource too. That closes admission,
+    // but only a host stop attempt owns listener and signal-handler cleanup.
+    if (this.stopDuringStartup === undefined) await this.stop().catch(() => {});
     throw error;
   }
 
