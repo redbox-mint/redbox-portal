@@ -29,6 +29,7 @@ import * as siem from '../../src/persistence/siem/runtime';
 import * as middleware from '../../src/http/express/middleware';
 import * as formDelivery from '../../src/http/express/formDelivery';
 import * as reads from '../../src/http/express/recordReads';
+import * as mutations from '../../src/http/express/recordMutations';
 
 const env = { REDBOX_SESSION_SECRET: 'configuration-acceptance-synthetic-secret' };
 const load = (config: Record<string, unknown> = {}) =>
@@ -44,6 +45,7 @@ async function productionInputs(config: Awaited<ReturnType<typeof load>>) {
   const stop = new Error('record input captured');
   let delivery!: formDelivery.FormDeliveryHttpInput;
   let record!: reads.RecordReadHttpInput;
+  let mutation!: mutations.RecordMutationHttpInput;
   sandbox.stub(identities, 'getIdentityRepositories').returns({} as never);
   sandbox.stub(branding, 'getBrandingRepository').returns({} as never);
   sandbox.stub(siem, 'getSiemRepository').returns({} as never);
@@ -67,6 +69,9 @@ async function productionInputs(config: Awaited<ReturnType<typeof load>>) {
   });
   sandbox.stub(reads, 'mountRecordReadRoutes').callsFake((_router, input) => {
     record = input;
+  });
+  sandbox.stub(mutations, 'mountRecordMutationRoutes').callsFake((_router, input) => {
+    mutation = input;
     throw stop;
   });
   const brand = { id: 'brand', name: 'default' };
@@ -91,13 +96,19 @@ async function productionInputs(config: Awaited<ReturnType<typeof load>>) {
   try {
     const host = new PortalHttp(portal as never, { appPath: '.' });
     await assert.rejects(host.prepare(express.Router(), createServer()), error => error === stop);
-    return { delivery, record };
+    return { delivery, record, mutation };
   } finally {
     sandbox.restore();
   }
 }
 
 describe('baseline configuration acceptance and production consumers', () => {
+  for (const rootContext of ['', '/research'])
+    it(`binds the canonical creation Location base (${rootContext || 'root'})`, async () => {
+      const publicUrl = 'https://public.example.edu' + rootContext;
+      const { mutation } = await productionInputs(await load({ server: { publicUrl, rootContext } }));
+      assert.equal(mutation.publicUrl, publicUrl);
+    });
   it('uses the independent API limit, including its baseline default of 20', async () => {
     for (const limit of [undefined, 7]) {
       const config = await load(limit === undefined ? {} : { api: { max_requests: limit } });

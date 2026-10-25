@@ -6,7 +6,7 @@ import { mountRecordMutationRoutes } from '../../src/http/express/recordMutation
 import { RecordSaveResponse } from '../../src/RecordSaveResponse';
 
 /** Actual save routes; independent domain ports expose the authoritative submitted context. */
-export async function httpRecordMutationsFixture(rootContext = '') {
+export async function httpRecordMutationsFixture(rootContext = '', publicUrl?: string) {
   const saved = new RecordSaveResponse('00000000-0000-4000-8000-000000000000');
   saved.oid = 'record-1';
   saved.success = true;
@@ -44,6 +44,7 @@ export async function httpRecordMutationsFixture(rootContext = '') {
       forms,
       contextVariables,
       rootContext,
+      publicUrl,
       get schemaEnabled() {
         return settings.schemaEnabled;
       },

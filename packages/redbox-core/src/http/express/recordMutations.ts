@@ -93,6 +93,8 @@ export interface RecordMutationHttpInput {
   readonly returnMetadataOnSave?: boolean;
   readonly schemaEnabled: boolean;
   readonly rootContext?: string;
+  /** Canonical public base URL, including the deployment root context. */
+  readonly publicUrl?: string;
   readonly csrf: Pick<ReturnType<typeof createHttpCsrf>, 'protect' | 'apiProtect'>;
   readonly policies: Readonly<Record<string, RequestHandler>>;
   readonly policyConfiguration: PoliciesConfig;
@@ -195,7 +197,7 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
           );
           const operation = parsePublicValidationOperation(query.operation);
           if (!operation.valid) throw new RecordMutationError(400, 'record-validation-operation-invalid');
-          const permanent = query.permanent === 'true';
+          const permanent = !browser && query.permanent === 'true';
           const saveOperation: RecordSaveOperation =
             action === 'create'
               ? targetStep
@@ -496,25 +498,31 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
                 : null;
             legacy = data;
           } else if (browser && action !== 'transitionWorkflow' && !lifecycle) {
-            const saved = await load(result.oid);
-            data = saved;
-            if (saved && !targetStep && input.returnMetadataOnSave !== false && saved.metaMetadata.form) {
-              try {
+            data = null;
+            try {
+              const saved = await load(result.oid);
+              data = saved;
+              if (saved && !targetStep && input.returnMetadataOnSave !== false && saved.metaMetadata.form)
                 result.setProjectedMetadata(await browserMetadata(saved));
-              } catch {
-                result.setProjectedMetadata(null);
-                input.log.error('Failed to project post-save record metadata');
-              }
+            } catch {
+              result.setProjectedMetadata(null);
+              result.addProblem(
+                recordSaveProblem(
+                  'system',
+                  'response',
+                  '@record-save-response-projection-failed',
+                  'response-projection-failed'
+                )
+              );
+              input.log.error('Failed to project post-save record metadata');
             }
             legacy = legacySaveBody(result);
           }
           const status = action === 'create' && !browser ? 201 : 200;
           if (status === 201)
             headers.Location =
-              req.protocol +
-              '://' +
-              req.get('host') +
-              (input.rootContext ?? '') +
+              (input.publicUrl?.replace(/\/$/, '') ??
+                req.protocol + '://' + req.get('host') + (input.rootContext ?? '')) +
               '/' +
               brand.name +
               '/' +

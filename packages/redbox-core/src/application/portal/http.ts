@@ -477,6 +477,7 @@ export class PortalHttp implements ApplicationModule {
       returnMetadataOnSave: config.record.form?.returnMetadataOnSave,
       schemaEnabled: config.recordSchema.enabled,
       rootContext,
+      publicUrl: config.server.publicUrl,
     });
     http.mountHarvestMutationRoutes(router, { ...shared, harvest: data.harvest.get(), recordTypes: ref.types.get() });
     http.mountIdentityAdministrationRoutes(router, {
