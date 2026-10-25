@@ -1,8 +1,13 @@
 # {{packageName}}
 
 V6 extension scaffold. Generate with `redbox-dev-tools init {{hookShortName}} --template v6`.
-Run `npm install`, `npm run build` and `npm pack --ignore-scripts` against the
-matching core prerelease or locally packed core artifact. Package versions are exact; replace them only with
+Install the matching qualified v6 core before `npm run build` and
+`npm pack --ignore-scripts`. An identically numbered historical npm core package
+may lack the v6 exports. For a built source checkout, use
+`npm install --save-dev --save-exact /absolute/path/to/redbox-portal/packages/redbox-core`;
+the portal's hook-migration-v6.md gives the complete checkout workflow. Replace
+the local reference with the deployment's qualified exact version or complete
+packed dependency set before release. Package versions are exact; replace them only with
 qualified versions. This template compiles CommonJS and exposes the neutral
 `registerRedboxExtension()` contract. It needs no Sails shims or global services.
 

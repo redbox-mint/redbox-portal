@@ -1,13 +1,30 @@
 # Initial v5-to-v6 hook conversion
 
-The neutral contract is [extensions-v6.md](extensions-v6.md). Generate the
-executable example with:
+The neutral contract is [extensions-v6.md](extensions-v6.md). Use a core artifact
+from the same qualified v6 build as the portal. The current source version also
+exists on npm as a historical Sails package without the v6 exports, so an unqualified
+`npm install` does not provide the required contracts.
+
+For this source checkout, first complete `npm run compile:all` in the portal
+repository, then generate and build in a new, empty sibling directory:
 
 ```sh
-redbox-dev-tools init demo-client --template v6
-npm install
+export REDBOX_PORTAL_ROOT="$PWD"
+mkdir ../redbox-hook-demo-client
+cd ../redbox-hook-demo-client
+node "$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js" init demo-client --template v6
+npm install --save-dev --save-exact "$REDBOX_PORTAL_ROOT/packages/redbox-core"
 npm run build
+node "$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js" check
+npm pack --ignore-scripts
 ```
+
+`init` writes into the current directory; its name argument names the package.
+The local core directory supplies the already-built v6 types and dependencies.
+This development-only `file:` reference is allowed by the exact-pin policy.
+For a released hook, replace it with the exact qualified v6 core version or the
+deployment's complete packed dependency set, then repeat installation, build and
+pack in isolation. Do not publish a manifest containing a developer's local path.
 
 The template lives in this repository at
 `packages/redbox-dev-tools/templates/hook-archetype/v6/`. V6 is now the only scaffold and the default; `standard` is rejected. The v6
