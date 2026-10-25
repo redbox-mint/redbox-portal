@@ -182,6 +182,11 @@ export class PortalHttp implements ApplicationModule {
     const rootContext = config.server.rootContext;
     const identity = new http.HttpIdentity(persistence.getIdentityRepositories(owner));
     const portals = this.options.portals ?? [config.auth.defaultPortal];
+    // Providers are prepared once, after AppConfig hydration. Request-time
+    // settings (such as redirects) continue to read the current brand cache.
+    const defaultAuth =
+      ref.appConfigs.get().getAppConfigurationForBrand(ref.branding.get().getDefault().name).auth ??
+      config.brandingConfigurationDefaults.auth;
     const brandForRequest = (req: Request): BrandingModel => {
       const name =
         typeof req.params.branding === 'string'
@@ -210,7 +215,7 @@ export class PortalHttp implements ApplicationModule {
         const input = {
           passport,
           accounts: data.accounts.get(),
-          config: config.brandingConfigurationDefaults.auth,
+          config: defaultAuth,
           brand: brandForRequest,
         };
         http.installLocalAuthentication(input);
@@ -291,7 +296,9 @@ export class PortalHttp implements ApplicationModule {
         '/' +
         portal +
         '/' +
-        config.brandingConfigurationDefaults.auth.local.postLoginRedir.replace(/^\//, ''),
+        (ref.appConfigs.get().getAppConfigurationForBrand(brand).auth?.local?.postLoginRedir ??
+          defaultAuth.local?.postLoginRedir ??
+          'home').replace(/^\//, ''),
       postLogoutPath: config.auth.postLogoutRedir,
       logoutOrigins: config.auth.logoutOrigins,
       audit: async (action, actor, req) => {
@@ -317,14 +324,14 @@ export class PortalHttp implements ApplicationModule {
                 req.params.portal ?? req.body?.portal ?? req.session.portal ?? config.auth.defaultPortal
               ),
             },
-            config.brandingConfigurationDefaults.auth.local.usernameField
+            defaultAuth.local?.usernameField ?? 'username'
           )
         );
       },
       csrf: csrf.protect,
       credentialFields: [
-        config.brandingConfigurationDefaults.auth.local.usernameField,
-        config.brandingConfigurationDefaults.auth.local.passwordField,
+        defaultAuth.local?.usernameField ?? 'username',
+        defaultAuth.local?.passwordField ?? 'password',
       ],
       sessionCookie: { name: config.redboxSession.name, ...config.redboxSession.cookie },
     });
