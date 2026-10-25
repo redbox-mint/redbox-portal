@@ -405,10 +405,13 @@ export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput
                   const filtered = await filterRelationshipGraph(brand, user, graph, async (_brand, _user, record) =>
                     view(record)
                   );
-                  data =
-                    route.action === 'getRelatedRecords'
-                      ? { ...filtered, processedRelationships: Object.keys(filtered.relatedObjects ?? {}) }
-                      : { metadata: data, relationships: filtered };
+                  if (route.action === 'getRelatedRecords')
+                    data = { ...filtered, processedRelationships: Object.keys(filtered.relatedObjects ?? {}) };
+                  else if (browser) {
+                    meta.relationships = filtered;
+                    if (apiVersion(req) === '1.0')
+                      data = { ...(data as Record<string, unknown>), relationships: filtered };
+                  } else data = { metadata: data, relationships: filtered };
                 }
                 if (!browser && route.action === 'getMeta') {
                   try {
