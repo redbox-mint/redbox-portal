@@ -60,6 +60,9 @@ export class StreamingMultipart {
     request: IncomingMessage,
     consume: (result: MultipartResult) => Promise<T>
   ): Promise<T> {
+    // Authorization/session work can finish after the transport's abort event.
+    // A parser attached to an already destroyed request would never settle.
+    if (request.aborted || request.destroyed) throw new MultipartError(400, 'Upload cancelled');
     let parser: InstanceType<typeof Busboy>;
     try {
       const contentType = request.headers['content-type'];

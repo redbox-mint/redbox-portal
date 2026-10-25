@@ -122,6 +122,53 @@ describe('owned streaming multipart with real HTTP and disk', function () {
     assert.equal((await fetch(url, { method: 'POST', body: many })).status, 413);
     assert.deepEqual(await readdir(directory), []);
   });
+  it('settles an upload when the client disconnected during earlier authorization', async () => {
+    const entered = Promise.withResolvers<void>();
+    const completed = Promise.withResolvers<unknown>();
+    let incoming: import('node:http').IncomingMessage | undefined;
+    let finalized = false;
+    server.removeAllListeners('request');
+    server.on('request', async req => {
+      incoming = req;
+      req.on('error', () => {});
+      const closed = new Promise<void>(resolve => req.once('close', resolve));
+      entered.resolve();
+      await closed;
+      assert.equal(req.aborted, true);
+      try {
+        await uploads.receive(req, async () => {
+          finalized = true;
+        });
+        completed.resolve(undefined);
+      } catch (error) {
+        completed.resolve(error);
+      }
+    });
+    const req = httpRequest(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'multipart/form-data; boundary=disconnected' },
+    });
+    req.on('error', () => {});
+    req.write('--disconnected\r\n');
+    await entered.promise;
+    req.destroy();
+    try {
+      const error = await Promise.race([
+        completed.promise,
+        new Promise(resolve => setTimeout(() => resolve('receive remained pending'), 200)),
+      ]);
+      assert(error instanceof MultipartError, String(error));
+      assert.equal(error.status, 400);
+      await uploads.drain();
+      assert.equal(finalized, false);
+      assert.deepEqual(await readdir(directory), []);
+    } finally {
+      // Unblock the reviewed-head parser on a failing negative control so teardown can run.
+      incoming?.emit('aborted');
+      await completed.promise;
+    }
+  });
+
   it('rejects truncated multipart bodies, cleans staging and serves the next upload', async () => {
     let finalized = false;
     const consume = finalize;

@@ -1,4 +1,6 @@
 import * as sinon from 'sinon';
+import assert from 'node:assert/strict';
+import { request as httpRequest } from 'node:http';
 import { mkdtemp, rm, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -131,6 +133,53 @@ describe('Owned resumable attachment contracts', function () {
     expect(checkSpace.firstCall.args[0]).to.equal(directory);
     expect(checkSpace.firstCall.args[0]).not.to.equal('/legacy/mongodb-disk');
   });
+  it('settles raw tus work when authorization resumes after a client disconnect', async () => {
+    await start();
+    const created = await create();
+    const location = created.headers.get('Location')!;
+    await created.text();
+    const entered = Promise.withResolvers<void>();
+    const completed = Promise.withResolvers<void>();
+    const original = uploads.handle.bind(uploads);
+    let incoming: import('express').Request | undefined;
+    sinon.stub(uploads, 'handle').callsFake(async (req, res) => {
+      incoming = req;
+      req.on('error', () => {});
+      const closed = new Promise<void>(resolve => req.once('close', resolve));
+      entered.resolve();
+      await closed;
+      assert(req.aborted);
+      try {
+        await original(req, res);
+      } finally {
+        completed.resolve();
+      }
+    });
+    const req = httpRequest(f.url + location, {
+      method: 'PATCH',
+      headers: {
+        'Tus-Resumable': '1.0.0',
+        'Content-Type': 'application/offset+octet-stream',
+        'Upload-Offset': '0',
+      },
+    });
+    req.on('error', () => {});
+    req.write('partial');
+    await entered.promise;
+    req.destroy();
+    try {
+      const settled = await Promise.race([
+        completed.promise.then(() => true),
+        new Promise(resolve => setTimeout(() => resolve(false), 500)),
+      ]);
+      assert.equal(settled, true, 'raw tus operation remained pending after disconnect');
+      await uploads.drain();
+    } finally {
+      incoming?.emit('error', new Error('negative-control cleanup'));
+      await completed.promise;
+    }
+  });
+
   it('returns browser404 when attachment is not in the authorized record', async function () {
     await start();
     const response = await f.request(base + '/file-missing', { headers: { Accept: 'text/html' } });
