@@ -59,6 +59,7 @@ export class ProgressSockets {
     const attached = server.listeners('upgrade').filter(listener => !upgrades.has(listener));
     this.detachUpgrade = () =>
       attached.forEach(listener => server.off('upgrade', listener as (...args: unknown[]) => void));
+    const authenticated = new WeakMap<Socket, Grant>();
     io.use((socket, next) => {
       const token = socket.handshake.auth.token;
       const grant = typeof token === 'string' ? this.grants.get(token) : undefined;
@@ -72,7 +73,7 @@ export class ProgressSockets {
           actor => {
             if (!actor || actor.id !== grant.actorId || !actor.roles.some(r => r.brandId === grant.brand.id))
               throw new Error('Authentication required');
-            this.connections.set(socket, { grant, rooms: new Set() });
+            authenticated.set(socket, grant);
             next();
           },
           () => next(new Error('Authentication required'))
@@ -81,6 +82,15 @@ export class ProgressSockets {
       this.retain(work);
     });
     io.on('connection', socket => {
+      const grant = authenticated.get(socket);
+      authenticated.delete(socket);
+      if (!grant || this.closing) {
+        socket.disconnect(true);
+        return;
+      }
+      // A transport can close while authentication is pending; only live
+      // connections acquire a retained session binding and disconnect cleanup.
+      this.connections.set(socket, { grant, rooms: new Set() });
       socket.on('subscribe', (room: unknown, ack: unknown) => {
         const work = runAcceptedPersistenceWork(this.input.owner, () => this.subscribe(socket, room, ack)).catch(() => {
           if (typeof ack === 'function') ack({ status: false });
