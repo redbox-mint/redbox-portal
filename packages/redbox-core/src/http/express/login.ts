@@ -98,7 +98,8 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
   const strategy = (req: Request) => {
     const id = req.query.id;
     if (id === undefined || id === '') return 'oidc';
-    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]+$/.test(id)) throw new URIError('Invalid OIDC identifier');
+    if (typeof id !== 'string' || id.length > 4096 || /[\r\n\0]/.test(id))
+      throw new URIError('Invalid OIDC identifier');
     return 'oidc-' + id;
   };
   const login = (name: (req: Request) => string, local = false, oidc = false): RequestHandler =>

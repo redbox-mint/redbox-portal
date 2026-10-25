@@ -116,6 +116,7 @@ async function fixture(
     logoutDisabled?: boolean;
     logoutAllowed?: boolean;
     logoutMissing?: boolean;
+    oidcIdentifier?: string;
   } = {}
 ) {
   const idp = await provider();
@@ -214,7 +215,7 @@ async function fixture(
     aaf: { opts: { secretOrKey: aafKey } },
     oidc: {
       logoutFromAuthServer: !options.logoutDisabled,
-      ...(method === 'oidc-named' ? { identifier: 'institution' } : {}),
+      ...(method === 'oidc-named' ? { identifier: options.oidcIdentifier ?? 'institution' } : {}),
       discoverAttemptsMax: 1,
       userInfoSource: options.userInfo ? 'userinfo' : 'tokenset_claims',
       claimMappings: { username: 'preferred_username', email: 'email', name: 'name' },
@@ -249,7 +250,9 @@ async function fixture(
   const url = origin + root;
   if (config.oidc && !Array.isArray(config.oidc))
     Reflect.set(config.oidc.opts.client as object, 'redirect_uris', [
-      url + '/user/login_oidc' + (method === 'oidc-named' ? '?id=institution' : ''),
+      url +
+        '/user/login_oidc' +
+        (method === 'oidc-named' ? '?' + new URLSearchParams({ id: options.oidcIdentifier ?? 'institution' }) : ''),
     ]);
   const providers = {
     passport: auth.passport,
@@ -328,7 +331,7 @@ async function fixture(
         branding: input.brand ?? 'default',
         portal: 'rdmp',
         ...(input.redirUrl === undefined ? {} : { redirUrl: input.redirUrl }),
-        ...(method === 'oidc-named' ? { id: 'institution' } : {}),
+        ...(method === 'oidc-named' ? { id: options.oidcIdentifier ?? 'institution' } : {}),
       });
       const begin = await fetch(url + '/user/begin_oidc?' + params, {
         redirect: 'manual',
@@ -421,6 +424,34 @@ async function fixture(
 
 describe('authentication method compatibility matrix', function () {
   this.timeout(15000);
+  for (const query of ['id[provider]=institution', 'id=' + 'x'.repeat(4097), 'id=provider%0Aname'])
+    it('rejects malformed OIDC selection: ' + (query.length > 100 ? 'overlong' : query), async () => {
+      const f = await fixture('oidc-named');
+      try {
+        const response = await fetch(f.url + '/user/begin_oidc?' + query, { redirect: 'manual' });
+        await response.arrayBuffer();
+        assert.equal(response.status, 400);
+        assert.deepEqual(f.audits, []);
+      } finally {
+        await f.close();
+      }
+    });
+  for (const identifier of ['institution.example.edu', 'urn:identity:research', 'institution α'])
+    it('named OIDC input acceptance: ' + identifier, async () => {
+      const f = await fixture('oidc-named', { oidcIdentifier: identifier });
+      try {
+        const response = await f.login();
+        const body = await response.text();
+        assert.equal(response.status, 302, body);
+        assert(cookie(response));
+        assert.deepEqual(f.audits, ['login']);
+        const logout = await f.logout(cookie(response));
+        await logout.arrayBuffer();
+        assert.equal(logout.headers.get('location'), f.idp.issuer + '/logout?client_id=matrix');
+      } finally {
+        await f.close();
+      }
+    });
   const credentialInputs: {
     name: string;
     fields?: readonly [string, string];
