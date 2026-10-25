@@ -53,3 +53,24 @@ for (const [label, source, count] of [
     }
   });
 }
+
+for (const [label, source, count] of [
+  ['retained configuration data', "export const data = [{ function: 'sails.services.pdfservice.createPDF' }];", 0],
+  ['live service access in the literal table', 'sails.services.pdfservice.createPDF();', 1],
+  ['unrelated retired path in the literal table', "const path = 'generateAllShims';", 1],
+]) {
+  test(`retirement audit checks ${label}`, () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-config-audit-'));
+    try {
+      const fixture = path.join(directory, 'packages/redbox-core/test/configuration');
+      fs.mkdirSync(fixture, { recursive: true });
+      fs.writeFileSync(path.join(fixture, 'legacyInventoryTypes.ts'), source);
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
+      const audit = JSON.parse(result.stdout);
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}

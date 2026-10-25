@@ -268,6 +268,12 @@ for (const file of files) {
         /^sails\.services\.[A-Za-z][A-Za-z0-9_.]*$/.test(node.text)
       )
         classify(node, 'Persisted queue migration fixture/opaque-value preservation and rejection assertions');
+      else if (
+        /^(?:packages|node_modules\/@researchdatabox)\/redbox-core\/test\/configuration\/legacyInventoryTypes\.ts$/.test(file) &&
+        ts.isStringLiteralLike(node) &&
+        /^sails\.services\.[A-Za-z][A-Za-z0-9_.]*$/.test(node.text)
+      )
+        classify(node, 'Baseline configuration literal table; persisted operation names are data, never evaluated');
       else if (/(^|\/)test\/tooling\/retirement-closure\.test\.cjs$/.test(file) && ts.isStringLiteralLike(node))
         classify(node, 'Auditor positive/negative control source strings; never imported by the application');
       else if (
