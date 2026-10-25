@@ -274,7 +274,9 @@ export function resolveExtensions(
     modules,
     handlers,
     integrations,
-    routes,
+    // Express GET routes also handle HEAD. Explicit HEAD policies and handlers
+    // must therefore mount first, independent of provider/declaration order.
+    routes: routes.sort((a, b) => Number(b.declaration.method === 'head') - Number(a.declaration.method === 'head')),
     middleware,
     migrations,
     bootstrap,
