@@ -128,7 +128,7 @@ configuration contributions are ordered in the opposite direction. The page
 adapter receives these resolved absolute roots, followed by the core
 application artifact. `PageArtifacts` prepares one ordered EJS tree during
 initialization and removes its temporary tree at close; package directories stay
-read-only. Static assets use the same root precedence. Dotfiles, traversal and
+read-only. Static lookup checks each brand/portal candidate in specificity order. For the same path, explicit application asset roots (the compiled `.tmp/public` tree by default) precede hook roots; hooks retain their resolved priority, followed by source assets. This preserves application overrides. Convert legacy `mergeHookConfig` asset-copy effects into the packaged application tree when they intentionally replaced those bytes. Dotfiles, traversal and
 symlinks outside declared roots are refused.
 
 Build the application assets first (`npm run webpack`), then run

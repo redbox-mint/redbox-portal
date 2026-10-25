@@ -12,7 +12,7 @@ import { mountStaticPageArtifacts } from '../../src/http/express/pageAssets';
 import * as persistence from '../../src/persistence/branding/runtime';
 
 describe('production page artifact precedence', () => {
-  it('serves hook assets and bundle hashes before the compiled core artifact', async () => {
+  it('preserves compiled application overrides before hook assets and bundle hashes', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'sr-portal-assets-'));
     const sandbox = sinon.createSandbox();
     sandbox.stub(persistence, 'getBrandingRepository').returns({} as never);
@@ -36,6 +36,14 @@ describe('production page artifact precedence', () => {
         await writeFile(join(root, `angular/example/browser/main-${value}.js`), value);
       }
       await writeFile(join(compiled, 'default/default/styles/core-only.css'), 'core-only');
+      await writeFile(join(high, 'default/default/styles/hook-only.css'), 'hook-only');
+      await mkdir(join(compiled, 'styles'), { recursive: true });
+      await mkdir(join(high, 'styles'), { recursive: true });
+      await writeFile(join(compiled, 'styles/direct.css'), 'application-direct');
+      await writeFile(join(high, 'styles/direct.css'), 'hook-direct');
+      await mkdir(join(high, 'institution/rdmp/styles'), { recursive: true });
+      await writeFile(join(high, 'institution/rdmp/styles/specific.css'), 'hook-specific');
+      await writeFile(join(compiled, 'default/default/styles/specific.css'), 'application-default');
       const portal = {
         owner: {},
         log: nothingLogger,
@@ -62,8 +70,11 @@ describe('production page artifact precedence', () => {
       const address = server.address();
       assert(address && typeof address !== 'string');
       const base = `http://127.0.0.1:${address.port}`;
-      assert.equal(await (await fetch(base + '/institution/rdmp/styles/custom.css')).text(), 'high');
-      assert.equal(artifacts.bundleHash('example', 'main'), 'high');
+      assert.equal(await (await fetch(base + '/institution/rdmp/styles/custom.css')).text(), 'core');
+      assert.equal(await (await fetch(base + '/styles/direct.css')).text(), 'application-direct');
+      assert.equal(await (await fetch(base + '/institution/rdmp/styles/specific.css')).text(), 'hook-specific');
+      assert.equal(await (await fetch(base + '/institution/rdmp/styles/hook-only.css')).text(), 'hook-only');
+      assert.equal(artifacts.bundleHash('example', 'main'), 'core');
       assert.equal(await (await fetch(base + '/institution/rdmp/styles/core-only.css')).text(), 'core-only');
     } finally {
       if (server.listening)

@@ -58,8 +58,10 @@ export class PortalHttp implements ApplicationModule {
         [...(this.options.viewRoots ?? []), ...resolved.views, path.resolve(this.options.appPath, 'views')],
         [
           ...(this.options.assetRoots ?? []),
-          ...resolved.assets,
+          // The compiled application tree can contain deployment overrides.
+          // Preserve its same-path precedence over package assets, as in v5.
           ...(this.options.assetRoots ? [] : [path.resolve(this.options.appPath, '.tmp/public')]),
+          ...resolved.assets,
           path.resolve(this.options.appPath, 'assets'),
         ]
       )
