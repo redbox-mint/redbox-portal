@@ -124,8 +124,8 @@ describe('Identity route target precedence', () => {
           hiddenUsers: ['Hidden'],
           users: {
             getUsersForBrand: () => of([user]),
-            enrichUsersWithLinkMetadata: async value => value,
-            enrichUsersWithEffectiveDisabledState: async value => value,
+            enrichUsersWithLinkMetadata: async (value: unknown[]) => value,
+            enrichUsersWithEffectiveDisabledState: async (value: unknown[]) => value,
           } as never,
         })
       );
