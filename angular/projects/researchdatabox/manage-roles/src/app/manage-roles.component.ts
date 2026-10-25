@@ -112,14 +112,22 @@ export class ManageRolesComponent extends BaseComponent {
       return;
     }
     this.setSaveMessage("Saving...", "primary");
-    let saveRes:any = await this.userService.updateUserRoles(this.currentUser.id, newRoles); //SaveResult
-    if (saveRes.status) {
-      this.currentUser.roles = newRoles;
-      this.currentUser.roleStr =  _.join(this.currentUser.roles);
-      this.setSaveMessage();
-      this.hideDetailsModal();
-    } else {
-      this.setSaveMessage(saveRes.message, "danger");
+    try {
+      let saveRes:any = await this.userService.updateUserRoles(this.currentUser.id, newRoles); //SaveResult
+      if (saveRes.status) {
+        this.currentUser.roles = newRoles;
+        this.currentUser.roleStr =  _.join(this.currentUser.roles);
+        this.setSaveMessage();
+        this.hideDetailsModal();
+      } else {
+        this.setSaveMessage(saveRes.message, "danger");
+      }
+    } catch (error: unknown) {
+      const body = (error as { error?: { message?: unknown; errors?: { detail?: unknown }[] } } | null)?.error;
+      const message = body?.message ?? body?.errors?.[0]?.detail;
+      this.setSaveMessage(typeof message === 'string' && message.trim()
+        ? message
+        : 'The request failed. Refresh to check the current account state before trying again.', 'danger');
     }
   }
 
