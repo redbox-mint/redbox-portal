@@ -13,6 +13,7 @@ import {
   isQuestionTreeQuestionActivated,
 } from "@researchdatabox/sails-ng-common";
 import {SimpleInputComponent} from "./simple-input.component";
+import {FormService} from '../form.service';
 import * as sinon from "sinon";
 import { merge as _merge } from 'lodash-es';
 
@@ -740,11 +741,68 @@ describe('QuestionTreeComponent', async () => {
     const firstLabel = fieldLabels[0];
     expect(firstLabel).toBeTruthy();
 
-    expect(firstLabel?.textContent?.trim()).toEqual(expectedValue);
+    expect(firstLabel?.textContent?.trim()).toEqual(expectedValue + '*');
     expect(firstLabel?.textContent?.trim()).toContain(expectedValue);
   });
 
   describe("activation rule checks", () => {
+    it('requires active answers, honors checkbox cardinality and validation groups, and releases hidden questions', async () => {
+      const config = structuredClone(clientFormConfig);
+      config.enabledValidationGroups = ['all'];
+      config.validationGroups = {all: {description: 'All validators', initialMembership: 'all'}, none: {description: 'Draft save', initialMembership: 'none'}};
+      const treeConfig = config.componentDefinitions![0].component.config as QuestionTreeFieldComponentConfigFrame;
+      treeConfig.questions[1].answersMin = 2;
+      const {fixture, formComponent} = await createFormAndWaitForReady(config);
+      await advanceTime(fixture);
+      const tree = formComponent.componentDefArr[0].component as QuestionTreeComponent;
+      const q1 = tree.formFieldCompMapEntries[0];
+      const q2 = tree.formFieldCompMapEntries[1];
+      const q3 = tree.formFieldCompMapEntries[2];
+      expect(q1.model?.formControl?.invalid).toBeTrue();
+      expect(q2.model?.formControl?.valid).toBeTrue();
+      expect(q3.model?.formControl?.valid).toBeTrue();
+      toggleRadioButton(fixture.nativeElement.querySelector('redbox-radio input[value="no"]'));
+      await advanceTime(fixture);
+      expect(q1.model?.formControl?.valid).toBeTrue();
+      expect(q2.model?.formControl?.invalid).toBeTrue();
+      const checkboxes = fixture.nativeElement.querySelectorAll('redbox-checkbox input');
+      checkboxes[1].click();
+      await advanceTime(fixture);
+      expect(q2.model?.formControl?.invalid).toBeTrue();
+      checkboxes[0].click();
+      await advanceTime(fixture);
+      expect(q2.model?.formControl?.valid).toBeTrue();
+      expect(q3.model?.formControl?.invalid).toBeTrue();
+      q2.model?.setValue(['yes', 'no', 'extra']);
+      await advanceTime(fixture);
+      expect(q2.model?.formControl?.invalid).toBeTrue();
+      q2.model?.setValue(['yes', 'no']);
+      await advanceTime(fixture);
+      formComponent.enabledValidationGroups = ['none'];
+      TestBed.inject(FormService).updateValidators(formComponent.componentDefArr[0], ['none'], formComponent.validationGroups);
+      await advanceTime(fixture);
+      expect(q3.model?.formControl?.valid).toBeTrue();
+      formComponent.enabledValidationGroups = ['all'];
+      TestBed.inject(FormService).updateValidators(formComponent.componentDefArr[0], ['all'], formComponent.validationGroups);
+      await advanceTime(fixture);
+      expect(q3.model?.formControl?.invalid).toBeTrue();
+      toggleRadioButton(fixture.nativeElement.querySelector('redbox-radio input[value="yes"]'));
+      await advanceTime(fixture);
+      expect(q2.model?.getValue()).toBeNull();
+      expect(q2.model?.formControl?.valid).toBeTrue();
+      expect(q3.model?.getValue()).toBeNull();
+      expect(q3.model?.formControl?.valid).toBeTrue();
+    });
+
+    it('calculates a loaded native outcome when no saved outcome-info exists', async () => {
+      const config = structuredClone(clientFormConfig);
+      config.componentDefinitions![0].model!.config!.value = {question_1: 'no', question_2: ['no'], question_3: null};
+      const {fixture, formComponent} = await createFormAndWaitForReady(config);
+      await advanceTime(fixture);
+      const tree = formComponent.componentDefArr[0].component as QuestionTreeComponent;
+      expect(tree.model?.getValue()?.[QuestionTreeOutcomeInfoKey]).toEqual(jasmine.objectContaining({outcome: {value: 'outcome1', label: '@outcomes-value1'}}));
+    });
+
     it("should activate a question when an or rule has one true branch and one false branch", () => {
       const questions: QuestionTreeQuestion[] = [
         {
