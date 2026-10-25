@@ -70,7 +70,10 @@ describe('Aggregate maximum-length form validation', () => {
         { name: 'validation', component: { class: 'ValidationSummaryComponent' } },
       ],
     };
-    const { fixture, formComponent } = await createFormAndWaitForReady(config);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, {
+      oid: 'aggregate-length-edit', recordType: 'rdmp', editMode: true,
+      formName: 'aggregate_length_test', downloadAndCreateOnInit: false,
+    });
     const element: HTMLElement = fixture.nativeElement;
     const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
     const control = repeatable.model!.formControl!;
