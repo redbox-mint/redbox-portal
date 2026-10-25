@@ -66,9 +66,10 @@ export function mountVocabularyIntegrationRoutes(router: Router, input: Vocabula
           return;
         }
         const body = validated.body as { rvaId?: string; versionId?: string };
+        const versionId = body.versionId || undefined;
         if (
           (route.action === 'import' && !body.rvaId?.trim()) ||
-          (body.versionId !== undefined && !/^\d+$/.test(body.versionId))
+          (versionId !== undefined && !/^\d+$/.test(versionId))
         ) {
           sendApiErrors(req, res, 400, [{ detail: 'Invalid RVA vocabulary or version id' }]);
           return;
@@ -83,8 +84,8 @@ export function mountVocabularyIntegrationRoutes(router: Router, input: Vocabula
             }
           }
           const result = id
-            ? await input.rva.syncRvaVocabulary(id, body.versionId)
-            : await input.rva.importRvaVocabulary(body.rvaId!, body.versionId, brand.id);
+            ? await input.rva.syncRvaVocabulary(id, versionId)
+            : await input.rva.importRvaVocabulary(body.rvaId!, versionId, brand.id);
           const vocabularyId = id ?? String(Reflect.get(result, 'id'));
           await input.audit(actor, route.action === 'import' ? 'import-vocabulary' : 'sync-vocabulary', {
             brandId: brand.id,
