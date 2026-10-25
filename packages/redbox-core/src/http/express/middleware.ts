@@ -79,9 +79,18 @@ export function httpRequestChronicle(log: ILogger, settings?: HttpMiddlewareInpu
   };
 }
 
+class HttpBodyParserError extends Error {
+  constructor(
+    readonly status: number,
+    readonly type?: string
+  ) {
+    super('Invalid request');
+  }
+}
+
 /** Parser errors cross the extension boundary without raw body fragments or nested causes. */
-export function httpBodyParser(parserExclusions?: readonly string[]): RequestHandler {
-  const parsers = [express.json({ limit: '1mb' }), express.urlencoded({ extended: true, limit: '1mb' })];
+export function httpBodyParser(parserExclusions?: readonly string[], extended = true): RequestHandler {
+  const parsers = [express.json({ limit: '1mb' }), express.urlencoded({ extended, limit: '1mb' })];
   const exclusions = parserExclusions?.map(path => path.toLowerCase());
   return (req, res, next) => {
     const requestPath = req.path.toLowerCase();
@@ -97,10 +106,10 @@ export function httpBodyParser(parserExclusions?: readonly string[]): RequestHan
       const type = typeof error === 'object' ? Reflect.get(error, 'type') : undefined;
       const status = typeof error === 'object' ? Reflect.get(error, 'status') : undefined;
       next(
-        Object.assign(new Error('Invalid request'), {
-          ...(typeof type === 'string' ? { type } : {}),
-          ...(typeof status === 'number' ? { status } : {}),
-        })
+        new HttpBodyParserError(
+          [400, 413, 415].includes(status) ? status : 500,
+          typeof type === 'string' ? type : undefined
+        )
       );
     };
     parsers[0](req, res, error => (error ? complete(error) : parsers[1](req, res, complete)));
@@ -188,11 +197,13 @@ export function httpErrorHandler(log: ILogger): ErrorRequestHandler {
     }
     const type = error && typeof error === 'object' ? Reflect.get(error, 'type') : undefined;
     const status =
-      type === 'entity.too.large' || type === 'parameters.too.many'
-        ? 413
-        : type === 'entity.parse.failed' || error instanceof URIError
-          ? 400
-          : 500;
+      error instanceof HttpBodyParserError
+        ? error.status
+        : type === 'entity.too.large' || type === 'parameters.too.many'
+          ? 413
+          : type === 'entity.parse.failed' || error instanceof URIError
+            ? 400
+            : 500;
     try {
       sendApiErrors(req, res, status, [{ detail: status === 500 ? 'Internal server error' : 'Invalid request' }]);
     } catch {

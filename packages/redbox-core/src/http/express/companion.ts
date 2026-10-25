@@ -3,7 +3,6 @@ import type { Duplex } from 'node:stream';
 import { mkdir, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import type { Request, Response, NextFunction, Router, RequestHandler } from 'express';
-import { json, urlencoded } from 'express';
 import type * as Companion from '@uppy/companion';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { registerPersistenceResource } from '../../persistence/runtime';
@@ -11,7 +10,7 @@ import { beginHttpRequest, trackHttpRequestWork } from '../../middleware/request
 import { bindHttpPolicies, pilotPolicyChain, requestContext, resolveEffectivePolicies } from './policies';
 import type { PoliciesConfig } from '../../config/policies.config';
 import type { createHttpCsrf } from './csrf';
-import { httpAction } from './middleware';
+import { httpAction, httpBodyParser } from './middleware';
 import type { AuthenticatedActor } from './identity';
 import { loadCompanionWithSafeLogging } from './companionLogging';
 import { buildCompanionSendTokenHtml } from './companionSendToken';
@@ -282,8 +281,7 @@ export function mountCompanionRoutes(
       Object.assign(req.params, context);
       next();
     },
-    json({ limit: '1mb' }),
-    urlencoded({ extended: false, limit: '1mb' }),
+    httpBodyParser(undefined, false),
     ...policies,
     (req, res, next) => {
       if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) next();

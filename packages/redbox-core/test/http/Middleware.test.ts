@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import session from 'express-session';
+import { gzipSync } from 'node:zlib';
 import sinon from 'sinon';
 import { of, EMPTY, throwError, concat, from } from 'rxjs';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
@@ -138,6 +139,48 @@ describe('per-application HTTP middleware and completion', function () {
     assert.equal(failure.status, 500);
     assert(!JSON.stringify(await failure.json()).includes('secret-test'));
     await assert.rejects(fetch(f.url + '/after-headers').then(response => response.text()));
+  });
+
+  it('returns client errors for unsupported and malformed encoded parser bodies without leaking payloads', async () => {
+    const f = await fixture();
+    for (const contentType of ['application/json', 'application/x-www-form-urlencoded']) {
+      const cases = [
+        { headers: { 'Content-Type': contentType + '; charset=not-a-charset' }, body: 'secret-test-body', status: 415 },
+        {
+          headers: { 'Content-Type': contentType, 'Content-Encoding': 'unknown' },
+          body: 'secret-test-body',
+          status: 415,
+        },
+        { headers: { 'Content-Type': contentType, 'Content-Encoding': 'gzip' }, body: 'secret-test-body', status: 400 },
+        {
+          headers: { 'Content-Type': contentType, 'Content-Encoding': 'gzip' },
+          body: gzipSync('secret-test'.repeat(110000)),
+          status: 413,
+        },
+      ];
+      for (const test of cases) {
+        const response = await fetch(f.url + '/parse', { method: 'POST', ...test });
+        assert.equal(response.status, test.status, JSON.stringify(test.headers));
+        assert(!JSON.stringify(await response.json()).includes('secret-test'));
+      }
+    }
+    const deep = await fetch(f.url + '/parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'field' + '[nested]'.repeat(34) + '=secret-test-body',
+    });
+    assert.equal(deep.status, 400);
+    assert(!JSON.stringify(await deep.json()).includes('secret-test'));
+    assert.equal(
+      (
+        await fetch(f.url + '/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        })
+      ).status,
+      200
+    );
   });
 
   it('requires a completed single Observable result instead of taking the first emission', async () => {

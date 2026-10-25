@@ -10,6 +10,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import express from 'express';
 import * as sinon from 'sinon';
 import { httpBodyParser, httpRequestChronicle, httpErrorHandler, httpAction } from '../../src/http/express/middleware';
+import { mountCompanionRoutes } from '../../src/http/express/companion';
+import { pilotPolicyChain } from '../../src/http/express/policies';
 import { StreamingMultipart } from '../../src/http/express/multipart';
 import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
 import { recordServiceChronicle } from '../../src/utilities/serviceChronicle';
@@ -76,6 +78,55 @@ describe('Request chronicle through owned body and streaming multipart parsers',
         }
       });
     }
+  it('sanitizes Companion parser failures and preserves their client status before provider dispatch', async () => {
+    const logger = createSinonStubLogger(sinon);
+    const provider = sinon.stub();
+    const app = express();
+    mountCompanionRoutes(app, {
+      path: '/companion',
+      uploads: { handle: provider },
+      context: () => ({ branding: 'default', portal: 'rdmp' }),
+      policies: Object.fromEntries(pilotPolicyChain.map(name => [name.toLowerCase(), (_req, _res, next) => next()])),
+      policyConfiguration: { '*': true },
+      csrf: { apiProtect: (_req, _res, next) => next() },
+      audit: async () => {},
+    });
+    let forwarded: unknown;
+    app.use((error: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      forwarded = error;
+      httpErrorHandler(logger)(error, req, res, next);
+    });
+    const server = app.listen(0, '127.0.0.1');
+    try {
+      await once(server, 'listening');
+      const address = server.address();
+      assert(address && typeof address !== 'string');
+      for (const [headers, body, status] of [
+        [{ 'Content-Type': 'application/json; charset=unsupported' }, 'PRIVATE-COMPANION-BODY', 415],
+        [{ 'Content-Type': 'application/json', 'Content-Encoding': 'gzip' }, 'PRIVATE-COMPANION-BODY', 400],
+        [{ 'Content-Type': 'application/json' }, '{"PRIVATE-COMPANION-BODY":', 400],
+        [
+          { 'Content-Type': 'application/x-www-form-urlencoded' },
+          'key=PRIVATE-COMPANION-BODY' + '&key=x'.repeat(1001),
+          413,
+        ],
+      ] as const) {
+        const response = await fetch(`http://127.0.0.1:${address.port}/companion/url/meta`, {
+          method: 'POST',
+          headers,
+          body,
+        });
+        assert.equal(response.status, status);
+        assert(!(await response.text()).includes('PRIVATE-COMPANION-BODY'));
+        assert(!inspect(forwarded, { depth: null }).includes('PRIVATE-COMPANION-BODY'));
+        assert.equal(Reflect.has(forwarded as object, 'body'), false);
+      }
+      assert.equal(provider.called, false);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+    }
+  });
+
   for (const mode of ['buffered', 'streamed', 'callback-only'] as const) {
     it(`keeps service capture and error deduplication inside ${mode} streaming finalization`, async () => {
       const logger = createSinonStubLogger(sinon);
