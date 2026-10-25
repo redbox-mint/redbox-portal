@@ -59,7 +59,7 @@ describe('progress socket handshake ownership', () => {
       assert.equal(updates.length, 0);
       gate = false;
       assert.deepEqual(await client.timeout(3000).emitWithAck('subscribe', 'record'), { status: true });
-      const received = once(client, 'update');
+      const received = new Promise<void>(resolve => client.once('update', () => resolve()));
       await sockets.emit('update', { branding: 'brand', relatedRecordId: 'record' });
       await received;
       assert.equal(updates.length, 1);
