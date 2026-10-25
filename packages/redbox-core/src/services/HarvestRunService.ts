@@ -33,6 +33,7 @@ import {
   HarvestRunStatus,
 } from '../model/storage/HarvestRunModel';
 import { HarvestRunsConfig } from '../config/harvestRuns.config';
+import { serializeRedboxCanonicalJsonV1 } from '../record-contract/canonical-json';
 import { isRecordSchemaEnabled } from '../config/recordSchema.config';
 import {
   createRecordSaveContext,
@@ -48,6 +49,11 @@ import '../waterline-models/types';
 declare const RecordsService: RecordsServiceContract;
 
 type AnyRecord = Record<string, unknown>;
+type LegacyHarvestSource = {
+  algorithm: 'redbox-legacy-harvest-source-v1';
+  metadataHash: string;
+  mode: 'merge' | 'replace';
+};
 type RecordTypeWithName = RecordTypeModel & { name?: string };
 type HarvestRunRow = HarvestRunAttributes & { id?: string };
 type HarvestRunChunkRow = HarvestRunChunkAttributes & { id?: string };
@@ -246,6 +252,20 @@ export namespace Services {
 
     private isMetadataEqual(meta1: AnyRecord, meta2: AnyRecord): boolean {
       return _.isEqual(meta1, meta2);
+    }
+
+    private legacyHarvestSource(metadata: AnyRecord, merge: boolean): LegacyHarvestSource | undefined {
+      try {
+        return {
+          algorithm: 'redbox-legacy-harvest-source-v1',
+          metadataHash: createHash('sha256').update(serializeRedboxCanonicalJsonV1(metadata), 'utf8').digest('hex'),
+          mode: merge ? 'merge' : 'replace',
+        };
+      } catch {
+        // Non-JSON internal callers retain the strict metadata comparison.
+        // Never let a lossy serialization suppress a real source change.
+        return undefined;
+      }
     }
 
     private async updateRunWithOptimisticRetry(
@@ -517,11 +537,12 @@ export namespace Services {
       oid: string,
       harvestId: string,
       user: UserModel,
-      context: RecordSaveContext | undefined
+      context: RecordSaveContext | undefined,
+      harvestSource?: LegacyHarvestSource
     ): Promise<APIHarvestResponse> {
       const shouldMerge = updateMode === 'merge';
       try {
-        const record: RecordModel = await RecordsService.getMeta(oid);
+        const record: RecordModel = _.cloneDeep(await RecordsService.getMeta(oid));
         if (_.isEmpty(record)) {
           return new APIHarvestResponse(
             harvestId,
@@ -535,6 +556,11 @@ export namespace Services {
         if (!_.isEmpty(sourceMetadata)) {
           (record['metaMetadata'] as unknown as AnyRecord)['sourceMetadata'] = `${sourceMetadata}`;
         }
+
+        // The source signature must commit with the metadata, never as a
+        // separate write. A failed save must not alter a cached snapshot.
+        if (harvestSource) record['harvestSource'] = harvestSource;
+        else delete record['harvestSource'];
 
         const response = await RecordsService.updateMetaInternal({
           actor: { kind: 'service', id: 'HarvestRunService.legacyUpdateHarvestRecord' },
@@ -576,7 +602,8 @@ export namespace Services {
       harvestId: string,
       updateMode: string,
       user: UserModel,
-      context: RecordSaveContext | undefined
+      context: RecordSaveContext | undefined,
+      harvestSource?: LegacyHarvestSource
     ): Promise<APIHarvestResponse> {
       const metadata = body?.['metadata'];
       const workflowStage = body?.['workflowStage'];
@@ -586,6 +613,7 @@ export namespace Services {
       }
 
       request['metadata'] = metadata == null ? body : metadata;
+      if (harvestSource) request['harvestSource'] = harvestSource;
 
       try {
         const response = await RecordsService.create(
@@ -1593,17 +1621,20 @@ export namespace Services {
         const metadata = (_.isPlainObject(record['metadata']) ? record['metadata'] : undefined) as
           | AnyRecord
           | undefined;
+        const newMetadata = (metadata?.data ?? {}) as AnyRecord;
+        const harvestSource = this.legacyHarvestSource(newMetadata, merge);
         const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
         if (existingRecord.length === 0) {
           responses.push(
             await this.legacyCreateHarvestRecord(
               brand,
               recordTypeModel,
-              (metadata?.data ?? {}) as AnyRecord,
+              newMetadata,
               harvestId,
               'update',
               user,
-              saveContext
+              saveContext,
+              harvestSource
             )
           );
           continue;
@@ -1612,8 +1643,13 @@ export namespace Services {
         const updateMode = merge ? 'merge' : 'update';
         const oid = String(existingRecord[0]?.redboxOid ?? '');
         const oldMetadata = (existingRecord[0]?.metadata ?? {}) as AnyRecord;
-        const newMetadata = (metadata?.data ?? {}) as AnyRecord;
-        if (this.isMetadataEqual(newMetadata, oldMetadata)) {
+        // Save templates can enrich/normalize the stored metadata. Compare
+        // with the last committed source as well as the exact stored snapshot.
+        // Keep the raw signature when an exact normalized snapshot is replayed.
+        if (
+          this.isMetadataEqual(newMetadata, oldMetadata) ||
+          (harvestSource !== undefined && _.isEqual(harvestSource, existingRecord[0]?.['harvestSource']))
+        ) {
           responses.push(
             new APIHarvestResponse(
               harvestId,
@@ -1634,7 +1670,8 @@ export namespace Services {
             oid,
             harvestId,
             user,
-            saveContext
+            saveContext,
+            harvestSource
           )
         );
       }

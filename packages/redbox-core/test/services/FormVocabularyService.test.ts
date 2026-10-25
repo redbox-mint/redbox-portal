@@ -202,6 +202,36 @@ describe('FormVocabularyService', function () {
   });
 
   describe('findInExternalService', function () {
+    it('keeps punctuation and Unicode inside a single URL parameter', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/search?q=${query}&rows=7', 'testProvider'
+      );
+      const term = 'café & Zealand#x?admin=true + 20%';
+      const url = new URL(interpolate({ query: term }));
+      expect([...url.searchParams.keys()]).to.deep.equal(['q', 'rows']);
+      expect(url.searchParams.get('q')).to.equal(term);
+      expect(url.hash).to.equal('');
+    });
+
+    it('escapes literal Solr punctuation while retaining the configured prefix wildcard', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/select?q=basic_name%3A${query|solr}*&rows=7', 'testProvider'
+      );
+      for (const term of ['Australia & Zealand', 'SCU " : & no-place', 'a+b?c*d\\e', 'café Δ']) {
+        const url = new URL(interpolate({ query: term }));
+        const escaped = term.replace(/[+\-&|!(){}\[\]^"~*?:\\]/g, '\\$&');
+        expect(url.searchParams.get('q')).to.equal(`basic_name:${escaped}*`);
+        expect([...url.searchParams.keys()]).to.deep.equal(['q', 'rows']);
+      }
+    });
+
+    it('rejects unsupported interpolation modifiers', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/search?q=${query|eval}', 'testProvider'
+      );
+      expect(() => interpolate({ query: 'x' })).to.throw('unsupported template path');
+    });
+
     it('interpolates simple property paths without executing code', function () {
       const interpolate = (FormVocabularyService as any).getTemplateStringFunction(
         'https://external.example.com/search?q=${query}&dept=${user.department}&id=${results.0.id}',

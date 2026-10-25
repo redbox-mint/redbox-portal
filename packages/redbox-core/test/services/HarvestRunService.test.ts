@@ -2073,6 +2073,222 @@ describe('HarvestRunService', function () {
     );
   });
 
+  function configureLegacyReplay() {
+    const runtime = useRealRecordsService(false);
+    const brand = { id: 'brand-1', name: 'default' };
+    const recordType = { name: 'activity', hooks: {}, searchable: false };
+    const user = { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] };
+    Reflect.set(globalThis, 'RecordTypesService', { get: sinon.stub().returns(of(recordType)) });
+    const recordModel = Reflect.get(globalThis, 'Record') as { find: sinon.SinonStub };
+    recordModel.find.callsFake((criteria: { harvestId: string }) => ({
+      meta: sinon
+        .stub()
+        .callsFake(async () =>
+          [...runtime.persistedRecords.values()]
+            .filter(record => record.harvestId === criteria.harvestId)
+            .map(record => structuredClone(record))
+        ),
+    }));
+    // Exercise real RecordsService persistence with a representative pure
+    // normalization hook: the stored snapshot differs from the raw feed.
+    const normalize = sinon
+      .stub(runtime.realRecordsService, 'triggerPreSaveTriggers')
+      .callsFake(async (_oid: string, candidate: { metadata: Record<string, unknown> }) => {
+        candidate.metadata.normalised_status = candidate.metadata.status === 'Completed' ? 'approved' : 'edit';
+        return candidate;
+      });
+    mockSails.config.record.auditing.enabled = true;
+    const submit = (metadata: Record<string, unknown>, merge = false) =>
+      service.submitLegacyRecords(
+        brand,
+        recordType,
+        { records: [{ harvest_id: 'source-1', metadata: { data: metadata } }] },
+        merge,
+        user
+      );
+    return { ...runtime, normalize, submit };
+  }
+
+  it('skips unchanged raw legacy sources and exact normalized snapshots without writes, audits or timestamp changes', async function () {
+    const runtime = configureLegacyReplay();
+    const clock = sinon.useFakeTimers({ now: Date.parse('2026-10-23T00:00:00Z'), toFake: ['Date'] });
+    const raw = { title: 'Activity', status: 'Completed', people: [{ name: 'One', email: 'one@example.invalid' }] };
+    const created = await runtime.submit(raw);
+    expect(created[0].status).to.equal(true);
+    const before = structuredClone(runtime.persistedRecords.get(created[0].oid));
+    expect(before.metadata.normalised_status).to.equal('approved');
+    expect(before.harvestSource).to.include({ algorithm: 'redbox-legacy-harvest-source-v1', mode: 'replace' });
+    expect(before.harvestSource.metadataHash).to.match(/^[a-f0-9]{64}$/);
+    const auditCount = runtime.realRecordsService.queueService.now.callCount;
+    expect(auditCount).to.be.greaterThan(0);
+
+    clock.tick(60_000);
+    const replaySources = [
+      raw,
+      { people: [{ email: 'one@example.invalid', name: 'One' }], status: 'Completed', title: 'Activity' },
+      structuredClone(before.metadata),
+      raw,
+    ];
+    // A new service instance has no process-local comparison cache.
+    service = new HarvestRunServiceClass();
+    for (const source of replaySources) {
+      const response = await runtime.submit(source);
+      expect(response[0].status).to.equal(true);
+      expect(response[0].message).to.include('skip update');
+      expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(before);
+    }
+    expect(runtime.storageService.create.calledOnce).to.equal(true);
+    expect(runtime.storageService.updateMeta.notCalled).to.equal(true);
+    expect(runtime.normalize.calledOnce).to.equal(true);
+    expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+  });
+
+  it('persists legacy value, removal and array changes and skips each subsequent raw replay', async function () {
+    const runtime = configureLegacyReplay();
+    const initial = { title: 'Initial', status: 'Completed', description: 'Remove me', people: ['One', 'Two'] };
+    const created = await runtime.submit(initial);
+    expect(created[0].status).to.equal(true);
+    let previous = structuredClone(runtime.persistedRecords.get(created[0].oid));
+    const changes = [
+      { ...initial, title: 'Changed' },
+      { title: 'Changed', status: 'Completed', people: ['One', 'Two'] },
+      { title: 'Changed', status: 'Completed', people: ['Two', 'One'] },
+      { title: 'Changed', status: 'Completed', people: ['Two'] },
+      { title: 'Changed', status: 'Draft', people: [] },
+      { title: 'Changed', status: 'Draft', people: [null] },
+      { title: 'Changed', status: 'Draft', people: [false] },
+      { title: 'Changed', status: 'Draft', people: [0] },
+      { title: 'Changed', status: 'Draft', people: ['0'] },
+      { title: '\u00e9', status: 'Draft', people: ['0'] },
+      { title: 'e\u0301', status: 'Draft', people: ['0'] },
+    ];
+    for (const [index, source] of changes.entries()) {
+      const response = await runtime.submit(source);
+      expect(response[0].status).to.equal(true);
+      expect(response[0].message).not.to.include('skip update');
+      const committed = structuredClone(runtime.persistedRecords.get(created[0].oid));
+      expect(committed.harvestSource.metadataHash).not.to.equal(previous.harvestSource.metadataHash);
+      expect(committed.revision).to.equal(previous.revision + 1);
+      expect(committed.metadata).to.deep.equal({
+        ...source,
+        normalised_status: source.status === 'Completed' ? 'approved' : 'edit',
+      });
+      const auditCount = runtime.realRecordsService.queueService.now.callCount;
+      expect((await runtime.submit(source))[0].message).to.include('skip update');
+      expect(runtime.storageService.updateMeta.callCount).to.equal(index + 1);
+      expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+      expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(committed);
+      previous = committed;
+    }
+  });
+
+  it('distinguishes legacy merge and replacement while preventing repeated merge array appends', async function () {
+    const runtime = configureLegacyReplay();
+    const source = { title: 'Activity', status: 'Draft', people: ['One'] };
+    const created = await runtime.submit(source, true);
+    expect(created[0].status).to.equal(true);
+    expect((await runtime.submit(source, true))[0].message).to.include('skip update');
+    expect(runtime.storageService.updateMeta.notCalled).to.equal(true);
+
+    const replacement = await runtime.submit(source, false);
+    expect(replacement[0].status).to.equal(true);
+    expect(runtime.storageService.updateMeta.calledOnce).to.equal(true);
+    const replaced = runtime.persistedRecords.get(created[0].oid);
+    expect(replaced.harvestSource.mode).to.equal('replace');
+    expect(replaced.metadata.people).to.deep.equal(['One']);
+    expect((await runtime.submit(source, false))[0].message).to.include('skip update');
+
+    expect((await runtime.submit(source, true))[0].status).to.equal(true);
+    const merged = structuredClone(runtime.persistedRecords.get(created[0].oid));
+    expect(merged.harvestSource.mode).to.equal('merge');
+    expect(merged.metadata.people).to.deep.equal(['One', 'One']);
+    expect((await runtime.submit(source, true))[0].message).to.include('skip update');
+    expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(merged);
+    expect(runtime.storageService.updateMeta.callCount).to.equal(2);
+  });
+
+  it('keeps the committed legacy source signature after failed persistence and retries the changed source', async function () {
+    const runtime = configureLegacyReplay();
+    const source = { title: 'Activity', status: 'Draft' };
+    const created = await runtime.submit(source);
+    expect(created[0].status).to.equal(true);
+    const before = structuredClone(runtime.persistedRecords.get(created[0].oid));
+    const changed = { ...source, status: 'Completed' };
+    const auditCount = runtime.realRecordsService.queueService.now.callCount;
+    runtime.storageService.updateMeta.onFirstCall().resolves({
+      success: false,
+      applicationState: 'not-applied',
+      nonApplicationReason: 'lifecycle-conflict',
+    });
+
+    expect((await runtime.submit(changed))[0].status).to.equal(false);
+    expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(before);
+    expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+    expect((await runtime.submit(changed))[0].status).to.equal(true);
+    expect(runtime.storageService.updateMeta.callCount).to.equal(2);
+    const committed = structuredClone(runtime.persistedRecords.get(created[0].oid));
+    expect(committed.metadata.status).to.equal('Completed');
+    expect(committed.harvestSource.metadataHash).not.to.equal(before.harvestSource.metadataHash);
+    expect((await runtime.submit(changed))[0].message).to.include('skip update');
+    expect(runtime.storageService.updateMeta.callCount).to.equal(2);
+  });
+
+  it('does not mutate a shared loaded snapshot when a legacy save fails', async function () {
+    const current = {
+      redboxOid: 'record-1',
+      harvestId: 'source-1',
+      metaMetadata: { type: 'activity' },
+      metadata: { title: 'Old' },
+    };
+    const before = structuredClone(current);
+    const recordModel = Reflect.get(globalThis, 'Record') as { find: sinon.SinonStub };
+    recordModel.find.returns({ meta: sinon.stub().resolves([current]) });
+    recordsService.getMeta.resolves(current);
+    recordsService.updateMetaInternal.resolves({ wasPersisted: () => false, outcome: 'not-applied' });
+    const response = await service.submitLegacyRecords(
+      { id: 'brand-1' },
+      { name: 'activity' },
+      { records: [{ harvest_id: 'source-1', metadata: { data: { title: 'New' } } }] },
+      false,
+      { username: 'harvester' }
+    );
+    expect(response[0].status).to.equal(false);
+    expect(current).to.deep.equal(before);
+    expect(recordsService.updateMetaInternal.firstCall.args[0].record.harvestSource.metadataHash).to.match(
+      /^[a-f0-9]{64}$/
+    );
+  });
+
+  it('retries a failed legacy create without installing a source signature outside the record commit', async function () {
+    const runtime = configureLegacyReplay();
+    const source = { title: 'Activity', status: 'Draft' };
+    runtime.storageService.create.onFirstCall().resolves({
+      success: false,
+      applicationState: 'not-applied',
+      nonApplicationReason: 'lifecycle-conflict',
+    });
+    expect((await runtime.submit(source))[0].status).to.equal(false);
+    expect(runtime.persistedRecords.size).to.equal(0);
+    expect(runtime.storageService.updateMeta.notCalled).to.equal(true);
+    const created = await runtime.submit(source);
+    expect(created[0].status).to.equal(true);
+    expect(runtime.storageService.create.callCount).to.equal(2);
+    expect((await runtime.submit(source))[0].message).to.include('skip update');
+    expect(runtime.storageService.create.callCount).to.equal(2);
+  });
+
+  it('establishes the legacy source baseline on one successful pre-fingerprint record import', async function () {
+    const runtime = configureLegacyReplay();
+    const source = { title: 'Activity', status: 'Draft' };
+    const created = await runtime.submit(source);
+    expect(created[0].status).to.equal(true);
+    delete runtime.persistedRecords.get(created[0].oid).harvestSource;
+    expect((await runtime.submit(source))[0].status).to.equal(true);
+    expect(runtime.storageService.updateMeta.calledOnce).to.equal(true);
+    expect((await runtime.submit(source))[0].message).to.include('skip update');
+    expect(runtime.storageService.updateMeta.calledOnce).to.equal(true);
+  });
+
   it('atomically increments run counters when a datastore manager is available', async function () {
     const runId = '507f1f77bcf86cd799439011';
     const findOneAndUpdate = sinon.stub().resolves({

@@ -29,6 +29,13 @@ import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
 import axios from 'axios';
+import luceneEscapeQuery = require('lucene-escape-query');
+
+// The dependency exposes .escape at runtime while its declaration also permits
+// a callable CommonJS export.
+const escapeSolrTerm = typeof luceneEscapeQuery === 'function'
+  ? luceneEscapeQuery
+  : (luceneEscapeQuery as { escape: (value: string) => string }).escape;
 
 export namespace Services {
   type FormVocabularyUserContext = Record<string, unknown>;
@@ -322,8 +329,10 @@ export namespace Services {
 
     private getTemplateStringFunction(template: string, providerName: string) {
       return (map: Record<string, unknown>) => template.replace(/\$\{([^}]+)\}/g, (_match: string, rawPath: string) => {
-        const propertyPath = String(rawPath ?? '').trim();
-        if (!this.isSafeTemplatePath(propertyPath)) {
+        // Values are URL components, never raw URL syntax. The explicit solr
+        // modifier escapes literal search punctuation before URL encoding.
+        const [propertyPath, modifier, ...extra] = String(rawPath ?? '').split('|').map(part => part.trim());
+        if (!this.isSafeTemplatePath(propertyPath) || extra.length || (modifier !== undefined && modifier !== 'solr')) {
           throw this.createFormVocabularyError(
             'external-vocab-invalid-config',
             `External vocabulary provider '${providerName}' contains unsupported template path '${propertyPath}'.`
@@ -331,7 +340,8 @@ export namespace Services {
         }
 
         const value = _.get(map, propertyPath);
-        return this.normalizeTemplateValue(value);
+        const text = this.normalizeTemplateValue(value);
+        return encodeURIComponent(modifier === 'solr' ? escapeSolrTerm(text) : text);
       });
     }
 
