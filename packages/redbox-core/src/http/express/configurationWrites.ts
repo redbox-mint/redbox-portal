@@ -75,7 +75,10 @@ export function mountConfigurationWriteRoutes(router: Router, input: Configurati
         const dashboard = route.path.includes('/dashboard-config/');
         try {
           if (route.action === 'retiredOperation') retiredDashboardOperation();
-          let body = req.method === 'DELETE' ? {} : object(req.body);
+          let body =
+            req.method === 'DELETE' || (route.action === 'updateBundleEnabled' && req.body === undefined)
+              ? {}
+              : object(req.body);
           let query: Record<string, unknown> = req.query;
           if ('request' in route) {
             const validated = validateApiRouteRequest(req, route as ApiRouteDefinition);

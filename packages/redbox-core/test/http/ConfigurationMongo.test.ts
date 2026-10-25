@@ -1045,6 +1045,44 @@ describe('protected metadata writes on standalone Mongo HTTP', function () {
       true
     );
   });
+  for (const enabled of [true, false])
+    it(`accepts query-only translation enabled=${enabled} with no body`, async () => {
+      const namespace = 'query-only-' + enabled;
+      assert.equal(
+        (await write(base + '/app/i18n/bundles/en/' + namespace, { value: 'Query toggle' }, 'POST', session())).response
+          .status,
+        200
+      );
+      const response = await fetch(f.url + base + '/app/i18n/bundles/en/' + namespace + '/enabled?enabled=' + enabled, {
+        method: 'POST',
+        headers: session(),
+        signal: AbortSignal.timeout(5000),
+      });
+      assert.equal(response.status, 200, await response.clone().text());
+      assert.equal(((await response.json()) as { enabled: boolean }).enabled, enabled);
+      const stored = await f.translations.getBundle(Object.assign(new BrandingModel(), f.brand), 'en', namespace);
+      assert.equal(stored?.enabled, enabled);
+    });
+  for (const operation of ['toggle-with-malformed-body', 'save-without-body'])
+    it(`retains body validation: ${operation}`, async () => {
+      const response = await fetch(
+        f.url +
+          base +
+          '/app/i18n/bundles/en/translation' +
+          (operation === 'toggle-with-malformed-body' ? '/enabled?enabled=true' : ''),
+        {
+          method: 'POST',
+          headers: {
+            ...session(),
+            ...(operation === 'toggle-with-malformed-body' ? { 'Content-Type': 'application/json' } : {}),
+          },
+          ...(operation === 'toggle-with-malformed-body' ? { body: '[]' } : {}),
+          signal: AbortSignal.timeout(5000),
+        }
+      );
+      assert.equal(response.status, 400);
+      assert.match(await response.text(), /Request body must be an object/);
+    });
   it('executes both dashboard aliases for validation, revision-checked workflow/view saves and preview/apply copy', async () => {
     const brand = Object.assign(new BrandingModel(), f.brand);
     const source = { kind: 'workflow' as const, recordType: 'dataRecord', stage: 'draft' };
