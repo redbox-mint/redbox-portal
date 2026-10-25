@@ -1,0 +1,721 @@
+{
+  "featureBase": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "initialHead": "d8fbd8a0bcd013bdec121a6eb064ecd5a9ad2ff5",
+  "finalRuntimeTestInputs": "d65e60b8f77c530729beff3724ac86f56046ebae",
+  "compiledRuntimeAndConfiguration": "d65e60b8f77c530729beff3724ac86f56046ebae",
+  "localEvidenceDirectory": ".tmp/sails-retirement/final-review-r10",
+  "toolchain": {
+    "node": "v26.11.1",
+    "npm": "11.20.0",
+    "mongo": "db version v9.0.4\nBuild Info: {\n    \"version\": \"9.0.4\",\n    \"gitVersion\": \"64ade602b836c9adeffba7fa038c887ffab56196\",\n    \"openSSLVersion\": \"OpenSSL 3.5.5 27 Jan 2026\",\n    \"modules\": [],\n    \"allocator\": \"tcmalloc-google\",\n    \"javascriptEngine\": \"mozjs-wasm\",\n    \"environment\": {\n        \"distmod\": \"ubuntu2604\",\n        \"distarch\": \"x86_64\",\n        \"target_arch\": \"x86_64\"\n    }\n}",
+    "images": [
+      {
+        "name": "/sr-final-r10-builder",
+        "image": "sha256:2e86451c0651b1102d928a82a20e5c9c5460bb819688580ae06bc5c9835d3658"
+      },
+      {
+        "name": "/sr-final-r10-mongo",
+        "image": "sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8"
+      },
+      {
+        "name": "/sr-final-r10-auth-mongo",
+        "image": "sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8"
+      },
+      {
+        "name": "/sr-final-r10-solr",
+        "image": "sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69"
+      },
+      {
+        "name": "/sr-final-r10-keycloak",
+        "image": "sha256:8d44614c74798322c4e07fbe0ecb15cfbb5879d69b484628555f58ade06f0d8c"
+      },
+      {
+        "name": "/sr-final-r10-mailpit",
+        "image": "sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a"
+      },
+      {
+        "name": "/sr-final-r10-compile",
+        "image": "sha256:2e86451c0651b1102d928a82a20e5c9c5460bb819688580ae06bc5c9835d3658"
+      }
+    ],
+    "dockerHost": "unix:///run/sr-p7-isolated/docker.sock",
+    "imagesBuilt": 0
+  },
+  "suiteResults": {
+    "core-default-final.log": {
+      "passed": 4694,
+      "pending": 7,
+      "failures": 0
+    },
+    "core-real-final.log": {
+      "passed": 216,
+      "pending": 0,
+      "failures": 0
+    },
+    "CompanionLifecycleProbe-final.log": {
+      "passed": 2,
+      "pending": 0,
+      "failures": 0
+    },
+    "CompanionUploadsMongo-final.log": {
+      "passed": 6,
+      "pending": 0,
+      "failures": 0
+    },
+    "root-final.log": {
+      "passed": 422,
+      "pending": 10,
+      "failures": 0
+    },
+    "storage-final-clean.log": {
+      "passed": 306,
+      "pending": 0,
+      "failures": 0
+    },
+    "dev-tools-final-clean.log": {
+      "passed": 53,
+      "pending": 0,
+      "failures": 0
+    },
+    "pdf-unit-final.log": {
+      "passed": 79,
+      "pending": 0,
+      "failures": 0
+    },
+    "docs-test-final.log": {
+      "passed": 4,
+      "pending": 0,
+      "failures": 0
+    },
+    "playwright-harness-final.log": {
+      "passed": 19,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "production-host-final.log": {
+      "passed": 1,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "generated-institution-final.log": {
+      "passed": 1,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "hook-qualification-final.log": {
+      "passed": 5,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "closure-tests-final.log": {
+      "passed": 14,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "playwright-full-final.xml": {
+      "testcases": 124,
+      "suites": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "retirement-browser-final.xml": {
+      "testcases": 4,
+      "suites": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-general-final.xml": {
+      "testcases": 557,
+      "suites": 309,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-oidc-final.xml": {
+      "testcases": 17,
+      "suites": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "bruno-s3-final.xml": {
+      "testcases": 12,
+      "suites": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "pdf-final.xml": {
+      "testcases": 10,
+      "suites": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "inputAudit": {
+    "commit": "d65e60b8f77c530729beff3724ac86f56046ebae",
+    "checkedFiles": 1332,
+    "differences": []
+  },
+  "runtimeDependencyOverlay": {
+    "runtime": [
+      {
+        "owner": "./packages/redbox-core/package.json",
+        "path": "/opt/redbox-portal/packages/redbox-core/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      },
+      {
+        "owner": "./node_modules/router/package.json",
+        "path": "/opt/redbox-portal/node_modules/router/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      }
+    ],
+    "cleanSource": [
+      {
+        "owner": "./packages/redbox-core/package.json",
+        "path": "/tmp/sr-r10-clean-source/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      },
+      {
+        "owner": "./node_modules/router/package.json",
+        "path": "/tmp/sr-r10-clean-source/node_modules/path-to-regexp/dist/index.js",
+        "version": "8.4.2",
+        "sha256": "f8e7946ca3a4dcc2ed1ea46e3bcffaef014e4abc359a7469a16817f1f79df62f"
+      }
+    ]
+  },
+  "reviewDisposition": {
+    "classA": 4,
+    "P1": 0,
+    "P2": 4,
+    "newClassB": 0,
+    "incorrectR9Fixes": [
+      "R9-03 root slash canonicalization treated / and /// as equivalent; corrected within R10-01"
+    ]
+  },
+  "acceptedInstitutionGap": [
+    "SR-005",
+    "SR-045",
+    "SR-049",
+    "SR-055"
+  ],
+  "cleanup": {
+    "ownedContainersRemaining": 0,
+    "ownedNetworksRemaining": 0,
+    "ownedVolumesRemaining": 0,
+    "ownedFirewallRulesRemaining": 0,
+    "temporaryArtifactMountsRemaining": 0,
+    "existingPageCacheRestored": true,
+    "pageCacheFilesPreserved": 429,
+    "imagesBuilt": 0,
+    "restoredIsolatedDaemonAndContainerdStopped": true,
+    "roundHostsAliasesRemaining": 0
+  },
+  "evidenceScope": "Final suite/static results are accepted qualification; expected negative controls and explicitly rejected fixture/driver attempts remain hashed separately and supply no final gate. Existing images with current compiled overlays were reused; no replacement immutable-image or topology-matrix qualification is claimed.",
+  "pins": {
+    "manifests": 23,
+    "declarations": 377,
+    "localReferences": 20,
+    "violations": []
+  },
+  "lockRoots": {
+    "locks": [
+      "package-lock.json",
+      "packages/redbox-core/package-lock.json",
+      "packages/redbox-dev-tools/package-lock.json",
+      "packages/redbox-hook-dev/package-lock.json",
+      "packages/sails-hook-redbox-pdfgen/package-lock.json",
+      "packages/sails-hook-redbox-storage-mongo/package-lock.json"
+    ],
+    "violations": []
+  },
+  "sourceClosure": {
+    "commit": "d65e60b8f77c530729beff3724ac86f56046ebae",
+    "tree": null,
+    "scannedFiles": 1095,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates.",
+    "violations": [],
+    "dependencies": []
+  },
+  "compiledClosure": {
+    "commit": null,
+    "tree": "/opt/redbox-portal",
+    "scannedFiles": 6158,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "method": "AST identifier/literal and ambient declaration checks; structural manifest/lock and recursive installed-package checks. Complements original SR-001 text candidates.",
+    "violations": [],
+    "dependencies": []
+  },
+  "sourceInventory": {
+    "sourceCommit": "d65e60b8f77c530729beff3724ac86f56046ebae",
+    "method": {
+      "trackedFiles": 4890,
+      "pattern": "sails|Sails|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket",
+      "committedTreeOnly": true,
+      "limitation": "Text inventory plus manually documented native owners/routes; symbols in comments are candidates, not proof of execution. Ignored/generated working-tree output and installed dependencies require separate probes."
+    },
+    "counts": {
+      "build-deployment-tooling": 15,
+      "repository-metadata": 3,
+      "dependency-lock": 9,
+      "package-metadata": 9,
+      "browser-views": 158,
+      "reference-only": 495,
+      "application-owned-config": 6,
+      "maintenance-entrypoint": 1,
+      "core-domain": 152,
+      "route-policy-contract": 4,
+      "http-config-middleware": 9,
+      "core-lifecycle-cache": 1,
+      "persistence-owner": 5,
+      "test-harness": 146,
+      "scaffold-tooling": 11,
+      "development-hook": 30,
+      "pdf-hook": 4,
+      "storage-hook": 3,
+      "shared-contract": 4,
+      "app-types": 1
+    },
+    "matchedFiles": 1066,
+    "matchedLines": 5620,
+    "unclassified": []
+  },
+  "baselineReconciliation": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "sourceCommit": "d65e60b8f77c530729beff3724ac86f56046ebae",
+    "method": "Rerun original SR-001 method; reconcile every baseline file against committed paths/candidates and successful AST/dependency closure. Removed/renamed source retains original migration owner. Historical names, finite conversions and explicit neutral parameter inputs are classified.",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1066,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "logSha256": {
+    "CompanionLifecycleProbe-final.log": "f1790021d80c8a564629d42696aa58115dc653c8b7fd6794e5e17907d4f10657",
+    "CompanionUploadsMongo-final.log": "7fd487a8e57bcb21e7b8da5066ce46b61bc4c3a8b71169b80aae1736077aa92f",
+    "artifact-storage-cleanup.log": "290fa0bdc90e70e16f6c0c31da565958b29330423f0e932587137c43fdb9c434",
+    "asset-baseline-probe.cjs": "cc7ad360d537a40de9c32e7814db44b710529df0a48c38c59861e0761a422f69",
+    "asset-baseline-probe.log": "1248cdfa7a2c47cfcc792f12bac502d384932ac0e04101144e70693af4961d26",
+    "asset-lifecycle-progress-final.log": "456b364df01b082edef0748e5570756b12b0780fd9c20cc7ed1f909eec297262",
+    "asset-order-css-expectation-rejected.log": "1ba0f3e11ecea8b02e7c6db4e214287ad7c61577b4ad3148d8c4d7a1f46e9aaf",
+    "assets-client-green.log": "88351373447898f9d0ad98de1c68b943f10b25beb24269f42f5bc509dacb88ef",
+    "audit-clean-source.py": "a9363b2328ddec3b1898b27bebc3330e58cfe01ab5145f14de2248920b0c7bb8",
+    "audit-inputs.py": "5299c68074660d8df29e421257971577234ff1ddb82d80d5cbd98e7e7493ada2",
+    "audit-root-pages.py": "d1c4ab277a0107831df37587d5a00a44c27dfbc1a9047fc26a48f8812f617b8f",
+    "before-package-lock.json": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+    "body-parser-before.cjs": "72bf457a1b1ceff3ee8912a5474a5afbca251c39a05927760d466c916ccc6982",
+    "browser-native-preparation.log": "37d1628dd8f5e14b6e7a70ae82911a10dff0e5df16f8b996d72108c9ca7ebe6f",
+    "bruno-file-restoration.json": "4fc93955865eba67582d04f4703357d0b689f8da259a051f47a864c1cdbe925a",
+    "bruno-general-cleanup.log": "bb1599ee573da9de55d2f4c5bd60effe9e77a162773b8ae1e86f62c802e1358d",
+    "bruno-general-containers.log": "d5ebd3098c563530c7c8fdc73fa11e51566151af4c839bb08a324355a926f10f",
+    "bruno-general-final.log": "921b3b638ccf638b07805440804612e47a0e71612f3fd406b606336e388a33bf",
+    "bruno-general-final.xml": "2130601742e1d6279d25705e300e646cb0830cc7b1403fc3d1cd93c52cd5a7b4",
+    "bruno-general-providers.log": "074e507591914cead79d7a1315caf62de0d1aada833da0b24e3f5b853f191598",
+    "bruno-general-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bruno-oidc-cleanup.log": "0ddf1c178da82c39e0cad2f4de16483e57d6fcf3329d89ad71988cf5d783a600",
+    "bruno-oidc-containers.log": "56eebb6ee452d1c37b1e3172bd8ce5570153fa67c60346af3099b601bfe963a4",
+    "bruno-oidc-final.log": "36a996ab1863216fce17b677af577424ae1bdf57d374227d0cc7dddf513e2a85",
+    "bruno-oidc-final.xml": "cf8a7b3717bc7676618425e232d2cf489480cb4012fcdefff5315a65865df6c8",
+    "bruno-oidc-providers.log": "bd47d5caf519100550d5780da5d1e211780f231e6bb1ecd90e39f1cbb503f812",
+    "bruno-oidc-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bruno-s3-cleanup.log": "3a0cce61bda3798968a9778d4397aae3a13d188beabcb1fccddb1dc82a1cd7ff",
+    "bruno-s3-containers.log": "b7e7eca4ff7a57f90b94d87baea40313afc1065bb4116e199f26d8d0cb1bb605",
+    "bruno-s3-final.log": "b298c0abc790ed2ddb3df32bde4f0f1db4a50360a5bd1c8d16b99d9835882b4d",
+    "bruno-s3-final.xml": "63ef7d0b267ca3c82300bb70674032a43e34349b16603140365c38b0ac258977",
+    "bruno-s3-providers.log": "101a2d7d4b2ad04c76cf12caa192da77c3380d6ef77842619d0ece2263170580",
+    "bruno-s3-realm.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build-final.log": "be244fa76fc5461dc4471f34bbd14d4b86cab2b266e3da3b83e23b9e872e0758",
+    "cache-inheritance-probe.cjs": "fa7eef56caa45948316926540e8537378adf9f38407b801d80a0e0dae56950b5",
+    "cache-relocation.json": "83ffd86b4dc62204108116e8814ed5b9d0220a2b20088e40f31ac5671c4ae632",
+    "clean-build-driver.log": "bc4d2f7fdcc0b9f17ee01737062b14eecbc2d41a925849fa4db1f9d7c02a464a",
+    "clean-source-after-build.log": "1b30094859ca4deb37e2f07a8c04b30bd3ef162721f8734f6569143f59285389",
+    "clean-source-before-build.log": "1b30094859ca4deb37e2f07a8c04b30bd3ef162721f8734f6569143f59285389",
+    "clean-source-completion-audit.log": "1b30094859ca4deb37e2f07a8c04b30bd3ef162721f8734f6569143f59285389",
+    "clean-source-input-audit.json": "b7650a91093bfba0ef85b23c26e9b630c6c4597c44177ee1117e8719f8fb0e94",
+    "cleanup-extras.sh": "e9670887bbfd04cf346be4a3d9caa43264b401a000c04dfc51695beec1f54f5b",
+    "cleanup-private-engine.sh": "e88d48bf2aaecc8d0dedcd1da45d7e7096375be89216809d001b415913ee1728",
+    "cleanup-restored-engine.py": "1b3eebcc8aac2210d7f1b381eaaac539ad48fa8c36c1e711756dc67d5d249489",
+    "cleanup-round.sh": "52057d09fe7a565afe70115f7e25a3ccc9049ade2113b12e0f6eca77fb5db60c",
+    "closure-tests-final.log": "1a1f44de8547736475885c9d72ec24d630e77e4ce27c0a127ab208392fafa38c",
+    "collect-r10.py": "321f75310d3aadaf6cd3f9eff2bd2165c40ccd61603b0dc5277c4776dc9abc55",
+    "collect-results.py": "44be1de1306603a4abcae04d6f1ae5ad133cb625cf05bfccf4f38fb584b4a260",
+    "collect-walkthrough.py": "6aba16297dd83c2dda269fe55b12c149e7cf45b8c7a4089c3a69bc4a267731ae",
+    "collector-final.log": "92171bed688b797b554741e658717a0b80471126627e72bdcc58759425fedd15",
+    "compile-all-clean-literal.log": "d693344208413f736284d3523554816dbd76e52804686db092033db2c26ce583",
+    "compile-all-clean-result.json": "5ffc20a4af924976a02560c5161a17e90cf3d2c760c3bc07f9abbd899931882e",
+    "compiled-tree-closure-final.json": "be1d3c3a952a642e3fa2916c86e37f10aedb0bcf2a15a32724858c0436035adb",
+    "compiled-tree-closure-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compiled.revision": "d2842fe8709d016e79342e6daa24103071094c7aed49fb152641008ebb49945f",
+    "compiler-cleanup.log": "b5530a204cf5ac5c6559e5ec6e60326025a1d5fef46d99f8c9bd76698bff8362",
+    "compiler-limits.log": "b5530a204cf5ac5c6559e5ec6e60326025a1d5fef46d99f8c9bd76698bff8362",
+    "complete-browser-libs.py": "a2f5ef7c7f898b236dec3fd91a29646d14ea565257303029b11d84e98d932764",
+    "completion-input-audit.json": "b7650a91093bfba0ef85b23c26e9b630c6c4597c44177ee1117e8719f8fb0e94",
+    "completion-input-audit.log": "1b30094859ca4deb37e2f07a8c04b30bd3ef162721f8734f6569143f59285389",
+    "compose-maintenance-regression.py": "a741f4910a36bfe81049c215825e9bdb512518b58275a5eb83f8a88a234055da",
+    "configuration-guide-application.cjs": "aa9163e6007a5feb3d9eed3906a6fd99281e622b590cbc5e298c9d52a31c4fe0",
+    "configuration-guide-local.cjs": "83c05e97f5d9def3e1e7f75952cb728938882afd7024a926fdcfe7b66a7894ab",
+    "configuration-guide-probe.cjs": "267e56fd2d8b39ac415dbe62acd192c0114809f538e949e20aceff602c4b87fa",
+    "container-cleanup.log": "5c1460aac186acdf8a828f42dd102f0f5d10023f086681dd54a4bbece62820a9",
+    "containerd-after-reboot.log": "802a2ca11d45bb40ea1d0909c946371d6deb7c4da142d97ae6c1703e9cd188e6",
+    "containerd-after-second-reboot.log": "02b9cd26bb3547aa091b3a25ee4188925868d351f38035d8bcb7ed1aa9f0f073",
+    "containerd-current-version.log": "913b560fc8a5621d7fe8c25c7f5531e74ce436d448dcd1b5667d17664b06b53a",
+    "core-default-final.log": "7387cbe13a2601fc20963417e3d9c0220f75c54d1ebeae26f0474310043596d8",
+    "core-fixture-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "core-real-final.log": "de64607678cccd16dbef712262a2ec632e10438a21f1604c3f3a05392eb9d7cc",
+    "dangling-images-after-cleanup.log": "a39acb009fe535341cfab6654f3e611001a721c38469379ee62806a26d239d23",
+    "dangling-images-before-cleanup.log": "a39acb009fe535341cfab6654f3e611001a721c38469379ee62806a26d239d23",
+    "dangling-images-before.json": "ecaa8e34bb927741bb54b4c2e6401c2892996bddeb6220090a89065a8bf4ed53",
+    "dependency-pins.json": "115284cabd95943688203a51d4a1f2df4067faede1a05ad7e5a4f1a59e8f2020",
+    "dev-tools-final-clean.log": "de5195ed5ecf91d4f07fe97628163e79fd7fcd397f0814b03caadf9431befed7",
+    "development-compiled.yml": "85127d7b646b3b1902964d3de7436185c35148960c42ac69449511c6be4eb8a0",
+    "disk-after-cleanup.log": "bc1fc6bb08b10036775d6690b73f714588725e7ad1adaa102b2fe8369f2b0349",
+    "doc-api-final.log": "ec255f504a977e8ccd79d66fe814581b11adf30a6ba354ae5ca898183ceb8517",
+    "docker-after-reboot.log": "6a96e40ac738fc51f485a6e13521a796bd2dcdc55ffde74b06988bc99e9a4055",
+    "docker-after-second-reboot.log": "655e59d71278399c5440384ad072213db9f1df4652d81da5520e0686ef17bb7b",
+    "docs-audit-final.log": "0e1eec794e07725e3070ec101bf8bcb3766fed42a8577f03cb3f133ef6ba6a8a",
+    "docs-generation-final.log": "768414753d45bfbe9ef65b0ada19a99841e1b551a032ae7a1a8c5d87e7ef641a",
+    "docs-test-final.log": "0226fd32d9203311cba4e1d453c0c2a5504126a64a8520b85563546ee2f5413f",
+    "existing-image-matcher-control.log": "54efd605359475f87ec4d8adb7ef7f2dd006243292abd74d7232dd898b3f1d50",
+    "final-compiled.revision": "d2842fe8709d016e79342e6daa24103071094c7aed49fb152641008ebb49945f",
+    "final-input-preparation.log": "03a64078a09e05b69d80c645d5db5591092b59d894e22919ccbda0b290c93cb7",
+    "final-launch-driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "final-sequence.tsv": "b8a2977a024a63b24489d95cd4f28531361eede7546527d90f363d241a76c08c",
+    "final-start-input-audit.log": "1b30094859ca4deb37e2f07a8c04b30bd3ef162721f8734f6569143f59285389",
+    "final-start-pages-audit.log": "692efdd1470cdc923625f691cb948ff885ec1dde65485f7d4111ccb0ed7299e7",
+    "final-test-inputs.revision": "d2842fe8709d016e79342e6daa24103071094c7aed49fb152641008ebb49945f",
+    "firewall-cleanup.log": "20155864db19a8185c45ad94f3484c9821fcb0383f658603d2d1c242c0f8506b",
+    "fresh-recovery-fixture.cjs": "4dd7de532915a17fe71bf1990831f82c72127dada226e3845a0d8ae03fa8f704",
+    "full-driver.log": "55d37748bccb7a4fa8dc0b39be8cceeeca2db36b0e6f6a54823343522af5f81e",
+    "full-sequence.tsv": "8a3e855e2a8d91b3cf6132750121b9c92ea87b1847e74c73f5c62755ba045093",
+    "generated-institution-final.log": "7c91245dc67383c1e1bfdd5ca11e3c1b6be6f6414fa34e91536aa43b1347d8d2",
+    "generated-package-lock.json": "fc4ea60f95a4bbe22ab7f17ada3b6aa4e1731c73add58e245784480ec7bfba9c",
+    "hook-qualification-final.log": "1f26e5c939f8aeac6c341dda583298efd4f027674c1e0149dc3dc8492ebc16f5",
+    "host-sockets-routes-green.log": "98401a209cceb55e2c6c42725d243428daffa63e96df4aff1387749e560d81c8",
+    "inspect-real-service-timers-rejected.cjs": "54277db0da8b256ed046912755e09392533452e3a9558dcc271ec1dc27f46789",
+    "installation-secret-regression.py": "7198bf7896b846ecfd47575f17c34e9af0ca197af61ded92a6a2b57864b10fc7",
+    "keepalive-probe.cjs": "056d574085fe2ceb280ce2bdeb6e48e87943feb452ea233d7e969d7858d0a7ef",
+    "lint-final.log": "51222c997fabbd9af452e9c147e66b7826cf92ab134b3dbd9d8c3ec27328bdae",
+    "lockfile-consistency.json": "40fcde68131f238215d2ddf0e879202cc3964556b731698db7b2f28b32e061fe",
+    "maintenance-core-graph-probe.cjs": "08197ace704bab966facaf70c747ae2136b55299367d04e117f6ef2e52c84045",
+    "maintenance-packed-final.log": "86d9fc3b420503f9aac84dd525b0221a352d8848589cbe2bd7afac13b32a61a5",
+    "matcher-dependency-overlay-final.log": "d798b24e76f0989100d92a5a42c80166b97ed8cd0b58837a1d1cbdb90505485a",
+    "matcher-dependency-overlay.json": "d798b24e76f0989100d92a5a42c80166b97ed8cd0b58837a1d1cbdb90505485a",
+    "matcher-dependency-overlay.log": "efd4589e1a980f674077c17a58a4fd108cad1ee74d147a3eff86b24b5f26aa8a",
+    "network-cleanup.log": "2cd0677fc58109bb587b54070bc3a364d074d9f0bfb347aba3853fc6e9f6562e",
+    "nvm-after-second-reboot.log": "48683d4bb10fe3558ce584ddee6358721ad3545cb8aa4fccf999afbc5f52e2b8",
+    "nvm-npm-environment-control.log": "5f7fdb3b43e715690126d9f97aac306f4b38e4b725af65aa25f760b49f6d3283",
+    "oidc-provider-fixture-rejected/core-real-final.log": "aee4a317d9584d0a303fb42580727dc68f708b05ea4c4f94183af803f9ad40d9",
+    "oidc-provider-fixture-rejected/keycloak-inspect.json": "103c0462e5a1d078438495c54c263f70cc47fb5c8a77a73c4b8af64a66c7e10a",
+    "oidc-provider-fixture-rejected/keycloak.log": "3a2467a619481d69eddcbdda4980fc01eecaad5a9a1a212936678c5dd221b698",
+    "oidc-provider-reset-driver.log": "5718cdb73d23a2b4a817a01b16937394c93aad40e71cf2db8266a668f1ee3ace",
+    "oidc-provider-reset-ready.json": "78d6674515b60222189014dd116787de12c8c03c152544ab23e3f12f2bce7418",
+    "oidc-provider-reset-startup.log": "568578ff8607aaf3193d2aa274de5e31e274e2539b99e48d9d02b7b750602521",
+    "oidc-provider-reset.log": "ba29c333dd96b3313e8082182e0311505397b4f866d7ee4de4c179222f2839ee",
+    "oidc-reboot-ready.json": "b884d296b8a302ce519b955d0d49b7853f07206677f7e1ee9918ff0cc05d1ee8",
+    "owned-anonymous-volumes.json": "e3e672a1e5e814afb65a44ae549de221b73b098b707952c1595ca2a79087cea0",
+    "package-pages-clean-literal.log": "b66c999b612ea56ddfd61b1d5a8796eea8a13b31c9eae2d7df6a399d3a9499e2",
+    "pdf-cleanup.log": "602bfcb0e51c6d0d10a7a96a5841fc183a8f73dc848b4a6fcd6f25b733aa9a1c",
+    "pdf-containers.log": "c97be433aba19bf93fdcfded7942945ce36e706a95f7c9254f000b42b380db83",
+    "pdf-final.log": "fce5c12dfd27c5c3f12d90e533aa2d3ca26d07d9610569cce1b6259aa64ab734",
+    "pdf-final.xml": "ba1b248727105872787f8eb2aec418b842f7bfb7eff818d9fadbf5e02acc337e",
+    "pdf-fixture-manifest-rejected/final-launch-driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pdf-fixture-manifest-rejected/full-driver.log": "f3e09d7a999c2872b6c943185dcb4b0a2eb0c6b0df4e5484e60766cee38328cc",
+    "pdf-fixture-manifest-rejected/pdf-cleanup.log": "ef8d8a26389ca948762d8d911de9aadbf4e048e93ad8ac5ea8cb554f600e27be",
+    "pdf-fixture-manifest-rejected/pdf-containers.log": "967b3230764927c9da81e113d94923938fe156cde75f082d8b3df9cf261e69eb",
+    "pdf-fixture-manifest-rejected/pdf-failed.xml": "010216798d5bea890f9e92d3c142d83a748ebc310ac2458d88fd43a343ac7740",
+    "pdf-fixture-manifest-rejected/pdf-final.log": "be95b243658c88d270e5443f63c6cb613ffe56b64e55a7bce2bee7e8c13b7bc5",
+    "pdf-image.yml": "4ce14cda61dfe55a31edd7db872c10ddb835c88891f9b92acb34856e794aad50",
+    "pdf-unit-final.log": "c86d7c1f2b0f5e7f20650b9e74dfa5ba48e0b35a031ce3d06a4f8463a1508ebf",
+    "playwright-final.log": "4770efcefa86df962407e2a7320b66a3c52e66e907d97495923af564c4f5ccc9",
+    "playwright-full-final.xml": "2b0e2a7f66d2314f578520523d7c11f18fe47a76ed6d7dcc6aee76c795a4254b",
+    "playwright-harness-final.log": "e79b151f19d3c90e4cb96bb3f01dd9c7bf83f0fcd01669c008e358546939436c",
+    "playwright-index.log": "359cd437bad6e38e63f83ce8356c5033e6aa312ab9e88b9ddfab749b78d7f76c",
+    "playwright-portal.log": "8b34b6fe78976a14883d2b09d50a2bae513a0c8121ff719ce4b623ca3fbbb589",
+    "playwright-ready.json": "b342fc286d0216cc212e0d7ba234894e2e7283ddf14f959adf0fe7fd5924308a",
+    "playwright-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "playwright-solr-reset.log": "1e627410562e7a715e931e6d4f38244bd9d6f795e9ca3688e6fdb4f1684d7705",
+    "playwright-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "playwright-stubs.log": "daab40a4632331b48782aca31e6003aacc341093f49071cb1ff8acf415e08338",
+    "portal-config-check.log": "bb7b37790ec6f972222ce1639f646467f333a864a50715191c95400b580d73b4",
+    "preparation-emission-red.log": "0975977c13cb557af99d52101a6f55ef82e50dd457405e87c728e73db9852ca7",
+    "prepare-browser-libs.py": "b74dc16ac21c8fc87b28f104bb8886e568f035607dfca0f6696f307a236b59a6",
+    "prepare-final-source.sh": "c170722735e592f5797a8bc7da0f6eb76048d0fcf8cbb57973a7c3f3537939bf",
+    "prisma-check.log": "cc24ab9a2180640c339bae307d5266d8186873b31aae92cc571643dbc28a046d",
+    "production-host-final.log": "a0d93dba76186d65a62094a1391fd3b1b5ff51a9135b4b1455623d49311aa0e6",
+    "production-qualifiers-reset.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "profile-network.yml": "63c5c7409a62e6023d965dd8fea75d27f948548d4fc45896527254b76f80eff8",
+    "progress-asset-byte-audit.json": "622da0f5b7d226596f93247cdc24c35833f2349d20b29c03e3f21c7eaf60e720",
+    "progress-client-red.log": "3b60b6bf12d4cadda733ecd846b65cdb099c5c41dfb652a96bf6a769418c4169",
+    "progress-status.py": "6e0bc3b666addb70ed1f5261356adbd0458159ea8a61c6433e9d78c9505dc289",
+    "qualification-8823651e1-superseded/build-final.log": "be244fa76fc5461dc4471f34bbd14d4b86cab2b266e3da3b83e23b9e872e0758",
+    "qualification-8823651e1-superseded/compiled.revision": "904c8fddc009b44b99b3292f03b8c95d0e8026cd0e6dbf45a9f9d7ad1bbb799f",
+    "qualification-8823651e1-superseded/final-test-inputs.revision": "904c8fddc009b44b99b3292f03b8c95d0e8026cd0e6dbf45a9f9d7ad1bbb799f",
+    "qualification-8823651e1-superseded/full-driver.log": "467ee0fa9c230970c47a53aa8f807027f87eeee6c1f0c8190514f48178fc5a93",
+    "qualification-8823651e1-superseded/typecheck-application.log": "bf29ae7992d4fbf3ceb625db1c233d74844cc501755b95f487b85f7931e161c2",
+    "qualification-d65e60b8f-reboot-void/build-final.log": "be244fa76fc5461dc4471f34bbd14d4b86cab2b266e3da3b83e23b9e872e0758",
+    "qualification-d65e60b8f-reboot-void/clean-build-driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-reboot-void/compile-all-clean-literal.log": "93b287a6cddb19cbd5f7ab55c7bee221257300617229748ce818256dd9774e69",
+    "qualification-d65e60b8f-reboot-void/compiled.revision": "d2842fe8709d016e79342e6daa24103071094c7aed49fb152641008ebb49945f",
+    "qualification-d65e60b8f-reboot-void/final-test-inputs.revision": "d2842fe8709d016e79342e6daa24103071094c7aed49fb152641008ebb49945f",
+    "qualification-d65e60b8f-reboot-void/full-driver.log": "467ee0fa9c230970c47a53aa8f807027f87eeee6c1f0c8190514f48178fc5a93",
+    "qualification-d65e60b8f-reboot-void/typecheck-application.log": "fa71e1ed8f1f18337b5a04afaa8663668eb14be00931c7774e66bf9837188fe3",
+    "qualification-d65e60b8f-reboot-void/typecheck-focused-application.log": "bf29ae7992d4fbf3ceb625db1c233d74844cc501755b95f487b85f7931e161c2",
+    "qualification-d65e60b8f-reboot-void/typecheck-focused-strict.log": "4bed0e01e91d8edccb9a1a2132408da584d2d22b36d55291c33415b233974f54",
+    "qualification-d65e60b8f-second-reboot-void/build-final.log": "be244fa76fc5461dc4471f34bbd14d4b86cab2b266e3da3b83e23b9e872e0758",
+    "qualification-d65e60b8f-second-reboot-void/clean-build-driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/closure-tests-final.log": "2dcc5ac66c3d5ffe896f4067f039f54cf8bbf84a8621058591b6bbf45a717587",
+    "qualification-d65e60b8f-second-reboot-void/compile-all-clean-literal.log": "60816205bbedd70b922e90574e53476298baaf120cde9b16a34904d37c185d41",
+    "qualification-d65e60b8f-second-reboot-void/compiled-tree-closure-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/compiled.revision": "d2842fe8709d016e79342e6daa24103071094c7aed49fb152641008ebb49945f",
+    "qualification-d65e60b8f-second-reboot-void/core-default-final.log": "d5eb5a0e81f22f4574851467828346d90286b68ac748605d7e46437e1ee6bd79",
+    "qualification-d65e60b8f-second-reboot-void/dev-tools-final-clean.log": "4f92f72c353f8d03074536453b9da9d09335819394d80df97857ae43947437e8",
+    "qualification-d65e60b8f-second-reboot-void/doc-api-final.log": "ec255f504a977e8ccd79d66fe814581b11adf30a6ba354ae5ca898183ceb8517",
+    "qualification-d65e60b8f-second-reboot-void/docs-audit-final.log": "0e1eec794e07725e3070ec101bf8bcb3766fed42a8577f03cb3f133ef6ba6a8a",
+    "qualification-d65e60b8f-second-reboot-void/docs-generation-final.log": "768414753d45bfbe9ef65b0ada19a99841e1b551a032ae7a1a8c5d87e7ef641a",
+    "qualification-d65e60b8f-second-reboot-void/docs-test-final.log": "0226fd32d9203311cba4e1d453c0c2a5504126a64a8520b85563546ee2f5413f",
+    "qualification-d65e60b8f-second-reboot-void/final-compiled.revision": "d2842fe8709d016e79342e6daa24103071094c7aed49fb152641008ebb49945f",
+    "qualification-d65e60b8f-second-reboot-void/final-sequence.tsv": "ded738fae98a34706d8fea1a8dedc61366f3b9eaadbaf1f60e66978c7c6bfe25",
+    "qualification-d65e60b8f-second-reboot-void/final-test-inputs.revision": "d2842fe8709d016e79342e6daa24103071094c7aed49fb152641008ebb49945f",
+    "qualification-d65e60b8f-second-reboot-void/full-driver.log": "bd902478f37a2439b16bf7807d215e8aaec3d76687ccfb3f0d18672f892c8476",
+    "qualification-d65e60b8f-second-reboot-void/full-sequence.tsv": "b4a9489373bb45944236c49ecf3127e11a121100dc1efc3413d72f4e4facc1cc",
+    "qualification-d65e60b8f-second-reboot-void/lint-final.log": "09f67d92cae3fe141f0b69c4d94ed6b8ca4358006c11bcbfde74c7114421ddbf",
+    "qualification-d65e60b8f-second-reboot-void/reconciliation-qualified.json": "6840fd22bb10a71fc01167dacbf4b82540ee10265106a45541f5cf0527cfbbb7",
+    "qualification-d65e60b8f-second-reboot-void/root-final.log": "485b669ff19fdd77c1bbf451e229be3f402570ffca41ccd51f476c6773e12ba9",
+    "qualification-d65e60b8f-second-reboot-void/source-closure-qualified.json": "2e89aa6607f153208e17c841a69d0d328849070afafb202820029fa6ff75b15e",
+    "qualification-d65e60b8f-second-reboot-void/source-inventory-qualified.json": "64ead89b7175293aaaa6966894ef3ca8667feb8ae1cda0161e38288d65f6f45f",
+    "qualification-d65e60b8f-second-reboot-void/storage-final-clean.log": "2aa882bdf77ee32f3499ed5337e56fed75c34839df5430b2965f0b1e9f94a160",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-application-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-application.log": "fa71e1ed8f1f18337b5a04afaa8663668eb14be00931c7774e66bf9837188fe3",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-effect-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-effect.log": "e9ec258f1bbf256d1e05047f3ebd9d50f9691d6d336e660014de037137f271ea",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-persistence-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-persistence.log": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-record-contracts-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-record-contracts.log": "1220e085e059c79b8fcab164f50d5e23b3c317121fc2c539c5f9bdc74a4386ae",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-record-schema-tests-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-record-schema-tests.log": "f76db3ac633f0373dfba04a11cb719f7fec9f586f420a3a194e48031a9cbe908",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-root-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-strict-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qualification-d65e60b8f-second-reboot-void/typecheck-strict.log": "4bed0e01e91d8edccb9a1a2132408da584d2d22b36d55291c33415b233974f54",
+    "reconciliation-qualified.json": "6840fd22bb10a71fc01167dacbf4b82540ee10265106a45541f5cf0527cfbbb7",
+    "rehearsal-package.json": "11fe23dd02f5a758c431fbc5c3250abb2fff87cf331be3a7958a550988efa4c2",
+    "remaining-owned-containers.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "remaining-owned-networks.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "render-route-table.cjs": "27e9ccc5ee59487990445b8bffe4ca85d9eeda189c6f1fce148bd43c565a2cf7",
+    "reset-oidc-provider.sh": "5126dae28cf3b32f092cda1c6dc0beaf9357341ee580c4b516166919fdb99d4f",
+    "restarted-providers.log": "5c1460aac186acdf8a828f42dd102f0f5d10023f086681dd54a4bbece62820a9",
+    "restore-artifact-storage.py": "9e0b1cbab2080114f2a907cf9d970f6f93071bf128e84577428bb0b47ee879b3",
+    "restore-bruno-files.py": "2bb851ce3714e59dfc54955444c04c344d9cf6db46fe00a5afea5fe6b5e1d6d3",
+    "restored-engine-cleanup.log": "69a4e3a8d844ec0c03d18bc8b8fd030ef5e25951ed1b2ae7f43da02d7c0398aa",
+    "resume-after-oidc-provider.sh": "b03f4b3151ce08e25d3b967eb6a5e49f7c15e3319ad8b4f86d5c49d3fa5650b1",
+    "resume-after-pdf-fixture.sh": "5e4e8ab5089bef4ed645e7b58a4870829a851ef30bc404dfafa15df638979dcf",
+    "resume-final-after-diagnostic.sh": "b39e6718cb9fb818a78604868ecbded7863799edf721c215474949b1ad870640",
+    "retirement-browser-final.log": "ca24396aa964d4e8a12805fce72cb1f9d5767302c449f5cd11f7523cae94bdf1",
+    "retirement-browser-final.xml": "4889aef87114aed90e35170139607d564e1a5916f423c28d05d2aabd68ad7b94",
+    "retirement-browser-host.log": "2615bc5e02118965ed29dd7fedd70fa1beca62a5dd2f495594c62ed12e921967",
+    "retirement-browser-package.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retirement-browser-stop.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "root-final.log": "1bd6b31c1f19e11ca8e7ebd29b4900fd11d795931314e72670387e4a677e2040",
+    "root-page-completion-audit.log": "692efdd1470cdc923625f691cb948ff885ec1dde65485f7d4111ccb0ed7299e7",
+    "root-page-input-audit.json": "997871b53ac16b800cc92e105fcca878aa46621b235e90c1fcc9082a8ac9f242",
+    "root-reset.log": "fd8c6f91fbc45f8ee1109eb46d9e5588c5237a295bfe3d838ec794365ebf9477",
+    "root-solr-reset.log": "4fe55e5213e33f2d3a61f47e0547a73653776e7c29a617b3dc98f94ba71d2577",
+    "route-equivalence-green-initial.log": "164536e08416017b2f335c45f1562d3e89e385a5bf64f0677431542d6b7a4740",
+    "route-equivalence-missing-dependency-rejected.log": "24c42a489a1fa53fc5454a294a5668598a20852de19b9845a1327095081ffb8c",
+    "route-equivalence-red.log": "466732dd469e03cb75f88de117c7668c1f9ecb1f5319788a0b357c43bc7a91f9",
+    "routes-draft-baseline.log": "d8ec5a1009b091882a8add6af4e9d9f5794c549d42ddb3dd581d67a840abdc12",
+    "routes-incoming-control.cjs": "77fb27e5dff93d9f0ea195362289d310b691f583d83a03835044abaaf415f1c1",
+    "routes-incoming-red.log": "a84cce796503d0cd687832f33f39c7b3a87d5765979a7c4ed1420c945b715fac",
+    "routes-structural-final.log": "96c67ef72bda5ec7b410d2fc767c5a9e29c1acbaec89e2e97516b016f49c60f8",
+    "routes-structural-first.log": "ab519cc324d15a6572fee929f08f97af43fbfee323722f4eaa90e7f7560fe95c",
+    "routes-structural-green.log": "2bd82b57dc08fbd60253431dc0832ce7e0b6938478e5d5afda66ff6730fed047",
+    "run-bruno.sh": "3c963de83bb8bfb14ce70a54e7492920f23f7547dcada6be25e3e126735b7883",
+    "run-build-typechecks.sh": "719a8ffe0bcb57ec24947cc619acbc6bed58f05dd468ca24393859c9f50d388c",
+    "run-clean-literal-final.sh": "1b637f8068e3fb891fa74eb2e45dacbe0aef054672212c06fe56c3e5f0dcd53a",
+    "run-completion-tail.sh": "f1b95b1b95fdc9c90828bedaddca0a39fc0557ee7c3356b36f30226fa637bb1e",
+    "run-core.sh": "f1b39e40a8d1b56999a7876b3ff3fdbe47802198d08afcdabcda38a8142195bc",
+    "run-development-mount.sh": "8055c199d94689fc35a5f6f735634aa4801249570087db6e84cba2bdf9f58bc9",
+    "run-development-walkthrough.sh": "17c4306434beae3e065480d839f9b676566310b1210127e19602e21377476c4e",
+    "run-docs-lint-original.sh": "c32561a1452af8bc5fccc6feb301df4a58595256dd510b19c607838c871de649",
+    "run-docs-lint.sh": "c32561a1452af8bc5fccc6feb301df4a58595256dd510b19c607838c871de649",
+    "run-f17-repro.sh": "792b2b2f01170a9d6afb5042e1a4cf4096e3e04915e942b38bce9cab2b0a97bf",
+    "run-final-additional.sh": "ea03b1ff246788e3dfbf8dcf3151c0ea9301d95f23e13c4a727c50240457904d",
+    "run-final-static.sh": "66bfd2a04139920281ec229f9771c67886dafd15a30952daa785ac06a4758e96",
+    "run-final-typechecks.sh": "af2228bf2606876764b5e524c40ce8ee842d59b6ec1402979461fe5a0ac741b4",
+    "run-fresh-source-restore.sh": "d1540543fa96ae909f92bf3aeba1062e9132cc921e1fe757c5af417539bdc5d0",
+    "run-full-final.sh": "fc03f2ed9c40c99fa6a090649683e7da3ffb60eaa2534227e43a132da975c438",
+    "run-full-qualified.sh": "e4e20740d15c0cdcd2060eb031edfa051afbf8f7456e1d535db2254b7643c6ab",
+    "run-hook-guide-final.sh": "127fc1713f3d27fb900a06d16d1c7e8101fa0bafcd0d1c72a680ca248f8c0785",
+    "run-hook-qualification.sh": "8483242cd2e0299c63160ad0123fcf636f481c43aaf15cac11d643d139993666",
+    "run-last-qualification.sh": "810343256c2e6da9a3ab6a5de684a803c4e71e2b20389cc3f9c981a51096a2ea",
+    "run-pdf-unit.sh": "0f9a376b96063c0cbd918b87468b30c7180281f9eaadf3cade0021c20d43c098",
+    "run-pdf.sh": "b5c3c02444fdbc94fd96b117c4d78c67c4c4b61b31f5e13cb2f8733af8d8a8e8",
+    "run-playwright.sh": "35f82407f07f290ede888c2784463d2ffcda03e21b21bd313fa5f28d5050ea0f",
+    "run-post-qualification.sh": "f4c5ce2ee4c6c6885f386a8db0ac4546fd32e7db56d220267158b304b540eee0",
+    "run-production-qualifiers.sh": "7d61aaf033bb041f237bbb029fd27ef72dac6e9a29f7dc5883fa3d7079efa309",
+    "run-real-core.sh": "4164271d01d9ce0e24501092f26b71bbeccae6a0caf6c53ca897ee28491bdb84",
+    "run-remaining-qualification.sh": "db3fbeb291c8b55a17d9f38b2c00f66cab4ea220672bd6167a91714aadd65f90",
+    "run-retirement-browser.sh": "38fbe849e53cb9d5baccfb53c46713c531625ba3763494a5d1f08bed6c32f7c2",
+    "run-root.sh": "4e80ce47a74a05f68384a960a2bac612418844490bc4b748b4b654972487e42c",
+    "run-s3-final.sh": "0819236117993d382121368a4a540ada7fdeabc86f5ecde76d9f9a0d0208b41b",
+    "run-serial-tail.sh": "78b88e496a58e202db4cd1d62143f90aaf893ecb38b80968ca7572c1fa5d22f9",
+    "run-storage.sh": "bc7c7be9f19833993d64abaeee68a496c2ecfcd4fc327bba599b84e8b3c17b9a",
+    "runtime-findings.json": "30cbe3c3b8f70771e472cf0d09067877e39972e76c5512c2c9d13cdc9c9e9da6",
+    "s3-compiled.yml": "df71d2e2d5d9ec624aec973c86bdb7d698ff6900d6641be9f74e48da69247974",
+    "sails-1.5.17-registry.json": "7a7c82c7c0fdc20198e95736ea922f07e8ff5822738dd9619c3cfdfbc4b60d32",
+    "sails-source-integrity.json": "7f4d8067506832ee7f15257982ccb7b03e3cfc64148f6090ccb3d6105a8046b5",
+    "sails-static-middleware-baseline.log": "7c2e1a9827260ed0969e9c351bbffe8a76dbe6f007018df3e8f43eabcf763c41",
+    "setup.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "setup.sh": "35253f6eaab3bdfb8575fb7424e50b6a4cbe8b6d54f38cec15289399cc6b352e",
+    "solr-reboot-ready.json": "718c43684453e87c7b7c947217968159bd53bb6ad0ff00cc1d5e7ea67f8cff05",
+    "source-closure-qualified.json": "2e89aa6607f153208e17c841a69d0d328849070afafb202820029fa6ff75b15e",
+    "source-inventory-qualified.json": "64ead89b7175293aaaa6966894ef3ca8667feb8ae1cda0161e38288d65f6f45f",
+    "start-final-after-clean.sh": "993080dc2019a3964980ee458c0141ed5dc5f7b436b554d2b4a6fe9191d4dc50",
+    "static-extras.cjs": "94c5ca3b097e127ec502b2a789d04dbd275ba51fc25b47ce8bc97ba12dff4113",
+    "static-extras.log": "3727589d010437431d3410463a12646ffce7a4b88008a8bab5eda35e001d4570",
+    "storage-final-clean.log": "3ced4b566b7f8959f2922c3f99ebcc11dad1ff136d76c67434ab422ac0cb2e1c",
+    "toolchain-images.log": "0c2e8042c845c2934c6d89868a5b463a5c322c98786b82d208608020f26b9010",
+    "toolchain-mongo.log": "02b6d74e2b9f08a82ce7d5a9c878b5dd55767e45cd526a6ed46bef6cccad264a",
+    "toolchain-node.log": "ff9f714664f5d87ac6548bb3700b0c18bd57add52ac986b01d4aec21543ccfda",
+    "toolchain-npm.log": "6784d6c924df1c8341f9f841f5b5b20c37255de3d34f923baebc0a557d5d5201",
+    "typecheck-application-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-application.log": "fa71e1ed8f1f18337b5a04afaa8663668eb14be00931c7774e66bf9837188fe3",
+    "typecheck-effect-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-effect.log": "e9ec258f1bbf256d1e05047f3ebd9d50f9691d6d336e660014de037137f271ea",
+    "typecheck-persistence-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-persistence.log": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f",
+    "typecheck-record-contracts-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-record-contracts.log": "1220e085e059c79b8fcab164f50d5e23b3c317121fc2c539c5f9bdc74a4386ae",
+    "typecheck-record-schema-tests-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-record-schema-tests.log": "f76db3ac633f0373dfba04a11cb719f7fec9f586f420a3a194e48031a9cbe908",
+    "typecheck-root-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-strict-exact-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-strict.log": "4bed0e01e91d8edccb9a1a2132408da584d2d22b36d55291c33415b233974f54",
+    "verify-matchers.py": "b3b1ce2e92dc000c41603dbecc1cc8f9311975af97964f3dbc7bd7b2a1dc7330",
+    "verify-s3-result.cjs": "920af57e18c3b730a23036c5a92f901f6e33391257ad0646d9f4a72cd89589ad",
+    "volume-cleanup.log": "8b7820919f3c371b74f7e0df9d89760141c0de7bad9b7709879570dc139b2a41"
+  },
+  "cleanSourceInputAudit": {
+    "commit": "d65e60b8f77c530729beff3724ac86f56046ebae",
+    "checkedFiles": 1332,
+    "differences": []
+  },
+  "generatedBrunoFiles": {
+    "test/bruno/environments/int-test.bru": {
+      "originalSha256": "06c23ad0aa72e5d68f90f3c685d00d5fa50d6aa8bddc7a14ba8c98e16396d8e3",
+      "generatedSha256": "ff3747b95e1c09f399b1c272a357746881b8b3f38b4bb2dd6020dc43e145affb",
+      "restoredSha256": "06c23ad0aa72e5d68f90f3c685d00d5fa50d6aa8bddc7a14ba8c98e16396d8e3",
+      "matchesOriginal": true
+    },
+    "test/bruno/package-lock.json": {
+      "originalSha256": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+      "generatedSha256": "fc4ea60f95a4bbe22ab7f17ada3b6aa4e1731c73add58e245784480ec7bfba9c",
+      "restoredSha256": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+      "matchesOriginal": true
+    }
+  },
+  "portableReviewProbes": {
+    "support/specs/sails-retirement/evidence/final-review-r10/asset-baseline-probe.cjs": "2657635d56130f18376707f6a3fc9a277657519e8092b6bde82e439d886750fc"
+  },
+  "rootPageInputAudit": {
+    "checkedFiles": 48,
+    "differences": []
+  },
+  "progressAssetBytes": {
+    "sha256": "d2333010a0c391ec0fed7c6273bd08113390104614009f137aa7ea0b2523dd45",
+    "rawEqualsCompiled": true
+  },
+  "packedMaintenance": {
+    "scopes": 102,
+    "agendaScopes": 3,
+    "commands": 10,
+    "pending": 0,
+    "failures": 0,
+    "explicitBackfill": "1 then 0",
+    "poolCount": 0
+  },
+  "cleanSourceBuild": {
+    "exitCode": 0,
+    "npmCiExitCode": 0,
+    "packagePagesExitCode": 0,
+    "node": "v26.11.1",
+    "npm": "11.20.0",
+    "inputRevision": "d65e60b8f77c530729beff3724ac86f56046ebae",
+    "checkedAuthoredFiles": 1332,
+    "setup": [
+      "nvm install",
+      "nvm use",
+      "npm ci --ignore-scripts --strict-peer-deps",
+      "npm run compile:all",
+      "npm run package:pages"
+    ],
+    "compileLog": "compile-all-clean-literal.log",
+    "packageLog": "package-pages-clean-literal.log"
+  },
+  "qualificationFixtureCorrection": {
+    "nativePdfAttemptRejected": true,
+    "archive": "pdf-fixture-manifest-rejected",
+    "cause": "Local rehearsal manifest overlay omitted redbox-hook-dev from production dependencies; fresh portal had no institution workflows.",
+    "correction": "Restored exact local institution-hook dependency to match Dockerfile rehearsal, reran native PDF, then completed all remaining gates.",
+    "repositoryInputsChanged": false,
+    "acceptedEarlierFinalTreeGatesRetained": true
+  },
+  "qualificationProviderCorrection": {
+    "realServiceAttemptRejected": true,
+    "archive": "oidc-provider-fixture-rejected",
+    "cause": "Restored Keycloak imported augmented realm without tracked companion user fixture; LOGIN_ERROR user_not_found.",
+    "correction": "Restored exact companion user fixture, recreated only disposable Keycloak, and reran full real-service suite with natural exit.",
+    "repositoryInputsChanged": false
+  },
+  "qualificationRestarts": {
+    "interruptedPrefixesAccepted": false,
+    "observedHostRestarts": 2,
+    "finalStrategy": "complete clean-source install/build/page packaging before starting every full qualification gate",
+    "compilerMemoryLimitBytes": 6442450944,
+    "disposition": "reboot-disposition.md"
+  },
+  "baselineAssets": {
+    "baseline": "a49366803",
+    "rows": 19,
+    "checks": 105,
+    "candidateOrder": [
+      "brand/portal",
+      "default/portal",
+      "default/default"
+    ],
+    "rootsPerCandidate": [
+      "compiled public",
+      "high hook",
+      "low hook"
+    ],
+    "nonAllowlistedFiles": "compiled public only",
+    "rawSource": "build input only",
+    "explicitLegacyCopies": "initialization mutates both source and compiled trees"
+  },
+  "routeReview": {
+    "nativeTableRows": 31,
+    "focusedPassed": 63,
+    "incomingControlPassed": 23,
+    "incomingControlFailed": 17,
+    "scope": "compiled complete alternatives and conservative structural replacement identity; not arbitrary regular-language equivalence or all route intersections"
+  }
+}
