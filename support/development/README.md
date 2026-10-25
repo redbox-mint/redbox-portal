@@ -54,7 +54,6 @@ docker compose -f support/development/docker-compose.yml --profile build run --r
 ```
 
 Root `npm start` and `npm run debug` run Express; outside Compose provide
-`REDBOX_APPLICATION_CONFIG` and `REDBOX_SESSION_SECRET`. `npm run
-start:sails:comparison` and `npm run debug:sails:comparison` retain the old
-comparison adapter until P8. Comparison runs require isolated data and converted
-v5 inputs; never run the old host on data already modified by v6.
+`REDBOX_APPLICATION_CONFIG` and `REDBOX_SESSION_SECRET`. The comparison entrypoints
+were removed in P8. Released-v5 comparisons require a separate artifact and
+isolated data; never run the old host on data already modified by v6.

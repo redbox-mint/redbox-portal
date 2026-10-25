@@ -31,9 +31,11 @@ Read [cache architecture and build guidance](Cache-Persistence.md) before rebuil
 
 ## v6 toolchain and startup
 
-Use Node **26.11.1**, npm **11.20.0** and exact package pins. `npm run dev:prepare`
-installs/builds the selected packages; `npm run dev:run` mounts the compiled tree
-and `npm run dev:run:build` exercises image mode. Core must finish its clean build
+Use Node **26.11.1**, npm **11.20.0** and exact package pins. `npm run compile:all`
+installs/builds all selected packages and browser assets; `npm run dev:run` mounts the compiled tree
+and `npm run dev:run:build` exercises image mode. Export `REDBOX_SESSION_SECRET`
+(at least 32 characters) before either command; the complete sequence is in
+[the development workflow](../development/README.md). Core must finish its clean build
 before compiling dependents. `npm start` runs `app.express.cjs`.
 
 Startup reads explicit configuration modules and v6 declarations. It never

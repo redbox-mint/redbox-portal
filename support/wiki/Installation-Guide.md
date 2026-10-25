@@ -13,7 +13,8 @@ Install Docker/Compose, use the repository's exact pins, and follow
 providers. For a local build:
 
 ```sh
-npm run dev:prepare
+npm run compile:all
+export REDBOX_SESSION_SECRET="$(openssl rand -hex 32)"
 npm run dev:run:build
 ```
 
