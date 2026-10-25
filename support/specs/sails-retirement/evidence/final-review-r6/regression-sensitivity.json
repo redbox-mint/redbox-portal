@@ -1,0 +1,126 @@
+{
+  "qualification": "Focused sensitivity controls only; the full final tree is qualified separately.",
+  "cases": [
+    {
+      "id": "R6-01",
+      "before": {
+        "log": "figshare-red.log",
+        "passed": 1,
+        "failed": 1
+      },
+      "after": {
+        "log": "figshare-green.log",
+        "passed": 14,
+        "failed": 0
+      },
+      "sensitivity": "Load reviewed-head configuration with the new fixture test; the recognized configuration fails before resource acquisition.",
+      "sha256": {
+        "figshare-red.log": "b0c3bc2157adbcab09327dac868016db6b04627bf9fc79bf7c530e62feb04c84",
+        "figshare-green.log": "07ac96242546b7b543d1751fa34b1d072f5f63d9bc6f2860f7a89f61d3685ed8"
+      }
+    },
+    {
+      "id": "R6-02",
+      "before": {
+        "log": "scaffold-check-red.log",
+        "passed": 0,
+        "failed": 1
+      },
+      "after": {
+        "log": "scaffold-check-green.log",
+        "passed": 8,
+        "failed": 0
+      },
+      "sensitivity": "Execute public init and actual check; reviewed-head checker rejects generated devDependencies.typescript.",
+      "sha256": {
+        "scaffold-check-red.log": "c897aee322b614fe84a9b54220c87146a8866b840c7752ccc902a079814f89b1",
+        "scaffold-check-green.log": "330bb281c84bc7a2336bb680530536c5b4644d77bed46da92bc42c6a0baf4f72"
+      }
+    },
+    {
+      "id": "R6-03",
+      "before": {
+        "log": "queue-preflight-red-final.log",
+        "passed": 1,
+        "failed": 1
+      },
+      "after": {
+        "log": "queue-preflight-green-final.log",
+        "passed": 12,
+        "failed": 0
+      },
+      "sensitivity": "Substitute only reviewed-head application.ts; SQS-only selects unneeded Agenda options while the explicit Mongo control passes.",
+      "sha256": {
+        "queue-preflight-red-final.log": "addc2934584d5a76b60b043dbf9ff00615e687a536ba6b782f5dd57bb4e883c1",
+        "queue-preflight-green-final.log": "a8bf26f1b357200a7452ca99007aac4488c54a9021abcd3a5a9437bb2470a199"
+      }
+    },
+    {
+      "id": "R6-04",
+      "before": {
+        "log": "generated-policy-red.log",
+        "passed": 0,
+        "failed": 1
+      },
+      "after": {
+        "log": "generated-policy-green.log",
+        "passed": 4,
+        "failed": 0
+      },
+      "sensitivity": "Emit actual generator declarations and bind the production policy map; the reviewed-head authenticated name is unbound.",
+      "sha256": {
+        "generated-policy-red.log": "84cc76d08fc6d2e1f60ec6ec71ff50937617475166e94820bb823669b23ac736",
+        "generated-policy-green.log": "6839f613958b896481d92d100776ade82dc8d8ce93973cb6fd7af3d4738b1ece"
+      }
+    },
+    {
+      "id": "R6-05",
+      "before": {
+        "log": "production-host-params-red-final.log",
+        "passed": 0,
+        "failed": 1
+      },
+      "after": {
+        "log": "production-host-focused-green.log",
+        "passed": 1,
+        "failed": 0
+      },
+      "sensitivity": "Replace only compiled Router({mergeParams:true}) with the original Router(); actual generated route returns 404 instead of 401.",
+      "sha256": {
+        "production-host-params-red-final.log": "47d9b3afb9eb433cef8e2af7f0f4debfbad06a2809c3aedd784fa66d6c38f7c4",
+        "production-host-focused-green.log": "cb0bca5b5f229191045e4c0bcb20e4ed7399183bdbf622006dcc70bff349a51c"
+      }
+    },
+    {
+      "id": "R6-06",
+      "before": {
+        "log": "multipart-truncated-red.log",
+        "passed": 0,
+        "failed": 2
+      },
+      "after": {
+        "log": "multipart-truncated-green.log",
+        "passed": 11,
+        "failed": 0
+      },
+      "sensitivity": "Actual HTTP truncated file body: reviewed parser emits an unhandled second Busboy error, and the response is 500. A persistent-listener-only control removes the uncaught error but retains the 500. Corrected code returns 400, cleans staging, serves the next upload, and retains gated disk cleanup during drain.",
+      "intermediate": {
+        "log": "multipart-truncated-persistent-listener.log",
+        "passed": 0,
+        "failed": 1
+      },
+      "sha256": {
+        "multipart-truncated-red.log": "5e990800e917484df2f49336aa68dc82d81e33e3ba90738caae080a88ddae41b",
+        "multipart-truncated-green.log": "bb6f066625a34de6a3b0a2d6ebf46df407ccc20cdac98febd4a2dd74c8dac146",
+        "multipart-truncated-persistent-listener.log": "df4425e8a7defeeb315a53ba410ed8c05c09fd8e54b01f051a28a1d46aedb1ab"
+      }
+    }
+  ],
+  "rejectedAttempts": [
+    "Early queue fixtures used an unbound function and did not override each explicitly Mongo-backed default job. Only queue-preflight-red-final.log and queue-preflight-green-final.log use the corrected fixture.",
+    "The first maintenance run used the historical image executable. It was replaced with current app.express.cjs before accepted runs.",
+    "The first production-host fixture omitted the required explicit handler binding, then left secure cookies enabled on its plain HTTP listener. Those setup failures are not counted as product defects or passing evidence.",
+    "The first host parameter failure preceded the final browser fixture setup. production-host-params-red-final.log is the accepted control against the complete final fixture.",
+    "Preliminary builds/focused suites are not substitutes for final-tree qualification."
+  ]
+}
