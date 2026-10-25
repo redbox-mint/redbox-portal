@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import type { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
+import supertest from 'supertest';
 import { resolveExtensions, type ExtensionProvider, type RedboxExtension } from '../../src/extensions';
 
 const makeModule = (name: string, requires?: string[]) => ({
@@ -96,12 +97,22 @@ describe('v6 extension declarations', () => {
       /requires replaces/
     );
   });
+  it('matches repeated trailing slashes like the actual Express router', async () => {
+    const router = express();
+    router.get('/items/:item//', (_req, res) => res.send('matched'));
+    for (const requestPath of ['/items/example', '/items/example/']) {
+      assert.equal((await supertest(router).get(requestPath).expect(200)).text, 'matched');
+      await supertest(router).head(requestPath).expect(200);
+    }
+  });
   for (const [first, second] of [
     ['/items/*first', '/ITEMS/*second/'],
     ['/items/{*first}', '/items/{*second}'],
     ['/items/:"first-name"', '/items/:"second-name"'],
     ['/items/:α', '/items/:β'],
     ['/items/:first', '/items/:"second"'],
+    ['/items/:first', '/ITEMS/:second//'],
+    ['/', '///'],
   ])
     it(`rejects equivalent Express 5 paths ${first} and ${second} before constructing handlers`, () => {
       const route = { name: 'first', method: 'get' as const, path: first, handler: 'read', access: 'public' as const };

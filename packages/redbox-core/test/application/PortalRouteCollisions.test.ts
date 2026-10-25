@@ -11,6 +11,8 @@ describe('production owned route collision preflight', () => {
   const owned = portalOwnedHttpRoutes(config);
   for (const [method, path] of [
     ['get', '/:branding/:portal/api/recordtypes'],
+    ['get', '/:branding/:portal/api/recordtypes//'],
+    ['head', '/:brand/:site/api/recordtypes///'],
     ['head', '/:brand/:site/api/recordtypes/'],
     ['get', '/:branding/:portal/home'],
     ['post', '/:branding/:portal/record/:id/attach'],

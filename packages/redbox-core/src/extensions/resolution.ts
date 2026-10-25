@@ -166,7 +166,7 @@ export interface OwnedHttpRoute {
 
 /** The same matcher grammar/options as the host's default Express 5 router. */
 export function canonicalHttpRoutePath(routePath: string): string {
-  return pathToRegexp(routePath.replace(/\/$/, '').toLowerCase()).regexp.source;
+  return pathToRegexp(routePath.replace(/\/+$/, '').toLowerCase()).regexp.source;
 }
 
 function orderModules(modules: readonly ResolvedRegistration<ExtensionFactory>[]) {
