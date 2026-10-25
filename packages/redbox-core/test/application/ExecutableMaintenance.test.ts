@@ -26,8 +26,19 @@ describe('executable maintenance backend selection', () => {
         const completed = Promise.withResolvers<void>();
         let selected: unknown;
         let calls = 0;
+        const guide = readFileSync(
+          path.resolve(__dirname, '../../../../support/wiki/Persistence-Index-Preparation.md'),
+          'utf8'
+        );
+        assert.ok(guide.includes(`--entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:${mode}`));
         const fakeProcess = {
-          env: {},
+          env: {
+            REDBOX_APPLICATION_CONFIG: 'application.cjs',
+            REDBOX_ENVIRONMENT_CONFIG: 'environment.cjs',
+            REDBOX_LOCAL_CONFIG: 'local.cjs',
+            REDBOX_ADMIN_PASSWORD: 'maintenance-test-password',
+            REDBOX_ADMIN_TOKEN: 'maintenance-test-token',
+          },
           argv: ['node', 'app.express.cjs', `--maintenance=indexes:${mode}`],
           chdir() {},
           stdout: { write() {} },
@@ -41,7 +52,27 @@ describe('executable maintenance backend selection', () => {
           if (name.endsWith('/configuration')) return { ConfigurationError: class extends Error {} };
           if (name.endsWith('/portal'))
             return {
-              createPortalApplication: async () => portal,
+              createPortalApplication: async (options: {
+                files: Record<string, string>;
+                env: Record<string, string>;
+              }) => {
+                assert.deepEqual(
+                  { ...options.files },
+                  {
+                    application: 'application.cjs',
+                    environment: 'environment.cjs',
+                    local: 'local.cjs',
+                  }
+                );
+                assert.deepEqual(
+                  { ...options.env },
+                  {
+                    REDBOX_ADMIN_PASSWORD: 'maintenance-test-password',
+                    REDBOX_ADMIN_TOKEN: 'maintenance-test-token',
+                  }
+                );
+                return portal;
+              },
               selectedAgendaMongoOptions,
               prepareSelectedPersistenceIndexes: async (
                 _owner: unknown,

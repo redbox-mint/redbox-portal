@@ -14,7 +14,7 @@ Existing volumes do not rerun init scripts. Keep the qualified engine/FCV and
 volume, stop application writers and migration runners, and take the deployment's
 backup/checkpoint. Run the following **single application-aware command** from
 the application directory, with the same `NODE_ENV`, configuration, hooks and
-protected datastore credentials as the application. Remove all backend selectors before running this stopped maintenance process:
+protected datastore credentials as the application. The standalone command accepts an explicit operational-only file (`--config deployment.mjs`); portal configuration files and portal-only `REDBOX_*` variables belong to the executable maintenance mode shown below. Remove all backend selectors before running this stopped maintenance process:
 
 ```bash
 npm run persistence:indexes -- --inspect
@@ -83,10 +83,12 @@ run the same command in a one-off application container with its existing config
 
 ```bash
 docker compose --profile mount -f support/development/docker-compose.yml run \
-  --rm --no-deps --entrypoint npm rbportal-mount run persistence:indexes -- --inspect
+  --rm --no-deps --entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:inspect
 docker compose --profile mount -f support/development/docker-compose.yml run \
-  --rm --no-deps --entrypoint npm rbportal-mount run persistence:indexes -- --ensure
+  --rm --no-deps --entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:ensure
 ```
+
+This executable mode consumes the service's portal configuration selectors and admin environment while keeping factories, listeners, migrations and workers offline.
 
 Use the institution's actual Compose project/service and current installed core
 artifact. Existing hook apps can add the same npm script shipped by the archetype:
