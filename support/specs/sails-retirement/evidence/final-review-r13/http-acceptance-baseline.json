@@ -1,0 +1,232 @@
+{
+  "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "probe": "actual controller methods with deterministic ports; final editor row source assertion",
+  "count": 31,
+  "rows": [
+    {
+      "family": "admin-body-userid",
+      "action": "generateUserKey",
+      "useridPresent": true,
+      "selected": [
+        {
+          "operation": "setUserKey",
+          "id": "111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "family": "admin-body-userid",
+      "action": "generateUserKey",
+      "useridPresent": false,
+      "selected": []
+    },
+    {
+      "family": "admin-body-userid",
+      "action": "revokeUserKey",
+      "useridPresent": true,
+      "selected": [
+        {
+          "operation": "setUserKey",
+          "id": "111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "family": "admin-body-userid",
+      "action": "revokeUserKey",
+      "useridPresent": false,
+      "selected": []
+    },
+    {
+      "family": "admin-body-userid",
+      "action": "updateUserDetails",
+      "useridPresent": true,
+      "selected": [
+        {
+          "operation": "updateUserDetails",
+          "id": "111111111111111111111111"
+        },
+        {
+          "operation": "updateUserRoles",
+          "id": "111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "family": "admin-body-userid",
+      "action": "updateUserDetails",
+      "useridPresent": false,
+      "selected": []
+    },
+    {
+      "family": "admin-body-userid",
+      "action": "updateUserRoles",
+      "useridPresent": true,
+      "selected": [
+        {
+          "operation": "updateUserRoles",
+          "id": "111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "family": "admin-body-userid",
+      "action": "updateUserRoles",
+      "useridPresent": false,
+      "selected": []
+    },
+    {
+      "family": "translation-optional-filters",
+      "query": {},
+      "locale": null,
+      "namespace": "translation"
+    },
+    {
+      "family": "translation-optional-filters",
+      "query": {
+        "locale": "en"
+      },
+      "locale": "en",
+      "namespace": "translation"
+    },
+    {
+      "family": "translation-optional-filters",
+      "query": {
+        "locale": "en",
+        "namespace": ""
+      },
+      "locale": "en",
+      "namespace": "translation"
+    },
+    {
+      "family": "translation-optional-filters",
+      "query": {
+        "locale": "",
+        "namespace": "custom"
+      },
+      "locale": "",
+      "namespace": "custom"
+    },
+    {
+      "family": "notation",
+      "values": [
+        "a,b",
+        "c"
+      ],
+      "selected": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    {
+      "family": "notation",
+      "values": [
+        " a,b ",
+        "b,c",
+        "",
+        "a"
+      ],
+      "selected": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    {
+      "family": "notation",
+      "values": [
+        "a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a"
+      ],
+      "selected": [
+        "a"
+      ]
+    },
+    {
+      "family": "notation",
+      "values": [
+        "a,b,c"
+      ],
+      "selected": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "true",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "TRUE",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": " t ",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "1",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "yes",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "y",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "on",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "enable",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "enabled",
+      "selected": true
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "false",
+      "selected": false
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "0",
+      "selected": false
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "no",
+      "selected": false
+    },
+    {
+      "family": "historical-boolean",
+      "raw": "",
+      "selected": false
+    },
+    {
+      "family": "bodyless-browser-sync",
+      "id": "vocab-1",
+      "version": null
+    },
+    {
+      "family": "query-oid-editor",
+      "provenance": "packages/redbox-core/src/controllers/RecordController.ts:851",
+      "verification": "actual baseline selector and guarded getMeta statement; native HTTP regression executes both edit URLs"
+    }
+  ]
+}

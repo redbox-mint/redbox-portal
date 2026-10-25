@@ -1,0 +1,1675 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 59,
+    "passes": 26,
+    "pending": 0,
+    "failures": 33,
+    "start": "2026-10-25T13:43:19.558Z",
+    "end": "2026-10-25T13:43:20.606Z",
+    "duration": 1048
+  },
+  "tests": [
+    {
+      "title": "retains a bodyless browser vocabulary sync for the latest version",
+      "fullTitle": "Legacy HTTP input acceptance retains a bodyless browser vocabulary sync for the latest version",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 84,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:24:14)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains existing-record editing and route identifier precedence /record/rdmp/edit?oid=oid-1",
+      "fullTitle": "Legacy HTTP input acceptance retains existing-record editing and route identifier precedence /record/rdmp/edit?oid=oid-1",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 93,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 1\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:42:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n0 !== 1\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "0",
+        "expected": "1",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains existing-record editing and route identifier precedence /record/edit/oid-1?oid=other-record",
+      "fullTitle": "Legacy HTTP input acceptance retains existing-record editing and route identifier precedence /record/edit/oid-1?oid=other-record",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 87,
+      "currentRetry": 0,
+      "speed": "slow",
+      "err": {}
+    },
+    {
+      "title": "retains existing-record form delivery and route identifier precedence /record/form/rdmp?oid=oid-1",
+      "fullTitle": "Legacy HTTP input acceptance retains existing-record form delivery and route identifier precedence /record/form/rdmp?oid=oid-1",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 68,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 1\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:57:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n0 !== 1\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "0",
+        "expected": "1",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains existing-record form delivery and route identifier precedence /record/form/rdmp/oid-1?oid=other-record",
+      "fullTitle": "Legacy HTTP input acceptance retains existing-record form delivery and route identifier precedence /record/form/rdmp/oid-1?oid=other-record",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 72,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "retains optional translation listing filters ",
+      "fullTitle": "Legacy HTTP input acceptance retains optional translation listing filters ",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 16,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:79:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains optional translation listing filters ?locale=en",
+      "fullTitle": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=en",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains optional translation listing filters ?locale=en&namespace=",
+      "fullTitle": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=en&namespace=",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:79:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains optional translation listing filters ?locale=&namespace=custom",
+      "fullTitle": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=&namespace=custom",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 17,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:79:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains body.userid over unrelated query.id for browser admin genKey",
+      "fullTitle": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin genKey",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 25,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:132:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "222222222222222222222222",
+        "expected": "111111111111111111111111",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains body.userid over unrelated query.id for browser admin revokeKey",
+      "fullTitle": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin revokeKey",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:132:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "222222222222222222222222",
+        "expected": "111111111111111111111111",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains body.userid over unrelated query.id for browser admin update",
+      "fullTitle": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin update",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:132:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "222222222222222222222222",
+        "expected": "111111111111111111111111",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains body.userid over unrelated query.id for browser admin roles",
+      "fullTitle": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin roles",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:132:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "222222222222222222222222",
+        "expected": "111111111111111111111111",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select query.id when browser admin genKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select query.id when browser admin genKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 18,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select body.id when browser admin genKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select body.id when browser admin genKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select both when browser admin genKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select both when browser admin genKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select query.id when browser admin revokeKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select query.id when browser admin revokeKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select body.id when browser admin revokeKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select body.id when browser admin revokeKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select both when browser admin revokeKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select both when browser admin revokeKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select query.id when browser admin update omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select query.id when browser admin update omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select body.id when browser admin update omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select body.id when browser admin update omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select both when browser admin update omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select both when browser admin update omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select query.id when browser admin roles omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select query.id when browser admin roles omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select body.id when browser admin roles omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select body.id when browser admin roles omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select both when browser admin roles omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select both when browser admin roles omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 16,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "rejects structured translation filters ?locale[bad]=en",
+      "fullTitle": "Legacy HTTP input acceptance rejects structured translation filters ?locale[bad]=en",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects structured translation filters ?namespace[bad]=translation",
+      "fullTitle": "Legacy HTTP input acceptance rejects structured translation filters ?namespace[bad]=translation",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects structured translation filters ?keyPrefix[bad]=a",
+      "fullTitle": "Legacy HTTP input acceptance rejects structured translation filters ?keyPrefix[bad]=a",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query=true body=undefined",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query=true body=undefined",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query=false body=undefined",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query=false body=undefined",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query=false body={\"enabled\":true}",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query=false body={\"enabled\":true}",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 16,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query=true body={\"enabled\":false}",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query=true body={\"enabled\":false}",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query= body={\"enabled\":\"false\"}",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query= body={\"enabled\":\"false\"}",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation write validation /enabled?enabled=true []",
+      "fullTitle": "Legacy HTTP input acceptance retains translation write validation /enabled?enabled=true []",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation write validation  undefined",
+      "fullTitle": "Legacy HTTP input acceptance retains translation write validation  undefined",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation write validation /enabled?enabled[bad]=true undefined",
+      "fullTitle": "Legacy HTTP input acceptance retains translation write validation /enabled?enabled[bad]=true undefined",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation write validation /enabled {\"enabled\":{}}",
+      "fullTitle": "Legacy HTTP input acceptance retains translation write validation /enabled {\"enabled\":{}}",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 16,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"true\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"true\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"TRUE\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"TRUE\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\" t \"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\" t \"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"1\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"1\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"yes\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"yes\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"y\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"y\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"on\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"on\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"enable\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"enable\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"enabled\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"enabled\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"false\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"false\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"0\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"0\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"no\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"no\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "splits and deduplicates 2 notation parameters before the unique-value limit",
+      "fullTitle": "Legacy HTTP input acceptance splits and deduplicates 2 notation parameters before the unique-value limit",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'a,b',\n-   'a',\n-   'b',\n    'c'\n  ]\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:304:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'a,b',\n-   'a',\n-   'b',\n    'c'\n  ]\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "[\n  \"a,b\"\n  \"c\"\n]",
+        "expected": "[\n  \"a\"\n  \"b\"\n  \"c\"\n]",
+        "operator": "deepStrictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "splits and deduplicates 4 notation parameters before the unique-value limit",
+      "fullTitle": "Legacy HTTP input acceptance splits and deduplicates 4 notation parameters before the unique-value limit",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'a,b',\n+   'b,c',\n    'a',\n-   'b',\n-   'c'\n  ]\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:304:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'a,b',\n+   'b,c',\n    'a',\n-   'b',\n-   'c'\n  ]\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "[\n  \"a,b\"\n  \"b,c\"\n  \"a\"\n]",
+        "expected": "[\n  \"a\"\n  \"b\"\n  \"c\"\n]",
+        "operator": "deepStrictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "splits and deduplicates 1 notation parameters before the unique-value limit",
+      "fullTitle": "Legacy HTTP input acceptance splits and deduplicates 1 notation parameters before the unique-value limit",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:303:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "splits and deduplicates 1 notation parameters before the unique-value limit",
+      "fullTitle": "Legacy HTTP input acceptance splits and deduplicates 1 notation parameters before the unique-value limit",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: notation[bad]=value",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation[bad]=value",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: notation=a&notation[bad]=value",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=a&notation[bad]=value",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 15,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: notation=",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: notation=n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: includeHistoricalValues[bad]=true",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: includeHistoricalValues[bad]=true",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    }
+  ],
+  "pending": [],
+  "failures": [
+    {
+      "title": "retains a bodyless browser vocabulary sync for the latest version",
+      "fullTitle": "Legacy HTTP input acceptance retains a bodyless browser vocabulary sync for the latest version",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 84,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:24:14)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains existing-record editing and route identifier precedence /record/rdmp/edit?oid=oid-1",
+      "fullTitle": "Legacy HTTP input acceptance retains existing-record editing and route identifier precedence /record/rdmp/edit?oid=oid-1",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 93,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 1\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:42:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n0 !== 1\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "0",
+        "expected": "1",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains existing-record form delivery and route identifier precedence /record/form/rdmp?oid=oid-1",
+      "fullTitle": "Legacy HTTP input acceptance retains existing-record form delivery and route identifier precedence /record/form/rdmp?oid=oid-1",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 68,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 1\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:57:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n0 !== 1\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "0",
+        "expected": "1",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains optional translation listing filters ",
+      "fullTitle": "Legacy HTTP input acceptance retains optional translation listing filters ",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 16,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:79:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains optional translation listing filters ?locale=en&namespace=",
+      "fullTitle": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=en&namespace=",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:79:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains optional translation listing filters ?locale=&namespace=custom",
+      "fullTitle": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=&namespace=custom",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 17,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:79:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains body.userid over unrelated query.id for browser admin genKey",
+      "fullTitle": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin genKey",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 25,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:132:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "222222222222222222222222",
+        "expected": "111111111111111111111111",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains body.userid over unrelated query.id for browser admin revokeKey",
+      "fullTitle": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin revokeKey",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:132:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "222222222222222222222222",
+        "expected": "111111111111111111111111",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains body.userid over unrelated query.id for browser admin update",
+      "fullTitle": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin update",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:132:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "222222222222222222222222",
+        "expected": "111111111111111111111111",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains body.userid over unrelated query.id for browser admin roles",
+      "fullTitle": "Legacy HTTP input acceptance retains body.userid over unrelated query.id for browser admin roles",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:132:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '222222222222222222222222'\n- '111111111111111111111111'\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "222222222222222222222222",
+        "expected": "111111111111111111111111",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select query.id when browser admin genKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select query.id when browser admin genKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 18,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select body.id when browser admin genKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select body.id when browser admin genKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select both when browser admin genKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select both when browser admin genKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select query.id when browser admin revokeKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select query.id when browser admin revokeKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select body.id when browser admin revokeKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select body.id when browser admin revokeKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select both when browser admin revokeKey omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select both when browser admin revokeKey omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select query.id when browser admin update omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select query.id when browser admin update omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select body.id when browser admin update omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select body.id when browser admin update omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select both when browser admin update omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select both when browser admin update omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select query.id when browser admin roles omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select query.id when browser admin roles omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select body.id when browser admin roles omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select body.id when browser admin roles omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "does not select both when browser admin roles omits userid",
+      "fullTitle": "Legacy HTTP input acceptance does not select both when browser admin roles omits userid",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 16,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n403 !== 400\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:162:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n403 !== 400\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "403",
+        "expected": "400",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"TRUE\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"TRUE\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\" t \"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\" t \"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"1\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"1\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"yes\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"yes\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"y\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"y\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"on\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"on\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"enable\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"enable\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "retains includeHistoricalValues=\"enabled\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"enabled\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:275:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\nfalse !== true\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "false",
+        "expected": "true",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "splits and deduplicates 2 notation parameters before the unique-value limit",
+      "fullTitle": "Legacy HTTP input acceptance splits and deduplicates 2 notation parameters before the unique-value limit",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'a,b',\n-   'a',\n-   'b',\n    'c'\n  ]\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:304:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'a,b',\n-   'a',\n-   'b',\n    'c'\n  ]\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "[\n  \"a,b\"\n  \"c\"\n]",
+        "expected": "[\n  \"a\"\n  \"b\"\n  \"c\"\n]",
+        "operator": "deepStrictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "splits and deduplicates 4 notation parameters before the unique-value limit",
+      "fullTitle": "Legacy HTTP input acceptance splits and deduplicates 4 notation parameters before the unique-value limit",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'a,b',\n+   'b,c',\n    'a',\n-   'b',\n-   'c'\n  ]\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:304:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   'a,b',\n+   'b,c',\n    'a',\n-   'b',\n-   'c'\n  ]\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "[\n  \"a,b\"\n  \"b,c\"\n  \"a\"\n]",
+        "expected": "[\n  \"a\"\n  \"b\"\n  \"c\"\n]",
+        "operator": "deepStrictEqual",
+        "diff": "simple"
+      }
+    },
+    {
+      "title": "splits and deduplicates 1 notation parameters before the unique-value limit",
+      "fullTitle": "Legacy HTTP input acceptance splits and deduplicates 1 notation parameters before the unique-value limit",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "err": {
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n400 !== 200\n\n    at Context.<anonymous> (test/http/httpInputAcceptance.test.ts:303:16)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "message": "Expected values to be strictly equal:\n\n400 !== 200\n",
+        "generatedMessage": true,
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "actual": "400",
+        "expected": "200",
+        "operator": "strictEqual",
+        "diff": "simple"
+      }
+    }
+  ],
+  "passes": [
+    {
+      "title": "retains existing-record editing and route identifier precedence /record/edit/oid-1?oid=other-record",
+      "fullTitle": "Legacy HTTP input acceptance retains existing-record editing and route identifier precedence /record/edit/oid-1?oid=other-record",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 87,
+      "currentRetry": 0,
+      "speed": "slow",
+      "err": {}
+    },
+    {
+      "title": "retains existing-record form delivery and route identifier precedence /record/form/rdmp/oid-1?oid=other-record",
+      "fullTitle": "Legacy HTTP input acceptance retains existing-record form delivery and route identifier precedence /record/form/rdmp/oid-1?oid=other-record",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 72,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "retains optional translation listing filters ?locale=en",
+      "fullTitle": "Legacy HTTP input acceptance retains optional translation listing filters ?locale=en",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects structured translation filters ?locale[bad]=en",
+      "fullTitle": "Legacy HTTP input acceptance rejects structured translation filters ?locale[bad]=en",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects structured translation filters ?namespace[bad]=translation",
+      "fullTitle": "Legacy HTTP input acceptance rejects structured translation filters ?namespace[bad]=translation",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects structured translation filters ?keyPrefix[bad]=a",
+      "fullTitle": "Legacy HTTP input acceptance rejects structured translation filters ?keyPrefix[bad]=a",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query=true body=undefined",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query=true body=undefined",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 11,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query=false body=undefined",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query=false body=undefined",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query=false body={\"enabled\":true}",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query=false body={\"enabled\":true}",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 16,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query=true body={\"enabled\":false}",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query=true body={\"enabled\":false}",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation toggle query= body={\"enabled\":\"false\"}",
+      "fullTitle": "Legacy HTTP input acceptance retains translation toggle query= body={\"enabled\":\"false\"}",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation write validation /enabled?enabled=true []",
+      "fullTitle": "Legacy HTTP input acceptance retains translation write validation /enabled?enabled=true []",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation write validation  undefined",
+      "fullTitle": "Legacy HTTP input acceptance retains translation write validation  undefined",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation write validation /enabled?enabled[bad]=true undefined",
+      "fullTitle": "Legacy HTTP input acceptance retains translation write validation /enabled?enabled[bad]=true undefined",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains translation write validation /enabled {\"enabled\":{}}",
+      "fullTitle": "Legacy HTTP input acceptance retains translation write validation /enabled {\"enabled\":{}}",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 16,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"true\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"true\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"false\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"false\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"0\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"0\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"no\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"no\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains includeHistoricalValues=\"\"",
+      "fullTitle": "Legacy HTTP input acceptance retains includeHistoricalValues=\"\"",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "splits and deduplicates 1 notation parameters before the unique-value limit",
+      "fullTitle": "Legacy HTTP input acceptance splits and deduplicates 1 notation parameters before the unique-value limit",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: notation[bad]=value",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation[bad]=value",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: notation=a&notation[bad]=value",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=a&notation[bad]=value",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 15,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: notation=",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: notation=n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: notation=n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects malformed or over-limit vocabulary input: includeHistoricalValues[bad]=true",
+      "fullTitle": "Legacy HTTP input acceptance rejects malformed or over-limit vocabulary input: includeHistoricalValues[bad]=true",
+      "file": "/home/andrew/src/github/redbox-portal/packages/redbox-core/test/http/httpInputAcceptance.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    }
+  ]
+}

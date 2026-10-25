@@ -1,0 +1,13 @@
+{
+  "revision": "c8a5064d0f16ad9e10f083c6590ae4bc178085db",
+  "sourceOwners": [
+    "packages/redbox-core/src/http/express/identityAdministration.ts",
+    "packages/redbox-core/src/http/express/metadata.ts",
+    "packages/redbox-core/src/http/express/formVocabulary.ts",
+    "packages/redbox-core/src/http/express/vocabularyIntegrations.ts",
+    "packages/redbox-core/src/http/express/pages.ts",
+    "packages/redbox-core/src/http/express/formDelivery.ts"
+  ],
+  "fixture": "test/http/httpInputAcceptance.test.ts",
+  "scope": "Actual native handlers from pinned R12 HEAD with current deterministic domain ports; no live datastore"
+}

@@ -61,3 +61,37 @@ v6-written state are unsupported; recovery restores the complete consistent
 pre-upgrade checkpoint and matching artifacts. MongoDB engine/FCV transitions
 remain separate vendor-supported procedures. See the
 [upgrade/recovery runbook](../specs/sails-retirement/upgrade-recovery-v6.md).
+
+## HTTP request input scope
+
+Native read routes consume their declared URL path and query fields. The generic
+Sails `req.param` lookup is retired: an arbitrary GET request body is not a
+supported read transport, even where Sails could previously discover the same
+field there. Move read parameters into the route's documented path/query fields.
+Write routes consume their declared body and explicit legacy aliases with the
+route's precedence; this does not promise every theoretical `req.param` source.
+Local login retains passport-local body/query fallback, including configured
+nested credential names. Browser administration selects `body.userid`, path-based
+enable/disable selects its path ID, and self-service selects the authenticated actor.
+
+Supported legacy inputs include query-selected existing-record editors/forms,
+omitted/empty translation listing locale/namespace filters, form vocabulary
+boolean spellings and comma-separated/repeated notation lists, and a bodyless
+browser vocabulary sync for the latest version. The REST vocabulary sync keeps
+its declared required body. API list limits and search limits remain independent.
+
+The following are intentional validation/protocol changes, rather than promises
+to preserve malformed or unsafe historical acceptance:
+
+| Input or protocol | V6 contract |
+|---|---|
+| Arrays/objects supplied to declared scalar fields | Return 400. Declared lists and JSON/record metadata remain supported. |
+| Unknown fields | Follow the individual route schema's projection, passthrough or rejection behavior. There is no global rule that strips arbitrary record metadata. |
+| Pagination, limits and search fields | Use declared integer/range bounds: positive page/row sizes, nonnegative offsets where declared, and valid field names. Numeric prefixes such as `10junk`, structured scalars and unsafe search syntax return 400. |
+| Generic action/service expressions | Use registered named operations as described in the compatibility table above; expression dispatch is retired. |
+| Virtual socket HTTP and upload sockets | Legacy subscribe/unsubscribe returns 410. Use the direct Socket.IO grant protocol and the separate pinned Companion WebSocket protocol described above. |
+
+The [complete HTTP acceptance inventory](../specs/sails-retirement/evidence/final-review-r13/http-acceptance.md)
+records route/source provenance, supported input regressions, deliberate breaks,
+schema comparison cells and focused native-handler cases separately. It does not
+replace institution/client acceptance during the upgrade rehearsal.
