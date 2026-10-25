@@ -55,7 +55,7 @@ describe('Identity route target precedence', () => {
       assert.equal(response.status, 200);
       assert.equal(f.users.getUserWithId.firstCall.args[0], selected);
       assert.equal(f.users[operation].firstCall.args[0], selected);
-      assert(f.users[operation].getCalls().every(call => call.args[0] !== other));
+      assert(f.users[operation].getCalls().every((call: sinon.SinonSpyCall) => call.args[0] !== other));
     });
     it(`browser ${action} rejects omitted body.userid despite every unrelated ID source`, async () => {
       const response = await f.request(`/default/portal${suffix}?id=${other}&userid=${other}`, {
@@ -126,7 +126,7 @@ describe('Identity route target precedence', () => {
             getUsersForBrand: () => of([user]),
             enrichUsersWithLinkMetadata: async value => value,
             enrichUsersWithEffectiveDisabledState: async value => value,
-          } as Parameters<typeof mountIdentityLinkRoutes>[1]['users'],
+          } as never,
         })
       );
       try {

@@ -124,7 +124,7 @@ describe('Pre-retirement browser record response and side-effect contracts (R14)
           mountQueryReadRoutes(router, {
             ...input,
             reports: { previewConfig },
-          } as Parameters<typeof mountQueryReadRoutes>[1])
+          } as never)
         );
         try {
           const response = await f.request(
