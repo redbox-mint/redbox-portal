@@ -53,10 +53,20 @@ const options={appPath:process.cwd(),files:{application:REDBOX_APPLICATION_CONFI
     const login=await fetch(base+'/user/login_local',{method:'POST',headers:{'Content-Type':'application/json','X-Source':'jsclient','X-CSRF-Token':token,Cookie:cookie},body:JSON.stringify({username:'admin',password:'rbadmin',branding:'default',portal:'rdmp'})});
     assert.equal(login.status,200);assert.equal((await login.json()).user.username,'admin');
     const sessionCookie=login.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');assert(sessionCookie);
+    let publicationOid;
     for(const name of ['rdmp','dataRecord','dataPublication','instrument','ror']){
-      const result=await portal.data.storage().create(brand,{metaMetadata:{brandId:brand.id,type:name,form:Object.values(config.workflow[name])[0].config.form},metadata:{title:'Sanitized WSU '+name},workflow:{stage:'draft'}},{});
-      assert.equal(result.success,true);
+      const result=await portal.data.storage().create(brand,{metaMetadata:{brandId:brand.id,type:name,form:Object.values(config.workflow[name])[0].config.form},metadata:{title:'Sanitized WSU '+name},authorization:{view:['admin'],edit:['admin'],viewRoles:['Admin'],editRoles:['Admin']},workflow:{stage:'draft'}},{});
+      assert.equal(result.success,true);if(name==='dataPublication')publicationOid=result.oid;
+      const headers={Cookie:sessionCookie,'X-Source':'jsclient'};
+      assert.equal((await fetch(base+'/default/rdmp/api/records/metadata/'+result.oid,{headers})).status,200);
+      assert.equal((await fetch(base+'/default/rdmp/api/forms/get?name='+encodeURIComponent(Object.values(config.workflow[name])[0].config.form),{headers})).status,200);
+      assert.equal((await fetch(base+'/default/rdmp/record/wfSteps/'+name,{headers})).status,200);
     }
+    const regenerate=base+'/default/rdmp/regenLandingPages/'+publicationOid;
+    assert.equal((await fetch(regenerate,{method:'POST'})).status,401);
+    assert.equal((await fetch(regenerate,{method:'POST',headers:{Cookie:sessionCookie}})).status,403);
+    const freshToken=await (await fetch(base+'/csrfToken',{headers:{Cookie:sessionCookie}})).json();
+    assert.equal((await fetch(regenerate,{method:'POST',headers:{Cookie:sessionCookie,'X-CSRF-Token':freshToken._csrf}})).status,200);
     const key='qualification/wsu-'+process.env.SR_WSU_FCV+'.txt',disk=portal.data.disks.get().primaryDisk();
     await disk.put(key,Buffer.from('sanitized WSU S3 bytes'));const stream=await disk.getStream(key);const parts=[];for await(const chunk of stream)parts.push(chunk);
     assert.equal(Buffer.concat(parts).toString(),'sanitized WSU S3 bytes');await disk.delete(key);
@@ -73,6 +83,6 @@ const options={appPath:process.cwd(),files:{application:REDBOX_APPLICATION_CONFI
     assert.equal(portal.data.reference.branding.get().getDefault().id,brand.id);assert.equal(await clients[0].db().collection('form').countDocuments(),forms);
     await portal.host.stop({deadlineMs:20000});assert.equal(core.persistenceStatus(portal.owner).pools,0);
     assert.equal(global.sails,undefined);
-    console.log(JSON.stringify({institution:'Western Sydney University',runtime:process.version,datastores:metadata,maintenanceBeforeReady:before.ready,maintenance:true,types:5,forms,ledgerDocuments:ledger.length,csrfLogin:true,s3RoundTrip:true,workerWrite:true,failedDrainRetainsPools:true,successfulDrainPools:0,restart:true}));
+    console.log(JSON.stringify({institution:'Western Sydney University',runtime:process.version,datastores:metadata,maintenanceBeforeReady:before.ready,maintenance:true,types:5,forms,ledgerDocuments:ledger.length,csrfLogin:true,recordFormWorkflowReads:5,extensionCsrf:true,s3RoundTrip:true,workerWrite:true,failedDrainRetainsPools:true,successfulDrainPools:0,restart:true}));
   } finally {releaseWork?.();await portal?.host?.stop({deadlineMs:30000});for(const client of clients)await client.close();console.log(JSON.stringify({cleanup:core.persistenceStatus(portal.owner),activeResources:process.getActiveResourcesInfo()}));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
