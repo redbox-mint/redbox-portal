@@ -128,3 +128,26 @@ Qualify changed bytes across two deployments and preserve immutable caching for
 fingerprinted Angular bundles. The executable comparison and its observations
 are retained in `final-review-r8/cache-inheritance-probe.cjs` and R8 qualification
 hashes; the full baseline configuration is not copied into the evidence.
+
+## B-06 — P2: REST user listing ignores `includeDisabled=true`
+
+**Location:** `packages/redbox-core/src/http/express/identityLinks.ts:171`.
+
+**Reproduction:** validate `?includeDisabled=true` through the actual REST route
+contract: its extracted value is boolean `true`. The handler compares it with
+string `'true'`, so a fixture containing one active and one effectively disabled
+user returns only the active user and understates `summary.numFound`.
+
+**Inheritance:** `a49366803:packages/redbox-core/src/controllers/webservice/UserManagementController.ts:187`
+uses the same string comparison on the validated parameter. Executing the actual
+baseline method and current handler with the same extracted request selects only
+the active user in both. Round 11 independently reruns this probe under Node
+26.11.1; local reproduction and output are retained under
+`.tmp/sails-retirement/final-review-r11/standards/include-disabled-probe.cjs` and
+`inherited-disabled-verified.log`, with hashes in the qualification manifest.
+This is unchanged administrator-facing listing behavior; no severe access-control
+exception was demonstrated.
+
+**Suggested fix:** consume the validated boolean directly and cover both query
+values through real HTTP, including returned users and summary counts. Preserve
+requested-brand scoping and the default exclusion of disabled users.
