@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { pathToRegexp } from 'path-to-regexp';
 import type { RedboxExtension, ExtensionFactory, ExtensionRoute, ExtensionWork } from './contract';
 import { discoverInstalledExtensions, extensionRegistration, ExtensionError, loadExtensionModule } from './loading';
 
@@ -220,10 +221,12 @@ export function resolveExtensions(
   const methods = new Set<string>();
   for (const route of routes) {
     // Match the host's default case-insensitive, non-strict Express router.
-    const routePath = route.declaration.path
-      .replace(/:[A-Za-z0-9_]+/g, ':parameter')
-      .replace(/\/$/, '')
-      .toLowerCase();
+    let routePath: string;
+    try {
+      routePath = pathToRegexp(route.declaration.path.replace(/\/$/, '').toLowerCase()).regexp.source;
+    } catch {
+      fail(route.provider, 'invalid Express route path');
+    }
     const key = route.declaration.method + ' ' + routePath;
     if (methods.has(key)) fail(route.provider, 'accidental method/path route collision');
     methods.add(key);

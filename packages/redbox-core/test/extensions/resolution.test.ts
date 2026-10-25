@@ -96,6 +96,34 @@ describe('v6 extension declarations', () => {
       /requires replaces/
     );
   });
+  for (const [first, second] of [
+    ['/items/*first', '/ITEMS/*second/'],
+    ['/items/{*first}', '/items/{*second}'],
+    ['/items/:"first-name"', '/items/:"second-name"'],
+    ['/items/:α', '/items/:β'],
+    ['/items/:first', '/items/:"second"'],
+  ])
+    it(`rejects equivalent Express 5 paths ${first} and ${second} before constructing handlers`, () => {
+      const route = { name: 'first', method: 'get' as const, path: first, handler: 'read', access: 'public' as const };
+      assert.throws(
+        () =>
+          resolveExtensions([
+            provider('core', {
+              handlers: [
+                {
+                  name: 'read',
+                  create: () => {
+                    throw new Error('must stay offline');
+                  },
+                },
+              ],
+              routes: [route, { ...route, name: 'second', path: second, access: ['brandActor'] }],
+            }),
+          ]),
+        /collision/
+      );
+    });
+
   it('requires explicit named route replacements, unique method/path and access declarations', () => {
     const handler = {
       name: 'read',
