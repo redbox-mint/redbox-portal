@@ -1,5 +1,9 @@
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { PageArtifacts } from '../../src/pages/Artifacts';
 import { httpRecordPagesFixture } from '../helpers/httpRecordPagesFixture';
 let expect: Chai.ExpectStatic;
 before(async () => {
@@ -20,6 +24,28 @@ describe('Owned record browser pages', function () {
     const response = await request('/record/view/oid-1');
     expect(response.status).to.equal(200);
     expect(response.text.match(/<title>([\s\S]*?)<\/title>/)?.[1].trim()).to.equal('Saved title | Site');
+  });
+  it('renders an institution record/view-orig override at its legacy URL', async function () {
+    const directory = await mkdtemp(path.join(tmpdir(), 'redbox-original-view-'));
+    let artifacts: PageArtifacts | undefined;
+    try {
+      const viewDirectory = path.join(directory, 'default/default/record');
+      await mkdir(viewDirectory, { recursive: true });
+      await writeFile(path.join(viewDirectory, 'view-orig.ejs'), '<p>Institution original view: <%= oid %></p>');
+      artifacts = new PageArtifacts([directory, ...f.page.input.artifacts.views], f.page.input.artifacts.assets);
+      await artifacts.initialize();
+      await f.close();
+      f = await httpRecordPagesFixture(pages => {
+        pages.artifacts = artifacts!;
+      });
+      const response = await request('/record/view-orig/oid-1');
+      expect(response.status).to.equal(200);
+      expect(response.text).to.include('Institution original view: oid-1');
+      expect((await request('/record/view/oid-1')).text).not.to.include('Institution original view');
+    } finally {
+      await artifacts?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
   });
   it('falls back to the type label when the saved title is blank', async function () {
     f.record.metadata.title = '   ';

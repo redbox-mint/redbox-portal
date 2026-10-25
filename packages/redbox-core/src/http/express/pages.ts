@@ -53,7 +53,7 @@ const definitions = [
   ['/record/edit/:oid', 'RecordController', 'edit', 'record/edit'],
   ['/record/finalise/:recordType/edit/:oid', 'RecordController', 'edit', 'record/edit'],
   ['/record/view/:oid', 'RecordController', 'view', 'record/view'],
-  ['/record/view-orig/:oid', 'RecordController', 'view', 'record/view'],
+  ['/record/view-orig/:oid', 'RecordController', 'view', 'record/view-orig'],
   ['/record/viewAudit/:oid', 'RecordAuditController', 'render', 'record/viewAudit'],
   // This literal must precede the parameterized dashboard URL.
   ['/dashboard/consolidated', 'RecordController', 'redirectLegacyConsolidatedDashboard', 'dashboard'],
@@ -174,7 +174,12 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
         const { locals, t, render, error } = await preparePage(req, res, input);
         if (route.action === 'edit') locals.oid = oid ?? '';
         try {
-          const view: string = route.action === 'login' ? (input.loginView ?? route.view) : route.view;
+          const view: string =
+            route.action === 'login'
+              ? (input.loginView ?? route.view)
+              : route.view === 'record/view-orig' && !input.artifacts.view(route.view, brand.name!, context.portal)
+                ? 'record/view'
+                : route.view;
           let title = route.title ? t(route.title) : '';
           const modelBrand = Object.assign(new BrandingModel(), brand);
           if (route.action === 'redirectLegacyConsolidatedDashboard') {

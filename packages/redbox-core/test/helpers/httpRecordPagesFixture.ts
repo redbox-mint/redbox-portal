@@ -4,7 +4,7 @@ import { httpPagesFixture } from './httpPagesFixture';
 import { mountFormDeliveryRoutes } from '../../src/http/express/formDelivery';
 
 /** Actual page and form dispatch share one explicit record lookup port. */
-export async function httpRecordPagesFixture() {
+export async function httpRecordPagesFixture(configure: Parameters<typeof httpPagesFixture>[0] = () => {}) {
   const record = {
     redboxOid: 'oid-1',
     revision: 3,
@@ -44,6 +44,7 @@ export async function httpRecordPagesFixture() {
     pages.translate = (_brand, _language, key) =>
       ({ 'default-title': 'Site', 'rdmp-title-label': 'RDMP', 'dataRecord-title-label': 'Data Record' })[key] ?? key;
     mountFormDeliveryRoutes(router, { ...pages, delivery, contextVariables: { evaluateContextVariables: () => ({}) } });
+    configure(pages, router);
   });
   return { ...f, record, form, loadRecord, canCreate, forms, delivery };
 }
