@@ -1,5 +1,6 @@
 import type { Router, RequestHandler } from 'express';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
+import { toBoolean } from '@researchdatabox/sails-ng-common';
 import type { Services as Vocabulary } from '../../vocabulary/Vocabulary';
 import type { Services as FormVocabulary } from '../../vocabulary/FormVocabulary';
 import type { Services as Users } from '../../identity/Users';
@@ -97,7 +98,7 @@ export function mountFormVocabularyRoutes(router: Router, input: FormVocabularyH
                 search: text(q.search),
                 limit: integer(q.limit, 200, 1),
                 offset: integer(q.offset, 0),
-                includeHistoricalValues: text(q.includeHistoricalValues) === 'true',
+                includeHistoricalValues: toBoolean(text(q.includeHistoricalValues)),
               });
               if (!result) throw new VocabularyLookupError(404, 'vocabulary-not-found');
               data = result.entries;
@@ -113,9 +114,14 @@ export function mountFormVocabularyRoutes(router: Router, input: FormVocabularyH
             }
             case 'expandPath': {
               const raw = q.notation;
-              const notations = (Array.isArray(raw) ? raw.map(v => text(v)) : text(raw).split(','))
-                .map(v => v.trim())
-                .filter(Boolean);
+              const notations = Array.from(
+                new Set(
+                  (Array.isArray(raw) ? raw : [raw])
+                    .flatMap(value => text(value).split(','))
+                    .map(value => value.trim())
+                    .filter(Boolean)
+                )
+              );
               if (!notations.length) throw new VocabularyLookupError(400, 'invalid-query-params');
               if (notations.length > 100) throw new VocabularyLookupError(400, 'too-many-notations');
               const result = await input.vocabulary.expandPaths(brand.id, id, notations);

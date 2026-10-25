@@ -168,7 +168,7 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
             ? actor.id
             : action === 'createUser'
               ? ''
-              : text(req.params.id ?? query.id ?? body.userid ?? body.id);
+              : text(req.params.id ?? (browser ? body.userid : (query.id ?? body.userid ?? body.id)));
           const existing =
             action === 'createUser'
               ? await singleHttpResult(input.users.getUserWithUsername(text(body.username)))
@@ -183,10 +183,12 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
           const target = userId ? await input.users.requireUserInBrand(userId, brand.id) : null;
           if (userId && !target) throw new IdentityAdministrationError(403, 'Unauthorized cross-brand access');
           if (
-            target && userId !== actor.id &&
+            target &&
+            userId !== actor.id &&
             ['updateUser', 'disableUser', 'enableUser', 'generateAPIToken', 'revokeAPIToken'].includes(action) &&
             hasForeignBrandRoles(target, brand.id)
-          ) throw new IdentityAdministrationError(403, 'Shared account changes require the account owner');
+          )
+            throw new IdentityAdministrationError(403, 'Shared account changes require the account owner');
           if (action === 'disableUser' || action === 'enableUser') {
             if (action === 'disableUser' && userId === actor.id)
               throw new IdentityAdministrationError(400, 'You cannot disable your own account');
@@ -219,9 +221,7 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
           const selected = details.roles === undefined ? undefined : roleIds(details.roles);
           if (action === 'updateUserRoles') {
             const selectedIds = roleIds(body.roles);
-            await singleHttpResult(
-              input.users.updateUserRoles(userId, selectedIds, brand.id)
-            );
+            await singleHttpResult(input.users.updateUserRoles(userId, selectedIds, brand.id));
             await input.users.addUserAuditEvent(actor, 'update-user-roles', { brandId: brand.id, userId });
             send({ status: true, message: 'Save OK.' });
             return;
@@ -241,10 +241,7 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
               : (await singleHttpResult(input.users.updateUserDetails(userId, name, email, password)))[0];
           if (!user) throw new IdentityAdministrationError(404, 'User not found');
           try {
-            if (selected)
-              await singleHttpResult(
-                input.users.updateUserRoles(user.id, selected, brand.id)
-              );
+            if (selected) await singleHttpResult(input.users.updateUserRoles(user.id, selected, brand.id));
           } catch (error) {
             // Legacy API create acknowledges its committed account even when role assignment fails.
             await input.users.addUserAuditEvent(actor, 'user-role-assignment-failed', {

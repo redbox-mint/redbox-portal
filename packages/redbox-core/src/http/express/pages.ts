@@ -165,12 +165,14 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
           res.status(400).end();
           return;
         }
-        const oid = typeof req.params.oid === 'string' ? req.params.oid.trim() : undefined;
+        const selectedOid = req.params.oid ?? (route.action === 'edit' ? req.query.oid : undefined);
+        const oid = typeof selectedOid === 'string' ? selectedOid.trim() : undefined;
         if (req.params.oid !== undefined && !oid) {
           res.status(400).end();
           return;
         }
         const { locals, t, render, error } = await preparePage(req, res, input);
+        if (route.action === 'edit') locals.oid = oid ?? '';
         try {
           const view: string = route.action === 'login' ? (input.loginView ?? route.view) : route.view;
           let title = route.title ? t(route.title) : '';
@@ -179,7 +181,7 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
             res.redirect(locals.page.base + '/dashboard-view/consolidated');
             return;
           }
-          if (req.params.oid) {
+          if (oid) {
             const record = await input.loadRecord(oid!);
             if (!record || record.metaMetadata?.brandId !== brand.id) {
               error(404);

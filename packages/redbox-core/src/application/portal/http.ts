@@ -463,6 +463,7 @@ export class PortalHttp implements ApplicationModule {
       search: data.search.get(),
       returnFields: config.record.search.returnFields,
       maxRows: config.api.max_requests,
+      maxSearchRows: config.record.search.maxRecordsPerPage,
       translate: (key, brand) => ref.translation.get().t(key, undefined, 'en', brand),
     });
     http.mountRecordMutationRoutes(router, {

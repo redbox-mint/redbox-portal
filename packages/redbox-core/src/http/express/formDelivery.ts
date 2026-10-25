@@ -27,7 +27,7 @@ export function mountFormDeliveryRoutes(router: Router, input: FormDeliveryHttpI
       ...policies,
       httpAction(async (req, res) => {
         const { actor, brand } = requestContext(req);
-        for (const value of [req.query.edit, req.query.formName, req.query.targetStep]) {
+        for (const value of [req.query.edit, req.query.formName, req.query.targetStep, req.query.oid]) {
           if (value !== undefined && typeof value !== 'string') {
             sendApiErrors(req, res, 400, [{ detail: 'Invalid form parameter' }]);
             return;
@@ -41,7 +41,10 @@ export function mountFormDeliveryRoutes(router: Router, input: FormDeliveryHttpI
             brand: Object.assign(new BrandingModel(), brand),
             user,
             recordType: String(req.params.name),
-            oid: typeof req.params.oid === 'string' ? req.params.oid.trim() : null,
+            oid:
+              typeof (req.params.oid ?? req.query.oid) === 'string'
+                ? String(req.params.oid ?? req.query.oid).trim()
+                : null,
             edit: req.query.edit === 'true',
             formName: req.query.formName as string | undefined,
             targetStep: req.query.targetStep as string | undefined,

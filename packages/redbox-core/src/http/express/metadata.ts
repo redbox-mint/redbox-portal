@@ -251,21 +251,19 @@ export function mountMetadataReadRoutes(router: Router, input: MetadataReadHttpI
               res.set(apiNoCacheHeaders).json(await input.translations.listLanguages(brand));
               return;
             case 'listEntriesApp': {
-              const prefix = req.query.keyPrefix;
-              if (prefix !== undefined && typeof prefix !== 'string') {
-                sendApiErrors(req, res, 400, [{ detail: 'Invalid keyPrefix' }]);
-                return;
-              }
-              res
-                .set(apiNoCacheHeaders)
-                .json(
-                  await input.translations.listEntries(
-                    brand,
-                    scalar('locale'),
-                    scalar('namespace', 'translation'),
-                    prefix
-                  )
-                );
+              const { locale, namespace, keyPrefix } = req.query;
+              for (const [name, value] of Object.entries({ locale, namespace, keyPrefix }))
+                if (value !== undefined && (typeof value !== 'string' || [...value].some(c => c.charCodeAt(0) < 32)))
+                  throw new MetadataParameterError('Invalid ' + name);
+              res.set(apiNoCacheHeaders).json(
+                await input.translations.listEntries(
+                  brand,
+                  // The legacy list endpoint permits an omitted locale (all locales).
+                  locale as string,
+                  (namespace as string) || 'translation',
+                  keyPrefix as string | undefined
+                )
+              );
               return;
             }
             case 'getBundleApp': {

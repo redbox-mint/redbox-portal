@@ -49,7 +49,12 @@ export function mountVocabularyIntegrationRoutes(router: Router, input: Vocabula
           sendApiErrors(req, res, 403, [{ detail: 'Access Denied' }]);
           return;
         }
-        const validated = validateApiRouteRequest(req, route);
+        // The browser sync endpoint has always allowed omitting its optional version body.
+        const request =
+          route.controller === 'VocabularyController' && route.action === 'sync' && req.body === undefined
+            ? { ...req, body: {} }
+            : req;
+        const validated = validateApiRouteRequest(request, route);
         if (!validated.valid) {
           sendApiErrors(
             req,
