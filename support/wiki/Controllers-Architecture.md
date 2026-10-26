@@ -1,184 +1,46 @@
-# Controllers Architecture
+# HTTP handlers and routes
 
-ReDBox controllers now live in `@researchdatabox/redbox-core` and are surfaced to Sails.js through generated shims. This keeps request handling logic centralized with services and models while preserving the existing route naming.
+V6 runs one Express 5 host. The application composes route groups from
+`packages/redbox-core/src/http/express/`; there are no generated controller shims,
+controller singleton registries or framework request/response globals.
 
-## Locations and Naming
+A route group receives a concrete input containing only its selected domain
+operations, policy implementations and request-scoped authentication context.
+Transport code validates parameters, invokes the domain and serializes the result.
+Domains own authorization-sensitive record operations and persistence lifetimes.
+Do not recover missing dependencies through a process global.
 
-Controllers are organized into two groups:
+## Core routes
 
-| Location | Purpose | Shim Directory |
-|---|---|---|
-| `packages/redbox-core/src/controllers/` | View and CSRF-backed AJAX controllers | `api/controllers/` |
-| `packages/redbox-core/src/controllers/webservice/` | Webservice / REST-style controllers, typically mounted under `/:branding/:portal/api/*` with `csrf: false` | `api/controllers/webservice/` |
+API declarations in `src/api-routes/groups/` describe method, path, validation,
+response and policy contracts. `http/express/apiManifest.ts` reconciles the owned
+route groups. Browser routes and assets are mounted explicitly by the portal HTTP
+composition. Use Express `req.params`, `req.query`, `req.body`, `res.status()` and
+`res.json()`; do not depend on virtual socket requests or framework response helpers.
+`responses.ts` preserves the supported API version negotiation and error envelopes.
 
-Route configuration uses controller names exactly as defined in the shims:
-- AJAX/view controllers: `AdminController.getUsers`
-- Webservice controllers: `webservice/RecordController.getMeta`
+`createHttpPolicies()` binds branding, authenticated actor, membership and access
+policies. Unbound policies fail composition. Route metadata and input validation
+do not grant record access. Mutations bind the session-aware CSRF middleware;
+Companion shared secrets never substitute for an authenticated actor.
 
-In practice, the split is:
+## Extensions
 
-- `src/controllers/`: browser-facing routes, rendered pages, and AJAX endpoints that should participate in normal session + CSRF handling
-- `src/controllers/webservice/`: REST-style endpoints intended for non-browser/API use, usually with CSRF explicitly disabled in `routes.config.ts`
+Return named `handlers` and `routes` from `registerRedboxExtension()` using the
+public `RedboxExtension` contract. A handler factory declares its prerequisites
+and receives the application's concrete selected dependencies. A route declares
+its HTTP method, path, handler name and explicit `access` policy list, or `public`.
+Duplicate registrations need intentional `replaces: true`; unknown policy and
+handler names are errors. The host owns listening, activation, draining and signals.
 
-## Controller Exports and Shims
+The sole `redbox-dev-tools init` scaffold is v6. The service/controller generators
+produce ordinary exported classes. Controller generation writes named route
+declarations to `src/config/extensionRoutes.ts`; include them in the extension's
+`routes` and supply each matching handler factory and named access policy.
+Generated declarations are deliberately not a runtime discovery mechanism.
 
-The core package provides two lazy export objects plus name lists:
-
-- `ControllerExports`: AJAX / view controllers (lazy instantiated)
-- `WebserviceControllerExports`: webservice controllers (lazy instantiated)
-- `ControllerNames`: AJAX / view controller names without instantiation
-- `WebserviceControllerNames`: webservice controller names without instantiation
-
-The redbox-core loader uses the name lists to generate controller shims without triggering controller instantiation. The shims expose the exported methods for Sails routes.
-
-## Controller Lifecycle and `init()`
-
-Controllers extend `Controllers.Core.Controller` and can implement `init()` for setup that depends on `sails` globals. The base class ensures `init()` is called once before any exported action runs.
-
-Key rules:
-- Avoid using `sails` in constructors or field initializers.
-- Put sails-dependent setup in `init()`.
-- `init()` is invoked once before any exported action runs.
-- Add `init` to `_exportedMethods` only if you need to call it explicitly (bootstrap/tests).
-- Do not map routes to `init` (it is only for initialization).
-
-Example:
-
-```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core';
-
-export module Controllers {
-  export class Example extends controllers.Core.Controller {
-    protected _exportedMethods: any = ['init', 'index'];
-    private recordsService: any;
-
-    public init(): void {
-      this.recordsService = sails.services.recordsservice;
-    }
-
-    public async index(req: any, res: any): Promise<void> {
-      const record = await this.recordsService.getMeta(req.param('oid'));
-      res.json(record);
-    }
-  }
-}
-```
-
-## Current Controllers
-
-### AJAX / View Controllers
-
-| Controller |
-|---|
-| `ActionController` |
-| `AdminController` |
-| `AppConfigController` |
-| `AsynchController` |
-| `BrandingAppController` |
-| `BrandingController` |
-| `DynamicAssetController` |
-| `EmailController` |
-| `ExportController` |
-| `FormVocabularyController` |
-| `RecordAuditController` |
-| `RecordController` |
-| `RenderViewController` |
-| `ReportController` |
-| `ReportsController` |
-| `TranslationController` |
-| `UserController` |
-| `VocabularyController` |
-| `WorkspaceAsyncController` |
-| `WorkspaceTypesController` |
-
-### Webservice Controllers
-
-| Controller |
-|---|
-| `AdminController` |
-| `AppConfigController` |
-| `BrandingController` |
-| `ExportController` |
-| `FormManagementController` |
-| `RecordController` |
-| `RecordTypeController` |
-| `ReportController` |
-| `SearchController` |
-| `TranslationController` |
-| `UserManagementController` |
-
-`UserManagementController` still covers user-management webservice behavior, including account-linking, user-audit, and disable/enable API endpoints.
-
-The browser-based Manage Users Angular app now uses CSRF-backed `AdminController` AJAX routes under `/:branding/:portal/admin/users/*` for:
-
-- account-link candidate search
-- linked-account retrieval
-- account linking
-- user audit retrieval
-- disable / enable actions
-
-The corresponding legacy webservice routes remain available under `/:branding/:portal/api/users/*` for non-browser/API consumers. See **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)** for the feature-level behavior and route summary.
-
-## Hook Overrides
-
-Hooks can provide or override controllers by declaring `hasControllers` in `package.json` and exporting registration functions:
-
-```json
-{
-  "name": "redbox-hook-myproject",
-  "sails": {
-    "hasControllers": true
-  }
-}
-```
-
-```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core';
-
-export module Controllers {
-  export class MyController extends controllers.Core.Controller {
-    protected _exportedMethods: any = ['index'];
-    public index(req: any, res: any) {
-      return res.json({ ok: true });
-    }
-  }
-}
-
-module.exports.registerRedboxControllers = function() {
-  return {
-    MyController: new Controllers.MyController().exports()
-  };
-};
-```
-
-Webservice controllers are registered separately:
-
-```typescript
-module.exports.registerRedboxWebserviceControllers = function() {
-  return {
-    MyWebserviceController: new Controllers.MyWebserviceController().exports()
-  };
-};
-```
-
-Hook controllers take precedence over core controllers during shim generation.
-
-### Branding controllers
-
-- `BrandingController.renderFont` serves one immutable brand typeface face (`GET|HEAD /fonts/branding/:branding/:sha256.woff2`) with `font/woff2`, hash-derived ETag, year-long immutable caching, and `nosniff`. It is portal-independent and sessionless; unknown brands, absent objects, and hash mismatches are 404 without substitution.
-- `BrandingController.renderCss` derives its ETag from the exact served bytes and never rewrites publication state on read.
-- `BrandingAppController` (AJAX, session auth) mirrors `webservice/BrandingController` (REST, API auth) for the full draft/preview/version/publish/restore lifecycle. Both are thin adapters over `BrandingService` and return the complete canonical Admin state from mutations.
-- The old `rollback` endpoint remains for one major release as a deprecated alias with identical restore semantics plus a `Deprecation` header. It never rewinds the version number and is scheduled for next-major removal.
-
-## Testing
-
-Controller unit tests live in:
-- `packages/redbox-core/test/controllers/`
-- `packages/redbox-core/test/controllers/webservice/`
-
-Run them with:
-
-```bash
-cd packages/redbox-core
-npm test
-```
+See [extension conversion](../specs/sails-retirement/hook-migration-v6.md),
+[services](Services-Architecture.md), [loading](Redbox-Loader.md), and
+[all intentional client behavior changes](V6-Client-Compatibility.md). Generate
+and validate the [REST reference](Generated-Reference-Documentation.md) after
+changing a public route contract.

@@ -100,7 +100,7 @@ configuration compiles it against the exported contributor types.
 
 <!-- record-contract-contributor-example:start -->
 ```typescript
-import { defineRedboxHook, type RecordContractComponentContributor } from '@researchdatabox/redbox-core';
+import { type RecordContractComponentContributor } from '@researchdatabox/redbox-core';
 
 const exampleValueContract: RecordContractComponentContributor = {
   kind: 'component',
@@ -115,9 +115,8 @@ const exampleValueContract: RecordContractComponentContributor = {
   }),
 };
 
-module.exports = defineRedboxHook({
-  registerRecordContractContributors: () => [exampleValueContract],
-});
+// The selected application binds this contributor by its explicit declaration name.
+export default exampleValueContract;
 ```
 <!-- record-contract-contributor-example:end -->
 
@@ -209,5 +208,5 @@ persisted core component is a fatal coverage defect.
 
 - [Operating Record Schema Contracts](Record-Schema-Contract-Operations)
 - [Record Schema Contract API](Record-Schema-Contract-API)
-- [Using a Sails hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox)
+- [Customising ReDBox with a v6 extension](Using-a-Sails-Hook-to-customise-ReDBox)
 - [Redbox Loader](Redbox-Loader)

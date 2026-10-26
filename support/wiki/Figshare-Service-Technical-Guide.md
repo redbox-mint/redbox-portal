@@ -22,7 +22,7 @@ At runtime the service resolves the brand's `figsharePublishing` AppConfig, choo
 
 ## Exported Service Surface
 
-These methods are exported through `_exportedMethods` and are the supported Sails-facing lifecycle surface.
+The selected Figshare domain exposes these operations through explicit injected inputs. The application owns initialization, activation and shutdown.
 
 | Method | Purpose | Typical caller |
 |---|---|---|
@@ -41,7 +41,7 @@ These methods are exported through `_exportedMethods` and are the supported Sail
 | `publishIfNeeded(record, articleId)` | Publishes immediately, defers, or skips based on publish mode and attachment state. | Internal orchestration, tests |
 | `writeBack(record, article, publishResult?, assetSyncResult?)` | Writes article identifiers, URLs, extra fields, and sync status back into the record. | Internal orchestration, tests |
 | `syncRecordWithFigshare(record, jobId?, triggerSource?)` | Full end-to-end orchestration pipeline for one record. | Core orchestration entry point |
-| `init()` | Resolves the queue service on Sails ready so scheduling methods can enqueue Agenda jobs. | Sails service lifecycle |
+| Application initialization | Binds the selected queue and provider operations before activation. | Owned application lifecycle |
 
 The service also exposes several non-exported-but-public helpers used internally and in tests:
 
@@ -62,7 +62,7 @@ Resolution rules:
 1. Read brand AppConfig from `AppConfigService.getAppConfigurationForBrand(brandName)`.
 2. Look for `figsharePublishing`.
 3. Merge stored config over `new FigsharePublishing()` defaults.
-4. Resolve fixture mode from `sails.config.figshareDev` when not in production.
+4. Resolve fixture mode from the explicit `figshareDev` input when not in production.
 5. Resolve `connection.token`, including `$ENV_VAR_NAME` references.
 6. Return `null` when `figsharePublishing.enabled !== true`.
 
@@ -393,8 +393,27 @@ so any unknown kind surfaced as a confusing JSONata parse error instead.
 
 For categories, `metadata.ts` calls `resolveCrosswalkBinding()` directly rather than
 `evaluateBinding()`, because it needs `historicalTargets` to enforce `allowUnmapped` and
-`evaluateBinding`'s `unknown` return cannot carry it. The service is reached through the sails
-global to avoid a module cycle between `bindings.ts` and `FigshareVocabularyService`.
+`evaluateBinding`'s `unknown` return cannot carry it. `createFigshareBindings({ crosswalk, log })` receives the selected crosswalk
+resolver explicitly. The implementation is in
+`packages/redbox-core/src/integrations/figshare/bindings.ts`; there is no global
+service registration. For a hook with a deliberately selected crosswalk input:
+
+```ts
+import { createFigshareBindings, type CrosswalkResolver }
+  from '@researchdatabox/redbox-core/dist/integrations/figshare/bindings';
+
+export async function resolveExampleCrosswalk(crosswalk: CrosswalkResolver) {
+  const bindings = createFigshareBindings({ crosswalk, log: { warn() {} } });
+  return bindings.resolveCrosswalkBinding({
+    kind: 'crosswalk', crosswalkId: 'reviewed-crosswalk',
+    sourceVocabularyId: 'institution-vocabulary', outputs: 'categoryId',
+    source: { kind: 'path', path: 'codes' },
+  }, { codes: ['a'] }, { brandId: 'institution', record: {} });
+}
+```
+
+Production bindings supply the application's selected resolver and bounded logger;
+the example's no-op warning logger is for an isolated caller.
 
 ### Top-Level Config Object: `FigsharePublishingConfigData`
 
@@ -521,8 +540,9 @@ Historical (upstream-retired) categories are excluded from `values` in all three
 reported in `historicalTargets`; the caller decides whether that is fatal. A code that maps
 only to historical categories is therefore not "unresolved".
 
-`resolveCrosswalkValues` must stay listed in `_exportedMethods` — `bindings.ts` reaches it
-through the sails global, so omitting it fails at runtime while still type-checking.
+`resolveCrosswalkValues` must be bound as the concrete `crosswalk` input to
+`createFigshareBindings`. Test the selected resolver and its receiver binding; a
+method list or global alias does not wire a v6 dependency.
 
 `getCrosswalkUsage()` walks the entire `figsharePublishing` config for objects with
 `kind === 'crosswalk'` matching the id, returning a dotted `bindingPath` per hit. Any binding

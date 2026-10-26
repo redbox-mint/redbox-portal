@@ -1,5 +1,13 @@
 ## Using a Repeatable Contributor Component to Define Record Permissions
 
+V6 configuration is explicit. The first exported array below is a field fragment:
+import it into a form's `fields` array and declare that form under the neutral
+extension's `forms` contribution. The later `module.exports.recordtype` sample
+contributes to the selected deployment module's `recordtype` section. A field
+array is not a complete module for `REDBOX_APPLICATION_CONFIG`. Files are never
+discovered by their name or directory.
+See [Configuring Record Forms](Configuring-Record-Forms.md).
+
 Here is an example code block that will create a Repeatable Contributor component 
 that will allow the user to define what permissions the defined user has to the record.
 
@@ -159,7 +167,7 @@ module.exports.recordtype = {
         hooks: {
             onUpdate: {
                 pre: [{
-                    function: 'sails.services.rdmpservice.complexAssignPermissions',
+                    function: 'record.complexAssignPermissions',
                     options: {
                         "emailProperty": "email",
                         "userProperties": [
@@ -267,4 +275,3 @@ than call `$contains`, which is a string function:
 ```jsonata
 $count(event.value[$ = "security"]) > 0
 ```
-

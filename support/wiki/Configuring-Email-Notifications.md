@@ -1,12 +1,18 @@
 # Configuring Email Notifications
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
+
 ## Introduction
 
 The ReDBox portal has a flexible email notification system that can be customised to your needs.
 
 ## Configuring Email Settings
 
-The `config/emailnotification.js` file provides configuration properties relating to the sending of emails.
+The `emailnotification` section provides configuration properties relating to the sending of emails.
 
 ```
 api
@@ -74,7 +80,7 @@ defaults: {
 Both the subjects and the contents of email notifications can be customised via configuration and templates.
 
 ### Configuring email subjects and templates
-The templates section of the `config/emailnotification.js` file contains configuration to customise the subject and template for an email notification.
+The templates section of the `emailnotification` section contains configuration to customise the subject and template for an email notification.
 
 ```
 <email-code>
@@ -100,7 +106,7 @@ templates: {
 
 ### Email Templates
 
-Email templates are located in the directory defined in the `settings/templateDir` property of the `config/emailnotification.js` file. They are written in the [EJS templating language](http://www.embeddedjs.com/) which allows for rich and complex formatting.
+Email templates are located in the directory defined in the `settings/templateDir` property of the `emailnotification` section. They are written in the [EJS templating language](http://www.embeddedjs.com/) which allows for rich and complex formatting.
 
 #### Example
 ```

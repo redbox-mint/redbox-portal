@@ -15,8 +15,18 @@ execution change. Commands are run from the repository root.
 
 Core pins Effect to `4.0.2`. Native Effect hooks and custom publishing layers
 must use Effect 4 as well; Effect 3 values belong to a different runtime.
-Promise, Observable, and plain-value hook interfaces retain their existing
-behavior. The PDF hook still uses its own Effect 3 runtime internally and
+Promise and plain-value results retain their existing values; Observables retain
+first-value semantics. Configured legacy Promise, Observable and Effect containers
+may hide non-cancellable I/O, so an action timeout ends its outer wait but retains
+the actual result lifetime. Timeout retry is suppressed until cancellation can be
+proved; a container type alone is insufficient. A never-settling legacy container
+therefore causes an observable stop deadline failure and retains its dependencies.
+Native executor actions with a cooperative cancellation contract still interrupt.
+Record hooks and notification success callbacks receive their own admitted
+completion scope, including when launched by a worker or schedule. Their final
+writes and the record audit stay admitted after the initiating request/job ends.
+A failed queue drain deadline retains those scoped completion permissions for
+cleanup retry; unrelated callers remain denied. The PDF hook still uses its own Effect 3 runtime internally and
 returns an Observable at the record-hook boundary.
 
 The migration follows the [upstream Effect 4 migration guide](https://github.com/Effect-TS/effect/blob/effect%404.0.2/MIGRATION.md).
@@ -63,7 +73,7 @@ APP_URL=http://<tailscale-ip>:1500 npm run dev:run
 curl -fsS -D - -o /tmp/redbox-home.html http://<tailscale-ip>:1500/
 ```
 
-The compose interpolation maps `APP_URL` to `sails_appUrl`. A healthy stack
+The Compose configuration maps `APP_URL` to the selected host public URL. A healthy stack
 redirects `/` to the branded home route and returns `200 OK` for the rendered
 ReDBox page. Container logs should include structured
 `record_hook_action_completed`, `record_hook_operation_dispatched`, and one

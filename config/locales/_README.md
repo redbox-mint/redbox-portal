@@ -1,3 +1,7 @@
+> Historical v5 locale documentation. V6 does not discover this directory or
+> `config/i18n.js`. Use [language defaults](../../language-defaults/README.md)
+> and the [translation runbook](../../support/wiki/Translation-Updates-Runbook.md).
+
 # Internationalization / Localization Settings
 
 > Also see the official docs on internationalization/localization:

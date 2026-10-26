@@ -1,8 +1,8 @@
 # Persistence migration for institutions
 
-All persistence groups use Prisma. Sails still provides services, controllers,
-policies, configuration and hooks. There are no model globals, model shims or ORM
-hook. Set `hooks.orm=false` in `.sailsrc` and `globals.models=false` when upgrading an institution application.
+All persistence groups use Prisma and the application owns their pools. V6 uses
+the standalone Express host. Framework hooks, model/service/controller globals,
+`.sailsrc` and generated shims have been removed.
 
 Remove `persistence`, `models` and `orm` configuration, including empty objects,
 `RBPORTAL_*_BACKEND` and `sails_persistence*` environment variables. Even an
@@ -19,8 +19,7 @@ startup names the replacement connection keys without echoing credentials.
 Session settings remain `redboxSession.mongoUrl`, `mongoOptions` and `dbName`.
 Caller-supplied session `client`/`clientPromise` are refused: the app owns its pool.
 
-Hook `hasModels:true` and `registerRedboxModels` exports fail before Sails lifts,
-including production starts reusing cached shims. Remove both. Move callbacks,
+Hook `hasModels:true` and `registerRedboxModels` exports are unsupported and must be converted to v6 declarations. Remove both. Move callbacks,
 validation, defaults and other custom behavior into a service or a plain repository
 boundary, and declare stored extension fields in the appropriate Prisma contract.
 Use normal model CRUD for persistence; free-form content belongs in declared Json
@@ -35,16 +34,13 @@ explicitly. Both SIEM envelopes (`securityevent`) and attempts
 is rejected through the obsolete model-configuration/registration checks. Move
 both collections to that datastore before upgrading.
 
-The loader removes old model/config shims only when their full source matches
-its generated banner and body. Edited or custom `api/models/*` and retired
-`config/models.js`, `orm.js` or `persistence.js` are preserved and startup fails
-with their path and migration guidance. Review, port and remove these files
-explicitly. The `generate model` command also fails with service/repository
-migration guidance. Service/controller/policy/config generation is retained.
+Use the inspect-first [exact shim cleanup](Redbox-Loader.md) for unedited v5 output.
+Edited/custom files require explicit review and conversion. No build or startup
+generates shims. The model generator is retired; use service/repository contracts.
 
 Resolve repositories lazily after persistence initialization, never during hook
 registration. For example, import `getReferenceRepositories` and call
-`getReferenceRepositories().forms.findByName(name, brand.id)` inside the service
+`getReferenceRepositories(owner).forms.findByName(name, brand.id)` inside the service
 method. Use the corresponding configuration, identity, vocabulary, branding,
 job and storage boundaries for their domains. Reacquire repositories after an
 application restart; retained handles reject operations after shutdown.

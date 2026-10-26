@@ -290,7 +290,7 @@ payload needs numeric ids, and any other output is rejected with a validation er
 
 Importing a Figshare taxonomy and building a crosswalk is normally done by hand in the
 Figshare Vocabularies admin screen. For a new environment you can instead declare the imports
-in `bootstrap-data/vocabularies/figshare-imports.json` and have them created during the Sails
+in `bootstrap-data/vocabularies/figshare-imports.json` and have them created during the application
 lift, in the same spirit as `rva-imports.json`:
 
 ```json

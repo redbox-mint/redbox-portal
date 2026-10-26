@@ -1,6 +1,6 @@
 # Configuring RAiD Publishing
 
-RAiD publishing is configured per brand through the `raidPublishing` AppConfig model. The record's `metaMetadata.brandId` selects the brand; credentials from one brand are never used for another unknown brand. The legacy `sails.config.raid` block supplies bootstrap defaults only.
+RAiD publishing is configured per brand through the `raidPublishing` AppConfig model. The record's `metaMetadata.brandId` selects the brand; credentials from one brand are never used for another unknown brand. Use the selected `raidPublishing` bootstrap defaults and hydrated AppConfig input.
 
 ## Mapping fields
 

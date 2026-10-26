@@ -12,7 +12,8 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:bruno:oidc` | API / Auth | Specialized Bruno tests for OIDC flows. |
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
-| `cd packages/redbox-core && npm test` | Package Unit | Runs core-types unit tests (services and controllers). |
+| `cd packages/redbox-core && npm test` | Package Unit | Runs core domain, HTTP, contract and tooling tests. |
+| `cd packages/redbox-core && npm run test:http-notifications:mongo` | Mongo Integration | Verifies released-v5 notification conversion and delivery against a disposable Mongo fixture; requires `HTTP_PILOT_TEST_MONGO_URL` ending in `/sr_p4_http`. |
 
 ## Running Tests
 
@@ -32,12 +33,12 @@ If you only changed backend code in `packages/redbox-core`, `npm run compile:cor
 
 ### 2. Backend Unit/Integration Tests (`test:mocha`)
 
-These tests run the Sails.js backend logic in a Docker container.
+These tests initialize the actual selected Express application in Docker with real MongoDB and providers.
 
 - **Command**: `npm run test:mocha`
 - **Details**:
     - Spins up a `redboxportal` container defined in `support/integration-testing/docker-compose.mocha.yml`.
-    - Always includes the bootstrap test (`test/bootstrap.test.ts` when present, otherwise `test/bootstrap.test.js`).
+    - Always includes the bootstrap test (`test/express.bootstrap.test.cjs`).
     - Runs Mocha tests directly from `test/integration` using `ts-node` (no separate test compilation step).
     - Live external-network integration tests are disabled by default. Enable them with `RUN_LIVE_INTEGRATION_TESTS=true` when you want to verify real downstream services from a dev environment.
     - DOI live tests use `datacite_username`, `datacite_password`, `datacite_doiPrefix`, and optional `datacite_baseUrl` when you need to point at a different Datacite host.
@@ -90,7 +91,7 @@ Some packages have their own independent test suites.
   cd packages/redbox-core
   npm test
   ```
-  Runs unit tests for controllers and services in the core-types package, including the user-management controller and service coverage for linking, disable/enable logic, and user audit retrieval.
+  Runs core domain and HTTP tests, including the user-management controller and service coverage for linking, disable/enable logic, and user audit retrieval.
 
 - **Sails-NG-Common**:
   ```bash
@@ -101,11 +102,11 @@ Some packages have their own independent test suites.
 ## Continuous Integration
 Tests are automatically run in CircleCI on every push. API route validation and OpenAPI generation now run in a dedicated `generate-api-docs` job that builds redbox-core first, while the main build job stays focused on linting and runtime image packaging. See `.circleci/config.yml` for the full pipeline definition.
 
-For Skipper multipart upload fixtures, put optimistic-concurrency text fields
-(such as `expectedDraftRevision`) **before** the file part. The file upload
-callback can complete before trailing text fields are available, producing a
-revision conflict before the intended validation. Keep the same order in local
-Bruno collections copied for targeted runs.
+The owned multipart parser waits for all fields and staged writes before
+finalization. Optimistic-concurrency text fields such as `expectedDraftRevision`
+may appear before or after the file part. The real-HTTP
+`StreamingMultipart.test.ts` suite verifies fields on both sides of a file,
+backpressure, cancellation and cleanup.
 
 ### 6. Playwright regression suite
 
@@ -140,9 +141,64 @@ previously bootstrapped scenario configuration; unsetting the opt-in flag on a
 persistent database does not remove those records.
 
 To add a scenario, define a pure entry in
-`packages/redbox-hook-dev/src/playwright/catalogue.ts`. The normal loader then
+`packages/redbox-hook-dev/src/playwright/catalogue.ts`. The v6 extension declaration then
 registers its generated `e2e-` record type, workflow and form. Use the composed
 fixtures in `test/playwright/fixtures` and assert visible, persisted behaviour.
 When a test fails, inspect the generated `browser-diagnostics.json` and use
 `node_modules/.bin/playwright show-trace <trace.zip>` or
 `node_modules/.bin/playwright show-report .tmp/playwright/report`.
+
+## Historical P8 and subsequent retirement qualification
+
+P8 reran every existing core/root Mocha suite, full Playwright, general/OIDC/S3
+and native PDF Bruno, packed consumers and MongoDB 8/9 standalone and independent
+replica-set matrix against clean application commit `5088f4a7a`. All local final
+gates pass, including runtime-default fresh/restart/stop and complete released-v5
+stand-in recovery. Institution acceptance remains undesignated under SR-005/045/049
+and SR-055's inherited institution criterion. Baseline pending cases remain visible;
+missing-provider skips never qualify a path. Mongo containers require the recorded
+`nofile=64000:64000` limit. The attachment staging filesystem must have more
+free space than the upload length plus `record.diskSpaceThreshold` (default
+10 GiB). Use a sufficiently sized disposable volume; a low-space refusal is not
+a passing upload check. Qualification scripts are under
+`support/integration-testing/qualify-sails-retirement-*.sh`; commands, exact image
+IDs, counts and failures belong in [P8 evidence](../specs/sails-retirement/evidence-summary.md).
+Historical P7 results are not proof of the P8 artifact. Subsequent runtime/test
+fixes and the latest completed source/compiled-tree qualification are recorded in
+[R16](../specs/sails-retirement/evidence-summary.md), at runtime/test
+revision `4bf60062fd2a9d1cf387d3ac993cf531c1b6032b`. Those results include 5,631 core
+passes with seven unchanged pending cases, 224 real-service core passes, and 135
+focused Angular passes. They do not claim replacement immutable images or a newly
+repeated topology matrix; see [current task status](../specs/sails-retirement/tasks.md).
+[R17 confirmation](../specs/sails-retirement/evidence-summary.md) found
+zero class-(A) P1/P2 issues with no runtime/test change. R16 remains the latest
+full qualification; R17 records fresh focused regression and recovery checks.
+
+The old `support/acceptance-testing` DLCF/Selenium deployment predates v5. Its
+Compose entry now includes the maintained Playwright stack; the old deployment
+is retained only as historical retirement evidence. The full current Playwright
+collection and assertions remain unchanged. PDF integration/development profiles
+load explicit fixture configuration and the locally built `rehearsal` image;
+they prepare disposable indexes before starting the sole Express executable.
+
+A freshly generated hook is also exercised in the production portal composition
+by `packages/redbox-core/test/qualification/generated-institution.cjs`. Run it
+inside the clean test image with a real disposable
+`SR_GENERATED_APP_MONGO_URL` ending in `/sr_p8_generated_institution` and a running
+Solr selected by `SR_PORTAL_SOLR_PORT`:
+
+```sh
+node --test --test-force-exit packages/redbox-core/test/qualification/generated-institution.cjs
+```
+
+The check compiles/packs the generated hook, binds concrete module/HTTP/repository
+operations, verifies persisted migration/bootstrap writes, serves its public route,
+then restarts and checks drain/zero pools. The force-exit flag matches the other
+production-host qualifiers because the accepted Companion cleanup cron has process
+lifetime; owned stop assertions still run and must pass. It uses a synthetic
+institution application and does not fill the representative-institution gap.
+
+The development `test` Docker target reuses the builder's complete toolchain and
+dependency layers and runs the existing mounted CI workflows as root. It is not a
+release target. The `runtime` target retains its separate strict production graph
+and node user; final startup/health/restart/stop checks exercise that artifact.
