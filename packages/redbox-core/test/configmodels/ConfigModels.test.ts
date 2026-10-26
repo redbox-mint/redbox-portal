@@ -1,6 +1,10 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
-import { ConfigModels } from '../../src/configmodels/ConfigModels';
+import { ConfigModelRegistry } from '../../src/configuration/ConfigModelRegistry';
+let ConfigModels: ConfigModelRegistry;
+beforeEach(() => {
+  ConfigModels = new ConfigModelRegistry();
+});
 
 describe('ConfigModels', function () {
   class TestConfigClass {}
@@ -23,7 +27,7 @@ describe('ConfigModels', function () {
       expect(info).to.be.undefined;
     });
 
-    it('should return model info for webAnalytics with class and schema', function() {
+    it('should return model info for webAnalytics with class and schema', function () {
       const info = ConfigModels.getModelInfo('webAnalytics');
       expect(info).to.have.property('modelName', 'WebAnalytics');
       expect(info?.class).to.be.a('function');

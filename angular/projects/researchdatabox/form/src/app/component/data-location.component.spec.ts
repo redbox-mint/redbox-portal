@@ -87,6 +87,62 @@ describe("DataLocationComponent", () => {
         delete (globalThis as any).__redboxFileUploadUppyDeps;
     });
 
+    for (const delayed of [false, true]) {
+        it(`sends only CSRF to all Companion providers with ${delayed ? "delayed" : "immediate"} config`, async () => {
+            const { RequestClient } = await import("@uppy/core/companion-client");
+            const fixture = TestBed.createComponent(DataLocationComponent);
+            const component = fixture.componentInstance as any;
+            const configService = component.configService;
+            let resolveConfig!: (value: { csrfToken: string }) => void;
+            const config = delayed ? new Promise<{ csrfToken: string }>(resolve => { resolveConfig = resolve; }) : { csrfToken: "portal-token" };
+            configService.csrfToken = delayed ? "" : "portal-token";
+            spyOn(configService, "getConfig").and.returnValue(config as any);
+            spyOn(component, "isEditMode").and.returnValue(true);
+            spyOn(component, "isUploadBlockedByMissingOid").and.returnValue(false);
+            spyOn(component, "isUploadEnabled").and.returnValue(true);
+            spyOn(component, "resolveOidForUpload").and.returnValue("record-1");
+            spyOn(component, "buildTusEndpoint").and.returnValue("/default/rdmp/record/record-1/attach");
+            spyOn(component, "translateText").and.returnValue("");
+            spyOn(component, "installProviderAuthFallback");
+            spyOnProperty(component, "isVisible", "get").and.returnValue(true);
+            component.companionUrl = "/companion";
+            component.enabledSources = ["dropbox", "googleDrive", "onedrive"];
+            component.tusHeaders = { "X-Upload-Only": "keep-on-tus" };
+            const providerOptions: any[] = [];
+            const setters: jasmine.Spy[] = [];
+            const clients: InstanceType<typeof RequestClient>[] = [];
+            spyOn(fakeUppy, "use").and.callFake((plugin: any, options: any) => {
+                if (options.companionUrl) {
+                    providerOptions.push(options);
+                    const id = ["Dropbox", "GoogleDrive", "OneDrive"][providerOptions.length - 1];
+                    const client = new RequestClient(fakeUppy as any, options);
+                    clients.push(client);
+                    setters.push(spyOn(client, "setCompanionHeaders").and.callThrough());
+                    fakeUppy.plugins[id] = { provider: client };
+                } else if (String(plugin.name).includes("Tus")) {
+                    fakeUppy.plugins["Tus"] = { opts: options, setOptions: (next: any) => Object.assign(options, next) };
+                }
+                return fakeUppy;
+            });
+            await component.initialiseUppy();
+            expect(providerOptions.length).toBe(3);
+            providerOptions.forEach(options => expect(options.companionHeaders).toEqual(delayed ? {} : { "X-CSRF-Token": "portal-token" }));
+            expect(fakeUppy.plugins["Tus"].opts.headers["X-Upload-Only"]).toBe("keep-on-tus");
+            if (delayed) {
+                resolveConfig({ csrfToken: "portal-token" });
+                await config;
+                await Promise.resolve();
+                setters.forEach(setter => expect(setter).toHaveBeenCalledWith({ "X-CSRF-Token": "portal-token" }));
+            }
+            for (const client of clients) {
+                const headers = await client.headers();
+                expect(headers["X-CSRF-Token"]).toBe("portal-token");
+                expect(headers["X-Upload-Only"]).toBeUndefined();
+            }
+            fixture.destroy();
+        });
+    }
+
     it("should create component", () => {
         const fixture = TestBed.createComponent(DataLocationComponent);
         expect(fixture.componentInstance).toBeDefined();
@@ -844,7 +900,7 @@ describe("DataLocationComponent", () => {
         const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
         await component.openModal();
         expect(construct).toHaveBeenCalledWith({ autoProceed: false, restrictions: { maxNumberOfFiles: 2, allowedFileTypes: ['.txt'] } });
-        expect(use).toHaveBeenCalledWith(providers.GoogleDrivePlugin, { companionUrl: 'https://uploads.example.test/companion' });
+        expect(use).toHaveBeenCalledWith(providers.GoogleDrivePlugin, { companionUrl: 'https://uploads.example.test/companion', companionHeaders: jasmine.any(Object) });
         expect(use.calls.allArgs().some(([plugin]) => plugin === providers.DropboxPlugin || plugin === providers.OneDrivePlugin)).toBeFalse();
     });
 

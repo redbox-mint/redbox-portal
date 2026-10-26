@@ -6,9 +6,9 @@ import type {
   RecordValidationResult,
   ResolvedRecordValidationResult,
 } from '../../src/services/RecordValidationService';
-import { Services } from '../../src/services/RecordValidationService';
+import { RecordValidation } from '../../src/services/RecordValidationService';
 import { createRecordValidationFixture, validationForm } from '../fixtures/record-validation.fixtures';
-import { createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
 
 function requireResolved(result: RecordValidationResult): ResolvedRecordValidationResult {
   expect(result.status, JSON.stringify(result.diagnostics)).to.equal('resolved');
@@ -36,29 +36,13 @@ const candidateDependentBranch = {
 } satisfies NonNullable<FormConfigFrame['componentDefinitions']>[number];
 
 describe('RecordValidationService contract-context parity', function () {
-  let priorSails: unknown;
-
+  let config: any;
   beforeEach(function () {
-    priorSails = (global as Record<string, unknown>).sails;
-    const sailsFixture = createMockSails();
-    sailsFixture.config.recordValidation = {
-      mode: 'enforce',
-      timeoutMs: 5_000,
-    };
-    sailsFixture.config.recordSchema = {
-      enabled: true,
-      unknownProperties: 'allow',
-    };
-    (global as Record<string, unknown>).sails = sailsFixture;
+    config = { recordValidation: { mode: 'enforce', timeoutMs: 5000 }, recordSchema: { enabled: true, unknownProperties: 'allow' } };
   });
-
-  afterEach(function () {
-    if (priorSails === undefined) {
-      delete (global as Record<string, unknown>).sails;
-    } else {
-      (global as Record<string, unknown>).sails = priorSails;
-    }
-  });
+  function createValidation(dependencies: any) {
+    return new RecordValidation({ config, log: console as any, readers: dependencies, html: { sanitizeWithProfile: value => value, htmlSanitizationMode: () => 'sanitize' } }, dependencies);
+  }
 
   it('selects the same create form, stage, operation, and mode as validation', async function () {
     const form = validationForm({ componentDefinitions: [candidateDependentBranch] });
@@ -71,7 +55,7 @@ describe('RecordValidationService contract-context parity', function () {
         recordSchema: { unknownProperties: 'declared' },
       },
     });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     const constructForm = fixture.dependencies.constructForm;
     fixture.dependencies.constructForm = async (sourceForm, metadata, reusableFormDefinitions) => {
       const constructedForm = await constructForm(sourceForm, metadata, reusableFormDefinitions);
@@ -112,7 +96,7 @@ describe('RecordValidationService contract-context parity', function () {
   it('selects an explicit create target through the existing workflow and operation rules', async function () {
     const form = validationForm({ name: 'dataset-2.4-review' });
     const fixture = createRecordValidationFixture({ form });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
 
     const contract = await service.resolveContractContext({
       kind: 'create',
@@ -143,7 +127,7 @@ describe('RecordValidationService contract-context parity', function () {
         recordSchema: { unknownProperties: 'strip' },
       },
     });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
 
     const failure = await captureContextError(() =>
       service.resolveContractContext({
@@ -161,7 +145,7 @@ describe('RecordValidationService contract-context parity', function () {
 
   it('types missing record types and unauthorized operations without exposing selection details', async function () {
     const missingFixture = createRecordValidationFixture({ recordType: null });
-    const missingService = new Services.RecordValidation(missingFixture.dependencies);
+    const missingService = createValidation(missingFixture.dependencies);
     const missing = await captureContextError(() =>
       missingService.resolveContractContext({
         kind: 'create',
@@ -176,7 +160,7 @@ describe('RecordValidationService contract-context parity', function () {
     expect(missing.diagnosticCodes).to.deep.equal(['record-validation-record-type-not-found']);
 
     const forbiddenFixture = createRecordValidationFixture();
-    const forbiddenService = new Services.RecordValidation(forbiddenFixture.dependencies);
+    const forbiddenService = createValidation(forbiddenFixture.dependencies);
     const forbidden = await captureContextError(() =>
       forbiddenService.resolveContractContext({
         kind: 'create',
@@ -221,7 +205,7 @@ describe('RecordValidationService contract-context parity', function () {
         },
       },
     });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
     const validation = requireResolved(
       await service.resolve({
         ...fixture.request,
@@ -258,7 +242,7 @@ describe('RecordValidationService contract-context parity', function () {
 
   it('types a missing update OID before attempting authoritative selection', async function () {
     const fixture = createRecordValidationFixture({ existingRecord: null });
-    const service = new Services.RecordValidation(fixture.dependencies);
+    const service = createValidation(fixture.dependencies);
 
     const missing = await captureContextError(() =>
       service.resolveContractContext({

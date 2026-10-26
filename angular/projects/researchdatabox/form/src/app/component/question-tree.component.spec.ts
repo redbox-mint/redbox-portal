@@ -796,6 +796,16 @@ describe('QuestionTreeComponent', async () => {
       expected: QuestionTreeOutcomeInfo | null
     }[] = [
       {
+        config: {},
+        data: {}, expected: null,
+      },
+      {
+        config: {
+          questions: [{ id: 'question', answersMin: 1, answersMax: 1, answers: [{ value: 'yes' }], rules: { op: 'true' } }],
+        },
+        data: { question: 'yes' }, expected: null,
+      },
+      {
         config: {availableOutcomes: [], questions: [], componentDefinitions: []},
         data: {}, expected: null,
       },

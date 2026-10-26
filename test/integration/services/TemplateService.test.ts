@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import {
   arrayStartsWithArray,
   DynamicScriptResponse,
@@ -58,7 +59,7 @@ describe('The TemplateService', function () {
                 expect(serverResult).to.eql(expected);
 
                 // client
-                let clientString = TemplateService.buildClientHandlebars(args.template);
+                let clientString = fixture.services.TemplateService.buildClientHandlebars(args.template);
                 clientString = `const Handlebars = require(${JSON.stringify(require.resolve('handlebars'))}); exports.testingData = Handlebars.template(${clientString});`
                 await simulateBrowserLoadingJsFile(clientString, async (path) => {
                     const clientReady = require(path);
@@ -145,7 +146,7 @@ describe('The TemplateService', function () {
             }
           }))}`, async function () {
                 // client
-                const clientMapping = TemplateService.buildClientMapping(args.inputs);
+                const clientMapping = fixture.services.TemplateService.buildClientMapping(args.inputs);
 
                 // Verify structure matches new implementation (key is [string], value has (context))
                 // For handlebars:
@@ -198,7 +199,7 @@ describe('The TemplateService', function () {
 
         it('should encode JSONata expressions as inert data in generated client mappings', async function () {
             const expression = '"\\"); globalThis.__jsonataInjected = true; (\\""';
-            const clientMapping = TemplateService.buildClientMapping([
+            const clientMapping = fixture.services.TemplateService.buildClientMapping([
                 { key: ['unsafe-jsonata'], kind: 'jsonata', value: expression },
             ]);
 

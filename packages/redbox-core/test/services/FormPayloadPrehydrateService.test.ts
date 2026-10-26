@@ -1,5 +1,8 @@
+
+const collaborators: any = {};
+let fixture: any;
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect!: Chai.ExpectStatic;
@@ -12,7 +15,7 @@ describe('FormPayloadPrehydrateService', function () {
   });
 
   beforeEach(function () {
-    const mockSails = createMockSails({
+    const fixture = createDomainFixture({
       config: {
         appPath: '/app',
         form: {
@@ -24,8 +27,8 @@ describe('FormPayloadPrehydrateService', function () {
       },
       log: createSinonStubLogger(sinon)
     });
-    setupServiceTestGlobals(mockSails);
-    (global as any).VocabularyService = {
+    installRepositoryFixtures();
+    collaborators.VocabularyService = {
       getChildren: sinon.stub().resolves({
         entries: [{ id: 'e1', label: 'Root', value: '01', identifier: '01', hasChildren: true }],
         meta: { vocabularyId: 'v1', parentId: null, total: 1 }
@@ -44,12 +47,12 @@ describe('FormPayloadPrehydrateService', function () {
     };
 
     const { Services } = require('../../src/services/FormPayloadPrehydrateService');
-    service = new Services.FormPayloadPrehydrateService();
+    service = new Services.FormPayloadPrehydrateService({ config: fixture.config, log: fixture.log, get vocabulary() { return collaborators.VocabularyService; } });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).VocabularyService;
+    restoreRepositoryFixtures();
+    delete collaborators.VocabularyService;
     sinon.restore();
   });
 

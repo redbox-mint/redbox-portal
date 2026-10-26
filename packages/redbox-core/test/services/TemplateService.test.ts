@@ -1,31 +1,32 @@
+
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('TemplateService', function () {
-  let mockSails: any;
+  let fixture: any;
   let TemplateService: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
       },
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/TemplateService');
-    TemplateService = new Services.Template();
+    TemplateService = new Services.Template(fixture.log);
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     sinon.restore();
   });
 
@@ -136,7 +137,7 @@ describe('TemplateService', function () {
 
   describe('exports', function () {
     it('should export all public methods', function () {
-      const exported = TemplateService.exports();
+      const exported = TemplateService;
 
       expect(exported).to.have.property('buildClientMapping');
       expect(exported).to.have.property('buildClientJsonata');

@@ -25,7 +25,7 @@ export const TabComponentName = "TabComponent" as const;
 export type TabComponentNameType = typeof TabComponentName;
 
 export interface TabFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    tabs: TabContentFormComponentDefinitionFrame[];
+    tabs?: TabContentFormComponentDefinitionFrame[];
 }
 
 export interface TabFieldComponentConfigOutline extends TabFieldComponentConfigFrame, FieldComponentConfigOutline {

@@ -16,7 +16,7 @@ export const ReusableComponentName = "ReusableComponent" as const;
 export type ReusableComponentNameType = typeof ReusableComponentName;
 
 export interface ReusableFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    componentDefinitions: AvailableFormComponentDefinitionFrames[];
+    componentDefinitions?: AvailableFormComponentDefinitionFrames[];
 }
 
 export interface ReusableFieldComponentConfigOutline extends ReusableFieldComponentConfigFrame, FieldComponentConfigOutline {

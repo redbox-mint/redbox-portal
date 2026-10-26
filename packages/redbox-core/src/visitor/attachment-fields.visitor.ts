@@ -35,7 +35,7 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
         await formConfig.accept(this);
     }
 
-    async visitFormConfig(item: FormConfigOutline): Promise<void> {
+    override async visitFormConfig(item: FormConfigOutline): Promise<void> {
         // Visit all components
         for (const component of item.componentDefinitions) {
             await component.accept(this);
@@ -46,7 +46,7 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
 
     // -- File Upload --
 
-    async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
+    override async visitFileUploadFormComponentDefinition(item: FileUploadFormComponentDefinitionOutline): Promise<void> {
         if (item.component?.config) {
             // It's a file upload component, so it's an attachment field.
             // Use the component name (which corresponds to the metadata field name).
@@ -56,7 +56,7 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
         }
     }
 
-    async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
+    override async visitDataLocationFormComponentDefinition(item: DataLocationFormComponentDefinitionOutline): Promise<void> {
         if (item.component?.config && item.name) {
             this.attachmentFields.push(item.name);
         }
@@ -65,66 +65,66 @@ export class AttachmentFieldsVisitor extends FormConfigVisitor {
     // -- Containers --
 
     // Group
-    async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+    override async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
         await item.component.accept(this);
     }
 
-    async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+    override async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
         for (const def of item.config?.componentDefinitions ?? []) {
             await def.accept(this);
         }
     }
 
     // Tab
-    async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+    override async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
         await item.component.accept(this);
     }
 
-    async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
+    override async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
         for (const tab of item.config?.tabs ?? []) {
             await tab.accept(this);
         }
     }
 
     // Accordion
-    async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
+    override async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
         await item.component.accept(this);
     }
 
-    async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
+    override async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
         for (const panel of item.config?.panels ?? []) {
             await panel.accept(this);
         }
     }
 
     // Accordion Panel
-    async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
+    override async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
         await item.component.accept(this);
     }
 
-    async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
+    override async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
         for (const def of item.config?.componentDefinitions ?? []) {
             await def.accept(this);
         }
     }
 
     // Tab Content
-    async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+    override async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
         await item.component.accept(this);
     }
 
-    async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
+    override async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
         for (const def of item.config?.componentDefinitions ?? []) {
             await def.accept(this);
         }
     }
 
     // Repeatable
-    async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
+    override async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
         await item.component.accept(this);
     }
 
-    async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
+    override async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
         // We need to check the element template for attachments
         if (item.config?.elementTemplate) {
             await item.config.elementTemplate.accept(this);

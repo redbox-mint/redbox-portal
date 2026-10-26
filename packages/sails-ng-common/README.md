@@ -1,5 +1,5 @@
 # sails-ng-common
-Common models shared between Sails API endpoints and client-side Angular code
+Common models shared between ReDBox server domains and client-side Angular code. The package name is historical.
 
 ## Installation
 `npm install @researchdatabox/sails-ng-common`

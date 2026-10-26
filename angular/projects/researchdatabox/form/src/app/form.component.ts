@@ -404,7 +404,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
-    @Inject(ConfigService) private configService: ConfigService,
+    @Inject(ConfigService) protected configService: ConfigService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(ElementRef) elementRef: ElementRef,
     @Inject(FormService) private formService: FormService,
