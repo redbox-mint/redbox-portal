@@ -3,6 +3,10 @@ import {createSinonStubLogger} from "../logger.test";
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { render } from 'ejs';
+import { handlebarsTemplate, jsonataDecodeCompile } from '@researchdatabox/sails-ng-common';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('TemplateService', function () {
@@ -85,6 +89,43 @@ describe('TemplateService', function () {
   });
 
   describe('buildClientMapping', function () {
+    it('keeps quoted property keys and expression syntax intact in the rendered browser module', async function () {
+      const template = await readFile(resolve(__dirname, '../../../../views/dynamicScriptAsset.ejs'), 'utf8');
+      const properties = [
+        "metadata['coversheet-id']",
+        'metadata["irma-id"]',
+        'quote\\slash\n<>&',
+        'carriage\rreturn',
+        'line\u2028separator\u2029paragraph',
+      ];
+      const inputs = properties.map(property => ({
+        key: ['default', 'workflow', 'activity', 'draft', 'rowConfig', property],
+        kind: 'handlebars',
+        value: '{{metadata.title}}',
+      }));
+      inputs.push({
+        key: ['default', 'form', 'expressions', 'copyValue'],
+        kind: 'jsonata',
+        value: '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)',
+      });
+      const entries = TemplateService.buildClientMapping(inputs).map(entry => ({
+        key: TemplateService.buildKeyString(entry.key),
+        value: entry.value,
+      }));
+      const moduleSource = render(template, { entries });
+      // Import the complete generated ES module, including its export declaration.
+      const { evaluate } = await import(`data:text/javascript;base64,${Buffer.from(moduleSource).toString('base64')}`);
+      const extra = { libraries: { handlebars: handlebarsTemplate, jsonata: jsonataDecodeCompile } };
+
+      for (const input of inputs.slice(0, -1)) {
+        expect(evaluate(input.key, { metadata: { title: 'SCU title' } }, extra)).to.equal('SCU title');
+      }
+      for (const value of [{ oid: 'SCU_oid' }, { redboxOid: 'SCU_oid' }, 'SCU_oid']) {
+        expect(await evaluate(inputs[inputs.length - 1].key, { event: { value } }, extra)).to.equal('SCU_oid');
+      }
+      expect(() => evaluate(['unknown'], {}, extra)).to.throw('Unknown key');
+    });
+
     it('should build mapping for JSONata inputs', function () {
       const inputs = [{ key: ['field1'], kind: 'jsonata', value: '$.name' }];
 
