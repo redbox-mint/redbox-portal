@@ -77,22 +77,12 @@
     },
     {
       "files": [
-        "packages/redbox-core/src/CoreController.ts",
         "packages/redbox-core/src/CoreService.ts",
         "packages/redbox-core/src/controllers/webservice/*.ts",
-        "packages/redbox-core/src/services/RecordsService.ts",
-        "packages/redbox-core/src/services/VocabService.ts"
+        "packages/redbox-core/src/services/RecordsService.ts"
       ],
       "rules": {
         "typescript/no-unused-vars": "off"
-      }
-    },
-    {
-      "files": [
-        "packages/redbox-core/src/sails.ts"
-      ],
-      "rules": {
-        "typescript/no-explicit-any": "off"
       }
     },
     {

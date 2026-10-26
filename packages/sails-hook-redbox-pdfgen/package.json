@@ -9,11 +9,6 @@
     "src/api/configmodels",
     "README.md"
   ],
-  "sails": {
-    "isHook": true,
-    "hasServices": true,
-    "hasConfig": true
-  },
   "scripts": {
     "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
     "prepack": "npm run compile",
@@ -45,5 +40,17 @@
     "@researchdatabox/redbox-dev-tools": "file:../redbox-dev-tools",
     "@types/node": "24.12.4",
     "typescript": "5.9.3"
+  },
+  "redbox": {
+    "extension": "./extension"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./extension": {
+      "types": "./dist/extension.d.ts",
+      "default": "./dist/extension.js"
+    },
+    "./package.json": "./package.json",
+    "./dist/*": "./dist/*"
   }
 }
