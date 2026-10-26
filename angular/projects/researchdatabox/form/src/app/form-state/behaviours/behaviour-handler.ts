@@ -157,8 +157,17 @@ export class BehaviourHandler {
         querySource: this.getEventQuerySource(event),
       });
 
-      if (!matches) {
+      if (!matches || (runsOnlyOnFormReady && this.hasExecutedFormReady)) {
         return;
+      }
+      // Condition evaluation and processors may await. Reserve a ready-only
+      // JSONata match (native ready or an initial field notification) before
+      // actions so the two notification paths cannot start duplicate pipelines.
+      // JSONPointer field subscriptions retain their existing per-field scope.
+      const isJSONata =
+        conditionKind === ExpressionsConditionKind.JSONata || conditionKind === ExpressionsConditionKind.JSONataQuery;
+      if (runsOnlyOnFormReady && (isFormReadyEvent || isJSONata)) {
+        this.hasExecutedFormReady = true;
       }
 
       let value = (event as { value?: unknown }).value;
