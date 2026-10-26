@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
-FROM node:26.11.1-bookworm AS base
+FROM node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -23,33 +23,52 @@ RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/inst
 WORKDIR /opt/redbox-portal
 SHELL ["bash", "-o", "pipefail", "-c"]
 
-FROM base AS builder
+# Install from the pinned manifests before copying application source. Runtime
+# fixes must not invalidate the complete strict dependency tree during qualification.
+FROM base AS dependencies
+COPY package*.json .npmrc ./
+COPY packages/agenda-sqs-backend/package*.json ./packages/agenda-sqs-backend/
+COPY packages/sails-ng-common/package*.json ./packages/sails-ng-common/
+COPY packages/raido/package*.json ./packages/raido/
+COPY packages/rva-registry/package*.json ./packages/rva-registry/
+COPY packages/redbox-core/package*.json ./packages/redbox-core/
+COPY packages/redbox-dev-tools/package*.json ./packages/redbox-dev-tools/
+COPY packages/sails-hook-redbox-storage-mongo/package*.json ./packages/sails-hook-redbox-storage-mongo/
+COPY packages/redbox-hook-dev/package*.json ./packages/redbox-hook-dev/
+COPY packages/sails-hook-redbox-pdfgen/package*.json ./packages/sails-hook-redbox-pdfgen/
 
+# Subproject npm invocations do not inherit the application's .npmrc. Keep the
+# same strict, script-free install policy at every package boundary; the explicit
+# builds below own compilation and Prisma generation.
+RUN npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/agenda-sqs-backend && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/sails-ng-common && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/raido && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/rva-registry && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/redbox-core && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/sails-hook-redbox-storage-mongo && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit
+RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps --no-audit
+
+FROM dependencies AS builder
 COPY . .
-
-RUN npm ci --no-audit \
- && (cd packages/agenda-sqs-backend && npm ci --no-audit) \
- && (cd packages/sails-ng-common && npm ci --no-audit) \
- && (cd packages/raido && npm ci --no-audit) \
- && (cd packages/rva-registry && npm ci --no-audit) \
- && (cd packages/redbox-core && npm ci --no-audit) \
- && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)
 
 RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN --network=none cd packages/redbox-core && npm run check:prisma && npm run build
-RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit && npm run build
+RUN cd packages/redbox-dev-tools && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
 # Build its dist so the optional `test` image (below) can load it. It is pruned
 # from node_modules for the pristine runtime image.
-RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit && npm run build
+RUN cd packages/redbox-hook-dev && npm run build
 # Build the optional PDF hook from this checkout. The pdfgen runtime target
 # installs this local package, so it does not depend on a separately released
 # portal-core-compatible npm version.
-RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps --no-audit && npm run compile
+RUN cd packages/sails-hook-redbox-pdfgen && npm run compile
 
 RUN npx tsc --project tsconfig.json
 
@@ -79,7 +98,7 @@ RUN rm -rf \
     support/build/api-descriptors/node_modules \
  && npm ci --omit=dev --no-audit
 
-FROM node:26.11.1-bookworm-slim AS runtime
+FROM node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS runtime
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane
@@ -97,6 +116,7 @@ RUN apt-get update \
 
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/package*.json ./
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.js ./app.js
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.express.cjs ./app.express.cjs
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
@@ -109,16 +129,16 @@ RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen \
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
-EXPOSE 1337
+EXPOSE 1500
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
-  CMD ["sh", "-c", "curl -fsS \"http://localhost:${PORT:-1337}/\" >/dev/null"]
+  CMD ["sh", "-c", "curl -fsS \"http://localhost:${REDBOX_PORT:-1500}/readyz\" >/dev/null"]
 
 USER node
 
 RUN node -e "const { createRequire } = require('module'); const corePath = require.resolve('@researchdatabox/redbox-core'); require(corePath); createRequire(corePath)('@uppy/companion')"
 
-CMD ["node", "app.js"]
+CMD ["node", "app.express.cjs"]
 
 FROM runtime AS runtime_puppeteer_base
 USER root
@@ -173,7 +193,7 @@ USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
-RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --no-audit \
+RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --strict-peer-deps --legacy-peer-deps=false --no-audit \
     ./packages/sails-hook-redbox-pdfgen
 RUN node -e "require('@researchdatabox/redbox-core'); require('@researchdatabox/sails-hook-redbox-pdfgen')"
 USER root
@@ -181,30 +201,27 @@ RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
 USER node
 
-# Optional test/demo image: layers the development hook (redbox-hook-dev: demo
-# record types, workflows, dashboards and forms) on top of the otherwise pristine
-# runtime. Built with `--target test` and used by the integration test suites.
-# The vanilla runtime image never includes it, so published/client images stay
-# pristine. Restore the compiled hook and development dependencies directly
-# from the unpruned builder, then link the hook for redbox-loader discovery.
-FROM runtime AS test
-USER root
-# Mounted regression preparation uses the same pinned Angular build Node as
-# the builder. Keep it out of every published runtime target.
-COPY --from=builder /root/.nvm/versions/node /opt/redbox-build-node
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
-COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/raido/node_modules ./packages/raido/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/rva-registry/node_modules ./packages/rva-registry/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-ng-common/node_modules ./packages/sails-ng-common/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/node_modules ./packages/sails-hook-redbox-storage-mongo/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-dev-tools/node_modules ./packages/redbox-dev-tools/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/agenda-sqs-backend/node_modules ./packages/agenda-sqs-backend/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen/node_modules ./packages/sails-hook-redbox-pdfgen/node_modules
-RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
- && chown -h node:node node_modules/redbox-hook-dev
-USER node
+# Local upgrade-rehearsal artifact: the bundled development forms act as the
+# institution stand-in, installed in the production graph with the PDF hook.
+# It intentionally retains the runtime dependency tree, never the builder's dev tree.
+FROM runtime_pdfgen AS rehearsal
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
+RUN npm install --omit=dev --ignore-scripts --save-prod --strict-peer-deps --legacy-peer-deps=false --no-audit \
+    ./packages/redbox-hook-dev
+RUN node -e "require('@researchdatabox/redbox-core/portal'); require('redbox-hook-dev/extension'); require('@researchdatabox/sails-hook-redbox-pdfgen/extension')"
+
+# Development/test artifact. Reuse the clean builder's dependency layers instead
+# of copying and chowning the complete development graph into a second tree.
+# This target includes build tools and runs as root for the existing mounted CI
+# workflows; release qualification separately exercises the node-user runtime.
+FROM builder AS test
+ENV NODE_ENV=development
+ENV TZ=Australia/Brisbane
+RUN ln -s /root/.nvm/versions/node /opt/redbox-build-node
+EXPOSE 1500
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
+  CMD ["sh", "-c", "curl -fsS \"http://localhost:${REDBOX_PORT:-1500}/readyz\" >/dev/null"]
+CMD ["node", "app.express.cjs"]
 
 # Keep the vanilla (pristine) runtime image as the default build target.
 FROM runtime

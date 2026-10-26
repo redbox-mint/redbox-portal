@@ -13,15 +13,12 @@ const excluded = new Set(['node_modules', 'dist', 'coverage', '.angular', '.tmp'
 const roots = ['packages', 'angular', 'config', 'api', 'tasks', 'scripts', 'views', 'assets',
   'support/integration-testing', 'support/build', 'support/resources/development/bootstrap-data',
   'package.json', 'package-lock.json', '.nvmrc', 'Dockerfile', '.dockerignore',
-  'app.ts', 'app.js', 'app.integrationtest.js', 'tsconfig.json', 'webpack.config.js'];
+  'app.ts', 'app.js', 'app.integrationtest.js', 'app.express.cjs', 'tsconfig.json', 'webpack.config.js'];
 
 function files(relative) {
   const normalized = relative.split(path.sep).join('/');
-  // The loader regenerates these after preparation. Hash their typed sources,
-  // while retaining authored migrations and environment config in the stamp.
-  if (/^api\/(controllers|models|services|policies|middleware|responses|form-config|shims)\/.*\.js$/.test(normalized) ||
-      (/^config\/[^/]+\.js$/.test(normalized) && normalized !== 'config/form.js') ||
-      normalized === 'assets/angular') return [];
+  // Angular output is derived; all authored application/configuration inputs are hashed.
+  if (normalized === 'assets/angular') return [];
   const absolute = path.join(root, relative);
   if (!fs.existsSync(absolute)) return [];
   const stat = fs.lstatSync(absolute);

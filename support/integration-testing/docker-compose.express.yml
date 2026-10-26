@@ -1,0 +1,28 @@
+# Candidate override for the EXISTING general/oidc/s3 profiles. Example:
+# RBPORTAL_EXPRESS_TEST_PROFILE=general docker compose --profile mount \
+#   -f support/integration-testing/docker-compose.bruno.general.yml \
+#   -f support/integration-testing/docker-compose.express.yml up --abort-on-container-exit --exit-code-from bruno-mount
+services:
+  redboxportal-mount:
+    image: node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
+    pull_policy: missing
+    environment:
+      RBPORTAL_EXPRESS_TEST_PROFILE: ${RBPORTAL_EXPRESS_TEST_PROFILE:-general}
+    entrypoint: [bash, /opt/redbox-portal/support/integration-testing/run-express-integration.sh]
+    healthcheck:
+      test: [CMD-SHELL, 'curl -fsS http://localhost:1500/readyz']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+  mongodb:
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+  email:
+    volumes:
+      - express-email:/data
+volumes:
+  # Each existing profile gets its own fresh provider state under its project.
+  express-email:

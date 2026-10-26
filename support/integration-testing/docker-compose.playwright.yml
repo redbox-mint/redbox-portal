@@ -2,7 +2,10 @@ networks:
   main:
 
 x-playwright-service: &playwright-service
-  image: mcr.microsoft.com/playwright:v1.64.1-noble
+  image: redbox-portal:playwright-node26
+  build:
+    context: .
+    dockerfile: Dockerfile.playwright
   pull_policy: missing
   working_dir: /opt/redbox-portal
   stop_grace_period: 30m
@@ -31,17 +34,16 @@ x-playwright-service: &playwright-service
 
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
+  - RBPORTAL_EXPRESS_TEST_PROFILE=general
+  - REDBOX_APPLICATION_CONFIG=/opt/redbox-portal/support/integration-testing/express-integration.config.cjs
+  - REDBOX_SESSION_SECRET=integrationtest-only-v6-session-secret-at-least-32
   - RBPORTAL_PLAYWRIGHT_MODE=${RBPORTAL_PLAYWRIGHT_MODE:-image}
   # Scenario registrations are opt-in. The lifecycle wrapper sets this to true
   # for acceptance runs; a direct portal start remains free of test forms.
   - RBPORTAL_PLAYWRIGHT_SCENARIOS=${RBPORTAL_PLAYWRIGHT_SCENARIOS:-false}
   - PORT=${RBPORTAL_PLAYWRIGHT_PORT:-1500}
-  - sails_appUrl=http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}
   - NODE_OPTIONS=--max-old-space-size=1024
-  - sails_security__csrf=true
   # Process the real queue promptly so indexing keeps pace with owned fixtures.
-  - sails_agendaQueue__options__processEvery=0.1 seconds
-  - sails_vocab__rva__baseUrl=http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}/rva
   - PLAYWRIGHT_BROWSER_STUB_URL=http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}
   - 'RBPORTAL_REMOTE_DEBUG=${RBPORTAL_REMOTE_DEBUG:-}'
   - UPPY_COMPANION_ENABLED=true
@@ -55,9 +57,7 @@ x-rbportal-env: &rbportal-env
   - UPPY_GOOGLE_SECRET=integrationtest-google-secret
   - UPPY_ONEDRIVE_KEY=integrationtest-onedrive-key
   - UPPY_ONEDRIVE_SECRET=integrationtest-onedrive-secret
-  - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
   - LOAD_DEFAULT_FORMS=true
-  - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
   - RBPORTAL_COVERAGE_DIR=/tmp/coverage/playwright
   - TZ=Australia/Brisbane
 
@@ -82,7 +82,6 @@ x-rbportal-service: &rbportal-service
     - '../../support:/opt/redbox-portal/support'
     - '../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js'
     - '../../.tmp/playwright/attachments:/attachments'
-    - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
     - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     - '../../coverage/playwright:/tmp/coverage/playwright'
     - '../../.tmp/playwright/application-bundles.json:/opt/redbox-portal/playwright-application-bundles.json:ro'
@@ -140,7 +139,6 @@ services:
       - '../../:/opt/redbox-portal:delegated'
       - '../../.tmp/playwright/attachments:/attachments'
       - '../../.tmp/playwright/application-bundles.json:/opt/redbox-portal/playwright-application-bundles.json:ro'
-      - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://localhost:$${PORT}/default/rdmp/home']
@@ -148,7 +146,7 @@ services:
       timeout: '5s'
       retries: 30
       # Cold preparation builds the package graph, every Angular app, and
-      # webpack before Sails starts; measured runs can exceed 25 minutes under
+      # webpack before the portal starts; measured runs can exceed 25 minutes under
       # disk contention. A healthy response still ends this grace early.
       start_period: '30m'
   mongodb:
@@ -232,7 +230,7 @@ services:
       retries: 10
       start_period: '10s'
   playwright-stubs:
-    image: node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
+    image: node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
     pull_policy: missing
     working_dir: /opt/playwright-stubs
     command: ['node', 'server.cjs']
