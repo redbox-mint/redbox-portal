@@ -1,7 +1,7 @@
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { FigshareClient } from './http';
 import { RecordModel, FigshareSyncState, FigsharePublishResult } from './types';
-import { setSyncState } from './config';
+import { setSyncState } from '../../integrations/figshare/config';
 
 export async function publishIfNeededPhase(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel, articleId: string, syncState: FigshareSyncState): Promise<FigsharePublishResult> {
   if (config.article.publishMode === 'manual') {

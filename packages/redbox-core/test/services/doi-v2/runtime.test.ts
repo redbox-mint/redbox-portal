@@ -1,6 +1,6 @@
 import * as sinon from 'sinon';
 import { Layer } from 'effect';
-import { runCreateDoiProgram } from '../../../src/services/doi-v2/runtime';
+import { runCreateDoiProgram } from '../../../src/integrations/doi/runtime';
 import { DoiClientTag, DoiHttpError } from '../../../src/services/doi-v2/http';
 import * as httpModule from '../../../src/services/doi-v2/http';
 
@@ -12,7 +12,6 @@ describe('doi-v2 runtime', function () {
   });
 
   afterEach(function () {
-    delete (global as any).IntegrationAuditService;
     sinon.restore();
   });
 
@@ -20,7 +19,8 @@ describe('doi-v2 runtime', function () {
     const startAudit = sinon.stub();
     const completeAudit = sinon.stub();
     const failAudit = sinon.stub();
-    (global as any).IntegrationAuditService = { startAudit, completeAudit, failAudit };
+    const input = { audit: { start: startAudit, complete: completeAudit, fail: failAudit },
+      log: { warn: sinon.stub() }, clientLayer: (...args: Parameters<typeof httpModule.makeClientLayer>) => httpModule.makeClientLayer(...args) };
     startAudit.returns({ traceId: 'trace-child', spanId: 'span-child', redboxOid: 'oid-1' });
 
     sinon.stub(httpModule, 'makeClientLayer').returns(
@@ -56,7 +56,7 @@ describe('doi-v2 runtime', function () {
     } as any;
 
     const parentAuditContext = { traceId: 'trace-parent', spanId: 'span-parent', redboxOid: 'oid-1' } as any;
-    const result = await runCreateDoiProgram(config, runContext, {
+    const result = await runCreateDoiProgram(input, config, runContext, {
       data: { type: 'dois', attributes: { titles: [{ title: 'Example' }] } }
     }, {
       auditContext: parentAuditContext,
@@ -66,8 +66,8 @@ describe('doi-v2 runtime', function () {
     expect(result.doi).to.equal('10.1234/5678');
     expect(startAudit.calledOnce).to.be.true;
     expect(startAudit.firstCall.args[1]).to.equal('createDoiRequest');
-    expect(startAudit.firstCall.args[2].traceId).to.equal('trace-parent');
-    expect(startAudit.firstCall.args[2].parentSpanId).to.equal('span-parent');
+    expect(startAudit.firstCall.args[4].traceId).to.equal('trace-parent');
+    expect(startAudit.firstCall.args[4].spanId).to.equal('span-parent');
     expect(completeAudit.calledOnce).to.be.true;
     expect(completeAudit.firstCall.args[1].message).to.equal('DataCite create DOI request completed.');
     expect(completeAudit.firstCall.args[1].responseSummary).to.deep.equal({ data: { id: '10.1234/5678' } });
@@ -78,7 +78,8 @@ describe('doi-v2 runtime', function () {
     const startAudit = sinon.stub();
     const completeAudit = sinon.stub();
     const failAudit = sinon.stub();
-    (global as any).IntegrationAuditService = { startAudit, completeAudit, failAudit };
+    const input = { audit: { start: startAudit, complete: completeAudit, fail: failAudit },
+      log: { warn: sinon.stub() }, clientLayer: (...args: Parameters<typeof httpModule.makeClientLayer>) => httpModule.makeClientLayer(...args) };
     startAudit.returns({ traceId: 'trace-child', spanId: 'span-child', redboxOid: 'oid-1' });
 
     const transportCause = Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' });
@@ -117,7 +118,7 @@ describe('doi-v2 runtime', function () {
 
     let thrown: unknown;
     try {
-      await runCreateDoiProgram(config, runContext, {
+      await runCreateDoiProgram(input, config, runContext, {
         data: { type: 'dois', attributes: { titles: [{ title: 'Example' }] } }
       }, {
         auditContext: { traceId: 'trace-parent', spanId: 'span-parent', redboxOid: 'oid-1' } as any,

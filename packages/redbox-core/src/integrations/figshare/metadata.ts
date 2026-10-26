@@ -1,0 +1,473 @@
+import _ from 'lodash';
+import { FORM_VALIDATOR_DOI_REGEXP } from '@researchdatabox/sails-ng-common';
+import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
+import { RBValidationError } from '../../model/RBValidationError';
+import { FigshareClient } from '../../services/figshare-v2/http';
+import {
+  RecordModel,
+  FigshareArticle,
+  FigsharePublicationPlan,
+  FigshareLicense,
+  FigshareInstitutionAccount,
+  FigshareArticlePayload,
+  RecordContributor,
+  getRecordField,
+} from '../../services/figshare-v2/types';
+import type { createFigshareBindings } from './bindings';
+import type { BindingContext } from './context';
+import { toSourceCodeCandidates } from '../../services/figshare-v2/categories';
+
+export interface FigshareMetadataInput {
+  readonly bindings: ReturnType<typeof createFigshareBindings>;
+  bindingContext(record: RecordModel): BindingContext;
+  readonly licenseCache: Map<string, FigshareLicense[]>;
+  readonly log: { warn(message: string): void };
+}
+export function createFigshareMetadata(input: FigshareMetadataInput) {
+  const { evaluateBinding, resolveCrosswalkBinding } = input.bindings;
+  const createBindingContext = input.bindingContext;
+  const figshareLicenseCache = input.licenseCache;
+  const relatedMaterialTitleKeys = ['related_title', 'title', 'name'];
+  const relatedMaterialIdentifierKeys = ['related_doi', 'doi', 'related_url', 'url', 'identifier'];
+
+  function validationError(message: string): RBValidationError {
+    return new RBValidationError({
+      message,
+      displayErrors: [{ title: message, detail: message }],
+    });
+  }
+
+  function getDefaultContributors(config: FigsharePublishingConfigData, record: RecordModel): RecordContributor[] {
+    const contributorPaths =
+      Array.isArray(config.authors.contributorPaths) && config.authors.contributorPaths.length > 0
+        ? config.authors.contributorPaths
+        : [
+            'metadata.contributor_ci',
+            'metadata.contributor_data_manager',
+            'metadata.dataOwner',
+            'metadata.chiefInvestigator',
+            'metadata.contributors',
+          ];
+    const contributors = contributorPaths
+      .flatMap((contributorPath: string) => {
+        const value = getRecordField(record, contributorPath);
+        return Array.isArray(value) ? value : value != null ? [value] : [];
+      })
+      .filter(
+        (entry: unknown) => typeof entry === 'object' && entry != null && !Array.isArray(entry)
+      ) as RecordContributor[];
+    return contributors;
+  }
+
+  function applyAuthorLookupTransform(config: FigsharePublishingConfigData, matchBy: string, value: string): string {
+    if (matchBy !== 'email') {
+      return value;
+    }
+
+    let normalized = value.trim();
+    if (normalized === '') {
+      return normalized;
+    }
+
+    const prefix = (config.authors.emailTransform?.prefix ?? '').trim();
+    const domainOverride = (config.authors.emailTransform?.domainOverride ?? '').trim();
+    const [localPart, domainPart = ''] = normalized.split('@');
+    if (prefix !== '' && localPart !== '' && !localPart.startsWith(prefix)) {
+      normalized = `${prefix}${localPart}${domainPart ? `@${domainPart}` : ''}`;
+    }
+    if (domainOverride !== '' && localPart !== '') {
+      const nextLocalPart = normalized.split('@')[0] || localPart;
+      normalized = `${nextLocalPart}@${domainOverride.replace(/^@+/, '')}`;
+    }
+    return normalized;
+  }
+
+  async function resolveAuthors(
+    client: FigshareClient,
+    config: FigsharePublishingConfigData,
+    record: RecordModel,
+    context: BindingContext
+  ): Promise<Array<{ id?: number | string; name?: string }>> {
+    const contributors = getDefaultContributors(config, record);
+    if (contributors.length === 0) {
+      return [];
+    }
+
+    const uniqueContributors =
+      config.authors.uniqueBy === 'none'
+        ? contributors
+        : _.uniqBy(contributors, entry => String(entry[config.authors.uniqueBy] ?? ''));
+
+    const resolvedAuthors: Array<{ id?: number | string; name?: string }> = [];
+    for (const contributor of uniqueContributors.slice(0, config.authors.maxInlineAuthors)) {
+      let matched = false;
+      for (const rule of config.authors.lookup) {
+        // The evaluation target is the contributor, so the brand can only come from
+        // the context.
+        const rawValue = await evaluateBinding(rule.value, contributor as Record<string, unknown>, context);
+        const value =
+          typeof rawValue === 'string' ? applyAuthorLookupTransform(config, rule.matchBy, rawValue) : rawValue;
+        if (value == null || value === '') {
+          continue;
+        }
+        const matches: FigshareInstitutionAccount[] = await client.searchInstitutionAccounts({ [rule.matchBy]: value });
+        const firstMatch = matches[0];
+        if (firstMatch?.user_id != null && firstMatch.user_id !== '') {
+          resolvedAuthors.push({ id: firstMatch.user_id });
+          matched = true;
+          break;
+        }
+      }
+
+      if (!matched) {
+        const fallbackName =
+          contributor[config.authors.externalNameField] ?? contributor.text_full_name ?? contributor.name;
+        if (fallbackName != null && fallbackName !== '') {
+          resolvedAuthors.push({ name: String(fallbackName) });
+        }
+      }
+    }
+
+    return resolvedAuthors;
+  }
+
+  function matchesLicense(
+    matchBy: FigsharePublishingConfigData['metadata']['license']['matchBy'],
+    rawValue: string,
+    license: FigshareLicense
+  ): boolean {
+    const normalized = rawValue.trim().toLowerCase();
+    if (normalized === '') {
+      return false;
+    }
+    if (matchBy === 'nameExact') {
+      return license.name.trim().toLowerCase() === normalized;
+    }
+    if (matchBy === 'valueExact') {
+      return (
+        String(license.value ?? license.id ?? '')
+          .trim()
+          .toLowerCase() === normalized
+      );
+    }
+    const candidate = `${license.url ?? ''} ${license.name} ${license.value ?? ''}`.toLowerCase();
+    return candidate.includes(normalized);
+  }
+
+  /**
+   * Legacy mapping-table normalisation. Deliberately does NOT lowercase: mapping
+   * table rows are compared case-sensitively, so folding case here would silently
+   * stop alphanumeric source codes from matching.
+   */
+  function normalizeCategorySourceCode(value: unknown): string {
+    const rawValue = String(value ?? '').trim();
+    if (rawValue === '') {
+      return '';
+    }
+    const withoutQuery = rawValue.split('?')[0] ?? rawValue;
+    const delimiterIndex = Math.max(withoutQuery.lastIndexOf('/'), withoutQuery.lastIndexOf('#'));
+    return delimiterIndex === -1 ? withoutQuery : withoutQuery.slice(delimiterIndex + 1);
+  }
+
+  /**
+   * Build the article's numeric category list.
+   *
+   * A crosswalk binding selects crosswalk resolution; anything else falls back to
+   * the legacy mapping table. Crosswalk resolution fails closed — an invalid
+   * crosswalk never silently degrades to the preserved mapping-table rows.
+   */
+  async function buildCategoriesPayload(
+    config: FigsharePublishingConfigData,
+    recordData: Record<string, unknown>,
+    context: BindingContext
+  ): Promise<number[]> {
+    const binding = config.metadata.categories.source;
+
+    if (binding?.kind === 'crosswalk') {
+      // `||` not `??`: an unset select in the editor arrives as an empty string, which
+      // means "the default" rather than "an invalid output mode".
+      if ((binding.outputs || 'categoryId') !== 'categoryId') {
+        throw validationError("The Figshare categories binding must use the 'categoryId' output");
+      }
+
+      let resolution;
+      try {
+        resolution = await resolveCrosswalkBinding(binding, recordData, context);
+      } catch (error) {
+        throw validationError(
+          `Figshare crosswalk category resolution failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      if (resolution.historicalTargets.length > 0) {
+        const detail = resolution.historicalTargets
+          .map(target => `${target.code} → ${target.sourceId} (${target.categoryId})`)
+          .join(', ');
+        if (!config.categories.allowUnmapped) {
+          throw validationError(`Figshare crosswalk maps to categories removed upstream: ${detail}`);
+        }
+        input.log.warn(`Figshare crosswalk omitted historical category targets: ${detail}`);
+      }
+
+      if (!config.categories.allowUnmapped && resolution.sourceCodes.length > 0 && resolution.values.length === 0) {
+        throw validationError('No Figshare categories mapped for selected record categories');
+      }
+      return resolution.values as number[];
+    }
+
+    const rawValue = await evaluateBinding(binding, recordData, context);
+    const sourceCodes = toSourceCodeCandidates(rawValue)
+      .map(normalizeCategorySourceCode)
+      .filter(sourceCode => sourceCode !== '');
+    const mappedCategories = sourceCodes
+      .map(
+        (sourceCode: string) =>
+          config.categories.mappingTable.find(entry => entry.sourceCode === sourceCode)?.figshareCategoryId
+      )
+      .filter((value): value is number => value != null);
+
+    if (!config.categories.allowUnmapped && sourceCodes.length > 0 && mappedCategories.length === 0) {
+      throw validationError('No Figshare categories mapped for selected record categories');
+    }
+    return mappedCategories;
+  }
+
+  function toRelatedMaterialItems(value: unknown): unknown[] {
+    if (value == null || value === '') {
+      return [];
+    }
+    return Array.isArray(value) ? value : [value];
+  }
+
+  function isRelatedMaterialObject(value: unknown): value is Record<string, unknown> {
+    return value != null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function normalizeRelatedMaterialValue(value: unknown): string {
+    if (value == null || Array.isArray(value)) {
+      return '';
+    }
+    return String(value).trim();
+  }
+
+  function extractRelatedMaterialValue(value: unknown, candidateKeys: string[]): string {
+    if (isRelatedMaterialObject(value)) {
+      for (const key of candidateKeys) {
+        const candidate = normalizeRelatedMaterialValue(_.get(value, key));
+        if (candidate !== '') {
+          return candidate;
+        }
+      }
+      return '';
+    }
+    return normalizeRelatedMaterialValue(value);
+  }
+
+  function inferRelatedMaterialIdentifierType(identifier: string): 'DOI' | 'URL' {
+    return FORM_VALIDATOR_DOI_REGEXP.test(identifier) ? 'DOI' : 'URL';
+  }
+
+  function buildRelatedMaterials(
+    titleValue: unknown,
+    identifierValue: unknown
+  ): NonNullable<FigshareArticlePayload['related_materials']> {
+    const titleItems = toRelatedMaterialItems(titleValue);
+    const identifierItems = toRelatedMaterialItems(identifierValue);
+    const itemCount = Math.max(titleItems.length, identifierItems.length);
+    const relatedMaterials: NonNullable<FigshareArticlePayload['related_materials']> = [];
+
+    for (let index = 0; index < itemCount; index += 1) {
+      const titleSource = titleItems[index];
+      const identifierSource = identifierItems[index];
+      const title =
+        extractRelatedMaterialValue(titleSource, relatedMaterialTitleKeys) ||
+        (isRelatedMaterialObject(identifierSource)
+          ? extractRelatedMaterialValue(identifierSource, relatedMaterialTitleKeys)
+          : '');
+      const identifier =
+        extractRelatedMaterialValue(identifierSource, relatedMaterialIdentifierKeys) ||
+        (isRelatedMaterialObject(titleSource)
+          ? extractRelatedMaterialValue(titleSource, relatedMaterialIdentifierKeys)
+          : '');
+      if (title !== '' && identifier !== '') {
+        relatedMaterials.push({
+          title,
+          identifier,
+          identifier_type: inferRelatedMaterialIdentifierType(identifier),
+        });
+      }
+    }
+
+    return relatedMaterials;
+  }
+
+  async function resolveLicense(
+    client: FigshareClient,
+    config: FigsharePublishingConfigData,
+    record: RecordModel,
+    context: BindingContext
+  ): Promise<unknown> {
+    const licenseValue = await evaluateBinding(
+      config.metadata.license.source,
+      record as Record<string, unknown>,
+      context
+    );
+    if (licenseValue == null || licenseValue === '') {
+      if (config.metadata.license.required) {
+        throw validationError('Figshare license is required');
+      }
+      return undefined;
+    }
+
+    const cacheKey = `${config.connection.baseUrl}::${config.connection.token}`;
+    let availableLicenses = figshareLicenseCache.get(cacheKey);
+    if (availableLicenses == null) {
+      availableLicenses = await client.listLicenses();
+      figshareLicenseCache.set(cacheKey, availableLicenses);
+    }
+    if (!Array.isArray(availableLicenses) || availableLicenses.length === 0) {
+      throw validationError(
+        `Unable to resolve Figshare license '${licenseValue}' because no licenses were returned by Figshare`
+      );
+    }
+
+    const matched = availableLicenses.find(license =>
+      matchesLicense(config.metadata.license.matchBy, String(licenseValue), license)
+    );
+    if (matched == null) {
+      throw validationError(`Unable to resolve Figshare license '${licenseValue}'`);
+    }
+
+    return matched.value ?? matched.id ?? licenseValue;
+  }
+
+  function validatePayload(config: FigsharePublishingConfigData, payload: FigshareArticlePayload): void {
+    if (String(payload.title ?? '').trim() === '') {
+      throw validationError('Figshare title is required');
+    }
+    if (String(payload.description ?? '').trim() === '') {
+      throw validationError('Figshare description is required');
+    }
+    if (config.metadata.license.required && payload.license == null) {
+      throw validationError('Figshare license is required');
+    }
+    const customFields = payload.custom_fields;
+    for (const customField of config.metadata.customFields) {
+      const value = customFields?.[customField.figshareField];
+      for (const validation of customField.validations || []) {
+        if (validation.type === 'required' && (value == null || value === '')) {
+          throw validationError(`Figshare custom field '${customField.figshareField}' is required`);
+        }
+        if (
+          validation.type === 'maxLength' &&
+          typeof value === 'string' &&
+          validation.value != null &&
+          value.length > validation.value
+        ) {
+          throw validationError(
+            `Figshare custom field '${customField.figshareField}' exceeds max length ${validation.value}`
+          );
+        }
+        if (validation.type === 'url' && typeof value === 'string' && value !== '' && !/^https?:\/\//i.test(value)) {
+          throw validationError(`Figshare custom field '${customField.figshareField}' must be a URL`);
+        }
+        if (validation.type === 'doi' && typeof value === 'string' && value !== '' && !/^10\.\d{4,9}\//.test(value)) {
+          throw validationError(`Figshare custom field '${customField.figshareField}' must be a DOI`);
+        }
+      }
+    }
+  }
+
+  async function buildMetadataPayload(
+    config: FigsharePublishingConfigData,
+    record: RecordModel,
+    client?: FigshareClient
+  ): Promise<FigshareArticlePayload> {
+    const recordData = record as Record<string, unknown>;
+    // Built once: resolveBrandId hits BrandingService, and every binding shares it.
+    const bindingContext = createBindingContext(record);
+    const payload: FigshareArticlePayload = {
+      title: await evaluateBinding(config.metadata.title, recordData, bindingContext),
+      description: await evaluateBinding(config.metadata.description, recordData, bindingContext),
+      keywords: await evaluateBinding(config.metadata.keywords, recordData, bindingContext),
+      defined_type: config.article.itemType,
+    };
+
+    if (config.article.groupId != null) {
+      payload.group_id = config.article.groupId;
+    }
+
+    const funding = await evaluateBinding(config.metadata.funding, recordData, bindingContext);
+    if (funding != null && funding !== '') {
+      payload.funding = funding;
+    }
+
+    payload.categories = await buildCategoriesPayload(config, recordData, bindingContext);
+
+    const licenseValue =
+      client == null
+        ? await evaluateBinding(config.metadata.license.source, recordData, bindingContext)
+        : await resolveLicense(client, config, record, bindingContext);
+    if (licenseValue != null && licenseValue !== '') {
+      payload.license = licenseValue;
+    }
+
+    if (client != null) {
+      const authors = await resolveAuthors(client, config, record, bindingContext);
+      if (authors.length > 0) {
+        payload.authors = authors;
+      }
+    }
+
+    if (config.metadata.relatedResource) {
+      const relatedMaterials = buildRelatedMaterials(
+        await evaluateBinding(config.metadata.relatedResource.title, recordData, bindingContext),
+        await evaluateBinding(config.metadata.relatedResource.doi, recordData, bindingContext)
+      );
+      if (relatedMaterials.length > 0) {
+        payload.related_materials = relatedMaterials;
+      }
+    }
+
+    if (config.metadata.customFields.length > 0) {
+      const customFieldsPayload: Record<string, unknown> = {};
+      for (const customField of config.metadata.customFields) {
+        customFieldsPayload[customField.figshareField] = await evaluateBinding(
+          customField.value,
+          recordData,
+          bindingContext
+        );
+      }
+      payload.custom_fields = customFieldsPayload;
+    }
+
+    validatePayload(config, payload);
+    return payload;
+  }
+
+  async function syncMetadataPhase(
+    client: FigshareClient,
+    config: FigsharePublishingConfigData,
+    record: RecordModel,
+    plan: FigsharePublicationPlan
+  ): Promise<FigshareArticle> {
+    const payload = await buildMetadataPayload(config, record, client);
+    if (plan.action === 'create') {
+      return client.createArticle(payload);
+    }
+    const articleId = String(plan.articleId ?? '').trim();
+    if (articleId === '') {
+      throw validationError(`Figshare articleId is required for syncMetadataPhase action '${plan.action}'`);
+    }
+    const article = await client.updateArticle(articleId, payload);
+    if (article.id != null && String(article.id).trim() !== '') {
+      return article;
+    }
+    return {
+      ...article,
+      id: articleId,
+    };
+  }
+
+  return { buildMetadataPayload, syncMetadataPhase };
+}

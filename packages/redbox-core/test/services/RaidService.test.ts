@@ -1,19 +1,21 @@
+import _ from 'lodash';
+const collaborators: any = {};
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { Effect, Layer } from 'effect';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 import { RaidRecordRepositoryTag } from '../../src/services/raid-v2/tags';
 import type { RaidRecordRepository } from '../../src/services/raid-v2/types';
 
 describe('RaidService', function () {
-  let mockSails: any;
+  let fixture: any;
   let RaidService: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         raid: {
@@ -72,40 +74,52 @@ describe('RaidService', function () {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
-    (global as any).RecordsService = {
+    const { RaidPublishing } = require('../../src/configmodels/RaidPublishing');
+    const configuration = new RaidPublishing();
+    Object.assign(configuration, { enabled: true, saveBodyInMeta: true, types: fixture.config.raid.types });
+    configuration.connection.baseUrl = 'https://api.raid.org.au';
+    configuration.connection.token = 'test-token';
+    configuration.durableRetry = { jobName: 'MintRaidRetry', schedule: 'in 5 minutes', maxAttempts: 3 };
+    fixture.config.raid = configuration;
+    installRepositoryFixtures();
+    collaborators.RecordsService = {
       getMeta: sinon.stub().resolves({ metadata: {} }),
       updateMeta: sinon.stub().resolves({}),
       appendToRecord: sinon.stub().resolves({ isSuccessful: () => true }),
     };
-    (global as any).TranslationService = {
+    collaborators.TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
-    (global as any).AgendaQueueService = {
+    collaborators.AgendaQueueService = {
       now: sinon.stub(),
       schedule: sinon.stub(),
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'brand-one' }),
       getBrand: sinon.stub(),
       getDefault: sinon.stub().returns({ id: 'default', name: 'default' }),
     };
-    (global as any).AppConfigService = {
+    collaborators.AppConfigService = {
       getAppConfigurationForBrand: sinon.stub().returns({}),
     };
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/RaidService');
-    RaidService = new Services.Raid();
+    RaidService = new Services.Raid({ log: fixture.log,
+      brand: (id: string) => collaborators.BrandingService.getBrandById(id) ?? collaborators.BrandingService.getBrand(id),
+      configuration: (name: string) => collaborators.AppConfigService.getAppConfigurationForBrand(name)?.raidPublishing,
+      defaultConfiguration: () => fixture.config.raid,
+      get records() { return collaborators.RecordsService; }, get queue() { return collaborators.AgendaQueueService; },
+      audit: { start: (...args: unknown[]) => collaborators.IntegrationAuditService?.startAudit(...args), complete: (...args: unknown[]) => collaborators.IntegrationAuditService?.completeAudit(...args), fail: (...args: unknown[]) => collaborators.IntegrationAuditService?.failAudit(...args) } });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).RecordsService;
-    delete (global as any).TranslationService;
-    delete (global as any).AgendaQueueService;
-    delete (global as any).BrandingService;
-    delete (global as any).AppConfigService;
+    restoreRepositoryFixtures();
+    delete collaborators.RecordsService;
+    delete collaborators.TranslationService;
+    delete collaborators.AgendaQueueService;
+    delete collaborators.BrandingService;
+    delete collaborators.AppConfigService;
     sinon.restore();
   });
 
@@ -118,11 +132,11 @@ describe('RaidService', function () {
   describe('resolveConfig', function () {
     const record = { metaMetadata: { brandId: 'brand-1' } };
 
-    it('normalizes legacy path mappings into JSONata expressions', function () {
-      mockSails.config.raid.mapping = {
+    it('retains explicit JSONata mapping expressions', function () {
+      fixture.config.raid.mapping = {
         dmp: {
-          title: { dest: 'title[0].text', src: 'metadata.title' },
-          identifier: { dest: 'id', src: 'record.metadata["dc:identifier"]' },
+          title: { dest: 'title[0].text', engine: 'jsonata', expression: 'record.metadata.title' },
+          identifier: { dest: 'id', engine: 'jsonata', expression: 'record.metadata["dc:identifier"]' },
         },
       };
 
@@ -136,7 +150,7 @@ describe('RaidService', function () {
     });
 
     it('does not reuse the default brand saved credentials', function () {
-      (global as any).AppConfigService.getAppConfigurationForBrand.callsFake((brandName: string) =>
+      collaborators.AppConfigService.getAppConfigurationForBrand.callsFake((brandName: string) =>
         brandName === 'default'
           ? { raidPublishing: { connection: { baseUrl: 'https://wrong.example', token: 'wrong' } } }
           : {}
@@ -365,7 +379,7 @@ describe('RaidService', function () {
         }).pipe(Effect.provide(layer))
       );
 
-      const args = (global as any).RecordsService.appendToRecord.firstCall.args;
+      const args = collaborators.RecordsService.appendToRecord.firstCall.args;
       expect(args.slice(0, 3)).to.deep.equal(['associated-1', 'raid-1', 'metadata.raid']);
       expect(args[5]).to.equal(initiatingActor);
     });
@@ -393,8 +407,8 @@ describe('RaidService', function () {
         }
       );
 
-      expect((global as any).AgendaQueueService.schedule.called).to.be.true;
-      expect((global as any).AgendaQueueService.schedule.firstCall.args[2].initiatingActor).to.deep.equal({
+      expect(collaborators.AgendaQueueService.schedule.called).to.be.true;
+      expect(collaborators.AgendaQueueService.schedule.firstCall.args[2].initiatingActor).to.deep.equal({
         username: 'owner',
         roles: [{ id: 'role-researcher', name: 'Researcher' }],
       });
@@ -409,7 +423,7 @@ describe('RaidService', function () {
 
       await RaidService.mintPostCreateRetryHandler('', record, {});
 
-      expect((global as any).AgendaQueueService.schedule.called).to.be.false;
+      expect(collaborators.AgendaQueueService.schedule.called).to.be.false;
     });
 
     it('should not schedule when attemptCount is 0', async function () {
@@ -421,7 +435,7 @@ describe('RaidService', function () {
 
       await RaidService.mintPostCreateRetryHandler('oid-1', record, {});
 
-      expect((global as any).AgendaQueueService.schedule.called).to.be.false;
+      expect(collaborators.AgendaQueueService.schedule.called).to.be.false;
     });
   });
 
@@ -441,7 +455,7 @@ describe('RaidService', function () {
         },
       };
 
-      (global as any).RecordsService.getMeta.resolves({ metadata: {} });
+      collaborators.RecordsService.getMeta.resolves({ metadata: {} });
       const mintRaidStub = sinon.stub(RaidService as any, 'mintRaid').resolves({});
 
       await RaidService.mintRetryJob(job);
@@ -492,9 +506,9 @@ describe('RaidService', function () {
     });
   });
 
-  describe('exports', function () {
+  describe('public methods', function () {
     it('should export all public methods', function () {
-      const exported = RaidService.exports();
+      const exported = RaidService;
 
       expect(exported).to.have.property('mintTrigger');
       expect(exported).to.have.property('buildContribVal');

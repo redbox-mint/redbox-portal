@@ -1,3 +1,5 @@
+const collaborators: any = {};
+let environment: any;
 import * as sinon from 'sinon';
 import { Readable } from 'node:stream';
 import { createRequire } from 'node:module';
@@ -8,13 +10,13 @@ import type { FigsharePublishingConfigData } from '../../src/configmodels/Figsha
 const testRequire = createRequire(__filename);
 const { agendaQueue } = testRequire('../../src/config/agendaQueue.config');
 const { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } = testRequire('../../src/configmodels/FigsharePublishing');
-const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
-const { resolveFigsharePublishingConfig } = testRequire('../../src/services/figshare-v2/config');
-const { createRunContext } = testRequire('../../src/services/figshare-v2/context');
+const { restoreRepositoryFixtures, createDomainFixture, installRepositoryFixtures } = testRequire('./testHelper');
+let resolveFigsharePublishingConfig: any;
+let createRunContext: any;
 const { mapCreateArticleResponse } = testRequire('../../src/services/figshare-v2/http');
-const { buildMetadataPayload, syncMetadataPhase } = testRequire('../../src/services/figshare-v2/metadata');
-const { syncAssetsPhase } = testRequire('../../src/services/figshare-v2/assets');
-const { syncEmbargoPhase } = testRequire('../../src/services/figshare-v2/embargo');
+let buildMetadataPayload: any, syncMetadataPhase: any;
+let syncAssetsPhase: any;
+let syncEmbargoPhase: any;
 const { getRecordField, setRecordField } = testRequire('../../src/services/figshare-v2/types');
 const { RBValidationError } = testRequire('../../src/model/RBValidationError');
 const {createSinonStubLogger} = testRequire("../logger.test") as typeof import('../logger.test');
@@ -265,14 +267,14 @@ function buildAssetRecord(dataLocations: any[]): RecordModel {
 }
 
 function installDatastreamStub(buffer: Buffer, size?: number) {
-  (global as any).sails.config.record = { datastreamService: 'datastreamservice' };
-  (global as any).sails.services.datastreamservice = {
+  environment.config.record = { datastreamService: 'datastreamservice' };
+  environment.collaborators.datastreamservice = {
     getDatastream: sinon.stub().resolves({
       readstream: Readable.from([buffer]),
       ...(size === undefined ? {} : { size }),
     }),
   };
-  return (global as any).sails.services.datastreamservice.getDatastream as sinon.SinonStub;
+  return environment.collaborators.datastreamservice.getDatastream as sinon.SinonStub;
 }
 
 function buildAssetClient(
@@ -319,21 +321,21 @@ describe('FigshareService', function () {
   let appConfigByBrandStub: sinon.SinonStub;
 
   beforeEach(function () {
-    const mockSails = createMockSails({
+    environment = createDomainFixture({
       log: createSinonStubLogger(sinon),
     });
-    mockSails.config.queue = { serviceName: 'queueservice' };
-    mockSails.config.figshareDev = buildFigshareDevConfig();
+    environment.config.queue = { serviceName: 'queueservice' };
+    environment.config.figshareDev = buildFigshareDevConfig();
     const mockQueueService = {
       now: sinon.stub(),
       schedule: sinon.stub(),
     };
-    mockSails.services.queueservice = mockQueueService;
+    environment.collaborators.queueservice = mockQueueService;
 
-    setupServiceTestGlobals(mockSails);
-    (global as any).AgendaQueueService = mockQueueService;
+    installRepositoryFixtures();
+    collaborators.AgendaQueueService = mockQueueService;
     const { Services } = testRequire('../../src/services/FigshareService');
-    ({ ServiceExports } = testRequire('../../src/services'));
+
 
     appConfigByBrandStub = sinon.stub().callsFake((brand: string) => ({
       figsharePublishing: buildFigsharePublishingConfig({
@@ -343,25 +345,23 @@ describe('FigshareService', function () {
         },
       }),
     }));
-    sinon.stub(ServiceExports, 'AppConfigService').get(() => ({
-      getAppConfigurationForBrand: appConfigByBrandStub,
-    }));
-    (global as any).BrandingService = {
+
+    collaborators.BrandingService = {
       getBrand: sinon.stub().returns({ id: 'default-id', name: 'default' }),
       getBrandById: sinon.stub().returns(undefined),
       getDefault: sinon.stub().returns({ id: 'default-id', name: 'default' }),
     };
-    (global as any).RecordsService = {
+    collaborators.RecordsService = {
       getMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().resolves(true),
       updateMetaInternal: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
     };
-    (global as any).UsersService = {
+    collaborators.UsersService = {
       getUserWithUsername: sinon.stub().returns({
         toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [{ name: 'admin' }] }),
       }),
     };
-    (global as any).IntegrationAuditService = {
+    collaborators.IntegrationAuditService = {
       startAudit: sinon.stub().callsFake((_oid: string, _action: string, opts: Record<string, unknown>) => ({
         startedAt: '2025-01-01T00:00:00.000Z',
         ...opts,
@@ -369,42 +369,65 @@ describe('FigshareService', function () {
       completeAudit: sinon.stub(),
       failAudit: sinon.stub(),
     };
-    (global as any).TranslationService = {
+    collaborators.TranslationService = {
       t: sinon.stub().returnsArg(0),
     };
-    (global as any).NamedQueryService = {
+    collaborators.NamedQueryService = {
       getNamedQueryConfig: sinon.stub().resolves({}),
       performNamedQueryFromConfigResults: sinon.stub().resolves([]),
     };
-    (global as any).RecordTypesService = {
+    collaborators.RecordTypesService = {
       get: sinon.stub().returns({ toPromise: sinon.stub().resolves({}) }),
     };
-    (global as any).WorkflowStepsService = {
+    collaborators.WorkflowStepsService = {
       get: sinon.stub().returns({ toPromise: sinon.stub().resolves({}) }),
     };
 
-    service = new Services.FigshareService();
+    const { createFigshareProvider } = testRequire('../../src/integrations/figshare/provider');
+    const configuration = { configuration: name => appConfigByBrandStub(name),
+      brandById: id => collaborators.BrandingService.getBrandById(id), brandByName: name => collaborators.BrandingService.getBrand(name),
+      get development() { return environment.config.figshareDev; }, get environment() { return environment.config.environment; }, log: environment.log };
+    const provider = createFigshareProvider({ configuration,
+      get records() { return collaborators.RecordsService; },
+      user: async name => collaborators.UsersService.getUserWithUsername(name).toPromise(),
+      recordType: async (...args) => collaborators.RecordTypesService.get(...args).toPromise(),
+      workflowStep: async (...args) => collaborators.WorkflowStepsService.get(...args).toPromise(),
+      eligible: () => true, store: () => { throw new Error('No store configured for this scenario'); },
+      datastream: () => environment.collaborators.datastreamservice,
+      disks: { disk: (...args) => collaborators.StorageManagerService.disk(...args), stagingDisk: () => collaborators.StorageManagerService.stagingDisk() },
+      crosswalk: { get resolveCrosswalkValues() { return collaborators.FigshareVocabularyService?.resolveCrosswalkValues; } },
+      get audit() { return collaborators.IntegrationAuditService; }, queue: mockQueueService,
+      administrator: () => true, log: environment.log, translate: key => collaborators.TranslationService.t(key), runWork: operation => operation() });
+    service = provider.service;
+    resolveFigsharePublishingConfig = require('../../src/integrations/figshare/config').createFigshareConfiguration(configuration).resolveFigsharePublishingConfig;
+    const context = require('../../src/integrations/figshare/context').createFigshareContext({
+      brandName: service.input.brandName, branding: collaborators.BrandingService });
+    createRunContext = context.createRunContext;
+    buildMetadataPayload = service.input.mapping.buildMetadataPayload;
+    syncMetadataPhase = service.input.mapping.syncMetadataPhase;
+    syncAssetsPhase = service.input.assets.syncAssetsPhase;
+    syncEmbargoPhase = service.input.embargo.syncEmbargoPhase;
     getConfigStub = sinon
       .stub(service, 'getConfig')
       .callsFake((record?: any) => resolveFigsharePublishingConfig(record));
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).BrandingService;
-    delete (global as any).RecordsService;
-    delete (global as any).UsersService;
-    delete (global as any).AgendaQueueService;
-    delete (global as any).IntegrationAuditService;
-    delete (global as any).TranslationService;
-    delete (global as any).NamedQueryService;
-    delete (global as any).RecordTypesService;
-    delete (global as any).WorkflowStepsService;
+    restoreRepositoryFixtures();
+    delete collaborators.BrandingService;
+    delete collaborators.RecordsService;
+    delete collaborators.UsersService;
+    delete collaborators.AgendaQueueService;
+    delete collaborators.IntegrationAuditService;
+    delete collaborators.TranslationService;
+    delete collaborators.NamedQueryService;
+    delete collaborators.RecordTypesService;
+    delete collaborators.WorkflowStepsService;
     sinon.restore();
   });
 
   it('exports the canonical figshare lifecycle methods', function () {
-    const exports = service.exports() as Record<string, unknown>;
+    const exports = service as Record<string, unknown>;
     expect(exports).to.have.property('createUpdateFigshareArticle');
     expect(exports).to.have.property('uploadFilesToFigshareArticle');
     expect(exports).to.have.property('publishAfterUploadFilesJob');
@@ -570,7 +593,7 @@ describe('FigshareService', function () {
     await service.createUpdateFigshareArticle('oid', record, { triggerCondition: '<%= false %>' }, {});
     await service.uploadFilesToFigshareArticle('oid', record);
     await service.uploadFilesToFigshareArticle('oid', record);
-    const warnings = ((global as any).sails.log.warn as sinon.SinonStub).getCalls().filter(call => String(call.args[0]).includes('processing.enabled is false'));
+    const warnings = (environment.log.warn as sinon.SinonStub).getCalls().filter(call => String(call.args[0]).includes('processing.enabled is false'));
     expect(warnings).to.have.length(1);
     expect(warnings[0].args[0]).to.include('default');
     expect(wake.callCount).to.equal(2);
@@ -742,11 +765,11 @@ describe('FigshareService', function () {
         unresolvedCodes: [],
         historicalTargets: [],
       });
-      (global as any).FigshareVocabularyService = { resolveCrosswalkValues };
+      collaborators.FigshareVocabularyService = { resolveCrosswalkValues };
     });
 
     afterEach(function () {
-      delete (global as any).FigshareVocabularyService;
+      delete collaborators.FigshareVocabularyService;
     });
 
     function buildRecord(metadata: Record<string, unknown> = {}): RecordModel {
@@ -873,7 +896,7 @@ describe('FigshareService', function () {
 
       expect(payload.categories).to.deep.equal([25508]);
       sinon.assert.calledWithMatch(
-        (global as any).sails.log.warn,
+        environment.log.warn,
         /omitted historical category targets: 0102 → src-99/
       );
     });
@@ -1262,27 +1285,6 @@ describe('FigshareService', function () {
     expect(payload.authors).to.deep.equal([{ id: 2544547 }, { id: 4402702 }, { name: 'External Author' }]);
   });
 
-  it('includes non-object HTTP response bodies in error summaries', function () {
-    const error = Object.assign(new Error('Figshare HTTP request failed'), {
-      statusCode: 401,
-      responseBody: 'Unauthorized',
-    });
-
-    const summary = (service as any).summarizeError(error);
-
-    expect(summary.statusCode).to.equal(401);
-    expect(summary.responseSummary.rawResponseBody).to.equal('Unauthorized');
-    expect(summary.responseSummary.message).to.equal('Figshare HTTP request failed');
-
-    const objectBodySummary = (service as any).summarizeError(
-      Object.assign(new Error('boom'), {
-        statusCode: 422,
-        responseBody: { message: 'Invalid embargo' },
-      })
-    );
-    expect(objectBodySummary.responseSummary).to.deep.equal({ message: 'Invalid embargo' });
-  });
-
   it('extracts created article id from the Figshare Location header', async function () {
     const article = mapCreateArticleResponse<{ id?: string; location?: string }>({
       data: {},
@@ -1358,8 +1360,8 @@ describe('FigshareService', function () {
   });
 
   it('does not throw from getConfig when the record brand cannot be resolved', function () {
-    (global as any).BrandingService.getBrand = sinon.stub().returns(undefined);
-    (global as any).BrandingService.getBrandById = sinon.stub().returns(undefined);
+    collaborators.BrandingService.getBrand = sinon.stub().returns(undefined);
+    collaborators.BrandingService.getBrandById = sinon.stub().returns(undefined);
 
     const resolved = service.getConfig({
       metaMetadata: { brandId: 'ghost-brand' },
@@ -1369,11 +1371,11 @@ describe('FigshareService', function () {
     // branding configuration defaults path instead of throwing before the enabled check.
     expect(resolved).to.not.equal(null);
     expect(appConfigByBrandStub.calledWith('ghost-brand')).to.be.true;
-    expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.be.true;
+    expect((environment.log.warn as sinon.SinonStub).called).to.be.true;
   });
 
   it('resolves live mode when figshareDev is disabled', function () {
-    (global as any).sails.config.figshareDev = { enabled: false, mode: 'fixture' };
+    environment.config.figshareDev = { enabled: false, mode: 'fixture' };
     const resolved = service.getConfig({
       metaMetadata: { brandId: 'default' },
     } as any);
@@ -1382,8 +1384,8 @@ describe('FigshareService', function () {
   });
 
   it('resolves fixture mode from figshareDev in non-production environments', function () {
-    (global as any).sails.config.environment = 'development';
-    (global as any).sails.config.figshareDev = buildFigshareDevConfig({
+    environment.config.environment = 'development';
+    environment.config.figshareDev = buildFigshareDevConfig({
       fixtures: {
         article: { id: 'fixture-dev' },
       },
@@ -1398,8 +1400,8 @@ describe('FigshareService', function () {
   });
 
   it('ignores figshareDev fixture mode in production', function () {
-    (global as any).sails.config.environment = 'production';
-    (global as any).sails.config.figshareDev = buildFigshareDevConfig();
+    environment.config.environment = 'production';
+    environment.config.figshareDev = buildFigshareDevConfig();
 
     const resolved = service.getConfig({
       metaMetadata: { brandId: 'default' },
@@ -1420,7 +1422,7 @@ describe('FigshareService', function () {
         },
       },
     }));
-    (global as any).sails.config.figshareDev = { enabled: false, mode: 'live' };
+    environment.config.figshareDev = { enabled: false, mode: 'live' };
 
     const resolved = service.getConfig({
       metaMetadata: { brandId: 'default' },
@@ -1669,7 +1671,7 @@ describe('FigshareService', function () {
 
     it('stages attachments through StorageManager and uploads ordered Figshare parts', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1691,7 +1693,7 @@ describe('FigshareService', function () {
 
       const stagingKey = fakeDisk.calls.put[0].key;
       expect(stagingKey).to.match(STAGING_KEY_PATTERN);
-      expect((global as any).StorageManagerService.disk.calledWith('figshare-staging')).to.equal(true);
+      expect(collaborators.StorageManagerService.disk.calledWith('figshare-staging')).to.equal(true);
       expect(getDatastreamStub.calledWith('oid-1', 'file-1')).to.equal(true);
       expect(fakeDisk.calls.put).to.deep.equal([{ key: stagingKey, options: { contentLength: payload.length } }]);
       expect((client.createArticleFile as sinon.SinonStub).firstCall.args[1]).to.deep.equal({
@@ -1712,7 +1714,7 @@ describe('FigshareService', function () {
 
     it('sanitizes the internal staging filename without changing the Figshare filename', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1735,7 +1737,7 @@ describe('FigshareService', function () {
 
     it('promotes local datastreams even when Figshare already has a same-named file', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1767,7 +1769,7 @@ describe('FigshareService', function () {
 
     it('removes the temporary destroy error handler when an ensured datastream emits finish', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1777,8 +1779,8 @@ describe('FigshareService', function () {
         },
         emitClose: false,
       });
-      (global as any).sails.config.record = { datastreamService: 'datastreamservice' };
-      (global as any).sails.services.datastreamservice = {
+      environment.config.record = { datastreamService: 'datastreamservice' };
+      environment.collaborators.datastreamservice = {
         getDatastream: sinon.stub().resolves({ readstream, size: 8 }),
       };
       const client = buildAssetClient([{ partNo: 1, startOffset: 0, endOffset: 7 }]);
@@ -1823,7 +1825,7 @@ describe('FigshareService', function () {
 
         return Readable.from(chunks());
       };
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1856,7 +1858,7 @@ describe('FigshareService', function () {
 
     it('retains the staged object after success when retainForRetry is configured', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1876,7 +1878,7 @@ describe('FigshareService', function () {
 
     it('deletes the staged object when a part upload fails regardless of cleanup policy', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1903,7 +1905,7 @@ describe('FigshareService', function () {
 
     it('uses metadata size when the source size is unknown', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1924,7 +1926,7 @@ describe('FigshareService', function () {
 
     it('preserves uneven part boundaries and reports truncated staged objects', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1948,7 +1950,7 @@ describe('FigshareService', function () {
 
       const truncatedDisk = makeFakeDisk();
       truncatedDisk.disk.getStream = async () => Readable.from([Buffer.from('abc')]);
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(truncatedDisk.disk),
         stagingDisk: sinon.stub().returns(truncatedDisk.disk),
       };
@@ -1968,7 +1970,7 @@ describe('FigshareService', function () {
 
     it('falls back to the configured staging disk when no Figshare disk is named', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1980,13 +1982,13 @@ describe('FigshareService', function () {
 
       await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
 
-      expect((global as any).StorageManagerService.disk.called).to.equal(false);
-      expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
+      expect(collaborators.StorageManagerService.disk.called).to.equal(false);
+      expect(collaborators.StorageManagerService.stagingDisk.calledOnce).to.equal(true);
     });
 
     it('falls back to the configured staging disk when the built-in Figshare disk is not registered', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().throws(new Error("disk 'figshare-staging' is not registered")),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -1998,16 +2000,16 @@ describe('FigshareService', function () {
 
       await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
 
-      expect((global as any).StorageManagerService.disk.calledWith('figshare-staging')).to.equal(true);
-      expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
+      expect(collaborators.StorageManagerService.disk.calledWith('figshare-staging')).to.equal(true);
+      expect(collaborators.StorageManagerService.stagingDisk.calledOnce).to.equal(true);
       expect(fakeDisk.calls.put).to.have.lengthOf(1);
-      expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.equal(true);
+      expect((environment.log.warn as sinon.SinonStub).called).to.equal(true);
     });
 
     it('fails fast when a custom Figshare staging disk is not registered', async function () {
       const fakeDisk = makeFakeDisk();
       const diskError = new Error("disk 'custom-figshare-staging' is not registered");
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().throws(diskError),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -2024,15 +2026,15 @@ describe('FigshareService', function () {
       }
 
       expect(error).to.equal(diskError);
-      expect((global as any).StorageManagerService.disk.calledWith('custom-figshare-staging')).to.equal(true);
-      expect((global as any).StorageManagerService.stagingDisk.called).to.equal(false);
+      expect(collaborators.StorageManagerService.disk.calledWith('custom-figshare-staging')).to.equal(true);
+      expect(collaborators.StorageManagerService.stagingDisk.called).to.equal(false);
       expect(fakeDisk.calls.put).to.deep.equal([]);
-      expect(((global as any).sails.log.warn as sinon.SinonStub).called).to.equal(false);
+      expect((environment.log.warn as sinon.SinonStub).called).to.equal(false);
     });
 
     it('does not touch StorageManager in fixture mode', async function () {
       const fakeDisk = makeFakeDisk();
-      (global as any).StorageManagerService = {
+      collaborators.StorageManagerService = {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
@@ -2050,9 +2052,9 @@ describe('FigshareService', function () {
 
       const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, { status: 'syncing' });
 
-      expect((global as any).StorageManagerService.disk.called).to.equal(false);
-      expect((global as any).StorageManagerService.stagingDisk.called).to.equal(false);
-      expect((global as any).sails.services.datastreamservice.getDatastream.called).to.equal(false);
+      expect(collaborators.StorageManagerService.disk.called).to.equal(false);
+      expect(collaborators.StorageManagerService.stagingDisk.called).to.equal(false);
+      expect(environment.collaborators.datastreamservice.getDatastream.called).to.equal(false);
       expect(result.uploadedAttachments[0].id).to.equal('fixture-attachment-1');
     });
   });

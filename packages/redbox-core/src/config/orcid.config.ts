@@ -1,15 +1,15 @@
 /**
  * ORCID Config Interface
- * (sails.config.orcid)
- * 
+ * (configuration.orcid)
+ *
  * ORCID integration configuration.
  */
 
 export interface OrcidConfig {
-    /** ORCID API base URL */
-    url: string;
+  /** ORCID API base URL */
+  url: string;
 }
 
 export const orcid: OrcidConfig = {
-    url: 'https://pub.orcid.org',
+  url: 'https://pub.orcid.org',
 };

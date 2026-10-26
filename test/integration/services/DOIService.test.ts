@@ -1,10 +1,11 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 describe('The DOI Service', function () {
   this.timeout(120000);
   let brand: any;
 
   before(function () {
-    brand = BrandingService.getDefault();
-    const doiPublishing = sails.config.brandingConfigurationDefaults?.doiPublishing;
+    brand = fixture.services.BrandingService.getDefault();
+    const doiPublishing = fixture.config.brandingConfigurationDefaults?.doiPublishing;
     const defaultProfile = doiPublishing?.defaultProfile ?? '';
     const profile = defaultProfile !== '' ? doiPublishing?.profiles?.[defaultProfile] : undefined;
     const prefix = profile?.metadata?.prefix?.defaultValue;
@@ -47,51 +48,51 @@ describe('The DOI Service', function () {
   });
 
   it("Should create a DOI", async function () {
-    const result = await sails.services.doiservice.publishDoi(oid, record, 'draft');
-    sails.log.debug("DOI result: ");
-    sails.log.debug(result);
+    const result = await fixture.services.DOIService.publishDoi(oid, record, 'draft');
+    fixture.log.debug("DOI result: ");
+    fixture.log.debug(result);
     expect(result).to.not.be.null;
     createdDoi = result;
   });
 
   it("Should update a DOI", async function () {
     record.metadata.citation_doi = createdDoi;
-    const result = await sails.services.doiservice.publishDoi(oid, record, 'draft', 'update');
-    sails.log.debug("DOI result: ");
-    sails.log.debug(result);
+    const result = await fixture.services.DOIService.publishDoi(oid, record, 'draft', 'update');
+    fixture.log.debug("DOI result: ");
+    fixture.log.debug(result);
     expect(result).to.not.be.null;
   });
 
 
   it("Should delete a DOI", async function () {
-    sails.log.debug("Deleting the created DOI: " + createdDoi);
-    const result = await sails.services.doiservice.deleteDoi(brand, createdDoi);
+    fixture.log.debug("Deleting the created DOI: " + createdDoi);
+    const result = await fixture.services.DOIService.deleteDoi(brand, createdDoi);
     expect(result).to.eq(true);
   });
 
   it("Should create a draft DOI", async function () {
-    const result = await sails.services.doiservice.publishDoi(oid, record, 'draft');
-    sails.log.debug("DOI result: ");
-    sails.log.debug(result);
+    const result = await fixture.services.DOIService.publishDoi(oid, record, 'draft');
+    fixture.log.debug("DOI result: ");
+    fixture.log.debug(result);
     expect(result).to.not.be.null;
     createdDoi = result;
   });
 
   it("Should register a DOI", async function () {
-    sails.log.debug("Registering the created DOI: " + createdDoi);
-    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'register', oid);
+    fixture.log.debug("Registering the created DOI: " + createdDoi);
+    const result = await fixture.services.DOIService.changeDoiState(brand, createdDoi, 'register', oid);
     expect(result).to.eq(true);
   });
 
   it("Should publish a DOI", async function () {
-    sails.log.debug("Publishing the registered DOI: " + createdDoi);
-    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'publish');
+    fixture.log.debug("Publishing the registered DOI: " + createdDoi);
+    const result = await fixture.services.DOIService.changeDoiState(brand, createdDoi, 'publish');
     expect(result).to.eq(true);
   });
 
   it("Should hide a DOI", async function () {
-    sails.log.debug("Hiding the published DOI: " + createdDoi);
-    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'hide');
+    fixture.log.debug("Hiding the published DOI: " + createdDoi);
+    const result = await fixture.services.DOIService.changeDoiState(brand, createdDoi, 'hide');
     expect(result).to.eq(true);
   });
 

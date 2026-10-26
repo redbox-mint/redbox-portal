@@ -1,7 +1,9 @@
 let expect: Chai.ExpectStatic;
 import { validateHandlebarsTemplate as validateDoiHandlebarsTemplate } from '../../../src/services/doi-v2/bindings';
-import { validateHandlebarsTemplate as validateFigshareHandlebarsTemplate } from '../../../src/services/figshare-v2/bindings';
+import { createFigshareBindings } from '../../../src/integrations/figshare/bindings';
 import { validateHandlebarsTemplate as validateOniHandlebarsTemplate } from '../../../src/services/oni-v2/bindings';
+
+const { validateHandlebarsTemplate: validateFigshareHandlebarsTemplate } = createFigshareBindings({ crosswalk: {}, log: { warn() {} } });
 
 describe('integration-v2 bindings', function () {
   const validators: Array<[string, (template: string) => void]> = [

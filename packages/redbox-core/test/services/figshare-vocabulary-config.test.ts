@@ -1,10 +1,12 @@
+const collaborators: any = {};
+let environment: any;
 import * as sinon from 'sinon';
 import { createRequire } from 'node:module';
 
 const testRequire = createRequire(__filename);
-const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
-const { resolveFigshareVocabularyConfig } = testRequire('../../src/services/figshare-v2/config');
-const { createBindingContext, resolveBrandId } = testRequire('../../src/services/figshare-v2/context');
+const { restoreRepositoryFixtures, createDomainFixture, installRepositoryFixtures } = testRequire('./testHelper');
+let resolveFigshareVocabularyConfig: any;
+let createBindingContext: any, resolveBrandId: any;
 
 let expect!: Chai.ExpectStatic;
 
@@ -27,20 +29,24 @@ describe('figshare-v2 vocabulary configuration', function () {
   }
 
   beforeEach(function () {
-    const mockSails = createMockSails();
-    mockSails.config.figshareDev = { enabled: false, mode: 'live' };
-    setupServiceTestGlobals(mockSails);
-    ({ ServiceExports } = testRequire('../../src/services'));
+    environment = createDomainFixture();
+    environment.config.figshareDev = { enabled: false, mode: 'live' };
+    installRepositoryFixtures();
+
 
     appConfigStub = sinon.stub().callsFake((brand: string) => (brand === 'unknown-brand' ? undefined : brandConfig()));
-    sinon.stub(ServiceExports, 'AppConfigService').get(() => ({ getAppConfigurationForBrand: appConfigStub }));
+    const configuration = require('../../src/integrations/figshare/config').createFigshareConfiguration({ configuration: name => appConfigStub(name), brandById: id => collaborators.BrandingService?.getBrandById?.(id), brandByName: name => collaborators.BrandingService?.getBrand?.(name), get development() { return environment.config.figshareDev ?? { enabled: false, mode: 'live' }; }, get environment() { return environment.config.environment; }, log: environment.log });
+    resolveFigshareVocabularyConfig = configuration.resolveFigshareVocabularyConfig;
+    const context = require('../../src/integrations/figshare/context').createFigshareContext({ brandName: configuration.getBrandName, branding: { getBrandById: id => collaborators.BrandingService?.getBrandById?.(id), getBrand: name => collaborators.BrandingService?.getBrand?.(name) } });
+    createBindingContext = context.createBindingContext;
+    resolveBrandId = context.resolveBrandId;
   });
 
   afterEach(function () {
     sinon.restore();
-    cleanupServiceTestGlobals();
-    delete (global as any).BrandingService;
-    delete (global as any).AppConfigService;
+    restoreRepositoryFixtures();
+    delete collaborators.BrandingService;
+    delete collaborators.AppConfigService;
   });
 
   describe('resolveFigshareVocabularyConfig', function () {
@@ -75,15 +81,15 @@ describe('figshare-v2 vocabulary configuration', function () {
 
     it('returns null when no app config service is available', function () {
       sinon.restore();
-      sinon.stub(ServiceExports, 'AppConfigService').get(() => undefined);
+      appConfigStub.returns(undefined);
 
       expect(resolveFigshareVocabularyConfig('default')).to.equal(null);
     });
 
-    it('uses the lifted global service when a peer module has an empty service registry', function () {
+    it('uses explicitly supplied configuration independently of module service registries', function () {
       sinon.restore();
-      sinon.stub(ServiceExports, 'AppConfigService').get(() => undefined);
-      (global as any).AppConfigService = { getAppConfigurationForBrand: appConfigStub };
+      appConfigStub.returns(brandConfig());
+      collaborators.AppConfigService = { getAppConfigurationForBrand: appConfigStub };
 
       const config = resolveFigshareVocabularyConfig('default');
 
@@ -132,7 +138,7 @@ describe('figshare-v2 vocabulary configuration', function () {
     });
 
     it('switches to the fixture runtime when figshareDev is in fixture mode', function () {
-      (global as any).sails.config.figshareDev = {
+      environment.config.figshareDev = {
         enabled: true,
         mode: 'fixture',
         fixtures: { categories: [{ id: 1 }] },
@@ -145,8 +151,8 @@ describe('figshare-v2 vocabulary configuration', function () {
     });
 
     it('never uses the fixture runtime in production', function () {
-      (global as any).sails.config.environment = 'production';
-      (global as any).sails.config.figshareDev = { enabled: true, mode: 'fixture', fixtures: { categories: [] } };
+      environment.config.environment = 'production';
+      environment.config.figshareDev = { enabled: true, mode: 'fixture', fixtures: { categories: [] } };
 
       const config = resolveFigshareVocabularyConfig('default');
 
@@ -155,7 +161,7 @@ describe('figshare-v2 vocabulary configuration', function () {
     });
 
     it('treats a missing figshareDev block as live', function () {
-      delete (global as any).sails.config.figshareDev;
+      delete environment.config.figshareDev;
 
       expect(resolveFigshareVocabularyConfig('default').runtime.mode).to.equal('live');
     });
@@ -172,7 +178,7 @@ describe('figshare-v2 vocabulary configuration', function () {
     });
 
     it('keeps a value that already resolves as a brand id', function () {
-      (global as any).BrandingService = {
+      collaborators.BrandingService = {
         getBrandById: sinon.stub().withArgs('brand-1').returns({ id: 'brand-1' }),
         getBrand: sinon.stub().returns(undefined),
       };
@@ -181,7 +187,7 @@ describe('figshare-v2 vocabulary configuration', function () {
     });
 
     it('translates a brand name to its id', function () {
-      (global as any).BrandingService = {
+      collaborators.BrandingService = {
         getBrandById: sinon.stub().returns(undefined),
         getBrand: sinon.stub().returns({ id: 'brand-1' }),
       };
@@ -190,7 +196,7 @@ describe('figshare-v2 vocabulary configuration', function () {
     });
 
     it('falls back to the branding field and returns the raw value for an unknown brand', function () {
-      (global as any).BrandingService = {
+      collaborators.BrandingService = {
         getBrandById: sinon.stub().returns(undefined),
         getBrand: sinon.stub().returns(undefined),
       };

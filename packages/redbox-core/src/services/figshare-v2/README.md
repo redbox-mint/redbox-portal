@@ -2,7 +2,7 @@ Figshare V2 uses small Effect-powered runtime programs around a branded `figshar
 
 Patterns used here:
 
-- keep Sails-facing services thin
+- keep transport adapters thin and supply concrete collaborators
 - assemble dependencies in `runtime.ts`
 - keep binding/config/state helpers pure where practical
 - isolate external Figshare calls behind `http.ts`

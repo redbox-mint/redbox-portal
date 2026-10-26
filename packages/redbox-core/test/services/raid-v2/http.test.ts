@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { Effect, Layer } from 'effect';
 import * as sinon from 'sinon';
 import { RaidApi } from '@researchdatabox/raido-openapi-generated-node';
-import { invalidateToken, makeHttpLayer } from '../../../src/services/raid-v2/http';
+import { invalidateToken, makeHttpLayer } from '../../../src/integrations/raid/http';
 import { RaidConfigTag, RaidHttpClientTag, RaidRunContextTag } from '../../../src/services/raid-v2/tags';
 
 function config(overrides: Record<string, unknown> = {}): any {
@@ -39,6 +39,8 @@ function config(overrides: Record<string, unknown> = {}): any {
   };
 }
 
+const tokenCache = new Map();
+
 function clientProgram(raidConfig: any) {
   const base = Layer.merge(
     Layer.succeed(RaidConfigTag, raidConfig),
@@ -50,13 +52,14 @@ function clientProgram(raidConfig: any) {
       attemptCount: 0,
     })
   );
-  const layer = makeHttpLayer().pipe(Layer.provide(base));
+  const layer = makeHttpLayer(tokenCache).pipe(Layer.provide(base));
   return Effect.gen(function* () {
     return yield* RaidHttpClientTag;
   }).pipe(Effect.provide(layer));
 }
 
 describe('RAiD Effect HTTP client', () => {
+  beforeEach(() => tokenCache.clear());
   afterEach(() => sinon.restore());
 
   it('uses a configured bearer token without making an OAuth request', async () => {
@@ -77,7 +80,7 @@ describe('RAiD Effect HTTP client', () => {
   });
 
   it('fetches, caches, and force-refreshes OAuth tokens', async () => {
-    invalidateToken('brand-1:https://raid.test:user');
+    invalidateToken(tokenCache, 'brand-1:https://raid.test:user');
     const post = sinon
       .stub(axios, 'post')
       .onFirstCall()
@@ -95,7 +98,7 @@ describe('RAiD Effect HTTP client', () => {
   });
 
   it('maps OAuth and mint transport failures to typed errors', async () => {
-    invalidateToken('brand-1:https://raid.test:user');
+    invalidateToken(tokenCache, 'brand-1:https://raid.test:user');
     sinon.stub(axios, 'post').rejects({ response: { status: 503 } });
     const client = await Effect.runPromise(clientProgram(config()));
     const tokenExit: any = await Effect.runPromiseExit(client.getToken());

@@ -1,9 +1,12 @@
+import _ from 'lodash';
+const hooks = new Map<string, unknown>();
+const collaborators: any = {};
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 import nodemailer = require('nodemailer');
 import * as fs from 'graceful-fs';
 import * as os from 'os';
@@ -11,12 +14,12 @@ import * as path from 'path';
 import { of, firstValueFrom } from 'rxjs';
 
 describe('EmailService', function() {
-  let mockSails: any;
+  let fixture: any;
   let EmailService: any;
   let transportStub: any;
 
   beforeEach(function() {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         emailnotification: {
@@ -43,7 +46,7 @@ describe('EmailService', function() {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
 
     // Stub the CommonJS export rather than a non-configurable namespace binding.
     transportStub = {
@@ -58,11 +61,11 @@ describe('EmailService', function() {
     */
 
     const { Services } = require('../../src/services/EmailService');
-    EmailService = new Services.Email();
+    EmailService = new Services.Email({ config: fixture.config.emailnotification, log: fixture.log, templateContext: { get branding() { return collaborators.BrandingService; } }, resolveHook: name => hooks.get(name), retainFollowup: () => {} });
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     // if ((nodemailer.createTransport as any).restore) (nodemailer.createTransport as any).restore();
     // if ((fs.readFileSync as any).restore) (fs.readFileSync as any).restore();
     // if ((ejs.render as any).restore) (ejs.render as any).restore();
@@ -70,7 +73,7 @@ describe('EmailService', function() {
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     // if ((nodemailer.createTransport as any).restore) (nodemailer.createTransport as any).restore();
     // if ((fs.readFileSync as any).restore) (fs.readFileSync as any).restore();
     sinon.restore();
@@ -89,7 +92,7 @@ describe('EmailService', function() {
     });
 
     it('should not mutate defaults or leak message fields into subsequent sends', async function() {
-      const defaults = mockSails.config.emailnotification.defaults.otherSendOptions;
+      const defaults = fixture.config.emailnotification.defaults.otherSendOptions;
       defaults.replyTo = 'default-reply@example.com';
       const original = _.cloneDeep(defaults);
       expect(await firstValueFrom(EmailService.sendMessage('first@example.com', 'First body', 'First subject')))
@@ -123,7 +126,7 @@ describe('EmailService', function() {
 
     beforeEach(function() {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'emailtpl-'));
-      mockSails.config.emailnotification.settings.templateDir = tmpDir + path.sep;
+      fixture.config.emailnotification.settings.templateDir = tmpDir + path.sep;
     });
 
     afterEach(function() {
