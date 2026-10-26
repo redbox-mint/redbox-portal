@@ -1,45 +1,20 @@
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-import { isAuthenticated } from '../../src/policies/isAuthenticated';
+import assert from 'node:assert/strict';
+import { httpPolicyFixture } from '../helpers/httpPolicyFixture';
 
-describe('isAuthenticated policy', function () {
-    function createMockReqRes(authenticated: boolean) {
-        const req: any = {
-            isAuthenticated: () => authenticated
-        };
-        let statusCode: number | undefined;
-        let jsonBody: any;
-        const res: any = {
-            status: (code: number) => {
-                statusCode = code;
-                return res;
-            },
-            json: (body: any) => {
-                jsonBody = body;
-                return res;
-            }
-        };
-        return { req, res, getStatus: () => statusCode, getJson: () => jsonBody };
-    }
-
-    it('should call next for authenticated users', function () {
-        const { req, res, getStatus } = createMockReqRes(true);
-        let nextCalled = false;
-
-        isAuthenticated(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(getStatus()).to.be.undefined;
-    });
-
-    it('should return 403 for unauthenticated users', function () {
-        const { req, res, getStatus, getJson } = createMockReqRes(false);
-        let nextCalled = false;
-
-        isAuthenticated(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.false;
-        expect(getStatus()).to.equal(403);
-        expect(getJson()).to.deep.equal({ message: 'error-please-login' });
-    });
+describe('authenticated HTTP actor policy', () => {
+  it('calls next for an authoritative authenticated actor', async () => {
+    const f = httpPolicyFixture();
+    await f.run('brandingandportal', 'iswebserviceauthenticated');
+    assert(f.next.calledOnce);
+    assert(!f.response.status.called);
+  });
+  it('returns 401 and a Bearer challenge for an anonymous API request', async () => {
+    const f = httpPolicyFixture();
+    f.authenticate.resolves(false);
+    await f.run('brandingandportal', 'iswebserviceauthenticated');
+    assert(!f.next.called);
+    assert(f.response.status.calledOnceWithExactly(401));
+    assert.deepEqual(f.response.json.firstCall.args[0], { message: 'Authentication required', details: '' });
+    assert.equal(f.headers['www-authenticate'], 'Bearer');
+  });
 });

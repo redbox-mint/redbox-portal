@@ -1,3 +1,4 @@
+import type { ApiRequestInput } from './types';
 import {
   ZodArray,
   ZodBoolean,
@@ -11,7 +12,6 @@ import {
   ZodUnion,
   z,
 } from 'zod';
-import { isEqual } from 'lodash';
 import UrlPattern from 'url-pattern';
 
 import { auth as defaultAuthConfig } from '../config/auth.config';
@@ -21,7 +21,6 @@ import {
   ApiRequestDefinition,
   ApiRouteDefinition,
   ApiRouteDefinitionMap,
-  ApiRouteMap,
   ApiSchemaField,
   HttpMethod,
 } from './types';
@@ -61,31 +60,7 @@ export function routeKey(method: HttpMethod | string, path: string): string {
   return `${normalizeMethod(method)} ${path}`;
 }
 
-function parseRoutePattern(routePattern: string): { method?: HttpMethod; path: string } {
-  const trimmed = routePattern.trim();
-  if (!trimmed) {
-    return { path: trimmed };
-  }
-
-  const firstSpaceIndex = trimmed.indexOf(' ');
-  if (firstSpaceIndex === -1) {
-    return { path: trimmed };
-  }
-
-  const method = trimmed.slice(0, firstSpaceIndex).trim();
-  const path = trimmed.slice(firstSpaceIndex + 1).trim();
-  if (!path.startsWith('/')) {
-    return { path: trimmed };
-  }
-
-  return { method: normalizeMethod(method), path };
-}
-
-export function isApiRoutePath(path: string): boolean {
-  return path.split('/').some(segment => segment === 'api');
-}
-
-type AuthRuleLike = {
+export type AuthRuleLike = {
   path: string;
   role: string;
   can_read?: boolean;
@@ -97,14 +72,6 @@ function isAuthRuleLike(rule: unknown): rule is AuthRuleLike {
 }
 
 function getAuthRules(): AuthRuleLike[] {
-  const globalWithSails = globalThis as typeof globalThis & {
-    sails?: { config?: Record<string, unknown> };
-  };
-  const runtimeRules = globalWithSails.sails?.config?.auth;
-  if (isRecord(runtimeRules) && Array.isArray(runtimeRules.rules)) {
-    return runtimeRules.rules.filter(isAuthRuleLike);
-  }
-
   return defaultAuthConfig.rules.filter(isAuthRuleLike);
 }
 
@@ -141,12 +108,15 @@ function getRoutePathVariants(path: string): string[] {
   return variants.map(variant => `/${variant.join('/')}`);
 }
 
-export function getRedboxRoleExtension(path: string): Record<string, unknown> | undefined {
+export function getRedboxRoleExtension(
+  path: string,
+  rules: readonly AuthRuleLike[] = getAuthRules()
+): Record<string, unknown> | undefined {
   const roles: string[] = [];
   const seenRoles = new Set<string>();
   const routePathVariants = getRoutePathVariants(path);
 
-  for (const rule of getAuthRules()) {
+  for (const rule of rules) {
     const pattern = new UrlPattern(rule.path);
     if (!routePathVariants.some(routePathVariant => pattern.match(routePathVariant) != null)) {
       continue;
@@ -165,142 +135,8 @@ export function getRedboxRoleExtension(path: string): Record<string, unknown> | 
   return roles.length ? { 'x-redbox-roles': roles } : undefined;
 }
 
-function getRoutePathSegments(path: string): string[] {
-  return path.split('/').filter(Boolean);
-}
-
-function getRouteSegmentRank(segment: string): number {
-  if (!segment.startsWith(':')) {
-    return 3;
-  }
-  if (segment.endsWith('*')) {
-    return 0;
-  }
-  if (segment.endsWith('?')) {
-    return 1;
-  }
-  return 2;
-}
-
-function hasSpecificTail(segments: readonly string[], startIndex: number): boolean {
-  return segments.slice(startIndex).some(segment => getRouteSegmentRank(segment) >= 2);
-}
-
-function compareRouteSpecificity(left: ApiRouteDefinition, right: ApiRouteDefinition): number {
-  const leftSegments = getRoutePathSegments(left.path);
-  const rightSegments = getRoutePathSegments(right.path);
-  const sharedLength = Math.min(leftSegments.length, rightSegments.length);
-
-  for (let index = 0; index < sharedLength; index++) {
-    const leftRank = getRouteSegmentRank(leftSegments[index]);
-    const rightRank = getRouteSegmentRank(rightSegments[index]);
-    if (leftRank !== rightRank) {
-      return rightRank - leftRank;
-    }
-  }
-
-  if (leftSegments.length !== rightSegments.length) {
-    const leftHasSpecificTail = hasSpecificTail(leftSegments, sharedLength);
-    const rightHasSpecificTail = hasSpecificTail(rightSegments, sharedLength);
-
-    if (leftHasSpecificTail !== rightHasSpecificTail) {
-      return leftHasSpecificTail ? -1 : 1;
-    }
-
-    if (leftHasSpecificTail) {
-      return rightSegments.length - leftSegments.length;
-    }
-
-    return leftSegments.length - rightSegments.length;
-  }
-
-  const keyComparison = routeKey(left.method, left.path).localeCompare(routeKey(right.method, right.path));
-  if (keyComparison !== 0) {
-    return keyComparison;
-  }
-
-  return `${left.controller}#${left.action}`.localeCompare(`${right.controller}#${right.action}`);
-}
-
 function describeRoute(route: ApiRouteDefinition): string {
   return `${String(route.method).toUpperCase()} ${route.path} (${route.controller}#${route.action})`;
-}
-
-function describeRouteTarget(target: unknown): string {
-  if (typeof target === 'string') {
-    return target;
-  }
-
-  if (isRecord(target)) {
-    const controller = typeof target.controller === 'string' ? target.controller : undefined;
-    const action = typeof target.action === 'string' ? target.action : undefined;
-    const parts = [controller, action].filter((part): part is string => typeof part === 'string' && part.trim() !== '');
-    if (parts.length) {
-      return parts.join('#');
-    }
-  }
-
-  try {
-    return JSON.stringify(target);
-  } catch {
-    return String(target);
-  }
-}
-
-export function validateApiRouteConsistency(
-  contractRoutes: readonly ApiRouteDefinition[],
-  runtimeRoutes: Record<string, unknown>,
-  context = 'merged runtime route table'
-): void {
-  const expectedRoutes = buildSailsRouteConfig(contractRoutes);
-  const runtimeApiRoutes = new Map<string, unknown>();
-  const runtimeApiPathsWithoutMethod = new Set<string>();
-  const issues: string[] = [];
-
-  for (const [routePattern, runtimeTarget] of Object.entries(runtimeRoutes)) {
-    const parsed = parseRoutePattern(routePattern);
-    if (!isApiRoutePath(parsed.path)) {
-      continue;
-    }
-
-    if (!parsed.method) {
-      runtimeApiPathsWithoutMethod.add(parsed.path);
-      issues.push(`Legacy API route in ${context} must declare an HTTP method: ${routePattern}`);
-      continue;
-    }
-
-    const key = routeKey(parsed.method, parsed.path);
-    runtimeApiRoutes.set(key, runtimeTarget);
-
-    const expectedTarget = expectedRoutes[key];
-    if (expectedTarget === undefined) {
-      issues.push(`Unexpected API route in ${context} without a contract definition: ${routePattern}`);
-      continue;
-    }
-
-    if (!isEqual(expectedTarget, runtimeTarget)) {
-      issues.push(
-        `API route mismatch in ${context}: ${routePattern} expected ${describeRouteTarget(expectedTarget)} but found ${describeRouteTarget(runtimeTarget)}`
-      );
-    }
-  }
-
-  for (const [routeKeyName, expectedTarget] of Object.entries(expectedRoutes)) {
-    if (runtimeApiRoutes.has(routeKeyName)) {
-      continue;
-    }
-
-    const expectedRoute = contractRoutes.find(route => routeKey(route.method, route.path) === routeKeyName);
-    if (expectedRoute && runtimeApiPathsWithoutMethod.has(expectedRoute.path)) {
-      continue;
-    }
-
-    issues.push(`Contract API route missing from ${context}: ${routeKeyName} (${describeRouteTarget(expectedTarget)})`);
-  }
-
-  if (issues.length > 0) {
-    throw new Error(`API route consistency check failed for ${context}:\n- ${issues.join('\n- ')}`);
-  }
 }
 
 export function ensureUniqueApiRoutes(
@@ -326,74 +162,6 @@ export function toRouteMap(routes: readonly ApiRouteDefinition[]): ApiRouteDefin
     acc[routeKey(route.method, route.path)] = route;
     return acc;
   }, {} as ApiRouteDefinitionMap);
-}
-
-export function buildSailsRouteEntry(route: ApiRouteDefinition): Record<string, unknown> {
-  const entry: Record<string, unknown> = {
-    controller: route.controller,
-    action: route.action,
-  };
-  if (typeof route.csrf === 'boolean') {
-    entry.csrf = route.csrf;
-  }
-  if (route.policy) {
-    entry.policy = route.policy;
-  }
-  if (route.skipAssets !== undefined) {
-    entry.skipAssets = route.skipAssets;
-  }
-  if (route.locals) {
-    entry.locals = route.locals;
-  }
-  if (route.view) {
-    entry.view = route.view;
-  }
-  return entry;
-}
-
-function normalizeMatchedRoutePath(routeValue: unknown): string | undefined {
-  if (typeof routeValue === 'string') {
-    const parsed = parseRoutePattern(routeValue);
-    return parsed.path || undefined;
-  }
-
-  if (isRecord(routeValue)) {
-    const directPath = routeValue.path;
-    if (typeof directPath === 'string' && directPath.trim() !== '') {
-      return directPath.trim();
-    }
-
-    const directRoute = routeValue.route;
-    if (typeof directRoute === 'string' && directRoute.trim() !== '') {
-      const parsed = parseRoutePattern(directRoute);
-      return parsed.path || undefined;
-    }
-  }
-
-  return undefined;
-}
-
-export function getMatchedRoutePath(req: Sails.Req): string | undefined {
-  const matched = normalizeMatchedRoutePath(req.route);
-  if (matched) {
-    return matched;
-  }
-
-  const optionsRoute = isRecord(req.options) ? normalizeMatchedRoutePath(req.options.route) : undefined;
-  if (optionsRoute) {
-    return optionsRoute;
-  }
-
-  const path = typeof req.path === 'string' && req.path.trim() !== '' ? req.path.trim() : undefined;
-  return path;
-}
-
-export function buildSailsRouteConfig(routes: readonly ApiRouteDefinition[]): ApiRouteMap {
-  const sortedRoutes = [...ensureUniqueApiRoutes(routes, 'Sails route config')].sort(compareRouteSpecificity);
-  return sortedRoutes.reduce((acc, route) => {
-    acc[routeKey(route.method, route.path)] = buildSailsRouteEntry(route);
-    return acc;
-  }, {} as ApiRouteMap);
 }
 
 function getRecordValue(source: unknown, key: string): unknown {
@@ -422,7 +190,7 @@ function getHeaderValue(headers: unknown, key: string): unknown {
   return undefined;
 }
 
-export function extractFromSource(req: Sails.Req, source: RequestSource, key: string): unknown {
+export function extractFromSource(req: ApiRequestInput, source: RequestSource, key: string): unknown {
   const request = req as unknown as Record<string, unknown>;
   switch (source) {
     case 'params':
@@ -438,7 +206,7 @@ export function extractFromSource(req: Sails.Req, source: RequestSource, key: st
   }
 }
 
-export function getRequestFiles(req: Sails.Req): Record<string, unknown[]> {
+export function getRequestFiles(req: ApiRequestInput): Record<string, unknown[]> {
   const request = req as unknown as Record<string, unknown>;
   const files = request.files;
   if (Array.isArray(files)) {
@@ -479,7 +247,7 @@ export function ensureSchemaObject(field: ApiSchemaField | undefined): ApiSchema
   return z.object({}).passthrough();
 }
 
-export function routeExtractor(route: ApiRequestDefinition | undefined, req: Sails.Req): unknown {
+export function routeExtractor(route: ApiRequestDefinition | undefined, req: ApiRequestInput): unknown {
   if (!route?.extractor) {
     return undefined;
   }
@@ -498,7 +266,11 @@ export function isZodObjectSchema(schema: ApiSchemaField | undefined): schema is
 }
 
 export function isPassthroughObjectSchema(schema: ZodType): schema is ZodObject<ZodRawShape> {
-  return schema instanceof ZodObject && 'catchall' in schema._zod.def && (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'unknown';
+  return (
+    schema instanceof ZodObject &&
+    'catchall' in schema._zod.def &&
+    (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'unknown'
+  );
 }
 
 export function isOptionalSchema(schema: ZodType): boolean {
@@ -508,7 +280,8 @@ export function isOptionalSchema(schema: ZodType): boolean {
 function isIntegerSchema(schema: ZodType): boolean {
   return (
     schema instanceof ZodNumber &&
-    (schema._zod.def as { checks?: Array<{ format?: string }> }).checks?.some((check) => check.format === 'safeint') === true
+    (schema._zod.def as { checks?: Array<{ format?: string }> }).checks?.some(check => check.format === 'safeint') ===
+      true
   );
 }
 

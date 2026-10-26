@@ -4,6 +4,8 @@
  */
 
 export interface ReDBoxAPIConfig {
+  /** Additional public browser settings merged into apiClientConfig. */
+  additionalClientConfig?: Record<string, unknown>;
     max_requests: number;
 }
 

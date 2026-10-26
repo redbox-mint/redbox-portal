@@ -1,408 +1,133 @@
-import {createSinonStubLogger} from "../logger.test";
+import assert from 'node:assert/strict';
+import { pageCsp, type CspConfig } from '../../src/pages/csp';
 
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-import { contentSecurityPolicy } from '../../src/policies/contentSecurityPolicy';
-import * as sinon from "sinon";
-
-// Mock globals
-
-(global as any).sails = {
-    config: {},
-    log: createSinonStubLogger(sinon),
-};
-
-describe('contentSecurityPolicy policy', function () {
-    let originalSails: any;
-
-    beforeEach(function () {
-        originalSails = (global as any).sails;
-        (global as any).sails = {
-          config: {},
-          log: createSinonStubLogger(sinon),
-        }
+const base = { pathname: '/test', appUrl: 'https://portal.example.edu', environment: 'development' };
+function csp(configuration?: CspConfig, extra: Partial<Parameters<typeof pageCsp>[0]> = {}) {
+  return pageCsp({ ...base, configuration, ...extra });
+}
+describe('explicit page Content Security Policy', () => {
+  it('emits Content-Security-Policy by default', () => assert.equal(csp()!.headerName, 'Content-Security-Policy'));
+  it('generates a cryptographic nonce in script-src', () => {
+    assert.match(csp()!.headerValue, /script-src 'nonce-[A-Za-z0-9+/=]+'/);
+  });
+  it('returns the same nonce for the renderer and header', () => {
+    const result = csp()!;
+    assert(result.nonce.length > 0);
+    assert(result.headerValue.includes(`'nonce-${result.nonce}'`));
+  });
+  it('emits no policy when explicitly disabled', () => assert.equal(csp({ enabled: false }), undefined));
+  it('supports report-only without an enforced header', () => {
+    assert.equal(csp({ reportOnly: true })!.headerName, 'Content-Security-Policy-Report-Only');
+  });
+  it('merges custom directive keys', () => {
+    const result = csp({ directives: { 'img-src': ["'self'", 'https://images.example.com'] } })!;
+    assert(result.headerValue.includes("img-src 'self' https://images.example.com"));
+    assert(result.headerValue.includes("default-src 'self'"));
+  });
+  it('includes explicit extra directives', () => {
+    assert(csp({ extras: ['block-all-mixed-content'] })!.headerValue.includes('block-all-mixed-content'));
+  });
+  it('omits upgrade-insecure-requests for a development HTTP appUrl', () => {
+    assert(
+      !csp(undefined, { appUrl: 'http://redbox-portal.local:1500' })!.headerValue.includes('upgrade-insecure-requests')
+    );
+  });
+  it('retains upgrade-insecure-requests for an HTTPS appUrl', () => {
+    assert(csp()!.headerValue.includes('upgrade-insecure-requests'));
+  });
+  it('retains upgrade-insecure-requests for a malformed appUrl', () => {
+    assert(csp(undefined, { appUrl: 'not a valid URL' })!.headerValue.includes('upgrade-insecure-requests'));
+  });
+  it('retains upgrade-insecure-requests for HTTP in production', () => {
+    assert(
+      csp(undefined, { appUrl: 'http://portal.example.edu', environment: 'production' })!.headerValue.includes(
+        'upgrade-insecure-requests'
+      )
+    );
+  });
+  it('retains restrictive default directives', () => {
+    const value = csp()!.headerValue;
+    for (const expected of ["default-src 'self'", "object-src 'none'", "frame-ancestors 'none'"])
+      assert(value.includes(expected));
+  });
+  it('includes a nonce in style-src', () => assert.match(csp()!.headerValue, /style-src 'nonce-/));
+  it('accepts the selected explicit CSP configuration independently of its former config location', () => {
+    const selected = { reportOnly: true };
+    assert.equal(csp(selected)!.headerName, 'Content-Security-Policy-Report-Only');
+  });
+  it('does not depend on mutable request options and returns a fresh nonce per call', () => {
+    assert.notEqual(csp()!.nonce, csp()!.nonce);
+  });
+  it('includes upgrade-insecure-requests by default', () =>
+    assert(csp()!.headerValue.includes('upgrade-insecure-requests')));
+  it('relaxes Redoc styles, image and worker directives without nonces', () => {
+    const value = csp(undefined, { pathname: '/default/rdmp/admin/api-docs' })!.headerValue;
+    for (const expected of ['style-src', "'unsafe-inline'", 'worker-src', 'blob:', 'img-src', 'https://cdn.redoc.ly'])
+      assert(value.includes(expected));
+    assert(!value.includes('nonce-'));
+  });
+  it('ends the header with a semicolon', () => assert(csp()!.headerValue.endsWith(';')));
+  it('emits no empty policy when all configured directives and extras are empty', () => {
+    const directives = Object.fromEntries(
+      [
+        'default-src',
+        'script-src',
+        'worker-src',
+        'object-src',
+        'manifest-src',
+        'style-src',
+        'font-src',
+        'frame-ancestors',
+        'form-action',
+        'base-uri',
+      ].map(key => [key, []])
+    );
+    assert.equal(csp({ addNonceTo: [], directives, extras: [] }), undefined);
+  });
+  describe('brand-selected analytics', () => {
+    it('allow-lists Google Analytics without strict-dynamic', () => {
+      const value = csp(undefined, {
+        analytics: { enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC123' },
+      })!.headerValue;
+      for (const expected of [
+        'https://www.googletagmanager.com',
+        'https://*.google-analytics.com',
+        'https://*.analytics.google.com',
+      ])
+        assert(value.includes(expected));
+      assert(!value.includes("'strict-dynamic'"));
     });
-
-    afterEach(function () {
-        (global as any).sails = originalSails;
+    it('allow-lists Google Tag Manager scripts and frames without strict-dynamic', () => {
+      const value = csp(undefined, {
+        analytics: { enabled: true, provider: 'googleTagManager', trackingId: 'GTM-XYZ' },
+      })!.headerValue;
+      const script = value.match(/script-src[^;]*/)![0],
+        frame = value.match(/frame-src[^;]*/)![0];
+      assert(script.includes("'self'"));
+      assert(script.includes('https://www.googletagmanager.com'));
+      assert(!script.includes("'strict-dynamic'"));
+      assert(frame.includes('https://www.googletagmanager.com'));
     });
-
-    function createMockReqRes(path: string = '/test') {
-        const req: any = {
-            path,
-            options: {}
-        };
-        const headers: Record<string, string> = {};
-        const res: any = {
-            set: (name: string, value: string) => {
-                headers[name] = value;
-            }
-        };
-        return { req, res, getHeaders: () => headers };
-    }
-
-    it('should set Content-Security-Policy header by default', function () {
-        const { req, res, getHeaders } = createMockReqRes();
-        let nextCalled = false;
-
-        contentSecurityPolicy(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        const headers = getHeaders();
-        expect(headers['Content-Security-Policy']).to.exist;
+    for (const [reason, analytics] of [
+      ['disabled', { enabled: false, provider: 'googleAnalytics', trackingId: 'G-ABC123' }],
+      ['empty tracking ID', { enabled: true, provider: 'googleAnalytics', trackingId: '  ' }],
+      ['invalid tracking ID', { enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC<script>' }],
+      ['unsupported provider', { enabled: true, provider: 'unsupported', trackingId: 'VALID-123' }],
+    ] as const)
+      it(`does not allow-list analytics with ${reason}`, () => {
+        const value = csp(undefined, { analytics })!.headerValue;
+        assert(!value.includes('google-analytics.com'));
+        assert(!value.includes('googletagmanager.com'));
+      });
+    it('needs no branding service global', () => assert(csp()!.headerValue.includes("default-src 'self'")));
+    it('retains the base policy with an absent selected analytics configuration', () => {
+      assert(csp(undefined, { analytics: undefined })!.headerValue.includes("default-src 'self'"));
     });
-
-    it('should generate a nonce and include it in script-src', function () {
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp).to.include('script-src');
-        expect(csp).to.match(/'nonce-[A-Za-z0-9+/=]+'/);
-    });
-
-    it('should set the nonce in options.locals.contentSecurityPolicyNonce', function () {
-        const { req, res } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        expect(req.options.locals.contentSecurityPolicyNonce).to.be.a('string');
-        expect(req.options.locals.contentSecurityPolicyNonce.length).to.be.greaterThan(0);
-    });
-
-    it('should skip CSP when disabled in config', function () {
-        (global as any).sails.config.csp = { enabled: false };
-
-        const { req, res, getHeaders } = createMockReqRes();
-        let nextCalled = false;
-
-        contentSecurityPolicy(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(getHeaders()['Content-Security-Policy']).to.be.undefined;
-    });
-
-    it('should use report-only header when configured', function () {
-        (global as any).sails.config.csp = { reportOnly: true };
-
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        expect(getHeaders()['Content-Security-Policy-Report-Only']).to.exist;
-        expect(getHeaders()['Content-Security-Policy']).to.be.undefined;
-    });
-
-    it('should merge custom directives from config', function () {
-        (global as any).sails.config.csp = {
-            directives: {
-                'img-src': ["'self'", 'https://images.example.com']
-            }
-        };
-
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp).to.include('img-src');
-        expect(csp).to.include('https://images.example.com');
-    });
-
-    it('should include extras from config', function () {
-        (global as any).sails.config.csp = {
-            extras: ['block-all-mixed-content']
-        };
-
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp).to.include('block-all-mixed-content');
-    });
-
-    it('should omit upgrade-insecure-requests for an HTTP appUrl', function () {
-        (global as any).sails.config.appUrl = 'http://redbox-portal.local:1500';
-
-        const { res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy({} as any, res, () => { });
-
-        expect(getHeaders()['Content-Security-Policy']).not.to.include('upgrade-insecure-requests');
-    });
-
-    it('should retain upgrade-insecure-requests for an HTTPS appUrl', function () {
-        (global as any).sails.config.appUrl = 'https://portal.example.edu';
-
-        const { res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy({} as any, res, () => { });
-
-        expect(getHeaders()['Content-Security-Policy']).to.include('upgrade-insecure-requests');
-    });
-
-    it('should retain upgrade-insecure-requests for a malformed appUrl', function () {
-        (global as any).sails.config.appUrl = 'not a valid URL';
-
-        const { res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy({} as any, res, () => { });
-
-        expect(getHeaders()['Content-Security-Policy']).to.include('upgrade-insecure-requests');
-    });
-
-    it('should retain upgrade-insecure-requests for HTTP appUrl in production', function () {
-        const originalNodeEnv = process.env.NODE_ENV;
-        process.env.NODE_ENV = 'production';
-        (global as any).sails.config.appUrl = 'http://portal.example.edu';
-
-        const { res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy({} as any, res, () => { });
-
-        if (originalNodeEnv === undefined) {
-            delete process.env.NODE_ENV;
-        } else {
-            process.env.NODE_ENV = originalNodeEnv;
-        }
-
-        expect(getHeaders()['Content-Security-Policy']).to.include('upgrade-insecure-requests');
-    });
-
-    it('should include default directives', function () {
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp).to.include("default-src 'self'");
-        expect(csp).to.include("object-src 'none'");
-        expect(csp).to.include("frame-ancestors 'none'");
-    });
-
-    it('should include style-src with nonce', function () {
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp).to.include('style-src');
-        // style-src should also have nonce by default
-        const styleSrcMatch = csp.match(/style-src[^;]*/);
-        expect(styleSrcMatch).to.exist;
-        expect(styleSrcMatch![0]).to.match(/nonce-/);
-    });
-
-    it('should handle security.csp config location', function () {
-        (global as any).sails.config.security = {
-            csp: {
-                reportOnly: true
-            }
-        };
-
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        expect(getHeaders()['Content-Security-Policy-Report-Only']).to.exist;
-    });
-
-    it('should initialize options.locals if null', function () {
-        const { req, res } = createMockReqRes();
-        req.options.locals = null;
-
-        contentSecurityPolicy(req, res, () => { });
-
-        expect(req.options.locals).to.be.an('object');
-        expect(req.options.locals.contentSecurityPolicyNonce).to.exist;
-    });
-
-    it('should include upgrade-insecure-requests by default', function () {
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp).to.include('upgrade-insecure-requests');
-    });
-
-    it('should relax Redoc-specific directives for admin api docs', function () {
-        const { req, res, getHeaders } = createMockReqRes('/default/rdmp/admin/api-docs');
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp).to.include("style-src");
-        expect(csp).to.include("'unsafe-inline'");
-        expect(csp).to.not.match(/nonce-/);
-        expect(csp).to.include("worker-src");
-        expect(csp).to.include('blob:');
-        expect(csp).to.include("img-src");
-        expect(csp).to.include('https://cdn.redoc.ly');
-        expect(csp).to.match(/font-src [^;]*data:/);
-    });
-
-    it('should not allow data: fonts outside admin api docs', function () {
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp).to.not.match(/font-src [^;]*data:/);
-    });
-
-    it('should end CSP header with semicolon', function () {
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { });
-
-        const csp = getHeaders()['Content-Security-Policy'];
-        expect(csp.endsWith(';')).to.be.true;
-    });
-
-    it('should skip the header when every configured directive and extra is empty', function () {
-        (global as any).sails.config.csp = {
-            addNonceTo: [],
-            directives: {
-                'default-src': [],
-                'script-src': [],
-                'worker-src': [],
-                'object-src': [],
-                'manifest-src': [],
-                'style-src': [],
-                'font-src': [],
-                'frame-ancestors': [],
-                'form-action': [],
-                'base-uri': [],
-            },
-            extras: [],
-        };
-        let nextCalled = false;
-        const { req, res, getHeaders } = createMockReqRes();
-
-        contentSecurityPolicy(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(getHeaders()['Content-Security-Policy']).to.be.undefined;
-    });
-
-    describe('web analytics allow-listing', function () {
-        function withBrandingAnalytics(analytics: any) {
-            (global as any).sails.config.brandingAware = () => ({ webAnalytics: analytics });
-            (global as any).BrandingService = { getBrandNameFromReq: () => 'default' };
-        }
-
-        afterEach(function () {
-            delete (global as any).BrandingService;
-        });
-
-        it('should allow-list Google Analytics domains when enabled for the branding', function () {
-            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC123' });
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            const csp = getHeaders()['Content-Security-Policy'];
-            expect(csp).to.include('https://www.googletagmanager.com');
-            expect(csp).to.include('https://*.google-analytics.com');
-            expect(csp).to.include('https://*.analytics.google.com');
-            expect(csp).to.not.include("'strict-dynamic'");
-        });
-
-        it('should allow-list Google Tag Manager domains when enabled for the branding', function () {
-            withBrandingAnalytics({ enabled: true, provider: 'googleTagManager', trackingId: 'GTM-XYZ' });
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            const csp = getHeaders()['Content-Security-Policy'];
-            const scriptSrc = csp.match(/script-src[^;]*/)?.[0] ?? '';
-            const frameSrc = csp.match(/frame-src[^;]*/)?.[0] ?? '';
-            expect(scriptSrc).to.include("'self'");
-            expect(scriptSrc).to.include('https://www.googletagmanager.com');
-            expect(scriptSrc).to.not.include("'strict-dynamic'");
-            expect(frameSrc).to.include('https://www.googletagmanager.com');
-        });
-
-        it('should NOT allow-list analytics domains when disabled for the branding', function () {
-            withBrandingAnalytics({ enabled: false, provider: 'googleAnalytics', trackingId: 'G-ABC123' });
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            const csp = getHeaders()['Content-Security-Policy'];
-            expect(csp).to.not.include('google-analytics.com');
-            expect(csp).to.not.include('googletagmanager.com');
-        });
-
-        it('should NOT allow-list analytics domains when the tracking ID is empty', function () {
-            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: '  ' });
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            const csp = getHeaders()['Content-Security-Policy'];
-            expect(csp).to.not.include('google-analytics.com');
-            expect(csp).to.not.include('googletagmanager.com');
-        });
-
-        it('should NOT allow-list analytics domains when the tracking ID is invalid', function () {
-            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC<script>' });
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            const csp = getHeaders()['Content-Security-Policy'];
-            expect(csp).to.not.include('google-analytics.com');
-            expect(csp).to.not.include('googletagmanager.com');
-        });
-
-        it('should NOT allow-list analytics domains for an unsupported provider', function () {
-            withBrandingAnalytics({ enabled: true, provider: 'unsupported', trackingId: 'VALID-123' });
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            const csp = getHeaders()['Content-Security-Policy'];
-            expect(csp).to.not.include('google-analytics.com');
-            expect(csp).to.not.include('googletagmanager.com');
-        });
-
-        it('should not throw when BrandingService is unavailable', function () {
-            (global as any).sails.config.brandingAware = () => ({
-                webAnalytics: { enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC123' }
-            });
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            expect(getHeaders()['Content-Security-Policy']).to.exist;
-        });
-
-        it('should log and retain the base policy when branding resolution fails', function () {
-            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC123' });
-            (global as any).sails.config.brandingAware = () => {
-                throw new Error('branding unavailable');
-            };
-            let warning = '';
-            (global as any).sails.log.warn = (message: string) => { warning = message; };
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            expect(getHeaders()['Content-Security-Policy']).to.exist;
-            expect(warning).to.include('branding unavailable');
-        });
-
-        it('should not throw and still emit CSP when brandingAware is unavailable', function () {
-            // brandingAware not a function -> helper is a no-op
-            const { req, res, getHeaders } = createMockReqRes();
-
-            contentSecurityPolicy(req, res, () => { });
-
-            expect(getHeaders()['Content-Security-Policy']).to.exist;
-        });
-    });
+    it('emits CSP without any dynamic configuration callback', () => assert(csp()!.headerValue.length > 0));
+  });
+  it('permits Redoc 3 icon fonts only on the API docs page', () => {
+    const fonts = (value: string) => value.split(';').find(part => part.trim().startsWith('font-src '))!;
+    assert(fonts(csp(undefined, { pathname: '/default/rdmp/admin/api-docs' })!.headerValue).includes('data:'));
+    assert(!fonts(csp()!.headerValue).includes('data:'));
+  });
 });

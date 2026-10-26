@@ -1,0 +1,24 @@
+meta {
+  name: 02 session token
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/csrfToken
+  body: none
+  auth: none
+}
+
+
+script:post-response {
+  let value = res.headers['set-cookie'];
+  if (Array.isArray(value)) value = value.map(item => item.split(';')[0]).join('; ');
+  if (value) bru.setVar('cookie', value.split(';')[0]);
+  bru.setVar('csrf', res.getBody()._csrf);
+}
+
+tests {
+  test("Status 200", () => expect(res.getStatus()).to.equal(200));
+
+}

@@ -366,30 +366,38 @@ export class ManageUsersComponent extends BaseComponent {
 
   async genKey(userid: string): Promise<void> {
     this.setUpdateMessage('Generating...', 'primary');
-    const saveRes = (await this.userService.genKey(userid)) as unknown as SaveResponse;
-    if (saveRes.status) {
-      this.showToken = true;
-      if (this.currentUser != null) {
-        this.currentUser.token = saveRes.message;
+    try {
+      const saveRes = (await this.userService.genKey(userid)) as unknown as SaveResponse;
+      if (saveRes.status) {
+        this.showToken = true;
+        if (this.currentUser != null) {
+          this.currentUser.token = saveRes.message;
+        }
+        await this.refreshUsers();
+        this.setUpdateMessage('Token generated.', 'primary');
+      } else {
+        this.setUpdateMessage(saveRes.message, 'danger');
       }
-      await this.refreshUsers();
-      this.setUpdateMessage('Token generated.', 'primary');
-    } else {
-      this.setUpdateMessage(saveRes.message, 'danger');
+    } catch (error: unknown) {
+      this.setUpdateMessage(this.requestFailureMessage(error), 'danger');
     }
   }
 
   async revokeKey(userid: string): Promise<void> {
     this.setUpdateMessage('Revoking...', 'primary');
-    const saveRes = (await this.userService.revokeKey(userid)) as unknown as SaveResponse;
-    if (saveRes.status) {
-      if (this.currentUser != null) {
-        this.currentUser.token = '';
+    try {
+      const saveRes = (await this.userService.revokeKey(userid)) as unknown as SaveResponse;
+      if (saveRes.status) {
+        if (this.currentUser != null) {
+          this.currentUser.token = '';
+        }
+        await this.refreshUsers();
+        this.setUpdateMessage('Token revoked.', 'primary');
+      } else {
+        this.setUpdateMessage(saveRes.message, 'danger');
       }
-      await this.refreshUsers();
-      this.setUpdateMessage('Token revoked.', 'primary');
-    } else {
-      this.setUpdateMessage(saveRes.message, 'danger');
+    } catch (error: unknown) {
+      this.setUpdateMessage(this.requestFailureMessage(error), 'danger');
     }
   }
 
@@ -410,13 +418,17 @@ export class ManageUsersComponent extends BaseComponent {
     });
     this.setUpdateMessage('Saving...', 'primary');
 
-    const saveRes = (await this.userService.updateUserDetails(user.userid, details)) as unknown as SaveResponse;
-    if (saveRes.status) {
-      this.hideDetailsModal();
-      await this.refreshUsers();
-      this.setUpdateMessage();
-    } else {
-      this.setUpdateMessage(saveRes.message, 'danger');
+    try {
+      const saveRes = (await this.userService.updateUserDetails(user.userid, details)) as unknown as SaveResponse;
+      if (saveRes.status) {
+        this.hideDetailsModal();
+        await this.refreshUsers();
+        this.setUpdateMessage();
+      } else {
+        this.setUpdateMessage(saveRes.message, 'danger');
+      }
+    } catch (error: unknown) {
+      this.setUpdateMessage(this.requestFailureMessage(error), 'danger');
     }
   }
 
@@ -438,14 +450,26 @@ export class ManageUsersComponent extends BaseComponent {
     });
 
     this.setNewUserMessage('Saving...', 'primary');
-    const saveRes = (await this.userService.addLocalUser(user.username, details)) as unknown as SaveResponse;
-    if (saveRes.status) {
-      this.hideNewUserModal();
-      await this.refreshUsers();
-      this.setNewUserMessage();
-    } else {
-      this.setNewUserMessage(saveRes.message, 'danger');
+    try {
+      const saveRes = (await this.userService.addLocalUser(user.username, details)) as unknown as SaveResponse;
+      if (saveRes.status) {
+        this.hideNewUserModal();
+        await this.refreshUsers();
+        this.setNewUserMessage();
+      } else {
+        this.setNewUserMessage(saveRes.message, 'danger');
+      }
+    } catch (error: unknown) {
+      this.setNewUserMessage(this.requestFailureMessage(error), 'danger');
     }
+  }
+
+  private requestFailureMessage(error: unknown): string {
+    const body = (error as { error?: { message?: unknown; errors?: { detail?: unknown }[] } } | null)?.error;
+    const message = body?.message ?? body?.errors?.[0]?.detail;
+    return typeof message === 'string' && message.trim()
+      ? message
+      : 'The request failed. Refresh to check the current account state before trying again.';
   }
 
   setUpdateMessage(msg: string = '', type: string = 'primary') {

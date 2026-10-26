@@ -6,44 +6,44 @@ import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
 import * as sinon from 'sinon';
-import { registerRequestChronicleErrorCapture, requestChronicle } from '../../src/middleware/requestChronicle';
+import { httpRequestChronicle, httpErrorHandler } from '../../src/http/express/middleware';
+import type { Request, Response, RequestHandler } from 'express';
 import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
 import { currentRequestChronicle } from '../../src/utilities/RequestChronicleContext';
-import { Services } from '../../src/CoreService';
+import { recordServiceChronicle } from '../../src/utilities/serviceChronicle';
 import { createSinonStubLogger } from '../logger.test';
 
 type StubLogger = ReturnType<typeof createSinonStubLogger>;
 
-class HTTPTestService extends Services.Core.Service {
+class HTTPTestService {
+  constructor(private readonly log: StubLogger) {}
   async recordOwner(owner: string, wait: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, wait));
-    this.updateChronicle({ serviceOwner: owner });
+    recordServiceChronicle(this.log, { serviceOwner: owner });
   }
 }
 
 describe('requestChronicle middleware', function () {
   let logger: StubLogger;
+  let requestChronicle: RequestHandler;
   let server: http.Server;
   let port: number;
   let uncaught: sinon.SinonSpy;
 
   beforeEach(async function () {
     logger = createSinonStubLogger(sinon);
-    (global as any).sails = {
-      config: { log: { requestChronicle: { successSampleRate: 1, successSampleExcludePattern: '' } } },
-      log: logger,
-    };
+    requestChronicle = httpRequestChronicle(logger, { successSampleRate: 1, successSampleExcludePattern: '' });
     uncaught = sinon.spy();
     process.on('uncaughtException', uncaught);
 
     server = http.createServer((req, res) => {
-      const sailsReq = req as unknown as Sails.Req;
-      (sailsReq as { path: string }).path = req.url ?? '';
-      requestChronicle(sailsReq, res as unknown as Sails.Res, () => {
+      const request = req as unknown as Request;
+      (request as { path: string }).path = req.url ?? '';
+      requestChronicle(request, res as unknown as Response, () => {
         if (req.url?.startsWith('/service/')) {
           const owner = req.url;
           const wait = owner === '/service/20' ? 20 : 1;
-          void new HTTPTestService().recordOwner(owner, wait).then(() => res.end('done'));
+          void new HTTPTestService(logger).recordOwner(owner, wait).then(() => res.end('done'));
           return;
         }
         if (req.url === '/abort') {
@@ -52,7 +52,7 @@ describe('requestChronicle middleware', function () {
           return;
         }
         if (req.url === '/error') {
-          RequestChronicleHelper.fromReq(logger, sailsReq).addError(new Error('controller failed'));
+          RequestChronicleHelper.fromReq(logger, request).addError(new Error('controller failed'));
         }
         res.statusCode = Number(req.url?.split('/')[1]) || 200;
         res.end('done');
@@ -66,7 +66,6 @@ describe('requestChronicle middleware', function () {
     process.removeListener('uncaughtException', uncaught);
     sinon.restore();
     await new Promise(resolve => server.close(resolve));
-    delete (global as any).sails;
   });
 
   async function visit(route: string, abort = false): Promise<void> {
@@ -118,8 +117,8 @@ describe('requestChronicle middleware', function () {
   });
 
   it('propagates a downstream exception once and restores context', () => {
-    const req = { options: {}, headers: {}, method: 'GET', path: '/throws' } as Sails.Req;
-    const res = new EventEmitter() as unknown as Sails.Res;
+    const req = { options: {}, headers: {}, method: 'GET', path: '/throws' } as Request;
+    const res = new EventEmitter() as unknown as Response;
     const error = new Error('downstream failed');
     const next = sinon.stub().callsFake(() => {
       expect(currentRequestChronicle()).to.equal(RequestChronicleHelper.existing(req));
@@ -200,14 +199,13 @@ describe('request chronicle default log output', function () {
       options: { ...logfmtTransportOptions, destination: file, sync: true },
     });
     const logger = log.createPinoLogger('info', transport);
-    (global as any).sails = { config: { log: { requestChronicle: { successSampleRate: 1 } } }, log: logger };
     try {
       const req = {
         method: 'GET',
         path: '/default/rdmp/preview/token123.css',
         hostname: 'localhost',
         headers: {},
-      } as unknown as Sails.Req;
+      } as unknown as Request;
       const rc = RequestChronicleHelper.fromReq(logger, req, { generateRequestId: () => 'request-1' });
       rc.start();
       rc.updateReq(req);
@@ -241,28 +239,28 @@ describe('request chronicle default log output', function () {
       expect(stack).to.not.equal(null);
       expect(JSON.parse(stack![1])).to.equal(error.stack);
     } finally {
-      delete (global as any).sails;
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });
 
-describe('request chronicle pre-routing error capture', () => {
-  it('registers once and records errors before custom response helpers are bound', () => {
-    const emitter = new EventEmitter();
-    const app = emitter as unknown as Sails.Application;
-    registerRequestChronicleErrorCapture(app);
-    registerRequestChronicleErrorCapture(app);
-    expect(emitter.listenerCount('router:request:500')).to.equal(1);
+describe('request chronicle Express error capture', () => {
+  it('captures a pre-routing error once without process events or raw error disclosure', () => {
     const logger = createSinonStubLogger(sinon);
-    const req = { options: {} } as Sails.Req;
+    const req = { options: {}, headers: {}, path: '/malformed' } as unknown as Request;
     const helper = RequestChronicleHelper.fromReq(logger, req);
     helper.start();
-    emitter.emit('router:request:500', new SyntaxError('Malformed JSON'), req, {});
-    expect(helper.data.errors?.[0].message).to.equal('Malformed JSON');
-    expect(helper.data.responseHandler).to.equal('sailsHttpError');
-    emitter.emit('router:request:500', new Error('Handled by custom response'), req, { serverError: () => undefined });
+    const res = {
+      status: sinon.stub().returnsThis(),
+      set: sinon.stub().returnsThis(),
+      json: sinon.stub().returnsThis(),
+    } as unknown as Response;
+    const handler = httpErrorHandler(logger);
+    handler(new SyntaxError('PRIVATE-PARSER-CONTENT'), req, res, () => {});
+    handler(new Error('PRIVATE-SECOND-ERROR'), req, res, () => {});
     expect(helper.data.errors).to.have.length(1);
-    expect(() => emitter.emit('router:request:500', new Error('Virtual'), {}, {})).not.to.throw();
+    expect(helper.data.errors?.[0].message).to.equal('HTTP request failed');
+    expect(JSON.stringify(helper.data)).not.to.include('PRIVATE');
+    expect(() => handler(new Error('Virtual'), {} as Request, res, () => {})).not.to.throw();
   });
 });

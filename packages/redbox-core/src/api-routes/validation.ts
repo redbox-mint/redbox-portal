@@ -1,3 +1,4 @@
+import type { ApiRequestInput } from './types';
 import { ZodIssue, ZodType } from 'zod';
 
 import { ApiFileConstraint, ApiRequestDefinition, ApiRouteDefinition } from './types';
@@ -43,7 +44,7 @@ function addZodIssues(prefix: string, issues: ZodIssue[], output: ApiValidationI
 }
 
 function validateSource(
-  req: Sails.Req,
+  req: ApiRequestInput,
   request: ApiRequestDefinition,
   source: 'params' | 'query' | 'headers' | 'body',
   schema: ZodType | undefined,
@@ -106,14 +107,14 @@ function validateFiles(
   }
 }
 
-function getHeaderValue(req: Sails.Req, name: string): string | string[] | undefined {
+function getHeaderValue(req: ApiRequestInput, name: string): string | string[] | undefined {
   const headers = req.headers as Record<string, string | string[] | undefined> | undefined;
   return headers == null
     ? undefined
     : Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
 }
 
-function getBodyContentType(req: Sails.Req, contentTypes: string[]): string | undefined {
+function getBodyContentType(req: ApiRequestInput, contentTypes: string[]): string | undefined {
   const contentTypeHeader = getHeaderValue(req, 'content-type');
   const requestContentType =
     typeof contentTypeHeader === 'string' ? contentTypeHeader.split(';')[0]?.trim().toLowerCase() : undefined;
@@ -125,7 +126,7 @@ function getBodyContentType(req: Sails.Req, contentTypes: string[]): string | un
 }
 
 export function validateApiRequest(
-  req: Sails.Req,
+  req: ApiRequestInput,
   request?: ApiRequestDefinition,
   options: ApiValidationOptions = {}
 ): ApiValidationResult {
@@ -178,7 +179,7 @@ export type ApiRouteRequestResult = ValidatedApiRequest | InvalidApiRequest;
 export type ValidatedApiRouteRequest = Omit<ValidatedApiRequest, 'valid'>;
 
 export function validateApiRouteRequest(
-  req: Sails.Req,
+  req: ApiRequestInput,
   route: ApiRouteDefinition,
   options: ApiRouteValidationOptions = {}
 ): ApiRouteRequestResult {
@@ -207,13 +208,4 @@ export function validateApiRouteFiles(
     validateFiles(files, route.request.files, issues, options.maxBytesOverrides);
   }
   return { valid: issues.length === 0, issues };
-}
-
-export function getValidatedApiRequest(req: Sails.Req): ValidatedApiRouteRequest {
-  if (!req.apiRequest) {
-    throw new Error(
-      `Missing validated API request context for ${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`
-    );
-  }
-  return req.apiRequest;
 }
