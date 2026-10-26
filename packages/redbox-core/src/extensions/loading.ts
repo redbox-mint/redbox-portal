@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { resolveExtensionExport } from './exports';
 
 export interface InstalledExtension {
   readonly name: string;
@@ -74,6 +75,15 @@ export async function discoverInstalledExtensions(
 /** Native import preserves TLA and ESM-only dependencies; no require() interop shortcut. */
 export async function loadExtensionModule(extension: InstalledExtension): Promise<Record<string, unknown>> {
   try {
+    const manifestURL = pathToFileURL(path.join(extension.root, 'package.json')).href;
+    const manifest = JSON.parse(await readFile(new URL(manifestURL), 'utf8'));
+    if (manifest.exports != null) {
+      const entry = '.' + extension.specifier.slice(extension.name.length);
+      const target = resolveExtensionExport(manifest.exports, entry, manifestURL);
+      if (target === undefined) throw new Error('No matching public export');
+      return await import(target);
+    }
+    // Preserve legacy main/index fallback when the package has no exports map.
     const { resolve } = await import('import-meta-resolve');
     return await import(resolve(extension.specifier, extension.parentURL));
   } catch {

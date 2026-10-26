@@ -38,7 +38,10 @@ The host loads both CommonJS and ESM hooks through `import`; expose an `import`,
 A `require`-only export is insufficient. The first matching resolved condition
 takes precedence, including an explicit null; an unmatched nested condition
 continues to later alternatives. Invalid path segments and encoded separators
-are rejected, and a query/hash cannot turn a declaration file into runtime code.
+in the selected pathname are rejected; query/hash values may contain encoded
+separators, but cannot turn a declaration file into runtime code. Preflight and
+the host share the same export selector for the qualified default Node 26 import
+conditions. Custom Node condition flags are outside this qualification.
 The check is static: it neither imports the hook nor requires built output.
 It does not prove that runtime services, persisted declarations or deployment
 bindings have been converted; compile, offline inspection and an installed

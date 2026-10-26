@@ -48,6 +48,36 @@ describe('installed async extensions', () => {
     for (const extension of (await discoverInstalledExtensions(root)).extensions)
       assert.equal(extensionRegistration(await loadExtensionModule(extension), extension.name)(), 1);
   });
+  it('loads Node conditional fallthrough and pattern exports through the actual host', async () => {
+    const cases: Array<[string, unknown, string, boolean]> = [
+      ['nested', { node: { require: './missing.cjs' }, default: './index.js' }, '.', true],
+      ['unknown', { node: [{ custom: null }], default: './index.js' }, '.', true],
+      ['sync', { 'module-sync': './index.js' }, '.', true],
+      ['addons', { 'node-addons': './index.js' }, '.', true],
+      ['masked', { node: { import: null }, default: './index.js' }, '.', false],
+      ['capture', { './*': ['./index.js', './index.js'] }, './node_modules/extension', false],
+      ['trailing', { './*': './index.js' }, './extension/', true],
+      ['query', './index.js?separator=%2f', '.', true],
+    ];
+    for (const [name, exports, entry, accepted] of cases) {
+      await fixture(
+        name,
+        { exports, redbox: { extension: entry } },
+        `exports.registerRedboxExtension = () => ${JSON.stringify(name)};`
+      );
+    }
+    await writeFile(
+      path.join(root, 'package.json'),
+      JSON.stringify({
+        dependencies: Object.fromEntries(cases.map(([name]) => [name, '1.0.0'])),
+      })
+    );
+    for (const extension of (await discoverInstalledExtensions(root)).extensions) {
+      if (cases.find(([name]) => name === extension.name)![3])
+        assert.equal(extensionRegistration(await loadExtensionModule(extension), extension.name)(), extension.name);
+      else await assert.rejects(loadExtensionModule(extension), /public entrypoint/);
+    }
+  });
   it('reports missing/invalid public entries and contracts without exposing module errors', async () => {
     await fixture('broken', { exports: './missing.js' }, '');
     await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { broken: '1.0.0' } }));
