@@ -75,6 +75,7 @@ export class SaveButtonComponent extends ButtonBaseComponent {
 
   public async save() {
     if (!this.disabled()) {
+      if (!await this.confirmSave() || this.disabled()) return;
       // Publish a typed event to request save; NgRx effects will orchestrate execution
       const redirectLocation = String(this.componentDefinition?.config?.redirectLocation ?? '').trim();
       this.eventBus.publish(
@@ -92,5 +93,17 @@ export class SaveButtonComponent extends ButtonBaseComponent {
     } else {
       this.loggerService.debug(`Save button is disabled; save action not triggered.`);
     }
+  }
+
+  private async confirmSave(): Promise<boolean> {
+    const confirmationMessage = this.componentDefinition?.config?.confirmationMessage?.trim();
+    if (!confirmationMessage) return true;
+    return this.confirmationDialogService.confirm({
+      title: this.componentDefinition?.config?.confirmationTitle,
+      message: confirmationMessage,
+      confirmLabel: this.componentDefinition?.config?.confirmButtonMessage,
+      cancelLabel: this.componentDefinition?.config?.cancelButtonMessage,
+      confirmButtonClass: this.resolveButtonCssClasses(this.buttonCssClasses, this.fallbackVariantClass),
+    });
   }
 }
