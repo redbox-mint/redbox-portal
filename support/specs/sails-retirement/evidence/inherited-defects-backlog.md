@@ -1,6 +1,6 @@
 # Inherited defects retained for separate follow-up
 
-Through R17 this cumulative backlog records **14 inherited groups**. R17 added no
+Through R18 this cumulative backlog records **14 inherited groups**. R18 added no
 new inherited group. The opening
 R5 context and later entries retain their original provenance; feature-introduced
 findings are fixed and recorded in their respective review reports.

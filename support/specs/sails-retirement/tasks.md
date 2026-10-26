@@ -136,6 +136,7 @@ Read the [design](design.md) for behavior and the
   artifacts, configuration, Mongo 8/9 candidates/FCVs, separate stores, local
   S3/Solr/auth topology and production access/release-coverage gaps are explicit.
   [WSU designation and source reasoning](evidence/institution-wsu.md#sr-005--institution-source-decision-and-topology).
+  [R18 review](evidence/final-review-r18.md) confirms this explicitly limited cohort.
 
   **Depends on:** SR-001, SR-003.
 
@@ -731,6 +732,8 @@ Read the [design](design.md) for behavior and the
   failed-drain retry and restart all pass; both processes exit 0. Actual WSU
   production TLS/auth/set membership is unknown and unqualified, with engine/FCV
   procedures separate. [WSU matrix](evidence/institution-wsu.md#sr-045--installed-wsu-topology-qualification);
+  the corrected WSU `3c764847a` artifact repeats both rows successfully in
+  [R18](evidence/final-review-r18.md).
   [historical generic matrix](evidence/p7-qualification.md#sr-045--database-matrix).
 
   **Depends on:** SR-005, SR-002, SR-025, SR-037, SR-044.
@@ -797,9 +800,12 @@ Read the [design](design.md) for behavior and the
 
   **Status:** done for the authorized WSU local-equivalent rehearsal. Released
   v5.0.4 with compatible historical WSU `4996206` upgrades directly to the clean
-  v6 artifact with converted WSU `1656f33`: fresh, upgrade, healthy readiness,
-  retained record/form/workflow/page reads, restart and stop pass. Deliberate real
-  initialization writes fail before activation; complete native recovery restores
+  v6 artifact with converted WSU, corrected from `1656f33` to `3c764847a` in
+  [R18](evidence/final-review-r18.md): generated publication HTTP delivery,
+  fresh integration, both matrix rows, upgrade/retained reads, readiness, restart
+  and stop pass. Real partial-initialization failure and exact four-database
+  restoration are repeated with the corrected artifact. The original complete
+  native recovery remains retained historical evidence and restores
   all four databases (28 collections/5,162 documents), S3, files, configuration,
   hook, Solr and the exact source image payload. The actual archive-loaded image
   passes source reads/restart/stop; all stops exit 0. The designated owner and
@@ -902,16 +908,20 @@ Read the [design](design.md) for behavior and the
 
 - [x] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
 
-  **Status:** done for the recorded WSU/local release qualification scope.
-  Clean portal `03c2cbad5` plus WSU `1656f33` artifacts pass bare/bundled default
-  fresh/restart/stop, 12 packs/20 checks, WSU installed matrix/cutover/full recovery
-  and all three installed AST/dependency audits. Source `d25c93095` reconciles all
-  1,261 baseline files with zero executable Sails/dependency violations. Fresh
-  affected suites pass: WSU 435, dev-tools 55, root tooling 26. R16's broad suites
-  remain qualified evidence for the unchanged portal application runtime, not new
-  executions; the only changed production source is the fully tested dev-tools
-  CLI. Exact images, archive/source provenance, failures, cleanup and still
-  unchecked production-only acceptance work are recorded in
+  **Status:** done for the recorded WSU/local release qualification scope after
+  [R18 remediation](evidence/final-review-r18.md). The clean portal `03c2cbad5`
+  bare/bundled artifacts and original complete recovery remain historical proof.
+  WSU `3c764847a` is rebuilt from its exact archive on that unchanged runtime;
+  fresh installed integration (including generated publication HTTP), both Mongo
+  rows, cutover/restart/stop and partial-failure/database-restoration checks pass.
+  Final dev-tools `916fd0dad` passes separately rebuilt packed-consumer checks
+  (12 packs/20 checks), its full suite/build, and source retirement closure.
+  All 1,261 baseline files reconcile with zero executable/dependency violations;
+  the corrected installed WSU AST/dependency graph also passes. Fresh affected
+  suites: WSU 438, dev-tools 59, root tooling 38. R16's broad suites qualify the
+  unchanged portal application runtime; they are not new executions. Exact
+  artifact provenance, retained historical coverage, failures, cleanup and still
+  unchecked production-only acceptance work are recorded in R18 and
   [WSU final qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
   and [machine results](evidence/institution-wsu-results.json).
   Actual production deployment acceptance is not asserted.

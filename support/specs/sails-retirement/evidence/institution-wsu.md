@@ -4,6 +4,15 @@ Recorded 2026-10-26. This record designates the real WSU hook and distinguishes
 local-equivalent execution from access to production. Earlier bundled-hook
 stand-in evidence remains a historical snapshot; it is not relabelled WSU.
 
+**R18 correction:** the original qualification below records WSU `1656f33` and
+its exact artifacts. Review found that generated publication URLs lacked their
+HTTP mapping, so those original probes alone did not close that behavior.
+WSU `3c764847a` corrects it; the [R18 review](final-review-r18.md) and
+[supplemental accounting](final-review-r18/review-accounting.json) record the
+rebuilt artifact, generated-file HTTP checks, repeated matrices/cutover and final
+tooling qualification. The original 66-file evidence ledger remains historical
+and hash verified; its image IDs and counts are not rewritten as new executions.
+
 ## SR-005 — Institution, source decision and topology
 
 The portal maintainer designated Western Sydney University (WSU), specifically
@@ -135,8 +144,10 @@ artifact/recovery results are accounted separately below.
 
 Work logs/artifacts are retained under `/mnt/docker-storage/sr-wsu/`. Source-smoke
 runs use dependency symlinks and are not clean-artifact proof. The committed
-`packages/redbox-core/test/qualification/wsu.cjs` refuses nonlocal/nondisposable
-URLs and checks actual engine/FCV values, configured forms, auth, S3, worker state,
+`packages/redbox-core/test/qualification/wsu.cjs` requires its disposable flag and
+local Mongo URLs. The selected configuration supplies local HTTP/S3 endpoints;
+the driver does not separately enforce their locality. It checks actual
+engine/FCV values, configured forms, auth, S3, worker state,
 persistence ownership and restart. Portal driver commits: `badf2cc68`, `62b52dc94`; recovery verifier/auditor controls: `bb78ee9c2`.
 
 | Gate | Observed result | Scope |

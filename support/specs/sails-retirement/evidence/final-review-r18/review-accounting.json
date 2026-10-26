@@ -1,0 +1,1043 @@
+{
+  "round": 18,
+  "date": "2026-10-26",
+  "branch": "stack/sails-retirement",
+  "incoming": {
+    "portalBase": "8b049580d",
+    "portalHead": "f5d12f86a",
+    "wsuBase": "14ab99e",
+    "wsuHead": "1656f33"
+  },
+  "reviewedFixTree": "916fd0dad012d9ff7063f58f5060927055641643",
+  "wsuFixTree": "3c764847a836a014e9294de0cd76121784627095",
+  "findings": [
+    {
+      "id": "R18-01",
+      "class": "A",
+      "priority": "P2",
+      "summary": "Missing view-conversion preflight",
+      "fixedBy": [
+        "17f56f6ed"
+      ]
+    },
+    {
+      "id": "R18-02",
+      "class": "A",
+      "priority": "P2",
+      "summary": "Runtime export declaration checking",
+      "fixedBy": [
+        "17f56f6ed",
+        "916fd0dad"
+      ]
+    },
+    {
+      "id": "R18-03",
+      "class": "A",
+      "priority": "P2",
+      "summary": "WSU generated publication URL mapping missing",
+      "fixedBy": [
+        "wsu:3c764847a"
+      ]
+    },
+    {
+      "id": "R18-04",
+      "class": "A",
+      "priority": "P2",
+      "summary": "Retired dependencies accepted in neutral manifests",
+      "fixedBy": [
+        "0b8334c5c"
+      ]
+    }
+  ],
+  "counts": {
+    "introducedP1": 0,
+    "introducedP2": 4,
+    "remainingIntroducedP1P2": 0,
+    "newInheritedGroups": 0
+  },
+  "toolchain": {
+    "node": "26.11.1",
+    "npm": "11.20.0",
+    "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin"
+  },
+  "suites": [
+    {
+      "name": "dev-tools full",
+      "command": "npm test --prefix packages/redbox-dev-tools",
+      "passing": 59,
+      "exitCode": 0,
+      "log": "devtools-final3.log"
+    },
+    {
+      "name": "dev-tools build",
+      "command": "npm run build --prefix packages/redbox-dev-tools",
+      "exitCode": 0,
+      "log": "devtools-build-final3.log"
+    },
+    {
+      "name": "WSU full compile/unit",
+      "cwd": "/home/andrew/src/bitbucket/redbox-hook-wsu-v6",
+      "command": "npm run test:unit",
+      "passing": 438,
+      "exitCode": 0,
+      "log": "wsu-final.log"
+    },
+    {
+      "name": "root tooling full",
+      "command": "node --test test/tooling/*.test.cjs",
+      "passing": 38,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "tooling-final3.log"
+    },
+    {
+      "name": "packed consumer",
+      "command": "node .tmp/sails-retirement/final-review-r18/packed-run.cjs",
+      "packs": 12,
+      "checks": 20,
+      "exitCode": 0,
+      "log": "packed-final.log",
+      "limitation": "Task-local output/fixture paths. Packs existing built unchanged packages plus freshly built final dev-tools; not a clean-archive rebuild of all portal packages."
+    },
+    {
+      "name": "installed WSU integration",
+      "command": "DOCKER_HOST=unix:///run/sr-r18/docker.sock docker compose -f /mnt/docker-storage/sr-wsu/final-review-r18/compose.yml up --abort-on-container-exit --exit-code-from portal portal",
+      "exitCode": 0,
+      "log": "wsu-installed.log",
+      "overlays": "Deployment configuration only; no source/dist/dependency overlays."
+    }
+  ],
+  "packed": {
+    "node": "v26.11.1",
+    "npm": "11.20.0",
+    "sandbox": "/tmp/redbox-p2-packed-w6GKrh",
+    "artifacts": [
+      {
+        "name": "@researchdatabox/sails-ng-common",
+        "filename": "researchdatabox-sails-ng-common-0.2.1.tgz",
+        "sha256": "6d23632ef3a9f4c59637fc9e8ca44e480e7c87d6218132bf3ca81289c9442a72",
+        "files": 568
+      },
+      {
+        "name": "@researchdatabox/agenda-sqs-backend",
+        "filename": "researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+        "sha256": "76d426e7ab5d9c71af1fff96e528bf800970132eb5ea4431eb7d9a87c2a3720f",
+        "files": 20
+      },
+      {
+        "name": "@researchdatabox/raido-openapi-generated-node",
+        "filename": "researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+        "sha256": "d40363198433495e887285046e26e5a7067917b7e690540e2ccb57ec48d30adf",
+        "files": 12
+      },
+      {
+        "name": "@researchdatabox/rva-registry-openapi-generated-node",
+        "filename": "researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+        "sha256": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d",
+        "files": 11
+      },
+      {
+        "name": "@researchdatabox/redbox-core",
+        "filename": "researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+        "sha256": "ec46ae19dd4c63d8857b67bce726f0589d7f0e493c88002940c490a48af814a9",
+        "files": 2024
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "filename": "researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+        "sha256": "bd52140007cb7d41ed0f5cc8b9b3c198be342ee883565521cec47275db1b5f80",
+        "files": 42
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+        "filename": "researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+        "sha256": "e1aee124b43bf4a476cb16effe00f30d290d856063564339b584dd32eadd5a90",
+        "files": 43
+      },
+      {
+        "name": "redbox-hook-dev",
+        "filename": "redbox-hook-dev-1.0.0.tgz",
+        "sha256": "8da96cff08682b094af044fd131d439dc99983479fcb3ff063dc4319846fcb7a",
+        "files": 108
+      },
+      {
+        "name": "@researchdatabox/redbox-dev-tools",
+        "filename": "researchdatabox-redbox-dev-tools-4.5.1.tgz",
+        "sha256": "66075055e81925b15f421646970864b581853a14aab29c593ec4d5a3742edaab",
+        "files": 88
+      },
+      {
+        "name": "sr-esm-only",
+        "filename": "sr-esm-only-1.0.0.tgz",
+        "sha256": "e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89",
+        "files": 2
+      },
+      {
+        "name": "sr-esm-hook",
+        "filename": "sr-esm-hook-1.0.0.tgz",
+        "sha256": "89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21",
+        "files": 2
+      },
+      {
+        "name": "sr-commonjs-hook",
+        "filename": "sr-commonjs-hook-1.0.0.tgz",
+        "sha256": "60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e",
+        "files": 2
+      }
+    ],
+    "result": {
+      "checks": 20,
+      "providers": [
+        "@researchdatabox/sails-hook-redbox-pdfgen",
+        "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "redbox-hook-dev",
+        "sr-esm-hook",
+        "sr-commonjs-hook"
+      ],
+      "esmOnly": true,
+      "topLevelAwait": true,
+      "offline": true,
+      "isolated": true,
+      "expressHost": true,
+      "development": true,
+      "compiledScaffold": true
+    }
+  },
+  "artifact": {
+    "image": "sha256:02e4b3ddd3cfb7f4b22b50d1de7f85c9be30fa4e828108d97f97992bdea19361",
+    "barePortalPdfBase": "sha256:2ce824c3c7bef21b866a099481eb31494b087a182e56fa4a82237792f0a6e7c7",
+    "basePortalSource": "03c2cbad5fb2764eb09df9e50b83ff4b18624bc6",
+    "buildProvenance": {
+      "wsuCommit": "3c764847a836a014e9294de0cd76121784627095",
+      "archiveFiles": 225,
+      "sourceDirectory": "/mnt/docker-storage/sr-wsu/final-review-r18/hook-source",
+      "mismatches": [],
+      "portalCoreRuntimeChangesFromQualifiedBase": []
+    },
+    "buildCommand": "DOCKER_HOST=unix:///run/sr-r18/docker.sock docker build --build-arg REDBOX_BUILD_IMAGE=redbox-portal:sr-wsu-final-pdf --build-arg REDBOX_PORTAL_IMAGE=redbox-portal:sr-wsu-final-pdf -t redbox-wsu:r18 /mnt/docker-storage/sr-wsu/final-review-r18/hook-source",
+    "limitation": "Exact hook Git archive, original hook Dockerfile. Base portal runtime unchanged; final dev-tools qualified separately, not relabelled as installed in this image."
+  },
+  "matrix": [
+    {
+      "major": 8,
+      "assertions": [
+        {
+          "institution": "Western Sydney University",
+          "runtime": "v26.11.1",
+          "datastores": [
+            {
+              "version": "8.0.34",
+              "fcv": "8.0",
+              "standalone": true
+            },
+            {
+              "version": "8.0.34",
+              "fcv": "8.0",
+              "standalone": true
+            }
+          ],
+          "maintenanceBeforeReady": false,
+          "maintenance": true,
+          "types": 5,
+          "forms": 12,
+          "ledgerDocuments": 34,
+          "anonymousPages": 2,
+          "csrfLogin": true,
+          "recordFormWorkflowReads": 5,
+          "extensionCsrf": true,
+          "s3RoundTrip": true,
+          "workerWrite": true,
+          "failedDrainRetainsPools": true,
+          "successfulDrainPools": 0,
+          "restart": true
+        },
+        {
+          "cleanup": {
+            "ready": false,
+            "cleanupPending": false,
+            "resources": [],
+            "operations": 0,
+            "prismaClients": 0,
+            "pools": 0
+          },
+          "activeResources": [
+            "FSReqCallback",
+            "PipeWrap",
+            "PipeWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "Timeout",
+            "Timeout",
+            "Timeout",
+            "Timeout"
+          ]
+        }
+      ],
+      "naturalExit": 0,
+      "finishedAt": "2026-10-26T00:32:50.255544677Z",
+      "dockerHealthQualified": false
+    },
+    {
+      "major": 9,
+      "assertions": [
+        {
+          "institution": "Western Sydney University",
+          "runtime": "v26.11.1",
+          "datastores": [
+            {
+              "version": "9.0.4",
+              "fcv": "9.0",
+              "standalone": true
+            },
+            {
+              "version": "9.0.4",
+              "fcv": "9.0",
+              "standalone": true
+            }
+          ],
+          "maintenanceBeforeReady": false,
+          "maintenance": true,
+          "types": 5,
+          "forms": 12,
+          "ledgerDocuments": 34,
+          "anonymousPages": 2,
+          "csrfLogin": true,
+          "recordFormWorkflowReads": 5,
+          "extensionCsrf": true,
+          "s3RoundTrip": true,
+          "workerWrite": true,
+          "failedDrainRetainsPools": true,
+          "successfulDrainPools": 0,
+          "restart": true
+        },
+        {
+          "cleanup": {
+            "ready": false,
+            "cleanupPending": false,
+            "resources": [],
+            "operations": 0,
+            "prismaClients": 0,
+            "pools": 0
+          },
+          "activeResources": [
+            "FSReqCallback",
+            "PipeWrap",
+            "PipeWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "TCPSocketWrap",
+            "Timeout",
+            "Timeout",
+            "Timeout",
+            "Timeout"
+          ]
+        }
+      ],
+      "naturalExit": 0,
+      "finishedAt": "2026-10-26T00:33:39.265525483Z",
+      "dockerHealthQualified": false
+    }
+  ],
+  "cutover": {
+    "initialCheckpointRestore": {
+      "mode": "verify",
+      "stores": 4,
+      "collections": 28,
+      "documents": 5162
+    },
+    "candidate": {
+      "mode": "probe",
+      "v6": true,
+      "localLogin": true,
+      "anonymousPages": 2,
+      "records": 5,
+      "forms": 5,
+      "workflows": 5,
+      "pages": 5,
+      "freshCsrf": true,
+      "health": 200,
+      "ready": 200
+    },
+    "restart": {
+      "mode": "probe",
+      "v6": true,
+      "localLogin": true,
+      "anonymousPages": 2,
+      "records": 5,
+      "forms": 5,
+      "workflows": 5,
+      "pages": 5,
+      "freshCsrf": true,
+      "health": 200,
+      "ready": 200
+    },
+    "candidateStop": 0,
+    "restartStop": 0,
+    "realPartialInitializationFailure": {
+      "mode": "fail-initialize",
+      "realInitializationFailed": true,
+      "coreWrite": true,
+      "storageWrite": true,
+      "activated": false,
+      "pools": 0
+    },
+    "restoredCheckpoint": {
+      "mode": "verify",
+      "stores": 4,
+      "collections": 28,
+      "documents": 5162
+    },
+    "scriptExit": 0,
+    "notRepeated": "Original full source-image/archive/file/config/hook/S3/Solr recovery remains the historical primary record. R18 repeats target cutover/restart/stop, real partial initialization failure and exact four-database restoration only.",
+    "restoreWarning": "Mongo 7.0.43 dump restored into Mongo 8.0.34 emits a cross-version restore warning; synthetic document and index equality is independently asserted. No in-place engine/FCV upgrade is claimed."
+  },
+  "sourceClosure": {
+    "commit": "916fd0dad012d9ff7063f58f5060927055641643",
+    "scannedFiles": 1206,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0
+  },
+  "inventory": {
+    "sourceCommit": "916fd0dad012d9ff7063f58f5060927055641643",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1177,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "installedWsuClosure": {
+    "scannedFiles": 4095,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0
+  },
+  "installedWsuGraph": {
+    "node": "v26.11.1",
+    "manifests": 1230,
+    "forbiddenPackages": 0,
+    "forbiddenEdges": 0,
+    "ownedPins": true,
+    "core": "0.0.1-beta.9022",
+    "wsu": "2.0.0-v6.0"
+  },
+  "generalisation": {
+    "siblings": [
+      {
+        "hook": "uwa",
+        "exit": 1,
+        "statusUnchanged": true,
+        "viewFindings": [
+          "  - views/default/default/availableServicesList.ejs:3: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/availableServicesList.ejs:6: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/availableServicesList.ejs:7: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/availableServicesList.ejs:9: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/availableServicesList.ejs:10: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/availableServicesList.ejs:12: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/availableServicesList.ejs:14: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/availableServicesList.ejs:15: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/availableServicesList.ejs:16: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/help.ejs:3: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/help.ejs:7: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/help.ejs:8: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/help.ejs:9: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/help.ejs:10: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout/head-extra.ejs:2: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout/head-extra.ejs:2: sails: replace retired view global with request-scoped page.config or other page locals"
+        ]
+      },
+      {
+        "hook": "jcu",
+        "exit": 1,
+        "statusUnchanged": true,
+        "viewFindings": [
+          "  - views/default/default/homepage.ejs:7: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:10: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:18: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:19: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:20: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:29: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/homepage.ejs:29: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:30: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:40: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:40: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/homepage.ejs:41: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout/logo.ejs:4: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout/logo.ejs:10: sails: replace retired view global with request-scoped page.config or other page locals",
+          "  - views/default/default/layout/logo.ejs:10: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout/logo.ejs:11: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout/menu.ejs:4: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout/menu.ejs:17: sails: replace retired view global with request-scoped page.config or other page locals",
+          "  - views/default/default/layout/menu.ejs:17: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout/menu.ejs:18: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout/menu.ejs:45: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout/menu.ejs:47: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout/menu.ejs:47: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout/menu.ejs:49: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout.ejs:1: include: remove the retired functions helper; the page host supplies superPartial",
+          "  - views/default/default/layout.ejs:6: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:6: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:11: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:12: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:13: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:16: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout.ejs:16: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout.ejs:27: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:29: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:31: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:33: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:33: sails: replace retired view global with request-scoped page.config or other page locals",
+          "  - views/default/default/layout.ejs:36: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:39: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:41: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:42: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:44: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:50: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout.ejs:61: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:61: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout.ejs:63: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout.ejs:66: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:66: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/layout.ejs:93: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:94: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/layout.ejs:95: sails: replace retired view global with request-scoped page.config or other page locals",
+          "  - views/default/default/record/edit.ejs:12: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/record/edit.ejs:12: TranslationService: replace retired view global with page.t(key, values)",
+          "  - views/default/default/record/edit.ejs:18: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/record/edit.ejs:19: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/record/edit.ejs:19: CacheService: replace retired view global with page.bundleHash(app, prefix, before?, after?, evenEmpty?)",
+          "  - views/default/default/record/edit.ejs:21: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/record/edit.ejs:21: CacheService: replace retired view global with page.bundleHash(app, prefix, before?, after?, evenEmpty?)",
+          "  - views/default/default/record/edit.ejs:23: BrandingService: replace retired view global with page.root, page.base or page.brand",
+          "  - views/default/default/record/edit.ejs:23: CacheService: replace retired view global with page.bundleHash(app, prefix, before?, after?, evenEmpty?)"
+        ]
+      }
+    ],
+    "convertedWsuExit": 0,
+    "originalWsuUntrackedHashesMatch": {
+      "docs/v5-core-gaps.md": true,
+      "docs/v5-migration-verification-playbook.md": true,
+      "logs.txt": true
+    }
+  },
+  "primaryEvidence": {
+    "verifiedFiles": 66,
+    "hashesMatch": true,
+    "originalUntrackedHashesMatch": true,
+    "historicalLedgerUnchanged": true
+  },
+  "taskDisposition": {
+    "SR-005": "tick stands for the authorized local WSU fallback/topology cohort after R18 fixes",
+    "SR-045": "tick stands for the authorized local WSU fallback/topology cohort after R18 fixes",
+    "SR-049": "tick stands for the authorized local WSU fallback/topology cohort after R18 fixes",
+    "SR-055": "tick stands for the authorized local WSU fallback/topology cohort after R18 fixes"
+  },
+  "productionAcceptance": {
+    "actualDeployedSourceConfirmed": false,
+    "productionInfrastructureOrCredentialsUsed": false,
+    "tlsFederationIamReplicaSetQualifiedForWsu": false,
+    "externalPublishersEmailAndRealTransfersExercised": false,
+    "inPlaceMongoEngineOrFcvUpgradeExercised": false
+  },
+  "cleanup": {
+    "remainingOwnedContainers": [],
+    "remainingOwnedVolumes": [],
+    "remainingOwnedNetworks": [],
+    "removedContainers": 9,
+    "removedAnonymousVolumes": 10,
+    "preservedOtherVolumes": 6,
+    "remainingAllContainers": [],
+    "ownedDaemons": [
+      {
+        "kind": "docker",
+        "pid": 89835,
+        "stopped": true
+      },
+      {
+        "kind": "containerd",
+        "pid": 88834,
+        "stopped": true
+      }
+    ]
+  },
+  "broadSuiteReuse": "Portal application/core runtime unchanged. R16 broad suites and original bare/bundled/full source recovery results remain historical evidence; not newly executed in R18.",
+  "commands": {
+    "sourceAudit": "node support/specs/sails-retirement/evidence/retirement-closure.cjs 916fd0dad",
+    "inventory": "node support/specs/sails-retirement/evidence/inventory.cjs 916fd0dad",
+    "reconcile": "node support/specs/sails-retirement/evidence/reconcile-retirement-inventory.cjs .tmp/sails-retirement/final-review-r18/source-inventory-final.json .tmp/sails-retirement/final-review-r18/source-closure-final2.json",
+    "cutover": "bash /mnt/docker-storage/sr-wsu/final-review-r18/cutover.sh",
+    "recoveryPrerequisite": "Disposable isolated engine and fresh local services from retained compose.yml; restore checkpoint via /mnt/docker-storage/sr-wsu/restore-target.sh before cutover. Original checkpoint is read-only.",
+    "matrix": "For each major 8/9: run the corrected immutable WSU image on host networking, mounting matrix<major>.cjs read-only at /deployment.cjs and packages/redbox-core/test/qualification/wsu.cjs read-only at /opt/redbox-portal/wsu-verifier.cjs; set REDBOX_APPLICATION_CONFIG=/deployment.cjs, NODE_ENV=production, WSU_DISPOSABLE=true, a synthetic REDBOX_SESSION_SECRET and the local HOOK_S3_* values from compose.yml; command: node wsu-verifier.cjs. The driver requires local Mongo URLs and its disposable flag. Exact config/mounts and commands are retained in raw evidence."
+  },
+  "rawEvidence": [
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/build-provenance.json",
+      "bytes": 236,
+      "sha256": "ee600e5972f9b0d90330d7a4d38873bc414e95d6490bb7120c722f0cd52c9964"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/containerd.log",
+      "bytes": 29542,
+      "sha256": "b544d43e3bec0a9f0e2579df2fe5adcb6f3fc836612e2aa20361733e3e5d141f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/cutover.log",
+      "bytes": 1702,
+      "sha256": "6ac6633f33c2c182e1d8cbb06d64f5572d5e611545df50d80600e137dfaadc2e"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-build-final.log",
+      "bytes": 71,
+      "sha256": "8175aefbe65657282411c5ff386e9479ae344b5d78e6ffd81d2c8cb1f5985879"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-build-final2.log",
+      "bytes": 71,
+      "sha256": "8175aefbe65657282411c5ff386e9479ae344b5d78e6ffd81d2c8cb1f5985879"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-build-final3.log",
+      "bytes": 71,
+      "sha256": "8175aefbe65657282411c5ff386e9479ae344b5d78e6ffd81d2c8cb1f5985879"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-build.log",
+      "bytes": 302,
+      "sha256": "708795fd09c30eca4399b1399cd2b42e749a8679c4f586fd9ea9bfc527c07ea5"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-build2.log",
+      "bytes": 71,
+      "sha256": "8175aefbe65657282411c5ff386e9479ae344b5d78e6ffd81d2c8cb1f5985879"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-final.log",
+      "bytes": 26339,
+      "sha256": "2735fd79b44c765789bd6a16421821c17369ad72ca9fcb94d818ba2319965ed0"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-final2.log",
+      "bytes": 26444,
+      "sha256": "a2d2e837069680bbd796ffbe203225f07e1f8b5ab758651e566fd2b5518b54c3"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-final3.log",
+      "bytes": 26445,
+      "sha256": "0812a0fe276e05a7d5674cde8d73eed646ec01e6759b5f02a6ecdfc20d7d2f42"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-pack.json",
+      "bytes": 10188,
+      "sha256": "8f7867755bb50406cdbd95bfac5ed9183e9523ca9706b14e34ef82504ebe79a7"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-pack2.json",
+      "bytes": 10188,
+      "sha256": "b6e2f1df75ef3d3c901b1b63b1c2790d4777421acbfb67e25b8c8de8b0b33edc"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-red.log",
+      "bytes": 1257,
+      "sha256": "f332e6800d6a8603e16cf7676a654e366abf1e54bbbe560bcd07dd2202479998"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/devtools-tests.log",
+      "bytes": 26366,
+      "sha256": "b972484f92b34ab736787e4e49e144641737a867f2678bb50f590322dd15a86f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/docker-cleanup.json",
+      "bytes": 407,
+      "sha256": "414e170713d2775d4d371fe655645bbf33e61b72ff7be49d6f42e25224512247"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/docker-cleanup.log",
+      "bytes": 998,
+      "sha256": "58b2b123635b77983bd5905d1d2a6ad4274750f0d0807de2c408efc1e0d8300a"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/docker-info.txt",
+      "bytes": 1677,
+      "sha256": "1926c092f64e7dca849db29f23c7cec66909c762e6a477170e2f720b538e8549"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/docker-resources-before-cleanup.json",
+      "bytes": 17357,
+      "sha256": "083a066c5aea64520312d5303f4bcc189edb1755deeab40d0b640776eb0b50cd"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/dockerd.log",
+      "bytes": 2189,
+      "sha256": "e7b3bf69b236a19f29c93e1750e531bf3cd51238d3291b839c80a57fea9b78f2"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/dockerd2.log",
+      "bytes": 15823,
+      "sha256": "63c93f03cd0f2c3a8ccd338e3139c1bc70b7ef8b9ec62087894c63bb93bf9d3f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/evidence-hashes-final.json",
+      "bytes": 4398,
+      "sha256": "e9b8c5b31b03a78fdc9d5f7b810e7dbb90caa7f941c0d7ba8556e57498b0ee86"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/evidence-hashes.json",
+      "bytes": 4398,
+      "sha256": "e9b8c5b31b03a78fdc9d5f7b810e7dbb90caa7f941c0d7ba8556e57498b0ee86"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/export-order-red.log",
+      "bytes": 756,
+      "sha256": "666b90b5714f6fafb4cd54c7d6463a824e517144667fca6db8a340993e2be547"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/framework-deps-red.log",
+      "bytes": 748,
+      "sha256": "fd807e60963d86848732c0938291714717916144c22497dac4b0b11253857a04"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/generalisation.json",
+      "bytes": 10602,
+      "sha256": "3e4260459b5309321d888692645a491cb0bbcb0c31da01c25b81f8530fb2a297"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/graph-tests.log",
+      "bytes": 701,
+      "sha256": "f00a11a8c89165d2bd02344fae2d0202e4c2056760a56cfec8fa7137b75969a1"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/images-before.txt",
+      "bytes": 49,
+      "sha256": "5018d0a3bdeb11411da1ca53acb76be380b2a87ac9edeee802394d254a9f0fa9"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/inventory-reconciliation-final.json",
+      "bytes": 869601,
+      "sha256": "82871760c6409c6ecd95af0fbf1be735347a819e34b4514bb837bd4dcdeeca7f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/jcu-check.log",
+      "bytes": 7844,
+      "sha256": "03e6430d98c9a511cd7ad5bd2ac6d8942ad328b54fb7a37887126f9e20649138"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/packed/install.log",
+      "bytes": 27,
+      "sha256": "1bd540984e6a7c0652cc7fbcf4df8a324d4af27df056e29100090434b5c22ca5"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/packed/offline-ci.log",
+      "bytes": 28,
+      "sha256": "a15765f74d7c66da38c36d68b7958c20ab992d8089315adff1cd66ed39acf9cc"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/packed/result.json",
+      "bytes": 3251,
+      "sha256": "839e9ac42d0502b11ea1842a0c45175f0f289f72f1079e16d4cbd224a5736204"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/packed-final.log",
+      "bytes": 9713,
+      "sha256": "33fd2f7447b4c74c10416c12f3acd1431dbb76008d5b64013eeaf9083779a0a8"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/packed-run.cjs",
+      "bytes": 3633,
+      "sha256": "496842c8c4e83ccac5d42a3eb14f5a6c50e55b89b636d2e59a0ef797a0d02f31"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/packed.log",
+      "bytes": 9713,
+      "sha256": "bc9d83595e4e072e964ab9e5c1817fa12d5ec3fe197e492d21f10394ef2f9da2"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/s3-seed.log",
+      "bytes": 24,
+      "sha256": "c422351568f509e8a689a566fcc90a21d5d0e2c334aab05a3234d53372fece27"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/services-start.log",
+      "bytes": 556,
+      "sha256": "d0c2b9722b909f18f75c2cec55f5b1b0b4906cba007a8ea568b80711f030f920"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/services-start2.log",
+      "bytes": 533,
+      "sha256": "3e044ddf7400713e7a8fc5f9f7466f49c9c401268a4491db536e3a002dc510b0"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/source-closure-final.json",
+      "bytes": 239692,
+      "sha256": "8110cf03c73734bce456d24e9ac286b00ec1a56815f82f3b46e2c6a9a9b78503"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/source-closure-final2.json",
+      "bytes": 240074,
+      "sha256": "c02525f53602048f74dac4c9f7be9be59c4114efd7c120a23a429cba3d142af6"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/source-closure.json",
+      "bytes": 239692,
+      "sha256": "23ae64c9c854829a70a5aa87a7533908f7011d256bf328a462db6e6f499659ef"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/source-inventory-final.json",
+      "bytes": 438092,
+      "sha256": "b8cf66da699a85664ee0a12f5cd73c22fb38360c2d4e464704a9ab097a552527"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/tooling-final.log",
+      "bytes": 3200,
+      "sha256": "67bef86fa75927a3c162d37d6f8b935d806faa316a17ad6fdb365a642c45be57"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/tooling-final2.log",
+      "bytes": 3361,
+      "sha256": "d7b78166139564838b2f06dacd9c6af70b15991632e986e02806bea8b61a6a7a"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/tooling-final3.log",
+      "bytes": 3363,
+      "sha256": "a4cc2f7e9f6b98ecab525fa0edbc1286490c4fe62189ccb150e3dd05d95ac037"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/tooling-tests.log",
+      "bytes": 2616,
+      "sha256": "f24718c188313fa28ec2f6b34d59a56d461d7b905783cea0db495b0a63e78000"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade--initialize-only.log",
+      "bytes": 6994,
+      "sha256": "1eb9386545e5d3683ff9705836299740b2eff6d7da87469e8cbf879e06544f1c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade--maintenance-indexes-ensure.log",
+      "bytes": 13331,
+      "sha256": "158200ed3ecf35ef9a26952f84744a79630d04ea88787fba04a44aaaa2cb6dbb"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade--maintenance-indexes-inspect.log",
+      "bytes": 13332,
+      "sha256": "dc7a663c6fb750bcc654e82fbcccf57ecdbe7facb9128b1be1cf67d61ec79dd1"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-candidate-probe.log",
+      "bytes": 152,
+      "sha256": "8e01d4a55c08810c5ac005e7f6d1c182917e2e888aa57a6e778d33e2369cfd09"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-candidate-restarted-probe.log",
+      "bytes": 152,
+      "sha256": "8e01d4a55c08810c5ac005e7f6d1c182917e2e888aa57a6e778d33e2369cfd09"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-candidate-restarted-runtime.log",
+      "bytes": 2236,
+      "sha256": "76e0df84457ff59b9ff3d2b6ef51885700454c0efc30869734d2c5719a72cadb"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-candidate-restarted-stop.json",
+      "bytes": 566,
+      "sha256": "b484b1da64f9aabd4f6c91a6f6cd7c39e33a0738579cd2f7083ea62e3bd931a0"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-candidate-runtime.log",
+      "bytes": 1846,
+      "sha256": "648de6994ca6cac58e4cafe0063c23de5b9a86420cd6b85f5bb722efde181574"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-candidate-stop.json",
+      "bytes": 567,
+      "sha256": "34bd70919093cc3b19d88cc38a9c7f6e04a88be8f7023c306d364cee2c19ae2c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-partial-failure.log",
+      "bytes": 124,
+      "sha256": "db288474c58e7aa9d6a71dfbdf99260ebe918f00aa98b4489ec7ce5ae3473dd4"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-restore-source.log",
+      "bytes": 21427,
+      "sha256": "62f7ac26d0e168af9910895c3f0ade41477819ff4417c617f54f6412c452b9b3"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-restored-checkpoint.log",
+      "bytes": 21427,
+      "sha256": "1c69ee6a117a28ced3759ef8fb18e1b5df02e54a7d538707008e3f52b52cb5a5"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/upgrade-review-index.log",
+      "bytes": 70,
+      "sha256": "2d7533797e43a3137f54a35c67dc660281d406de98a028f680660e63848d7217"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/uwa-check.log",
+      "bytes": 2305,
+      "sha256": "d2488c1632f192dbe4f851453e113b3325ecdb8c18b51065c8c8c73f6d3f3623"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-check.log",
+      "bytes": 41,
+      "sha256": "b97593153bbbf11e10ff192b4f830e34a30be1253bb5831dfe994281f832bd1c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-final.log",
+      "bytes": 43703,
+      "sha256": "ba14d1c8a8d82a1e03caba1c0ee16c20e0df30c39093e397dca183386bba6f9f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-image-build.log",
+      "bytes": 1545,
+      "sha256": "b9b2f6a31c35d3167bec6cf139910762a01c2edf8b844484bc9a8c26d0d04247"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-image-build2.log",
+      "bytes": 26464,
+      "sha256": "6cb94c49109cc0ca4a017b1943f179280a8aab769aa42991c54e716fa27fff59"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-image-id.txt",
+      "bytes": 72,
+      "sha256": "84b887debea7541cf99d31f5eba31e13bc423675b6869a44820797e03bdb5f5a"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-installed-closure.json",
+      "bytes": 165437,
+      "sha256": "a87ce80891b2164dae5020d13fc3bb214be825de11db81e713ca803019eb4f7b"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-installed-closure.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-installed-graph.log",
+      "bytes": 139,
+      "sha256": "f0e64e23c64742ce5e09971996687f7843cf028acdb4250dff58e0bbf4a64d0b"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-installed.log",
+      "bytes": 635,
+      "sha256": "09508220ee2bad2e1a448f09f59043486527e2d392f5abe57825b0c5b2a0434a"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-matrix8.log",
+      "bytes": 1139,
+      "sha256": "c421696dbed08bfe3fe3f3436de1ec01fe9be70aca3b7361f96acb5beef43cef"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-matrix9.log",
+      "bytes": 1137,
+      "sha256": "51a664f803a4ead362b2a756f8bc1d8e3cbea9dcd381a212a0fff4de2ae968bf"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-publication-red.log",
+      "bytes": 864,
+      "sha256": "744cfcca5ac48c60bf4ccfde525de66999265deeabc9d2f62d5ee1da8cabe090"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-unit.log",
+      "bytes": 1482,
+      "sha256": "7a6dced76355aa3dd8c13e633ffd58e10a88b9c68083792e3fd8579af1180ace"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-unit2.log",
+      "bytes": 43394,
+      "sha256": "8d341014351bf004d359c174c8e20d5296d444f0a4bc40009c933e2a85d2b69b"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-unit3.log",
+      "bytes": 44540,
+      "sha256": "ac07d0c4d70e901d30021de5313aa1ee9433bdbf28b5cf6138868c7d6e89ac2f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r18/wsu-unit4.log",
+      "bytes": 43667,
+      "sha256": "cfb357e4dca692c05dc275417b23a34d5ff1a81361d6b848dec8d6727a1b6a84"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r18/compose.yml",
+      "bytes": 2355,
+      "sha256": "b93a7bf351f75c33ee6f16a185416ecc9c6fc994254d880366801cd6b7212366"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r18/cutover.sh",
+      "bytes": 3371,
+      "sha256": "5bc526f298cf47de034fb9f2fe291680bf286e7d888177484fcff6167271edb9"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r18/smoke.cjs",
+      "bytes": 1070,
+      "sha256": "8fb25563aaf39819287a5429f31506b393d9585e05317435ad4235f308504bb3"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r18/reviewed-upgrade.cjs",
+      "bytes": 1311,
+      "sha256": "4a82dcd6505af03eaf2ec6b9801c96256d0196afd0acc2430d0dfddc4a1872d7"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r18/matrix8.cjs",
+      "bytes": 1074,
+      "sha256": "3b6ffe52f8a8463e6b8ce7aacab2acfc3486e59ce180ec52902b5c17d3bef75c"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r18/matrix9.cjs",
+      "bytes": 1074,
+      "sha256": "160f8dc153477405414aac4dd2be7368508ec5471fac25df297f68197eeeaf40"
+    }
+  ]
+}

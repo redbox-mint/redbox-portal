@@ -590,5 +590,12 @@
       "path": "/mnt/docker-storage/sr-wsu/final-ast-wsu.json",
       "sha256": "48cd42db8607b459c4a5becd7c19df21a9f52632abf4ace2f055989b9716cf43"
     }
+  },
+  "r18Supplement": {
+    "review": "final-review-r18.md",
+    "accounting": "final-review-r18/review-accounting.json",
+    "correctedWsu": "3c764847a836a014e9294de0cd76121784627095",
+    "correctedImage": "sha256:02e4b3ddd3cfb7f4b22b50d1de7f85c9be30fa4e828108d97f97992bdea19361",
+    "note": "Original sources, artifacts, counts and 66 evidence hashes above remain historical. R18 findings, corrections and fresh verification are additive."
   }
 }
