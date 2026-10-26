@@ -11,7 +11,7 @@ post {
 }
 
 headers {
-  Upload-Length: 194397
+  Upload-Length: 30148
   Origin: {{host}}
   Accept-Encoding: gzip, deflate, br
   X-CSRF-Token:
@@ -30,6 +30,7 @@ headers {
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
   bruHelper.setCookies({bru, req});
+  await require("./bruno-helpers.js").csrf({bru, req});
 }
 
 tests {
@@ -38,6 +39,8 @@ tests {
 
     let location = res.headers.location;
       bru.setEnvVar("attachmentLocation", location );
-      bru.setEnvVar("attachmentId", location.split("/")[8] );
+      const attachmentId = new URL(location, bru.interpolate("{{host}}")).pathname.split("/").pop();
+      expect(attachmentId).to.match(/^[a-f0-9]{32}$/);
+      bru.setEnvVar("attachmentId", attachmentId);
   });
 }

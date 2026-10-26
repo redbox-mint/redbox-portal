@@ -37,3 +37,7 @@ tests {
       expect(data.data.test.message).to.equal("Test bundle message");
   });
 }
+
+script:pre-request {
+  await require("./bruno-helpers.js").csrf({bru, req});
+}

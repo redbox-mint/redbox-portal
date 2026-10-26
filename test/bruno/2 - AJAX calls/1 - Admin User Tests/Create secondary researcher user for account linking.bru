@@ -47,6 +47,7 @@ script:pre-request {
   bru.setEnvVar("secondaryResearcherEmail", `researcherlink${randomNumber}@email.edu.au`);
   bru.setEnvVar("secondaryResearcherPassword", `Rblink${randomNumber}!`);
   bruHelper.setCookies({bru, req});
+  await require("./bruno-helpers.js").csrf({bru, req});
 }
 
 tests {
