@@ -189,7 +189,7 @@ describe('cli smoke test', function () {
       fs.writeFileSync(path.join(tempRoot, 'dist', file), 'exports.registerRedboxExtension = () => ({apiVersion: 1});');
     fs.writeFileSync(path.join(tempRoot, 'dist/index.mjs'), 'export const registerRedboxExtension = () => ({apiVersion: 1});');
     fs.writeFileSync(path.join(tempRoot, 'dist/index.d.ts'), 'export declare function registerRedboxExtension(): unknown;');
-    for (const [exports, accepted] of [
+    const cases: Array<[unknown, boolean, string?]> = [
       [{'.': null}, false],
       [{'.': {types: './dist/index.d.ts'}}, false],
       [{'.': './dist/index.d.ts'}, false],
@@ -204,18 +204,41 @@ describe('cli smoke test', function () {
       [{node: {require: './dist/index.cjs'}, types: './dist/index.d.ts'}, false],
       [{node: {import: './dist/index.cjs'}, types: './dist/index.d.ts'}, true],
       [{'.': {import: './dist/index.mjs', require: './dist/index.cjs'}}, true],
-    ]) {
+      [{'.': {node: {require: './dist/index.cjs'}, default: './dist/index.js'}}, true],
+      [{'.': {node: {custom: null}, import: './dist/index.js'}}, true],
+      [{'.': {node: {import: null}, default: './dist/index.js'}}, false],
+      [{'.': {node: [{require: './dist/index.cjs'}], default: './dist/index.js'}}, true],
+      [{'.': {node: [], default: './dist/index.js'}}, false],
+      [{'.': {node: [{require: './dist/index.cjs'}, null], default: './dist/index.js'}}, false],
+      [{'.': {node: ['../outside.js'], default: './dist/index.js'}}, false],
+      [{'.': {node: {'0': './dist/index.js'}, default: './dist/index.js'}}, false],
+      [{'.': {'module-sync': './dist/index.js'}}, true],
+      [{'.': {'node-addons': './dist/index.js'}}, true],
+      [{'./*': './dist/*.js'}, true, './index'],
+      [{'./*': './dist/*.js', './index': null}, false, './index'],
+      [{'./*': './missing.js', './in*': './dist/in*.js'}, true, './index'],
+      [{'./*': './dist/index.d.ts', './*dex': './dist/index.js'}, true, './index'],
+      [{'./in*': './dist/index.d.ts', './i*ex': './dist/index.js'}, false, './index'],
+      [{'.': './dist/./index.js'}, false],
+      [{'.': './dist/%2e%2e/index.js'}, false],
+      [{'.': './dist/%6eode_modules/index.js'}, false],
+      [{'.': './dist%2findex.js'}, false],
+      [{'.': ['./dist%2findex.js', './dist/index.js']}, false],
+      [{'.': ['./dist/%zz.js', './dist/index.js']}, false],
+      [{'.': './dist/index.d.ts?source=hook'}, false],
+    ];
+    for (const [exports, accepted, entry = '.'] of cases) {
       fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
-        name: 'redbox-hook-exports', redbox: {extension: '.'}, exports,
+        name: 'redbox-hook-exports', redbox: {extension: entry}, exports,
       }));
       const result = runCli(['check', '--v6'], tempRoot);
       expect(result.status).to.equal(accepted ? 0 : 1, JSON.stringify(exports) + result.stderr);
       const loaded = spawnSync(process.execPath, ['-e',
-        "import('redbox-hook-exports').then(m => {if (typeof m.registerRedboxExtension !== 'function') process.exit(2)}).catch(() => process.exit(1))"],
+        `import(${JSON.stringify('redbox-hook-exports' + entry.slice(1))}).then(m => {if (typeof m.registerRedboxExtension !== 'function') process.exit(2)}).catch(() => process.exit(1))`],
         {cwd:tempRoot, encoding:'utf8'});
       expect(loaded.status === 0).to.equal(accepted, JSON.stringify(exports) + loaded.stderr);
     }
-  });
+  }).timeout(360000);
 
   it('rejects retired globals and the old functions include in hook EJS before runtime', () => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-views-'));
