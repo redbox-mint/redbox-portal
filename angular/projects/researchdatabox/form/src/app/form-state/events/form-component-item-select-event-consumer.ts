@@ -1,4 +1,5 @@
 import { get as _get } from 'lodash-es';
+import { FormResetEvent } from '@angular/forms';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
   FormComponentEventType,
@@ -30,7 +31,10 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     FormComponentEventType.FIELD_ITEM_SELECTED;
 
   private onItemSelect?: { rawPath: string; clearValue?: unknown };
-  private ownPointer?: string;
+  private get ownPointer(): string | undefined {
+    return this.options?.definition?.lineagePaths?.angularComponentsJsonPointer;
+  }
+  private selectionRevision = 0;
 
   constructor(eventBus: FormComponentEventBus) {
     super(eventBus);
@@ -53,7 +57,6 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       return;
     }
 
-    this.ownPointer = options.definition?.lineagePaths?.angularComponentsJsonPointer;
     if (!this.ownPointer) {
       this.logDebug(
         'FormComponentItemSelectEventConsumer: No JSON pointer available. Item select events will not be consumed.'
@@ -67,6 +70,13 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       this.logDebug(`FormComponentItemSelectEventConsumer: No model or no form control found for component '${options.component?.formFieldConfigName()}'. Item select may or may not be properly consumed.`, options.definition);
     } else {
       this.model = model;
+      // A reset can occur after the silent write but before its awaited setter
+      // completes. Loaded values must retain their pristine/untouched state.
+      this.subscriptions.set('model.reset', model.formControl.events.subscribe(event => {
+        if (event instanceof FormResetEvent) {
+          this.selectionRevision += 1;
+        }
+      }));
     }
 
     const sub = this.eventBus
@@ -77,6 +87,11 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
         }
       });
     this.subscriptions.set('field.item.selected', sub);
+  }
+
+  override destroy(): void {
+    this.selectionRevision += 1;
+    super.destroy();
   }
 
   /**
@@ -101,6 +116,7 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     if (!control || !this.onItemSelect) {
       return;
     }
+    const revision = ++this.selectionRevision;
     const parentControl = control.parent;
     const previousParentValue = parentControl ? this.cloneEventValue(parentControl.value) : undefined;
 
@@ -108,6 +124,9 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
 
     if (event.selectedItem === null || event.selectedItem === undefined) {
       await setControlValue(control, clearValue, { emitEvent: false });
+      if (revision !== this.selectionRevision) {
+        return;
+      }
       control.markAsDirty();
       control.markAsTouched();
       this.publishParentValueChanged(previousParentValue);
@@ -130,6 +149,9 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
     }
 
     await setControlValue(control, resolved, { emitEvent: false });
+    if (revision !== this.selectionRevision) {
+      return;
+    }
     control.markAsDirty();
     control.markAsTouched();
     this.publishParentValueChanged(previousParentValue);

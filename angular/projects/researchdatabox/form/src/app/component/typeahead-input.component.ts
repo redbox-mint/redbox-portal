@@ -1,6 +1,6 @@
-import {AfterViewChecked, Component, DestroyRef, inject, Input, signal} from '@angular/core';
+import {Component, DoCheck, DestroyRef, inject, Input, signal} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl } from '@angular/forms';
+import { FormControl, FormResetEvent } from '@angular/forms';
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -95,7 +95,7 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
   ],
   standalone: false,
 })
-export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInputModelValueType> implements AfterViewChecked {
+export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInputModelValueType> implements DoCheck {
   protected override logName = TypeaheadInputComponentName;
 
   public tooltip = '';
@@ -133,8 +133,8 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private lastConfirmedDisplayValue = '';
   private modelSubscriptionInitialised = false;
   private modelDisabledSubscriptionInitialised = false;
-  private autoDisplaySyncInFlight: boolean = false;
-  private lastAutoDisplaySyncSignature = '';
+  private modelWriteInProgress = false;
+  private lastSyncedModelValue: TypeaheadInputModelValueType | undefined;
   private labelTemplate = '';
   private labelTemplatePath: (string | number)[] = [];
   private compiledItems?: DynamicScriptResponse;
@@ -143,9 +143,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private readonly typeaheadDataService = inject(TypeaheadDataService);
 
   public readonly displayControl = new FormControl<string>('');
-  // An explicit clear must also reach sibling autofill consumers for hydrated
-  // values, where no lookup selection has happened in this component instance.
-  public readonly selectedItem = signal<TypeaheadOption | null>(null, { equal: () => false });
+  // undefined means hydration, not an interaction. null is an explicit clear,
+  // including a clear before the producer's first render or after manual autofill.
+  public readonly selectedItem = signal<TypeaheadOption | null | undefined>(undefined, { equal: () => false });
   public readonly suggestions$: Observable<TypeaheadOption[]> = defer(() =>
     from(this.lookup(String(this.displayControl.value ?? '')))
   );
@@ -202,14 +202,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.bindModelValueSync();
     this.bindModelDisabledSync();
     this.displayControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
-      if (this.programmaticDisplayUpdate) {
+      if (this.programmaticDisplayUpdate || this.isDisabled || this.isReadonly || this.readOnlyAfterSelectLocked) {
         return;
       }
       const text = String(value ?? '');
       // Selection-only typing is provisional until a match is chosen or the
       // input is cleared. Preserve the confirmed item's sibling values when an
       // unmatched edit is discarded on blur.
-      if (!text.trim() || (this.allowFreeText && this.selectedItem() !== null)) {
+      if (!text.trim() || (this.allowFreeText && this.selectedItem() != null)) {
         this.selectedItem.set(null);
       }
       this.onInputTextChanged(text);
@@ -224,24 +224,21 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
 
-  public ngAfterViewChecked(): void {
-    if (!this.shouldAutoSyncDisplayFromModel()) {
-      return;
+  public ngDoCheck(): void {
+    // Silent record writes do not emit valueChanges. Reconcile before rendering,
+    // including non-empty displays left over from a previous selection.
+    if (this.model && !Object.is(this.model.getValue(), this.lastSyncedModelValue)) {
+      this.syncDisplayFromModel();
     }
-    const signature = this.getAutoDisplaySyncSignature();
-    if (!signature || signature === this.lastAutoDisplaySyncSignature || this.autoDisplaySyncInFlight) {
-      return;
+    if (this.model) {
+      this.syncDisplayControlDisabled();
     }
-    this.autoDisplaySyncInFlight = true;
-    const p = this.syncDisplayFromModel();
-    void p.then(() => {
-      this.lastAutoDisplaySyncSignature = signature;
-    }).finally(() => {
-      this.autoDisplaySyncInFlight = false;
-    });
   }
 
   public onSelect(event: TypeaheadMatch): void {
+    if (this.isDisabled || this.isReadonly) {
+      return;
+    }
     const selected = (event?.item ?? null) as TypeaheadOption | null;
     if (!selected || selected.disabled === true) {
       return;
@@ -262,6 +259,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   }
 
   public onBlur(): void {
+    if (this.isDisabled || this.isReadonly) {
+      return;
+    }
     // Lookup feedback belongs to the active interaction. Clear it as focus leaves,
     // while retaining configuration errors that the form author needs to see.
     this.lookupRequestId += 1;
@@ -452,6 +452,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
 
   private applyInitialDisplayFromModel(): void {
     const value = this.model?.getValue();
+    this.lastSyncedModelValue = value;
     if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
       this.setHistoricalLookupState(this.isStoredHistoricalVocabularyValue(value));
       this.setDisplayValue(this.getOptionObjectLabel(value));
@@ -471,8 +472,15 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     this.modelSubscriptionInitialised = true;
-    this.formControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      void this.syncDisplayFromModel();
+    this.formControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(value => {
+      if (!this.modelWriteInProgress && !Object.is(value, this.lastSyncedModelValue)) {
+        this.syncDisplayFromModel();
+      }
+    });
+    this.formControl.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(event => {
+      if (event instanceof FormResetEvent) {
+        this.syncDisplayFromModel();
+      }
     });
   }
 
@@ -508,32 +516,16 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     }
   }
 
-  private async syncDisplayFromModel(): Promise<void> {
+  private syncDisplayFromModel(): void {
+    // Invalidate pending autofill without publishing a clear for loaded data.
+    this.selectedItem.set(undefined);
+    this.lookupRequestId += 1;
     this.applyInitialDisplayFromModel();
     const value = this.model?.getValue();
     this.setHistoricalLookupState(this.isHistoricalOrUnknownModelValue(value));
-  }
-
-  private shouldAutoSyncDisplayFromModel(): boolean {
-    if (this.programmaticDisplayUpdate) {
-      return false;
-    }
-    if (String(this.displayControl.value ?? '').trim().length > 0) {
-      return false;
-    }
-    const value = this.model?.getValue();
-    if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
-      return this.getOptionObjectLabel(value).trim().length > 0;
-    }
-    return typeof value === 'string' && value.trim().length > 0;
-  }
-
-  private getAutoDisplaySyncSignature(): string {
-    const value = this.model?.getValue();
-    if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
-      return `option:${this.getOptionObjectValue(value)}:${this.getOptionObjectLabel(value)}`;
-    }
-    return typeof value === 'string' ? `value:${value}` : '';
+    this.readOnlyAfterSelectLocked = Boolean(
+      (this.componentDefinition?.config as TypeaheadInputFieldComponentConfig)?.readOnlyAfterSelect
+    ) && Boolean(value);
   }
 
   private setModelFromOption(option: TypeaheadOption): void {
@@ -569,8 +561,15 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private setModelValue(value: TypeaheadInputModelValueType): void {
     if (value === null || value === undefined || value === '') {
       this.setHistoricalLookupState(false);
+      this.lastConfirmedDisplayValue = '';
     }
-    this.model?.setValue(value);
+    this.modelWriteInProgress = true;
+    try {
+      this.model?.setValue(value);
+      this.lastSyncedModelValue = this.model?.getValue();
+    } finally {
+      this.modelWriteInProgress = false;
+    }
     this.formControl.markAsDirty();
     this.formControl.markAsTouched();
   }

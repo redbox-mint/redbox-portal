@@ -48,16 +48,22 @@ export class FormComponentItemSelectEventProducer extends FormComponentEventBase
 
     this.fieldId = fieldId;
 
-    const sub = toObservable(component.selectedItem, { injector: options.injector })
+    const selectedItemSignal = component.selectedItem;
+    const initialValue = selectedItemSignal();
+    const sub = toObservable(selectedItemSignal, { injector: options.injector })
       .pipe(
-        skipWhile((value, index) => value === null && index === 0),
+        skipWhile((value, index) => value === null && index === 0 && initialValue === null),
         // The signal bridge can emit during Angular's render effect. Sibling
         // autofill must finish after that render, rather than changing a row's
         // validation errors after its layout has already been checked.
         observeOn(asapScheduler),
       )
       .subscribe(selectedItem => {
-        this.publishItemSelected(selectedItem);
+        // Hydration invalidates queued interactions; only publish the current
+        // selection. Signals can coalesce several writes before this task runs.
+        if (selectedItem !== undefined && Object.is(selectedItemSignal(), selectedItem)) {
+          this.publishItemSelected(selectedItem);
+        }
       });
 
     this.subscriptions.set('field.item.selected', sub);
@@ -71,10 +77,12 @@ export class FormComponentItemSelectEventProducer extends FormComponentEventBase
       return;
     }
 
+    const fieldId = this.options?.definition?.lineagePaths?.angularComponentsJsonPointer;
+    if (!fieldId) return;
     const baseEvent = createFieldItemSelectedEvent({
-      fieldId: this.fieldId,
+      fieldId,
       selectedItem,
-      sourceId: this.fieldId,
+      sourceId: fieldId,
     });
 
     this.eventBus.publish(baseEvent);

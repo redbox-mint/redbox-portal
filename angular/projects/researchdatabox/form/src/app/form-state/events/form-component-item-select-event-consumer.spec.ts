@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
-import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { FormFieldModel, LoggerService } from '@researchdatabox/portal-ng-common';
 import { Subject } from 'rxjs';
 import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
 import { FormComponentItemSelectEventConsumer } from './form-component-item-select-event-consumer';
 import { FieldItemSelectedEvent, FormComponentEventType } from './form-component-event.types';
+import { buildLineagePaths } from '@researchdatabox/sails-ng-common';
+import { FormComponent } from '../../form.component';
+import { FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
 import { CustomSetValueControl } from '../custom-set-value.control';
 
 describe('FormComponentItemSelectEventConsumer', () => {
@@ -36,8 +39,10 @@ describe('FormComponentItemSelectEventConsumer', () => {
       rawPath: 'label',
       clearValue: ''
     }
-  ) {
-    const control = new FormControl('');
+  ): { control: FormControl<unknown>; options: FormComponentEventBindingOptions } {
+    const control = new FormControl<unknown>('');
+    const model = new FormFieldModel<unknown>({ class: 'SimpleInputModel', config: {} });
+    model.formControl = control;
     new FormGroup({
       funderName: control,
       funderSearch: new FormControl('')
@@ -49,12 +54,12 @@ describe('FormComponentItemSelectEventConsumer', () => {
       control,
       options: {
         definition: {
-          model: { formControl: control },
-          lineagePaths: {
-            angularComponentsJsonPointer: ownPointer
-          },
+          model,
+          lineagePaths: { ...buildLineagePaths(), angularComponentsJsonPointer: ownPointer },
           compConfigJson: {
+            name: 'funderName',
             component: {
+              class: 'SimpleInputComponent',
               config: {
                 ...config
               }
@@ -76,10 +81,10 @@ describe('FormComponentItemSelectEventConsumer', () => {
   }
 
   it('retains the wrapper form reference when bind omits it and refreshes status after clearing', async () => {
-    const form = jasmine.createSpyObj('FormComponent', ['broadcastFormStatus']);
+    const form = jasmine.createSpyObj<FormComponent>('FormComponent', ['broadcastFormStatus']);
     consumer.formComponent = form;
     const { control, options } = createBindOptions();
-    consumer.bind(options as any);
+    consumer.bind(options);
     emitEvent('/record/contributors/0/funderSearch', null);
     await Promise.resolve();
     expect(control.value).toBe('');
@@ -88,10 +93,10 @@ describe('FormComponentItemSelectEventConsumer', () => {
   });
 
   it('uses an explicitly supplied replacement form reference', async () => {
-    consumer.formComponent = jasmine.createSpyObj('OldForm', ['broadcastFormStatus']);
-    const form = jasmine.createSpyObj('NewForm', ['broadcastFormStatus']);
+    consumer.formComponent = jasmine.createSpyObj<FormComponent>('OldForm', ['broadcastFormStatus']);
+    const form = jasmine.createSpyObj<FormComponent>('NewForm', ['broadcastFormStatus']);
     const { options } = createBindOptions();
-    consumer.bind({ ...options, formComponent: form } as any);
+    consumer.bind({ ...options, formComponent: form });
     emitEvent('/record/contributors/0/funderSearch', { label: 'Selected' });
     await Promise.resolve();
     expect(consumer.formComponent).toBe(form);
@@ -101,7 +106,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
   it('should subscribe to FIELD_ITEM_SELECTED when onItemSelect is configured', () => {
     const { options } = createBindOptions();
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     expect(eventBus.select$).toHaveBeenCalledWith(FormComponentEventType.FIELD_ITEM_SELECTED);
   });
@@ -109,7 +114,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
   it('should skip binding when onItemSelect is not configured', () => {
     const { options } = createBindOptions('/record/contributors/0/funderName', null);
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     expect(eventBus.select$).not.toHaveBeenCalled();
   });
@@ -120,7 +125,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     emitEvent('/record/contributors/0/funderSearch', {
       raw: {
@@ -140,11 +145,9 @@ describe('FormComponentItemSelectEventConsumer', () => {
       rawPath: 'identifier',
       clearValue: ''
     });
-    const formComponent = {
-      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus')
-    };
+    const formComponent = jasmine.createSpyObj<FormComponent>('FormComponent', ['broadcastFormStatus']);
 
-    consumer.bind({ ...options, formComponent } as any);
+    consumer.bind({ ...options, formComponent });
 
     emitEvent('/record/contributors/0/funderSearch', {
       raw: {
@@ -162,7 +165,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     emitEvent('/record/contributors/0/funderSearch', {
       identifier: 'https://example.org/funder/direct'
@@ -177,7 +180,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: 'N/A'
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
     control.setValue('existing');
 
     emitEvent('/record/contributors/0/funderSearch', null);
@@ -193,7 +196,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       rawPath: 'identifier'
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
     control.setValue('existing');
 
     emitEvent('/record/contributors/0/funderSearch', { raw: {} });
@@ -202,16 +205,15 @@ describe('FormComponentItemSelectEventConsumer', () => {
   });
 
   it('should use a custom control value setter when one is registered', async () => {
-    const { options } = createBindOptions('/record/contributors/0/funderName', {
+    const { control: originalControl, options } = createBindOptions('/record/contributors/0/funderName', {
       rawPath: 'identifier',
       clearValue: ''
     });
-    const control = options.definition.model.formControl as FormControl & CustomSetValueControl<unknown>;
-    const customSetter = jasmine.createSpy('customSetter').and.resolveTo(undefined);
-    control.setCustomValue = customSetter;
+    const customSetter = jasmine.createSpy<CustomSetValueControl['setCustomValue']>('customSetter').and.resolveTo(undefined);
+    const control = Object.assign(originalControl, { setCustomValue: customSetter });
     const setValueSpy = spyOn(control, 'setValue').and.callThrough();
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     emitEvent('/record/contributors/0/funderSearch', {
       raw: {
@@ -230,7 +232,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     emitEvent('/record/contributors/0/funderSearch', {
       raw: {
@@ -259,7 +261,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     emitEvent('/record/contributors/0/funderName', {
       raw: { identifier: 'self-value' }
@@ -274,7 +276,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     emitEvent('/record/contributors/0/funderSearch', {
       raw: { identifier: 'other-value' }
@@ -290,7 +292,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
 
     emitEvent('/record/contributors/1/funderSearch', {
       raw: { identifier: 'other-row-value' }
@@ -305,7 +307,7 @@ describe('FormComponentItemSelectEventConsumer', () => {
       clearValue: ''
     });
 
-    consumer.bind(options as any);
+    consumer.bind(options);
     consumer.destroy();
 
     emitEvent('/record/contributors/0/funderSearch', {
@@ -314,4 +316,27 @@ describe('FormComponentItemSelectEventConsumer', () => {
 
     expect(control.value).toBe('');
   });
+
+  for (const rebind of [false, true]) {
+    it(`does not finish an asynchronous selection against a ${rebind ? 'replacement' : 'destroyed'} binding`, async () => {
+      const { control, options } = createBindOptions();
+      let finish!: () => void;
+      const pending = new Promise<void>(resolve => { finish = resolve; });
+      Object.assign(control, { setCustomValue: () => pending });
+      const form = jasmine.createSpyObj<FormComponent>('Form', ['broadcastFormStatus']);
+      consumer.bind({ ...options, formComponent: form });
+      emitEvent('/record/contributors/0/funderSearch', { label: 'Old selection' });
+      consumer.destroy();
+      if (rebind) {
+        const replacement = createBindOptions('/record/contributors/1/funderName');
+        consumer.bind({ ...replacement.options, formComponent: form });
+      }
+      finish();
+      await pending;
+      expect(control.pristine).toBeTrue();
+      expect(control.untouched).toBeTrue();
+      expect(eventBus.publish).not.toHaveBeenCalled();
+      expect(form.broadcastFormStatus).not.toHaveBeenCalled();
+    });
+  }
 });
