@@ -87,24 +87,81 @@ describe('NamedQueryService native Mongo date comparisons', function () {
     expect(await query('<')).to.deep.equal(['before', 'date-only']);
   });
 
+  it('compares scalar date equality as instants across ISO offsets and BSON dates', async function () {
+    expect(await query('')).to.deep.equal([...equalIds].sort());
+    expect(await query('', 'metaMetadata.lastSaveDate')).to.deep.equal([...equalIds].sort());
+    expect(await query('', 'lastSaveDate', 'date', 'invalid-bound')).to.deep.equal([]);
+  });
+
+  it('compares explicit equality and inequality as instants, excluding invalid stored dates', async function () {
+    expect(await query('$eq')).to.deep.equal([...equalIds].sort());
+    expect(await query('!=')).to.deep.equal(['after', 'before', 'date-only']);
+    expect(await query('$ne')).to.deep.equal(['after', 'before', 'date-only']);
+  });
+
+  it('retains ignored-filter semantics for a null scalar parameter', async function () {
+    const mongoQuery = { lastSaveDate: null };
+    const result = await service.performNamedQuery(
+      'metaMetadata.brandId', {}, 'record', mongoQuery,
+      new QueryConfig({ queryParams: { bound: { path: 'lastSaveDate', type: 'date', queryType: '', format: 'ISODate', whenUndefined: 'ignore' } } }).queryParams,
+      { bound: null }, brand, 0, 100,
+    );
+    expect(result.records.map(record => record.oid).sort()).to.deep.equal(fixtures.map(fixture => fixture.id).sort());
+    expect(result.summary.numFound).to.equal(fixtures.length);
+    expect(mongoQuery).not.to.have.property('lastSaveDate');
+  });
+
   it('converts nested date fields without changing stored values', async function () {
     expect(await query('>=', 'metaMetadata.lastSaveDate')).to.deep.equal([...equalIds, 'after'].sort());
     expect((await collection.findOne({ redboxOid: 'equal-local' }))?.lastSaveDate).to.equal(cutoff);
     expect((await collection.findOne({ redboxOid: 'equal-bson' }))?.lastSaveDate).to.be.instanceOf(Date);
   });
 
-  it('intersects upper and lower date bounds targeting the same field', async function () {
-    const result = await service.performNamedQuery(
-      'metaMetadata.brandId', {}, 'record', { lastSaveDate: null },
-      new QueryConfig({ queryParams: {
-        lower: { path: 'lastSaveDate', type: 'date', queryType: '>=', format: 'ISODate', whenUndefined: 'ignore', required: false, defaultValue: null, template: '' },
-        upper: { path: 'lastSaveDate', type: 'date', queryType: '<=', format: 'ISODate', whenUndefined: 'ignore', required: false, defaultValue: null, template: '' },
-      } }).queryParams,
-      { lower: cutoff, upper: '2016-10-25T02:30:51.151Z' }, brand, 0, 100,
-    );
-    expect(result.records.map(record => record.oid).sort()).to.deep.equal([...equalIds].sort());
-    expect(result.summary.numFound).to.equal(equalIds.length);
-  });
+  for (const reverse of [false, true]) {
+    for (const scenario of [
+      { name: 'only the lower bound', params: { lower: cutoff }, expected: [...equalIds, 'after'] },
+      { name: 'only the upper bound', params: { upper: cutoff }, expected: [...equalIds, 'before', 'date-only'] },
+      { name: 'both bounds', params: { lower: cutoff, upper: cutoff }, expected: equalIds },
+      { name: 'neither bound', params: {}, expected: fixtures.map(fixture => fixture.id) },
+    ]) {
+      it(`applies ${scenario.name} on one field with ${reverse ? 'upper' : 'lower'} declared first`, async function () {
+        const definitions = [
+          ['lower', { path: 'lastSaveDate', type: 'date', queryType: '>=', format: 'ISODate', whenUndefined: 'ignore' }],
+          ['upper', { path: 'lastSaveDate', type: 'date', queryType: '<=', format: 'ISODate', whenUndefined: 'ignore' }],
+        ];
+        if (reverse) definitions.reverse();
+        const mongoQuery = { lastSaveDate: null };
+        const result = await service.performNamedQuery(
+          'metaMetadata.brandId', {}, 'record', mongoQuery,
+          new QueryConfig({ queryParams: Object.fromEntries(definitions) }).queryParams,
+          scenario.params, brand, 0, 100,
+        );
+        expect(result.records.map(record => record.oid).sort()).to.deep.equal([...scenario.expected].sort());
+        expect(result.summary.numFound).to.equal(scenario.expected.length);
+        if (Object.keys(scenario.params).length === 0) {
+          expect(mongoQuery).not.to.have.property('lastSaveDate');
+        }
+      });
+    }
+
+    it(`preserves a static comparison alongside an omitted date bound with ${reverse ? 'upper' : 'lower'} declared first`, async function () {
+      const definitions = [
+        ['lower', { path: 'lastSaveDate', type: 'date', queryType: '>=', format: 'ISODate', whenUndefined: 'ignore' }],
+        ['upper', { path: 'lastSaveDate', type: 'date', queryType: '<=', format: 'ISODate', whenUndefined: 'ignore' }],
+      ];
+      if (reverse) definitions.reverse();
+      const queryParams = new QueryConfig({ queryParams: Object.fromEntries(definitions) }).queryParams;
+      for (const params of [{ lower: cutoff }, {}]) {
+        const result = await service.performNamedQuery(
+          'metaMetadata.brandId', {}, 'record', { lastSaveDate: { '<': '2016-10-25T02:30:51.152Z' } },
+          queryParams, params, brand, 0, 100,
+        );
+        const expected = 'lower' in params ? equalIds : [...equalIds, 'before', 'date-only'];
+        expect(result.records.map(record => record.oid).sort()).to.deep.equal([...expected].sort());
+        expect(result.summary.numFound).to.equal(expected.length);
+      }
+    });
+  }
 
   it('retains lexical comparison when a parameter is configured as a string', async function () {
     expect(await query('>=', 'lastSaveDate', 'string')).to.deep.equal(['equal-local', 'equal-other-offset', 'invalid']);

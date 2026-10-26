@@ -116,7 +116,13 @@ describe('ReportComponent', () => {
     // test download url
     const downloadUrl = app.getDownloadCSVUrl();
     console.log(`Download url: ${downloadUrl}`);
-    const expectedUrl = `base/default/rdmp/admin/downloadReportCSV?name=${mockReportData.reportConfig.name}&dateObjectModifiedRange_fromDate=${app.getLuxonDateFromJs(app.filterParams['dateObjectModifiedRange_fromDate'], app.dateParamTz, 'floor')}&dateObjectModifiedRange_toDate=${app.getLuxonDateFromJs(app.filterParams['dateObjectModifiedRange_toDate'], app.dateParamTz, 'ceil')}&title=test`;
+    const expectedQuery = new URLSearchParams({
+      name: mockReportData.reportConfig.name,
+      dateObjectModifiedRange_fromDate: app.getLuxonDateFromJs(app.filterParams['dateObjectModifiedRange_fromDate'], app.dateParamTz, 'floor').toISO()!,
+      dateObjectModifiedRange_toDate: app.getLuxonDateFromJs(app.filterParams['dateObjectModifiedRange_toDate'], app.dateParamTz, 'ceil').toISO()!,
+      title: 'test',
+    });
+    const expectedUrl = `base/default/rdmp/admin/downloadReportCSV?${expectedQuery}`;
     console.log(`Expected Download url: ${expectedUrl}`);
     expect(downloadUrl).toEqual(expectedUrl);
   });
@@ -129,6 +135,28 @@ describe('ReportComponent', () => {
     await fixture.whenStable();
     return fixture;
   }
+
+  it('round-trips CSV filters with URL delimiters, Unicode and an unconfigured positive-offset date zone', async () => {
+    const fixture = await readyReport();
+    const app = fixture.componentInstance;
+    app.dateParamTz = 'Australia/Brisbane';
+    app.filterParams = {
+      dateObjectModifiedRange_fromDate: new Date(2028, 5, 20),
+      dateObjectModifiedRange_toDate: new Date(2028, 5, 21),
+      title: 'R&D + #研究 "quoted"',
+    };
+    const request = spyOn(reportService, 'getReportResult').and.callThrough();
+    await app.filter();
+    const params = app.getParams();
+    expect(request.calls.mostRecent().args[2]).toEqual(params);
+    expect(params.dateObjectModifiedRange_fromDate).toMatch(/\+10:00$/);
+    const csv = new URL(app.getDownloadCSVUrl()!, 'https://example.invalid');
+    expect(csv.pathname).toBe('/base/default/rdmp/admin/downloadReportCSV');
+    expect(csv.hash).toBe('');
+    const decoded: Record<string, string> = {};
+    csv.searchParams.forEach((value, key) => { decoded[key] = value; });
+    expect(decoded).toEqual({ name: app.reportName, ...params });
+  });
 
   for (const day of [
     { month: 0, day: 1, from: '2027-12-31T13:00:00.000Z', to: '2028-01-01T12:59:59.999Z', hours: 24 },

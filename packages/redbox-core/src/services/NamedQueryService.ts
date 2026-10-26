@@ -283,6 +283,20 @@ export namespace Services {
       }
     }
 
+    private unsetIgnoredQueryParameter(mongoQuery: Record<string, unknown>, queryParam: QueryParameterDefinition): void {
+      const existing = this.getMongoQueryValue(mongoQuery, queryParam.path);
+      if (queryParam.type === DataType.Date && queryParam.queryType && _.isPlainObject(existing)) {
+        // Date bounds can share a path. Remove only this parameter's comparison,
+        // retaining supplied sibling bounds and unrelated static operators.
+        const remaining = _.omit(existing as Record<string, unknown>, queryParam.queryType);
+        if (!_.isEmpty(remaining)) {
+          this.setMongoQueryValue(mongoQuery, queryParam.path, remaining);
+          return;
+        }
+      }
+      this.unsetMongoQueryValue(mongoQuery, queryParam.path);
+    }
+
     private isQueryOperatorObject(value: Record<string, unknown>): boolean {
       return Object.keys(value).some((key) => key.startsWith('$') || [
         'contains',
@@ -333,7 +347,12 @@ export namespace Services {
         nin: '$nin',
       };
 
-      for (const [key, value] of Object.entries(criteria)) {
+      for (const [key, criterion] of Object.entries(criteria)) {
+        // A date parameter without queryType is an equality comparison. Leave
+        // null/undefined sentinels unchanged so omitted filters retain their meaning.
+        const value = datePaths.has(key) && criterion != null && !_.isPlainObject(criterion)
+          ? { $eq: criterion }
+          : criterion;
         if (_.isPlainObject(value)) {
           const mappedValue: Record<string, unknown> = {};
           for (const [operator, operatorValue] of Object.entries(value as Record<string, unknown>)) {
@@ -748,7 +767,7 @@ export namespace Services {
 
         if (_.isUndefined(value)) {
           if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.ignore) {
-            this.unsetMongoQueryValue(mongoQuery, queryParam.path);
+            this.unsetIgnoredQueryParameter(mongoQuery, queryParam);
             continue;
           }
 
@@ -834,7 +853,7 @@ export namespace Services {
         }
 
         if (value == undefined && queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.ignore) {
-          this.unsetMongoQueryValue(mongoQuery, queryParam.path);
+          this.unsetIgnoredQueryParameter(mongoQuery, queryParam);
         } else {
           const existingValue = this.getMongoQueryValue(mongoQuery, queryParam.path)
           if (_.isPlainObject(existingValue) && _.isPlainObject(value)) {

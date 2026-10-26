@@ -125,11 +125,11 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     if (params === null) {
       return null;
     }
-    let url = `${this.brandingAndPortalUrl}/admin/downloadReportCSV?name=${this.reportName}`;
-    for(var key in params) {
-      url=url+'&'+key+"="+params[key];
+    const query = new URLSearchParams({ name: this.reportName });
+    for (const key in params) {
+      query.set(key, params[key]);
     }
-    return url;
+    return `${this.brandingAndPortalUrl}/admin/downloadReportCSV?${query}`;
   }
 
   public getLuxonDateFromJs(srcDate: Date, tz: string, mode: string) {
