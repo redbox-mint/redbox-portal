@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "scope": "Deterministic synthetic metadata, in-memory storage counter, uncompressed UTF-8 and gzip JSON bodies; excludes headers, TLS, database latency and schema/configuration reads.",
+  "fixtureNotes": "The checked-in dev-hook publication forms only declare title. Rich fixtures reuse the existing record-contract fixture plus two registered synthetic hook contributors and mapping edge cases. Each record includes an unselected 8192-byte repeated x field; gzip exposes that favorable raw-size bias.",
+  "graphqlVersion": "16.14.2",
+  "yogaVersion": "5.24.2",
+  "schemaFingerprint": "40196bc5bf48",
+  "measured": [
+    {
+      "form": "dataPublication-1.0-draft",
+      "workflowStep": "draft",
+      "fixture": "checked-in-dev-hook-stub",
+      "typeName": "M_dataPublication_draft_fe0d67f3a72c",
+      "compilerCompleteness": "complete",
+      "compilerDiagnosticCodes": [],
+      "treePaths": 2,
+      "jsonSchemaPaths": 2,
+      "typedScalarPaths": 1,
+      "opaquePaths": [],
+      "coverageEqual": true,
+      "bytes": {
+        "fullRest": 8284,
+        "projectedRest": 67,
+        "graphql": 82
+      },
+      "gzipBytes": {
+        "fullRest": 124,
+        "projectedRest": 82,
+        "graphql": 90
+      },
+      "recordStorageReads": {
+        "fullRest": 1,
+        "projectedRest": 1,
+        "graphql": 1
+      },
+      "requestSelectionBytes": {
+        "restFields": 6,
+        "graphqlQuery": 129
+      }
+    },
+    {
+      "form": "investigation-publication-1.0-draft",
+      "workflowStep": "draft",
+      "fixture": "synthetic-rich-publication",
+      "typeName": "M_dataPublication_draft_90497600e8a3",
+      "compilerCompleteness": "partial",
+      "compilerDiagnosticCodes": [
+        "record-contract.unrepresentable-condition"
+      ],
+      "treePaths": 68,
+      "jsonSchemaPaths": 68,
+      "typedScalarPaths": 49,
+      "opaquePaths": [
+        {
+          "pointer": "/access_questions/questiontree-outcome-info",
+          "kind": "json",
+          "reason": "unconstrained"
+        },
+        {
+          "pointer": "/geographic_coverage/features/*/properties",
+          "kind": "json",
+          "reason": "empty-object"
+        }
+      ],
+      "coverageEqual": true,
+      "bytes": {
+        "fullRest": 11080,
+        "projectedRest": 262,
+        "graphql": 277
+      },
+      "gzipBytes": {
+        "fullRest": 599,
+        "projectedRest": 142,
+        "graphql": 147
+      },
+      "recordStorageReads": {
+        "fullRest": 1,
+        "projectedRest": 1,
+        "graphql": 1
+      },
+      "requestSelectionBytes": {
+        "restFields": 71,
+        "graphqlQuery": 203
+      }
+    },
+    {
+      "form": "dataPublication-1.0-queued",
+      "workflowStep": "queued",
+      "fixture": "checked-in-dev-hook-stub",
+      "typeName": "M_dataPublication_queued_491084ffbc12",
+      "compilerCompleteness": "complete",
+      "compilerDiagnosticCodes": [],
+      "treePaths": 2,
+      "jsonSchemaPaths": 2,
+      "typedScalarPaths": 1,
+      "opaquePaths": [],
+      "coverageEqual": true,
+      "bytes": {
+        "fullRest": 8285,
+        "projectedRest": 68,
+        "graphql": 83
+      },
+      "gzipBytes": {
+        "fullRest": 124,
+        "projectedRest": 83,
+        "graphql": 91
+      },
+      "recordStorageReads": {
+        "fullRest": 1,
+        "projectedRest": 1,
+        "graphql": 1
+      },
+      "requestSelectionBytes": {
+        "restFields": 6,
+        "graphqlQuery": 130
+      }
+    },
+    {
+      "form": "investigation-publication-1.0-queued",
+      "workflowStep": "queued",
+      "fixture": "synthetic-rich-publication",
+      "typeName": "M_dataPublication_queued_6d74bb8488c6",
+      "compilerCompleteness": "partial",
+      "compilerDiagnosticCodes": [
+        "record-contract.unrepresentable-condition"
+      ],
+      "treePaths": 69,
+      "jsonSchemaPaths": 69,
+      "typedScalarPaths": 50,
+      "opaquePaths": [
+        {
+          "pointer": "/access_questions/questiontree-outcome-info",
+          "kind": "json",
+          "reason": "unconstrained"
+        },
+        {
+          "pointer": "/geographic_coverage/features/*/properties",
+          "kind": "json",
+          "reason": "empty-object"
+        }
+      ],
+      "coverageEqual": true,
+      "bytes": {
+        "fullRest": 11120,
+        "projectedRest": 263,
+        "graphql": 278
+      },
+      "gzipBytes": {
+        "fullRest": 604,
+        "projectedRest": 143,
+        "graphql": 148
+      },
+      "recordStorageReads": {
+        "fullRest": 1,
+        "projectedRest": 1,
+        "graphql": 1
+      },
+      "requestSelectionBytes": {
+        "restFields": 71,
+        "graphqlQuery": 204
+      }
+    },
+    {
+      "form": "dataPublication-1.0-published",
+      "workflowStep": "published",
+      "fixture": "checked-in-dev-hook-stub",
+      "typeName": "M_dataPublication_published_6bf05cdb8de3",
+      "compilerCompleteness": "complete",
+      "compilerDiagnosticCodes": [],
+      "treePaths": 2,
+      "jsonSchemaPaths": 2,
+      "typedScalarPaths": 1,
+      "opaquePaths": [],
+      "coverageEqual": true,
+      "bytes": {
+        "fullRest": 8288,
+        "projectedRest": 71,
+        "graphql": 86
+      },
+      "gzipBytes": {
+        "fullRest": 127,
+        "projectedRest": 86,
+        "graphql": 93
+      },
+      "recordStorageReads": {
+        "fullRest": 1,
+        "projectedRest": 1,
+        "graphql": 1
+      },
+      "requestSelectionBytes": {
+        "restFields": 6,
+        "graphqlQuery": 133
+      }
+    },
+    {
+      "form": "investigation-publication-1.0-published",
+      "workflowStep": "published",
+      "fixture": "synthetic-rich-publication",
+      "typeName": "M_dataPublication_published_893ccb0d7067",
+      "compilerCompleteness": "partial",
+      "compilerDiagnosticCodes": [
+        "record-contract.unrepresentable-condition"
+      ],
+      "treePaths": 69,
+      "jsonSchemaPaths": 69,
+      "typedScalarPaths": 50,
+      "opaquePaths": [
+        {
+          "pointer": "/access_questions/questiontree-outcome-info",
+          "kind": "json",
+          "reason": "unconstrained"
+        },
+        {
+          "pointer": "/geographic_coverage/features/*/properties",
+          "kind": "json",
+          "reason": "empty-object"
+        }
+      ],
+      "coverageEqual": true,
+      "bytes": {
+        "fullRest": 11116,
+        "projectedRest": 266,
+        "graphql": 281
+      },
+      "gzipBytes": {
+        "fullRest": 604,
+        "projectedRest": 145,
+        "graphql": 150
+      },
+      "recordStorageReads": {
+        "fullRest": 1,
+        "projectedRest": 1,
+        "graphql": 1
+      },
+      "requestSelectionBytes": {
+        "restFields": 71,
+        "graphqlQuery": 207
+      }
+    }
+  ]
+}
