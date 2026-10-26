@@ -6,7 +6,7 @@ import {ButtonBaseComponent} from "./button-base.component";
 @Component({
   selector: 'redbox-form-delete-button',
   template: `
-    @if (isVisible) {
+    @if (isVisible && getFormComponent.editMode()) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
       <div class="rb-form-delete-button">
         <button
@@ -30,7 +30,7 @@ export class DeleteButtonComponent extends ButtonBaseComponent {
 
   protected readonly disabled = computed(() => {
     const hasOid = !!this.getFormComponent.oid()?.trim();
-    return this.isDisabled || this.formStateFacade.isDeleting() || this.formStateFacade.isSaving() || !hasOid;
+    return !this.getFormComponent.editMode() || this.isDisabled || this.formStateFacade.isDeleting() || this.formStateFacade.isSaving() || !hasOid;
   });
 
   get displayLabel(): string {

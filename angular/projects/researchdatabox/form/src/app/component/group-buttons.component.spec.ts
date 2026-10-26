@@ -63,7 +63,7 @@ describe('GroupFieldComponent Buttons Rendering', () => {
         };
 
         // act
-        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
 
         // assert
         const compiled = fixture.nativeElement as HTMLElement;

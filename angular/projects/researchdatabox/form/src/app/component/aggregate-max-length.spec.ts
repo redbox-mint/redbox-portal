@@ -70,7 +70,7 @@ describe('Aggregate maximum-length form validation', () => {
         { name: 'validation', component: { class: 'ValidationSummaryComponent' } },
       ],
     };
-    const { fixture, formComponent } = await createFormAndWaitForReady(config);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode: true } as any);
     const element: HTMLElement = fixture.nativeElement;
     const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
     const control = repeatable.model!.formControl!;

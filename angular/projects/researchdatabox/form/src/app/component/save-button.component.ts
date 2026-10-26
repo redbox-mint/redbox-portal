@@ -7,7 +7,7 @@ import {ButtonBaseComponent} from "./button-base.component";
 @Component({
   selector: 'redbox-form-save-button',
   template: `
-    @if (isVisible) {
+    @if (isVisible && getFormComponent.editMode()) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
       <div class="rb-form-save-button">
         <button
@@ -31,6 +31,7 @@ export class SaveButtonComponent extends ButtonBaseComponent {
   private readonly validationSignal = this.eventBus.selectSignal(FormComponentEventType.FORM_VALIDATION_BROADCAST);
 
   readonly disabled = computed(() => {
+    if (!this.getFormComponent.editMode()) return true;
     const dataStatusEvent = this.validationSignal();
     const isSaving = this.formStateFacade.isSaving();
     const isValidationPending = this.formStateFacade.isValidationPending();

@@ -63,7 +63,7 @@ describe('Form Save Flow Integration', () => {
   });
 
   it('clicking Save triggers requested -> submitForm -> execute -> FormComponent.saveForm', async () => {
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
 
     // Arrange: observe events and actions across the whole pipeline
     const eventBus = TestBed.inject(FormComponentEventBus);
