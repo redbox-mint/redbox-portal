@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import axios from 'axios';
-import * as lodash from 'lodash';
 import { createServer, type Server, type IncomingHttpHeaders } from 'node:http';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/RvaImportService';
@@ -8,21 +7,13 @@ import { Services } from '../../src/services/RvaImportService';
 describe('RvaImportService generated transport', () => {
   let server: Server;
   let service: Services.RvaImport;
-  let sailsDescriptor: PropertyDescriptor | undefined;
-  let lodashDescriptor: PropertyDescriptor | undefined;
   let requests: { method: string | undefined; url: string; headers: IncomingHttpHeaders; body: string }[];
   let respond: (url: string) => { status?: number; data: unknown } | null;
   let generatedRequests: sinon.SinonSpy;
-  let vocabularyDescriptor: PropertyDescriptor | undefined;
   let create: sinon.SinonStub;
 
   beforeEach(async () => {
-    sailsDescriptor = Object.getOwnPropertyDescriptor(global, 'sails');
-    lodashDescriptor = Object.getOwnPropertyDescriptor(global, '_');
-    Object.defineProperty(global, '_', { configurable: true, value: lodash });
-    vocabularyDescriptor = Object.getOwnPropertyDescriptor(global, 'VocabularyService');
     create = sinon.stub().resolves({ id: 'local-vocab' });
-    Object.defineProperty(global, 'VocabularyService', { configurable: true, value: { create } });
     requests = [];
     respond = () => ({ data: { response: { docs: [{ id: '1', title: 'Local vocabulary' }] } } });
     server = createServer((req, res) => {
@@ -41,24 +32,18 @@ describe('RvaImportService generated transport', () => {
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     const address = server.address();
     if (!address || typeof address === 'string') throw new Error('Expected a TCP listener');
-    // Keep the suite's existing Sails fixture; isolate just the service configuration.
-    Object.defineProperty(global, 'sails', {
-      configurable: true,
-      value: { config: { vocab: { rva: { baseUrl: `http://127.0.0.1:${address.port}/registry/` } } } },
+    service = new Services.RvaImport({
+      repository: { getVocabulary: async () => null, reviseVocabulary: async () => undefined } as any,
+      vocabulary: { create, upsertEntries: sinon.stub().resolves() },
+      log: { error: sinon.stub(), warn: sinon.stub(), info: sinon.stub(), debug: sinon.stub(), verbose: sinon.stub() } as any,
+      baseUrl: () => `http://127.0.0.1:${address.port}/registry/`, defaultBrand: () => 'default'
     });
-    service = new Services.RvaImport();
     // Observe the generated client's actual request config, independently of the legacy client.
     generatedRequests = sinon.spy(Reflect.get(Reflect.get(service, 'servicesApi'), 'axios'), 'request');
   });
 
   afterEach(async () => {
     sinon.restore();
-    if (sailsDescriptor) Object.defineProperty(global, 'sails', sailsDescriptor);
-    else Reflect.deleteProperty(global, 'sails');
-    if (lodashDescriptor) Object.defineProperty(global, '_', lodashDescriptor);
-    else Reflect.deleteProperty(global, '_');
-    if (vocabularyDescriptor) Object.defineProperty(global, 'VocabularyService', vocabularyDescriptor);
-    else Reflect.deleteProperty(global, 'VocabularyService');
     server.closeAllConnections();
     await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
   });

@@ -1,3 +1,5 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
+import { csrf } from '../../helpers/csrf';
 import supertest from "supertest";
 import sinon from "sinon";
 
@@ -13,11 +15,13 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   });
 
   before(async function () {
-    const app = (sails as any).hooks.http.app;
+    const app = fixture.server;
     agent = supertest.agent(app);
 
+    const loginCsrf = await csrf(agent);
     await agent
       .post("/user/login_local")
+      .set('X-CSRF-Token', loginCsrf)
       .set("X-Source", "jsclient")
       .send({
         username: "admin",
@@ -29,7 +33,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   });
 
   it("returns service-backed typeahead results", async function () {
-    lookupStub = sinon.stub(sails.services.doiservice, "lookupDataciteDois").resolves({
+    lookupStub = sinon.stub(fixture.services.DOIService, "lookupDataciteDois").resolves({
       data: [
         {
           label: "DataCite Metadata Schema Documentation (10.5438/0014) - DataCite, 2017",
@@ -53,6 +57,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
 
     const response = await agent
       .post("/default/rdmp/service/vocab/dataciteDois")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
@@ -84,6 +89,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   it("returns 400 for invalid paging params", async function () {
     const response = await agent
       .post("/default/rdmp/service/vocab/dataciteDois")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
@@ -99,6 +105,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   it("returns 404 for missing service config", async function () {
     const response = await agent
       .post("/default/rdmp/service/vocab/notConfigured")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({
@@ -112,7 +119,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
   });
 
   it("returns 500 for invalid service responses", async function () {
-    lookupStub = sinon.stub(sails.services.doiservice, "lookupDataciteDois").resolves({
+    lookupStub = sinon.stub(fixture.services.DOIService, "lookupDataciteDois").resolves({
       data: [
         {
           label: "",
@@ -123,6 +130,7 @@ describe("Form vocabulary service lookup AJAX routes", function () {
 
     const response = await agent
       .post("/default/rdmp/service/vocab/dataciteDois")
+      .set('X-CSRF-Token', await csrf(agent))
       .set("X-Source", "jsclient")
       .set("X-ReDBox-Api-Version", "2.0")
       .send({

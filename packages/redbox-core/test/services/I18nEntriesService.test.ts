@@ -1,3 +1,5 @@
+import { configurationFixtures } from '../helpers/serviceRepositories';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { createSinonStubLogger } from '../logger.test';
 
@@ -6,17 +8,17 @@ import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture, createQueryObject } from './testHelper';
 
 describe('I18nEntriesService', function () {
-  let mockSails: any;
+  let fixture: any;
   let I18nEntriesService: any;
   let mockI18nTranslation: any;
   let mockI18nBundle: any;
   let testLocalesDir: string;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/tmp/test-app',
         i18n: {
@@ -49,34 +51,34 @@ describe('I18nEntriesService', function () {
       updateOne: sinon.stub().returns({ set: sinon.stub().resolves({}) }),
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.I18nTranslation = mockI18nTranslation;
     repositoryFixtures.I18nBundle = mockI18nBundle;
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1' }),
       getBrandById: sinon.stub().returns({ id: 'brand-1' }),
     };
-    (global as any).TranslationService = {
+    collaborators.TranslationService = {
       reloadResources: sinon.stub(),
     };
-    (global as any).DomSanitizerService = {
+    collaborators.DomSanitizerService = {
       sanitizeWithProfile: sinon.stub().callsFake((value: string) => value),
     };
 
-    const { Services } = require('../../src/services/I18nEntriesService');
-    I18nEntriesService = new Services.I18nEntries();
-    testLocalesDir = path.join(mockSails.config.appPath, 'language-defaults');
-    fs.rmSync(mockSails.config.appPath, { recursive: true, force: true });
+    const { I18nEntries } = require('../../src/services/I18nEntriesService');
+    I18nEntriesService = new I18nEntries({ repository: configurationFixtures(), log: fixture.log, get allowedClasses() { return fixture.config.i18n.editor?.allowedClasses; }, localesDirectory: path.join(fixture.config.appPath, 'language-defaults'), get namespaces() { return fixture.config.i18n.next.init.ns; }, get supportedLanguages() { return fixture.config.i18n.next.init.supportedLngs; }, getBrand: name => collaborators.BrandingService.getBrand(name), getBrandById: id => collaborators.BrandingService.getBrandById(id), reloadResources: id => collaborators.TranslationService.reloadResources(id) });
+    testLocalesDir = path.join(fixture.config.appPath, 'language-defaults');
+    fs.rmSync(fixture.config.appPath, { recursive: true, force: true });
   });
 
   afterEach(function () {
-    fs.rmSync(mockSails.config.appPath, { recursive: true, force: true });
-    cleanupServiceTestGlobals();
+    fs.rmSync(fixture.config.appPath, { recursive: true, force: true });
+    restoreRepositoryFixtures();
     delete repositoryFixtures.I18nTranslation;
     delete repositoryFixtures.I18nBundle;
-    delete (global as any).BrandingService;
-    delete (global as any).TranslationService;
-    delete (global as any).DomSanitizerService;
+    delete collaborators.BrandingService;
+    delete collaborators.TranslationService;
+    delete collaborators.DomSanitizerService;
     sinon.restore();
   });
 
@@ -245,7 +247,7 @@ describe('I18nEntriesService', function () {
     });
 
     it('should enforce the configured HTML class policy on entry and bundle writes', async function () {
-      mockSails.config.i18n.editor = { allowedClasses: { th: ['classification-public'] } };
+      fixture.config.i18n.editor = { allowedClasses: { th: ['classification-public'] } };
       const html =
         '<table class="table arbitrary" style="color:red"><tbody><tr>' +
         '<th class="classification-public arbitrary" onclick="alert(1)">Updated wording</th></tr></tbody></table>';
@@ -446,7 +448,7 @@ describe('I18nEntriesService', function () {
     });
 
     it('should sanitize nested bundle values before persisting them', async function () {
-      const sanitizer = (global as any).DomSanitizerService.sanitizeWithProfile;
+      const sanitizer = collaborators.DomSanitizerService.sanitizeWithProfile;
       const unsafeHeading = '<strong>Welcome</strong><script>unsafe()</script>';
       sanitizer.callsFake((value: string) => (value === unsafeHeading ? '<strong>Welcome</strong>' : value));
       mockI18nBundle.findOne.resolves(null);
@@ -572,7 +574,7 @@ describe('I18nEntriesService', function () {
       mockI18nTranslation.find.onFirstCall().resolves([]).onSecondCall().resolves([
         { key: 'html', value: '<p>Safe</p>', contentFormat: 'html' },
       ]);
-      const failure = new Error('partial insert');
+      const failure = new Error('private-entry-provider-secret');
       mockI18nTranslation.createEach.onFirstCall().rejects(failure).onSecondCall().resolves([]);
       let rejected: unknown;
       try {
@@ -581,6 +583,7 @@ describe('I18nEntriesService', function () {
         rejected = error;
       }
       expect(rejected).to.equal(failure);
+      expect(['warn', 'debug'].flatMap(level => fixture.log[level].getCalls()).some(call => call.args.some(arg => String(arg).includes('private-entry-provider-secret')))).to.equal(false);
       expect(stored.data).to.deep.equal({ html: '<p>Safe</p>', nullish: 'nullish' });
 
       await I18nEntriesService.syncEntriesFromBundle(stored);
@@ -672,7 +675,7 @@ describe('I18nEntriesService', function () {
       expect(mockI18nTranslation.findOne.called).to.be.false;
       expect(mockI18nTranslation.updateOne.called).to.be.false;
       expect(prune.calledOnceWithExactly(sinon.match.any, 'en', 'ns', 'removed')).to.be.true;
-      expect((global as any).TranslationService.reloadResources.calledOnceWithExactly('brand-1')).to.be.true;
+      expect(collaborators.TranslationService.reloadResources.calledOnceWithExactly('brand-1')).to.be.true;
     });
 
     it('should leave existing entries untouched when there are no missing keys', async function () {
@@ -757,6 +760,25 @@ describe('I18nEntriesService', function () {
       expect(mockI18nTranslation.createEach.firstCall.args[0][0].value).to.equal('<p>value</p>');
       expect(mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data.key).to.equal('<p>value</p>');
     });
+  });
+
+  it('bounds invalid metadata file diagnostics without echoing file contents', async function () {
+    fs.mkdirSync(testLocalesDir, { recursive: true });
+    try {
+      for (const [filename, operation] of [
+        ['meta.json', 'loadCentralizedMeta'],
+        ['language-names.json', 'loadLanguageNames'],
+      ]) {
+        fs.writeFileSync(path.join(testLocalesDir, filename), 'secret-entry');
+        expect(await I18nEntriesService[operation]()).to.deep.equal({});
+      }
+      const calls = (fixture.log.warn as sinon.SinonStub).getCalls();
+      expect(calls.length).to.equal(2);
+      expect(calls.some((call) => call.args.some((arg) => String(arg).includes('secret-entry')))).to.equal(false);
+    } finally {
+      for (const filename of ['meta.json', 'language-names.json'])
+        fs.rmSync(path.join(testLocalesDir, filename), { force: true });
+    }
   });
 
   describe('bootstrap additive defaults', function () {

@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRows, fixtureRemove, fixtureRemoveOne, fixtureCount, fixtureRow, fixtureCreate } from '../../helpers/persistenceFixtures';
 import type {VocabularyAttributes} from "../../../packages/redbox-core/src/persistence/rows";
 
@@ -6,7 +7,7 @@ describe('VocabularyService integration', function () {
   it('imports identified entries with normalized values and a complete parent tree', async function () {
     let vocabularyId: string | null = null;
     try {
-      const vocabulary = await VocabularyService.create({
+      const vocabulary = await fixture.services.VocabularyService.create({
         name: `Batch tree ${Date.now()}`,
         branding: 'default',
         type: 'tree',
@@ -52,7 +53,7 @@ describe('VocabularyService integration', function () {
       expect(child?.parent).to.equal(root?.id);
       expect(sibling?.parent).to.equal(root?.id);
       expect(leaf?.parent).to.equal(child?.id);
-      const tree = await VocabularyService.getTree(vocabulary.id);
+      const tree = await fixture.services.VocabularyService.getTree(vocabulary.id);
       expect(tree).to.have.length(1);
       expect(tree[0].children).to.have.length(2);
     } finally {
@@ -91,7 +92,7 @@ describe('VocabularyService integration', function () {
       const vocabularyName = `Invalid ${name} ${Date.now()}`;
       let rejected: unknown;
       try {
-        await VocabularyService.create({
+        await fixture.services.VocabularyService.create({
           name: vocabularyName,
           branding: 'default',
           type: 'tree',
@@ -149,7 +150,7 @@ describe('VocabularyService integration', function () {
       expect(invalidEntryLabelErr?.code).to.equal('E_INVALID_NEW_RECORD');
       expect(invalidEntryLabelErr?.message).to.equal('Invalid persistence field: label.');
 
-      const tree = await VocabularyService.getTree(vocabulary.id);
+      const tree = await fixture.services.VocabularyService.getTree(vocabulary.id);
       expect(tree).to.have.length(1);
       expect(tree[0].children).to.have.length(1);
     } finally {
@@ -189,7 +190,7 @@ describe('VocabularyService integration', function () {
         order: 1
       });
 
-      const data = await VocabularyService.expandPaths('default', vocabulary.id, ['0801', '0802', '0801', '9999']);
+      const data = await fixture.services.VocabularyService.expandPaths('default', vocabulary.id, ['0801', '0802', '0801', '9999']);
       expect(data).to.not.equal(null);
       expect(data?.meta.vocabularyId).to.equal(vocabulary.id);
       expect(data?.meta.notations).to.deep.equal(['0801', '0802', '9999']);

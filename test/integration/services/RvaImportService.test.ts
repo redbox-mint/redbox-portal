@@ -1,9 +1,9 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureCount } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import { Services as RvaImportServiceModule } from '../../../packages/redbox-core/src/services/RvaImportService.ts';
 import axios from 'axios';
 
-declare const RvaImportService: RvaImportServiceModule.RvaImport;
 
 describe('RvaImportService integration', function () {
   it('imports production RVA vocabulary 316', async function () {
@@ -13,9 +13,9 @@ describe('RvaImportService integration', function () {
 
     this.timeout(60000);
 
-    let imported!: Awaited<ReturnType<typeof RvaImportService.importRvaVocabulary>>;
+    let imported!: Awaited<ReturnType<typeof fixture.services.RvaImportService.importRvaVocabulary>>;
     try {
-      imported = await RvaImportService.importRvaVocabulary('316');
+      imported = await fixture.services.RvaImportService.importRvaVocabulary('316');
     } catch (error) {
       const status = axios.isAxiosError(error) ? error.response?.status : undefined;
       const code = axios.isAxiosError(error) ? error.code : undefined;
