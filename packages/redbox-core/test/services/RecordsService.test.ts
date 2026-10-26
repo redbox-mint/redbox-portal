@@ -9966,6 +9966,110 @@ describe('RecordsService', function () {
       });
     }
 
+    for (const operation of ['update', 'create'] as const) {
+      for (const target of ['authorized', 'unauthorized', 'unknown'] as const) {
+        it(`checks ${target} postSync workflow overrides during targeted ${operation} continuation`, async function () {
+          installAuthoritativeStorage(operation === 'update' ? baseRecord() : undefined);
+          const published = {
+            name: 'published',
+            config: {
+              form: 'published-form',
+              workflow: { stage: 'published' },
+              authorization: { transitionRoles: ['Publisher'], editRoles: [], viewRoles: [] },
+            },
+          };
+          const archived = {
+            name: 'archived',
+            config: {
+              form: 'archived-form',
+              workflow: { stage: 'archived' },
+              authorization: { transitionRoles: ['Archivist'], editRoles: [], viewRoles: [] },
+            },
+          };
+          const recordType = {
+            name: 'rdmp',
+            searchable: false,
+            hooks: {
+              [operation === 'create' ? 'onCreate' : 'onUpdate']: {
+                postSync: [
+                  {
+                    function:
+                      '(_oid, record) => ({ ...record, workflow: { stage: "archived" }, metaMetadata: { ...record.metaMetadata, form: "../hook-supplied" } })',
+                  },
+                ],
+              },
+              onTransitionWorkflow: {
+                postSync: [
+                  {
+                    function:
+                      '(_oid, record) => ({ ...record, metadata: { ...record.metadata, followupStage: record.workflow.stage } })',
+                  },
+                ],
+              },
+            },
+          };
+          const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+          const steps = Reflect.get(globalThis, 'WorkflowStepsService') as { get: sinon.SinonStub };
+          types.get.returns(of(recordType));
+          steps.get.callsFake((_type: unknown, name: string) =>
+            of(name === 'published' ? published : name === 'archived' && target !== 'unknown' ? archived : null)
+          );
+          mockRecordValidationService.resolve.resolves(allowResult());
+          const actor = {
+            username: 'user-1',
+            roles: [{ name: 'Publisher' }, ...(target !== 'unauthorized' ? [{ name: 'Archivist' }] : [])],
+          };
+          const result =
+            operation === 'create'
+              ? await RecordsService.create(
+                  { id: 'brand-1' },
+                  { metadata: { title: 'Targeted save' } },
+                  recordType,
+                  actor,
+                  true,
+                  true,
+                  'published'
+                )
+              : await RecordsService.updateMeta(
+                  { id: 'brand-1' },
+                  'record-123',
+                  baseRecord('Targeted save'),
+                  actor,
+                  true,
+                  true,
+                  published,
+                  undefined,
+                  createRecordSaveContext({ routeFamily: 'browser', operation: 'transition', targetStep: 'published' })
+                );
+
+          const permitted = target === 'authorized';
+          expect(result.outcome, JSON.stringify(result)).to.equal(permitted ? 'saved' : 'saved-with-warnings');
+          expect(steps.get.calledWith(recordType, 'archived')).to.equal(true);
+          expect(mockStorageService.updateMeta.callCount).to.equal((operation === 'update' ? 1 : 0) + (permitted ? 2 : 0));
+          const persisted = await mockStorageService.getMeta(result.oid);
+          expect(persisted.workflow.stage).to.equal(permitted ? 'archived' : 'published');
+          expect(persisted.metaMetadata.form).to.equal(permitted ? 'archived-form' : 'published-form');
+          expect(persisted.metadata).to.deep.equal({
+            title: 'Targeted save',
+            ...(permitted ? { followupStage: 'archived' } : {}),
+          });
+          if (permitted) {
+            expect(persisted.previousWorkflow).to.deep.equal({ stage: 'published' });
+            const validation = mockRecordValidationService.resolve.lastCall.args[0];
+            expect(validation.writeKind).to.equal('transition');
+            expect(validation.targetStep).to.equal('archived');
+            expect(validation.candidate).to.deep.equal(persisted);
+          } else {
+            expect(result.problems[0].issues[0].code).to.equal(
+              target === 'unauthorized'
+                ? 'record-validation-transition-unauthorized'
+                : 'record-validation-authority-context-divergence'
+            );
+          }
+        });
+      }
+    }
+
     it('uses one complete candidate for create postSync validation, persistence, and detached hooks', async function () {
       (globalThis as any).__createPartialPostRecord = undefined;
       installAuthoritativeStorage();

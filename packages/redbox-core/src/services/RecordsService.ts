@@ -452,6 +452,7 @@ export namespace Services {
     | {
         readonly status: StorageMutationApplicationState;
         readonly candidate: RecordWithMeta;
+        readonly authoritativeStep: WorkflowStepLike | undefined;
         readonly warnings: readonly RecordSaveProblem[];
         readonly response: StorageMutationResponse;
       }
@@ -3587,6 +3588,7 @@ export namespace Services {
       return {
         status: resolveStorageMutationState(response, this.logLegacyMutationResponse),
         candidate: authoritativeCandidate,
+        authoritativeStep,
         warnings,
         response,
       };
@@ -4172,7 +4174,7 @@ export namespace Services {
       this.setConcurrencyMetadata(tracker, createOid, concurrencyMode, undefined);
 
       const startingWfStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordTypeObj))) as WorkflowStepLike;
-      const wfStep = (
+      let wfStep = (
         targetStepName ? await firstValueFrom(WorkflowStepsService.get(recordTypeObj, targetStepName)) : startingWfStep
       ) as WorkflowStepLike;
       if (targetStepName) {
@@ -4653,6 +4655,9 @@ export namespace Services {
                 );
               }
               currentRevision = postSyncRevision;
+              // A committed hook transition supplies the authority for the
+              // following transition hooks, including its configured form.
+              wfStep = hookMutationState.authoritativeStep ?? wfStep;
               if (this.committedRevision(hookMutationState.response) !== undefined) {
                 recordObj.revision = currentRevision;
               }
@@ -5914,6 +5919,7 @@ export namespace Services {
                 );
               }
               currentRevision = postSyncRevision;
+              nextStepObj = hookMutationState.authoritativeStep ?? nextStepObj;
               if (this.committedRevision(hookMutationState.response) !== undefined) {
                 recordObj.revision = currentRevision;
               }
