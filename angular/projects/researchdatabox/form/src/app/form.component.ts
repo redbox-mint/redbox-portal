@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import {
   Component,
+  computed,
   effect,
   ElementRef,
   HostBinding,
@@ -90,6 +91,7 @@ import {
   isRecordFormFingerprint,
   isMatchingLineagePaths,
   JSONataQuerySource,
+  JSONataQueryRuntimeContext,
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
@@ -294,6 +296,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public readonly recordBaseline = this.recordBaselineState.asReadonly();
   private readonly formConflictState = signal<FormConflictState | null>(null);
   public readonly conflictState = this.formConflictState.asReadonly();
+  public readonly saveBlockedByConflict = computed(() => {
+    const status = this.formConflictState()?.status;
+    return status === 'permission-lost' || status === 'deleted';
+  });
   private readonly conflictReviewService = inject(FormConflictReviewService);
   private readonly formConflictReviewState = signal<FormConflictReviewProjection | null>(null);
   public readonly conflictReview = this.formConflictReviewState.asReadonly();
@@ -348,6 +354,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   subMaps: Record<string, Subscription> = {};
 
   private isDestroyed = false;
+  private formLoadRevision = 0;
   private readonly destroy$ = new Subject<void>();
 
   /**
@@ -468,72 +475,111 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
-    if (!formConfig) {
-      this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
-      this.formDefMap = await this.formService.downloadFormComponents(
-        this.trimmedParams.oid(),
-        this.trimmedParams.recordType(),
-        this.editMode(),
-        this.trimmedParams.formName(),
-        this.modulePaths
-      );
+    if (this.isDestroyed) return;
+    const revision = ++this.formLoadRevision;
+    const isCurrentLoad = () => !this.isDestroyed && revision === this.formLoadRevision;
+    this.clearLoadedForm();
+    try {
+      let formDefMap: FormComponentsMap;
+      if (!formConfig) {
+        this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
+        formDefMap = await this.formService.downloadFormComponents(
+          this.trimmedParams.oid(),
+          this.trimmedParams.recordType(),
+          this.editMode(),
+          this.trimmedParams.formName(),
+          this.modulePaths
+        );
+      } else {
+        this.loggerService.info(`${this.logName}: creating form definition from provided config`);
+        const parentLineagePaths = this.formService.buildLineagePaths({
+          angularComponents: [],
+          dataModel: [],
+          formConfig: ['componentDefinitions'],
+          layout: [],
+        });
+        formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
+      }
+      if (!isCurrentLoad()) return;
+      this.formDefMap = formDefMap;
       // Store the form recordType if the recordType was not provided by the page.
-      if (!this.trimmedParams.recordType() && this.formDefMap?.formConfig?.type) {
-        this.recordType.set(this.formDefMap?.formConfig?.type);
+      if (!this.trimmedParams.recordType() && formDefMap.formConfig?.type) {
+        this.recordType.set(formDefMap.formConfig.type);
       }
-    } else {
-      this.loggerService.info(`${this.logName}: creating form definition from provided config`);
-      const parentLineagePaths = this.formService.buildLineagePaths({
-        angularComponents: [],
-        dataModel: [],
-        formConfig: ['componentDefinitions'],
-        layout: [],
-      });
-      this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
-    }
-    this.componentDefArr = this.formDefMap.components;
-    if (this.shouldRefreshDebugSnapshots()) {
-      this.refreshTranslatedConfigDebugInfo(true);
-      if (this.shouldRefreshComponentDebugInfo()) {
-        this.refreshComponentDebugInfo();
+      this.componentDefArr = formDefMap.components;
+      if (this.shouldRefreshDebugSnapshots()) {
+        this.refreshTranslatedConfigDebugInfo(true);
+        if (this.shouldRefreshComponentDebugInfo()) {
+          this.refreshComponentDebugInfo();
+        }
       }
-    }
-    const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
-    if (!compContainerRef) {
-      throw new Error(`${this.logName}: No component container found. Cannot load components.`);
-    }
-    for (const componentDefEntry of this.componentDefArr) {
-      const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
-      componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
-      componentRef.changeDetectorRef.detectChanges();
+      const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
+      if (!compContainerRef) {
+        throw new Error(`${this.logName}: No component container found. Cannot load components.`);
+      }
+      for (const componentDefEntry of this.componentDefArr) {
+        const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
+        componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
+        componentRef.changeDetectorRef.detectChanges();
 
-      await componentRef.instance.initWrapperComponent(componentDefEntry);
-    }
-    // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
-    await this.createFormGroup();
-    this.captureLoadedRecordBaseline();
-    // Dispatch load success action (R16.2, AC53)
-    this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
+        await componentRef.instance.initWrapperComponent(componentDefEntry);
+        if (!isCurrentLoad()) return;
+      }
+      // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
+      await this.createFormGroup();
+      if (!isCurrentLoad()) return;
+      this.captureLoadedRecordBaseline();
+      // Dispatch load success action (R16.2, AC53)
+      this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
 
-    // Build the initial query source for component definitions
-    this.setupQuerySource();
-    // Initialize subscriptions to event bus
-    this.initSubscriptions();
-    // Behaviours subscribe before the ready event is published. This ordering is
-    // deliberate and is the key runtime contract for form-level automation in v1.
-    this.behaviourManager.bind(this);
-    // Publish the form definition ready event
-    this.eventBus.publish(createFormDefinitionReadyEvent({}));
-    // Finally set the flag indicating components are loaded
-    this.componentsLoaded.set(true);
+      // Build the initial query source for component definitions
+      this.setupQuerySource();
+      // Initialize subscriptions to event bus
+      this.initSubscriptions();
+      // Behaviours subscribe before the ready event is published. This ordering is
+      // deliberate and is the key runtime contract for form-level automation in v1.
+      this.behaviourManager.bind(this);
+      // Publish the form definition ready event
+      this.eventBus.publish(createFormDefinitionReadyEvent({}));
+      // Finally set the flag indicating components are loaded
+      this.componentsLoaded.set(true);
+    } catch (error) {
+      // A superseded request must not report failure against the replacement form.
+      if (isCurrentLoad()) throw error;
+    }
   }
+
+  private clearLoadedForm(): void {
+    // A reused form host must release the previous record before loading another.
+    this.componentsLoaded.set(false);
+    Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
+    this.subMaps = {};
+    this.behaviourManager.destroy();
+    this.componentsContainer?.clear();
+    this.form = undefined;
+    this.formDefMap = undefined;
+    this.componentDefArr = [];
+    this.componentDefQuerySource = undefined;
+    this.recordBaselineState.set(null);
+    this.formConflictState.set(null);
+    this.formConflictReviewState.set(null);
+    this.manualConflictResolutionPending.set(false);
+    this.saveResponse.set(undefined);
+    this.resetTemporaryValidationGroupsOnNextChange = false;
+    this.allowConflictNavigationOnce = false;
+    this.conflictExportCompleted = false;
+  }
+
   /**
    * Set up the JSONata query source from component definitions
    */
   protected setupQuerySource() {
-    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, {
-      requestParams: this.requestParams(),
-    });
+    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, this.getExpressionRuntimeContext());
+  }
+
+  public getExpressionRuntimeContext(): JSONataQueryRuntimeContext {
+    const serverContext = this.formDefMap?.formConfigMeta?.['runtimeContext'] as JSONataQueryRuntimeContext | undefined;
+    return structuredClone({ ...serverContext, requestParams: this.requestParams(), oid: this.trimmedParams.oid() });
   }
   /**
    *
@@ -1222,6 +1268,26 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     options?: SaveOperationEventConfig & SaveRedirectEventConfig,
     preparedResolution?: PreparedConflictResolution
   ) {
+    const form = this.form;
+    const loadRevision = this.formLoadRevision;
+    let saveOid = this.trimmedParams.oid();
+    const recordType = this.trimmedParams.recordType();
+    const formName = this.trimmedParams.formName();
+    // Awaited validation, transport and metadata work belongs to this exact form.
+    // Neither a new OID nor a reload of the same OID may inherit its result or intent.
+    const ownsSave = () => !this.isDestroyed && this.form === form && this.formLoadRevision === loadRevision &&
+      this.trimmedParams.oid() === saveOid && this.trimmedParams.recordType() === recordType &&
+      this.trimmedParams.formName() === formName;
+    if (!ownsSave()) return;
+    const conflict = this.formConflictState();
+    if (conflict && this.saveBlockedByConflict()) {
+      this.eventBus.publish(createFormSaveFailureEvent({
+        error: conflict.status === 'deleted' ? '@form-conflict-deleted-message' : '@form-conflict-permission-lost-message',
+        formScopeId: this.eventScopeId,
+        requestId: conflict.requestId,
+      }));
+      return;
+    }
     const forceSave = options?.force ?? false;
     const operation = options?.operation;
     const targetStep = options?.targetStep ?? '';
@@ -1251,9 +1317,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const saveOperation: 'create' | 'update' = _isEmpty(this.trimmedParams.oid()) ? 'create' : 'update';
     if (this.form?.pending) {
       const validationSettled = await this.waitForPendingValidation();
-      if (this.isDestroyed) {
-        return;
-      }
+      if (!ownsSave() || this.saveBlockedByConflict()) return;
       if (!validationSettled) {
         const message = '@dmpt-form-validation-timeout';
         this.loggerService.warn(`${this.logName}: ${message}`);
@@ -1325,6 +1389,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               true,
               currentFormSnapshot
             );
+            if (!ownsSave()) return;
             if (!prepared) {
               this.saveResponse.set(undefined);
               this.eventBus.publish(
@@ -1364,6 +1429,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               concurrency
             );
           }
+          if (!ownsSave()) return;
           if (this.recordBaselineState() !== requestBaseline) {
             this.loggerService.warn(`${this.logName}: ignored a save response after the form scope changed.`);
             this.saveResponse.set(undefined);
@@ -1389,6 +1455,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             );
             if (automaticPlan.eligible && automaticPlan.rebase.localChangesAlreadyPresent) {
               const adopted = await this.adoptLatestConflict('already-current', automaticSnapshot);
+              if (!ownsSave()) return;
               if (!adopted) {
                 this.saveResponse.set(response);
                 this.eventBus.publish(
@@ -1428,6 +1495,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 true,
                 automaticSnapshot
               );
+              if (!ownsSave()) return;
               if (!prepared) {
                 this.saveResponse.set(response);
                 this.eventBus.publish(
@@ -1452,6 +1520,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 undefined,
                 concurrency
               );
+              if (!ownsSave()) return;
               if (this.recordBaselineState() !== requestBaseline) {
                 this.loggerService.warn(`${this.logName}: ignored a conflict retry response after the form scope changed.`);
                 this.saveResponse.set(undefined);
@@ -1467,7 +1536,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             if (_isEmpty(this.trimmedParams.oid()) && !_isEmpty(response?.oid)) {
               const createdOid = String(response?.oid);
               this.oid.set(createdOid);
+              saveOid = createdOid;
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
+              this.setupQuerySource();
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             const redirectLocation = isComplete
@@ -1495,6 +1566,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                     this.form,
                     syncMode
                   );
+                  if (!ownsSave()) return;
                   if (this.serverSyncRequiresReview(syncResult)) {
                     const conflict = this.formConflictState();
                     if (conflict) {
@@ -1568,6 +1640,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           this.saveResponse.set(response);
         } catch (error: unknown) {
+          if (!ownsSave()) return;
           this.loggerService.error(`${this.logName}: Error occurred while submitting form:`, error);
           // Emit an response with the error message object as string
           const errorMsg = '@record-save-not-dispatched';
@@ -2042,6 +2115,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (this.manualConflictResolutionPending()) {
       return false;
     }
+    const form = this.form;
+    const loadRevision = this.formLoadRevision;
+    const identity = this.currentFormRecordIdentity();
+    const ownsResolution = () => !this.isDestroyed && this.form === form && this.formLoadRevision === loadRevision &&
+      _isEqual(this.currentFormRecordIdentity(), identity);
     const conflict = this.formConflictState();
     const baseline = this.recordBaselineState();
     if (
@@ -2080,26 +2158,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.manualConflictResolutionPending.set(true);
     try {
       const prepared = await this.prepareConflictRetry(reviewing, candidate, 'client-manually-resolved', false);
-      if (!prepared) {
+      if (!ownsResolution() || !prepared) {
         return false;
       }
       // This is local Angular validation/dirtiness, not a force option sent to the API.
       this.form?.markAllAsDirty();
       await this.saveForm(undefined, prepared);
-      return this.saveResponse()?.wasPersisted() === true;
+      return ownsResolution() && this.saveResponse()?.wasPersisted() === true;
     } catch (error) {
-      this.loggerService.error(`${this.logName}: Failed to prepare the manual conflict resolution.`, error);
+      if (ownsResolution()) {
+        this.loggerService.error(`${this.logName}: Failed to prepare the manual conflict resolution.`, error);
+      }
       return false;
     } finally {
-      this.manualConflictResolutionPending.set(false);
-      const unresolved = this.formConflictState();
-      if (unresolved?.status === 'retrying' || unresolved?.status === 'reviewing') {
-        const latestLocal = immutableFormMetadata(this.getPersistedFormValue());
-        const reviewingAgain = { ...unresolved, local: latestLocal, status: 'reviewing' } satisfies FormConflictState;
-        this.formConflictState.set(reviewingAgain);
-        this.formConflictReviewState.set(
-          this.conflictReviewService.project(reviewingAgain, latestLocal, this.componentDefArr)
-        );
+      if (ownsResolution()) {
+        this.manualConflictResolutionPending.set(false);
+        const unresolved = this.formConflictState();
+        if (unresolved?.status === 'retrying' || unresolved?.status === 'reviewing') {
+          const latestLocal = immutableFormMetadata(this.getPersistedFormValue());
+          const reviewingAgain = { ...unresolved, local: latestLocal, status: 'reviewing' } satisfies FormConflictState;
+          this.formConflictState.set(reviewingAgain);
+          this.formConflictReviewState.set(
+            this.conflictReviewService.project(reviewingAgain, latestLocal, this.componentDefArr)
+          );
+        }
       }
     }
   }
@@ -2302,13 +2384,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   private async waitForPendingValidation(): Promise<boolean> {
     const form = this.form;
+    const loadRevision = this.formLoadRevision;
     if (!form) {
       return true;
     }
     return firstValueFrom(
       merge(form.statusChanges, form.valueChanges, this.destroy$, interval(0)).pipe(
         startWith(null),
-        filter(() => !form.pending || this.isDestroyed),
+        filter(() => !form.pending || this.isDestroyed || this.formLoadRevision !== loadRevision),
         take(1),
         map(() => true),
         timeout({ first: this.pendingValidationTimeoutMs }),
@@ -2507,6 +2590,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public canRetryFormLevelServerErrors(): boolean {
+    if (this.saveBlockedByConflict()) return false;
     const errors = Object.keys(this.form?.errors ?? {});
     return errors.length > 0 && errors.every(key => key.startsWith('server#')) &&
       Object.values(this.form?.controls ?? {}).every(control => control.valid || control.disabled);

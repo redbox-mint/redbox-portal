@@ -5,7 +5,7 @@ import {
   coerceValueForSchema,
   getObjectSchemaShape,
   getRequestFiles,
-  isPassthroughObjectSchema,
+  allowsAdditionalObjectProperties,
   isRecord,
 } from './helpers';
 
@@ -114,7 +114,7 @@ export function buildRequestSourceInput(
   if (!properties) {
     return coerceValueForSchema(rawValue, schema);
   }
-  if (isPassthroughObjectSchema(schema)) {
+  if (allowsAdditionalObjectProperties(schema)) {
     return coerceValueForSchema(rawValue, schema);
   }
   const projected = Object.keys(properties).reduce(

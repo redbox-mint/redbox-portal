@@ -27,7 +27,7 @@ import { DefaultLayoutComponent } from './default-layout.component';
       <div [class]="resolvedLayoutConfig.tabNavWrapperCssClass">
         <div [class]="resolvedLayoutConfig.buttonSectionCssClass" role="tablist" [attr.aria-orientation]="resolvedLayoutConfig.buttonSectionAriaOrientation">
           @if (initialSelectionDone) {
-            @for (tab of tabConfig.tabs; track $index) {
+            @for (tab of tabInstance?.tabs ?? []; track $index) {
               <button class="nav-link"
                       [class.active]="tabInstance && tab.name == tabInstance.selectedTabId"
                       [attr.id]="tab.name + '-tab-button'"
@@ -178,7 +178,9 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected override async initData() {
-    this.tabs = this.tabConfig?.tabs || [];
+    // Authorization pruning preserves config indexes with empty placeholders.
+    // They have no component/pane and must not become unnamed navigation tabs.
+    this.tabs = (this.tabConfig.tabs ?? []).filter(tab => !!tab?.component);
   }
 
   /**
@@ -196,8 +198,10 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     let selectedTabName = null;
     for (let index = 0; index < this.tabs.length; index++) {
       const tab = this.tabs[index];
+      const configIndex = this.tabConfig.tabs.indexOf(tab);
       const tabWrapperRef = this.tabsContainer.createComponent(FormBaseWrapperComponent<null>);
-      tab.name = `${tab.name || index}`;
+      // Keep positional names stable when an earlier tab has been pruned.
+      tab.name = `${tab.name || configIndex}`;
       // Ensure tab is hidden immediately upon creation to prevent flash of content
       tabWrapperRef.instance.hostBindingCssClasses = 'd-none';
       tabWrapperRef.changeDetectorRef.detectChanges();
@@ -209,7 +213,8 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
           angularComponents: [tab?.name],
           layout: [`${tab?.name}-layout`],
           dataModel: [],
-          formConfig: ['component', 'config', 'tabs', index],
+          // Compiled templates retain the original server-config index.
+          formConfig: ['component', 'config', 'tabs', configIndex],
         }),
       };
 
@@ -252,7 +257,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
 
     // Note: selection is deferred to the layout component to avoid flashes and incorrect display of content. For now, we just set the selectedTabId here for the layout to pick up.
     // This will select the first tab if none are marked as selected.
-    this.selectedTabId = requestedTabName ?? selectedTabName ?? this.tabs[0]?.name ?? '0';
+    this.selectedTabId = requestedTabName ?? selectedTabName ?? this.tabs[0]?.name ?? null;
     await super.setComponentReady();
   }
 
