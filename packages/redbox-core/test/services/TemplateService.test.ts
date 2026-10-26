@@ -7,6 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { render } from 'ejs';
 import { handlebarsTemplate, jsonataDecodeCompile } from '@researchdatabox/sails-ng-common';
+import type { DynamicScriptResponse, TemplateCompileInput, TemplateCompileItem } from '@researchdatabox/sails-ng-common';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('TemplateService', function () {
@@ -97,33 +98,83 @@ describe('TemplateService', function () {
         'quote\\slash\n<>&',
         'carriage\rreturn',
         'line\u2028separator\u2029paragraph',
+        '</script><script>throw new Error("key executed")</script>',
+        'Unicode 中文 हिन्दी 😀',
+        'Cafe\u0301',
+        'ｆｕｌｌｗｉｄｔｈ',
+        '',
       ];
-      const inputs = properties.map(property => ({
+      const inputs: TemplateCompileInput[] = properties.map((property, index) => ({
         key: ['default', 'workflow', 'activity', 'draft', 'rowConfig', property],
         kind: 'handlebars',
-        value: '{{metadata.title}}',
+        value: `{{metadata.title}}:${index}`,
       }));
       inputs.push({
         key: ['default', 'form', 'expressions', 'copyValue'],
         kind: 'jsonata',
         value: '$exists(event.value.oid) ? event.value.oid : ($exists(event.value.redboxOid) ? event.value.redboxOid : event.value)',
       });
-      const entries = TemplateService.buildClientMapping(inputs).map(entry => ({
+      const mapping: TemplateCompileItem[] = TemplateService.buildClientMapping(inputs);
+      const entries = mapping.map(entry => ({
         key: TemplateService.buildKeyString(entry.key),
         value: entry.value,
       }));
       const moduleSource = render(template, { entries });
+      for (const entry of entries) {
+        expect(moduleSource).to.include(`return ${entry.value};`);
+      }
       // Import the complete generated ES module, including its export declaration.
-      const { evaluate } = await import(`data:text/javascript;base64,${Buffer.from(moduleSource).toString('base64')}`);
+      const { evaluate }: DynamicScriptResponse = await import(`data:text/javascript;base64,${Buffer.from(moduleSource).toString('base64')}`);
       const extra = { libraries: { handlebars: handlebarsTemplate, jsonata: jsonataDecodeCompile } };
 
-      for (const input of inputs.slice(0, -1)) {
-        expect(evaluate(input.key, { metadata: { title: 'SCU title' } }, extra)).to.equal('SCU title');
+      for (const [index, input] of inputs.slice(0, -1).entries()) {
+        const context = { metadata: { title: 'SCU title' } };
+        expect(evaluate(input.key, context, extra)).to.equal(`SCU title:${index}`);
+        const normalizedKey = input.key.map(part => part.toString().normalize('NFKC'));
+        expect(TemplateService.buildKeyString(input.key)).to.equal(normalizedKey.join('__'));
+        expect(evaluate(normalizedKey, context, extra)).to.equal(`SCU title:${index}`);
       }
-      for (const value of [{ oid: 'SCU_oid' }, { redboxOid: 'SCU_oid' }, 'SCU_oid']) {
-        expect(await evaluate(inputs[inputs.length - 1].key, { event: { value } }, extra)).to.equal('SCU_oid');
+      for (const [value, expected] of [
+        [{ oid: 'SCU_oid', redboxOid: 'ignored' }, 'SCU_oid'],
+        [{ redboxOid: 'SCU_redboxOid' }, 'SCU_redboxOid'],
+        ['SCU_fallback', 'SCU_fallback'],
+        [{ oid: '' }, ''],
+        [null, null],
+      ]) {
+        expect(await evaluate(inputs[inputs.length - 1].key, { event: { value } }, extra)).to.equal(expected);
       }
       expect(() => evaluate(['unknown'], {}, extra)).to.throw('Unknown key');
+      expect(() => evaluate([], {}, extra)).to.throw('Unknown key');
+    });
+
+    it('round-trips an empty key and numeric key parts in the rendered browser module', async function () {
+      const template = await readFile(resolve(__dirname, '../../../../views/dynamicScriptAsset.ejs'), 'utf8');
+      const inputs: TemplateCompileInput[] = [
+        { key: [], kind: 'handlebars', value: 'empty' },
+        { key: ['rows', 0, 'render'], kind: 'handlebars', value: '{{title}}' },
+      ];
+      const mapping: TemplateCompileItem[] = TemplateService.buildClientMapping(inputs);
+      const entries = mapping.map(entry => ({ key: TemplateService.buildKeyString(entry.key), value: entry.value }));
+      const moduleSource = render(template, { entries });
+      const { evaluate }: DynamicScriptResponse = await import(`data:text/javascript;base64,${Buffer.from(moduleSource).toString('base64')}`);
+      const extra = { libraries: { handlebars: handlebarsTemplate } };
+
+      expect(TemplateService.buildKeyString([])).to.equal('');
+      expect(evaluate([], {}, extra)).to.equal('empty');
+      expect(evaluate([''], {}, extra)).to.equal('empty');
+      expect(TemplateService.buildKeyString(['rows', 0, 'render'])).to.equal('rows__0__render');
+      expect(evaluate(['rows', 0, 'render'], { title: 'first row' }, extra)).to.equal('first row');
+      expect(evaluate(['rows', '0', 'render'], { title: 'first row' }, extra)).to.equal('first row');
+      expect(() => evaluate(['rows', 1, 'render'], {}, extra)).to.throw('Unknown key');
+    });
+
+    it('throws for empty and unknown keys when the rendered module has no entries', async function () {
+      const template = await readFile(resolve(__dirname, '../../../../views/dynamicScriptAsset.ejs'), 'utf8');
+      const moduleSource = render(template, { entries: [] });
+      const { evaluate }: DynamicScriptResponse = await import(`data:text/javascript;base64,${Buffer.from(moduleSource).toString('base64')}`);
+
+      expect(() => evaluate([], {})).to.throw('Unknown key');
+      expect(() => evaluate(['unknown'], {})).to.throw('Unknown key');
     });
 
     it('should build mapping for JSONata inputs', function () {
