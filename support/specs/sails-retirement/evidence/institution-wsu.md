@@ -123,7 +123,8 @@ First-institution friction produced portal commit `fd2ae641f`:
   runners explicitly refuse and direct operators to v6 guidance.
 
 Portal runtime source has not changed in this work. Fresh dev-tools suite:
-**54 passing**. WSU production source compiles; final unit suite: **432 passing**.
+**55 passing** (including the isolated compiler regression). WSU production source
+compiles; final unit suite: **435 passing**.
 Historical WSU tests were adapted to explicit callbacks without deleting their
 pagination, CAS, audit, idempotence, exporter or form assertions. Unit execution
 uses transpile-only for pre-existing fixture typing problems; production source
@@ -140,8 +141,8 @@ persistence ownership and restart. Portal driver commits: `badf2cc68`, `62b52dc9
 
 | Gate | Observed result | Scope |
 | --- | --- | --- |
-| WSU unit / production compile | 432 passing / compile exit 0 | Converted hook source |
-| Portal dev-tools | 54 passing | Full affected suite, including new CLI regression |
+| WSU unit / production compile | 435 passing / compile exit 0 | Converted hook source, including real EJS regressions |
+| Portal dev-tools | 55 passing | Full affected suite, including CLI and isolated compiler regressions |
 | Node 26.11.1 + Mongo 8.0.34 / FCV 8.0 | Pass: selected maintenance, five types, 12 persisted forms, login/CSRF, S3, real worker, drain timeout/retained pools, successful stop/pools 0, restart | Source composition on two standalone servers; `matrix8-source5.log` |
 | Node 26.11.1 + Mongo 9.0.4 / FCV 9.0 | Same checks pass | Source composition on two standalone servers; `matrix9-source4.log` |
 
@@ -163,7 +164,7 @@ Complete source image payload: **32 layers / 527,278,080 bytes**, SHA256
 S3 object bodies/checksums, staging/publication/configuration files, installed hook,
 source hook archive and Solr snapshot are checkpointed too.
 
-Fresh full root tooling suite: **20 passing**, including three auditor controls
+Fresh full root tooling suite: **26 passing**, including auditor controls
 for offline legacy-metadata rejection versus live access. The new dev-tools check
 and negative WSU literal initially produced five auditor findings; explicit,
 narrow AST classifications now distinguish those rejection checks/fixtures while
@@ -171,5 +172,249 @@ retaining live-access failures. Current committed source has **zero executable
 violations / zero forbidden dependency entries** and all **1,261** baseline
 inventory files reconcile. These are source checks, not installed-image claims.
 
-Clean installed WSU artifacts, cutover, partial-failure restoration, final
-qualification and final task disposition are still pending in this live record.
+## Further first-institution friction and regression coverage
+
+A clean WSU build failed because the old `tsconfig.json` extended undeclared
+`@tsconfig/node24`, previously supplied by a hoisted development dependency.
+WSU `9dd256f` now extends the declared dev-tools shared compiler base. Portal
+`04791ca71` adds an isolated compiler regression and concrete migration guidance;
+the regression exercises both the old failure and the working base without
+hoisted compiler-base packages. The production hook compile passes in the clean
+image build. Test fixture transpilation remains separate from that typecheck.
+
+The installed candidate `fed13b010bfd7a2b590a4ebb2e8f939a8f4b1b643cb63645f71b8136a92bc086`
+passed the earlier API-only checks but returned **500** from the actual anonymous
+WSU homepage. WSU `1656f33` converts its `TranslationService`/`BrandingService`
+globals to `page.t`/`page.base` and removes login's obsolete functions include.
+Three real `PageArtifacts` tests first failed with `TranslationService is not
+defined` and `Page include artifact missing`, then passed, including escaped
+query/session errors and installed-partial selection. The complete WSU suite is
+**435 passing**. Portal `03c2cbad5` strengthens installed matrix/recovery probes
+and the migration guide to require both anonymous home and login HTML. The final
+packaged smoke does the same. The failed image is superseded, not qualified.
+
+The source auditor initially flagged the installed dependency verifier's exact
+`sails.io.js` rejection-table literal. Portal `d25c93095` classifies only that
+membership table. Controls still reject an actual import and an unrelated legacy
+runtime path. This supplements the prior narrow finite-WSU-conversion and CLI
+manifest-rejection controls; the full root tooling suite is **26 passing**.
+No application runtime source changed in the portal repository. These defects
+were corrected in the conversion, dev-tools or migration guidance with actual
+regression coverage; no Sails runtime compatibility layer was introduced.
+
+## SR-045 — Installed WSU topology qualification
+
+All final images are Linux amd64, built from exact Git archive contents:
+portal **`03c2cbad5fb2764eb09df9e50b83ff4b18624bc6`** (5,072 files) and WSU
+**`1656f339190880bddd3d52c2c4b292e9868b1492`** (223 files). Every archive file's
+Git blob hash matches; neither source mounts nor dependency overlays qualify the
+installed runs. Subsequent portal changes are auditor controls and evidence/docs.
+
+The final WSU immutable image is
+**`sha256:5d332405b694fa990b1fd5271c7693a8f28a78f6ff86952f8ca1c3b2950d15b9`**.
+Its native runtime reports Node **26.11.1**, npm **11.20.0**, Chromium
+**156.0.8078.47** on Debian 12. The clean hook pack has 304 files. Offline installed
+registration and composition import pass with network connect/listen/fetch and
+filesystem mutations actively refused: five types, 13 declared forms, 26
+migrations (25 historical names plus the v6 converter), four routes. Twelve forms
+are persisted; the thirteenth is a generated view-only declaration.
+
+| Final installed row | Observed result | Exact scope |
+| --- | --- | --- |
+| Node 26.11.1 / MongoDB 8.0.34 / FCV 8.0 | Pass; process exit 0 | Two independent standalone servers; separate core/storage and logical Agenda/session DBs |
+| Node 26.11.1 / MongoDB 9.0.4 / FCV 9.0 | Pass; process exit 0 | Same WSU topology equivalent on the selected newer major |
+| Packaged WSU integration entrypoint | Pass; process exit 0 | Fresh standalone Mongo 8 DBs, installed hook, actual home/login, CSRF login, every configured workflow form, owned stop |
+
+Each matrix row starts from empty dedicated databases and checks actual server
+version/FCV/standalone status, inspect/ensure/inspect, five WSU types and every
+configured persisted form, fresh login/CSRF, both anonymous pages, five HTTP
+metadata/form/workflow reads, institution mutation authentication/CSRF, selected
+S3 byte round-trip, a real queued SecurityEvent write, failed drain retaining
+pools and admitted work, successful retry with pools/Prisma clients **0**, and
+restart retaining brand/form identity. Both processes naturally exit 0 after
+provider timers expire. The packaged production executable separately exits 0 on
+successful stop. No untested WSU TLS/auth/replica-set combination is claimed.
+Earlier generic replica-set/stepdown rows remain separately scoped in P7.
+
+The first final-smoke launch raced creation of its image-ID file and failed
+before creating a container (`invalid reference format`). Correct sequencing
+produced the counted passing `integration-smoke3.log`; the harness failure is
+retained as `integration-smoke2.log` and is not a runtime pass.
+
+## SR-049 — Released WSU cutover and complete recovery
+
+Source image **`sha256:2a0ca94182fed139207c0d4da41102f58a7e42638cb747ad57636a2b12160b48`**
+contains the released v5.0.4 portal plus the historical compatible WSU hook above.
+Both real source servers report MongoDB **7.0.43 / FCV 7.0**, standalone. Native
+Database Tools **100.19.1** dump the quiescent core, storage, Agenda and session
+databases. The checkpoint retains all **28 collections / 5,162 documents** and
+indexes, all synthetic S3 bodies, staging/publication/configuration files, source
+hook archive, installed hook, generated runtime configuration, Solr data snapshot
+and complete source image. It is retained at
+`/mnt/docker-storage/sr-wsu/checkpoint/`; `checksums.txt` includes the Solr archive.
+
+The designated five fixtures are created through the real source HTTP API and
+contain synthetic titles/classifications and a synthetic ROR object. Bundled WSU
+ROR bootstrap data describes public organizations, not personal data. The source
+checkpoint includes seven retained types/14 forms, including inherited core
+objects; fresh v6's 12 persisted WSU forms are not used to delete that history.
+A logical restore into clean Mongo 8 targets has zero failed documents and exact
+document/index checksums before the sole v6 upgrader runs. This is a logical
+migration, not an in-place Mongo engine or FCV upgrade.
+
+Maintenance first reports the source nonunique `redboxOid_1` conflict. A separate
+guarded operator review verifies all 1,275 live storage OIDs are valid/unique and
+drops only that exact old nonunique index, then ensure/inspect report ready.
+Initialization's original dashboard preflight stops on one inherited
+`existing-locations` finding, rather than discarding it. The local rehearsal
+explicitly accepts standard-dashboard behavior for finding `170fbfa0478ae963`,
+with capture fingerprint
+`3b0f0c260eb68e93fbeaa69f258e93222a691800490b7c775238c560dd17fc81`.
+The decision/configuration is retained. It is a synthetic local decision, not a
+production WSU dashboard approval. Reviewed initialize-only exits 0 and schema,
+configured-form and integration-pin checks pass.
+
+The installed WSU executable uses the selected v6 configuration, separate stores,
+local auth, S3 endpoint, staging/publication mounts and Solr 8.11.1. A new
+`wsu.v6.sid` cookie and rotated synthetic secret require fresh login and CSRF.
+`REDBOX_PORT=18560` also selects the actual image health-check port. Before and
+after restart, the candidate is Docker-healthy, `/healthz` and `/readyz` return
+200, home/login return HTML 200, and all five retained records, forms, workflows
+and edit pages read successfully. Both supervised stops drain and exit **0**.
+No interim development core is installed.
+
+A real `postBootstrap` initialization operation then creates a candidate-only
+core collection, changes a retained storage record and throws deliberately.
+Initialization fails; activation remains closed; both partial writes remain;
+cleanup reports pools **0**. The rehearsal also damages the retained S3 object,
+adds a candidate-only S3 object, removes staging bytes, changes publication bytes
+and breaks candidate configuration. Diagnostic database checksums, migration
+ledger/damaged records, S3 bodies and failed configuration are retained before
+restoration.
+
+With every WSU writer fenced, recovery drops all four target databases before
+native restore, removing the candidate-only collection, then verifies all 28
+collections/5,162 documents and indexes exactly. It replaces the S3 object set
+(including deletion of the candidate-only object), restores source deployment
+files into an empty directory and compares all four file bodies, replaces the
+quiescent Solr data and compares every file hash, and restores all four native
+source databases on Mongo 7 to exact document/index checksums. It restores **76
+configuration files** and **160 installed-hook files** before source startup,
+with complete filename/content hash equality. The source hook/image/configuration
+are recovered as a set; no old executable sees candidate-modified state.
+
+The complete source image archive is **527,278,080 bytes / 32 layers**, SHA256
+`049bf649d15f87e805125d0aa069dcfb043e43bc98d793c98943bc9396231dcc`.
+An empty offline engine, born without registry networking, independently loaded
+it and executed Node 24.16.0 with `--pull never --network none`. Docker's OCI
+save/load changes the index wrapper: the actually loaded image ID is
+**`sha256:af9fdbdbaf5e8e40125a2c1a7e5f8fcb4f843581df02e3c2af3daf63ad4470d6`**.
+Platform, image configuration and all 32 filesystem layers equal the original.
+The final source recovery explicitly creates the container from this loaded ID,
+asserts the selected ID, and repeats source login, both anonymous pages, all five
+record/form/workflow/edit-page reads, S3 body verification, restart and both stops
+(exit **0**). The earlier original-index run is retained separately; it is not
+the independent archive-executable proof. The runbook now explains this distinction.
+
+Reconciliation owner: **WSU deployment operator (designated by the portal
+maintainer, Andrew Brazzatti)**. External effects: no real DOI/email/Figshare
+publication, transfer or external queue acknowledgement was sent; only the
+synthetic local S3/filesystem effects above required reconciliation. The local
+owner decision is to restore the complete checkpoint and discard candidate-only
+state before source writes resume. Real external effects require that owner's
+production reconciliation, as the runbook specifies.
+
+## SR-055 — Final artifacts, inventory and task disposition
+
+| Clean artifact | Immutable image | Final result |
+| --- | --- | --- |
+| Bare portal with PDF runtime | `sha256:2ce824c3c7bef21b866a099481eb31494b087a182e56fa4a82237792f0a6e7c7` | Installed assets/components, actual default executable fresh/restart/stop, health/ready/page/asset/CSRF login and 20 form requests per start: pass, exit 0 |
+| Bundled hook with PDF runtime | `sha256:ca32ea7735b9d46fb7b75ba74810806bb678f52f5e889d0b91ed699f5b62e944` | Same installed qualification with explicit bundled presence: pass, exit 0 |
+| Converted WSU with PDF runtime | `sha256:5d332405b694fa990b1fd5271c7693a8f28a78f6ff86952f8ca1c3b2950d15b9` | Fresh integration, two-major matrix, released-source cutover/restart/stop and complete recovery: pass |
+| Real packed dependency set | 12 packs / 20 checks | Strict/offline isolated consumer, CJS, ESM, TLA and compiled scaffold: pass, exit 0 |
+
+All three installed AST/dependency audits pass: **3,880 / 4,042 / 4,093** owned
+files scanned, **1,228 / 1,229 / 1,230** installed manifests respectively, zero
+executable Sails violations and zero forbidden dependency entries. Owned package
+pins are exact/local references. The final source audit at `d25c93095` also has
+zero violations/dependency entries and reconciles all **1,261** baseline files.
+
+Fresh affected suites: WSU **435**, dev-tools **55**, root tooling **26** passed.
+R16's broad core/root/browser/Bruno/Angular qualification is retained for its
+unchanged application runtime, with an explicit Git path comparison in
+`runtime-equivalence.json`: the only changed production source is the dev-tools
+CLI, covered by its full suite. Those broad suite counts are **not newly rerun**.
+The new WSU runtime/views received their complete unit and installed integration
+checks. No portal core runtime fix required a new broad runtime regression run.
+
+The canceled full development/test-image export is not a built artifact or a
+passing gate. The final WSU build instead combines the clean portal builder/PDF
+runtime stages with the hook Dockerfile's compile/pack/install stages and a clean
+named WSU source context; it never exports a developer dependency overlay.
+
+**Disposition:** SR-005, SR-045, SR-049 and SR-055 are complete for the explicitly
+authorized WSU released-source fallback and faithful local topology cohort. This
+meets their designation, persistence/ownership/maintenance, institution
+cutover/recovery and clean-artifact/inventory criteria. It does not assert actual
+production deployment proof or authorize a release. Access/release gaps were
+required to remain explicit in SR-005 and supported combinations in SR-045;
+the task authorizes the defensible released-v5 fallback and local equivalents.
+
+The following production acceptance work remains **unchecked**:
+
+- [ ] Confirm WSU's actually deployed source image, hook/configuration and source
+  database/FCV; select any additional source-release coverage it requires.
+- [ ] Confirm/qualify real ingress, proxy/TLS, Mongo authentication/TLS/set
+  membership, S3 IAM/bucket controls, institution provider metadata and credentials.
+  No WSU federation or replica-set arrangement was established from this repo.
+- [ ] Obtain the production dashboard/client compatibility decisions and rehearse
+  real operator backup/engine/FCV procedures on the confirmed deployment inputs.
+- [ ] Qualify production search/indexing, workload/availability tolerances and any
+  real PDF/publication/email/provider/transfer paths with institution-owned data
+  and an external-effect reconciliation checkpoint. Their production effects were
+  not exercised by local record reads or generic historical suite results.
+
+No unmet production-only check is relabelled a local pass. If those confirmed
+inputs expand the supported matrix, add and execute its rows before production
+acceptance. The user-authorized local scope does not supply those credentials.
+
+All 14 remaining owned containers and their 14 attached anonymous volumes were
+removed; generic artifact verifier transients had already cleaned themselves.
+No owned container/volume or custom network remains. Both owned engines are
+stopped. Checkpoints, images and logs are retained. Existing unrelated volumes
+were preserved. The original WSU checkout stays at `14ab99e` with only its three
+original untracked files and unchanged SHA256 hashes; the master checkout and
+untracked portal GraphQL specification were untouched.
+
+## Reproduction, evidence files and commits
+
+[Machine-readable results](institution-wsu-results.json) record exact inputs,
+artifact IDs, probes, baseline scope, cleanup and SHA256 hashes for **66** retained
+logs/scripts/manifests under `/mnt/docker-storage/sr-wsu/`. Important entrypoints:
+
+```sh
+# Exact Node toolchain used by host-side qualification scripts.
+export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
+# The owned engine has been stopped; its durable data root is retained.
+export DOCKER_HOST=unix:///run/sr-wsu/docker.sock
+# Build inputs and combined Dockerfile are retained alongside the logs.
+# Actual final executions (all exited 0):
+bash /mnt/docker-storage/sr-wsu/run-installed-matrix.sh
+bash /mnt/docker-storage/sr-wsu/run-integration-smoke.sh
+bash /mnt/docker-storage/sr-wsu/run-wsu-upgrade.sh
+bash /mnt/docker-storage/sr-wsu/restore-complete.sh
+bash /mnt/docker-storage/sr-wsu/restore-archive-source.sh
+bash /mnt/docker-storage/sr-wsu/audit-final-images.sh
+```
+
+These scripts operate only their recorded disposable databases/resources. They
+are an execution record, not an instruction to run them against production or
+without first recreating/fencing their local prerequisites. Configuration,
+fixtures and checkpoint checksums are retained in that same scratch root.
+
+Portal implementation/qualification commits: `fd2ae641f`, `badf2cc68`,
+`62b52dc94`, `bb78ee9c2`, `cfe9b187a`, `106d31bc6`, `04791ca71`, `03c2cbad5`,
+`d25c93095`; the closing documentation commit contains this evidence and task
+updates. WSU commits: `69596d4`, `be1379c`, `419dab5`, `cc708d9`, `9dd256f`,
+`1656f33`. All use the requested co-author trailer. No push, publication or tag
+was performed.

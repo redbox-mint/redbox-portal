@@ -277,10 +277,12 @@ records that phase's format/precedence checks; the completed production composit
 packed extension fresh/restart and browser/API gates are recorded in
 [P8 evidence](evidence/p8-retirement.md) and [artifact results](evidence/p8-artifacts.json).
 
-Institution designation remains SR-005. Internal production-composition, queue,
-authenticated/public portal and packaging checks are complete for the recorded
-artifacts. They do not qualify an undesignated institution or replace its hook,
-configuration, topology and recovery rehearsal.
+SR-005 designates WSU. Its converted installed hook, two-major local topology
+matrix, released-v5 cutover and complete checkpoint recovery are recorded in
+[WSU evidence](evidence/institution-wsu.md). The record includes the real compiler
+and anonymous-template conversion failures that the generic scaffold did not
+expose. Actual production credentials/infrastructure remain unqualified; use the
+institution's confirmed hook/configuration/topology and checkpoint before release.
 
 ## Record hooks, configured actions and progress clients
 

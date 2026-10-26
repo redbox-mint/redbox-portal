@@ -5,9 +5,11 @@ This runbook accompanies SR-048/SR-049. The production Express entrypoint is
 The final Sails-free P8 artifact passes installed fresh/restart/stop and complete
 released-v5 stand-in cutover/recovery; see [exact artifacts and results](evidence/p8-artifacts.json).
 Use a qualified immutable artifact and explicitly reviewed deployment inputs.
-Institution designation/qualification remains a production release gate under
-SR-005/045/049 and SR-055's inherited institution criterion. The local stand-in
-results do not grant production acceptance to an undesignated deployment.
+WSU is now designated under SR-005 and its authorized local-equivalent
+qualification completes SR-045/049 and SR-055's institution criterion; see
+[WSU evidence](evidence/institution-wsu.md). The actual production source,
+credentials/infrastructure and operator acceptance remain separate unchecked
+production work. Historical stand-in results keep their original scope.
 
 ## Operator and API-client compatibility review
 
@@ -219,6 +221,16 @@ in its input and is not an installation-wide rollback. Check document and index
 hashes, references and binary checksums before restarting the source artifact.
 Never point the old image at state already modified by the candidate and call
 image selection a rollback.
+
+Use the image identifier returned by the checkpoint's actual `docker load` when
+creating the recovered source container. With an OCI image store, save/load can
+change the index wrapper and therefore the displayed image ID. Record both IDs
+and require identical platform, image configuration and complete filesystem layer
+list; retain the archive checksum and the independent empty-store recovery proof.
+Run the source login/read/restart/stop probes against that loaded identifier.
+An old tag or an original image still present in the working engine does not prove
+that the checkpoint supplied the recovered executable. The
+[WSU rehearsal](evidence/institution-wsu.md) exercises this distinction.
 
 Reconcile any already-sent email, DOI/RAiD/Figshare publication, remote transfers
 and queue acknowledgements against the recorded external checkpoint. Database

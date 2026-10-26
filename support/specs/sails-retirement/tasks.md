@@ -1,10 +1,13 @@
 # Sails retirement: v6 task list
 
-Status: **52 of 55 tasks are complete.** SR-005 now designates WSU, its
-historically compatible released-v5 source fallback and local topology, with
-production access/release-coverage gaps explicit. SR-045/049/055 remain unchecked
-while the installed WSU matrix, complete cutover/recovery and final artifact
-qualification are executed. [WSU evidence](evidence/institution-wsu.md).
+Status: **55 of 55 tasks are complete for the recorded qualification scope.**
+WSU is the designated institution. Its authorized released-v5 source fallback,
+converted v6 hook, two-major local topology matrix, installed cutover and complete
+checkpoint recovery pass. Clean final artifacts and inventory closure pass.
+[WSU evidence and production-only gaps](evidence/institution-wsu.md) distinguish
+faithful local equivalents from actual production deployment acceptance. Real
+production credentials/infrastructure were unavailable; those additional operator
+checks remain explicitly unchecked in the evidence.
 
 **Historical P8 artifact qualification:** clean application commit `5088f4a7a`
 passed 12 real npm packs/20 checks, all three immutable image/installed dependency
@@ -39,8 +42,8 @@ Review evidence: [R1](evidence/final-review-r1.md), [R2](evidence/final-review-r
 [R13](evidence/final-review-r13.md), [R14](evidence/final-review-r14.md), [R15](evidence/final-review-r15.md), [R16](evidence/final-review-r16.md),
 [R17](evidence/final-review-r17.md).
 The [inherited-defects backlog](evidence/inherited-defects-backlog.md) records 14
-unchanged groups separately from the feature gate. The four accepted institution
-gaps and their task checkboxes remain unchanged.
+unchanged groups separately from the feature gate. The formerly outstanding institution criteria are now covered by the WSU
+local-equivalent qualification below; production-only access gaps remain explicit.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -718,9 +721,17 @@ Read the [design](design.md) for behavior and the
 
 ## P7 — Qualification, upgrade rehearsal and internal promotion
 
-- [ ] **SR-045 — Execute the Node 26 and MongoDB 8+ qualification matrix.**
+- [x] **SR-045 — Execute the Node 26 and MongoDB 8+ qualification matrix.**
 
-  **Status:** partial; the complete production-host matrix now passes all four local Node 26/MongoDB 8.0.34 FCV 8.0 and 9.0.4 FCV 9.0 rows, including two independent three-member sets, stepdown/reconnect and drain. All 216 cases pass with zero failures/skips and complete cleanup. Only the undesignated institution-specific qualification remains external; [P7 evidence](evidence/p7-qualification.md#sr-045--database-matrix). Institution topology/TLS/auth and source designation remain SR-005.
+  **Status:** done. The prior generic production-host matrix passes four local
+  Node 26/Mongo 8.0.34 FCV 8.0 and 9.0.4 FCV 9.0 rows, including split replica
+  sets/stepdown/drain (216 checks). WSU now adds actual installed-hook rows on
+  both selected majors with its separate standalone datastore/S3/Solr/local-auth
+  topology equivalent: maintenance, persistence, worker, CSRF/pages, ownership,
+  failed-drain retry and restart all pass; both processes exit 0. Actual WSU
+  production TLS/auth/set membership is unknown and unqualified, with engine/FCV
+  procedures separate. [WSU matrix](evidence/institution-wsu.md#sr-045--installed-wsu-topology-qualification);
+  [historical generic matrix](evidence/p7-qualification.md#sr-045--database-matrix).
 
   **Depends on:** SR-005, SR-002, SR-025, SR-037, SR-044.
 
@@ -782,9 +793,19 @@ Read the [design](design.md) for behavior and the
   explain that migration bodies/DDL are not transactional and old-image selection
   cannot undo writes or external effects. Restore covers binaries/config/hooks too.
 
-- [ ] **SR-049 — Rehearse a representative institution upgrade and recovery.**
+- [x] **SR-049 — Rehearse a representative institution upgrade and recovery.**
 
-  **Status:** partial solely for the undesignated real institution/source/hooks/configuration/topology and reconciliation owner. The explicitly authorized released-v5.0.4/sanitized-fixture/bundled-hook stand-in passes full installed v6 upgrade/restart/stop, all operational tolerances, deliberate partial failure and complete checkpoint restoration (25 collections/1895 documents, files/config/hooks and independently recoverable source image). [Scope and results](evidence/institution-upgrade-recovery.md).
+  **Status:** done for the authorized WSU local-equivalent rehearsal. Released
+  v5.0.4 with compatible historical WSU `4996206` upgrades directly to the clean
+  v6 artifact with converted WSU `1656f33`: fresh, upgrade, healthy readiness,
+  retained record/form/workflow/page reads, restart and stop pass. Deliberate real
+  initialization writes fail before activation; complete native recovery restores
+  all four databases (28 collections/5,162 documents), S3, files, configuration,
+  hook, Solr and the exact source image payload. The actual archive-loaded image
+  passes source reads/restart/stop; all stops exit 0. The designated owner and
+  production source/infrastructure gaps remain explicit.
+  [WSU recovery](evidence/institution-wsu.md#sr-049--released-wsu-cutover-and-complete-recovery).
+  Earlier bundled-hook stand-in evidence remains historical and separate.
 
   **Depends on:** SR-047, SR-048, SR-046, SR-045.
 
@@ -798,7 +819,7 @@ Read the [design](design.md) for behavior and the
 
 - [x] **SR-050 — Promote the qualified Express host as the internal v6 default.**
 
-  **Status:** done for the explicitly authorized internal promotion; root start/debug, Docker CMD/readiness health and both explicit development Compose modes use Express. Actual default runtime fresh/restart, real npm start and both dev modes pass health/ready/CSRF login/assets/20 forms requests and exit 0. Clean metadata-overlay provenance, two fixed dev regressions and cleanup are in [promotion evidence](evidence/p7-qualification.md#internal-default-implementation-and-executed-verification). The user-authorized complete stand-in permits internal promotion while SR-049's undesignated institution remains an external production gate; P8 is untouched.
+  **Status:** done for the explicitly authorized internal promotion; root start/debug, Docker CMD/readiness health and both explicit development Compose modes use Express. Actual default runtime fresh/restart, real npm start and both dev modes pass health/ready/CSRF login/assets/20 forms requests and exit 0. Clean metadata-overlay provenance, two fixed dev regressions and cleanup are in [promotion evidence](evidence/p7-qualification.md#internal-default-implementation-and-executed-verification). The user-authorized complete stand-in permitted that historical internal promotion. The later WSU rehearsal under SR-049 now completes its local institution criterion; actual production access gaps remain explicit in WSU evidence.
 
   **Depends on:** SR-049, SR-046, SR-047.
 
@@ -879,22 +900,21 @@ Read the [design](design.md) for behavior and the
   example/reference validation and `docs:audit` results are recorded. Update the
   doc router only where the implemented documentation structure requires it.
 
-- [ ] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
+- [x] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
 
-  **Status:** partial only for the inherited representative-institution criterion.
-  Clean `5088f4a7a` packs/images, full existing suites, all 1261 baseline inventory
-  entries, installed fresh/restart/stop and released-v5 stand-in complete recovery
-  pass. The representative institution/source/hooks/configuration/topology are still
-  undesignated under SR-005/045/049; its SR-049 dependency and institution acceptance
-  therefore remain unmet. No P8 local gate remained unrun at that checkpoint and
-  no stand-in is counted as an institution.
-  [Final P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition).
-  [R1–R16 corrections and current qualification](evidence/final-review-r16.md)
-  postdate those frozen images. R16's runtime/test input is
-  `4bf60062fd2a9d1cf387d3ac993cf531c1b6032b`; current source/compiled qualification
-  remains separate from the historical immutable-image/topology evidence.
-  [R17 confirmation](evidence/final-review-r17.md) finds zero class-(A) P1/P2
-  issues and retains R16's full qualification for the unchanged runtime/test tree.
+  **Status:** done for the recorded WSU/local release qualification scope.
+  Clean portal `03c2cbad5` plus WSU `1656f33` artifacts pass bare/bundled default
+  fresh/restart/stop, 12 packs/20 checks, WSU installed matrix/cutover/full recovery
+  and all three installed AST/dependency audits. Source `d25c93095` reconciles all
+  1,261 baseline files with zero executable Sails/dependency violations. Fresh
+  affected suites pass: WSU 435, dev-tools 55, root tooling 26. R16's broad suites
+  remain qualified evidence for the unchanged portal application runtime, not new
+  executions; the only changed production source is the fully tested dev-tools
+  CLI. Exact images, archive/source provenance, failures, cleanup and still
+  unchecked production-only acceptance work are recorded in
+  [WSU final qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
+  and [machine results](evidence/institution-wsu-results.json).
+  Actual production deployment acceptance is not asserted.
 
   **Depends on:** SR-052, SR-053, SR-054, SR-049, SR-050.
 

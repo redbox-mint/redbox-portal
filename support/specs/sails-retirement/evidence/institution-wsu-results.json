@@ -1,0 +1,594 @@
+{
+  "date": "2026-10-26",
+  "institution": "Western Sydney University",
+  "scope": "Designated released-v5 fallback and faithful local equivalents of the checked-in WSU topology; no production infrastructure or credentials",
+  "reconciliationOwner": "WSU deployment operator (designated by the portal maintainer, Andrew Brazzatti)",
+  "sources": {
+    "cleanContexts": [
+      {
+        "repo": ".",
+        "source": "03c2cbad5fb2764eb09df9e50b83ff4b18624bc6",
+        "files": 5072,
+        "exactGitArchive": true
+      },
+      {
+        "repo": "/home/andrew/src/bitbucket/redbox-hook-wsu-v6",
+        "source": "1656f339190880bddd3d52c2c4b292e9868b1492",
+        "files": 223,
+        "exactGitArchive": true
+      }
+    ],
+    "auditor": "d25c93095f04dc3102b9f5497c1f1ea3f4a3ef98",
+    "originalWsu": "14ab99eb3a89434b9c886d51d5edc37447f43588",
+    "sourceWsu": "49962062859cd904fddae2076d8b7e4abf59d40d",
+    "sourceRelease": "v5.0.4",
+    "sourcePortal": "c1dda53999f3b026347008731f33dba834e06c27",
+    "sourceReleaseImage": "qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9"
+  },
+  "artifacts": {
+    "pdf": {
+      "image": "sha256:2ce824c3c7bef21b866a099481eb31494b087a182e56fa4a82237792f0a6e7c7",
+      "dependencyGraph": {
+        "node": "v26.11.1",
+        "manifests": 1228,
+        "forbiddenPackages": 0,
+        "forbiddenEdges": 0,
+        "ownedPins": true,
+        "core": "0.0.1-beta.9022"
+      },
+      "ast": {
+        "scannedFiles": 3880,
+        "executableViolations": 0,
+        "forbiddenDependencyEntries": 0
+      }
+    },
+    "bundled": {
+      "image": "sha256:ca32ea7735b9d46fb7b75ba74810806bb678f52f5e889d0b91ed699f5b62e944",
+      "dependencyGraph": {
+        "node": "v26.11.1",
+        "manifests": 1229,
+        "forbiddenPackages": 0,
+        "forbiddenEdges": 0,
+        "ownedPins": true,
+        "core": "0.0.1-beta.9022",
+        "bundled": "1.0.0"
+      },
+      "ast": {
+        "scannedFiles": 4042,
+        "executableViolations": 0,
+        "forbiddenDependencyEntries": 0
+      }
+    },
+    "wsu": {
+      "image": "sha256:5d332405b694fa990b1fd5271c7693a8f28a78f6ff86952f8ca1c3b2950d15b9",
+      "dependencyGraph": {
+        "node": "v26.11.1",
+        "manifests": 1230,
+        "forbiddenPackages": 0,
+        "forbiddenEdges": 0,
+        "ownedPins": true,
+        "core": "0.0.1-beta.9022",
+        "wsu": "2.0.0-v6.0"
+      },
+      "ast": {
+        "scannedFiles": 4093,
+        "executableViolations": 0,
+        "forbiddenDependencyEntries": 0
+      }
+    }
+  },
+  "runtimeVersions": [
+    "v26.11.1",
+    "11.20.0",
+    "Chromium 156.0.8078.47 built on Debian GNU/Linux 12 (bookworm)"
+  ],
+  "freshSuites": {
+    "wsuUnit": 435,
+    "devTools": 55,
+    "rootTooling": 26,
+    "packedArtifacts": 12,
+    "packedChecks": 20,
+    "wsuOffline": {
+      "offline": true,
+      "networkAndFileMutationsRefused": true,
+      "types": 5,
+      "forms": 13,
+      "migrations": 26,
+      "routes": 4,
+      "compositionImport": true
+    }
+  },
+  "retainedBroadQualification": {
+    "baseline": "4bf60062fd2a9d1cf387d3ac993cf531c1b6032b",
+    "cleanArtifactInput": "03c2cbad5fb2764eb09df9e50b83ff4b18624bc6",
+    "pathsCompared": [
+      ":(glob)packages/*/src/**",
+      "app.express.cjs",
+      "app.js",
+      "config",
+      "assets",
+      "views",
+      "Dockerfile",
+      "package.json",
+      "package-lock.json"
+    ],
+    "changed": [
+      "packages/redbox-dev-tools/src/cli.ts"
+    ],
+    "portalRuntimeChanged": false,
+    "devToolsCliSuite": {
+      "passed": 55,
+      "log": "devtools-tests2.log"
+    },
+    "broaderSuites": "R16 results retained; not freshly rerun"
+  },
+  "matrix": [
+    {
+      "institution": "Western Sydney University",
+      "runtime": "v26.11.1",
+      "datastores": [
+        {
+          "version": "8.0.34",
+          "fcv": "8.0",
+          "standalone": true
+        },
+        {
+          "version": "8.0.34",
+          "fcv": "8.0",
+          "standalone": true
+        }
+      ],
+      "maintenanceBeforeReady": false,
+      "maintenance": true,
+      "types": 5,
+      "forms": 12,
+      "ledgerDocuments": 34,
+      "anonymousPages": 2,
+      "csrfLogin": true,
+      "recordFormWorkflowReads": 5,
+      "extensionCsrf": true,
+      "s3RoundTrip": true,
+      "workerWrite": true,
+      "failedDrainRetainsPools": true,
+      "successfulDrainPools": 0,
+      "restart": true
+    },
+    {
+      "institution": "Western Sydney University",
+      "runtime": "v26.11.1",
+      "datastores": [
+        {
+          "version": "9.0.4",
+          "fcv": "9.0",
+          "standalone": true
+        },
+        {
+          "version": "9.0.4",
+          "fcv": "9.0",
+          "standalone": true
+        }
+      ],
+      "maintenanceBeforeReady": false,
+      "maintenance": true,
+      "types": 5,
+      "forms": 12,
+      "ledgerDocuments": 34,
+      "anonymousPages": 2,
+      "csrfLogin": true,
+      "recordFormWorkflowReads": 5,
+      "extensionCsrf": true,
+      "s3RoundTrip": true,
+      "workerWrite": true,
+      "failedDrainRetainsPools": true,
+      "successfulDrainPools": 0,
+      "restart": true
+    }
+  ],
+  "matrixAndIntegrationProcessExits": 0,
+  "cutover": {
+    "candidate": {
+      "probe": {
+        "mode": "probe",
+        "v6": true,
+        "localLogin": true,
+        "anonymousPages": 2,
+        "records": 5,
+        "forms": 5,
+        "workflows": 5,
+        "pages": 5,
+        "freshCsrf": true,
+        "health": 200,
+        "ready": 200
+      },
+      "healthyBeforeStop": true,
+      "exitCode": 0,
+      "started": "2026-10-25T23:43:05.34066209Z",
+      "stopped": "2026-10-25T23:43:24.931384107Z"
+    },
+    "candidate-restarted": {
+      "probe": {
+        "mode": "probe",
+        "v6": true,
+        "localLogin": true,
+        "anonymousPages": 2,
+        "records": 5,
+        "forms": 5,
+        "workflows": 5,
+        "pages": 5,
+        "freshCsrf": true,
+        "health": 200,
+        "ready": 200
+      },
+      "healthyBeforeStop": true,
+      "exitCode": 0,
+      "started": "2026-10-25T23:43:25.673349582Z",
+      "stopped": "2026-10-25T23:43:41.117953699Z"
+    }
+  },
+  "partialFailure": {
+    "mode": "fail-initialize",
+    "realInitializationFailed": true,
+    "coreWrite": true,
+    "storageWrite": true,
+    "activated": false,
+    "pools": 0
+  },
+  "checkpoint": {
+    "databases": 4,
+    "collections": 28,
+    "documents": 5162,
+    "nativeTools": "100.19.1",
+    "sourceImageArchiveBytes": 527278080,
+    "sourceImageArchiveSha256": "049bf649d15f87e805125d0aa069dcfb043e43bc98d793c98943bc9396231dcc",
+    "sourceConfigFiles": 76,
+    "sourceHookFiles": 160,
+    "sourceStateFiles": 4,
+    "s3Objects": 1,
+    "documentAndIndexHashesMatch": true,
+    "completeSourceBytesAndSolrHashesMatch": true
+  },
+  "archiveImageRecovery": {
+    "payloadEquivalence": {
+      "originalImage": "sha256:2a0ca94182fed139207c0d4da41102f58a7e42638cb747ad57636a2b12160b48",
+      "loadedImage": "sha256:af9fdbdbaf5e8e40125a2c1a7e5f8fcb4f843581df02e3c2af3daf63ad4470d6",
+      "identical": [
+        "Architecture",
+        "Os",
+        "Config",
+        "RootFS"
+      ],
+      "layers": 32
+    },
+    "emptyOfflineEngine": true,
+    "sourceExecution": {
+      "fresh": {
+        "probe": {
+          "mode": "probe",
+          "v6": false,
+          "localLogin": true,
+          "anonymousPages": 2,
+          "records": 5,
+          "forms": 5,
+          "workflows": 5,
+          "pages": 5
+        },
+        "containerImage": "sha256:af9fdbdbaf5e8e40125a2c1a7e5f8fcb4f843581df02e3c2af3daf63ad4470d6",
+        "exitCode": 0
+      },
+      "restart": {
+        "probe": {
+          "mode": "probe",
+          "v6": false,
+          "localLogin": true,
+          "anonymousPages": 2,
+          "records": 5,
+          "forms": 5,
+          "workflows": 5,
+          "pages": 5
+        },
+        "containerImage": "sha256:af9fdbdbaf5e8e40125a2c1a7e5f8fcb4f843581df02e3c2af3daf63ad4470d6",
+        "exitCode": 0
+      }
+    }
+  },
+  "sourceClosure": {
+    "commit": "d25c93095f04dc3102b9f5497c1f1ea3f4a3ef98",
+    "scannedFiles": 1204,
+    "violations": 0,
+    "forbiddenDependencyEntries": 0,
+    "baselineInventoryReconciled": 1261
+  },
+  "originalUntrackedFilesUnchanged": {
+    "docs/v5-core-gaps.md": "8d7a577131052176a16b48dbc012623ebcfaca2c9341225a093ce2c4518fda77",
+    "docs/v5-migration-verification-playbook.md": "75a208829bc1af7d484fb2975e956cb88530ea999e43a616f088ad18cc24941b",
+    "logs.txt": "7f852b7c604893650d5ffbbd90a932c665602eac5cb22c30caf740ed98bb89f6"
+  },
+  "cleanup": {
+    "containersRemoved": 14,
+    "ownedVolumesRemoved": 14,
+    "remainingOwnedContainers": 0,
+    "remainingOwnedVolumes": 0,
+    "customNetworks": 0,
+    "checkpointsAndImagesRetained": true,
+    "ownedEnginesStopped": true
+  },
+  "taskDisposition": {
+    "SR-005": "complete for the authorized local WSU cohort",
+    "SR-045": "complete for the authorized local WSU cohort",
+    "SR-049": "complete for the authorized local WSU cohort",
+    "SR-055": "complete for the authorized local WSU cohort"
+  },
+  "productionAcceptance": {
+    "actualDeployedSourceConfirmed": false,
+    "productionInfrastructureOrCredentialsUsed": false,
+    "tlsFederationIamReplicaSetQualifiedForWsu": false,
+    "externalPublishersEmailAndRealTransfersExercised": false,
+    "inPlaceMongoEngineOrFcvUpgradeExercised": false
+  },
+  "evidence": {
+    "unit8.log": {
+      "path": "/mnt/docker-storage/sr-wsu/unit8.log",
+      "sha256": "bd27cb97d5718cd96ae983bff9e22bd36120d65fe125c898bfd20d5ac669d593"
+    },
+    "pages-red.log": {
+      "path": "/mnt/docker-storage/sr-wsu/pages-red.log",
+      "sha256": "395325f5d86fd6b21cb1a93c72b2cca38258bea29cbd1a6e4629203bac55d307"
+    },
+    "devtools-tests2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/devtools-tests2.log",
+      "sha256": "d03dba4ff304c7ab8cfecf88aab02581cc49a1916fb63dab57125c016b08fb72"
+    },
+    "tooling-final2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/tooling-final2.log",
+      "sha256": "84ecc6d2940d6fa81f7dc27c119c47b63a59d228358dc5966f59963d3b4dd85e"
+    },
+    "offline-wsu.log": {
+      "path": "/mnt/docker-storage/sr-wsu/offline-wsu.log",
+      "sha256": "cdde552ade82174e87b09836dec619c67660a770f358ad57450a6ed026fcf8b3"
+    },
+    "build-wsu-final2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/build-wsu-final2.log",
+      "sha256": "18cc99b5ba09f0c3a91eedf560389fdb1180f6f352b337a0e6a7bbd9428143b0"
+    },
+    "build-final-pdf2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/build-final-pdf2.log",
+      "sha256": "2b437bff729b571b341ef60878b3b7608cf9398c7caedcb78c9ae9e64c6d9d0d"
+    },
+    "build-final-bundled2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/build-final-bundled2.log",
+      "sha256": "a581a438c0966235962c56ad5b48622b820f6affbb08263a1150255a80e21413"
+    },
+    "final-packed2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/final-packed2.log",
+      "sha256": "110068425128fa5466235f2ee692a99f656556a5f966f9533de936f3a97fe79b"
+    },
+    "final-packed2/result.json": {
+      "path": "/mnt/docker-storage/sr-wsu/final-packed2/result.json",
+      "sha256": "7eb6ba7ee95b12ee32a8d1f0ddac74e9a555242a33302372e2c4e7e9b4ae67ee"
+    },
+    "installed-matrix-run2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/installed-matrix-run2.log",
+      "sha256": "718fd09fe85e6b7b8ade05dbe7e5b46cdbbea89fd8b7a4bc0f4a3dccc5c759a1"
+    },
+    "matrix8-installed.log": {
+      "path": "/mnt/docker-storage/sr-wsu/matrix8-installed.log",
+      "sha256": "91fc0e13babd20da7c63c513bf02540f46ffc27aa9b513f3fc7a19159fde4d9e"
+    },
+    "matrix9-installed.log": {
+      "path": "/mnt/docker-storage/sr-wsu/matrix9-installed.log",
+      "sha256": "8b9d51d3c01fce3c4112013158bb865703274b42a01eeae747ce4dc2f2bf6d59"
+    },
+    "integration-smoke3.log": {
+      "path": "/mnt/docker-storage/sr-wsu/integration-smoke3.log",
+      "sha256": "15c579fbb6930084f8753fe358b8f02b25a208bf42bf0eaed4a47345dc1709a4"
+    },
+    "upgrade-final-run.log": {
+      "path": "/mnt/docker-storage/sr-wsu/upgrade-final-run.log",
+      "sha256": "51bd903f3f55d1a6ce0e77286cd550bd4a619042809a81fba9da58c4ecb56aa4"
+    },
+    "upgrade-inspect-before.log": {
+      "path": "/mnt/docker-storage/sr-wsu/upgrade-inspect-before.log",
+      "sha256": "5724aa162cc14d88b96de84ad3145974b15bb0b48aa95946140d9b132380060d"
+    },
+    "upgrade-review-index.log": {
+      "path": "/mnt/docker-storage/sr-wsu/upgrade-review-index.log",
+      "sha256": "2d7533797e43a3137f54a35c67dc660281d406de98a028f680660e63848d7217"
+    },
+    "upgrade--maintenance-indexes-ensure.log": {
+      "path": "/mnt/docker-storage/sr-wsu/upgrade--maintenance-indexes-ensure.log",
+      "sha256": "158200ed3ecf35ef9a26952f84744a79630d04ea88787fba04a44aaaa2cb6dbb"
+    },
+    "upgrade--maintenance-indexes-inspect.log": {
+      "path": "/mnt/docker-storage/sr-wsu/upgrade--maintenance-indexes-inspect.log",
+      "sha256": "dc7a663c6fb750bcc654e82fbcccf57ecdbe7facb9128b1be1cf67d61ec79dd1"
+    },
+    "upgrade--initialize-only.log": {
+      "path": "/mnt/docker-storage/sr-wsu/upgrade--initialize-only.log",
+      "sha256": "b95ec3c39295cf70932246010a19227af0b44de64ba045e79cc2add608591164"
+    },
+    "candidate-probe.log": {
+      "path": "/mnt/docker-storage/sr-wsu/candidate-probe.log",
+      "sha256": "8e01d4a55c08810c5ac005e7f6d1c182917e2e888aa57a6e778d33e2369cfd09"
+    },
+    "candidate-health.json": {
+      "path": "/mnt/docker-storage/sr-wsu/candidate-health.json",
+      "sha256": "ff50481671452b8a0214a7df2e36ef4e426c41c68d4b89c69caa68a5cd12479d"
+    },
+    "candidate-stop.json": {
+      "path": "/mnt/docker-storage/sr-wsu/candidate-stop.json",
+      "sha256": "250972dac2603277a80396aec21817002c6568dbb8a5cf3b598314f7c6b1311f"
+    },
+    "candidate-restarted-probe.log": {
+      "path": "/mnt/docker-storage/sr-wsu/candidate-restarted-probe.log",
+      "sha256": "8e01d4a55c08810c5ac005e7f6d1c182917e2e888aa57a6e778d33e2369cfd09"
+    },
+    "candidate-restarted-health.json": {
+      "path": "/mnt/docker-storage/sr-wsu/candidate-restarted-health.json",
+      "sha256": "f476d645e94c2c173210202bd49e148d7cfd55d7ed518e781eef1050d4f8fe4d"
+    },
+    "candidate-restarted-stop.json": {
+      "path": "/mnt/docker-storage/sr-wsu/candidate-restarted-stop.json",
+      "sha256": "f4ae61d02a142dcddd58cfc631fa3e884eb3487abde7da19049463ff2727e8eb"
+    },
+    "upgrade-partial-failure.log": {
+      "path": "/mnt/docker-storage/sr-wsu/upgrade-partial-failure.log",
+      "sha256": "db288474c58e7aa9d6a71dfbdf99260ebe918f00aa98b4489ec7ce5ae3473dd4"
+    },
+    "failed-candidate-databases.json": {
+      "path": "/mnt/docker-storage/sr-wsu/failed-candidate-databases.json",
+      "sha256": "b8384a30d132aca342707c9b13e6ee7b89f9843ee5f86fa6a31c09906440d850"
+    },
+    "failed-candidate-ledger.json": {
+      "path": "/mnt/docker-storage/sr-wsu/failed-candidate-ledger.json",
+      "sha256": "ed6249ce95b9d00dc318d12f9b36e4eec171652a945a1b2258b8c98e115d8705"
+    },
+    "failed-candidate-s3.json": {
+      "path": "/mnt/docker-storage/sr-wsu/failed-candidate-s3.json",
+      "sha256": "8da52864eed20aeb74240aa6225bfe8e1a99a86013d03bfb02a37bb6224c15a4"
+    },
+    "restore-complete.log": {
+      "path": "/mnt/docker-storage/sr-wsu/restore-complete.log",
+      "sha256": "880dde17113ddd4b4be5dca80a7ee9253d90cf4d517f30e04aea436fd21e6172"
+    },
+    "restore-archive-source.log": {
+      "path": "/mnt/docker-storage/sr-wsu/restore-archive-source.log",
+      "sha256": "8dc032a45e717c3336d7451e025530f806324b06d7da11a86e6f38898d7db2d1"
+    },
+    "source-payload-equivalence.json": {
+      "path": "/mnt/docker-storage/sr-wsu/source-payload-equivalence.json",
+      "sha256": "a6e3f8c96840bf31a58b437bc06ce823adb2e53888867e6927dc5b78cd9ceb44"
+    },
+    "archive-source-load.log": {
+      "path": "/mnt/docker-storage/sr-wsu/archive-source-load.log",
+      "sha256": "d1d671f8a46f8c1260d814b18bb6c39e60e1b47e9c1489b7aca17405c35d1f06"
+    },
+    "archive-source-fresh-probe.log": {
+      "path": "/mnt/docker-storage/sr-wsu/archive-source-fresh-probe.log",
+      "sha256": "faabb026b37c56e3ddb73b86cdfc73ef86b1ff49524e3f611b202883cc9034af"
+    },
+    "archive-source-fresh-container.json": {
+      "path": "/mnt/docker-storage/sr-wsu/archive-source-fresh-container.json",
+      "sha256": "0d66a5475d2a3130dbe0c8a3d535ad5c3f72d899b69ad2e4f25326c8eabea8ac"
+    },
+    "archive-source-restart-probe.log": {
+      "path": "/mnt/docker-storage/sr-wsu/archive-source-restart-probe.log",
+      "sha256": "faabb026b37c56e3ddb73b86cdfc73ef86b1ff49524e3f611b202883cc9034af"
+    },
+    "archive-source-restart-container.json": {
+      "path": "/mnt/docker-storage/sr-wsu/archive-source-restart-container.json",
+      "sha256": "61368450398947341f35421c27fef7d5ee2ee6498ab3defefd7c5e000d98f3f9"
+    },
+    "offline-proof.log": {
+      "path": "/mnt/docker-storage/sr-wsu/offline-proof.log",
+      "sha256": "20bed7d74c169084535cda21633d49efb6f21d5ef6e5f38a2cf5068cc065ff66"
+    },
+    "checkpoint/checksums.txt": {
+      "path": "/mnt/docker-storage/sr-wsu/checkpoint/checksums.txt",
+      "sha256": "db7d4fc2f98633c96877b2ed4d9bdabdbe96c7ffbab74942040f09f4e29ae44c"
+    },
+    "checkpoint-verification.log": {
+      "path": "/mnt/docker-storage/sr-wsu/checkpoint-verification.log",
+      "sha256": "e087d97b8d3f75b0fe02c6ef73560fbdbdebda59e62149f2a6e379bd5cedfa52"
+    },
+    "final-artifact2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/final-artifact2.log",
+      "sha256": "f3bc312c241c76bfb7a1ec62763e30cb3cae25bd8fbc8f4b2d8441b89b92c7dd"
+    },
+    "final-bundled-artifact2.log": {
+      "path": "/mnt/docker-storage/sr-wsu/final-bundled-artifact2.log",
+      "sha256": "03c5fadbd37aa4da3104613c20e9b6c5d3a4d1730b0ec587c4c8eafbd71851b3"
+    },
+    "final-image-audits.log": {
+      "path": "/mnt/docker-storage/sr-wsu/final-image-audits.log",
+      "sha256": "e94671c0fdfbafeae2790e0d54d6c0eb11b4e39a4dea444590711222a63c6925"
+    },
+    "final-runtime-versions.log": {
+      "path": "/mnt/docker-storage/sr-wsu/final-runtime-versions.log",
+      "sha256": "c399b8b66edc5ab2405f36e59085493379d51c3a5f1c9e38e347852bf4f2b216"
+    },
+    "runtime-equivalence.json": {
+      "path": "/mnt/docker-storage/sr-wsu/runtime-equivalence.json",
+      "sha256": "b98a603291830ae769a69855969b938000c327d20a322909839f7a2d49e663c1"
+    },
+    "clean-contexts.json": {
+      "path": "/mnt/docker-storage/sr-wsu/clean-contexts.json",
+      "sha256": "809ede041da0e9be46b276d553ef283ec011508b2f1ee4db59f5765255445b66"
+    },
+    "final-source-closure4.json": {
+      "path": "/mnt/docker-storage/sr-wsu/final-source-closure4.json",
+      "sha256": "ac84704816328d72bcbc49d0810f94f1c4920aeac3233f7f263e90bce1090755"
+    },
+    "final-inventory4.json": {
+      "path": "/mnt/docker-storage/sr-wsu/final-inventory4.json",
+      "sha256": "ff571eab303b3e618d28f3192616faf85272ce3280da307c863f094a1a42f616"
+    },
+    "final-inventory-reconciliation4.json": {
+      "path": "/mnt/docker-storage/sr-wsu/final-inventory-reconciliation4.json",
+      "sha256": "1b06bd33e769bcbe9f809135b0dd9b8a4b8ca667f965b5e87c04e83fccad0abd"
+    },
+    "cleanup-owned.log": {
+      "path": "/mnt/docker-storage/sr-wsu/cleanup-owned.log",
+      "sha256": "62d409191ab2b41e19c83e211612e15a7cc8f8e8bc253bd429dc5274db89c184"
+    },
+    "cleanup-result.json": {
+      "path": "/mnt/docker-storage/sr-wsu/cleanup-result.json",
+      "sha256": "badc518b0ca3bb01d6d48aa8538d84d1f7f2d69c13fc1e3ab8c01beaa2e9c625"
+    },
+    "run-wsu-upgrade.sh": {
+      "path": "/mnt/docker-storage/sr-wsu/run-wsu-upgrade.sh",
+      "sha256": "4e40f10520a6b5440f02c99c8a67d35d8124a73b8d5611a21a823b5c5ed47f1a"
+    },
+    "restore-complete.sh": {
+      "path": "/mnt/docker-storage/sr-wsu/restore-complete.sh",
+      "sha256": "8f9f7e6315b0deec8ba7bb2cf17f51cca5d6b53f3580e371f94a31917bf2fa66"
+    },
+    "restore-archive-source.sh": {
+      "path": "/mnt/docker-storage/sr-wsu/restore-archive-source.sh",
+      "sha256": "6be09fa027279e1d308d288ddff2fdf5c18b06ffb04ff0b95f79cf7eb71cec94"
+    },
+    "start-v5-recovered.sh": {
+      "path": "/mnt/docker-storage/sr-wsu/start-v5-recovered.sh",
+      "sha256": "3199356d478aba72061712ea751951e5904a64033f945dd2e4e35a888c0c2b70"
+    },
+    "run-installed-matrix.sh": {
+      "path": "/mnt/docker-storage/sr-wsu/run-installed-matrix.sh",
+      "sha256": "c12646297e6f03f74e567bb20d679b384ebca0d91513dd3afc0a9a0d012c246b"
+    },
+    "run-integration-smoke.sh": {
+      "path": "/mnt/docker-storage/sr-wsu/run-integration-smoke.sh",
+      "sha256": "692fe551207a1c16448fdc54fbb963f3d7131ed63619f955b9e08b39d418065b"
+    },
+    "audit-final-images.sh": {
+      "path": "/mnt/docker-storage/sr-wsu/audit-final-images.sh",
+      "sha256": "6e08901e8f1da5e1f0136b3cd61de731a3cdefb6824edfd6cc26d69b5f13f8f1"
+    },
+    "verify-source-offline.sh": {
+      "path": "/mnt/docker-storage/sr-wsu/verify-source-offline.sh",
+      "sha256": "aba617555cd6a4ffe9f46048ac66e151cfaaaed668f7c8eb711b09a2955bbbbc"
+    },
+    "final-graph-pdf.log": {
+      "path": "/mnt/docker-storage/sr-wsu/final-graph-pdf.log",
+      "sha256": "1139434325298fc71350a1d29dcd44db1ba53fe46b79926dcdf6fd5e71c3890d"
+    },
+    "final-graph-bundled.log": {
+      "path": "/mnt/docker-storage/sr-wsu/final-graph-bundled.log",
+      "sha256": "effd0266dbf1252108034adcb446da8ad7a08aed0243fcc74de47c85ac01e153"
+    },
+    "final-graph-wsu.log": {
+      "path": "/mnt/docker-storage/sr-wsu/final-graph-wsu.log",
+      "sha256": "f0e64e23c64742ce5e09971996687f7843cf028acdb4250dff58e0bbf4a64d0b"
+    },
+    "final-ast-pdf.json": {
+      "path": "/mnt/docker-storage/sr-wsu/final-ast-pdf.json",
+      "sha256": "cb91e27773ddc146ff5bf0d95eed4ef077cbe42079a86a6396ab7b0354f684c7"
+    },
+    "final-ast-bundled.json": {
+      "path": "/mnt/docker-storage/sr-wsu/final-ast-bundled.json",
+      "sha256": "e8868acaba6234087696b96be932b4da91aa02fd8e05acef2d32e63f8d2ada88"
+    },
+    "final-ast-wsu.json": {
+      "path": "/mnt/docker-storage/sr-wsu/final-ast-wsu.json",
+      "sha256": "48cd42db8607b459c4a5becd7c19df21a9f52632abf4ace2f055989b9716cf43"
+    }
+  }
+}
