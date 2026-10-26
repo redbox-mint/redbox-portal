@@ -13,8 +13,9 @@ export interface FSDriverOptions {
 }
 
 export interface S3DriverOptions {
-  key: string;
-  secret: string;
+  /** Omit explicit credentials to use the AWS default credential provider chain. */
+  key?: string;
+  secret?: string;
   bucket: string;
   region: string;
   endpoint?: string;

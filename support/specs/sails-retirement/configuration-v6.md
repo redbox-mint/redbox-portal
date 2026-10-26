@@ -108,6 +108,13 @@ operational mapping; do not drop them merely to make the converter succeed.
 | `http.middleware`, `hooks`, `globals`, `blueprints`, bootstrap callbacks | Unsupported; port the actual capability to named extension/host lifecycle operations. |
 | `_delete`, `_dontMerge`, service/controller injection and config-time writes | Unsupported in startup data; explicitly replace arrays, declare selected factories and await named bootstrap work. |
 
+S3 disk `key` and `secret` are optional: omit both to use the AWS default
+credential provider chain, or supply both for explicit credentials. This matches
+the storage driver's existing selection. Figshare defaults may omit the
+`embargo.accessRights.embargoType` binding; the configuration model supplies its
+existing `article` binding. Supplied credentials and bindings still require their
+declared types.
+
 ## Environment and command-line inputs
 
 Canonical inputs: `REDBOX_PORT`, `REDBOX_HOSTNAME`, `REDBOX_PUBLIC_URL`,

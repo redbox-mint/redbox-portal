@@ -1530,8 +1530,13 @@
           "description": "A non-empty/truthy result means the record has an active embargo."
         },
         "embargoType": {
-          "$ref": "#/definitions/ValueBinding",
-          "description": "Figshare v2 embargo scope. Must evaluate to `article` or `file`."
+          "description": "Figshare v2 embargo scope. Defaults to the model's article binding when omitted.",
+          "anyOf": [
+            { "$ref": "#/definitions/PathBinding" },
+            { "$ref": "#/definitions/HandlebarsBinding" },
+            { "$ref": "#/definitions/JsonataBinding" },
+            { "$ref": "#/definitions/CrosswalkBinding" }
+          ]
         },
         "fullEmbargoUntil": {
           "anyOf": [
@@ -1550,7 +1555,7 @@
           ]
         }
       },
-      "required": ["accessRights", "embargoType"]
+      "required": ["accessRights"]
     },
     "WriteBackBinding": {
       "type": "object",

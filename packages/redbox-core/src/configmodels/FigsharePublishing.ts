@@ -87,8 +87,8 @@ export interface AuthorLookupRule {
 export interface EmbargoBinding {
   /** A non-empty/truthy result means the record has an active embargo. */
   accessRights: ValueBinding;
-  /** Figshare v2 embargo scope. Must evaluate to `article` or `file`. */
-  embargoType: ValueBinding;
+  /** Figshare v2 embargo scope. Defaults to the model's article binding when omitted. */
+  embargoType?: ValueBinding;
   fullEmbargoUntil?: ValueBinding;
   reason?: ValueBinding;
 }

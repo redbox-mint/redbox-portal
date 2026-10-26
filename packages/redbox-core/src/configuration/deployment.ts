@@ -47,8 +47,8 @@ const disk = z.discriminatedUnion('driver', [
       driver: z.literal('s3'),
       config: z
         .object({
-          key: z.string(),
-          secret: z.string(),
+          key: z.string().optional(),
+          secret: z.string().optional(),
           bucket: z.string().min(1),
           region: z.string().min(1),
           endpoint: z.string().optional(),
