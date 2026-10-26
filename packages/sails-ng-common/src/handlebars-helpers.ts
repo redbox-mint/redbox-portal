@@ -305,14 +305,23 @@ export const handlebarsHelperDefinitions = {
    * Supports ISO date strings and JavaScript Date instances.
    * Replaces lodash template usage like: ${ DateTime.fromISO(data.date).toFormat('dd/MM/yyyy hh:mm a') }
    *
-   * @example {{formatDate lastSaveDate "dd/MM/yyyy hh:mm a"}}
+   * An explicit zone changes the display zone while preserving the instant.
+   * Without a zone, existing host-zone formatting is retained.
+   * @example {{formatDate lastSaveDate "dd/MM/yyyy hh:mm a" "Australia/Sydney"}}
    */
-  formatDate: function (dateValue: string | Date, formatOrOptions?: string | Record<string, unknown>): string {
+  formatDate: function (
+    dateValue: string | Date,
+    formatOrOptions?: string | Record<string, unknown>,
+    zoneOrOptions?: string | Record<string, unknown>
+  ): string {
     if (!dateValue) {
       return '';
     }
     try {
-      const dt = dateValue instanceof Date ? DateTime.fromJSDate(dateValue) : DateTime.fromISO(dateValue);
+      let dt = dateValue instanceof Date ? DateTime.fromJSDate(dateValue) : DateTime.fromISO(dateValue);
+      if (typeof zoneOrOptions === 'string') {
+        dt = dt.setZone(zoneOrOptions);
+      }
       if (!dt.isValid) {
         return String(dateValue);
       }

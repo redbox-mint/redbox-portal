@@ -5,7 +5,7 @@ import { createFormAndWaitForReady, createTestbedModule } from './helpers.spec';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { SaveButtonComponent } from './component/save-button.component';
 import { FormComponentEventBus } from './form-state/events';
-import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { DynamicScriptResponse, FormConfigFrame, isTypeFieldDefinitionName, SaveButtonFieldComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
 
 /**
  * Task 16: End-to-end integration test for the save orchestration flow
@@ -62,8 +62,80 @@ describe('Form Save Flow Integration', () => {
     };
   });
 
+  for (const switchToView of [true, false]) {
+    it(`checks mode after redirect resolution (${switchToView ? 'view then edit' : 'stays in edit'})`, async () => {
+      const saveDefinition = formConfig.componentDefinitions?.[1]?.component;
+      if (!isTypeFieldDefinitionName<SaveButtonFieldComponentDefinitionFrame>(saveDefinition, 'SaveButtonComponent')) {
+        throw new Error('Missing Save config');
+      }
+      saveDefinition.config = { ...saveDefinition.config, redirectLocation: '/record/{{oid}}' };
+      const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
+      const save = formComponent.componentDefArr[1].component as SaveButtonComponent;
+      const saveForm = spyOn(formComponent, 'saveForm');
+      const evaluate = jasmine.createSpy('evaluate').and.returnValue('/record/resolved');
+      let resolve!: (items: DynamicScriptResponse) => void;
+      const compiledItems = new Promise<DynamicScriptResponse>(done => { resolve = done; });
+      const getCompiledItems = spyOn(formComponent, 'getRecordCompiledItems').and.returnValue(compiledItems);
+      const eventBus = TestBed.inject(FormComponentEventBus);
+      const requested: string[] = [];
+      const executed: string[] = [];
+      const submitted: string[] = [];
+      const subscriptions = [
+        eventBus.select$('form.save.requested').subscribe(event => requested.push(event.type)),
+        eventBus.select$('form.save.execute').subscribe(event => executed.push(event.type)),
+        TestBed.inject(Actions).subscribe(action => {
+          if (action.type === FormActions.submitForm.type) submitted.push(action.type);
+        }),
+      ];
+      try {
+        expect(save.disabled()).toBeFalse();
+        const saving = save.save();
+        expect(getCompiledItems).toHaveBeenCalledTimes(1);
+        expect(requested).toEqual([]);
+        if (switchToView) formComponent.editMode.set(false);
+        resolve({ evaluate });
+        await saving;
+        await fixture.whenStable();
+        if (switchToView) {
+          expect(requested).toEqual([]);
+          expect(submitted).toEqual([]);
+          expect(executed).toEqual([]);
+          expect(saveForm).not.toHaveBeenCalled();
+          formComponent.editMode.set(true);
+          fixture.detectChanges();
+          await save.save();
+          await fixture.whenStable();
+        }
+        expect(evaluate).toHaveBeenCalled();
+        expect(requested).toEqual(['form.save.requested']);
+        expect(submitted).toEqual([FormActions.submitForm.type]);
+        expect(executed).toEqual(['form.save.execute']);
+        expect(saveForm).toHaveBeenCalledTimes(1);
+        expect(saveForm).toHaveBeenCalledWith(jasmine.objectContaining({
+          force: true, operation: 'submit-for-review', targetStep: 'next_step',
+          redirectLocation: '/record/resolved', enabledValidationGroups: ['all', 'review-submit'],
+        }));
+      } finally {
+        subscriptions.forEach(subscription => subscription.unsubscribe());
+      }
+    });
+  }
+
+  it('does not publish Save after an immediate redirect promise yields to view mode', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
+    const save = formComponent.componentDefArr[1].component as SaveButtonComponent;
+    const saveForm = spyOn(formComponent, 'saveForm');
+    const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
+    const saving = save.save();
+    formComponent.editMode.set(false);
+    await saving;
+    await fixture.whenStable();
+    expect(publish.calls.allArgs().filter(([event]) => event.type === 'form.save.requested')).toEqual([]);
+    expect(saveForm).not.toHaveBeenCalled();
+  });
+
   it('clicking Save triggers requested -> submitForm -> execute -> FormComponent.saveForm', async () => {
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
 
     // Arrange: observe events and actions across the whole pipeline
     const eventBus = TestBed.inject(FormComponentEventBus);
