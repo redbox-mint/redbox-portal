@@ -1,5 +1,12 @@
 # Sails retirement final review — round 20
 
+> R21 qualification correction: the packed-consumer driver did not explicitly
+> set strict/nonlegacy peer flags inside its temporary consumer, and its retained
+> environment does not prove those settings. Its install/offline/consumer results
+> below remain historical passes; their strict-peer claim is unproven. R21 fixes
+> the driver and repeats all 12 packs / 20 checks with explicit strict flags;
+> all 12 tarballs match R20 byte for byte. See [R21](final-review-r21.md).
+
 **Five NEW class-(A) P2 findings; no P1. All five are fixed. R20 does not pass
 the confirmation gate:** that requires a round finding zero new A/P1/P2 issues.
 SR-055 is reopened for that confirmation. The other three task ticks retain

@@ -1,6 +1,8 @@
 # Sails retirement: v6 task list
 
-Status: **55 of 55 tasks are complete for the recorded qualification scope.**
+Status: **54 of 55 tasks are complete for the recorded qualification scope.**
+SR-055 remains open: R21 found two new introduced P2 issues, now fixed; a
+subsequent round with zero new A/P1/P2 findings is still required.
 WSU is the designated institution. Its authorized released-v5 source fallback,
 converted v6 hook, two-major local topology matrix, installed cutover and complete
 checkpoint recovery pass. Clean final artifacts and inventory closure pass.
@@ -920,17 +922,21 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
 
-  **Status:** reopened for the zero-new-findings confirmation gate. [R20](evidence/final-review-r20.md)
-  finds five introduced P2 issues, fixed by portal `5786b7e77` and WSU
-  `50293cc2`; successful remediation does not make R20 a zero-finding round.
-  Source/installed retirement closure and all 1,261 baseline inventory entries
-  reconcile. Fresh core/root, WSU, dev-tools and tooling suites plus 12 packed
-  artifacts/20 consumer checks pass; exact derivative-image provenance, installed
-  qualification, migration/resolver differential results, inherited limitations
-  and historical coverage are recorded in R20. R19's prior gate-closure claim is
-  superseded. The [institution qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
+  **Status:** open for the zero-new-findings confirmation gate.
+  [R21](evidence/final-review-r21.md) finds two introduced P2 build/CI issues,
+  fixed in WSU `8679736` and `1b9b1ac`; successful remediation does not make R21 a zero-finding
+  round. The complete WSU suite passes 546 tests; dev-tools 60, root tooling 38,
+  focused core loading/ownership 15 and the 1,271-case resolver comparison pass.
+  Source closure and all 1,261 baseline inventory entries reconcile. Twelve
+  byte-identical R20 tarballs pass 20 fresh production/offline consumer checks
+  with explicit strict/nonlegacy peers after portal `15f8a8d58`; R20's original
+  strict-peer claim is qualified. R21 changes build/test/documentation inputs,
+  not core or WSU runtime bodies. R20's full core/root, derivative-image,
+  Mongo 8/9, installed cutover/restoration and migration evidence remain historical,
+  with their provenance and limitations retained. The
+  [institution qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
   retains the authorized local scope and unchecked production acceptance work.
-  A further confirmation round finding zero new A/P1/P2 issues is required.
+  A subsequent confirmation round finding zero new A/P1/P2 issues is required.
 
   **Depends on:** SR-052, SR-053, SR-054, SR-049, SR-050.
 
