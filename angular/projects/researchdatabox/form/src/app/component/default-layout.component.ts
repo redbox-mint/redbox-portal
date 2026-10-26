@@ -37,7 +37,7 @@ import { FormService } from "../form.service";
   @if (componentDefinition) {
     <div class="rb-form-field-layout">
       @if ((getStringProperty('label') || hasHelpText) && isVisible) {
-        <label class="form-label rb-form-field-label">
+        <label class="form-label rb-form-field-label" [attr.for]="labelableControlId">
           @if (getStringProperty('label')) {
             <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next" [ngClass]="labelCssClasses"></span>
           }
