@@ -3,6 +3,9 @@ module.exports = function (config) {
 
   config.set({
     basePath: './',
+    files: process.env.REDBOX_FORM_COMPLETION_TRACE === 'true'
+      ? [{ pattern: require('path').resolve(__dirname, '../../../../support/unit-testing/angular/form-completion-probe.js'), watched: false }]
+      : [],
     frameworks: ['jasmine', '@angular-devkit/build-angular'],
     plugins: [
       require('karma-jasmine'),
