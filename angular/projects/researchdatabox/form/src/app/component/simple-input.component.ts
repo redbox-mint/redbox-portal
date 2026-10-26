@@ -54,6 +54,14 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
     this.placeholder = cfg.placeholder || defaultConfig.placeholder;
   }
 
+  public override setProperty(name: string, value: unknown): void {
+    super.setProperty(name, value);
+    if (name === 'type') {
+      // Keep the native type and the layout's label eligibility in sync.
+      this.inputType = this.getStringProperty('type') || 'text';
+    }
+  }
+
   /**
    * The model associated with this component.
    */

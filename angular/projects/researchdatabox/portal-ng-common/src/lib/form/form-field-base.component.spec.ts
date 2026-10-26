@@ -1,5 +1,5 @@
 import {TestBed} from '@angular/core/testing';
-import {FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
+import {FormFieldComponentStatus, SimpleInputFormComponentDefinitionFrame} from '@researchdatabox/sails-ng-common';
 import {LoggerService} from '../logger.service';
 import {UtilityService} from '../utility.service';
 import {FormFieldCompMapEntry, FormFieldBaseComponent} from './form-field-base.component';
@@ -44,8 +44,11 @@ describe('FormFieldBaseComponent', () => {
 
   it('does not generate label targets for hidden inputs or components with their own label handling', () => {
     expect(component.labelableControlId).toBeUndefined();
+    const hiddenInput: SimpleInputFormComponentDefinitionFrame = {
+      name: 'field', component: { class: 'SimpleInputComponent', config: { type: 'hidden' } }
+    };
     const definitions: FormFieldCompMapEntry['compConfigJson'][] = [
-      { name: 'field', component: { class: 'SimpleInputComponent', config: { type: 'hidden' } as FormFieldCompMapEntry['compConfigJson']['component']['config'] } },
+      hiddenInput,
       { name: 'field', component: { class: 'GroupComponent' } },
       { name: 'field', component: { class: 'CheckboxInputComponent' } },
       { name: 'field', component: { class: 'RadioInputComponent' } },
