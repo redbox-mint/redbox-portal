@@ -549,10 +549,10 @@ export namespace Services {
         await this.ensureInitialized();
         const data: RecordModel = job.attrs.data as RecordModel;
         const coreId = String(_.get(data, 'metaMetadata.searchCore', 'default'));
-        await this.requireIndexSchema(coreId);
         if (!this.clients[coreId]) {
           throw new Error(`Unknown SOLR core: ${coreId}`);
         }
+        await this.requireIndexSchema(coreId);
         // storage_id is used as the main ID in searches
         const solrDocument: SolrDocument = new SolrDocument(data);
         this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'index' });
@@ -747,10 +747,10 @@ export namespace Services {
         await this.ensureInitialized();
         const data = job.attrs.data;
         const coreId = String(_.get(data, 'searchCore', 'default'));
-        await this.requireIndexSchema(coreId);
         if (!this.clients[coreId]) {
           throw new Error(`Unknown SOLR core: ${coreId}`);
         }
+        await this.requireIndexSchema(coreId);
         const solrDocument: SolrDocument = new SolrDocument(data);
         this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'delete' });
         await this.clients[coreId].delete('id', solrDocument.id);

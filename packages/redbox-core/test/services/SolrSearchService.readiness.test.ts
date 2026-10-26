@@ -3,7 +3,12 @@ import * as sinon from 'sinon';
 import { createServer } from 'node:http';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { Services } from '../../src/services/SolrSearchService';
-const axios = require('axios');
+import { SOLR_EXACT_ACL_FIELDS, type SolrCoreSchema, type SolrFieldDefinition } from '../../src/config/solr.config';
+const axios: {
+  create: (options: unknown) => { post: sinon.SinonStub };
+  get: (url: string) => Promise<{ data: unknown }>;
+  post: (url: string, schema: SolrCoreSchema) => Promise<{ data: object }>;
+} = require('axios');
 
 describe('SolrSearchService bootstrap readiness', function () {
   let service: Services.SolrSearchService;
@@ -11,6 +16,7 @@ describe('SolrSearchService bootstrap readiness', function () {
   let writes: sinon.SinonStub;
   let schemaPosts: sinon.SinonStub;
   let gets: sinon.SinonStub;
+  let applySchema: (url: string, schema: SolrCoreSchema) => Promise<{ data: object }>;
   beforeEach(async function () {
     const core = (name: string) => ({
       options: { host: 'solr', port: 8983, core: name },
@@ -36,12 +42,22 @@ describe('SolrSearchService bootstrap readiness', function () {
     setupServiceTestGlobals(sailsMock);
     writes = sinon.stub().resolves({});
     sinon.stub(axios, 'create').returns({ post: writes });
+    const fieldsByCore = new Map<string, SolrFieldDefinition[]>();
     gets = sinon.stub(axios, 'get').callsFake(async (url: string) => ({
       data: url.includes('action=STATUS')
         ? { status: { redbox: { instanceDir: '/redbox' }, other: { instanceDir: '/other' } } }
-        : { schema: { fields: [], dynamicFields: [], copyFields: [] } },
+        : { schema: {
+          fields: structuredClone(fieldsByCore.get(url.split('/solr/')[1].split('/')[0]) ?? []),
+          fieldTypes: [{ name: 'string', class: 'solr.StrField' }],
+          dynamicFields: [], copyFields: [],
+        } },
     }));
-    schemaPosts = sinon.stub(axios, 'post').resolves({ data: {} });
+    applySchema = async (url, schema) => {
+      const coreName = url.split('/solr/')[1].split('/')[0];
+      fieldsByCore.set(coreName, structuredClone(schema['add-field']));
+      return { data: {} };
+    };
+    schemaPosts = sinon.stub(axios, 'post').callsFake(applySchema);
     service = new Services.SolrSearchService();
     await (service as any).processDynamicImports();
   });
@@ -55,11 +71,10 @@ describe('SolrSearchService bootstrap readiness', function () {
 
   it('awaits every core schema before pre-lift init completes and concurrent bootstrap writes run', async function () {
     let release!: () => void;
-    schemaPosts.onSecondCall().returns(
-      new Promise(resolve => {
-        release = () => resolve({ data: {} });
-      })
-    );
+    schemaPosts.onSecondCall().callsFake(async (url: string, schema: SolrCoreSchema) => {
+      await new Promise<void>(resolve => { release = resolve; });
+      return applySchema(url, schema);
+    });
     let initialized = false;
     const init = Promise.resolve(service.init()).then(() => {
       initialized = true;
@@ -70,6 +85,9 @@ describe('SolrSearchService bootstrap readiness', function () {
     expect(initialized).to.equal(false);
     expect(writes.called).to.equal(false);
     expect(schemaPosts.callCount).to.equal(2);
+    for (const call of schemaPosts.getCalls()) {
+      expect(call.args[1]['add-field']).to.deep.include.members(SOLR_EXACT_ACL_FIELDS);
+    }
     release();
     await init;
     expect(await first).to.equal(true);
@@ -79,6 +97,7 @@ describe('SolrSearchService bootstrap readiness', function () {
       'bootstrap-two',
     ]);
     expect(schemaPosts.callCount).to.equal(2);
+    expect(gets.args.filter(args => args[0].includes('/schema?'))).to.have.length(4);
     await sailsMock.on.firstCall.args[1]();
     expect(schemaPosts.callCount).to.equal(2);
     await service.index('queued-after-ready', record());
@@ -100,7 +119,7 @@ describe('SolrSearchService bootstrap readiness', function () {
     ).to.equal(failure);
     expect(await service.index('unindexed', record())).to.equal(false);
     expect(writes.called).to.equal(false);
-    schemaPosts.resolves({ data: {} });
+    schemaPosts.callsFake(applySchema);
     expect(await service.index('retry', record())).to.equal(true);
   });
   it('rejects exhausted core checks without writing or sleeping after the last attempt', async function () {
@@ -170,7 +189,10 @@ describe('SolrSearchService bootstrap readiness', function () {
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(req.url?.includes('action=STATUS')
           ? { status: { redbox: { instanceDir: '/redbox' } } }
-          : { schema: { fields: [], dynamicFields: [], copyFields: [] } }));
+          : { schema: {
+            fields: [], fieldTypes: [{ name: 'string', class: 'solr.StrField' }],
+            dynamicFields: [], copyFields: [],
+          } }));
       });
       await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
       let deadline: ReturnType<typeof setTimeout> | undefined;
