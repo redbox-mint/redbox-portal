@@ -48,6 +48,8 @@ for (const [label, source, count] of [
 
 for (const [label, source, count] of [
   ['known finite conversion', "const names = {'sails.services.planattachmentservice.preserveIds':'wsu.plan.preserveIds'};", 0],
+  ['wrong target for a known conversion', "const names = {'sails.services.planattachmentservice.preserveIds':'wsu.unknown'};", 1],
+  ['evaluated conversion string', "resolve('sails.services.planattachmentservice.preserveIds');", 1],
   ['unknown conversion', "const names = {'sails.services.unknown.run':'wsu.unknown'};", 1],
   ['live access', 'sails.services.planattachmentservice.preserveIds();', 1],
 ]) {

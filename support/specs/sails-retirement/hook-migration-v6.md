@@ -32,6 +32,9 @@ known retired APIs in server EJS blocks under `views/`. It rejects
 `TranslationService`, `BrandingService`, `CacheService` and `sails` member access,
 and ancestor `functions` includes, with file/line locations. Node's root-export
 shorthand is supported; null, types-only and declaration-file targets are rejected.
+The host loads both CommonJS and ESM hooks through `import`; expose an `import`,
+`node` or `default` runtime branch. A `require`-only export is insufficient, and
+the first matching condition takes precedence, including an explicit null.
 The check is static: it neither imports the hook nor requires built output.
 It does not prove that runtime services, persisted declarations or deployment
 bindings have been converted; compile, offline inspection and an installed

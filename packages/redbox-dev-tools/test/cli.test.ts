@@ -194,8 +194,15 @@ describe('cli smoke test', function () {
       [{'.': {types: './dist/index.d.ts'}}, false],
       [{'.': './dist/index.d.ts'}, false],
       [{'.': '../outside.js'}, false],
+      [{'.': {default: null, node: './dist/index.js'}}, false],
+      [{'.': {node: null, default: './dist/index.js'}}, false],
+      [{'.': ['./dist/index.d.ts', './dist/index.js']}, false],
+      [{'.': './dist/index.js', default: './dist/index.js'}, false],
       ['./dist/index.js', true],
-      [{node: {require: './dist/index.cjs'}, types: './dist/index.d.ts'}, true],
+      [{'.': {custom: null, default: './dist/index.js'}}, true],
+      [{'.': [null, '../outside.js', './dist/index.js']}, true],
+      [{node: {require: './dist/index.cjs'}, types: './dist/index.d.ts'}, false],
+      [{node: {import: './dist/index.cjs'}, types: './dist/index.d.ts'}, true],
       [{'.': {import: './dist/index.mjs', require: './dist/index.cjs'}}, true],
     ]) {
       fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
@@ -204,7 +211,7 @@ describe('cli smoke test', function () {
       const result = runCli(['check', '--v6'], tempRoot);
       expect(result.status).to.equal(accepted ? 0 : 1, JSON.stringify(exports) + result.stderr);
       const loaded = spawnSync(process.execPath, ['-e',
-        "if (typeof require('redbox-hook-exports').registerRedboxExtension !== 'function') process.exit(2)"],
+        "import('redbox-hook-exports').then(m => {if (typeof m.registerRedboxExtension !== 'function') process.exit(2)}).catch(() => process.exit(1))"],
         {cwd:tempRoot, encoding:'utf8'});
       expect(loaded.status === 0).to.equal(accepted, JSON.stringify(exports) + loaded.stderr);
     }

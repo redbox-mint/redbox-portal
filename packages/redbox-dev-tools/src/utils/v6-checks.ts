@@ -20,21 +20,37 @@ export function findRetiredFrameworkDependencies(pkg: Record<string, any>): stri
 
 /** Check declarations without importing the hook or requiring a completed build. */
 export function hasRuntimeExtensionExport(exports: unknown, entry: string): boolean {
-  const runtimeTarget = (value: unknown): boolean => {
+  const invalidTarget = Symbol('invalid target');
+  const invalidConfig = Symbol('invalid configuration');
+  type Target = string | null | typeof invalidTarget | typeof invalidConfig;
+  // The host resolves extensions for native import, even when their code is CJS.
+  // Conditional keys are ordered: a selected null must mask later alternatives.
+  const selectTarget = (value: unknown): Target => {
     if (typeof value === 'string')
-      return value.startsWith('./') && !value.split('/').some(part => part === '..' || part === 'node_modules') &&
-        !/\.d\.[cm]?ts$/.test(value);
-    if (Array.isArray(value)) return value.some(runtimeTarget);
-    if (!value || typeof value !== 'object') return false;
-    return Object.entries(value).some(([condition, target]) =>
-      ['node', 'node-addons', 'require', 'import', 'default'].includes(condition) && runtimeTarget(target));
+      return value.startsWith('./') && !value.split('/').some(part => part === '..' || part === 'node_modules')
+        ? value : invalidTarget;
+    if (Array.isArray(value)) {
+      for (const target of value) {
+        const selected = selectTarget(target);
+        if (selected !== null && selected !== invalidTarget) return selected;
+      }
+      return null;
+    }
+    if (value === null) return null;
+    if (typeof value !== 'object') return invalidTarget;
+    if (Object.keys(value).some(key => /^(?:0|[1-9][0-9]*)$/.test(key))) return invalidConfig;
+    for (const [condition, target] of Object.entries(value))
+      if (['node', 'import', 'default'].includes(condition)) return selectTarget(target);
+    return null;
   };
+  let target = exports;
   if (exports && typeof exports === 'object' && !Array.isArray(exports) &&
       Object.keys(exports).some(key => key.startsWith('.'))) {
-    const declared = Object.entries(exports).find(([key]) => key === entry);
-    return declared !== undefined && runtimeTarget(declared[1]);
-  }
-  return entry === '.' && runtimeTarget(exports);
+    if (Object.keys(exports).some(key => !key.startsWith('.'))) return false;
+    target = Object.entries(exports).find(([key]) => key === entry)?.[1];
+  } else if (entry !== '.') return false;
+  const selected = selectTarget(target);
+  return typeof selected === 'string' && !/\.d\.[cm]?ts$/.test(selected);
 }
 
 const retiredViewGlobals: Record<string, string> = {
