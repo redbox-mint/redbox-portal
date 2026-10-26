@@ -563,6 +563,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.recordBaselineState.set(null);
     this.formConflictState.set(null);
     this.formConflictReviewState.set(null);
+    this.manualConflictResolutionPending.set(false);
     this.saveResponse.set(undefined);
     this.resetTemporaryValidationGroupsOnNextChange = false;
     this.allowConflictNavigationOnce = false;
@@ -2114,6 +2115,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (this.manualConflictResolutionPending()) {
       return false;
     }
+    const form = this.form;
+    const loadRevision = this.formLoadRevision;
+    const identity = this.currentFormRecordIdentity();
+    const ownsResolution = () => !this.isDestroyed && this.form === form && this.formLoadRevision === loadRevision &&
+      _isEqual(this.currentFormRecordIdentity(), identity);
     const conflict = this.formConflictState();
     const baseline = this.recordBaselineState();
     if (
@@ -2152,26 +2158,30 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.manualConflictResolutionPending.set(true);
     try {
       const prepared = await this.prepareConflictRetry(reviewing, candidate, 'client-manually-resolved', false);
-      if (!prepared) {
+      if (!ownsResolution() || !prepared) {
         return false;
       }
       // This is local Angular validation/dirtiness, not a force option sent to the API.
       this.form?.markAllAsDirty();
       await this.saveForm(undefined, prepared);
-      return this.saveResponse()?.wasPersisted() === true;
+      return ownsResolution() && this.saveResponse()?.wasPersisted() === true;
     } catch (error) {
-      this.loggerService.error(`${this.logName}: Failed to prepare the manual conflict resolution.`, error);
+      if (ownsResolution()) {
+        this.loggerService.error(`${this.logName}: Failed to prepare the manual conflict resolution.`, error);
+      }
       return false;
     } finally {
-      this.manualConflictResolutionPending.set(false);
-      const unresolved = this.formConflictState();
-      if (unresolved?.status === 'retrying' || unresolved?.status === 'reviewing') {
-        const latestLocal = immutableFormMetadata(this.getPersistedFormValue());
-        const reviewingAgain = { ...unresolved, local: latestLocal, status: 'reviewing' } satisfies FormConflictState;
-        this.formConflictState.set(reviewingAgain);
-        this.formConflictReviewState.set(
-          this.conflictReviewService.project(reviewingAgain, latestLocal, this.componentDefArr)
-        );
+      if (ownsResolution()) {
+        this.manualConflictResolutionPending.set(false);
+        const unresolved = this.formConflictState();
+        if (unresolved?.status === 'retrying' || unresolved?.status === 'reviewing') {
+          const latestLocal = immutableFormMetadata(this.getPersistedFormValue());
+          const reviewingAgain = { ...unresolved, local: latestLocal, status: 'reviewing' } satisfies FormConflictState;
+          this.formConflictState.set(reviewingAgain);
+          this.formConflictReviewState.set(
+            this.conflictReviewService.project(reviewingAgain, latestLocal, this.componentDefArr)
+          );
+        }
       }
     }
   }

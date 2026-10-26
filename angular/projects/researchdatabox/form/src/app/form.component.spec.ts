@@ -16,6 +16,7 @@ import {
   setUpDynamicAssets,
 } from "./helpers.spec";
 import { FormService } from './form.service';
+import { FormServerSyncService, ServerSyncResult } from './form-server-sync.service';
 import {
   FormComponentEventBus,
   createFormDeleteSuccessEvent,
@@ -573,6 +574,85 @@ describe('FormComponent', () => {
     expect(formComponent.conflictState()).toBeNull();
     expect((shell.querySelector('.rb-form-conflict') as HTMLElement).hidden).toBeTrue();
   });
+
+  for (const replacementOid of ['oid-123', 'replacement-oid']) {
+    it(`isolates pending manual conflict resolution when reloading ${replacementOid}`, async () => {
+      const { fixture, formComponent } = await createConcurrencyTestForm();
+      formComponent.form!.get('title')!.setValue('Old local title');
+      formComponent.form!.markAsDirty();
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo(
+        staleSaveResponse({ metadata: { title: 'Old latest title', notes: 'Loaded notes' } })
+      );
+      await formComponent.saveForm();
+      formComponent.reviewConflictChanges();
+      const oldReview = formComponent.conflictReview()!;
+
+      let finishOld!: (result: ServerSyncResult) => void;
+      let finishNew!: (result: ServerSyncResult) => void;
+      const oldSync = new Promise<ServerSyncResult>(resolve => { finishOld = resolve; });
+      const newSync = new Promise<ServerSyncResult>(resolve => { finishNew = resolve; });
+      const sync = TestBed.inject(FormServerSyncService);
+      const apply = sync.applyServerMetadata.bind(sync);
+      let syncCalls = 0;
+      const syncSpy = spyOn(sync, 'applyServerMetadata').and.callFake((...args) => {
+        syncCalls += 1;
+        return syncCalls === 1 ? oldSync : syncCalls === 2 ? newSync : apply(...args);
+      });
+      const oldResolution = formComponent.submitManualConflictResolution({ [oldReview.items[0].id]: 'mine' });
+      expect(formComponent.manualConflictResolutionPending()).toBeTrue();
+
+      const formService = TestBed.inject(FormService);
+      const createComponents = formService.createFormComponentsMap.bind(formService);
+      spyOn(formService, 'createFormComponentsMap').and.callFake(async (...args) => {
+        const map = await createComponents(...args);
+        map.updateConcurrency({
+          entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`, revision: 4, formFingerprint: 'sha256:form_1',
+        });
+        return map;
+      });
+      formComponent.oid.set(replacementOid);
+      await formComponent.downloadAndCreateFormComponents({
+        name: 'concurrency-rebase', type: 'rdmp', componentDefinitions: [
+          { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'New base title' } },
+            component: { class: 'SimpleInputComponent' } },
+          { name: 'notes', model: { class: 'SimpleInputModel', config: { value: 'New notes' } },
+            component: { class: 'SimpleInputComponent' } },
+        ],
+      });
+      expect(formComponent.manualConflictResolutionPending()).toBeFalse();
+
+      formComponent.form!.get('title')!.setValue('New local title');
+      formComponent.form!.markAsDirty();
+      update.and.resolveTo(staleSaveResponse({
+        oid: replacementOid, metadata: { title: 'New latest title', notes: 'New notes' },
+      }));
+      await formComponent.saveForm();
+      formComponent.reviewConflictChanges();
+      const newReview = formComponent.conflictReview()!;
+      update.and.resolveTo(RecordActionResult.fromResponse({ meta: {
+        oid: replacementOid, outcome: 'saved', metadata: { title: 'New local title', notes: 'New notes' },
+        concurrency: { revision: 6, entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`, formFingerprint: 'sha256:form_1' },
+      } }, 200));
+      const newResolution = formComponent.submitManualConflictResolution({ [newReview.items[0].id]: 'mine' });
+      const replacementConflict = formComponent.conflictState();
+      expect(syncSpy).toHaveBeenCalledTimes(2);
+      expect(formComponent.manualConflictResolutionPending()).toBeTrue();
+
+      finishOld({ patched: [], skipped: [] });
+      expect(await oldResolution).toBeFalse();
+      expect(formComponent.manualConflictResolutionPending()).toBeTrue();
+      expect(formComponent.conflictState()).toBe(replacementConflict);
+      expect(formComponent.form!.get('title')!.value).toBe('New local title');
+
+      finishNew({ patched: [], skipped: [] });
+      expect(await newResolution).toBeTrue();
+      expect(formComponent.manualConflictResolutionPending()).toBeFalse();
+      expect(update).toHaveBeenCalledTimes(3);
+      expect(formComponent.recordBaseline()?.oid).toBe(replacementOid);
+      expect(formComponent.conflictState()).toBeNull();
+      fixture.destroy();
+    });
+  }
 
   it('submits mine/latest manual resolution with retained local changes and no force request option', async () => {
     const { formComponent } = await createConcurrencyTestForm();
