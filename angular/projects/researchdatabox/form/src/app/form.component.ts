@@ -1222,6 +1222,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     options?: SaveOperationEventConfig & SaveRedirectEventConfig,
     preparedResolution?: PreparedConflictResolution
   ) {
+    const conflict = this.formConflictState();
+    if (conflict?.status === 'permission-lost' || conflict?.status === 'deleted') {
+      this.eventBus.publish(createFormSaveFailureEvent({
+        error: conflict.status === 'deleted' ? '@form-conflict-deleted-message' : '@form-conflict-permission-lost-message',
+        formScopeId: this.eventScopeId,
+        requestId: conflict.requestId,
+      }));
+      return;
+    }
     const forceSave = options?.force ?? false;
     const operation = options?.operation;
     const targetStep = options?.targetStep ?? '';
@@ -2507,6 +2516,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public canRetryFormLevelServerErrors(): boolean {
+    const status = this.formConflictState()?.status;
+    if (status === 'permission-lost' || status === 'deleted') return false;
     const errors = Object.keys(this.form?.errors ?? {});
     return errors.length > 0 && errors.every(key => key.startsWith('server#')) &&
       Object.values(this.form?.controls ?? {}).every(control => control.valid || control.disabled);
