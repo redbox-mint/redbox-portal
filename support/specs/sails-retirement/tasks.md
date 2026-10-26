@@ -136,7 +136,8 @@ Read the [design](design.md) for behavior and the
   artifacts, configuration, Mongo 8/9 candidates/FCVs, separate stores, local
   S3/Solr/auth topology and production access/release-coverage gaps are explicit.
   [WSU designation and source reasoning](evidence/institution-wsu.md#sr-005--institution-source-decision-and-topology).
-  [R18 review](evidence/final-review-r18.md) confirms this explicitly limited cohort.
+  [R19 review](evidence/final-review-r19.md) confirms this explicitly limited cohort
+  and rechecks the evidence hashes after R18/R19 remediation.
 
   **Depends on:** SR-001, SR-003.
 
@@ -732,8 +733,9 @@ Read the [design](design.md) for behavior and the
   failed-drain retry and restart all pass; both processes exit 0. Actual WSU
   production TLS/auth/set membership is unknown and unqualified, with engine/FCV
   procedures separate. [WSU matrix](evidence/institution-wsu.md#sr-045--installed-wsu-topology-qualification);
-  the corrected WSU `3c764847a` artifact repeats both rows successfully in
-  [R18](evidence/final-review-r18.md).
+  the final corrected WSU `c1c847d` artifact repeats both rows successfully in
+  [R19](evidence/final-review-r19.md), including actual vocabulary migration and
+  normalized notation lookup checks on both majors.
   [historical generic matrix](evidence/p7-qualification.md#sr-045--database-matrix).
 
   **Depends on:** SR-005, SR-002, SR-025, SR-037, SR-044.
@@ -800,8 +802,8 @@ Read the [design](design.md) for behavior and the
 
   **Status:** done for the authorized WSU local-equivalent rehearsal. Released
   v5.0.4 with compatible historical WSU `4996206` upgrades directly to the clean
-  v6 artifact with converted WSU, corrected from `1656f33` to `3c764847a` in
-  [R18](evidence/final-review-r18.md): generated publication HTTP delivery,
+  v6 artifact with converted WSU, corrected through `c1c847d` in
+  [R19](evidence/final-review-r19.md): generated publication HTTP delivery,
   fresh integration, both matrix rows, upgrade/retained reads, readiness, restart
   and stop pass. Real partial-initialization failure and exact four-database
   restoration are repeated with the corrected artifact. The original complete
@@ -909,19 +911,19 @@ Read the [design](design.md) for behavior and the
 - [x] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
 
   **Status:** done for the recorded WSU/local release qualification scope after
-  [R18 remediation](evidence/final-review-r18.md). The clean portal `03c2cbad5`
+  [R19 remediation](evidence/final-review-r19.md). The clean portal `03c2cbad5`
   bare/bundled artifacts and original complete recovery remain historical proof.
-  WSU `3c764847a` is rebuilt from its exact archive on that unchanged runtime;
+  WSU `c1c847d` is rebuilt from its exact archive on that unchanged runtime;
   fresh installed integration (including generated publication HTTP), both Mongo
   rows, cutover/restart/stop and partial-failure/database-restoration checks pass.
-  Final dev-tools `916fd0dad` passes separately rebuilt packed-consumer checks
+  Final dev-tools `60f93bc29` passes separately rebuilt packed-consumer checks
   (12 packs/20 checks), its full suite/build, and source retirement closure.
   All 1,261 baseline files reconcile with zero executable/dependency violations;
   the corrected installed WSU AST/dependency graph also passes. Fresh affected
-  suites: WSU 438, dev-tools 59, root tooling 38. R16's broad suites qualify the
+  suites: WSU 440, dev-tools 59, root tooling 38. R16's broad suites qualify the
   unchanged portal application runtime; they are not new executions. Exact
   artifact provenance, retained historical coverage, failures, cleanup and still
-  unchecked production-only acceptance work are recorded in R18 and
+  unchecked production-only acceptance work are recorded in R19 and
   [WSU final qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
   and [machine results](evidence/institution-wsu-results.json).
   Actual production deployment acceptance is not asserted.

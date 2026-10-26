@@ -13,6 +13,27 @@ rebuilt artifact, generated-file HTTP checks, repeated matrices/cutover and fina
 tooling qualification. The original 66-file evidence ledger remains historical
 and hash verified; its image IDs and counts are not rewritten as new executions.
 
+**R19 confirmation and correction:** [R19](final-review-r19.md) found three
+remaining runtime-export preflight defects and a WSU migration adapter that
+bypassed vocabulary lookup-key normalization. Portal `60f93bc29` and WSU
+`c1c847d` fix them with sensitive regressions. The clean 226-file WSU archive
+rebuild on the unchanged qualified portal/PDF base produced
+`sha256:83b888540e4e7c7732479edeabda854088ddf68fbfb9e2339ae4a52e713c9926`.
+Fresh installed integration (including generated publication HTTP), both Mongo
+8.0.34/FCV 8.0 and 9.0.4/FCV 9.0 rows, actual vocabulary migrations/notation
+lookups, cutover/restart/stop, partial failure and exact four-database restoration
+pass. Full affected suites pass WSU **440**, dev-tools **59**, root tooling **38**;
+the final tooling build and **12 packs/20 consumer checks** pass. Source and
+installed retirement audits have zero violations; all 1,261 baseline files
+reconcile. All original 66 and R18's 83 raw evidence hashes still match.
+[R19 accounting](final-review-r19/review-accounting.json) records inputs, fresh
+results, failures and cleanup. The full original native recovery and broad
+unchanged portal runtime suites below remain historical, not newly executed.
+All four task ticks stand for their authorized local scope; the production-only
+unchecked list below still applies. Both review-built images, six remaining
+service containers and ten attached volumes were removed, and the owned engines
+stopped. The original/sibling checkouts and untracked bytes remain unchanged.
+
 ## SR-005 — Institution, source decision and topology
 
 The portal maintainer designated Western Sydney University (WSU), specifically

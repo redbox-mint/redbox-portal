@@ -1,5 +1,11 @@
 # Sails retirement final review — round 18
 
+**Historical assessment, superseded by [R19](final-review-r19.md).** R19 found
+three additional export-validation defects and one WSU vocabulary-normalization
+defect, fixed them and repeated the affected/installed checks. Read R19 for the
+current gate and four-task disposition; the R18 results below are retained as
+originally recorded.
+
 **Four introduced class-(A) P2 findings; no P1; all four fixed. Zero class-(A)
 P1/P2 findings remain open, so the gate is met after remediation.** This was not
 a zero-finding round. SR-005, SR-045, SR-049 and SR-055 remain checked for their

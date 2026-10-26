@@ -1,0 +1,1548 @@
+{
+  "round": 19,
+  "date": "2026-10-26",
+  "branch": "stack/sails-retirement",
+  "incoming": {
+    "portalBase": "8b049580d",
+    "portalHead": "dbf0bc87f",
+    "wsuBase": "14ab99e",
+    "wsuHead": "3c764847a836a014e9294de0cd76121784627095"
+  },
+  "reviewedFixTree": "60f93bc29912d17236363fbf19bbdbd960f8ffe6",
+  "wsuFixTree": "c1c847ddb4b09673cfff65e5d85f0eb527164f7b",
+  "completeDeltaCommands": [
+    "git diff 8b049580d...60f93bc29912d17236363fbf19bbdbd960f8ffe6",
+    "git -C /home/andrew/src/bitbucket/redbox-hook-wsu-v6 diff 14ab99e...c1c847ddb4b09673cfff65e5d85f0eb527164f7b"
+  ],
+  "findings": [
+    {
+      "id": "R19-01",
+      "class": "A",
+      "priority": "P2",
+      "summary": "Nested export fallthrough rejects valid hooks",
+      "fixedBy": [
+        "60f93bc29912d17236363fbf19bbdbd960f8ffe6"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "R19-02",
+      "class": "A",
+      "priority": "P2",
+      "summary": "Public wildcard exports reject valid hooks",
+      "fixedBy": [
+        "60f93bc29912d17236363fbf19bbdbd960f8ffe6"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "R19-03",
+      "class": "A",
+      "priority": "P2",
+      "summary": "Invalid encoded export targets pass preflight",
+      "fixedBy": [
+        "60f93bc29912d17236363fbf19bbdbd960f8ffe6"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "R19-04",
+      "class": "A",
+      "priority": "P2",
+      "summary": "Vocabulary migration bypasses lookup-key normalization",
+      "fixedBy": [
+        "wsu:c1c847ddb4b09673cfff65e5d85f0eb527164f7b"
+      ],
+      "status": "fixed"
+    }
+  ],
+  "counts": {
+    "introducedP1": 0,
+    "introducedP2": 4,
+    "remainingIntroducedP1P2": 0,
+    "newInheritedGroups": 0,
+    "retainedInheritedGroups": 14
+  },
+  "r18Confirmation": [
+    {
+      "finding": "R18-01",
+      "fixes": [
+        "17f56f6ed"
+      ],
+      "confirmed": true,
+      "sensitivity": "Pre-R18 CLI accepts retired globals/includes; final positive/negative tests pass. Read-only core and WSU views have zero findings."
+    },
+    {
+      "finding": "R18-02",
+      "fixes": [
+        "17f56f6ed",
+        "916fd0dad",
+        "60f93bc29912d17236363fbf19bbdbd960f8ffe6"
+      ],
+      "confirmedAfterR19Completion": true,
+      "sensitivity": "Pre-R18 null-export regression fails. Incoming R19 nested regression and wildcard/encoded probes disagree with Node; final 36 CLI/import cases and 51 resolver cases agree."
+    },
+    {
+      "finding": "R18-03",
+      "fixes": [
+        "wsu:3c764847a"
+      ],
+      "confirmed": true,
+      "sensitivity": "Before route: advertised generated URL returns 404. Final unit/installed generation/HTTP/restart and negative eligibility/path cases pass."
+    },
+    {
+      "finding": "R18-04",
+      "fixes": [
+        "0b8334c5c"
+      ],
+      "confirmed": true,
+      "sensitivity": "Pre-R18 neutral invalid manifest passes. Final dependency/dev/peer/optional section rejection and installed transitive graph controls pass."
+    }
+  ],
+  "toolchain": {
+    "node": "26.11.1",
+    "npm": "11.20.0",
+    "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin"
+  },
+  "suites": [
+    {
+      "name": "dev-tools full",
+      "command": "npm test --prefix packages/redbox-dev-tools",
+      "passing": 59,
+      "exitCode": 0,
+      "log": "devtools-final3.log"
+    },
+    {
+      "name": "dev-tools build",
+      "command": "npm run build --prefix packages/redbox-dev-tools",
+      "exitCode": 0,
+      "log": "devtools-build-final.log"
+    },
+    {
+      "name": "WSU full compile/unit",
+      "cwd": "/home/andrew/src/bitbucket/redbox-hook-wsu-v6",
+      "command": "npm run test:unit",
+      "passing": 440,
+      "exitCode": 0,
+      "log": "wsu-final.log"
+    },
+    {
+      "name": "root tooling full",
+      "command": "node --test test/tooling/*.test.cjs",
+      "passing": 38,
+      "skipped": 0,
+      "exitCode": 0,
+      "log": "tooling-final.log"
+    },
+    {
+      "name": "packed consumer",
+      "command": "bash .tmp/sails-retirement/final-review-r19/packed-final-run.sh",
+      "packs": 12,
+      "checks": 20,
+      "exitCode": 0,
+      "log": "packed-final2.log",
+      "limitation": "Fresh final dev-tools build; existing unchanged qualified outputs for the other packages. Not a full clean archive rebuild of every package."
+    },
+    {
+      "name": "real CLI and actual Node import table",
+      "command": "npm test --prefix packages/redbox-dev-tools -- --grep \"checks runtime export targets\"",
+      "cases": 36,
+      "exitCode": 0,
+      "includedIn": "devtools full"
+    },
+    {
+      "name": "Node resolution differential",
+      "command": "node .tmp/sails-retirement/final-review-r19/export-differential.cjs",
+      "cases": 51,
+      "mismatches": 0,
+      "exitCode": 0,
+      "log": "export-differential.log",
+      "runtimeTypePolicy": "Declaration files are invalid runtime entries, even when the Node resolver returns a URL."
+    },
+    {
+      "name": "read-only template preflights",
+      "command": "node .tmp/sails-retirement/final-review-r19/view-preflights.cjs",
+      "exitCode": 0,
+      "log": "view-preflights-final.log"
+    },
+    {
+      "name": "installed WSU integration",
+      "command": "bash /mnt/docker-storage/sr-wsu/final-review-r19/run-installed.sh redbox-wsu:r19-final smoke smoke.cjs smoke",
+      "exitCode": 0,
+      "log": "smoke.log",
+      "overlays": "Read-only deployment configuration only; no application source/dist/dependencies overlay."
+    }
+  ],
+  "packed": {
+    "node": "v26.11.1",
+    "npm": "11.20.0",
+    "sandbox": "/tmp/redbox-p2-packed-E8xxSV",
+    "artifacts": [
+      {
+        "name": "@researchdatabox/sails-ng-common",
+        "filename": "researchdatabox-sails-ng-common-0.2.1.tgz",
+        "sha256": "6d23632ef3a9f4c59637fc9e8ca44e480e7c87d6218132bf3ca81289c9442a72",
+        "files": 568
+      },
+      {
+        "name": "@researchdatabox/agenda-sqs-backend",
+        "filename": "researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+        "sha256": "76d426e7ab5d9c71af1fff96e528bf800970132eb5ea4431eb7d9a87c2a3720f",
+        "files": 20
+      },
+      {
+        "name": "@researchdatabox/raido-openapi-generated-node",
+        "filename": "researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+        "sha256": "d40363198433495e887285046e26e5a7067917b7e690540e2ccb57ec48d30adf",
+        "files": 12
+      },
+      {
+        "name": "@researchdatabox/rva-registry-openapi-generated-node",
+        "filename": "researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+        "sha256": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d",
+        "files": 11
+      },
+      {
+        "name": "@researchdatabox/redbox-core",
+        "filename": "researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+        "sha256": "ec46ae19dd4c63d8857b67bce726f0589d7f0e493c88002940c490a48af814a9",
+        "files": 2024
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "filename": "researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+        "sha256": "bd52140007cb7d41ed0f5cc8b9b3c198be342ee883565521cec47275db1b5f80",
+        "files": 42
+      },
+      {
+        "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+        "filename": "researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+        "sha256": "e1aee124b43bf4a476cb16effe00f30d290d856063564339b584dd32eadd5a90",
+        "files": 43
+      },
+      {
+        "name": "redbox-hook-dev",
+        "filename": "redbox-hook-dev-1.0.0.tgz",
+        "sha256": "8da96cff08682b094af044fd131d439dc99983479fcb3ff063dc4319846fcb7a",
+        "files": 108
+      },
+      {
+        "name": "@researchdatabox/redbox-dev-tools",
+        "filename": "researchdatabox-redbox-dev-tools-4.5.1.tgz",
+        "sha256": "cf1c03afbab91e2adde5935de37e8903ba3ddb2f77a35e28f990142efcef6887",
+        "files": 88
+      },
+      {
+        "name": "sr-esm-only",
+        "filename": "sr-esm-only-1.0.0.tgz",
+        "sha256": "e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89",
+        "files": 2
+      },
+      {
+        "name": "sr-esm-hook",
+        "filename": "sr-esm-hook-1.0.0.tgz",
+        "sha256": "89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21",
+        "files": 2
+      },
+      {
+        "name": "sr-commonjs-hook",
+        "filename": "sr-commonjs-hook-1.0.0.tgz",
+        "sha256": "60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e",
+        "files": 2
+      }
+    ],
+    "result": {
+      "checks": 20,
+      "providers": [
+        "@researchdatabox/sails-hook-redbox-pdfgen",
+        "@researchdatabox/sails-hook-redbox-storage-mongo",
+        "redbox-hook-dev",
+        "sr-esm-hook",
+        "sr-commonjs-hook"
+      ],
+      "esmOnly": true,
+      "topLevelAwait": true,
+      "offline": true,
+      "isolated": true,
+      "expressHost": true,
+      "development": true,
+      "compiledScaffold": true
+    }
+  },
+  "artifact": {
+    "imageId": "sha256:83b888540e4e7c7732479edeabda854088ddf68fbfb9e2339ae4a52e713c9926",
+    "removedAfterVerification": true,
+    "baseImage": "redbox-portal@sha256:2ce824c3c7bef21b866a099481eb31494b087a182e56fa4a82237792f0a6e7c7",
+    "basePortalCommit": "03c2cbad5",
+    "sourceCommit": "c1c847ddb4b09673cfff65e5d85f0eb527164f7b",
+    "sourceArchiveDirectory": "/mnt/docker-storage/sr-wsu/final-review-r19/hook-source",
+    "sourceArchiveFiles": 226,
+    "sourceArchiveSha256": {
+      ".circleci/config.yml": "d83f26ea23c912ea06649abae54ad2a58e04262b85f9fa0e2c28c9e1b4f13ece",
+      ".dockerignore": "25c243d9ca3d1c85a88111089ee3d14c1d12206eacff24477b9df20387e232a3",
+      ".gitattributes": "07882a8e9daea7d699b33b9361d8a6f26280a839e9f7f8c04473745286356091",
+      ".gitignore": "adf75f241eef9acba79630fa7888705e546f4fd00a42a7df67ca8bdc87c60520",
+      ".npmignore": "55321c7e7cbc4deaf8d8ce0bd5d0acf73068610b5b9f89ac7454138906a8e951",
+      ".npmrc": "3a5e3bb5ed915f8d52c92b3173b4de25f64ef5e44f10fb3f7a7ceed93c0826fe",
+      ".nvmrc": "68ca3fba3b7e864770cb61aeb306d4bd4354b68ab4dd38450860c5d823e42a53",
+      "AGENTS.md": "b502835abdc4bbc1a799568b97bdf0d84ec16704b1db2ed3fc7871f10c8040a3",
+      "APPN and HDA Support - revised.docx": "c37f407e6e31987aeeb74126d2f659b33649110b70c75412673d84df4618c9fd",
+      "Dockerfile": "1470096a544d2977b7ef1a924daf412506667282889ef4a4dce16706cb137076",
+      "README.md": "fd9763f5b41d10f8ec445f9326085f4ff21e1103c7671a3b40e0b2e5514d5adf",
+      "TODO.md": "4f4ff2645eb4823dd8afc5487b829e8d1dacc8ec80c4e88ed85438e7196efe27",
+      "assets/favicon.ico": "e439ba9ab04b8843bc9a8a084688626c1e1831cace92f58eb57d32b6bc2a7b9d",
+      "assets/fonts/.gitkeep": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "assets/images/logo.png": "936e3a2934dc7cb5fa9ebddaeb920c4441bf61c1fae58bd1d6f6700c6936253d",
+      "assets/styles/wsu-branding.css": "809ff39a7365b92a5ba1c1d4ad727c634133756b656dbf1ff0bcd70367e61e34",
+      "bootstrap-data/namedqueries/listInstrumentRecords.json": "683653c6c3921abb86d08b5055fb5855fcc090560d030b1ba328affbb9424b3e",
+      "bootstrap-data/namedqueries/listRDMPRecords.json": "acf72103dde798c5f705dde968a3c866776a52383a755a95dfb9a39787c9ee36",
+      "bootstrap-data/namedqueries/listRORRecords.json": "4862102b2df7d2764eec8f1ce2bdb2f84b7dad602c89fec3a8629a8ebd51cf36",
+      "bootstrap-data/namedqueries/listSeenUsers.json": "f0db0482b76fb130060fe65ba4c3e925e378d294c964e79fe4da7f27e0c5ec93",
+      "bootstrap-data/records/ror.json": "a0c874c1181939bb8e0491a8d66528da32a1de53ca7201d6479dcecc51103562",
+      "bootstrap-data/reports/dataPublications.json": "55c38413c137181bce130eb97b31be5cb46097d61af48702f26511d7db87abf8",
+      "bootstrap-data/reports/dataRecords.json": "e77b0df30f1343be7ea407223a97760a6fc4d11c3126d8a2e1bfd7f7890db4c5",
+      "bootstrap-data/reports/embargoedDataPublications.json": "ad1780dbef1e41ccaec4c0c81ea15adb73aa2d1c22f35828cbe063c2eb64814b",
+      "bootstrap-data/reports/rdmpRecords.json": "cdf37e7a85f926286f31bc8e475e08dde74d6535e26666552b72b53fe2ef780b",
+      "bootstrap-data/reports/workspaces.json": "5f47ed1c7ebaf5f14f769d40c73379a2dc36c01a60e728c4c789fe573405a161",
+      "bootstrap-data/vocabularies/data-publication-access-rights.json": "3cf46cc96775368e7612a112e1d60cf864b6747ac7a9f5e89127e8e7ca34ee79",
+      "bootstrap-data/vocabularies/data-publication-datatypes.json": "e4cde812244d24897bb969c0374ec86f1510094002b45eab8571e364f4459867",
+      "bootstrap-data/vocabularies/data-publication-request-identifiers.json": "870dc3ede3d95723a1377fb557d6f3f024a45c08ff9f0602e5b282abaafbcabe",
+      "bootstrap-data/vocabularies/data-record-datatypes.json": "b7bf9ec1c982bd2261130d86a7fb675563710b512585a6b18773baca00bfa8a8",
+      "bootstrap-data/vocabularies/data-record-retention-period.json": "008833c03ed1972869196effaaedd43d8489701391605259a215d0f21734fc54",
+      "bootstrap-data/vocabularies/data-record-retention-reason.json": "b49900ccfd2c596eed70dfd59da0817e4cf6f7c6d56ad1a40b3be89fa3ac33b7",
+      "bootstrap-data/vocabularies/instrument-doi-minting.json": "af11157a42e5504c79615c347e6d25c91d6742d0ff1e0f761a4c58e297ca9975",
+      "bootstrap-data/vocabularies/instrument-types.json": "cf2359fed4d33bb525141f8a4608d5c293c705182db5039ecf22547fcf106111",
+      "bootstrap-data/vocabularies/license-identifiers.json": "c3b313d43b35d424f68cef3130b1312a1fc3fc224abb1ea9cb627c9efe6f57a0",
+      "bootstrap-data/vocabularies/rdmp-copyright-owners.json": "77daa674d5787017d8db6edb2233cbee17368ab39be559898ba5e4eeb54a0e65",
+      "bootstrap-data/vocabularies/rdmp-data-retention.json": "743111f62248b57138acaafe5680a2ecd3fa7c43f5c2c9e9095853ee2014f02d",
+      "bootstrap-data/vocabularies/rdmp-dataset-extent.json": "112f57863ee10d23d7ceeee7489691e5d86879e70efdba338574dd0c098bc65a",
+      "bootstrap-data/vocabularies/rdmp-dataset-location.json": "2dfa2f7c412434c80dff7838883de054a3c72cea924645cc69da17d5ef575f8d",
+      "bootstrap-data/vocabularies/rdmp-ethics-approval-required.json": "a79c4947507005b02cc644125a8f0d35d0dc1ab84c2497d1a2f1439d6c37b62e",
+      "bootstrap-data/vocabularies/rdmp-ethics-approval-type.json": "9f9620d6501a8d92fc4defeb79353f03f2b1250706d32a0f88273505b4b6ea46",
+      "bootstrap-data/vocabularies/rdmp-ethics-consent-sought.json": "8c7db4bf7716007c330dab0792b542fc45a3b81fe347722b8fa3208eb1e5505a",
+      "bootstrap-data/vocabularies/rdmp-post-retention-action.json": "8d45524c379fb9a2f01137dd240e99071bc6b5cb5af9f3fe1c3f9ab978827ea0",
+      "bootstrap-data/vocabularies/rdmp-protective-markings.json": "de908d8eb942d7de51ae2c28a18784fab50a92b6d21eee14698237c16ccdbbed",
+      "bootstrap-data/vocabularies/rdmp-researcher-access.json": "5492f1c2fc4a895cbccffb86dc2e2bcb62baa793e1a386409fc8766c96bc0e0a",
+      "bootstrap-data/vocabularies/rdmp-schools-and-institutes.json": "0168ec801930af0542312e4d9791e4316a9a95c9e3f24b8d103d752ca34f4066",
+      "bootstrap-data/vocabularies/ror-external-id-types.json": "7deae25aa9067caf233a6fcc612200483e113ce88620cf69289fd00c79d0e3ec",
+      "bootstrap-data/vocabularies/ror-link-types.json": "3ea0a676b9eee0809ff9046111704d5c1fe424d971b62def46fc59884bf21002",
+      "bootstrap-data/vocabularies/ror-relationship-types.json": "68507fd7e71e73db294dfb3a7e1ac13ba1f57b96a8c7ff2dd5e6160e251aec6e",
+      "bootstrap-data/vocabularies/ror-status.json": "26c024f0c72593843f72c57f236eb5baad4f8318696b5f3b917b089347929dc1",
+      "bootstrap-data/vocabularies/rva-imports.json": "1cce96bda2fb3be1b5739917a3a03376815f7abdcaa7fdc96333d9f4a9e863f3",
+      "docs/dashboard-sorting.md": "587852466cf8d5452bba49eedb05b2f52fab488eccc5c1548b44db124d9b7636",
+      "language-defaults/.gitkeep": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "language-defaults/en/translation.json": "e68cab70c5a03ce0e9489fdf784660792b323f1d4957b1e3f66349275bf0c5d2",
+      "language-defaults/meta.json": "dabeaf376552ff0b4b1b07986be48829d7694cefc580b93bd147c631a3db6827",
+      "legacy-form-config/form-config/utils.js": "524aba997cc71977e5aa46cb50b11f33bc032f4ea22544b0eb7a5194561ae2d8",
+      "legacy-form-config/form-config/wsu-dataPublication-1.0.js": "a06d7071055207ced4f875a0bc935a0813da2819d179cf7461273467b93df506",
+      "legacy-form-config/form-config/wsu-dataRecord-1.0-archived.js": "3bf8c5ff3b39e0d2327f57bcb781d423f1745dfcc853f1394ab0a23b844c8149",
+      "legacy-form-config/form-config/wsu-dataRecord-1.0-draft.js": "f781efa7d01644be1e480dc0564b8595f99c67cfbb00d71a3072e8b7540f7540",
+      "legacy-form-config/form-config/wsu-rdmp-archived-1.0.js": "d8ada1652782d2eb11f619a2c0660b1d9a59f828097b519aa4e371129da8126d",
+      "legacy-form-config/form-config/wsu-rdmp-draft-1.0.js": "f68ab4835dc620b97e7835f883107ecbec2cbae212b89a6ac6f45346ffe8618a",
+      "legacy-form-config/pub-form-config/datapublication-pdf-button-1.0.js": "3a0b8740037769b36c3b85a3d9b9605ff89c8ba1965f21ae7fa9fd5cf87f324f",
+      "legacy-form-config/pub-form-config/header-view-only-1.0.js": "3635e9499e4fb058e3508d16a33ca8bec42f118e0de728c6e53ce9518d13d574",
+      "legacy-form-config/pub-form-config/hievId-1.0.js": "1a7f4d41f7f1412029cad11e8e8e5637972c2cae43d8c73c4583538bda7535a6",
+      "legacy-form-config/pub-form-config/rdmpId-1.0.js": "fc7e23ba4c8ac5d850a70d3bcd8451c61443043be05bb68e44c49c8832ccc7aa",
+      "package-lock.json": "439555dd414b2fdcca1cbd07e4c4ea046b5af7b46e4c42092277c06f21e7f075",
+      "package.json": "6928a960933b0847082a51c4f0eb2897d020010315f03853c48d3c95bc198263",
+      "renovate.json": "f1f6e50e398a37f8e73e4931f8c0305602bc21a44efede34987ca83d638456f0",
+      "src/api/services/MetadataOutputsTriggerService.ts": "8695ed996327696fa0b47ff783e2c6bcc86793e22199acbf05a0bb9513760cf5",
+      "src/api/services/PlanAttachmentService.ts": "0567c844926b01af8e599d9223038681481d0ff91fb54a900545f25fad6e817f",
+      "src/api/services/PublicationEmbargoService.ts": "f8f70f091614ab0acb9797e4e8be2958d4757ebeabaf8da1bdc3c711486e448f",
+      "src/config/adminSidebar.ts": "41ee2349ca9e7f9e7f6db8aae6e325afebd63196a1bdfee87aef4c91d405490a",
+      "src/config/agendaQueue.ts": "bd0de4372c0fb7dce9e2585edbcdfe2b4a6ef2d5c176b9c5a397d59388574043",
+      "src/config/bootstrap.ts": "d3bd9dee4ed6084ffc0f3010849b8fe146a1b9192d97598a25586971dac20423",
+      "src/config/brandingConfigurationDefaults.ts": "2b91b311a4d16944165c97b075ac6729b9598de97faa9320575e3516567d8794",
+      "src/config/dashboard-columns.ts": "cc1296c056d790a085435a375aeea049fb5fd021682b946de0e5c0e0a2954187",
+      "src/config/dashboardtype.ts": "376ad7b1940f2db9811640644e07319c358b9dfd0068dadf5954e037b498ca95",
+      "src/config/datapublication-recordtype.ts": "52d0550c4faae84d0138b02b48982976f22704ee1c25975062f746b294db926d",
+      "src/config/datarecord-dashboard.ts": "1b16f6e4ed4d7d3bcee0f37b29b58e01d7faa8163d7ce66022bfdc19d05953bb",
+      "src/config/datarecord-recordtype.ts": "b5834dbfbac3647f5861b033694a8606fcf16661848b200ca656e23044568f93",
+      "src/config/doiPublishing.ts": "249a6e7bf71a79686b134702cb29173eb58f5f734b069310e89e85dcdfa0371f",
+      "src/config/external-managing-organisations.ts": "a575c836819b41f3ab3b9778d157a98b038657ecb80048e562089e054867d896",
+      "src/config/instrument-recordtype.ts": "65d3e5384db8fbdf174b639d2041c0a4350f173ab56beda12422f2aff3567917",
+      "src/config/rdmp-dashboard.ts": "2a5200e9cb71c8e52fe1200f49846de8e5665dfa02a28626683cda15c1ca0ccc",
+      "src/config/rdmp-recordtype.ts": "7bc4904170f65e1b7c16c04469c2c8dadd491a219f12d4629ddc905a52c44b39",
+      "src/config/record.ts": "979e758455325025ebd8f0db0091c6ed62323af46b87fa8bf509d03bd0122bcd",
+      "src/config/recordtypes.ts": "eead2c73755a1c7a77abd9eb0c02b22e348845c4c23df5a60989ceb278cf920c",
+      "src/config/reusableFormDefinitions.ts": "f740e4d646a4ca6472941bfb10b3fb51250a96f505d10658b77fb4f0ffba43a3",
+      "src/config/ror-recordtype.ts": "5c3adb10305ff37696d017d8d9bf164ed757055dbe51660bec9a9bdf2d28c987",
+      "src/config/ror-workflow.ts": "f808ae866db2ff0b59fbca5ef7bdd2f7c51efc179741f7db8a37b6fda22a49ee",
+      "src/config/solr.ts": "fe03540be52affc4221e74aea24f6e2fc13c1a0296559694c085ac69f6eef53d",
+      "src/config/static_assets.ts": "4c9dbc9207f68d97970328c821336f6d9a50bff683cf0ea92d646bf8bed5fe88",
+      "src/config/storage.ts": "32af9669d9f6f220d3bdc8da65e05a0fe23f05dfc6763e330c0096aa990d7b36",
+      "src/config/vocab.ts": "e3f7efec8f7e721c40010d4381250147c846bb4d3c07be571fd92e1cc81e13fc",
+      "src/config/workflows.ts": "f4e2992eb8cd30716f181cfc5059421734eac1144b04cc0a267fbb6f61b9e769",
+      "src/contributor-persistence.ts": "b4c4c4c563c4955c3e9e995877982a503428a643abfcaf779cb0e2c7d7f15a8e",
+      "src/deployment.ts": "26ef38bd3ddb677e4af8be57738919a3b5c008c4a7f2e4393d34b48744e25612",
+      "src/form-config/dataPublication-1.0-draft.ts": "0e91d00e208a8e7b10244e48a7f0447f573928e1dd2fdb542d89c6d511813c53",
+      "src/form-config/dataPublication-1.0-embargoed.ts": "a533e11e558f8a04db2ad164e37f48fd72a8e3a3b99b4a0440bdea1314e1dd96",
+      "src/form-config/dataPublication-1.0-published.ts": "dd769eb495293633e84a285f9cfcdddbefebe5f33bf9796675dee08455626923",
+      "src/form-config/dataPublication-1.0-queued.ts": "32f8c1ae8ebe4090999501ca23ba67c21fbb2cf389df8a535f8ff80c6ac37d2a",
+      "src/form-config/dataPublication-1.0-retired.ts": "83651a1195255b78407bdeb14473302fa552685c102f5bb3a072cf3e4fbdf0c9",
+      "src/form-config/dataRecord-1.0-archived.ts": "4f81c62caa6b350f1c8fe290572c3bc414080c773a7f96b0788f699301ef840e",
+      "src/form-config/dataRecord-1.0-draft.ts": "f512b172980ef0b0572b0c83e37e85486dd4b92c4154313cabd1295dd3cdb3d9",
+      "src/form-config/default-1.0-archived.ts": "4fe5403ac09518a9edbec3f0f846d7cc0a5ad017483ef1b1156e33c5bd044dfe",
+      "src/form-config/default-1.0-draft.ts": "eeaed1550a2f0ee92131f2424af71c0a0814681d48f295a553990603955cae4a",
+      "src/form-config/index.ts": "632d765396b0f98732ee4a9f05afd42d3c0f323474709d2128ac2969204988b8",
+      "src/form-config/instrument-1.0-draft.ts": "d6d7e7c246ce368f2d5c2921050a39b317f11caaa1d5577cc6fea94d55b0480b",
+      "src/form-config/instrument-1.0-published.ts": "c95924134468cee929b3590a3a4d28d1afe41ad17f7c624ce5841b5b3ec17f90",
+      "src/form-config/instrument-form.ts": "15a50edf897c09f9763f48ecd360e366d4e1825b6b2decfcce02f25688f901ec",
+      "src/form-config/migrated-form.ts": "45a7f7421a676ae65abf0246f7d15013eb98815ea85d4a52e5e34e4a33ffdb7d",
+      "src/form-config/orcid.ts": "650ac78dfba92c8457b1ad9fc872b9a27c9444454b73c9d19cbfffc0f98118b3",
+      "src/form-config/rdmp-ethics.ts": "6ee28072f0e1ac7d8335538051f523e912417043f5da2995531f619d5650ddc5",
+      "src/form-config/ror-1.0-draft.ts": "df88c72b7c0c445e370af3acee7e27e7526135b5da5ac7510d2a7dfa14c4b5b4",
+      "src/handlers.ts": "21738c223bf05e7e474a6d0fa80130e78c91f44a7afe8bd013d11729a2576f9c",
+      "src/index.ts": "edf175a636f9b662c6b32079c4cfe51742b6dba63c889162815d6250bd15538f",
+      "src/migration-data.ts": "20009a0ee1912223d08d76fd79388f5ff0d63018c74eb0163007a60ade77ba6c",
+      "src/migrations/2026.07.21T000000-set-wsu-branding-variables.ts": "faf4f9bd5835b26964432ec2d33d7ab7ded22af3953a960881b8dd24297bcde7",
+      "src/migrations/2026.07.21T010000-repair-wsu-branding-variables.ts": "394fe2a9b4e36946eebe2186b68e4ac3807cb35101c6b7e5eadb0a6bc778bf96",
+      "src/migrations/2026.08.25T010000-seed-wsu-doi-appconfig.ts": "6d77a2dac2e6ab7873af0bc7f83d8652df2346e0553fa0b593059d86e3850f52",
+      "src/migrations/2026.08.31T000000-upsert-reports.ts": "62850dbac924cdf545ace620c54f335d7846a8005ca36daeabe90d84457b917b",
+      "src/migrations/2026.09.01T000000-migrate-vocabulary-values.ts": "1db0a85a7fd7ff8d088c07fc98984313fa35e1b5d1235e72d9dab2d2a8d8f62d",
+      "src/migrations/2026.09.01T010000-repair-vocabulary-values.ts": "96791d3854fc980934f4c16fa9d43bda4ad0c7ea0f4d86be32a2825397b960e4",
+      "src/migrations/2026.09.02T000000-seed-instrument-namedqueries.ts": "7b6a1e17121db0df2415063125346dde82349419f14686615eef0720828dfb8d",
+      "src/migrations/2026.09.02T010000-seed-instrument-doi-profile.ts": "1968c71fdb11320a2b6f18c389f06a25ce975c935b112fc92ebeb0521bbf679f",
+      "src/migrations/2026.09.03T000000-migrate-legacy-records.ts": "2cdca4a03eae7909ba07de6517d10194097f922e9e95a474d83710ef1416b270",
+      "src/migrations/2026.09.03T010000-repair-data-publication-citations.ts": "9f97bdbb9fa940e4046daf801d285be1b304beac69b2d8744a275b3307e5f2b5",
+      "src/migrations/2026.09.03T020000-repair-legacy-harvest-ids.ts": "e7f2412e79f0ec02247f314d9d4eb453ca952046f72532c18e138174e8a4bee2",
+      "src/migrations/2026.09.08T000000-populate-dr-coverage-from-linked-dp.ts": "099f22100732d7f1d5318f22907b005f115304dc069e0a8306becaa49d209d26",
+      "src/migrations/2026.09.09T000000-migrate-appn-managing-organisation.ts": "ced5ae9c4b4c6a6e6fcef20a70b62c9a2c2f5546a4b220814e7a4217181664dc",
+      "src/migrations/2026.09.09T010000-seed-ror-namedqueries.ts": "10129999c79657c9446bb04459d66a597a53d8e426b4a519a7e8d398ba98c637",
+      "src/migrations/2026.09.09T020000-repair-ror-lookup-priority.ts": "d5b2b361829c64c7dd43d2e29327a502d1d3d592f5b40b8eec28c2cb59af9feb",
+      "src/migrations/2026.09.09T030000-repair-ror-lookup-search.ts": "e18aca5b12dd218468c6947b0ae643ef70493299159c381906d105d90efaf296",
+      "src/migrations/2026.10.19T000000-migrate-report-templates.ts": "95d1a0e61b87202b22a9c6247f9ad1b1f92c5d61495530fd95b2d9c1bf9d07df",
+      "src/migrations/2026.10.22T000000-backfill-selected-archive-coverage.ts": "1b4fa3879428f165d12b704ff6c020686f04cd4350cb22a3ccb2e9d5e9cb6ba8",
+      "src/migrations/2026.10.22T010000-plan-pdf-dashboard.ts": "08c5775a2ee67b3ca7bdd79059ea9106aa700cce3071a03cb917f8a8b8e60d9b",
+      "src/migrations/2026.10.22T020000-data-record-modified-sort.ts": "2b01d2d8b501c9684e2b3ef50cedded1fb91b317dfcf1757cb3a3d0634841c1b",
+      "src/migrations/2026.10.22T030000-rdmp-id-lists.ts": "a6521d182d5f2864e91c143fff5c4a358800e52e2432203565350fc95fd553d9",
+      "src/migrations/2026.10.23T000000-dashboard-sorting.ts": "f07f49a599190a023a883ae61ae4bf375fe7884bc18600e0d0c77fa4f7cae1ee",
+      "src/migrations/2026.10.23T010000-dashboard-contributor-names.ts": "fabeace6f53b3e9d5a047ff9a00f3d3d26c0d6b351fad5a1ffe63f914cc2479e",
+      "src/migrations/2026.10.23T020000-remove-plan-pdf-dashboard-links.ts": "3e1c620820dc97c513d4b5024b3ceab58841fb8dd9dadfbc100345e3f3900aa4",
+      "src/migrations/index.ts": "1285d7760e0dc49126255e0ad5cb520a70ed088f11b1cd9e5ca3ddeba2d95f3c",
+      "src/migrations/legacy-datapublication-v5-form.ts": "4a1553fe8df4bf5a358bf1ca9f9aaf813e3652bd18aea38f2ad36e88f3b00f3c",
+      "src/migrations/legacy-datarecord-v5-form.ts": "4633feb85a727d68b36ec56b6ed3698111d227379f095d3f500108117f1452d4",
+      "src/migrations/legacy-rdmp-v5-form.ts": "845c56e825af3078a29c99eeb4a93ba6f2099e2be8e2f57f060d8746c6800350",
+      "src/migrations/legacy-record-utils.ts": "0bb5193d91176e5b77cf7c21956c53b8a1e68679ace14f23a17a99ab8ff9927d",
+      "src/migrations/seed-namedqueries.ts": "5745aed88de087090dfb028bc930d2713c207417785ae8501676a180375375d6",
+      "src/plan-attachments.ts": "510e87c0527cf2763a5a4197bb39ceb3d11ba506c3a8eb72235091fad34a2762",
+      "src/plan-pdf.ts": "d021c190b8309563dc4e8b4654a86ebfb03a90c208a5b5004dcba97cd5f33896",
+      "src/publication-embargo.ts": "be8cdfdf0cb4e577f42a94950c2b8d9c22a1575f4696f5aaf2bdf9ad2619c50a",
+      "src/publication-files.ts": "9d03bc74c7eb0b164d5e7a83031cbaf3ad4d5b6cdc49488ec997f86d2f38b887",
+      "src/rifcs-contributors.ts": "be2558ea786d9aa9e54057b71d1d3ad179e9e367254d17949fd21aa3ef6a88f0",
+      "support/bootstrap-data/.gitkeep": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "support/build/build_local.sh": "534fe28a36483931cc9e599eac80fb500d6e6d4939056bb7f13fc1779b90f654",
+      "support/build/docker-build-vars.sh": "b9536054651e9a92006aa5d24250fff4608a884a8b8113c7582e9a238223ebec",
+      "support/build/nexus_deploy.sh": "8a9bf3340124a50cfb4760f7097c5a26528a4f56d2a24d3928de7f861c35ad0f",
+      "support/build/nexus_publish_manifest.sh": "dbe5140d6ba296c83d3bdc39e14c5695378c8cfe0723242caef7699babdd3645",
+      "support/development/docker-compose.core-mount.yml": "20cad6b22edad00ce667c4d169167fabbc879fd73bc25d828a9177afbafca577",
+      "support/development/docker-compose.yml": "31578d93a8328e0f0d1b047631467d813b12489737efdbffd6c9590703ff5997",
+      "support/development/prepare-core-mount.sh": "c762306eadd456af2a12e4944d44461b4ec8fc0a9dcb34aad673b87af4b0b383",
+      "support/integration-testing/bootstrap.test.ts": "c8e82a98b1195197a6c15ff9ddb2d46ffd78d4e21578f73e274a6469aa21e13a",
+      "support/integration-testing/docker-compose.mocha.yml": "0ffc1c749bf91652bf13f8b4d044de9c7e7ddf2ff9cb5778447bfba2c675b12a",
+      "support/integration-testing/run-mocha-hook.sh": "06ccecdf54e10f18985109e8ca4865dfbc00a40a6a4d5f14dabea9054146cb4f",
+      "support/integration-testing/run-mocha-redbox.sh": "c762306eadd456af2a12e4944d44461b4ec8fc0a9dcb34aad673b87af4b0b383",
+      "support/prepare-s3.sh": "c548cb639dc40378cc5a4a3d5476690c2a64f3b26e8b8b2cb69a8ed28426be0b",
+      "support/v6/README.md": "bbfccb50c1b3e085e76e2c8ee4f1f0670cbfc4aee6468abb8712ea874527f2c7",
+      "support/v6/app.cjs": "2feb9f13b2bd86ff7545f54b23f40970100d8f4798629bf9c9c8a536ace05954",
+      "support/v6/application.cjs": "591ce1c0c7c185050e63e3e3f1533ccb3126fbe40cd1ea71acc1db2900076699",
+      "support/v6/docker-compose.test.yml": "aff384c4b673e44019dae82a8b5c1305392fa06997163c0835fabe1a592c0b26",
+      "support/v6/test.cjs": "9a00250b83d02892b4c62e3dc1383e6d588a176fe2c3f6c959de991905975e1b",
+      "support/v6/verify.cjs": "c95e12b281cdacf58bbff5573dd22e11daf346b456f34360c15bf70851e3e235",
+      "templates/pubtemplate.ejs": "27b4d6a47ca5b4e8c460ce6300f825796c8b6f5ffb11a876cafd745973d4033a",
+      "test/integration/hook-registration.test.ts": "57449f6f495e5f675b24cdade9036cb5fb0caeb9bb2e0634f2c6ac5fbd59f7dd",
+      "test/integration/solr-bootstrap.test.ts": "4c64e86a7233b5aa138eda7b2f5a955976542d3a0da337d06f51bf79b00bd842",
+      "test/support/globals.ts": "449f5a976468e1e923e8a1aeb6b1e71db9d91c34a06ca87c49539e2c1ef22670",
+      "test/support/migration-ports.ts": "df0943ca87b2530553f75b78983df67d15124692c691ab386b2130d06ce3c6f1",
+      "test/tsconfig.json": "b0af9cce575b1263f6d8193f62a3190e33034d39778de96859871a913a4d6f15",
+      "test/unit/.mocharc.cjs": "23d34ff2cfdcf46b9e7c4fd0964d72989e544b5e7c227de04b4033c87f203407",
+      "test/unit/controllers/LegacyMappingController.test.ts": "4173d1dbed2e516cce749f559cf4c81614abccee866543a321dcfad11ab7b1b1",
+      "test/unit/data-publication-form.test.ts": "e456a27da6c947f5862d44a7e7435dc647cba2e675926d1f9c99bfbb42c036b1",
+      "test/unit/data-publication-metadata.test.ts": "57eefcbfdf6f173752799a03f8abb1adf1f90cde6ec2475c4d5dc1b1d078fc8d",
+      "test/unit/forms/ContributorHonorific.test.ts": "ce83161e8e441c7ac7416b3246a071df30aaec884c0c07f02516146b38c88964",
+      "test/unit/forms/ContributorPersistence.test.ts": "575c56e1dc9711d0dfe90a691721aa35c223784970cde8f3f6d771851c08d70f",
+      "test/unit/forms/FormConfig.test.ts": "d916ecd55270c3e96934a83ee9dc9146c379b8beb78d4e0909a1abd4a3cc69ed",
+      "test/unit/forms/OrcidView.test.ts": "9e3ee576ee58f469c65b36274432f9c9606fcd12ceb901b3b6fce5e0723f39e0",
+      "test/unit/forms/PublicationAccessRights.test.ts": "b6a6b533ad15a53451e500116ff586d7e3b9fe5c1d06434e49a2966a3264d21b",
+      "test/unit/forms/PublicationKeywords.test.ts": "93dc20fd63d2654c81df2155d6608347fffac199791b1609274193e21a6926ef",
+      "test/unit/forms/PublicationManagingOrganisation.test.ts": "ff8f7e04a423eda7033d54be3e403d2a1aafb9dc71cbaac4b464fc13504b7891",
+      "test/unit/forms/PublicationStatus.test.ts": "87ab7ddeeef1e178c6bd41f232d1235b95270e4012f4b11ce44fc44cdbb1af54",
+      "test/unit/forms/RdmpEthics.test.ts": "ee91b0c8a8fa770225ac276c8af38b7b5e23d646a2d4c0591dcb9307b870c02f",
+      "test/unit/index.test.ts": "6212a38038fb0fed1a68792bfa636a124a3747128b5fccaeb18ffa152f55382e",
+      "test/unit/instruments.test.ts": "bd421e6cfc1e3bd2b2997163d591081d58cd2c21226b7fd5b3908b2fa7115b1f",
+      "test/unit/migration-vocabulary-persistence.test.ts": "c8f0dae14b14e9b3b7d3651990e13893a052463bc611a8cc13dcc47d76ee7092",
+      "test/unit/migrations.test.ts": "e8a1b715e3d5c6161ad2cf88ee1309eb7d83bc23b1e73e284c6292b3ea5e21fd",
+      "test/unit/migrations/appn-managing-organisation.test.ts": "086de1bd3faea04b2189b80de719aa8871029ba10ebf7b2501d18caf5b59be3c",
+      "test/unit/migrations/contributor-honorific.test.ts": "4d36d7700e35ffac354fde15cfe6b8bfb6bcac0922ff486ef69c8b9352eb2925",
+      "test/unit/migrations/dashboard-contributor-names.test.ts": "7f89f3acf7f6924d397b5efdd5a4ec05caef818a3c347064c073230057bcd470",
+      "test/unit/migrations/dashboard-sorting.test.ts": "876d02ffdb39471d765cbca325531fb012cdb63a54c0decd26f4be80d9c60a27",
+      "test/unit/migrations/data-publication-citations.test.ts": "498a7f452ac2afa619bdbf1c91340fd33aac9ca6281150e2daf1bf4ddd2ee878",
+      "test/unit/migrations/data-record-modified-sort.test.ts": "f1db5b3433d82cbb7160990fcaba43fbccc992a65cfc7a8de16f5ce405187731",
+      "test/unit/migrations/legacy-harvest-ids.test.ts": "7ec925884a67048bc6f8c3ad4f3185f1167e16260f86f0befe73aa4ebd2b8430",
+      "test/unit/migrations/legacy-records.test.ts": "8ee2a66d23d824ca7eff2c4386e43878ab1371eec3f8ddbfe35891a5970e2a90",
+      "test/unit/migrations/orcid-normalisation.test.ts": "5c795a43005c3c857d5ec3a60ceddc8f7b8c60d7b887db804c6c58d85360e808",
+      "test/unit/migrations/populate-dr-coverage-from-linked-dp.test.ts": "7a5610d4dc15cb7d3cd7d5518d4950a0816d7fd2c4f544d5aa4e6ed02890fdc7",
+      "test/unit/migrations/rdmp-id-lists.test.ts": "a30ed9456cdbc1eedf7fa6de8e010affb1621ffd22c23d99d4795193b2066259",
+      "test/unit/migrations/remove-plan-pdf-dashboard-links.test.ts": "006ed9d2976c2a2173a108f3c7489b9e7e13aabdedd0803f1c3f7cff09b89907",
+      "test/unit/migrations/ror-lookup-priority.test.ts": "6eea2f3b8d9cb95cdaf72c8f096923016835467d93657814dafe9e20c6235e7a",
+      "test/unit/migrations/ror-lookup-search.test.ts": "a4290fbf7309e61f514379903179789f8c73b00ba59a8c1eda5b6f1bc5b21b59",
+      "test/unit/migrations/selected-archive-coverage.test.ts": "e3e95fbab8a11d66400cf94bb5039bc8d8a4b0beaf8d020b392bccf1f45d4f24",
+      "test/unit/pages.test.ts": "c4ffd904a62568cb38182850e26464b92427745f9c4b895565501e2bbb43627c",
+      "test/unit/pdf-generation.test.ts": "91fdfc3d3c5f7bec83aeebef63efb87d87d0b22774395a2d11e6cb15900f6482",
+      "test/unit/plan-attachments.test.ts": "e5009dcbcee97da52d41dc5be0945787d888993acac6c138d4993dc428004505",
+      "test/unit/publication-http.test.ts": "a674527c13663e9bd4bbf4cbed82d694f30d95a78696077098ade8318c0c39a0",
+      "test/unit/report-templates.test.ts": "a1603ec6574169fd932d8033bf71a269bdba34a9720da5f222e2c25073490dd3",
+      "test/unit/ror-lookup.test.ts": "37b9a75922ed2b33e1ba7b4e4dbef462466155b3bda7b43bf31c0937f175ac79",
+      "test/unit/services/InstrumentLinks.test.ts": "77675f64e5d08a346e84abb632368d82b9ded4d11ecaa052f75008e7aeca5913",
+      "test/unit/services/MetadataOutputsTriggerService.test.ts": "54de312218cd938b5d334ad133ea0df7216bbbf74b05758b846ffb595286136d",
+      "test/unit/services/PublicationEmbargo.test.ts": "274d22691871401d1ec80eec70baeac199e8083dc6ac86756ed28003c19d61b1",
+      "test/unit/template-config.test.ts": "1f35848df1b48f85c0ce5a689aaf970a25f5d237ffe6bac16744eb2981168849",
+      "test/unit/v6-migration.test.ts": "b5849fd65ec18470c26309e978ac62cf84523c2031b0ec81a1d4a4eacf41d80f",
+      "tsconfig.json": "d0ac49677d5ccaa84f0396d2f6ddef376c4ccc5b839aa2f4341c46d196e2d42d",
+      "typescript/api/controllers/ArchivedReportController.ts": "c0d3763d587dda9053a5e4e62a228e631abfbf3dab8ba482b11bc783fb2d4336",
+      "views/.gitkeep": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "views/default/default/homepage.ejs": "6d219a2b785e872bde20bcdba252252ffe87a60c97d51f91aaa514d2febbc2ad",
+      "views/default/default/layout/head-extra.ejs": "89dbc27dc9052e67b4b7bccbc67f662efe2d7b537091e5284a7e501dcb74eca3",
+      "views/default/default/user/login.ejs": "148e06d72e9ae58550ce8661b380d9da612786b23b872189d8c7974782d87b04"
+    },
+    "sourceMismatches": [],
+    "coreRuntimeChangesSinceQualifiedBase": [],
+    "buildCommand": "DOCKER_HOST=unix:///run/sr-r19/docker.sock docker build --build-arg REDBOX_BUILD_IMAGE=redbox-portal@sha256:2ce824c3c7bef21b866a099481eb31494b087a182e56fa4a82237792f0a6e7c7 --build-arg REDBOX_PORTAL_IMAGE=redbox-portal@sha256:2ce824c3c7bef21b866a099481eb31494b087a182e56fa4a82237792f0a6e7c7 -t redbox-wsu:r19-final -f /mnt/docker-storage/sr-wsu/final-review-r19/Dockerfile /mnt/docker-storage/sr-wsu/final-review-r19/hook-source",
+    "buildExitCode": 0,
+    "log": "wsu-image-build-final.log",
+    "limitation": "Exact archived hook rebuilt on unchanged qualified portal/PDF base; not a complete portal image rebuild. Final dev-tools qualified separately."
+  },
+  "matrix": [
+    {
+      "mongo": "8.0.34",
+      "fcv": "8.0",
+      "topology": "Separate core and storage standalone datastores, local S3/Solr/local-auth",
+      "command": "bash /mnt/docker-storage/sr-wsu/final-review-r19/run-installed.sh redbox-wsu:r19-final matrix8 matrix8.cjs matrix",
+      "exitCode": 0,
+      "naturalExit": true,
+      "result": {
+        "institution": "Western Sydney University",
+        "runtime": "v26.11.1",
+        "datastores": [
+          {
+            "version": "8.0.34",
+            "fcv": "8.0",
+            "standalone": true
+          },
+          {
+            "version": "8.0.34",
+            "fcv": "8.0",
+            "standalone": true
+          }
+        ],
+        "maintenanceBeforeReady": false,
+        "maintenance": true,
+        "types": 5,
+        "forms": 12,
+        "ledgerDocuments": 34,
+        "anonymousPages": 2,
+        "csrfLogin": true,
+        "recordFormWorkflowReads": 5,
+        "extensionCsrf": true,
+        "s3RoundTrip": true,
+        "workerWrite": true,
+        "failedDrainRetainsPools": true,
+        "successfulDrainPools": 0,
+        "restart": true
+      },
+      "cleanup": {
+        "ready": false,
+        "cleanupPending": false,
+        "resources": [],
+        "operations": 0,
+        "prismaClients": 0,
+        "pools": 0
+      },
+      "log": "matrix8.log",
+      "vocabularyCommand": "bash /mnt/docker-storage/sr-wsu/final-review-r19/run-installed.sh redbox-wsu:r19-final vocabulary8 vocabulary8.cjs vocabulary",
+      "vocabularyExitCode": 0,
+      "vocabularyResult": {
+        "mongo": "8.0.34",
+        "actualInstalledHook": true,
+        "results": [
+          {
+            "migration": "migrateVocabularyValues",
+            "normalizedValue": true,
+            "lookup": true,
+            "retainedData": true,
+            "idempotent": true
+          },
+          {
+            "migration": "repairVocabularyValues",
+            "normalizedValue": true,
+            "lookup": true,
+            "retainedData": true,
+            "idempotent": true
+          }
+        ]
+      },
+      "vocabularyLog": "vocabulary8.log"
+    },
+    {
+      "mongo": "9.0.4",
+      "fcv": "9.0",
+      "topology": "Separate core and storage standalone datastores, local S3/Solr/local-auth",
+      "command": "bash /mnt/docker-storage/sr-wsu/final-review-r19/run-installed.sh redbox-wsu:r19-final matrix9 matrix9.cjs matrix",
+      "exitCode": 0,
+      "naturalExit": true,
+      "result": {
+        "institution": "Western Sydney University",
+        "runtime": "v26.11.1",
+        "datastores": [
+          {
+            "version": "9.0.4",
+            "fcv": "9.0",
+            "standalone": true
+          },
+          {
+            "version": "9.0.4",
+            "fcv": "9.0",
+            "standalone": true
+          }
+        ],
+        "maintenanceBeforeReady": false,
+        "maintenance": true,
+        "types": 5,
+        "forms": 12,
+        "ledgerDocuments": 34,
+        "anonymousPages": 2,
+        "csrfLogin": true,
+        "recordFormWorkflowReads": 5,
+        "extensionCsrf": true,
+        "s3RoundTrip": true,
+        "workerWrite": true,
+        "failedDrainRetainsPools": true,
+        "successfulDrainPools": 0,
+        "restart": true
+      },
+      "cleanup": {
+        "ready": false,
+        "cleanupPending": false,
+        "resources": [],
+        "operations": 0,
+        "prismaClients": 0,
+        "pools": 0
+      },
+      "log": "matrix9.log",
+      "vocabularyCommand": "bash /mnt/docker-storage/sr-wsu/final-review-r19/run-installed.sh redbox-wsu:r19-final vocabulary9 vocabulary9.cjs vocabulary",
+      "vocabularyExitCode": 0,
+      "vocabularyResult": {
+        "mongo": "9.0.4",
+        "actualInstalledHook": true,
+        "results": [
+          {
+            "migration": "migrateVocabularyValues",
+            "normalizedValue": true,
+            "lookup": true,
+            "retainedData": true,
+            "idempotent": true
+          },
+          {
+            "migration": "repairVocabularyValues",
+            "normalizedValue": true,
+            "lookup": true,
+            "retainedData": true,
+            "idempotent": true
+          }
+        ]
+      },
+      "vocabularyLog": "vocabulary9.log"
+    }
+  ],
+  "cutover": {
+    "command": "bash /mnt/docker-storage/sr-wsu/final-review-r19/cutover.sh",
+    "exitCode": 0,
+    "log": "cutover.log",
+    "source": "Released v5.0.4 plus WSU 4996206 checkpoint",
+    "maintenanceAndInitializeOnly": true,
+    "retainedProbe": {
+      "mode": "probe",
+      "v6": true,
+      "localLogin": true,
+      "anonymousPages": 2,
+      "records": 5,
+      "forms": 5,
+      "workflows": 5,
+      "pages": 5,
+      "freshCsrf": true,
+      "health": 200,
+      "ready": 200
+    },
+    "restartedProbe": {
+      "mode": "probe",
+      "v6": true,
+      "localLogin": true,
+      "anonymousPages": 2,
+      "records": 5,
+      "forms": 5,
+      "workflows": 5,
+      "pages": 5,
+      "freshCsrf": true,
+      "health": 200,
+      "ready": 200
+    },
+    "stopExitCodes": [
+      0,
+      0
+    ],
+    "partialFailure": {
+      "mode": "fail-initialize",
+      "realInitializationFailed": true,
+      "coreWrite": true,
+      "storageWrite": true,
+      "activated": false,
+      "pools": 0
+    },
+    "restoration": {
+      "stores": 4,
+      "collections": 28,
+      "documents": 5162,
+      "log": "upgrade-restored-checkpoint.log"
+    },
+    "s3ContentVerification": true,
+    "historicalScope": "Complete native source recovery with archived executable, config, files, hook, Solr and S3 remains original historical evidence. This round repeated target cutover/failure/database restore and S3 content checks."
+  },
+  "sourceClosure": {
+    "commit": "60f93bc29912d17236363fbf19bbdbd960f8ffe6",
+    "tree": null,
+    "scannedFiles": 1208,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0
+  },
+  "inventory": {
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "sourceCommit": "60f93bc29912d17236363fbf19bbdbd960f8ffe6",
+    "baselineFiles": 1261,
+    "currentMatchedFiles": 1179,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0,
+    "counts": {
+      "remaining-classified": 742,
+      "removed": 136,
+      "retained-without-candidates": 365,
+      "dependency-metadata-checked": 18
+    }
+  },
+  "installedWsuClosure": {
+    "commit": null,
+    "tree": "/opt/redbox-portal",
+    "scannedFiles": 4095,
+    "executableViolations": 0,
+    "forbiddenDependencyEntries": 0
+  },
+  "installedWsuGraph": {
+    "node": "v26.11.1",
+    "manifests": 1230,
+    "forbiddenPackages": 0,
+    "forbiddenEdges": 0,
+    "ownedPins": true,
+    "core": "0.0.1-beta.9022",
+    "wsu": "2.0.0-v6.0"
+  },
+  "generalisation": [
+    {
+      "root": "/home/andrew/src/github/redbox-portal",
+      "findings": 0,
+      "cliExit": null
+    },
+    {
+      "root": "/home/andrew/src/bitbucket/redbox-hook-wsu-v6",
+      "findings": 0,
+      "cliExit": 0
+    },
+    {
+      "root": "/home/andrew/src/bitbucket/redbox-hook-uwa",
+      "findings": 16,
+      "cliExit": 1
+    },
+    {
+      "root": "/home/andrew/src/bitbucket/redbox-hook-jcu",
+      "findings": 59,
+      "cliExit": 1
+    }
+  ],
+  "primaryEvidence": {
+    "institution-wsu-results.json": {
+      "files": 66,
+      "mismatches": []
+    },
+    "final-review-r18/review-accounting.json": {
+      "files": 83,
+      "mismatches": []
+    }
+  },
+  "taskDisposition": {
+    "SR-005": "stands: expressly authorized WSU local cohort and released-source fallback",
+    "SR-045": "stands: both final corrected installed Mongo rows and vocabulary migration checks",
+    "SR-049": "stands: final target cutover/failure/restore; complete original native recovery remains historical",
+    "SR-055": "stands after R19 fixes: final tooling/hook and source/installed closure; broad unchanged runtime coverage remains historical"
+  },
+  "productionAcceptance": {
+    "asserted": false,
+    "stillUnchecked": [
+      "Actual WSU source image/hook/config/database/FCV",
+      "Real federation/proxy/TLS/IAM/auth/replica-set inputs",
+      "Production workload/search/provider and external effects",
+      "Operator engine/FCV and complete production recovery rehearsal"
+    ]
+  },
+  "sensitivity": {
+    "preR18Cli": {
+      "expectedFailures": 3,
+      "log": "r18-tooling-red.log"
+    },
+    "preR18Publication": {
+      "expectedFailures": 1,
+      "actualStatus": 404,
+      "log": "r18-publication-red.log"
+    },
+    "incomingExports": {
+      "expectedFailures": 1,
+      "log": "r19-exports-red.log",
+      "independentMismatchLogs": [
+        "export-probe-incoming.json",
+        "export-resolve-probe-incoming.json"
+      ]
+    },
+    "incomingVocabulary": {
+      "expectedFailures": 2,
+      "log": "wsu-vocabulary-red.log"
+    },
+    "oldInstalledVocabulary": {
+      "expectedAssertionFailure": true,
+      "log": "vocabulary-red.log"
+    }
+  },
+  "failedAttempts": [
+    {
+      "summary": "Initial export tuple inference compile error corrected before genuine red test",
+      "claimedAsPass": false
+    },
+    {
+      "summary": "Full dev-tools run: assertions passed but 36-subprocess table exceeded 180-second allowance during concurrent verification; 58 pass/1 timeout. Allowance increased to 360 seconds; final full 59 pass.",
+      "log": "devtools-final2.log",
+      "claimedAsPass": false
+    },
+    {
+      "summary": "Initial installed vocabulary probe omitted explicit index maintenance; corrected before genuine old/final runs.",
+      "log": "vocabulary-prerequisite-failure.log",
+      "claimedAsPass": false
+    },
+    {
+      "summary": "Initial installed auditor mounted inside its scan tree produced nine self-findings; final outside-tree auditor passes.",
+      "log": "wsu-auditor-self-inclusion.json",
+      "claimedAsPass": false
+    },
+    {
+      "summary": "Initial owned Docker daemon selected an empty namespace; restarted with durable qualification namespace.",
+      "log": "dockerd.log",
+      "claimedAsPass": false
+    },
+    {
+      "summary": "Exploratory image included extra verification context; final clean archive build supersedes it. Both review-built images removed.",
+      "log": "wsu-image-build.log",
+      "claimedAsPass": false
+    }
+  ],
+  "cleanup": {
+    "remainingServiceContainersRemoved": 6,
+    "attachedAnonymousVolumesRemoved": 10,
+    "verifierTransientsRemoved": true,
+    "remainingContainers": 0,
+    "remainingVolumes": 0,
+    "remainingCustomNetworks": 0,
+    "imagesRemoved": [
+      "redbox-wsu:r19",
+      "redbox-wsu:r19-final"
+    ],
+    "daemons": {
+      "docker": {
+        "pid": 115564,
+        "command": "dockerd --data-root /mnt/docker-storage/sr-p7-isolated --exec-root /run/sr-r19/docker --pidfile /run/sr-r19/docker.pid --host unix:///run/sr-r19/docker.sock --containerd /run/sr-r19/containerd.sock --containerd-namespace sr-p7-isolated-moby --containerd-plugins-namespace sr-p7-isolated-plugins.moby --bridge=none --iptables=false --ip-masq=false ",
+        "terminationExit": 0,
+        "terminationError": "",
+        "runningAfterTermination": false
+      },
+      "containerd": {
+        "pid": 115352,
+        "command": "containerd --root /mnt/docker-storage/sr-p7-isolated/containerd --state /run/sr-r19/containerd --address /run/sr-r19/containerd.sock ",
+        "terminationExit": 0,
+        "terminationError": "",
+        "runningAfterTermination": false
+      }
+    },
+    "unrelatedDaemonsTargeted": false,
+    "historicalImagesAndCheckpointsPreserved": true,
+    "log": "docker-cleanup.log"
+  },
+  "safeguards": {
+    "after": {
+      "/home/andrew/src/bitbucket/redbox-hook-wsu": {
+        "head": "14ab99eb3a89434b9c886d51d5edc37447f43588",
+        "status": "?? docs/v5-core-gaps.md\u0000?? docs/v5-migration-verification-playbook.md\u0000?? logs.txt\u0000",
+        "untracked": {
+          "docs/v5-core-gaps.md": "8d7a577131052176a16b48dbc012623ebcfaca2c9341225a093ce2c4518fda77",
+          "docs/v5-migration-verification-playbook.md": "75a208829bc1af7d484fb2975e956cb88530ea999e43a616f088ad18cc24941b",
+          "logs.txt": "7f852b7c604893650d5ffbbd90a932c665602eac5cb22c30caf740ed98bb89f6"
+        },
+        "trackedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "/home/andrew/src/bitbucket/redbox-hook-uwa": {
+        "head": "429969b75d8220227ea146f22a056cc568eaf970",
+        "status": " M Dockerfile\u0000?? report.md\u0000",
+        "untracked": {
+          "report.md": "294f7ff305e3e61971a61ff77b371acf0f823d01c9db1277d9bfe59ab1fbbb36"
+        },
+        "trackedDiffSha256": "74df785901d316d086b6d22f6eed8aaa44618083faea7db50f59d0457959533b"
+      },
+      "/home/andrew/src/bitbucket/redbox-hook-jcu": {
+        "head": "11d234e0a388c0916f1fef6354de483f575337fe",
+        "status": " M Dockerfile\u0000?? test/support/waterline-model-globals.ts\u0000",
+        "untracked": {
+          "test/support/waterline-model-globals.ts": "95e83b9a28e0e0ae6ea9ec23a36fc733bd28d182a1e44c17b98a842aef40d3ba"
+        },
+        "trackedDiffSha256": "0099900e6ac57ce82e075e79635f5466744c0a5571ae540ddfaed12417775281"
+      }
+    },
+    "matchesBaseline": {
+      "/home/andrew/src/bitbucket/redbox-hook-wsu": true,
+      "/home/andrew/src/bitbucket/redbox-hook-uwa": true,
+      "/home/andrew/src/bitbucket/redbox-hook-jcu": true
+    },
+    "trackedDiffBaselineNote": "Initial capture recorded status but not tracked diff bytes. No commands wrote sibling tracked files; untracked bytes and complete statuses match.",
+    "daemons": {
+      "docker": {
+        "pid": 115564,
+        "command": "dockerd --data-root /mnt/docker-storage/sr-p7-isolated --exec-root /run/sr-r19/docker --pidfile /run/sr-r19/docker.pid --host unix:///run/sr-r19/docker.sock --containerd /run/sr-r19/containerd.sock --containerd-namespace sr-p7-isolated-moby --containerd-plugins-namespace sr-p7-isolated-plugins.moby --bridge=none --iptables=false --ip-masq=false ",
+        "terminationExit": 0,
+        "terminationError": "",
+        "runningAfterTermination": false
+      },
+      "containerd": {
+        "pid": 115352,
+        "command": "containerd --root /mnt/docker-storage/sr-p7-isolated/containerd --state /run/sr-r19/containerd --address /run/sr-r19/containerd.sock ",
+        "terminationExit": 0,
+        "terminationError": "",
+        "runningAfterTermination": false
+      }
+    }
+  },
+  "noWritesTo": [
+    "/home/andrew/src/bitbucket/redbox-hook-wsu",
+    "sibling hook repositories",
+    "support/specs/graphql-record-metadata/"
+  ],
+  "noPushPublishTag": true,
+  "broadSuiteReuse": {
+    "coreRuntimeChanged": false,
+    "freshBroadCoreBrowserBrunoAngularRuns": false,
+    "historicalEvidence": [
+      "final-review-r16.md",
+      "final-review-r18.md",
+      "institution-wsu.md"
+    ],
+    "reason": "Production changes are dev-tools CLI plus the converted WSU hook. Full affected suites and corrected installed hook qualification repeated."
+  },
+  "reproduction": {
+    "prerequisite": "Owned engine stopped and review images removed. Recreate fenced disposable services and rebuild exact hook image before running installed drivers; do not point these at production.",
+    "dockerHost": "unix:///run/sr-r19/docker.sock",
+    "compose": "/mnt/docker-storage/sr-wsu/final-review-r19/compose.yml",
+    "rawRoot": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19",
+    "installedInputRoot": "/mnt/docker-storage/sr-wsu/final-review-r19",
+    "sourceAudit": "node support/specs/sails-retirement/evidence/retirement-closure.cjs 60f93bc29912d17236363fbf19bbdbd960f8ffe6",
+    "inventory": "node support/specs/sails-retirement/evidence/inventory.cjs 60f93bc29912d17236363fbf19bbdbd960f8ffe6",
+    "reconcile": "node support/specs/sails-retirement/evidence/reconcile-retirement-inventory.cjs .tmp/sails-retirement/final-review-r19/source-inventory.json .tmp/sails-retirement/final-review-r19/source-closure.json"
+  },
+  "rawEvidence": [
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/build-provenance.json",
+      "bytes": 312,
+      "sha256": "626c832a962927f7c3877a34937faaa7de79db2dba2c1adf48cd0795571fdbd7"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/containerd.log",
+      "bytes": 32089,
+      "sha256": "370a354303e936a1dc28b5a29ccd30814c33fad1f32037239bd2922659dc133d"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/containers-after-cleanup.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/cutover.log",
+      "bytes": 2031,
+      "sha256": "ed349d0d4a0dd8909ec3c7d8bf2f09e9681f157edfcf078164efea3b3ddce3e5"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/daemon-cleanup.json",
+      "bytes": 783,
+      "sha256": "a7e1ce401c974e75e1afea47c9c65bbcd17bdd590238e1a1892ee7f174635424"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/devtools-build-final.log",
+      "bytes": 71,
+      "sha256": "8175aefbe65657282411c5ff386e9479ae344b5d78e6ffd81d2c8cb1f5985879"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/devtools-build.log",
+      "bytes": 71,
+      "sha256": "8175aefbe65657282411c5ff386e9479ae344b5d78e6ffd81d2c8cb1f5985879"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/devtools-final.log",
+      "bytes": 26446,
+      "sha256": "39e212c3bcac044f772ce33a09e5af11df51b804564d17a441b7c3c4a06e6186"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/devtools-final2.log",
+      "bytes": 26820,
+      "sha256": "1de0ca84e636d3c8f87b08cc5cb8af3bf85d70919fa51c3c6988443a32e41c10"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/devtools-final3.log",
+      "bytes": 26461,
+      "sha256": "da180078c58fc46d2a7ef5ba3db982da84e06134b23a24ef13d8f94e19e247a8"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/devtools-incoming.log",
+      "bytes": 26466,
+      "sha256": "c49bee29c78c4df978142543567477aa3ee2599797ec905e7e10eeddf64b8ff2"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/devtools-r18-checks.cjs",
+      "bytes": 7704,
+      "sha256": "ba31dfca6711266e793a07bdc0678ffa85fc5b390b2de18e777ddf80cec50492"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/docker-before-cleanup.json",
+      "bytes": 62013,
+      "sha256": "a330da8f074b6d0c4a65e75ef375c8478f155956b5b0744a103dcbc99d5e36ec"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/docker-cleanup.log",
+      "bytes": 1070,
+      "sha256": "e414b03c3ae2a48888dfe3010d4a124c7c1133565182809df781fed4d295f88c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/dockerd-final.log",
+      "bytes": 19681,
+      "sha256": "452f5295c5fe302587a8014702e90b4f59410d67e0ec06bf36fe56061502f09b"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/dockerd.log",
+      "bytes": 2326,
+      "sha256": "c18d29f170291786bbd62b227820d3efcdd30a5d2f23ddfc6949f7b860247fe8"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/evidence-hashes.json",
+      "bytes": 172,
+      "sha256": "ab5287f8c8c03aef146114c8d4ad5781adabf9b478953f9d28da9061b4e7a809"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-differential.cjs",
+      "bytes": 1646,
+      "sha256": "bdb47b4422054b6ce2802f0a2bdec5633fbae42733a5ece062d36c5c084780a4"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-differential.json",
+      "bytes": 10860,
+      "sha256": "5ce325d3d37c3dbebb2edacd40e7ea5acdd4aed8d728cdde44fc63b7c0c61436"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-differential.log",
+      "bytes": 36,
+      "sha256": "6353e3bcfb083917e9f92c34ce11736b1707df099877c0a32dd2a484b9805b29"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-probe-fixed.log",
+      "bytes": 2163,
+      "sha256": "fe6387d0f7b9c49d0bc4fd59db76a05eadb3a41845f4d298c1da80b7fe1372dd"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-probe-incoming.cjs",
+      "bytes": 1559,
+      "sha256": "3b0655f7ee126bb76959e84ff622f1e057af1a484c760948cfe9d297920d4305"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-probe-incoming.json",
+      "bytes": 2169,
+      "sha256": "23ffeea31e02c696487ce793e3d7e79d3a94207bb6b7d1459f6eda82e7e8639f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-probe-incoming.log",
+      "bytes": 2169,
+      "sha256": "23ffeea31e02c696487ce793e3d7e79d3a94207bb6b7d1459f6eda82e7e8639f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-probe.cjs",
+      "bytes": 1580,
+      "sha256": "b6bebcbe8bed882d0b763a52149d3b2f922008c38c2cb1cee585e3a9f6d32d81"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-probe.json",
+      "bytes": 2163,
+      "sha256": "fe6387d0f7b9c49d0bc4fd59db76a05eadb3a41845f4d298c1da80b7fe1372dd"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-resolve-probe-fixed.log",
+      "bytes": 2435,
+      "sha256": "fa9e68e792c471e7413ac5a5bfb93fd5fd83d5d270d6ee3445790310ede032eb"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-resolve-probe-incoming.cjs",
+      "bytes": 1559,
+      "sha256": "74c92fbada0eec18963d0012259728112b0a0e449c83ad4d7494e1d6aab8f5a9"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-resolve-probe-incoming.json",
+      "bytes": 2432,
+      "sha256": "85833a60a7398a251a92a4b0774787245b039c069de842e21ff6e20608bede7c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-resolve-probe-incoming.log",
+      "bytes": 2432,
+      "sha256": "85833a60a7398a251a92a4b0774787245b039c069de842e21ff6e20608bede7c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-resolve-probe.cjs",
+      "bytes": 1580,
+      "sha256": "a5a68d06234fb7dd2eb93570bbb4e4ff45795fe9a10356214a9fbfa87e4c7de7"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/export-resolve-probe.json",
+      "bytes": 2435,
+      "sha256": "fa9e68e792c471e7413ac5a5bfb93fd5fd83d5d270d6ee3445790310ede032eb"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/images-before-cleanup.json",
+      "bytes": 9639,
+      "sha256": "c3213b4bbbf580d83a7617055539c5e47a18e5233a37e0f13f5c0f809ebf578c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/inventory-reconciliation.json",
+      "bytes": 871405,
+      "sha256": "6888c37f6b215e34de6d12c94f4c295924418e3b25fdd95348c066ac9472b115"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/matrix8.log",
+      "bytes": 1187,
+      "sha256": "2b3d46af73b43b11ab6e66e36d0682e27ace15077babd815447cbe743deefa88"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/matrix9.log",
+      "bytes": 1185,
+      "sha256": "60361248318705dce3ebbbedccc06e6648ba3c41fe2604ddd1a3bc318aba4846"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/networks-after-cleanup.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/install.log",
+      "bytes": 27,
+      "sha256": "df861c170a1cb306f1d30666a18541bd20ac76c85ef1e6f987e4399e5e3d63de"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/offline-ci.log",
+      "bytes": 27,
+      "sha256": "df861c170a1cb306f1d30666a18541bd20ac76c85ef1e6f987e4399e5e3d63de"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/redbox-hook-dev-1.0.0.tgz",
+      "bytes": 84816,
+      "sha256": "8da96cff08682b094af044fd131d439dc99983479fcb3ff063dc4319846fcb7a"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+      "bytes": 11751,
+      "sha256": "76d426e7ab5d9c71af1fff96e528bf800970132eb5ea4431eb7d9a87c2a3720f"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+      "bytes": 18479,
+      "sha256": "d40363198433495e887285046e26e5a7067917b7e690540e2ccb57ec48d30adf"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+      "bytes": 2640680,
+      "sha256": "ec46ae19dd4c63d8857b67bce726f0589d7f0e493c88002940c490a48af814a9"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/researchdatabox-redbox-dev-tools-4.5.1.tgz",
+      "bytes": 66480,
+      "sha256": "cf1c03afbab91e2adde5935de37e8903ba3ddb2f77a35e28f990142efcef6887"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+      "bytes": 47843,
+      "sha256": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+      "bytes": 42955,
+      "sha256": "e1aee124b43bf4a476cb16effe00f30d290d856063564339b584dd32eadd5a90"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+      "bytes": 80967,
+      "sha256": "bd52140007cb7d41ed0f5cc8b9b3c198be342ee883565521cec47275db1b5f80"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/researchdatabox-sails-ng-common-0.2.1.tgz",
+      "bytes": 335062,
+      "sha256": "6d23632ef3a9f4c59637fc9e8ca44e480e7c87d6218132bf3ca81289c9442a72"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/result.json",
+      "bytes": 3251,
+      "sha256": "13d383793115483ddb9621a3124d09d64eb623421543334744f5775c1a4934a9"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/sr-commonjs-hook-1.0.0.tgz",
+      "bytes": 427,
+      "sha256": "60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/sr-esm-hook-1.0.0.tgz",
+      "bytes": 470,
+      "sha256": "89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed/sr-esm-only-1.0.0.tgz",
+      "bytes": 305,
+      "sha256": "e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed-final-run.sh",
+      "bytes": 215,
+      "sha256": "b4a421d20f60e4ce58d536d2706fffb1b553467083c3dc2a017261286f667842"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed-final.log",
+      "bytes": 9713,
+      "sha256": "844ee9683b78288916fdf9955541aab038b6687cc806525642502a03b09dfde2"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed-final2.log",
+      "bytes": 9713,
+      "sha256": "16df815fd51be0460f7737e94e481feb4c98fdf83e7f7c5c2bdf742be5f898a3"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/packed-run.cjs",
+      "bytes": 3633,
+      "sha256": "aca251351aad7ef7995ee031c430d2311e84e694ebfda9300ae8307ef589acdf"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/prepare-sensitivity.cjs",
+      "bytes": 1648,
+      "sha256": "e916ac82767f0928827c0fae649a57ca4256572e78fdc0a19eb8c1082379a77b"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/r18-publication-red.log",
+      "bytes": 676,
+      "sha256": "2c41a1923626d514a257cfc9364ef2bb7126048fa57be46dff9cc5bc177f11ad"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/r18-tooling-red.log",
+      "bytes": 1613,
+      "sha256": "12846259ba9e163462e841ba2c0167d1d8f4bc8ce7832b8c8f98b8a2773f97c5"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/r19-exports-red.log",
+      "bytes": 1070,
+      "sha256": "dad42a289242f0fcd1ff24ab30cee1fe94f5150899a8d1d4289ee98c5b8138e4"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/safeguards-after.json",
+      "bytes": 2719,
+      "sha256": "46d1795ee35dd6c6d5cbe45768c8742e370cec32b6b49dac8fe5fba0b62595e3"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/safeguards-before.json",
+      "bytes": 1323,
+      "sha256": "a12a3d2d42f128eb74f4224cce18e5e537aab9508f5091feb30b903c9a82e907"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/services-start.log",
+      "bytes": 852,
+      "sha256": "dc9fc7abeb6f6b11620fcef11626ddf81ba79a2914ba97e0a410910d75610069"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/smoke.log",
+      "bytes": 165,
+      "sha256": "7ce0a9b1816183911b7bf9931a19190f6a17453152f063a1968d8fdddfe7d29c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/source-closure.json",
+      "bytes": 240414,
+      "sha256": "b517756a45c4b7e619392babb20866acc0ee289dd3eaa5aac66e67f505cf26f5"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/source-inventory.json",
+      "bytes": 439028,
+      "sha256": "54224a35ad10c871f92d82eccdc5931720da2e969f1ae3e5749f751dcb6142d1"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/tooling-final.log",
+      "bytes": 3388,
+      "sha256": "cf59cbac48d56c6df944c06f99ea59827ce30063ddea2943f74cc0ade558714c"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/tooling-incoming.log",
+      "bytes": 3363,
+      "sha256": "70f65a4fac878646850aa245b1c3e3fa974d27d5140c707194dc5861b0055ae2"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade--initialize-only.log",
+      "bytes": 6996,
+      "sha256": "9760689284ebe83e90fb3e0e136c9abad937f15c94b2d7503a535e93df383f6b"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade--maintenance-indexes-ensure.log",
+      "bytes": 13331,
+      "sha256": "158200ed3ecf35ef9a26952f84744a79630d04ea88787fba04a44aaaa2cb6dbb"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade--maintenance-indexes-inspect.log",
+      "bytes": 13332,
+      "sha256": "dc7a663c6fb750bcc654e82fbcccf57ecdbe7facb9128b1be1cf67d61ec79dd1"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-candidate-probe.log",
+      "bytes": 152,
+      "sha256": "8e01d4a55c08810c5ac005e7f6d1c182917e2e888aa57a6e778d33e2369cfd09"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-candidate-restarted-probe.log",
+      "bytes": 152,
+      "sha256": "8e01d4a55c08810c5ac005e7f6d1c182917e2e888aa57a6e778d33e2369cfd09"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-candidate-restarted-runtime.log",
+      "bytes": 2235,
+      "sha256": "2aee80ce04e74f3af1640c52dcd6090bb7d047cf5567f3366c48601d0a8bafba"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-candidate-restarted-stop.json",
+      "bytes": 776,
+      "sha256": "780f1a0c9c3ca7a4334c3983d1cca2dce50a3379eb9a32227cbfc0859fcbb019"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-candidate-runtime.log",
+      "bytes": 1421,
+      "sha256": "a478f0a71890217282d2f93a9ef3362722c71ce703f288697164182d917a62c7"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-candidate-stop.json",
+      "bytes": 734,
+      "sha256": "6899939be1b62513817305fd3af4a4e648f8f177de81c6a8b0dd77e3454ecd77"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-partial-failure.log",
+      "bytes": 124,
+      "sha256": "db288474c58e7aa9d6a71dfbdf99260ebe918f00aa98b4489ec7ce5ae3473dd4"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-restore-source.log",
+      "bytes": 21557,
+      "sha256": "96298812d1e3858d42afe006afcd909212b9ae71c2ec0fe7d8abaa91db0580cc"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-restored-checkpoint.log",
+      "bytes": 21426,
+      "sha256": "80345a2b458ac5e74a98f81411ab9d36e085430d71e6c396a3c689e7f7bbb1cb"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/upgrade-review-index.log",
+      "bytes": 70,
+      "sha256": "2d7533797e43a3137f54a35c67dc660281d406de98a028f680660e63848d7217"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/view-preflights-final.log",
+      "bytes": 1809,
+      "sha256": "558ef39e0c4605d5ca64bfa13430a638ab8f4e388ba357d5b03b52e512689e18"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/view-preflights.cjs",
+      "bytes": 1169,
+      "sha256": "9996792073ad0c3d14a52d0a6dcc6a158cf340ab11a17e4f4c5cd9d04425d470"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/view-preflights.json",
+      "bytes": 20587,
+      "sha256": "371d33dbab009f7301cf8e94ec1905b6fe0054ba5da3413d2a3e66ffb4380890"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/vocabulary-prerequisite-failure.log",
+      "bytes": 297,
+      "sha256": "d544c4963534cdddcf96b5f4272141e9e409287340ca2bbe81a30c86c6c667db"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/vocabulary-red.log",
+      "bytes": 460,
+      "sha256": "56e0b791e1c501ca41567976b4b6bc7a35098f7786d3cd9c35ceb0caeae92beb"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/vocabulary8.log",
+      "bytes": 299,
+      "sha256": "bff15e37678f653a64e1c357fc50d672275c0d6806fefa315fabbdb24228a779"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/vocabulary9.log",
+      "bytes": 298,
+      "sha256": "d4af7873c4f793d7afdf154fe0734ff9d0280b27e7d3a5429ea6a49a90726d68"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/volumes-after-cleanup.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/volumes-before-cleanup.jsonl",
+      "bytes": 3550,
+      "sha256": "4166cfb5ad680c649f60543e1a1bcad7741c0068b703053ab42e06302c44315e"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-auditor-self-inclusion.json",
+      "bytes": 166554,
+      "sha256": "a7170535251fd3fb915a8d2a5a1e0b4c0ddfc3cdd4ec753b0be2177a3b7daeab"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-final.log",
+      "bytes": 44272,
+      "sha256": "ec8e1a68197e92a3433b8d4598505759e5288670d063271847dd1a15bbf1ced9"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-image-build-final.log",
+      "bytes": 26109,
+      "sha256": "e9e07e382cd9e7afb1db851e0231f5ce5250e26976f9957bc2370aaf15ce9f12"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-image-build.log",
+      "bytes": 26892,
+      "sha256": "0d0be0d42dccd3177566a1c5fcd65d354c0a0163bfabe9a05a7b8f4cb581a66e"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-image-id.txt",
+      "bytes": 72,
+      "sha256": "36fc9aa892330ea86f1553bd9e0aee28ff568bb4306242025e69e9dcfb7194d2"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-incoming.log",
+      "bytes": 43678,
+      "sha256": "5b3dc2898295e9434af1e410bfbb84438474a418b2c92aedcd2504893d3ce5b1"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-installed-closure.json",
+      "bytes": 165437,
+      "sha256": "a87ce80891b2164dae5020d13fc3bb214be825de11db81e713ca803019eb4f7b"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-installed-closure.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-installed-graph.log",
+      "bytes": 139,
+      "sha256": "f0e64e23c64742ce5e09971996687f7843cf028acdb4250dff58e0bbf4a64d0b"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-migration-diff.txt",
+      "bytes": 122543,
+      "sha256": "654c5ae10f2237741d06ac295d9015046b1e861d06d33fb6c041e1c4091b29ec"
+    },
+    {
+      "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r19/wsu-vocabulary-red.log",
+      "bytes": 1289,
+      "sha256": "5ec0f38957f84e61466556312c4f8016d5e4202ed00bf54c18933d1c3e7a97d6"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/.dockerignore",
+      "bytes": 103,
+      "sha256": "25c243d9ca3d1c85a88111089ee3d14c1d12206eacff24477b9df20387e232a3"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/Dockerfile",
+      "bytes": 1392,
+      "sha256": "1470096a544d2977b7ef1a924daf412506667282889ef4a4dce16706cb137076"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/compose.yml",
+      "bytes": 2293,
+      "sha256": "ef409f0c3d378d20b1800eaf0c8ffb85ada7be53d1ea8b4b9c4c712924bcce63"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/cutover.sh",
+      "bytes": 3463,
+      "sha256": "33b14692d6b8d9a91d38bd97d3d4499f7973bbfa8c02ea344d2b8beb398c0cfe"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/matrix8.cjs",
+      "bytes": 1074,
+      "sha256": "9799ce91014e249d68163b5dda2ccd1401df090979dfee5337608cf6d4d85c00"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/matrix9.cjs",
+      "bytes": 1074,
+      "sha256": "dab60cab54184c324e3ae2960973b2f4544e86a93125fa925169dc30550a996d"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/package-lock.json",
+      "bytes": 7790,
+      "sha256": "439555dd414b2fdcca1cbd07e4c4ea046b5af7b46e4c42092277c06f21e7f075"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/package.json",
+      "bytes": 3196,
+      "sha256": "6928a960933b0847082a51c4f0eb2897d020010315f03853c48d3c95bc198263"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/renovate.json",
+      "bytes": 429,
+      "sha256": "f1f6e50e398a37f8e73e4931f8c0305602bc21a44efede34987ca83d638456f0"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/reviewed-upgrade.cjs",
+      "bytes": 1311,
+      "sha256": "4a82dcd6505af03eaf2ec6b9801c96256d0196afd0acc2430d0dfddc4a1872d7"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/run-installed.sh",
+      "bytes": 1448,
+      "sha256": "fb1af01ed70783f2d22aedf051349ed427466bdfe5728beb63f7f9cf78e5cbb4"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/smoke.cjs",
+      "bytes": 1070,
+      "sha256": "07cb7a764c0268ef8b3b1bb76a7f13f5ef45f2afee28476526a6273c05533b74"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/tsconfig.json",
+      "bytes": 722,
+      "sha256": "d0ac49677d5ccaa84f0396d2f6ddef376c4ccc5b839aa2f4341c46d196e2d42d"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/vocabulary.cjs",
+      "bytes": 3259,
+      "sha256": "fb3af56d39f4d553f4b52719545efc13bc06cf7edc575e80442bf7da47e256dd"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/vocabulary8.cjs",
+      "bytes": 1110,
+      "sha256": "f397af5f0a140c4415604e8779a7957f29b4172a913042bb11ad79d98218c0b6"
+    },
+    {
+      "path": "/mnt/docker-storage/sr-wsu/final-review-r19/vocabulary9.cjs",
+      "bytes": 1110,
+      "sha256": "2159459d50a9bc6c9c8ef1a9b0d52476dd58fce5dbe504bbfbca6cc1e297f6e5"
+    }
+  ]
+}
