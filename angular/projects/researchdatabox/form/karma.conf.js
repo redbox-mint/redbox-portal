@@ -1,15 +1,10 @@
 module.exports = function (config) {
   const isCI = process.env.CI === 'true';
-  const traceCompletion = process.env.REDBOX_FORM_COMPLETION_TRACE === 'true';
 
   config.set({
     basePath: './',
-    files: traceCompletion
-      ? [{ pattern: require('path').resolve(__dirname, '../../../../support/unit-testing/angular/form-completion-probe.js'), watched: false }]
-      : [],
-    frameworks: ['jasmine', '@angular-devkit/build-angular', ...(traceCompletion ? ['form-completion-server-trace'] : [])],
+    frameworks: ['jasmine', '@angular-devkit/build-angular'],
     plugins: [
-      ...(traceCompletion ? [require('../../../../support/unit-testing/angular/form-completion-server-trace.cjs')] : []),
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
@@ -52,6 +47,9 @@ module.exports = function (config) {
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
+    // CI can queue the multi-megabyte coverage packet behind console/results.
+    // Keep its heartbeat alive within the existing browser activity deadline.
+    pingTimeout: isCI ? 120000 : 5000,
     browserNoActivityTimeout: 120000,
     browserDisconnectTimeout: 10000,
     browserDisconnectTolerance: 2,

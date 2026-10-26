@@ -506,13 +506,6 @@ jobs:
           command: |
             chmod +x support/unit-testing/angular/testAngular.sh
             source support/unit-testing/angular/testAngular.sh "<< parameters.angular_app >>"
-      - when:
-          condition:
-            equal: ["form", << parameters.angular_app >>]
-          steps:
-            - store_artifacts:
-                path: .tmp/form-completion-trace
-                destination: form-completion-trace
       - store_test_results:
           path: .tmp/junit
       - save_cache:

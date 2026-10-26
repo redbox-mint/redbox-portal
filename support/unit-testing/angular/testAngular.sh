@@ -22,12 +22,7 @@ function testAngular() {
   if [ "${CI:-false}" = "true" ] || [ "$(id -u)" -eq 0 ]; then
     browser="ChromeHeadlessNoSandbox"
   fi
-  local test_command=(node_modules/.bin/ng t --browsers="${browser}" "@researchdatabox/${1}" --no-watch --no-progress --code-coverage)
-  if [ "$1" = "form" ] && [ "${CI:-false}" = "true" ]; then
-    REDBOX_FORM_COMPLETION_TRACE=true node ../support/unit-testing/angular/trace-form-completion.cjs "${test_command[@]}"
-  else
-    "${test_command[@]}"
-  fi
+  node_modules/.bin/ng t --browsers="${browser}" "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
   node ../support/unit-testing/codecov/prepare-report.cjs \
     "./projects/researchdatabox/${1}/coverage/coverage-final.json" "angular"
   /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
