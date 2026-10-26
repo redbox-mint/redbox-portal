@@ -1,14 +1,15 @@
 # Sails retirement: v6 task list
 
 Status: **54 of 55 tasks are complete for the recorded qualification scope.**
-SR-055 remains open: R25 found three new introduced P2s in WSU S3 credentials,
-exporter options and PDF configuration, now fixed. A subsequent round with zero
-new A/P1/P2 findings is still required.
+SR-055 remains open: R26 found two new introduced P2s in shared S3 credential
+validation and Figshare embargo defaults, both fixed in portal `10b987468`.
+A subsequent round with zero new A/P1/P2 findings is still required.
 WSU is the designated institution. Its authorized released-v5 source fallback,
 two-major topology, installed cutover and checkpoint recovery passed at the
-recorded historical revisions. R25 repeats full core/root and affected suites
-after the PDF schema fix; source inventory closure passes. Replacement installed
-artifacts and recovery were not qualified with the R25 fixes.
+recorded historical revisions. R26 repeats full core/root and affected suites
+at portal `10b987468` / WSU `764851e`; source inventory closure passes. These
+are current source/compiled-tree checks. Replacement installed artifacts,
+topology and recovery were not qualified with the R25/R26 fixes.
 [WSU evidence and production-only gaps](evidence/institution-wsu.md) distinguish
 faithful local equivalents from actual production deployment acceptance. Real
 production credentials/infrastructure were unavailable; those additional operator
@@ -47,8 +48,8 @@ Review evidence: [R1](evidence/final-review-r1.md), [R2](evidence/final-review-r
 [R13](evidence/final-review-r13.md), [R14](evidence/final-review-r14.md), [R15](evidence/final-review-r15.md), [R16](evidence/final-review-r16.md),
 [R17](evidence/final-review-r17.md), [R18](evidence/final-review-r18.md), [R19](evidence/final-review-r19.md),
 [R20](evidence/final-review-r20.md), [R21](evidence/final-review-r21.md), [R22](evidence/final-review-r22.md), [R23](evidence/final-review-r23.md),
-[R24](evidence/final-review-r24.md), [R25](evidence/final-review-r25.md).
-The [inherited-defects backlog](evidence/inherited-defects-backlog.md) records 18
+[R24](evidence/final-review-r24.md), [R25](evidence/final-review-r25.md), [R26](evidence/final-review-r26.md).
+The [inherited-defects backlog](evidence/inherited-defects-backlog.md) records 19
 inherited groups separately from the feature gate. The formerly outstanding institution criteria are now covered by the WSU
 local-equivalent qualification below; production-only access gaps remain explicit.
 
@@ -928,19 +929,23 @@ Read the [design](design.md) for behavior and the
 - [ ] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
 
   **Status:** open for the zero-new-findings confirmation gate.
-  [R25](evidence/final-review-r25.md) confirms R24's host-port/origin fix and
-  finds three introduced P2s: omitted optional S3 credentials fail v6 validation,
-  WSU exporter bindings overwrite configured templates/groups, and PDF source
-  path prefixes are incorrectly required to be complete URLs. WSU `63e8535` /
-  `764851e` and portal `25a455de8` fix them with sensitive regressions. R25 is
-  not a zero-finding round. The deployment input inventory and configuration,
-  Compose, callback and real HTTP tables record their exact qualification.
-  The PDF schema fix changes executable `packages/*/src` since R20, so R25
-  repeats the full core/root runtime suites; fresh results and pending cases
-  are recorded separately from R20's historical installed/Mongo 8/9/cutover/
-  recovery qualification. No new installed image or production acceptance is
-  claimed. R20's resolver/migration, R21's HTTP, R22's clean-clone/CI/development
-  and R23's documentation tables remain settled within their recorded scope.
+  [R26](evidence/final-review-r26.md) verifies R25's three fixes and finds two
+  new introduced P2s: shared startup validation requires optional S3 credentials
+  used by JCU/SCU/UON/UWA, and requires the Figshare embargo-scope binding that
+  CQU/UON intentionally obtain from model defaults. Portal `10b987468` fixes
+  both with sensitive regressions. R26 is not a zero-finding round. The
+  [acceptance differential](evidence/final-review-r26/configuration-settlement.md)
+  accounts for 407 registered sections across real institution configuration:
+  367 accepted and 40 documented conversion refusals, with no unexplained
+  supplied-value loss or coercion after the fixes. Inherited inert registration
+  metadata is recorded separately as B-19.
+  Runtime/schema changes trigger R26's full rerun: core 5,635/7 pending,
+  real-service 224, root 422/10 pending and WSU 565; additional affected groups
+  and source closure pass. These qualify portal `10b987468` / WSU `764851e`
+  source/compiled trees. R20's installed/Mongo 8/9/cutover/recovery qualification
+  remains historical; no replacement installed image or production acceptance
+  is claimed. R20's resolver/migration, R21's HTTP, R22's clean-clone/CI/development,
+  R23's documentation and R25's WSU deployment tables retain their recorded scope.
   The [institution qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
   retains the authorized local scope and unchecked production acceptance work.
   A subsequent confirmation round finding zero new A/P1/P2 issues is required.

@@ -1,9 +1,10 @@
 # Inherited defects retained for separate follow-up
 
-Through R25 this cumulative backlog records **18 inherited groups**. R18/R19 added
+Through R26 this cumulative backlog records **19 inherited groups**. R18/R19 added
 no new inherited group; R20 added B-15 from the migration differential and B-16
 from the installed-process drain diagnosis. R23 added B-17 documentation drift;
-R25 adds B-18 DOI configuration derivation. The opening
+R25 added B-18 DOI configuration derivation; R26 adds B-19 inert institution
+merge directives in the v5 registration path. The opening
 R5 context and later entries retain their original provenance; feature-introduced
 findings are fixed and recorded in their respective review reports.
 
@@ -485,3 +486,31 @@ inherited group, left open; it does not increase R25's introduced finding count.
 Follow up by deriving fallback bases from the final resolved URL and selected
 brand/portal while preserving explicit DOI base and record-level overrides.
 Qualify existing dynamic AppConfig data separately from fresh bootstrap defaults.
+
+## B-19 — P2: institution registration leaves `_dontMerge` metadata inert
+
+SCU's v5 configuration registers `emailnotification._dontMerge: ['templates']`
+and `vocab._dontMerge: ['queries', 'external']`; UON registers
+`vocab._dontMerge: ['queries']`. The registration path does not apply these
+directives. The baseline loader's `mergeRedboxConfig` at
+`a49366803164429f9d8bdd249dadcdf856c9d13e` merges these ordinary sections with
+Lodash and retains the marker as data. The older ConfigService directory-walking
+directive logic is not invoked by these v5 registrations.
+
+The [R26 acceptance replay](final-review-r26/institution-acceptance.cjs) extracts
+and executes the baseline's actual pure merge functions, then compares the
+real v6 loader. Its **16 paired controls** cover four environment variants.
+SCU retains the unwanted core `test` and `transferOwnerTo` email templates and
+the core `rdmp` vocabulary query in both versions. SCU's `external` control
+retains no extra core keys. UON likewise retains its baseline vocabulary keys.
+Both versions preserve the literal marker. The machine results are in
+[the comparison summary](final-review-r26/acceptance-summary.json), under
+`inheritedControls`.
+
+This is inherited behavior, not a retirement regression; no sibling hook was
+changed. V6 documents retirement of loader directives. When converting these
+hooks, use explicit complete definitions and awaited bootstrap operations for
+the intended replacements/deletions, and compare effective defaults as well as
+supplied data. Merely removing a marker does not prove that inherited entries
+were removed. This group remains open and does not increase R26's introduced
+finding count.
