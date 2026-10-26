@@ -1,5 +1,13 @@
 In ReDBox, the `searchFilters` configuration plays a pivotal role in defining and customizing the search experience. Beyond affecting search queries, this configuration directly influences the rendering of facets and other filters on the search page, enabling users to narrow down their search results based on specific criteria.
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
+Place each filter array at `recordtype.<type>.searchFilters`; it is not a
+top-level deployment setting.
+
 ## Understanding `searchFilters` Configuration
 
 The `searchFilters` setup within each `recordtype` allows you to tailor the search interface to the unique needs of each record type, such as research datasets, publications, or data management plans. These configurations determine which filters and facets are available to users and how they interact with the data.

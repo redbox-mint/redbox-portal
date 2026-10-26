@@ -33,15 +33,17 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
     ```
 2.  **Start Dev Environment**:
     ```bash
+    export REDBOX_SESSION_SECRET="$(openssl rand -hex 32)"
     npm run dev:run
     ```
     This spins up the application and dependencies (MongoDB, etc.) using Docker Compose.
 
-Set `STARTUP_TIMING=true` in the app process environment to log elapsed time from
-process start through module loading, shim generation, and completion of the Sails
-lift. Use `STARTUP_TIMING=true npm run dev:run` for the Docker development stack,
-or `STARTUP_TIMING=true node app.js` with the usual database configuration.
-`SHIM_VERBOSE=true` adds loader details.
+Keep the session secret in your private development environment across restarts.
+The host runs `app.express.cjs`; check `/healthz` for liveness and `/readyz` for
+completed initialization. Use `npm run debug` with explicit deployment
+configuration for Node inspector diagnostics. See the
+[development workflow](support/development/README.md) for image mode, logs,
+configuration and existing-volume index preparation.
 
 ### Running Tests
 

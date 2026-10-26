@@ -29,20 +29,25 @@ caller-owned declarations remain mutable. Dynamic brand/AppConfig data is separa
 ## Deployment example and conversion
 
 An institution can select its own files explicitly, including custom environment
-names, without recreating Sails discovery:
+names, without recreating Sails discovery. This CommonJS helper awaits the selected
+files and returns offline configuration; call it from the institution composition
+before constructing the application:
 
 ```js
 const { loadDeploymentConfiguration } = require('@researchdatabox/redbox-core/configuration');
-const config = await loadDeploymentConfiguration({
-  environment: 'institution-production',
-  files: {
-    application: '/etc/redbox/application.cjs',
-    environment: '/etc/redbox/institution-production.mjs',
-    local: '/run/redbox/local.cjs',
-  },
-  env: process.env,
-  argv: process.argv.slice(2),
-});
+async function loadInstitutionConfiguration() {
+  return loadDeploymentConfiguration({
+    environment: 'institution-production',
+    files: {
+      application: '/etc/redbox/application.cjs',
+      environment: '/etc/redbox/institution-production.mjs',
+      local: '/run/redbox/local.cjs',
+    },
+    env: process.env,
+    argv: process.argv.slice(2),
+  });
+}
+module.exports = { loadInstitutionConfiguration };
 ```
 
 Example application file, with real secrets supplied through the deployment's

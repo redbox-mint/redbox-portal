@@ -1,236 +1,93 @@
-# TUS and Uppy Companion Setup
+# TUS and Uppy Companion setup
 
-This guide explains how to configure resumable uploads (TUS) and cloud provider imports (Uppy Companion) in ReDBox Portal.
+V6 uses the owned Express `ResumableUploads` and `CompanionUploads` adapters.
+Browser integrations must follow [v6 client compatibility](V6-Client-Compatibility.md)
+and [upload ownership and maintenance](../specs/sails-retirement/maintenance-v6.md#uploadprogress-cutover-qualification).
 
-## Overview
+## Explicit configuration
 
-ReDBox file uploads use:
+Put `companion` in the deployment data module selected by
+`REDBOX_APPLICATION_CONFIG`. The following complete module illustrates the data
+shape; replace the example secret and provider credentials in private deployment
+configuration before enabling a real provider:
 
-- `@uppy/tus` in the Angular `FileUploadComponent`
-- TUS server endpoints at:
-  - Browser/local upload route (CSRF-protected): `/:branding/:portal/record/:oid/attach`
-  - Companion/remote provider upload route: `/:branding/:portal/companion/record/:oid/attach`
-- Optional Uppy Companion middleware at `/companion/*` for provider sources (Google Drive, OneDrive, Dropbox)
-
-## 1. Enable Companion
-
-Companion defaults are defined in:
-
-- `packages/redbox-core/src/config/companion.config.ts`
-
-Set environment variables:
-
-```bash
-UPPY_COMPANION_ENABLED=true
-UPPY_COMPANION_SECRET=<at-least-32-characters>
-UPPY_COMPANION_FILE_PATH=/tmp/companion
-
-# Public app URL used for provider callback handling
-UPPY_COMPANION_HOST=localhost:1500
-UPPY_COMPANION_PROTOCOL=http
-UPPY_COMPANION_PATH=/companion
-```
-
-Provider credentials:
-
-```bash
-# Google Drive
-UPPY_GOOGLE_KEY=<google-client-id>
-UPPY_GOOGLE_SECRET=<google-client-secret>
-
-# OneDrive
-UPPY_ONEDRIVE_KEY=<onedrive-client-id>
-UPPY_ONEDRIVE_SECRET=<onedrive-client-secret>
-```
-
-## 1.1 Provider OAuth App Setup (External Docs)
-
-Use these external references when creating provider OAuth apps/client credentials.
-
-### Dropbox
-
-- Uppy Dropbox provider setup (includes Companion-specific notes and scopes):
-  - https://uppy.io/docs/dropbox/
-- Dropbox OAuth guide:
-  - https://developers.dropbox.com/oauth-guide
-- Dropbox App Console (create app, set redirect URIs, get app key/secret):
-  - https://www.dropbox.com/developers/apps
-
-### Google Drive
-
-- Uppy Google Drive provider setup:
-  - https://uppy.io/docs/google-drive/
-- Google OAuth 2.0 for web/server apps:
-  - https://developers.google.com/identity/protocols/oauth2/web-server
-- Google OAuth app verification overview:
-  - https://support.google.com/cloud/answer/13464321
-
-### OneDrive (Microsoft)
-
-- Uppy OneDrive provider setup:
-  - https://uppy.io/docs/onedrive/
-- Microsoft Entra app registration:
-  - https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app
-- Add redirect URIs in app registration:
-  - https://learn.microsoft.com/en-us/entra/identity-platform/how-to-add-redirect-uri
-
-### Redirect URIs to register in provider consoles
-
-For a Companion base URL like `https://uploads.example.edu/companion`:
-
-- Dropbox: `https://uploads.example.edu/companion/dropbox/redirect`
-- Google Drive: `https://uploads.example.edu/companion/drive/redirect`
-- OneDrive: `https://uploads.example.edu/companion/onedrive/redirect`
-
-For local development (`http://localhost:1500/companion`):
-
-- Dropbox: `http://localhost:1500/companion/dropbox/redirect`
-- Google Drive: `http://localhost:1500/companion/drive/redirect`
-- OneDrive: `http://localhost:1500/companion/onedrive/redirect`
-
-Optional:
-
-```bash
-UPPY_COMPANION_UPLOAD_URLS=http://localhost:1500/default/rdmp/companion/record/pending-oid/attach
-UPPY_COMPANION_ATTACHMENT_SECRET=<shared-secret-for-companion-attach>
-UPPY_COMPANION_ATTACHMENT_SECRET_HEADER=x-companion-secret
-UPPY_COMPANION_ATTACHMENT_LOCAL_ONLY=true
-```
-
-Notes:
-
-- Companion will fail startup if `UPPY_COMPANION_SECRET` is missing or shorter than 32 chars.
-- Companion requires at least one provider with a complete key+secret pair (`UPPY_GOOGLE_KEY` + `UPPY_GOOGLE_SECRET` and/or `UPPY_ONEDRIVE_KEY` + `UPPY_ONEDRIVE_SECRET`).
-- Do not edit generated shims in `config/*.js`; update `packages/redbox-core/src/config/*.ts` defaults or environment variables.
-
-### What the two Companion secrets are for
-
-#### `UPPY_COMPANION_SECRET`
-
-Primary Companion application secret.
-
-- Used by Companion itself (configured as `companion.secret`) for internal token/signing behavior in provider auth flows.
-- Required when Companion is enabled.
-- Must be at least 32 characters in this codebase.
-
-#### `UPPY_COMPANION_ATTACHMENT_SECRET`
-
-Shared secret used between Companion and ReDBox attachment upload endpoints.
-
-- Added by Companion as a request header (default header: `x-companion-secret`) on server-side upload requests to `/:branding/:portal/companion/record/:oid/attach`.
-- Validated by `companionAttachmentUploadAuth` policy on companion attachment routes before allowing Companion-originated upload create/chunk requests to bypass normal `checkAuth`.
-- Works with `UPPY_COMPANION_ATTACHMENT_LOCAL_ONLY` (default true) so only local/private-origin requests with a valid secret are accepted.
-
-Behavior when unset:
-
-- `UPPY_COMPANION_ATTACHMENT_SECRET` falls back to `UPPY_COMPANION_SECRET`.
-
-Recommended practice:
-
-- Set both explicitly in production.
-- Use different values so OAuth/session signing secret and upload-bridge secret can be rotated independently.
-
-## 2. Configure Form Field (Uppy Frontend)
-
-Use the `FileUploadComponent` in record form config and set:
-
-- `enabledSources`: any of `dropbox`, `googleDrive`, `onedrive`
-- `companionUrl`: typically `/companion`
-- optional `tusHeaders`, `restrictions`, `allowUploadWithoutSave`
-
-Routing behavior:
-
-- Local/browser uploads use `/:branding/:portal/record/:oid/attach`.
-- Remote provider uploads (via Companion) use `/:branding/:portal/companion/record/:oid/attach`.
-
-Example:
-
-```json
-{
-  "name": "attachments",
-  "component": {
-    "class": "FileUploadComponent",
-    "config": {
-      "enabledSources": ["googleDrive", "onedrive"],
-      "companionUrl": "/companion",
-      "allowUploadWithoutSave": true,
-      "restrictions": {
-        "maxFileSize": 1073741824
-      }
-    }
+```js
+module.exports = {
+  companion: {
+    enabled: true,
+    secret: 'replace-this-with-a-private-secret-of-at-least-32-characters',
+    filePath: '/var/lib/redbox/companion',
+    route: '/companion',
+    server: { host: 'research.example.edu', protocol: 'https', path: '/companion' },
+    providerOptions: {
+      drive: { key: 'replace-with-provider-client-id', secret: 'replace-with-provider-client-secret' },
+    },
+    uploadUrls: ['https://research.example.edu/default/rdmp/companion/record/.+/attach'],
+    metrics: false,
   },
-  "model": {
-    "class": "FileUploadModel",
-    "config": {
-      "defaultValue": []
-    }
-  }
-}
+};
 ```
 
-## 3. TUS Endpoint Behavior
+Set `server.publicUrl` and `server.rootContext` consistently with the deployed
+origin/root. Keep `filePath` on persistent writable storage through drain and
+process exit. Configure only the selected providers and exact permitted upload
+URLs. Register provider callbacks under the selected public Companion path:
+`/companion/drive/redirect`, `/companion/onedrive/redirect`, or
+`/companion/dropbox/redirect` as applicable. Provider credentials and institutional
+OAuth acceptance need separate verification.
 
-Routes are defined in:
+The local development Compose workflow deliberately converts a **subset** of
+`UPPY_*` variables in `support/development/application.cjs`: enablement, secret,
+bearer/attachment credentials, upload URLs, Google/OneDrive keys and server
+host/protocol. These are inputs to that specific data module, not general v6
+host environment overrides. Other deployment settings, including `filePath`,
+belong in the explicit module. See [development](../development/README.md).
 
-- `packages/redbox-core/src/config/routes.config.ts`
+## Authentication and client changes
 
-Endpoints:
+Every attachment request requires an authenticated actor with current brand and
+record edit permission. A configured shared attachment secret does not establish
+that actor. A remote transfer must supply the deployment's verified actor
+credential; configure provider upload headers through `companion.uploadHeaders`
+when needed. Keep browser CSRF tokens on applicable raw requests, including HEAD
+resume checks. Only the host's independently verified bearer identity receives
+the API CSRF exemption. Recheck current permissions when resuming.
 
-- `/:branding/:portal/record/:oid/attach` (browser/local upload route, CSRF-protected)
-- `/:branding/:portal/record/:oid/attach/:attachId` (browser/local upload route, CSRF-protected)
-- `/:branding/:portal/companion/record/:oid/attach` (companion/remote provider upload route)
-- `/:branding/:portal/companion/record/:oid/attach/:attachId` (companion/remote provider upload route)
+The browser/local routes are `/:branding/:portal/record/:oid/attach` and its
+`/:attachId` resource. Remote routes add `/companion` before `/record`; they use
+the same owned upload authorization and actor/brand/record binding. Returned
+Locations are root-relative; resolve them against the configured public origin.
 
-These support TUS create/chunk flows used by Uppy.
+Companion HTTP runs the bound actor/brand/path policies. Mutating provider requests
+also require CSRF or the verified bearer exemption. Its WebSocket protocol is
+separate from portal Socket.IO and validates canonical origins and known transfer
+or callback paths. No shared secret authorizes arbitrary browser or socket work.
 
-## 4. Security and Authorization
+Use the current `FileUploadComponent` declaration and `FileUploadModel` from
+`sails-ng-common`; see [form configuration](Configuring-Record-Forms.md).
+Select `enabledSources`, the root-aware `companionUrl`, restrictions and any
+required `tusHeaders` in the component's config. Deploy current browser assets
+with the server. Do not reuse v5 virtual socket upload calls.
 
-### Companion (`/companion/*`)
+## Lifecycle and verification
 
-Companion middleware is in:
+The host creates one pinned Companion 7.1.1 app during initialization. Metrics
+are explicit; Redis and periodic pings are unsupported. A second application or
+restart needs a fresh process. Stop fences new work, drains admitted transfers
+within the deadline and terminates remaining transports. Provider-internal I/O
+and cleanup cron have process lifetime; keep temporary bytes until process exit.
 
-- `packages/redbox-core/src/config/http.config.ts`
+With the [development prerequisites](../development/README.md) met, test fresh
+login, local create/chunk/HEAD resume, remote provider authorization and actual
+transfer, wrong actor/brand/record rejection, missing CSRF, denied origin, restart
+and interrupted-transfer reconciliation. `/readyz` alone does not verify OAuth
+or successful bytes. Old staging metadata without trusted ownership stays
+retained for explicit reconciliation or an authorized restart of the upload.
 
-Current behavior:
+## Code paths
 
-- Unauthenticated requests are rejected with `401` JSON.
-- Authenticated users are allowed by default.
-- If path rules are configured for companion paths, they are enforced for authenticated users and can return `403`.
-
-### Attachment upload (`/record/:oid/attach` and `/companion/record/:oid/attach`)
-
-Attachment upload policies are configured in:
-
-- `packages/redbox-core/src/config/policies.config.ts`
-- `packages/redbox-core/src/policies/companionAttachmentUploadAuth.ts`
-
-Companion server-side create/chunk requests can bypass standard `checkAuth` only when shared-secret and locality checks pass.
-Bypass is route-scoped and is ignored on non-companion attachment routes (including CSRF-protected legacy endpoints).
-
-## 5. Verification
-
-1. Start local stack:
-   - `npm run dev:run`
-2. As authenticated user:
-   - Open a form with `FileUploadComponent`.
-   - Confirm provider buttons appear and provider login/import works.
-3. Unauthenticated check:
-   - Visit `/companion/drive/list/root` in incognito.
-   - Expect `401` response.
-4. Upload check:
-   - Upload a local file and confirm TUS upload success.
-5. Optional policy check:
-   - Add companion path rule restrictions and verify non-permitted authenticated users receive `403`.
-
-## 6. Troubleshooting
-
-- Companion endpoints return 500 at startup:
-  - Check `UPPY_COMPANION_SECRET` (must be set and >= 32 chars).
-  - Check `UPPY_COMPANION_FILE_PATH` read/write permissions.
-- Provider login popup closes without token:
-  - Verify `UPPY_COMPANION_HOST/PROTOCOL/PATH` and provider callback URLs match deployed URL.
-- Companion calls return `401`:
-  - Verify user is logged in to ReDBox before opening provider picker.
-- Companion calls return `403`:
-  - Check `session.branding` context and any companion path rules.
-  - Check `companionAttachmentUploadAuth` secret/header/local-only settings for server-side upload creation.
+- `packages/redbox-core/src/http/express/resumableUploads.ts`: routes and owned tus adapter.
+- `packages/redbox-core/src/http/express/companion.ts`: provider HTTP/socket admission and cleanup.
+- `packages/redbox-core/src/application/portal/http.ts`: production composition and policies.
+- `packages/redbox-core/src/configuration/portal.ts`: explicit configuration validation.
+- `angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts`: browser client.

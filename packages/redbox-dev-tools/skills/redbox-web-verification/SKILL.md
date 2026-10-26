@@ -11,33 +11,15 @@ This skill outlines the workflow for verifying the Redbox Portal web interface u
 
 ## Workflow
 
-### 1. Start the Application
-
-Start the application in development mode with the mount profile. The `dev:run` script applies the mount profile implicitly (no extra flags required).
-**Important:** Capture the `CommandId` returned by this command to monitor logs later. The `CommandId` is typically a UUID or numeric ID printed near startup; look for it before or around the "Sails lifted" readiness marker.
-
-```bash
-npm run dev:run
-```
-
-Example output (capture the value after `CommandId:`):
-
-```text
-CommandId: 9f2b5c3a-1d4e-4a6a-9e5b-0a1234567890
-...Sails lifted...
-```
-
-Extract it from the logs with a one-liner (or copy the `CommandId:` line directly):
-
-```bash
-grep -m 1 "CommandId:" .tmp/logs/dev-run.log
-```
-
-Wait for the application to be ready (look for "Sails lifted").
+### 1. Start the application
+Follow `support/development/README.md` with the pinned Node runtime, compiled
+packages and a private `REDBOX_SESSION_SECRET`. Start `npm run dev:run` and retain
+the process/session identifier returned by the execution tool. Poll `/readyz`
+until it returns 200 with ready status; `/healthz` alone is insufficient.
 
 ### 2. Launch Browser
 
-Use the `browser_subagent` tool to launch a browser session.
+Use the browser automation available in the current environment.
 
 - **TaskName:** Web Verification
 - **Task:** "Open http://localhost:1500 and [Insert Natural Language Script Here]"
@@ -59,7 +41,7 @@ Follow the natural language instructions provided by the user.
 
 ### 4. Monitor Logs
 
-While the browser session is active or after a step fails, check the logs of the running application using the `command_status` tool and the captured `CommandId`.
+While the browser session is active or after a step fails, check the logs of the running application using the execution tool's retained process/session identifier.
 
 - Look for server-side errors (500s, exceptions) that correlate with UI actions.
 

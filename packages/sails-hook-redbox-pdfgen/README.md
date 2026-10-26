@@ -134,7 +134,7 @@ Angular-rendered record views generally need `selector` or `networkIdle+selector
 ### Example
 
 ```js
-// config/pdfgen.js
+// deployment.cjs, selected with REDBOX_APPLICATION_CONFIG
 module.exports.pdfgen = {
   token: process.env.PDFGEN_API_TOKEN,
   pdfPrefix: 'rdmp-pdf',
@@ -150,17 +150,17 @@ module.exports.pdfgen = {
 };
 ```
 
-Environment-variable form (as used by the bundled Docker stacks):
-
-```
-sails_brandingConfigurationDefaults__pdfgen__token=6b088b4d-d54c-470c-8568-2f2695fcdab9
-```
+Put brand defaults in `brandingConfigurationDefaults.pdfgen` in the explicitly
+selected deployment data module, or edit the brand's `pdfgen` AppConfig. The
+example reads an institution-owned `PDFGEN_API_TOKEN`; that variable is converted
+by the data module, not an implicit core environment alias. See the
+[configuration guide](../../support/wiki/Configuration-Guide.md).
 
 ## Wiring the hook into a record type
 
 ### Inline trigger (simplest)
 
-Call the service directly from a record type post-save trigger in `recordtype.config.js`:
+Call the service directly from a record type post-save trigger in the selected deployment module's `recordtype` section or extension configuration:
 
 ```js
 onUpdate: {
@@ -196,7 +196,7 @@ The hook registers the `PDFService-CreatePDF` Agenda job (`lockLifetime` 120s, `
 }
 ```
 
-> Do **not** put `PDFService-CreatePDF` in a record hook's `function` field. ReDBox evaluates `function` as JavaScript, whereas `PDFService-CreatePDF` is the Agenda job name.
+> Do **not** put `PDFService-CreatePDF` in a record hook's `function` field. V6 resolves `function` as a named, explicitly bound operation; `PDFService-CreatePDF` is the Agenda job name.
 
 ## How generation works
 
@@ -234,7 +234,7 @@ Retry behaviour:
 - The initial attempt runs on a background Effect fiber, and retries run on a background daemon fiber, so the initial call returns straight away.
 - Delay for retry *n* (0-indexed) is `retryDelayMs * retryBackoffMultiplier ^ n` — with defaults, 5s then 10s.
 - A pending retry is cancelled if a newer request for the same URL succeeds first.
-- On Sails `lower`, in-flight initial and retry fibers are interrupted and their audit spans are closed as failed.
+- The owned module's `quiesce` closes admission; `drain` joins accepted rendering and retry work, and `close` releases the browser. A deadline failure retains ownership for cleanup retry.
 
 ## Integration audit
 
@@ -243,9 +243,11 @@ Every pipeline emits records to ReDBox's `IntegrationAuditService`, surfaced via
 - **`generatePdfTrigger`** — one parent span per `createPDF` call. Captures `triggeredBy` (defaults to `'createPDF'`; override with `options.triggerSource`), `requestSummary.maxRetries`/`baseDelayMs`/`multiplier`, and on completion `responseSummary.finalStatus` (`success` / `failed` / `skipped`) plus `attemptsRun`.
 - **`generatePdf`** — one child span per attempt (initial and every background retry). Each child shares the parent's `traceId` and links via `parentSpanId`. `requestSummary` carries `attempt`, `url`, `sourceUrlBase`, `readinessStrategy` and `pdfPrefix`. On success `responseSummary` includes `fileId` and `pdfBufferSize`; on failure it includes `errorTag` and the underlying `cause` message.
 
-The hook owns its audit identifiers in `src/api/services/PDFAudit.ts` rather than registering with `redbox-core`. The relevant core types (`IntegrationAuditNameLike`, `IntegrationAuditActionLike`) are widened so hooks can ship new audit categories without a core release.
+The hook owns its audit identifiers in `src/api/services/audit.ts` rather than registering with `redbox-core`. The relevant core types (`IntegrationAuditNameLike`, `IntegrationAuditActionLike`) are widened so hooks can ship new audit categories without a core release.
 
-Audit calls degrade gracefully: when the global `IntegrationAuditService` is unavailable (for example in unit tests), `startPdfAudit`/`completePdfAudit`/`failPdfAudit` no-op and PDF generation is unaffected.
+Audit operations are explicit inputs bound by the host. Test compositions may
+supply a deliberate no-op audit implementation; there is no global service lookup
+or implicit fallback for a missing production binding.
 
 ## Development
 
@@ -339,7 +341,7 @@ The Docker compose files set `NODE_PATH` so a mounted hook resolves host-provide
 | `API token for PDF generation is not set. Skipping generation` | `pdfgen.token` is empty for that brand. |
 | PDF is blank or half-rendered | Readiness strategy returns too early — switch to `selector` / `networkIdle+selector`, or raise `readinessTimeout`. |
 | `BrowserError` on every attempt | No Chromium at the resolved path — set `PUPPETEER_EXECUTABLE_PATH`. |
-| Renders a login page instead of the record | Token invalid, or `appUrlOverride`/`configuration.appUrl` unreachable from inside the container. |
+| Renders a login page instead of the record | Token invalid, or `appUrlOverride`/the selected public URL unreachable from inside the container. |
 | `MissingBrandError` | The record has no resolvable `metaMetadata.brandId`. |
 | Nothing happens on save, no logs | The trigger isn't wired, or `PDFService-CreatePDF` was used in the `function` field instead of via `queueTriggerCall`. |
 

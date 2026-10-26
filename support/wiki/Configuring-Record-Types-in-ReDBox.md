@@ -1,5 +1,11 @@
 This section covers configuring different record types within the ReDBox platform, an essential step for tailoring the application to meet specific institutional and research data management requirements.
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
+
 For the runtime behaviour of record relationships, including default expansion depth and supported `relatedTo` semantics, see [Improved Related Record Handling](Improved-Related-Record-Handling.md).
 
 ## Overview of Record Types
@@ -13,7 +19,7 @@ Commonly, `packageType` is used for ReDBox Workspace records to group the variou
 
 ## Configuring Your Record Types
 
-When configuring your record types in ReDBox, you will modify settings within the `config/recordtype.js` file. Here's a basic structure to guide you:
+When configuring your record types in ReDBox, you will modify settings within the `recordtype` section. Here's a basic structure to guide you:
 
 ```javascript
 module.exports.recordtype = {

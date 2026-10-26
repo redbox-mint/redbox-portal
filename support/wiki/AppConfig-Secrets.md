@@ -1,8 +1,14 @@
 # AppConfig secrets in AWS Secrets Manager
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
+
 AppConfig remains branding-aware and editable through the existing admin forms. By default, values remain in the database. Deployments on AWS can opt into Secrets Manager for fields registered in `ConfigModelInfo.secretFields` (including the existing Figshare token, DOI password, RAiD credentials and Oni ingestion admin tokens).
 
-Set deployment configuration, for example in `config/local.js` or the appropriate `config/env` file:
+Set `appConfigSecrets` in the selected deployment module:
 
 ```js
 module.exports.appConfigSecrets = {
@@ -87,11 +93,11 @@ Resolved secrets live in the existing in-memory branding cache. External AWS edi
 
 `test/integration/services/AppConfigService.test.ts` includes a real Prisma insert/update reference round trip with the Secrets Manager SDK mocked. Run it through the repository Mocha Docker workflow (see [ReDBox Automated Tests](ReDBox-Automated-Tests.md)). Package tests cover request counts for cached/unchanged saves, shared bundle updates, cross-process write coordination, per-field migration, repeated hook submissions, masked responses, wildcard lifecycles, sanitized AWS failures and roll-forward recovery. These tests do not verify live AWS access.
 
-AppConfig write keys must be single safe names: dots, brackets, and prototype-related names are rejected before storage or cache updates. Hook configuration filenames use the name without their `.js`, `.json`, or `.ts` extension to match registered model keys.
+AppConfig write keys must be single safe names: dots, brackets, and prototype-related names are rejected before storage or cache updates. V6 configuration models are named explicit declarations; filenames do not register models.
 
 ## Upgrade: hook configuration filenames
 
-Hook files at `branded-config/<brand>/{init-only,override}/foo.js` now use the registered key `foo`, rather than the legacy key `foo.js`. Review these files **before upgrading**: previously dormant `override/` files now take effect on every startup and can replace settings edited through the UI. Remove obsolete overrides or update them to the intended deployed settings. Init-only files create the real key only when it is absent. Within each init-only or override tree, files that normalize to the same key (including files in nested directories) are all skipped with an error; distinct keys continue to apply. The same key may intentionally appear once in each separate tree.
+**Historical v5 input:** hook files at `branded-config/<brand>/{init-only,override}/foo.js` used the registered key `foo`, rather than the older key `foo.js`. V6 does not scan that directory: convert each operation into awaited, explicitly bound extension bootstrap work using AppConfig operations. Preserve init-only versus override behavior deliberately. When reviewing the v5 source before conversion, previously dormant `override/` files now take effect on every startup and can replace settings edited through the UI. Remove obsolete overrides or update them to the intended deployed settings. Init-only files create the real key only when it is absent. Within each init-only or override tree, files that normalize to the same key (including files in nested directories) are all skipped with an error; distinct keys continue to apply. The same key may intentionally appear once in each separate tree.
 
 Legacy database rows with dotted/bracketed or prototype-related configuration keys are skipped with a warning during backend loading and are excluded from the active configuration and admin views. Direct reads through the configuration editor reject these keys. Raw storage reads still expose the rows for deliberate migration. The upgrade does not delete or rename them: review their values against the active registered key before explicitly migrating or removing them, and account for any plaintext secrets retained in those rows and backups.
 

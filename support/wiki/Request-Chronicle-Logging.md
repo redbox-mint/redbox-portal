@@ -85,32 +85,35 @@ The default logfmt transport (`packages/redbox-core/logfmt-transport.cjs`) flatt
 | `res_completed` | `res.completed` | Whether the response was completely sent. |
 | `errors_<n>_name`, `errors_<n>_message`, `errors_<n>_code`, `errors_<n>_stack`, `errors_<n>_details_<m>_...` | `errors` | Recorded errors, including causes and aggregated errors. |
 | `errors_omitted` | `errorsOmitted` | The number of errors beyond the limit. |
-| `display_errors_<n>_...` | `displayErrors` | The status, code, title, and detail of the errors shown to the client by `sendResp`. |
+| `display_errors_<n>_...` | `displayErrors` | The status, code, title, and detail of the errors selected by the response adapter. |
 | other keys | | Details added by controllers, such as `user_id` or `report_name`. |
 
 Pino also adds `time`, `pid`, and `hostname`. These, along with `level`, `name`, `msg`, `err`, and the event fields above, are reserved and cannot be set by controller details.
 
 ## Adding details
 
-In a controller that extends `Controllers.Core.Controller`:
+In an explicitly bound Express handler, use the request's existing helper and the
+owned response functions. This complete TypeScript example can be compiled in a
+hook with the qualified core installed:
 
 ```ts
-// Add details while handling the request.
-this.updateChronicle(req, { reportName: name, reportPagingRows: rows });
+import type { RequestHandler } from '@researchdatabox/redbox-core/extensions';
+import { sendApiErrors } from '@researchdatabox/redbox-core/http/express';
+import { RequestChronicleHelper } from '@researchdatabox/redbox-core/dist/utilities/RequestChronicle';
 
-// Record an error without changing the response.
-this.updateChronicle(req, {}, [error]);
-
-// Add details and errors with the response.
-return this.sendResp(req, res, {
-  status: 500,
-  displayErrors: [{ code: 'report-failed' }],
-  errors: [error],
-  chronicle: { reportName: name },
-});
+export const reportFailure: RequestHandler = (req, res) => {
+  const chronicle = RequestChronicleHelper.existing(req);
+  chronicle?.addInfo({ reportName: 'institution-report', reportPagingRows: 0 });
+  chronicle?.addError(new Error('Report operation failed'));
+  sendApiErrors(req, res, 500, [{ code: 'report-failed', title: 'Report failed' }]);
+};
 ```
 
-Passing `errors` to `sendResp` affects the response: if there are no `displayErrors`, a generic `server-error` display error is added and the status becomes 500. To keep an existing response, such as a 200 `{status: false, message}` response, record the error with `updateChronicle` instead.
+`addError` records an error without sending or changing the response. Choose the
+response status and safe display errors explicitly with `sendApiErrors`, or use
+`sendApiData` for the existing success contract. Never expose the original error
+as response data. The host completes the chronicle; handlers do not create a
+second request event.
 
 Keys are top-level and a later value replaces an earlier one. Use a prefix for the controller or feature, for example `userLoginSuccess` or `emailProcessStepFailed`.
 
@@ -166,10 +169,14 @@ These limits are a safeguard, not a replacement for choosing safe, concise detai
 
 ## Work that outlives the response
 
-Some work is started but not awaited before the response is sent, such as user audit events. Use `recordBackgroundOperation`:
+Work that can outlive the response, such as an audit, must remain tracked by the
+application's admitted-work owner. Capture the existing chronicle before starting
+that work; report its settlement through `addOperationResult`:
 
 ```ts
-this.recordBackgroundOperation(req, 'userAuditEventLogin', UsersService.addUserAuditEvent(user, 'login', requestDetails));
+// Inside an already admitted and application-tracked async operation:
+chronicle?.addOperationResult('userAuditEventLogin');
+// On failure, pass the error as the second argument instead.
 ```
 
 - If the work settles while the request is running, the result is added to the event (`user_audit_event_login=success` or `failure`, plus the error).
@@ -180,13 +187,13 @@ The response is never delayed to wait for the work.
 
 Any error recorded after the request finished is logged separately at `error` level with the `requestId`, and late details are logged at `debug` level, so they are never silently discarded.
 
-## Migrating more controllers and services
+## Migrating more handlers and services
 
-Controllers migrated so far: Action, BrandingApp, DynamicAsset, Email, FormVocabulary, Report, Translation, User, Vocabulary, and the webservice IntegrationAudit and Report controllers. When migrating another controller:
+When adding or converting a handler:
 
-1. Replace scattered the injected logger calls for the request with `updateChronicle` details, keeping the safe capture rules.
-2. Keep the existing response contract. Check every `errors` added to `sendResp`.
-3. Use `recordBackgroundOperation` for work that is not awaited.
+1. Replace scattered logger calls for the request with the existing helper's `addInfo`/`addError`, keeping the safe capture rules.
+2. Keep the existing response contract and select safe status/display errors explicitly.
+3. Track accepted asynchronous work through the application owner and record its settlement with `addOperationResult`.
 4. Add tests for the response and the captured details.
 
 The request-facing legacy payload logging in Records, RDMP, Users, Email, NamedQuery, SolrSearch, and Trigger services now uses service summaries. Existing structured audit, validation, concurrency, and lifecycle events remain separate. Other service logging can migrate incrementally using the inherited `updateChronicle(info, errors, level)` helper and the same safe capture rules. Keep startup and independently scheduled job diagnostics useful through the namespace fallback, and test both HTTP and background execution.

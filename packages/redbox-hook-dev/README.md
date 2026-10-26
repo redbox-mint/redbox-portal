@@ -71,8 +71,8 @@ with the locally-built `redbox-portal:test` image.
 - `src/config/brandingConfigurationDefaults.ts` — demo menu, home panels, DOI `dataPublication` profile
 - `src/config/auth.ts` — demo default portal (`rdmp`) and post-logout redirect
 - `src/config/record.ts` — demo MINT URL and `@referrer_rdmp` context variable
-- `src/config/routes.ts` — demo root redirect to `/default/rdmp/home`
-- `src/config/views.ts` — demo noCache paths
+- `src/config/routes.ts` — demo landing declaration; `src/extension.ts` converts it to `page.landingPath`
+- `src/config/views.ts` — demo page-cache declarations, converted to `page.noCache`
 - `src/config/jsonld.ts` — demo JSON-LD context mappings
 - `src/form-config/` — demo forms (`default-1.0-draft`, `dataRecord-1.0-draft`)
 
