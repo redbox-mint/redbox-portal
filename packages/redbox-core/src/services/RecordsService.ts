@@ -428,6 +428,8 @@ export namespace Services {
   type ValidateCandidateOptions = {
     readonly candidate: AnyRecord;
     readonly original?: AnyRecord;
+    /** Storage snapshot that authorized this save before its own hooks changed the ACL. */
+    readonly editAuthorizationRecord?: AnyRecord;
     readonly user: AnyRecord;
     readonly context: RecordSaveContext;
     readonly writeKind: RecordValidationWriteKind;
@@ -450,6 +452,7 @@ export namespace Services {
     | {
         readonly status: StorageMutationApplicationState;
         readonly candidate: RecordWithMeta;
+        readonly authoritativeStep: WorkflowStepLike | undefined;
         readonly warnings: readonly RecordSaveProblem[];
         readonly response: StorageMutationResponse;
       }
@@ -1225,7 +1228,9 @@ export namespace Services {
         detachedMetadata,
         (existingValue: unknown, submittedValue: unknown) => {
           if (Array.isArray(existingValue)) {
-            return submission.arrayMergeMode === 'replace' ? submittedValue : existingValue.concat(submittedValue);
+            return submission.arrayMergeMode !== 'replace' && Array.isArray(submittedValue)
+              ? existingValue.concat(submittedValue)
+              : submittedValue;
           }
           return undefined;
         }
@@ -2397,6 +2402,7 @@ export namespace Services {
       const {
         candidate,
         original,
+        editAuthorizationRecord,
         user,
         context,
         writeKind,
@@ -2441,7 +2447,12 @@ export namespace Services {
         };
       }
       if (
-        !this.hasPublicEditAuthorization(context, brand, user, writeKind === 'create' ? candidateToValidate : original)
+        !this.hasPublicEditAuthorization(
+          context,
+          brand,
+          user,
+          editAuthorizationRecord ?? (writeKind === 'create' ? candidateToValidate : original)
+        )
       ) {
         return {
           allowed: false,
@@ -3449,17 +3460,54 @@ export namespace Services {
         candidate,
         user,
         context,
-        writeKind,
         recordType,
-        targetStep,
-        authoritativeStep,
-        requiresTransitionAuthorization,
         expectedRevision,
+        editAuthorizationRecord,
       } = options;
+      let { writeKind, targetStep, authoritativeStep, requiresTransitionAuthorization } = options;
       // Callers pass a freshly merged postSync candidate. Normalize that exact
       // object so persistence and every subsequently dispatched hook observe
       // the same authoritative record that validation receives.
       let authoritativeCandidate = this.cloneValidationCandidate(candidate);
+      // Primary saves have already rejected caller-supplied workflow changes.
+      // A configured postSync hook may request a subsequent transition, but
+      // its target and form must come from this record type's workflow config.
+      const hookTarget = this.candidateWorkflowStep(authoritativeCandidate);
+      if (hookTarget && hookTarget !== this.candidateWorkflowStep(beforeCandidate)) {
+        const parsed = this.parseRequestedWorkflowTarget(undefined, hookTarget, true);
+        if (!parsed.ok || !recordType) {
+          return {
+            status: 'validation-failed',
+            problem: this.validationProblem('system', 'post-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence),
+          };
+        }
+        const resolved = (await firstValueFrom(
+          WorkflowStepsService.get(recordType, hookTarget)
+        )) as WorkflowStepLike | null;
+        if (this.resolvedWorkflowTargetDiagnostic(resolved, hookTarget)) {
+          return {
+            status: 'validation-failed',
+            problem: this.validationProblem('system', 'post-save', RECORD_VALIDATION_SAVE_CODES.authorityDivergence),
+          };
+        }
+        if (!this.hasTransitionRoleAuthorization(resolved, user)) {
+          return {
+            status: 'validation-failed',
+            problem: this.validationProblem(
+              'authorization',
+              'post-save',
+              RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized
+            ),
+          };
+        }
+        const previousWorkflow = _.cloneDeep(beforeCandidate.workflow);
+        this.transitionWorkflowStepMetadata(authoritativeCandidate, resolved);
+        authoritativeCandidate.previousWorkflow = previousWorkflow;
+        writeKind = 'transition';
+        targetStep = resolved ?? undefined;
+        authoritativeStep = resolved ?? undefined;
+        requiresTransitionAuthorization = true;
+      }
       if (
         !this.normalizeAuthoritativeCandidateContext(
           authoritativeCandidate,
@@ -3480,7 +3528,7 @@ export namespace Services {
           context,
           brand,
           user,
-          writeKind === 'create' ? authoritativeCandidate : beforeCandidate
+          editAuthorizationRecord ?? (writeKind === 'create' ? authoritativeCandidate : beforeCandidate)
         )
       ) {
         return {
@@ -3510,6 +3558,7 @@ export namespace Services {
         const validation = await this.validateCandidate({
           candidate: authoritativeCandidate,
           original: beforeCandidate,
+          editAuthorizationRecord,
           user,
           context,
           writeKind,
@@ -3539,6 +3588,7 @@ export namespace Services {
       return {
         status: resolveStorageMutationState(response, this.logLegacyMutationResponse),
         candidate: authoritativeCandidate,
+        authoritativeStep,
         warnings,
         response,
       };
@@ -4124,7 +4174,7 @@ export namespace Services {
       this.setConcurrencyMetadata(tracker, createOid, concurrencyMode, undefined);
 
       const startingWfStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordTypeObj))) as WorkflowStepLike;
-      const wfStep = (
+      let wfStep = (
         targetStepName ? await firstValueFrom(WorkflowStepsService.get(recordTypeObj, targetStepName)) : startingWfStep
       ) as WorkflowStepLike;
       if (targetStepName) {
@@ -4529,6 +4579,7 @@ export namespace Services {
         }
 
         if (triggerPostSaveTriggers) {
+          let hookTransitionCommitted = false;
           // post-save sync
           try {
             const beforePostSync = _.cloneDeep(recordObj) as AnyRecord;
@@ -4605,6 +4656,11 @@ export namespace Services {
                 );
               }
               currentRevision = postSyncRevision;
+              hookTransitionCommitted =
+                this.candidateWorkflowStep(hookMutationState.candidate) !== this.candidateWorkflowStep(beforePostSync);
+              // A committed hook transition supplies the authority for the
+              // following transition hooks, including its configured form.
+              wfStep = hookMutationState.authoritativeStep ?? wfStep;
               if (this.committedRevision(hookMutationState.response) !== undefined) {
                 recordObj.revision = currentRevision;
               }
@@ -4632,7 +4688,7 @@ export namespace Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordTypeObj, 'onCreate', userObj, hookOperation);
 
-          if (targetStepName) {
+          if (targetStepName || hookTransitionCommitted) {
             try {
               const beforeTransitionPostSync = _.cloneDeep(recordObj) as AnyRecord;
               const transitionOutcome = await this.runPostSaveSyncTriggers({
@@ -5784,6 +5840,7 @@ export namespace Services {
         }
         // post-save async
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
+          let hookTransitionCommitted = false;
           // Trigger Post-save sync hooks ...
           try {
             const beforePostSyncCandidate = this.mergeValidationCandidate(originalRecord, recordObj);
@@ -5826,6 +5883,11 @@ export namespace Services {
                 oid,
                 beforeCandidate: beforePostSyncCandidate,
                 candidate: postSyncCandidate,
+                // All chained writes belong to the save authorized against
+                // this detached storage snapshot. Hooks may legitimately
+                // remove the actor's edit access; each write still uses the
+                // preceding commit's revision as its storage CAS precondition.
+                editAuthorizationRecord: originalRecord,
                 user: userObj,
                 context: tracker.context,
                 expectedRevision: currentRevision,
@@ -5861,6 +5923,10 @@ export namespace Services {
                 );
               }
               currentRevision = postSyncRevision;
+              hookTransitionCommitted =
+                this.candidateWorkflowStep(hookMutationState.candidate) !==
+                this.candidateWorkflowStep(beforePostSyncCandidate);
+              nextStepObj = hookMutationState.authoritativeStep ?? nextStepObj;
               if (this.committedRevision(hookMutationState.response) !== undefined) {
                 recordObj.revision = currentRevision;
               }
@@ -5892,7 +5958,7 @@ export namespace Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj, hookOperation);
 
-          if (transitionRequested) {
+          if (transitionRequested || hookTransitionCommitted) {
             try {
               const beforeTransitionCandidate = this.mergeValidationCandidate(authoritativeCandidate, recordObj);
               const transitionOutcome = await this.runPostSaveSyncTriggers({
@@ -5917,6 +5983,7 @@ export namespace Services {
                     oid,
                     beforeCandidate: beforeTransitionCandidate,
                     candidate: transitionCandidate,
+                    editAuthorizationRecord: originalRecord,
                     user: userObj,
                     context: tracker.context,
                     expectedRevision: currentRevision,
@@ -6850,12 +6917,16 @@ export namespace Services {
         if (logName) {
           const current = _.get(candidate, logName);
           const log = Array.isArray(current) ? [...current] : [];
-          log.push({ date: DateTime.now().toFormat("yyyy-LL-dd'T'HH:mm:ss") });
+          log.push({ date: DateTime.now().toUTC().toFormat("yyyy-LL-dd'T'HH:mm:ss") });
           _.set(candidate, logName, log);
         }
         const flagName = String(options.flagName ?? '').trim();
         if (flagName) {
-          _.set(candidate, flagName, options.flagVal ?? null);
+          if (options.unsetFlag === true) {
+            _.unset(candidate, flagName);
+          } else {
+            _.set(candidate, flagName, options.flagVal ?? null);
+          }
         }
         return candidate;
       };
