@@ -1,83 +1,59 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
-import { Controllers } from '../../src/controllers/RecordAuditController';
-import { createSinonStubLogger } from '../logger.test';
+import { RecordAuditViews, auditActionLabelKey } from '../../src/queries/RecordAuditViews';
 import { RecordAuditActionType } from '../../src/model/storage/RecordAuditModel';
+import { httpRouteFixture } from '../helpers/httpRouteFixture';
+import { httpPagesFixture } from '../helpers/httpPagesFixture';
+import { mountQueryReadRoutes } from '../../src/http/express/queryReads';
 
-describe('RecordAuditController', () => {
-  let controller: Controllers.RecordAudit;
-  let originalSails: any;
-  let originalBrandingService: any;
-  let originalFormsService: any;
-  let originalFormRecordConsistencyService: any;
-  let originalIntegrationAuditService: any;
-  let originalTranslationService: any;
-  let originalUnderscore: any;
-
-  beforeEach(() => {
-    originalSails = (global as any).sails;
-    originalBrandingService = (global as any).BrandingService;
-    originalFormsService = (global as any).FormsService;
-    originalFormRecordConsistencyService = (global as any).FormRecordConsistencyService;
-    originalIntegrationAuditService = (global as any).IntegrationAuditService;
-    originalTranslationService = (global as any).TranslationService;
-    originalUnderscore = (global as any)._;
-
-    (global as any).sails = {
-      config: {
-        brandingAware: sinon.stub().callsFake(() => ({
-          doiPublishing: {
-            writeBack: {
-              citationDoiPath: 'metadata.citation_doi',
-            },
-          },
-        })),
-      },
-      log: createSinonStubLogger(sinon),
-      services: {
-        recordsservice: {
-          getMeta: sinon.stub().resolves({
-            redboxOid: 'oid-1',
-            metaMetadata: { form: 'rdmp-form', brandId: 'brand-1' },
-            metadata: { contributors: [{ name: 'New Name' }] },
-          }),
-          hasViewAccess: sinon.stub().returns(true),
-          getRecordAudit: sinon.stub().resolves([
-            {
-              id: 'audit-1',
-              redboxOid: 'oid-1',
-              action: 'created',
-              createdAt: '2026-03-01T00:00:00Z',
-              record: { workflow: { stageLabel: 'Draft' }, metadata: { contributors: [{ name: 'Old Name' }] } },
-              user: {},
-            },
-            {
-              id: 'audit-2',
-              redboxOid: 'oid-1',
-              action: 'updated',
-              createdAt: '2026-03-02T00:00:00Z',
-              record: { workflow: { stageLabel: 'Review' }, metadata: { contributors: [{ name: 'New Name' }] } },
-              user: { username: 'editor', name: 'Editor', email: 'editor@example.com' },
-            },
-          ]),
-          getResolvedPermissionsSummary: sinon.stub().resolves({
-            edit: [{ username: 'editor', name: 'Editor', email: 'editor@example.com' }],
-            view: [],
-            editPending: [],
-            viewPending: [],
-            editRoles: ['Admin'],
-            viewRoles: ['Researcher'],
-          }),
+describe('Record audit views through owned HTTP and domain composition', () => {
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let recordPort: any;
+  let forms: any;
+  let consistency: any;
+  let integrations: any;
+  let configuration: sinon.SinonStub;
+  beforeEach(async () => {
+    configuration = sinon
+      .stub()
+      .returns({ doiPublishing: { writeBack: { citationDoiPath: 'metadata.citation_doi' } } });
+    recordPort = {
+      getMeta: sinon.stub().resolves({
+        redboxOid: 'oid-1',
+        metaMetadata: { form: 'rdmp-form', brandId: 'brand-1' },
+        authorization: { view: ['alice'] },
+        metadata: { contributors: [{ name: 'New Name' }] },
+      }),
+      hasViewAccess: sinon.stub().returns(true),
+      getRecordAudit: sinon.stub().resolves([
+        {
+          id: 'audit-1',
+          redboxOid: 'oid-1',
+          action: 'created',
+          createdAt: '2026-03-01T00:00:00Z',
+          record: { workflow: { stageLabel: 'Draft' }, metadata: { contributors: [{ name: 'Old Name' }] } },
+          user: {},
         },
-      },
+        {
+          id: 'audit-2',
+          redboxOid: 'oid-1',
+          action: 'updated',
+          createdAt: '2026-03-02T00:00:00Z',
+          record: { workflow: { stageLabel: 'Review' }, metadata: { contributors: [{ name: 'New Name' }] } },
+          user: { username: 'editor', name: 'Editor', email: 'editor@example.com' },
+        },
+      ]),
+      getResolvedPermissionsSummary: sinon.stub().resolves({
+        edit: [{ username: 'editor', name: 'Editor', email: 'editor@example.com' }],
+        view: [],
+        editPending: [],
+        viewPending: [],
+        editRoles: ['Admin'],
+        viewRoles: ['Researcher'],
+      }),
     };
-    (global as any)._ = require('lodash');
-    (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-      getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-    };
-    (global as any).FormsService = {
+    forms = {
       getFormByName: sinon.stub().returns(
         of({
           configuration: [
@@ -90,7 +66,7 @@ describe('RecordAuditController', () => {
         })
       ),
     };
-    (global as any).FormRecordConsistencyService = {
+    consistency = {
       compareRecords: sinon.stub().returns([
         {
           kind: 'change',
@@ -100,7 +76,7 @@ describe('RecordAuditController', () => {
         },
       ]),
     };
-    (global as any).IntegrationAuditService = {
+    integrations = {
       getTraceAuditLog: sinon.stub().resolves({
         total: 1,
         rows: [
@@ -131,88 +107,69 @@ describe('RecordAuditController', () => {
       }),
       getStatusSummaryWithOutcomes: sinon.stub().resolves([]),
     };
-    (global as any).TranslationService = {
-      t: sinon.stub().callsFake((key: string) => key),
-    };
-
-    controller = new Controllers.RecordAudit();
-    controller.init();
+    const audit = new RecordAuditViews({
+      records: recordPort,
+      forms,
+      compareRecords: consistency.compareRecords,
+      integrations,
+      configuration: brand => configuration(brand),
+      figshareStatus: async () => null,
+      canView: async () => recordPort.hasViewAccess(),
+    });
+    f = await httpRouteFixture((router, input) => mountQueryReadRoutes(router, { ...input, audit } as any));
   });
-
-  afterEach(() => {
-    sinon.restore();
-    (global as any).sails = originalSails;
-    (global as any).BrandingService = originalBrandingService;
-    (global as any).FormsService = originalFormsService;
-    (global as any).FormRecordConsistencyService = originalFormRecordConsistencyService;
-    (global as any).IntegrationAuditService = originalIntegrationAuditService;
-    (global as any).TranslationService = originalTranslationService;
-    (global as any)._ = originalUnderscore;
+  afterEach(async () => {
+    await f.close();
   });
+  function query(values: Record<string, string>) {
+    return (
+      '?' + new URLSearchParams(Object.entries(values).filter(([key]) => !['oid', 'branding', 'portal'].includes(key)))
+    );
+  }
 
-  it('returns 400 from render when oid is missing', async () => {
-    const req = {
-      param: sinon.stub().returns(''),
-      options: { locals: {} },
-      session: { branding: 'default' },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-
-    await controller.render(req, res);
-
-    assert.equal(sendResp.calledOnce, true);
-    assert.equal(sendResp.firstCall.args[2]?.status, 400);
+  it('does not dispatch an audit page without an oid', async () => {
+    const pages = await httpPagesFixture();
+    try {
+      assert.equal((await pages.request('/default/portal/record/viewAudit/')).status, 404);
+    } finally {
+      await pages.close();
+    }
   });
-
-  it('renders the host view for users with view access', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    const req = {
-      param,
-      options: { locals: { branding: 'default', portal: 'rdmp' } },
-      session: { branding: 'default' },
-      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendView = sinon.stub(controller as any, 'sendView');
-
-    await controller.render(req, res);
-
-    assert.equal(sendView.calledOnce, true);
-    assert.equal((req as any).options.locals.oid, 'oid-1');
-    assert.equal((req as any).options.locals.appName, 'record-audit');
-    assert.equal((req as any).options.locals.isAdmin, true);
+  it('renders the audit application and admin attributes for current record viewers', async () => {
+    const pages = await httpPagesFixture(input => {
+      input.loadRecord = recordPort.getMeta;
+    });
+    try {
+      const response = await pages.request('/default/portal/record/viewAudit/oid-1');
+      assert.equal(response.status, 200);
+      assert.match(response.text, /<record-audit/);
+      assert.match(response.text, /oid="oid-1"/);
+      assert.match(response.text, /is-admin="true"/);
+      assert.match(response.text, /angular\/record-audit\/browser\/main/);
+    } finally {
+      await pages.close();
+    }
   });
 
   it('returns audit rows with diff metadata and wrapper data', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('branding').returns('default');
-    param.withArgs('portal').returns('rdmp');
-    param.withArgs('dateFrom').returns('');
-    param.withArgs('dateTo').returns('');
-    param.withArgs('action').returns('');
-    param.withArgs('workflowState').returns('');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
+    values.branding = 'default';
+    values.portal = 'rdmp';
+    values.dateFrom = '';
+    values.dateTo = '';
+    values.action = '';
+    values.workflowState = '';
 
-    await controller.getAuditData(req, res);
+    const response = await f.request(`/default/portal/record/viewAudit/${values.oid}/audit` + query(values));
 
-    assert.equal(sendResp.calledOnce, true);
-    const payload = sendResp.firstCall.args[2];
-    assert.equal(payload?.data?.summary?.returnedCount, 2);
-    assert.equal(payload?.data?.rawAuditUrl, '/default/rdmp/api/records/audit/oid-1');
-    assert.equal(payload?.data?.records?.[0]?.actionLabelKey, '@record-audit-action-updated');
-    assert.equal(payload?.data?.records?.[0]?.changeSummary?.changes?.[0]?.displayName, 'Contributor Name');
-    assert.equal(payload?.data?.records?.[0]?.actor?.displayName, 'Editor');
-    assert.equal(payload?.data?.records?.[1]?.changeSummary?.note, '@record-audit-note-update-only');
+    const payload = response.body;
+    assert.equal(payload?.summary?.returnedCount, 2);
+    assert.equal(payload?.rawAuditUrl, '/default/portal/api/records/audit/oid-1');
+    assert.equal(payload?.records?.[0]?.actionLabelKey, '@record-audit-action-updated');
+    assert.equal(payload?.records?.[0]?.changeSummary?.changes?.[0]?.displayName, 'Contributor Name');
+    assert.equal(payload?.records?.[0]?.actor?.displayName, 'Editor');
+    assert.equal(payload?.records?.[1]?.changeSummary?.note, '@record-audit-note-update-only');
   });
 
   it('maps validation bypass audit actions to registered language-default keys', () => {
@@ -221,7 +178,7 @@ describe('RecordAuditController', () => {
     const actions = [RecordAuditActionType.validationBypassed, RecordAuditActionType.batchValidationBypassed];
 
     for (const action of actions) {
-      const key = (controller as any).getActionLabelKey(action);
+      const key = auditActionLabelKey(action);
       assert.equal(key, `@record-audit-action-${action}`);
       assert.equal(metadata[key]?.contentFormat, 'plain');
       assert.equal(typeof english[key], 'string');
@@ -230,41 +187,29 @@ describe('RecordAuditController', () => {
   });
 
   it('passes action and workflow filters through without insertion date bounds', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('branding').returns('default');
-    param.withArgs('portal').returns('rdmp');
-    param.withArgs('dateFrom').returns('2026-03-01');
-    param.withArgs('dateTo').returns('2026-03-31');
-    param.withArgs('action').returns('updated');
-    param.withArgs('workflowState').returns('Draft');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
+    values.branding = 'default';
+    values.portal = 'rdmp';
+    values.dateFrom = '2026-03-01';
+    values.dateTo = '2026-03-31';
+    values.action = 'updated';
+    values.workflowState = 'Draft';
 
-    await controller.getAuditData(req, res);
+    const response = await f.request(`/default/portal/record/viewAudit/${values.oid}/audit` + query(values));
 
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.calledOnce, true);
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.action, 'updated');
-    assert.equal(
-      (global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.workflowState,
-      'Draft'
-    );
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateFrom, undefined);
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateTo, undefined);
-    assert.equal(sendResp.calledOnce, true);
+    assert.equal(recordPort.getRecordAudit.calledOnce, true);
+    assert.equal(recordPort.getRecordAudit.firstCall.args[0]?.action, 'updated');
+    assert.equal(recordPort.getRecordAudit.firstCall.args[0]?.workflowState, 'Draft');
+    assert.equal(recordPort.getRecordAudit.firstCall.args[0]?.dateFrom, undefined);
+    assert.equal(recordPort.getRecordAudit.firstCall.args[0]?.dateTo, undefined);
   });
 
   it('displays, sorts and filters by event time when queue insertion is delayed', async () => {
     const oldTime = new Date(2026, 1, 28, 12).toISOString();
     const legacyTime = new Date(2026, 2, 1, 12).toISOString();
     const newTime = new Date(2026, 2, 2, 12).toISOString();
-    const audit = (global as any).sails.services.recordsservice.getRecordAudit;
+    const audit = recordPort.getRecordAudit;
     audit.resolves([
       {
         id: 'old',
@@ -287,16 +232,14 @@ describe('RecordAuditController', () => {
         record: { metadata: { title: 'New' } },
       },
     ]);
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('dateFrom').returns('2026-03-01');
-    param.withArgs('dateTo').returns('2026-03-02');
-    const req = { param, options: { locals: {} }, session: {}, user: { roles: [] } } as unknown as Sails.Req;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
+    values.dateFrom = '2026-03-01';
+    values.dateTo = '2026-03-02';
 
-    await controller.getAuditData(req, {} as Sails.Res);
+    const response = await f.request(`/default/portal/record/viewAudit/${values.oid}/audit` + query(values));
 
-    const records = sendResp.firstCall.args[2].data.records;
+    const records = response.body.records;
     assert.deepEqual(
       records.map((row: { id: string }) => row.id),
       ['new', 'legacy']
@@ -304,7 +247,7 @@ describe('RecordAuditController', () => {
     assert.equal(records[0].timestamp, newTime);
     assert.equal(records[1].timestamp, legacyTime);
     assert.equal(records[1].changeSummary.available, true);
-    assert.equal((global as any).FormRecordConsistencyService.compareRecords.firstCall.args[0].title, 'Old');
+    assert.equal(consistency.compareRecords.firstCall.args[0].title, 'Old');
   });
 
   for (const bounds of [
@@ -314,21 +257,19 @@ describe('RecordAuditController', () => {
     { name: 'both bounds', dateFrom: '2026-03-01', dateTo: '2026-03-02', includeUndated: false },
   ]) {
     it(`handles missing and invalid event dates with ${bounds.name}`, async () => {
-      (global as any).sails.services.recordsservice.getRecordAudit.resolves([
+      recordPort.getRecordAudit.resolves([
         { id: 'missing', action: 'created', record: {} },
         { id: 'invalid', action: 'created', occurredAt: 'invalid', createdAt: 'invalid', record: {} },
         { id: 'dated', action: 'created', occurredAt: new Date(2026, 2, 1, 12).toISOString(), record: {} },
       ]);
-      const param = sinon.stub();
-      param.withArgs('oid').returns('oid-1');
-      param.withArgs('dateFrom').returns(bounds.dateFrom);
-      param.withArgs('dateTo').returns(bounds.dateTo);
-      const req = { param, options: { locals: {} }, session: {}, user: { roles: [] } } as unknown as Sails.Req;
-      const sendResp = sinon.stub(controller as any, 'sendResp');
+      const values: Record<string, string> = {};
+      values.oid = 'oid-1';
+      values.dateFrom = bounds.dateFrom;
+      values.dateTo = bounds.dateTo;
 
-      await controller.getAuditData(req, {} as Sails.Res);
+      const response = await f.request(`/default/portal/record/viewAudit/${values.oid}/audit` + query(values));
 
-      const records = sendResp.firstCall.args[2].data.records;
+      const records = response.body.records;
       assert.deepEqual(
         records.map((row: { id: string }) => row.id),
         bounds.includeUndated ? ['dated', 'missing', 'invalid'] : ['dated']
@@ -337,144 +278,93 @@ describe('RecordAuditController', () => {
   }
 
   it('rejects invalid audit date filters', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('branding').returns('default');
-    param.withArgs('portal').returns('rdmp');
-    param.withArgs('dateFrom').returns('bad-date');
-    param.withArgs('dateTo').returns('');
-    param.withArgs('action').returns('');
-    param.withArgs('workflowState').returns('');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
+    values.branding = 'default';
+    values.portal = 'rdmp';
+    values.dateFrom = 'bad-date';
+    values.dateTo = '';
+    values.action = '';
+    values.workflowState = '';
 
-    await controller.getAuditData(req, res);
+    const response = await f.request(`/default/portal/record/viewAudit/${values.oid}/audit` + query(values));
 
-    assert.deepEqual(sendResp.firstCall.args[2], {
-      status: 400,
-      displayErrors: [{ detail: 'Invalid audit start date.' }],
-    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.message, 'Invalid audit start date.');
   });
 
-  it('falls back to safe route segments when building the raw audit url', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('branding').returns('../bad-brand');
-    param.withArgs('portal').returns('rdmp');
-    const req = {
-      param,
-      options: { locals: { branding: 'default' } },
-      session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getAuditData(req, res);
-
-    assert.equal(sendResp.firstCall.args[2]?.data?.rawAuditUrl, '/default/rdmp/api/records/audit/oid-1');
+  it('refuses invalid public brand route segments without falling back to another brand', async () => {
+    f.getBrand.resolves(undefined);
+    const response = await f.request('/..%2Fbad-brand/portal/record/viewAudit/oid-1/audit');
+    assert.equal(response.status, 404);
+    assert.equal(recordPort.getRecordAudit.called, false);
   });
 
   it('blocks admin-only data for non-admin users', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default' },
-      user: { roles: [{ name: 'Researcher', branding: { id: 'brand-1' } }] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    f.authenticate.resolves(f.actor);
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
 
-    await controller.getPermissionsData(req, res);
+    const response = await f.request(`/default/portal/record/viewAudit/${values.oid}/permissions` + query(values));
 
-    assert.equal(sendResp.calledOnce, true);
-    assert.equal(sendResp.firstCall.args[2]?.status, 403);
+    assert.equal(response.status, 403);
   });
 
   it('returns paginated integration audit data for admins', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('page').returns('2');
-    param.withArgs('pageSize').returns('10');
-    param.withArgs('status').returns('success');
-    param.withArgs('integrationName').returns('figshare');
-    param.withArgs('dateFrom').returns('2026-03-01');
-    param.withArgs('dateTo').returns('2026-03-31');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default' },
-      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
+    values.page = '2';
+    values.pageSize = '10';
+    values.status = 'success';
+    values.integrationName = 'figshare';
+    values.dateFrom = '2026-03-01';
+    values.dateTo = '2026-03-31';
 
-    await controller.getIntegrationAuditData(req, res);
-
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.calledOnce, true);
-    assert.equal(
-      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.integrationName,
-      'figshare'
+    const response = await f.request(
+      `/default/portal/record/viewAudit/${values.oid}/integration-audit` + query(values)
     );
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.status, 'success');
+
+    assert.equal(integrations.getTraceAuditLog.calledOnce, true);
+    assert.equal(integrations.getTraceAuditLog.firstCall.args[0]?.integrationName, 'figshare');
+    assert.equal(integrations.getTraceAuditLog.firstCall.args[0]?.status, 'success');
     assert.equal(
-      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateFrom?.toISOString(),
+      integrations.getTraceAuditLog.firstCall.args[0]?.dateFrom?.toISOString(),
       new Date(2026, 2, 1, 0, 0, 0, 0).toISOString()
     );
     assert.equal(
-      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateTo?.toISOString(),
+      integrations.getTraceAuditLog.firstCall.args[0]?.dateTo?.toISOString(),
       new Date(2026, 2, 31, 23, 59, 59, 999).toISOString()
     );
-    assert.equal(sendResp.firstCall.args[2]?.data?.summary?.page, 2);
-    assert.equal(sendResp.firstCall.args[2]?.data?.summary?.pageSize, 10);
+    assert.equal(response.body?.summary?.page, 2);
+    assert.equal(response.body?.summary?.pageSize, 10);
   });
 
   it('uses the brand-specific DOI write-back path when building integration status context', async () => {
-    (global as any).sails.config.brandingAware = sinon.stub().callsFake(() => ({
+    configuration = sinon.stub().callsFake(() => ({
       doiPublishing: {
         writeBack: {
           citationDoiPath: 'metadata.alternate_doi',
         },
       },
     }));
-    (global as any).sails.services.recordsservice.getMeta.resolves({
+    recordPort.getMeta.resolves({
       redboxOid: 'oid-1',
       metaMetadata: { form: 'rdmp-form', brandId: 'brand-1' },
       metadata: { alternate_doi: '10.1234/custom-doi' },
     });
-    (global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.resolves([]);
+    integrations.getStatusSummaryWithOutcomes.resolves([]);
 
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default', portal: 'rdmp' },
-      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
 
-    await controller.getIntegrationStatusData(req, res);
+    const response = await f.request(`/default/portal/record/integrationStatus/${values.oid}` + query(values));
 
-    assert.equal((global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.calledOnce, true);
-    assert.equal(
-      (global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.firstCall.args[1]?.citationDoi,
-      '10.1234/custom-doi'
-    );
-    assert.equal(sendResp.calledOnce, true);
+    assert.equal(integrations.getStatusSummaryWithOutcomes.calledOnce, true);
+    assert.equal(integrations.getStatusSummaryWithOutcomes.firstCall.args[1]?.citationDoi, '10.1234/custom-doi');
   });
 
   it('preserves the fallback integration audit id when a row id is missing', async () => {
-    (global as any).IntegrationAuditService.getTraceAuditLog.resolves({
+    integrations.getTraceAuditLog.resolves({
       total: 1,
       rows: [
         {
@@ -501,80 +391,58 @@ describe('RecordAuditController', () => {
       ],
     });
 
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('page').returns('2');
-    param.withArgs('pageSize').returns('10');
-    param.withArgs('status').returns('success');
-    param.withArgs('integrationName').returns('');
-    param.withArgs('dateFrom').returns('');
-    param.withArgs('dateTo').returns('');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default' },
-      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
+    values.page = '2';
+    values.pageSize = '10';
+    values.status = 'success';
+    values.integrationName = '';
+    values.dateFrom = '';
+    values.dateTo = '';
 
-    await controller.getIntegrationAuditData(req, res);
+    const response = await f.request(
+      `/default/portal/record/viewAudit/${values.oid}/integration-audit` + query(values)
+    );
 
-    assert.equal(sendResp.firstCall.args[2]?.data?.records?.[0]?.id, 'trace-1');
-    assert.equal(sendResp.firstCall.args[2]?.data?.records?.[0]?.events?.[0]?.id, 'trace-1:event:0');
+    assert.equal(response.body?.records?.[0]?.id, 'trace-1');
+    assert.equal(response.body?.records?.[0]?.events?.[0]?.id, 'trace-1:event:0');
   });
 
   it('rejects invalid integration audit statuses', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('page').returns('1');
-    param.withArgs('pageSize').returns('10');
-    param.withArgs('status').returns('invalid-status');
-    param.withArgs('integrationName').returns('');
-    param.withArgs('dateFrom').returns('');
-    param.withArgs('dateTo').returns('');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default' },
-      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
+    values.page = '1';
+    values.pageSize = '10';
+    values.status = 'invalid-status';
+    values.integrationName = '';
+    values.dateFrom = '';
+    values.dateTo = '';
 
-    await controller.getIntegrationAuditData(req, res);
+    const response = await f.request(
+      `/default/portal/record/viewAudit/${values.oid}/integration-audit` + query(values)
+    );
 
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.called, false);
-    assert.deepEqual(sendResp.firstCall.args[2], {
-      status: 400,
-      displayErrors: [{ detail: 'Invalid integration audit status.' }],
-    });
+    assert.equal(integrations.getTraceAuditLog.called, false);
+    assert.equal(response.status, 400);
+    assert.equal(response.body.message, 'Invalid integration audit status.');
   });
 
   it('rejects invalid integration audit date filters', async () => {
-    const param = sinon.stub();
-    param.withArgs('oid').returns('oid-1');
-    param.withArgs('page').returns('1');
-    param.withArgs('pageSize').returns('10');
-    param.withArgs('status').returns('');
-    param.withArgs('integrationName').returns('');
-    param.withArgs('dateFrom').returns('not-a-date');
-    param.withArgs('dateTo').returns('');
-    const req = {
-      param,
-      options: { locals: {} },
-      session: { branding: 'default' },
-      user: { roles: [{ name: 'Admin', branding: { id: 'brand-1' } }] },
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const values: Record<string, string> = {};
+    values.oid = 'oid-1';
+    values.page = '1';
+    values.pageSize = '10';
+    values.status = '';
+    values.integrationName = '';
+    values.dateFrom = 'not-a-date';
+    values.dateTo = '';
 
-    await controller.getIntegrationAuditData(req, res);
+    const response = await f.request(
+      `/default/portal/record/viewAudit/${values.oid}/integration-audit` + query(values)
+    );
 
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.called, false);
-    assert.deepEqual(sendResp.firstCall.args[2], {
-      status: 400,
-      displayErrors: [{ detail: 'Invalid integration audit start date.' }],
-    });
+    assert.equal(integrations.getTraceAuditLog.called, false);
+    assert.equal(response.status, 400);
+    assert.equal(response.body.message, 'Invalid integration audit start date.');
   });
 });

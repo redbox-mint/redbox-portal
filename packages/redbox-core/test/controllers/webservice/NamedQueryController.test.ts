@@ -1,349 +1,146 @@
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
-import { Controllers } from '../../../src/controllers/webservice/NamedQueryController';
-import {createSinonStubLogger} from "../../logger.test";
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountQueryReadRoutes } from '../../../src/http/express/queryReads';
+import { mountQueryWriteRoutes } from '../../../src/http/express/queryWrites';
+import { namedQueryTarget } from '../../../src/persistence/reference/NamedQueryExecution';
 
-let expect: Chai.ExpectStatic;
-
-describe('Webservice NamedQueryController', () => {
-  let controller: Controllers.NamedQuery;
-  let originalSails: any;
-  let originalBrandingService: any;
-  let originalNamedQueryService: any;
-
-  before(async () => {
-    const chai = await import('chai');
-    expect = chai.expect;
-  });
-
-  beforeEach(() => {
-    originalSails = (global as any).sails;
-    originalBrandingService = (global as any).BrandingService;
-    originalNamedQueryService = (global as any).NamedQueryService;
-
-    (global as any).sails = {
-      log: createSinonStubLogger(sinon)
-    };
-    (global as any).BrandingService = {
-      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-      getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
-    };
-    (global as any).NamedQueryService = {
+const base = '/default/portal/api/named-query';
+const definition = {
+  name: 'new-query',
+  collectionName: 'record',
+  mongoQuery: {},
+  queryParams: {},
+  resultObjectMapping: {},
+};
+describe('Named query Express contracts', () => {
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let queries: Record<string, sinon.SinonStub>;
+  beforeEach(async () => {
+    queries = {
       list: sinon.stub().resolves([
-        { name: 'query-1', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
-        { name: 'query-2', collectionName: 'user', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+        { ...definition, name: 'query-1' },
+        { ...definition, name: 'query-2', collectionName: 'user' },
       ]),
       getNamedQueryConfig: sinon.stub().resolves(null),
       getSupportedCollections: sinon.stub().returns(['record', 'user']),
-      create: sinon.stub().returns(of({ id: 'new-query' })),
-      update: sinon.stub().returns(of([{ id: 'updated-query' }])),
-      delete: sinon.stub().returns(of([{ id: 'deleted-query' }]))
+      create: sinon.stub().resolves({ id: 'new-query' }),
+      update: sinon.stub().resolves([{ id: 'updated-query' }]),
+      delete: sinon.stub().resolves([{ id: 'deleted-query' }]),
     };
-
-    controller = new Controllers.NamedQuery();
-  });
-
-  afterEach(() => {
-    sinon.restore();
-    (global as any).sails = originalSails;
-    (global as any).BrandingService = originalBrandingService;
-    (global as any).NamedQueryService = originalNamedQueryService;
-  });
-
-  it('lists all named queries', async () => {
-    const req = { session: { branding: 'default' } } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.listQueries(req, res);
-
-    expect((global as any).NamedQueryService.list.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data).to.have.length(2);
-    expect(sendRespStub.firstCall.args[2]?.data[0].name).to.equal('query-1');
-  });
-
-  it('returns the supported collections', async () => {
-    const req = { session: { branding: 'default' } } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getCollections(req, res);
-
-    expect((global as any).NamedQueryService.getSupportedCollections.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data).to.deep.equal(['record', 'user']);
-  });
-
-  it('gets a named query by name', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns('query-1');
-    (global as any).NamedQueryService.getNamedQueryConfig = sinon.stub().resolves({
-      name: 'query-1', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {}
+    f = await httpRouteFixture((router, input) => {
+      mountQueryReadRoutes(router, { ...input, queries } as any);
+      mountQueryWriteRoutes(router, { ...input, queries, audit: sinon.stub().resolves() } as any);
     });
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getQuery(req, res);
-
-    expect((global as any).NamedQueryService.getNamedQueryConfig.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data?.name).to.equal('query-1');
   });
-
-  it('returns 404 when named query is not found', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns('missing-query');
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
-    expect(sendRespStub.firstCall.args[2]?.displayErrors).to.be.an('array');
-    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('404');
+  afterEach(async () => {
+    await f?.close();
   });
-
-  it('returns 400 when name param is missing for getQuery', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns(undefined);
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect(sendRespStub.firstCall.args[2]?.displayErrors).to.be.an('array');
-    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('400');
+  it('lists all named queries', async () => {
+    const result = await f.request(base);
+    assert.equal(result.status, 200);
+    assert(queries.list.calledOnce);
+    assert.equal(result.body.length, 2);
+    assert.equal(result.body[0].name, 'query-1');
+    assert.equal(queries.list.firstCall.args[0].id, f.brand.id);
   });
-
+  it('returns supported collections', async () => {
+    const result = await f.request(base + '/collections');
+    assert.equal(result.status, 200);
+    assert(queries.getSupportedCollections.calledOnce);
+    assert.deepEqual(result.body, ['record', 'user']);
+  });
+  it('gets a named query by name', async () => {
+    queries.getNamedQueryConfig.resolves({ ...definition, name: 'query-1' });
+    const result = await f.request(base + '/query-1');
+    assert.equal(result.status, 200);
+    assert.equal(result.body.name, 'query-1');
+    assert(queries.getNamedQueryConfig.calledOnce);
+  });
+  it('returns 404 for a missing query', async () => {
+    const result = await f.request(base + '/missing-query');
+    assert.equal(result.status, 404);
+    assert.match(result.body.message, /not found/);
+  });
+  it('does not route an empty get name to a definition read', async () => {
+    const result = await f.request(base + '/');
+    assert.equal(result.status, 200);
+    assert(queries.list.calledOnce);
+    assert(!queries.getNamedQueryConfig.called);
+  });
   it('creates a named query', async () => {
-    const req = {
-      session: { branding: 'default' },
-      body: { name: 'new-query', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.createQuery(req, res);
-
-    expect((global as any).NamedQueryService.create.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(201);
-    expect(sendRespStub.firstCall.args[2]?.data?.name).to.equal('new-query');
+    const result = await f.request(base, { method: 'POST', body: definition });
+    assert.equal(result.status, 201);
+    assert(queries.create.calledOnce);
+    assert.equal(result.body.name, 'new-query');
+    assert.equal(queries.create.firstCall.args[0].id, f.brand.id);
+    assert.equal(queries.create.firstCall.args[1], 'new-query');
   });
-
-  it('returns 400 when name is reserved in create body', async () => {
-    const req = {
-      session: { branding: 'default' },
-      body: { name: 'collections', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.createQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect(sendRespStub.firstCall.args[2]?.displayErrors).to.be.an('array');
-    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.detail).to.include('reserved');
+  it('returns 400 for a reserved create name', async () => {
+    const result = await f.request(base, { method: 'POST', body: { ...definition, name: 'collections' } });
+    assert.equal(result.status, 400);
+    assert.match(result.body.message, /reserved/);
+    assert(!queries.create.called);
   });
-
-  it('returns 400 when name is missing in create body', async () => {
-    const req = {
-      session: { branding: 'default' },
-      body: { collectionName: 'record' }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.createQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect(sendRespStub.firstCall.args[2]?.displayErrors).to.be.an('array');
-    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('400');
+  it('returns 400 for a missing create name', async () => {
+    const { name: _, ...body } = definition;
+    const result = await f.request(base, { method: 'POST', body });
+    assert.equal(result.status, 400);
+    assert(!queries.create.called);
   });
-
-  it('maps already exists errors to 409 on create', async () => {
-    (global as any).NamedQueryService.create = sinon.stub().throws(new Error("Named query 'new-query' already exists"));
-    const req = {
-      session: { branding: 'default' },
-      body: { name: 'new-query', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.createQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(409);
+  it('maps an already existing query to 409', async () => {
+    queries.create.rejects(new Error("Named query 'new-query' already exists"));
+    assert.equal((await f.request(base, { method: 'POST', body: definition })).status, 409);
   });
-
-  it('maps brand-scope validation errors to 400 on create', async () => {
-    (global as any).NamedQueryService.create = sinon.stub().throws(new Error("Invalid collectionName 'unscopedmodel': model does not expose a brand scope"));
-    const req = {
-      session: { branding: 'default' },
-      body: { name: 'unsafe-query', collectionName: 'unscopedmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.createQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-  });
-
-  it('maps model-not-found validation errors to 400 on create (not 404)', async () => {
-    (global as any).NamedQueryService.create = sinon.stub().throws(new Error("Invalid collectionName 'badmodel': model not found"));
-    const req = {
-      session: { branding: 'default' },
-      body: { name: 'bad-query', collectionName: 'badmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.createQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-  });
-
-  it('maps brand-scope validation errors to 400 on update', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns('unsafe-query');
-    (global as any).NamedQueryService.update = sinon.stub().throws(new Error("Invalid collectionName 'unscopedmodel': model does not expose a brand scope"));
-    const req = {
-      session: { branding: 'default' },
-      param,
-      body: { collectionName: 'unscopedmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.updateQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-  });
-
+  for (const [label, target, method] of [
+    ['unscoped create', 'unscopedmodel', 'POST'],
+    ['unknown create', 'badmodel', 'POST'],
+    ['unscoped update', 'unscopedmodel', 'PUT'],
+  ])
+    it(`maps ${label} collection validation to 400`, async () => {
+      queries[method === 'POST' ? 'create' : 'update'].callsFake(() =>
+        namedQueryTarget({ config: {}, log: { warn() {} } }, target)
+      );
+      const result = await f.request(base + (method === 'PUT' ? '/new-query' : ''), {
+        method,
+        body: { ...definition, collectionName: target },
+      });
+      assert.equal(result.status, 400);
+      assert(!result.text.includes('p3-r-operations.md'));
+    });
   it('updates a named query', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns('query-1');
-    const req = {
-      session: { branding: 'default' },
-      param,
-      body: { collectionName: 'user', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.updateQuery(req, res);
-
-    expect((global as any).NamedQueryService.update.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data?.name).to.equal('query-1');
+    const { name: _, ...body } = definition;
+    const result = await f.request(base + '/query-1', { method: 'PUT', body });
+    assert.equal(result.status, 200);
+    assert(queries.update.calledOnce);
+    assert.equal(result.body.name, 'query-1');
   });
-
-  it('returns 400 when name param is missing for update', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns(undefined);
-    const req = { session: { branding: 'default' }, param, body: {} } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.updateQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect(sendRespStub.firstCall.args[2]?.displayErrors).to.be.an('array');
-    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('400');
+  it('does not dispatch an update without a route name', async () => {
+    assert.equal((await f.request(base + '/', { method: 'PUT', body: {} })).status, 404);
+    assert(!queries.update.called);
   });
-
-  it('returns 400 when update attempts to change the name', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns('query-1');
-    const req = {
-      session: { branding: 'default' },
-      param,
-      body: { name: 'query-2', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.updateQuery(req, res);
-
-    expect((global as any).NamedQueryService.update.called).to.be.false;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.detail).to.equal('Named query name cannot be changed');
+  it('returns 400 when update changes the name', async () => {
+    const result = await f.request(base + '/query-1', { method: 'PUT', body: { ...definition, name: 'query-2' } });
+    assert.equal(result.status, 400);
+    assert(!queries.update.called);
   });
-
-  it('maps not found errors to 404 on update', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns('missing-query');
-    (global as any).NamedQueryService.update = sinon.stub().throws(new Error("Named query 'missing-query' was not found"));
-    const req = {
-      session: { branding: 'default' },
-      param,
-      body: { collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.updateQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+  it('maps missing update definitions to 404', async () => {
+    queries.update.rejects(new Error("Named query 'missing-query' not found"));
+    const { name: _, ...body } = definition;
+    assert.equal((await f.request(base + '/missing-query', { method: 'PUT', body })).status, 404);
   });
-
   it('deletes a named query', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns('query-1');
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.deleteQuery(req, res);
-
-    expect((global as any).NamedQueryService.delete.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data?.name).to.equal('query-1');
+    const result = await f.request(base + '/query-1', { method: 'DELETE' });
+    assert.equal(result.status, 200);
+    assert(queries.delete.calledOnce);
+    assert.equal(result.body.name, 'query-1');
   });
-
-  it('returns 400 when name param is missing for delete', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns(undefined);
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.deleteQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
-    expect(sendRespStub.firstCall.args[2]?.displayErrors).to.be.an('array');
-    expect(sendRespStub.firstCall.args[2]?.displayErrors[0]?.status).to.equal('400');
+  it('does not dispatch a deletion without a route name', async () => {
+    assert.equal((await f.request(base + '/', { method: 'DELETE' })).status, 404);
+    assert(!queries.delete.called);
   });
-
-  it('maps not found errors to 404 on delete', async () => {
-    const param = sinon.stub();
-    param.withArgs('name').returns('missing-query');
-    (global as any).NamedQueryService.delete = sinon.stub().throws(new Error("Named query 'missing-query' not found"));
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.deleteQuery(req, res);
-
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+  it('maps missing delete definitions to 404', async () => {
+    queries.delete.rejects(new Error("Named query 'missing-query' not found"));
+    assert.equal((await f.request(base + '/missing-query', { method: 'DELETE' })).status, 404);
   });
 });

@@ -1,39 +1,22 @@
-import { expect } from 'chai';
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
-import { Controllers as EmailControllers } from '../../src/controllers/EmailController';
-import { Controllers as ReportControllers } from '../../src/controllers/webservice/ReportController';
+import nodemailer = require('nodemailer');
+import { Services as Email } from '../../src/integrations/Email';
 import { executeNamedQueryRoute } from '../../src/api-routes/groups/reports';
 import { sendNotificationRoute } from '../../src/api-routes/groups/notifications';
 import { validateApiRouteRequest } from '../../src/api-routes/validation';
 import { buildOpenApiDocument } from '../../src/api-routes/openapi';
-import { createMockSails } from '../services/testHelper';
+import { httpRouteFixture } from '../helpers/httpRouteFixture';
+import { mountQueryReadRoutes } from '../../src/http/express/queryReads';
+import { mountIntegrationOperationRoutes } from '../../src/http/express/integrationOperations';
+import { createSinonStubLogger } from '../logger.test';
 
-class TestEmail extends EmailControllers.Email {
-  public override sendResp = sinon.stub();
-  public override updateChronicle = sinon.stub();
-}
-
-class TestReport extends ReportControllers.Report {
-  public override sendResp = sinon.stub();
-  public override updateChronicle = sinon.stub();
-}
-
-describe('Named query and notification request parameters', function () {
-  const names = ['sails', 'BrandingService', 'NamedQueryService'];
-  let originals: unknown[];
-
-  beforeEach(function () {
-    originals = names.map(name => Reflect.get(globalThis, name));
-    Reflect.set(globalThis, 'sails', createMockSails());
-  });
-
-  afterEach(function () {
+describe('Named query and notification parameters through owned HTTP', () => {
+  afterEach(() => {
     sinon.restore();
-    names.forEach((name, index) => Reflect.set(globalThis, name, originals[index]));
   });
-
-  it('preserves configured query keys through validation and the report controller', async function () {
+  it('preserves configured query keys through validation and query execution', async () => {
     const query = {
       queryName: 'listRDMPProjectWithEndingDate',
       projectEndDateStart: '2026-10-21',
@@ -41,37 +24,52 @@ describe('Named query and notification request parameters', function () {
       start: '0',
       rows: '100',
     };
-    const req = { query, session: { branding: 'default' } } as unknown as Sails.Req;
-    const validated = validateApiRouteRequest(req, executeNamedQueryRoute);
-    expect(validated.valid).to.equal(true);
-    if (!validated.valid) throw new Error('Invalid query');
-    expect(validated.query).to.deep.equal(query);
-    req.apiRequest = validated;
-    const brand = { id: 'brand-1' };
     const config = { queryParams: { projectEndDateStart: {}, projectEndDateDays: {} } };
     const perform = sinon.stub().resolves({ records: [] });
-    Reflect.set(globalThis, 'BrandingService', { getBrand: () => brand });
-    Reflect.set(globalThis, 'NamedQueryService', {
-      getNamedQueryConfig: sinon.stub().resolves(config),
-      performNamedQueryFromConfig: perform,
-    });
-    const controller = new TestReport();
-    await controller.executeNamedQuery(req, {} as Sails.Res);
-    expect(perform.calledOnceWithExactly(config, query, brand, 0, 100)).to.equal(true);
-    expect(controller.sendResp.firstCall.args[2].status).to.equal(200);
+    const f = await httpRouteFixture((router, input) =>
+      mountQueryReadRoutes(router, {
+        ...input,
+        queries: { getNamedQueryConfig: sinon.stub().resolves(config), performNamedQueryFromConfig: perform },
+      } as any)
+    );
+    try {
+      const validated = validateApiRouteRequest({ query }, executeNamedQueryRoute);
+      assert(validated.valid);
+      assert.deepEqual(validated.query, query);
+      const response = await f.request('/default/portal/api/report/namedQuery?' + new URLSearchParams(query));
+      assert.equal(response.status, 200);
+      assert.equal(perform.calledOnce, true);
+      assert.deepEqual(perform.firstCall.args.slice(0, 2), [config, query]);
+      assert.equal(perform.firstCall.args[2].id, f.brand.id);
+      assert.deepEqual(perform.firstCall.args.slice(3), [0, 100]);
+    } finally {
+      await f.close();
+    }
   });
-
-  it('documents named query pagination and configured parameters in OpenAPI', function () {
+  it('documents pagination and configured query parameters in OpenAPI', () => {
     const document = buildOpenApiDocument([executeNamedQueryRoute], { title: 'Reports', version: '1.0.0' });
     const operation = document.paths['/{branding}/{portal}/api/report/namedQuery'].get;
-    expect(operation).to.have.property('description').that.contains('queryParams');
-    expect(operation).to.have.property('parameters').that.is.an('array');
+    assert.match(operation.description, /queryParams/);
+    assert(Array.isArray(operation.parameters));
   });
-
-  function sendNotification(body: Record<string, unknown>, validate = true) {
-    const sendMessage = sinon.stub().returns(of({ success: true, msg: 'sent' }));
-    sails.services.emailservice = {
-      evaluateProperties: () => ({
+  async function notification(body: Record<string, unknown>, defaults: Record<string, unknown> = {}, version = '1.0') {
+    const sendMail = sinon.stub().resolves({ messageId: 'fixture-id' });
+    sinon.stub(nodemailer, 'createTransport').returns({ sendMail } as any);
+    const email = new Email.Email({
+      config: {
+        defaults: { subject: 'Subject', from: 'from@example.com', format: 'text', otherSendOptions: defaults },
+        settings: { enabled: true, serverOptions: {} },
+      } as any,
+      log: createSinonStubLogger(sinon),
+      templateContext: {},
+      resolveHook: () => {
+        throw new Error('No hook');
+      },
+      retainFollowup: () => {},
+    });
+    sinon
+      .stub(email, 'evaluateProperties')
+      .returns({
         toRendered: 'to@example.com',
         subjectRendered: 'Subject',
         fromRendered: 'from@example.com',
@@ -79,42 +77,44 @@ describe('Named query and notification request parameters', function () {
         ccRendered: '',
         bccRendered: '',
         templateRendered: of({ status: 200, body: 'Body' }),
-      }),
-      sendMessage,
-    };
-    const req = { body } as unknown as Sails.Req;
-    const validated = validateApiRouteRequest(req, sendNotificationRoute);
-    expect(validated.valid).to.equal(true);
-    if (!validated.valid) throw new Error('Invalid notification');
-    req.apiRequest = validate ? validated : { params: {}, query: {}, body, files: {} };
-    const controller = new TestEmail();
-    controller.init();
-    controller.sendNotification(req, {} as Sails.Res);
-    expect(controller.sendResp.firstCall.args[2].status).to.equal(200);
-    return { validated, sendMessage };
+      } as any);
+    const send = sinon.spy(email, 'sendMessage');
+    const f = await httpRouteFixture((router, input) =>
+      mountIntegrationOperationRoutes(router, { ...input, email, audit: async () => {} } as any)
+    );
+    try {
+      const response = await f.request('/default/portal/api/sendNotification', {
+        method: 'POST',
+        body,
+        headers: { 'x-redbox-api-version': version },
+      });
+      assert.equal(response.status, 200);
+      assert.equal(sendMail.calledOnce, true);
+      return { sendMail, send };
+    } finally {
+      await f.close();
+    }
   }
-
-  for (const validate of [true, false]) {
-    it(`forwards only replyTo ${validate ? 'through route validation' : 'for in-process callers'}`, function () {
-      const { sendMessage, validated } = sendNotification(
-        {
-          to: 'to@example.com',
-          template: 'test',
-          otherSendOptions: {
-            replyTo: 'staffsupport-lib@uwa.edu.au',
-            attachments: [{ path: '/etc/passwd' }],
-            headers: { 'X-Test': 'unsafe' },
-            to: 'attacker@example.com',
-            subject: 'override',
-          },
-        },
-        validate
-      );
-      if (validate)
-        expect(validated.body).to.have.property('otherSendOptions').that.deep.equals({
+  for (const version of ['1.0', '2.0']) {
+    it(`forwards only public replyTo in API ${version}`, async () => {
+      const body = {
+        to: 'to@example.com',
+        template: 'test',
+        otherSendOptions: {
           replyTo: 'staffsupport-lib@uwa.edu.au',
-        });
-      expect(sendMessage.firstCall.args).to.deep.equal([
+          attachments: [{ path: '/etc/passwd' }],
+          headers: { 'X-Test': 'unsafe' },
+          to: 'attacker@example.com',
+          subject: 'override',
+        },
+      };
+      const validated = validateApiRouteRequest({ body }, sendNotificationRoute);
+      assert(validated.valid);
+      assert.deepEqual(Reflect.get(Object(validated.body), 'otherSendOptions'), {
+        replyTo: 'staffsupport-lib@uwa.edu.au',
+      });
+      const { send, sendMail } = await notification(body, {}, version);
+      assert.deepEqual(send.firstCall.args, [
         'to@example.com',
         'Body',
         'Subject',
@@ -124,37 +124,41 @@ describe('Named query and notification request parameters', function () {
         '',
         { replyTo: 'staffsupport-lib@uwa.edu.au' },
       ]);
+      assert.deepEqual(sendMail.firstCall.args[0], {
+        to: 'to@example.com',
+        text: 'Body',
+        subject: 'Subject',
+        from: 'from@example.com',
+        cc: '',
+        bcc: '',
+        replyTo: 'staffsupport-lib@uwa.edu.au',
+      });
     });
   }
-
-  it('layers replyTo over configured default send options', function () {
-    sails.config.emailnotification = {
-      defaults: { otherSendOptions: { replyTo: 'default@example.com', headers: { 'X-Default': 'yes' } } },
-    };
-    const { sendMessage } = sendNotification({
-      to: 'to@example.com',
-      template: 'test',
-      otherSendOptions: { replyTo: 'staffsupport-lib@uwa.edu.au' },
-    });
-    expect(sendMessage.firstCall.args[7]).to.deep.equal({
-      replyTo: 'staffsupport-lib@uwa.edu.au',
-      headers: { 'X-Default': 'yes' },
-    });
+  it('layers public replyTo over trusted default send options', async () => {
+    const { sendMail } = await notification(
+      { to: 'to@example.com', template: 'test', otherSendOptions: { replyTo: 'staffsupport-lib@uwa.edu.au' } },
+      { replyTo: 'default@example.com', headers: { 'X-Default': 'yes' } }
+    );
+    assert.equal(sendMail.firstCall.args[0].replyTo, 'staffsupport-lib@uwa.edu.au');
+    assert.deepEqual(sendMail.firstCall.args[0].headers, { 'X-Default': 'yes' });
   });
-
-  it('retains service defaults when replyTo is omitted', function () {
-    const { sendMessage } = sendNotification({
-      to: 'to@example.com',
-      template: 'test',
-      otherSendOptions: { headers: {} },
-    });
-    expect(sendMessage.firstCall.args[7]).to.equal(undefined);
+  it('retains service defaults when public replyTo is omitted', async () => {
+    const { send, sendMail } = await notification(
+      { to: 'to@example.com', template: 'test', otherSendOptions: { headers: {} } },
+      { replyTo: 'default@example.com', headers: { 'X-Default': 'yes' } }
+    );
+    assert.equal(send.firstCall.args[7], undefined);
+    assert.equal(sendMail.firstCall.args[0].replyTo, 'default@example.com');
+    assert.deepEqual(sendMail.firstCall.args[0].headers, { 'X-Default': 'yes' });
   });
-
-  it('rejects non-string replyTo values', function () {
-    const req = {
-      body: { to: 'to@example.com', template: 'test', otherSendOptions: { replyTo: { path: '/etc/passwd' } } },
-    } as unknown as Sails.Req;
-    expect(validateApiRouteRequest(req, sendNotificationRoute).valid).to.equal(false);
+  it('rejects non-string replyTo before delivery', () => {
+    assert.equal(
+      validateApiRouteRequest(
+        { body: { to: 'to@example.com', template: 'test', otherSendOptions: { replyTo: { path: '/etc/passwd' } } } },
+        sendNotificationRoute
+      ).valid,
+      false
+    );
   });
 });

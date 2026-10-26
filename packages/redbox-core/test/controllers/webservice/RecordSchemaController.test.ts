@@ -9,11 +9,10 @@ import {
   SimpleInputFieldModelDefinition,
   SimpleInputFormComponentDefinition,
 } from '@researchdatabox/sails-ng-common';
-import lodash from 'lodash';
 import * as sinon from 'sinon';
 
-import { Controllers } from '../../../src/controllers/webservice/RecordSchemaController';
-import { WebserviceControllerExports, WebserviceControllerNames } from '../../../src/controllers';
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountRecordSchemaReadRoutes, recordSchemaReadRoutes } from '../../../src/http/express/recordSchemaReads';
 import {
   createCoreRecordContractContributors,
   normalizeRedboxCanonicalJsonV1,
@@ -37,7 +36,6 @@ import {
 import { BrandingModel } from '../../../src/model';
 import { JSON_SCHEMA_DRAFT_2020_12, RECORD_SCHEMA_PROBLEM_CODES } from '../../../src/record-contract';
 import type { ApiRouteDefinition } from '../../../src/api-routes';
-import type { BuildResponseType } from '../../../src/model';
 import type {
   RecordSchemaArtifactModel,
   RecordSchemaAuthorizationGrantQuery,
@@ -58,49 +56,6 @@ import type {
   RecordJsonSchemaEtag,
   RecordSchemaProblemCode,
 } from '../../../src/record-contract';
-
-let expect: Chai.ExpectStatic;
-
-type ResolverStubs = {
-  resolveCreate: sinon.SinonStub<
-    Parameters<RecordSchemaService.Services.RecordSchema['resolveCreate']>,
-    ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>
-  >;
-  resolveUpdate: sinon.SinonStub<
-    Parameters<RecordSchemaService.Services.RecordSchema['resolveUpdate']>,
-    ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>
-  >;
-  resolveImmutable: sinon.SinonStub<
-    Parameters<RecordSchemaService.Services.RecordSchema['resolveImmutable']>,
-    ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>
-  >;
-};
-
-interface CapturedSendResponse {
-  readonly req: Sails.Req;
-  readonly res: Sails.Res;
-  readonly response: BuildResponseType;
-}
-
-class TestRecordSchemaController extends Controllers.RecordSchema {
-  readonly sentResponses: CapturedSendResponse[] = [];
-
-  protected override sendResp(req: Sails.Req, res: Sails.Res, response?: BuildResponseType): Sails.Res {
-    this.sentResponses.push({ req, res, response: response ?? {} });
-    return res;
-  }
-
-  resetSentResponses(): void {
-    this.sentResponses.length = 0;
-  }
-}
-
-function onlySentResponse(controller: TestRecordSchemaController): CapturedSendResponse {
-  assert.equal(controller.sentResponses.length, 1, 'Expected exactly one sendResp call.');
-  const sent = controller.sentResponses[0];
-  if (!sent) throw new Error('Expected one captured sendResp call.');
-  return sent;
-}
 
 function role(id: string, name: string): FormRecordAccessRole {
   return { id, name };
@@ -247,42 +202,6 @@ function expectedProblem(
     instance,
     code,
   };
-}
-
-function expectedProblemResponse(
-  kind: ExpectedProblemKind,
-  instance: string,
-  code?: RecordSchemaProblemCode,
-  errors?: Error[]
-): BuildResponseType {
-  const problem = expectedProblem(kind, instance, code);
-  return {
-    format: 'raw-json',
-    mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
-    status: problem.status,
-    data: problem,
-    headers: {
-      'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
-      Vary: RECORD_SCHEMA_RESPONSE_VARY,
-    },
-    ...(errors ? { errors } : {}),
-  };
-}
-
-function requestAdapter(): Sails.Req {
-  const request: Sails.Req = Object.create(null);
-  Reflect.set(request, 'method', 'GET');
-  Reflect.set(request, 'path', '/schema');
-  Reflect.set(request, 'originalUrl', '/schema');
-  Reflect.set(request, 'params', {});
-  Reflect.set(request, 'query', {});
-  Reflect.set(request, 'headers', {});
-  return request;
-}
-
-function responseAdapter(): Sails.Res {
-  const response: Sails.Res = Object.create(null);
-  return response;
 }
 
 function enabledRecordSchemaConfig(): Record<string, unknown> {
@@ -440,610 +359,156 @@ function immutableControllerService(
   return { service, resolveContractContext, authorizeCreate };
 }
 
-interface ValidatedRequestOptions {
-  readonly user?: globalThis.Record<string, unknown>;
-}
-
 const defaultRequestUser = requestUser([
   role('role-z', 'Zeta'),
   role('role-a', 'Alpha'),
   role('role-z-duplicate', 'Zeta'),
 ]);
 
-function validatedRequest(
-  route: ApiRouteDefinition,
-  raw: Pick<Sails.Req, 'params' | 'query' | 'headers'>,
-  options: ValidatedRequestOptions = { user: defaultRequestUser }
-): Sails.Req {
-  const rawRequest = requestAdapter();
-  Reflect.set(rawRequest, 'params', raw.params);
-  Reflect.set(rawRequest, 'query', raw.query);
-  Reflect.set(rawRequest, 'headers', raw.headers);
-  const validated = validateApiRouteRequest(rawRequest, route);
-  assert.equal(validated.valid, true, validated.valid ? undefined : JSON.stringify(validated.issues));
-  if (!validated.valid) throw new Error('Expected request contract validation to succeed.');
-
-  const request = requestAdapter();
-  request.apiRequest = {
-    params: validated.params,
-    query: validated.query,
-    headers: validated.headers,
-    body: validated.body,
-    files: validated.files,
-  };
-  if (options.user !== undefined) request.user = options.user;
-
-  for (const rawProperty of ['params', 'query', 'headers', 'body']) {
-    Object.defineProperty(request, rawProperty, {
-      configurable: true,
-      get() {
-        throw new Error(`raw req.${rawProperty} should not be used`);
-      },
-    });
-  }
-
-  return request;
-}
-
-function restoreGlobal(name: string, priorValue: unknown): void {
-  if (priorValue === undefined) {
-    Reflect.deleteProperty(globalThis, name);
-    return;
-  }
-  Reflect.set(globalThis, name, priorValue);
-}
-
-interface ControllerActionCase {
-  readonly run: (req: Sails.Req, res: Sails.Res) => Promise<unknown>;
-  readonly request: Sails.Req;
-  readonly resolver: sinon.SinonStub;
-  readonly unexpectedFailureContext: 'controller-create' | 'controller-update' | 'controller-immutable';
-}
-
-function controllerActionCases(
-  controller: TestRecordSchemaController,
-  resolver: ResolverStubs,
-  options?: ValidatedRequestOptions
-): ControllerActionCase[] {
-  return [
-    {
-      run: (req, res) => controller.create(req, res),
-      request: validatedRequest(
-        resolveCreateRecordSchemaRoute,
-        {
-          params: { branding: 'default', portal: 'portal-1', recordType: 'dataset' },
-          query: {},
-          headers: {},
-        },
-        options
-      ),
-      resolver: resolver.resolveCreate,
-      unexpectedFailureContext: 'controller-create',
-    },
-    {
-      run: (req, res) => controller.update(req, res),
-      request: validatedRequest(
-        resolveUpdateRecordSchemaRoute,
-        {
-          params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
-          query: {},
-          headers: {},
-        },
-        options
-      ),
-      resolver: resolver.resolveUpdate,
-      unexpectedFailureContext: 'controller-update',
-    },
-    {
-      run: (req, res) => controller.immutable(req, res),
-      request: validatedRequest(
-        getImmutableRecordSchemaRoute,
-        {
-          params: { branding: 'default', portal: 'portal-1', digest: 'a'.repeat(64) },
-          query: {},
-          headers: {},
-        },
-        options
-      ),
-      resolver: resolver.resolveImmutable,
-      unexpectedFailureContext: 'controller-immutable',
-    },
-  ];
-}
-
-function resetControllerHistory(controller: TestRecordSchemaController, resolver: ResolverStubs): void {
-  controller.resetSentResponses();
-  resolver.resolveCreate.resetHistory();
-  resolver.resolveUpdate.resetHistory();
-  resolver.resolveImmutable.resetHistory();
-}
-
-describe('Webservice RecordSchemaController', function () {
-  let controller: TestRecordSchemaController;
-  let resolver: ResolverStubs;
-  let getBrand: sinon.SinonStub<[string], BrandingModel | undefined>;
-  let logError: sinon.SinonStub;
-  let priorSails: unknown;
-  let priorBrandingService: unknown;
-  let priorLodash: unknown;
-  let resolvedBrand: BrandingModel;
-
-  before(async function () {
-    expect = (await import('chai')).expect;
-  });
-
-  beforeEach(function () {
-    priorSails = Reflect.get(globalThis, 'sails');
-    priorBrandingService = Reflect.get(globalThis, 'BrandingService');
-    priorLodash = Reflect.get(globalThis, '_');
-
-    resolver = {
-      resolveCreate: sinon.stub<
-        Parameters<RecordSchemaService.Services.RecordSchema['resolveCreate']>,
-        ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>
-      >(),
-      resolveUpdate: sinon.stub<
-        Parameters<RecordSchemaService.Services.RecordSchema['resolveUpdate']>,
-        ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>
-      >(),
-      resolveImmutable: sinon.stub<
-        Parameters<RecordSchemaService.Services.RecordSchema['resolveImmutable']>,
-        ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>
-      >(),
+describe('Owned record schema HTTP', function () {
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let resolver: Record<string, sinon.SinonStub>;
+  let response: Awaited<ReturnType<typeof f.request>>;
+  const digest = 'a'.repeat(64);
+  const instance = (
+    action: string,
+    value = action === 'immutable' ? digest : action === 'create' ? 'dataset' : 'record-1'
+  ) => `/default/portal-1/api/records/schemas/${action === 'immutable' ? value : action + '/' + value}`;
+  function resolved(kind: 'create' | 'update', selectedDigest = digest) {
+    const context = schemaContext(kind);
+    return {
+      kind: 'resolved',
+      document: schemaDocument(context, 'complete', selectedDigest),
+      digest: selectedDigest,
+      metadata: { etag: schemaEtag(selectedDigest) },
     };
-    resolvedBrand = new BrandingModel();
-    resolvedBrand.id = 'brand-1';
-    resolvedBrand.name = 'default';
-    getBrand = sinon.stub<[string], BrandingModel | undefined>();
-    getBrand.callsFake(name => (name === 'default' ? resolvedBrand : undefined));
-    logError = sinon.stub();
-    Reflect.set(globalThis, 'sails', {
-      config: {},
-      services: { recordschemaservice: resolver },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: logError,
-        trace: sinon.stub(),
-      },
+  }
+  async function request(
+    action: string,
+    options: { value?: string; query?: Record<string, string>; headers?: Record<string, string> } = {}
+  ) {
+    response = await f.request(instance(action, options.value) + '?' + new URLSearchParams(options.query), {
+      headers: options.headers,
     });
-    Reflect.set(globalThis, 'BrandingService', { getBrand, getRootContext: sinon.stub().returns('') });
-    Reflect.set(globalThis, '_', lodash);
-
-    controller = new TestRecordSchemaController();
-    controller.RecordSchemaService = resolver;
+    return response;
+  }
+  function headers(expected: Record<string, string>) {
+    for (const [name, value] of Object.entries(expected)) assert.equal(response.headers.get(name), value, name);
+  }
+  function problem(kind: ExpectedProblemKind, pathname: string, code?: RecordSchemaProblemCode) {
+    const expected = expectedProblemDescriptors[kind];
+    assert.equal(response.status, expected.status);
+    assert.deepEqual(response.body, { ...expected, instance: pathname, code: code ?? expected.code });
+    assert.match(response.headers.get('Content-Type')!, /^application\/problem\+json/);
+    headers({ 'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL, Vary: RECORD_SCHEMA_RESPONSE_VARY });
+    assert.equal(response.body.errors, undefined);
+    assert.equal(response.body.data, undefined);
+  }
+  beforeEach(async function () {
+    resolver = { resolveCreate: sinon.stub(), resolveUpdate: sinon.stub(), resolveImmutable: sinon.stub() };
+    f = await httpRouteFixture((router, input) =>
+      mountRecordSchemaReadRoutes(router, { ...input, schemas: resolver as any })
+    );
+    Object.assign(f.input, { portals: ['portal-1'] });
+    f.authenticate.resolves({
+      ...f.actor,
+      type: 'local',
+      name: 'Alice Example',
+      email: 'alice@example.test',
+      roles: [
+        { id: 'role-z', name: 'Zeta', brandId: f.brand.id },
+        { id: 'role-a', name: 'Alpha', brandId: f.brand.id },
+        { id: 'role-z-duplicate', name: 'Zeta', brandId: f.brand.id },
+      ],
+    });
   });
-
-  afterEach(function () {
+  afterEach(async function () {
+    await f.close();
     sinon.restore();
-    restoreGlobal('sails', priorSails);
-    restoreGlobal('BrandingService', priorBrandingService);
-    restoreGlobal('_', priorLodash);
   });
-
-  it('uses the generated webservice init, export, and shim conventions', function () {
-    controller.init();
-
-    expect(controller.RecordSchemaService).to.equal(resolver);
-    expect(controller.exports()).to.include.keys('init', 'create', 'update', 'immutable');
-    expect(WebserviceControllerNames).to.include('RecordSchemaController');
-    expect(WebserviceControllerExports.RecordSchemaController).to.include.keys('init', 'create', 'update', 'immutable');
+  it('registers create, update and immutable routes without generated shims', function () {
+    assert.deepEqual(
+      recordSchemaReadRoutes.map(route => route.action),
+      ['create', 'update', 'immutable']
+    );
+    assert.ok(recordSchemaReadRoutes.every(route => route.method === 'get'));
   });
-
-  it('delegates create with normalized validated input and the resolved authenticated caller', async function () {
-    const digest = 'b'.repeat(64);
-    const etag = schemaEtag(digest);
-    const context = schemaContext('create');
-    const document = schemaDocument(context, 'complete', digest);
-    const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>> = {
-      kind: 'resolved',
-      document,
-      digest,
-      metadata: {
-        schemaKind: 'create',
-        contractFormat: 'redbox-record-contract/1',
-        completeness: 'complete',
-        byteLength: 1,
-        etag,
-        context,
-      },
-      grant: {
-        referenceKey: 'grant-create',
-        digest,
-        brand: 'brand-1',
-        portal: 'portal-1',
-        recordType: 'dataset',
-        operation: 'strict-all',
-        kind: 'grant',
-        schemaKind: 'create',
-      },
-    };
+  it('delegates create with normalized validated input and the selected authenticated caller', async function () {
+    const result = resolved('create', 'b'.repeat(64));
     resolver.resolveCreate.resolves(result);
-    const req = validatedRequest(resolveCreateRecordSchemaRoute, {
-      params: { branding: ' default ', portal: ' portal-1 ', recordType: ' dataset ' },
-      query: { operation: ' submit ' },
-      headers: { 'If-None-Match': `"sha256:${'f'.repeat(64)}"` },
-    });
-    const res = responseAdapter();
-
-    await controller.create(req, res);
-
-    expect(getBrand.calledOnceWithExactly('default')).to.equal(true);
-    expect(
-      resolver.resolveCreate.calledOnceWithExactly({
-        brand: 'brand-1',
-        branding: 'default',
-        portal: 'portal-1',
-        recordType: 'dataset',
-        operation: 'submit',
-        caller: {
-          brand: resolvedBrand,
-          user: defaultRequestUser,
-        },
-      })
-    ).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({
-      req,
-      res,
-      response: {
-        format: 'raw-json',
-        mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
-        data: document,
-        headers: successfulSchemaHeaders(etag, `/default/portal-1/api/records/schemas/${digest}`),
-      },
-    });
+    await request('create', { value: ' dataset ', query: { operation: ' submit ' } });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, result.document);
+    const input = resolver.resolveCreate.firstCall.args[0];
+    assert.equal(input.recordType, 'dataset');
+    assert.equal(input.operation, 'submit');
+    assert.equal(input.brand, 'brand-1');
+    assert.equal(input.branding, 'default');
+    assert.equal(input.portal, 'portal-1');
+    assert.equal(input.caller.user.username, 'alice');
+    assert.equal(input.caller.user.token, undefined);
+    assert.deepEqual(input.caller.user.additionalAttributes, {});
+    assert.deepEqual(
+      input.caller.user.roles.map((r: any) => [r.id, r.name, r.branding.id]),
+      [
+        ['role-z', 'Zeta', 'brand-1'],
+        ['role-a', 'Alpha', 'brand-1'],
+        ['role-z-duplicate', 'Zeta', 'brand-1'],
+      ]
+    );
+    headers(successfulSchemaHeaders(result.metadata.etag, `/default/portal-1/api/records/schemas/${result.digest}`));
   });
-
-  it('delegates update with the resolved brand and authenticated caller context', async function () {
-    const digest = 'c'.repeat(64);
-    const etag = schemaEtag(digest);
-    const context = schemaContext('update');
-    const document = schemaDocument(context, 'partial', digest);
-    const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>> = {
-      kind: 'partial',
-      document,
-      digest,
-      metadata: {
-        schemaKind: 'update',
-        contractFormat: 'redbox-record-contract/1',
-        completeness: 'partial',
-        byteLength: 1,
-        etag,
-        context,
-      },
-      grant: {
-        referenceKey: 'grant-update',
-        digest,
-        brand: 'brand-1',
-        portal: 'portal-1',
-        recordType: 'dataset',
-        operation: 'strict-all',
-        kind: 'grant',
-        schemaKind: 'update',
-        oid: 'record-1',
-      },
-    };
+  it('delegates update with resolved brand and authenticated caller context', async function () {
+    const result = { ...resolved('update', 'c'.repeat(64)), kind: 'partial' };
     resolver.resolveUpdate.resolves(result);
-    const user = requestUser([role('role-1', 'Researcher')]);
-    const req = validatedRequest(
-      resolveUpdateRecordSchemaRoute,
-      {
-        params: { branding: 'default', portal: ' portal-1 ', oid: ' record-1 ' },
-        query: {},
-        headers: {},
-      },
-      { user }
-    );
-    const res = responseAdapter();
-
-    await controller.update(req, res);
-
-    expect(
-      resolver.resolveUpdate.calledOnceWithExactly({
-        brand: 'brand-1',
-        branding: 'default',
-        portal: 'portal-1',
-        oid: 'record-1',
-        operation: undefined,
-        caller: {
-          brand: resolvedBrand,
-          user,
-        },
-      })
-    ).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({
-      req,
-      res,
-      response: {
-        format: 'raw-json',
-        mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
-        data: document,
-        headers: successfulSchemaHeaders(etag, `/default/portal-1/api/records/schemas/${digest}`),
-      },
-    });
+    await request('update', { value: ' record-1 ' });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, result.document);
+    const input = resolver.resolveUpdate.firstCall.args[0];
+    assert.equal(input.oid, 'record-1');
+    assert.equal(input.operation, undefined);
+    assert.equal(input.brand, f.brand.id);
+    assert.equal(input.caller.user.username, 'alice');
+    headers(successfulSchemaHeaders(result.metadata.etag, `/default/portal-1/api/records/schemas/${result.digest}`));
   });
-
-  it('delegates immutable retrieval with only the validated conditional header and sends raw schema JSON', async function () {
-    const digest = 'a'.repeat(64);
-    const etag = schemaEtag(digest);
-    const staleEtag = `"sha256:${'f'.repeat(64)}"`;
-    const document: ContractJsonObject = { type: 'object' };
-    const now = new Date('2026-08-26T00:00:00.000Z');
-    const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>> = {
-      kind: 'resolved',
-      artifact: {
-        digest,
-        document,
-        contractFormat: 'redbox-record-contract/1',
-        completeness: 'complete',
-        byteLength: 1,
-        createdAt: now,
-        updatedAt: now,
-      },
-    };
-    resolver.resolveImmutable.resolves(result);
-    const user = requestUser([role('role-1', 'Researcher')]);
-    const req = validatedRequest(
-      getImmutableRecordSchemaRoute,
-      {
-        params: { branding: 'default', portal: 'portal-1', digest },
-        query: {},
-        headers: { authorization: 'Bearer private-token', 'if-none-match': ` ${staleEtag} ` },
-      },
-      { user }
-    );
-    const res = responseAdapter();
-
-    await controller.immutable(req, res);
-
-    expect(
-      resolver.resolveImmutable.calledOnceWithExactly({
-        brand: 'brand-1',
-        branding: 'default',
-        portal: 'portal-1',
-        digest,
-        caller: {
-          brand: resolvedBrand,
-          user,
-        },
-        ifNoneMatch: staleEtag,
-      })
-    ).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({
-      req,
-      res,
-      response: {
-        format: 'raw-json',
-        mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
-        data: document,
-        headers: successfulSchemaHeaders(etag),
-      },
-    });
+  it('delegates immutable retrieval with the validated conditional header and sends raw JSON', async function () {
+    resolver.resolveImmutable.resolves({ kind: 'resolved', artifact: { digest, document: { type: 'object' } } });
+    const stale = schemaEtag('f'.repeat(64));
+    await request('immutable', { headers: { 'If-None-Match': ` ${stale} `, Authorization: 'Bearer private-token' } });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, { type: 'object' });
+    assert.equal(resolver.resolveImmutable.firstCall.args[0].ifNoneMatch, stale);
+    assert.equal(resolver.resolveImmutable.firstCall.args[0].caller.user.token, undefined);
+    headers(successfulSchemaHeaders(schemaEtag(digest)));
   });
-
-  it('returns bodyless 304 with resolver headers after an exact authorized create ETag match', async function () {
-    const digest = 'd'.repeat(64);
-    const etag = schemaEtag(digest);
-    const context = schemaContext('create');
-    const document = schemaDocument(context, 'complete', digest);
-    resolver.resolveCreate.resolves({
-      kind: 'resolved',
-      document,
-      digest,
-      metadata: {
-        schemaKind: 'create',
-        contractFormat: 'redbox-record-contract/1',
-        completeness: 'complete',
-        byteLength: 1,
-        etag,
-        context,
-      },
-      grant: {
-        referenceKey: 'grant-create-not-modified',
-        digest,
-        brand: 'brand-1',
-        portal: 'portal-1',
-        recordType: 'dataset',
-        operation: 'strict-all',
-        kind: 'grant',
-        schemaKind: 'create',
-      },
+  for (const action of ['create', 'update'] as const) {
+    it(`returns bodyless 304 after an exact authorized ${action} ETag match`, async function () {
+      resolver[action === 'create' ? 'resolveCreate' : 'resolveUpdate'].resolves(resolved(action));
+      await request(action, { headers: { 'If-None-Match': ` \t${schemaEtag(digest)}\t ` } });
+      assert.equal(response.status, 304);
+      assert.equal(response.text, '');
+      headers(successfulSchemaHeaders(schemaEtag(digest), `/default/portal-1/api/records/schemas/${digest}`));
     });
-    const req = validatedRequest(resolveCreateRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', recordType: 'dataset' },
-      query: {},
-      headers: { 'If-None-Match': ` \t${etag}\t ` },
-    });
-    const res = responseAdapter();
-
-    await controller.create(req, res);
-
-    expect(resolver.resolveCreate.calledOnce).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({
-      req,
-      res,
-      response: {
-        status: 304,
-        headers: successfulSchemaHeaders(etag, `/default/portal-1/api/records/schemas/${digest}`),
-      },
-    });
+  }
+  it('uses the public branding route segment in Links for 200 and 304', async function () {
+    for (const action of ['create', 'update'] as const) {
+      resolver[action === 'create' ? 'resolveCreate' : 'resolveUpdate'].resolves(resolved(action));
+      await request(action, { headers: action === 'update' ? { 'If-None-Match': schemaEtag(digest) } : {} });
+      assert.equal(response.status, action === 'create' ? 200 : 304);
+      assert.equal(
+        response.headers.get('Link'),
+        recordSchemaCanonicalLink(`/default/portal-1/api/records/schemas/${digest}`)
+      );
+    }
   });
-
-  it('returns bodyless 304 with resolver headers after an exact authorized update ETag match', async function () {
-    const digest = 'e'.repeat(64);
-    const etag = schemaEtag(digest);
-    const context = schemaContext('update');
-    const document = schemaDocument(context, 'partial', digest);
-    resolver.resolveUpdate.resolves({
-      kind: 'partial',
-      document,
-      digest,
-      metadata: {
-        schemaKind: 'update',
-        contractFormat: 'redbox-record-contract/1',
-        completeness: 'partial',
-        byteLength: 1,
-        etag,
-        context,
-      },
-      grant: {
-        referenceKey: 'grant-update-not-modified',
-        digest,
-        brand: 'brand-1',
-        portal: 'portal-1',
-        recordType: 'dataset',
-        operation: 'strict-all',
-        kind: 'grant',
-        schemaKind: 'update',
-        oid: 'record-1',
-      },
-    });
-    const req = validatedRequest(resolveUpdateRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
-      query: {},
-      headers: { 'If-None-Match': etag },
-    });
-    const res = responseAdapter();
-
-    await controller.update(req, res);
-
-    expect(resolver.resolveUpdate.calledOnce).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({
-      req,
-      res,
-      response: {
-        status: 304,
-        headers: successfulSchemaHeaders(etag, `/default/portal-1/api/records/schemas/${digest}`),
-      },
-    });
+  it('returns bodyless 304 for an immutable cache hit authorized before ETag evaluation', async function () {
+    resolver.resolveImmutable.resolves({ kind: 'not-modified', artifact: { digest, document: { type: 'object' } } });
+    await request('immutable', { headers: { 'If-None-Match': schemaEtag(digest) } });
+    assert.equal(response.status, 304);
+    assert.equal(response.text, '');
+    headers(successfulSchemaHeaders(schemaEtag(digest)));
+    assert.equal(resolver.resolveImmutable.firstCall.args[0].ifNoneMatch, schemaEtag(digest));
   });
-
-  it('uses the public branding route segment in resolver Links for 200 and 304 responses', async function () {
-    const digest = 'f'.repeat(64);
-    const etag = schemaEtag(digest);
-    const canonicalLink = `</default/portal-1/api/records/schemas/${digest}>; rel="canonical"; type="application/schema+json"`;
-    const createContext = schemaContext('create');
-    const createDocument = schemaDocument(createContext, 'complete', digest);
-    resolver.resolveCreate.resolves({
-      kind: 'resolved',
-      document: createDocument,
-      digest,
-      metadata: {
-        schemaKind: 'create',
-        contractFormat: 'redbox-record-contract/1',
-        completeness: 'complete',
-        byteLength: 1,
-        etag,
-        context: createContext,
-      },
-      grant: {
-        referenceKey: 'grant-create-public-link',
-        digest,
-        brand: resolvedBrand.id,
-        portal: 'portal-1',
-        recordType: 'dataset',
-        operation: 'strict-all',
-        kind: 'grant',
-        schemaKind: 'create',
-      },
-    });
-    const createReq = validatedRequest(resolveCreateRecordSchemaRoute, {
-      params: { branding: resolvedBrand.name, portal: 'portal-1', recordType: 'dataset' },
-      query: {},
-      headers: {},
-    });
-
-    await controller.create(createReq, responseAdapter());
-
-    expect(createDocument.$id).to.equal(`/brand-1/portal-1/api/records/schemas/${digest}`);
-    expect(onlySentResponse(controller).response.headers?.Link).to.equal(canonicalLink);
-
-    resetControllerHistory(controller, resolver);
-    const updateContext = schemaContext('update');
-    const updateDocument = schemaDocument(updateContext, 'partial', digest);
-    resolver.resolveUpdate.resolves({
-      kind: 'partial',
-      document: updateDocument,
-      digest,
-      metadata: {
-        schemaKind: 'update',
-        contractFormat: 'redbox-record-contract/1',
-        completeness: 'partial',
-        byteLength: 1,
-        etag,
-        context: updateContext,
-      },
-      grant: {
-        referenceKey: 'grant-update-public-link',
-        digest,
-        brand: resolvedBrand.id,
-        portal: 'portal-1',
-        recordType: 'dataset',
-        operation: 'strict-all',
-        kind: 'grant',
-        schemaKind: 'update',
-        oid: 'record-1',
-      },
-    });
-    const updateReq = validatedRequest(resolveUpdateRecordSchemaRoute, {
-      params: { branding: resolvedBrand.name, portal: 'portal-1', oid: 'record-1' },
-      query: {},
-      headers: { 'If-None-Match': etag },
-    });
-
-    await controller.update(updateReq, responseAdapter());
-
-    expect(onlySentResponse(controller).response).to.deep.include({ status: 304 });
-    expect(onlySentResponse(controller).response.headers?.Link).to.equal(canonicalLink);
-  });
-
-  it('returns bodyless 304 for an immutable service cache hit authorized before ETag evaluation', async function () {
-    const digest = 'a'.repeat(64);
-    const etag = schemaEtag(digest);
-    const now = new Date('2026-08-26T00:00:00.000Z');
-    resolver.resolveImmutable.resolves({
-      kind: 'not-modified',
-      artifact: {
-        digest,
-        document: { type: 'object' },
-        contractFormat: 'redbox-record-contract/1',
-        completeness: 'complete',
-        byteLength: 1,
-        createdAt: now,
-        updatedAt: now,
-      },
-    });
-    const req = validatedRequest(getImmutableRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', digest },
-      query: {},
-      headers: { 'If-None-Match': etag },
-    });
-    const res = responseAdapter();
-
-    await controller.immutable(req, res);
-
-    expect(
-      resolver.resolveImmutable.calledOnceWithExactly({
-        brand: 'brand-1',
-        branding: 'default',
-        portal: 'portal-1',
-        digest,
-        caller: { brand: resolvedBrand, user: defaultRequestUser },
-        ifNoneMatch: etag,
-      })
-    ).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({
-      req,
-      res,
-      response: {
-        status: 304,
-        headers: successfulSchemaHeaders(etag),
-      },
-    });
-  });
-
   it('maps create service failures to deterministic 400, 403, 409, 413, 422, and 503 Problem Details', async function () {
     const instance = '/default/portal-1/api/records/schemas/create/dataset';
     const cases: Array<{
@@ -1106,218 +571,90 @@ describe('Webservice RecordSchemaController', function () {
         code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
       },
     ];
-    const req = validatedRequest(resolveCreateRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', recordType: 'dataset' },
-      query: {},
-      headers: {},
-    });
 
     for (const testCase of cases) {
-      resetControllerHistory(controller, resolver);
       resolver.resolveCreate.resolves(testCase.result);
-
-      await controller.create(req, responseAdapter());
-
-      const response = onlySentResponse(controller).response;
-      expect(response).to.deep.equal(expectedProblemResponse(testCase.problemKind, instance, testCase.code));
-      expect(JSON.stringify(response.data)).not.to.match(/private|empty-effective-form/);
-      expect(response.headers).to.deep.equal({
-        'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
-        Vary: RECORD_SCHEMA_RESPONSE_VARY,
-      });
+      await request('create');
+      problem(testCase.problemKind, instance, testCase.code);
+      assert.ok(!/private|empty-effective-form/.test(response.text));
     }
   });
-
   it('makes denied and missing-OID update outcomes identical generic 404 responses', async function () {
-    const req = validatedRequest(resolveUpdateRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
-      query: {},
-      headers: {},
-    });
     resolver.resolveUpdate.resolves({ kind: 'denied', code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN });
-
-    await controller.update(req, responseAdapter());
-    const denied = onlySentResponse(controller).response;
-
-    resetControllerHistory(controller, resolver);
+    await request('update');
+    problem('not-found', instance('update'));
+    const denied = response.body;
     resolver.resolveUpdate.resolves({ kind: 'missing-oid', code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND });
-    await controller.update(req, responseAdapter());
-    const missing = onlySentResponse(controller).response;
-
-    expect(denied).to.deep.equal(
-      expectedProblemResponse('not-found', '/default/portal-1/api/records/schemas/update/record-1')
-    );
-    expect(missing).to.deep.equal(denied);
-    expect(JSON.stringify(denied)).not.to.include(RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN);
+    await request('update');
+    problem('not-found', instance('update'));
+    assert.deepEqual(response.body, denied);
+    assert.ok(!response.text.includes(RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN));
   });
-
   it('gives update context failure kinds precedence over private diagnostics', async function () {
-    const req = validatedRequest(resolveUpdateRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
-      query: {},
-      headers: {},
-    });
-
     resolver.resolveUpdate.resolves({
       kind: 'context-failed',
       failureKind: 'forbidden',
       diagnosticCodes: [RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED, 'private-record-id-record-1'],
     });
-
-    await controller.update(req, responseAdapter());
-
-    const precedenceResponse = onlySentResponse(controller).response;
-    expect(precedenceResponse).to.deep.equal(
-      expectedProblemResponse('forbidden', '/default/portal-1/api/records/schemas/update/record-1')
-    );
-    expect(JSON.stringify(precedenceResponse)).not.to.include('private-record-id');
+    await request('update');
+    problem('forbidden', instance('update'));
+    assert.ok(!response.text.includes('private-record-id'));
   });
-
-  it('makes inaccessible and missing immutable artifacts identical 404 responses before conditional handling', async function () {
-    const digest = 'a'.repeat(64);
-    const etag = schemaEtag(digest);
-    const instance = `/default/portal-1/api/records/schemas/${digest}`;
-    const req = validatedRequest(getImmutableRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', digest },
-      query: {},
-      headers: { 'If-None-Match': etag },
-    });
-    const hostileProblem = {
-      type: 'https://internal.example/problems/existence-leak',
-      title: 'Private artifact exists',
-      status: 403 as const,
-      detail: 'private grant, user, role, OID and exception detail',
-      instance: `/brand-1/internal/${digest}`,
-      code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
-    };
-
-    resolver.resolveImmutable.resolves({ kind: 'forbidden', problem: hostileProblem });
-    await controller.immutable(req, responseAdapter());
-    const inaccessible = onlySentResponse(controller).response;
-
-    resetControllerHistory(controller, resolver);
-    resolver.resolveImmutable.resolves({
-      kind: 'not-found',
-      problem: {
-        ...hostileProblem,
-        status: 404,
-        code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
-      },
-    });
-    await controller.immutable(req, responseAdapter());
-    const missing = onlySentResponse(controller).response;
-
-    expect(inaccessible).to.deep.equal(expectedProblemResponse('not-found', instance));
-    expect(missing).to.deep.equal(inaccessible);
-    expect(JSON.stringify(inaccessible.data)).not.to.match(/private|brand-1|user|role|OID|exception/);
-    expect(inaccessible.headers).to.deep.equal({
-      'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
-      Vary: RECORD_SCHEMA_RESPONSE_VARY,
-    });
+  it('makes inaccessible and missing immutable artifacts identical 404 before conditional handling', async function () {
+    let denied: unknown;
+    for (const kind of ['forbidden', 'not-found']) {
+      resolver.resolveImmutable.resolves({
+        kind,
+        problem: {
+          status: 403,
+          detail: 'private grant, user, role, OID and exception detail',
+          instance: '/brand-1/internal',
+          code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
+        },
+      });
+      await request('immutable', { headers: { 'If-None-Match': schemaEtag(digest) } });
+      problem('not-found', instance('immutable'));
+      assert.ok(!/private|brand-1|user|role|OID|exception/.test(response.text));
+      if (denied) assert.deepEqual(response.body, denied);
+      else denied = response.body;
+    }
   });
-
-  it('returns 404 when an immutable create grant is form-visible but current create ACL access is absent', async function () {
+  it('returns 404 for a form-visible immutable grant when current create ACL access is absent', async function () {
     const seed = await immutableControllerSeed();
     const boundary = immutableControllerService(seed, seed.artifact, [seed.grant], true, false);
-    controller.RecordSchemaService = boundary.service;
-    const req = validatedRequest(getImmutableRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', digest: seed.artifact.digest },
-      query: {},
-      headers: {},
-    });
-
-    await controller.immutable(req, responseAdapter());
-
-    expect(onlySentResponse(controller).response).to.deep.equal(
-      expectedProblemResponse('not-found', `/default/portal-1/api/records/schemas/${seed.artifact.digest}`)
-    );
-    expect(boundary.resolveContractContext.calledOnce).to.equal(true);
-    expect(boundary.authorizeCreate.calledOnce).to.equal(true);
+    resolver.resolveImmutable.callsFake(boundary.service.resolveImmutable.bind(boundary.service));
+    await request('immutable', { value: seed.artifact.digest });
+    problem('not-found', instance('immutable', seed.artifact.digest));
+    sinon.assert.calledOnce(boundary.resolveContractContext);
+    sinon.assert.calledOnce(boundary.authorizeCreate);
   });
-
-  it('hides pre-authorization immutable corruption but preserves authorized invalid-contract responses', async function () {
+  it('hides pre-authorization corruption but preserves authorized invalid-contract responses', async function () {
     const seed = await immutableControllerSeed();
-    const digest = seed.artifact.digest;
-    const instance = `/default/portal-1/api/records/schemas/${digest}`;
-    const req = validatedRequest(getImmutableRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', digest },
-      query: {},
-      headers: {},
-    });
-    const corruptedArtifactBeforeAuthorization = { digest: 'b'.repeat(64) };
-    const corruptedGrantBeforeAuthorization = { kind: 'grant', digest };
-    const corruptedArtifactAfterAuthorization: RecordSchemaArtifactModel = {
-      ...seed.artifact,
-      document: {
-        ...seed.artifact.document,
-        title: 'Tampered after persistence',
-      },
-    };
+    const selectedDigest = seed.artifact.digest;
     const cases = [
+      { artifact: null, grants: [], equivalent: false },
+      { artifact: { digest: 'b'.repeat(64) }, grants: [seed.grant], equivalent: false },
+      { artifact: seed.artifact, grants: [{ kind: 'grant', digest: selectedDigest }], equivalent: false },
       {
-        name: 'missing',
-        artifact: null,
-        grants: [],
-        equivalentAuthorization: false,
-      },
-      {
-        name: 'inaccessible corrupt artifact',
-        artifact: corruptedArtifactBeforeAuthorization,
+        artifact: { ...seed.artifact, document: { ...seed.artifact.document, title: 'Tampered after persistence' } },
         grants: [seed.grant],
-        equivalentAuthorization: false,
+        equivalent: true,
       },
-      {
-        name: 'inaccessible corrupt grant',
-        artifact: seed.artifact,
-        grants: [corruptedGrantBeforeAuthorization],
-        equivalentAuthorization: false,
-      },
-      {
-        name: 'authorized invalid contract',
-        artifact: corruptedArtifactAfterAuthorization,
-        grants: [seed.grant],
-        equivalentAuthorization: true,
-      },
-    ] as const;
-    const responses = new Map<string, BuildResponseType>();
-
-    for (const testCase of cases) {
-      controller.resetSentResponses();
-      const boundary = immutableControllerService(
-        seed,
-        testCase.artifact,
-        testCase.grants,
-        testCase.equivalentAuthorization
-      );
-      controller.RecordSchemaService = boundary.service;
-
-      await controller.immutable(req, responseAdapter());
-
-      responses.set(testCase.name, onlySentResponse(controller).response);
-      if (!testCase.equivalentAuthorization) {
-        expect(boundary.resolveContractContext.notCalled, testCase.name).to.equal(true);
-      } else {
-        expect(boundary.resolveContractContext.calledOnce, testCase.name).to.equal(true);
-      }
+    ];
+    let missing: unknown;
+    for (const c of cases) {
+      const boundary = immutableControllerService(seed, c.artifact, c.grants, c.equivalent);
+      resolver.resolveImmutable.callsFake(boundary.service.resolveImmutable.bind(boundary.service));
+      await request('immutable', { value: selectedDigest });
+      problem(c.equivalent ? 'invalid-contract' : 'not-found', instance('immutable', selectedDigest));
+      if (!c.equivalent) {
+        if (missing) assert.deepEqual(response.body, missing);
+        else missing = response.body;
+        sinon.assert.notCalled(boundary.resolveContractContext);
+      } else sinon.assert.calledOnce(boundary.resolveContractContext);
     }
-
-    const missing = responses.get('missing');
-    expect(missing).to.deep.equal(expectedProblemResponse('not-found', instance));
-    expect(responses.get('inaccessible corrupt artifact')).to.deep.equal(missing);
-    expect(responses.get('inaccessible corrupt grant')).to.deep.equal(missing);
-    expect(responses.get('authorized invalid contract')).to.deep.equal(
-      expectedProblemResponse('invalid-contract', instance)
-    );
   });
-
   it('gives immutable result kinds precedence over conflicting embedded Problem Details statuses', async function () {
-    const digest = 'b'.repeat(64);
-    const instance = `/default/portal-1/api/records/schemas/${digest}`;
-    const req = validatedRequest(getImmutableRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', digest },
-      query: {},
-      headers: {},
-    });
     resolver.resolveImmutable.resolves({
       kind: 'unavailable',
       problem: {
@@ -1329,139 +666,77 @@ describe('Webservice RecordSchemaController', function () {
         code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
       },
     });
-
-    await controller.immutable(req, responseAdapter());
-
-    const response = onlySentResponse(controller).response;
-    expect(response).to.deep.equal(
-      expectedProblemResponse('unavailable', instance, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE)
-    );
-    expect(JSON.stringify(response)).not.to.match(/internal|Wrong|exception|brand-1/);
+    await request('immutable');
+    problem('unavailable', instance('immutable'), RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+    assert.ok(!/internal|Wrong|exception|brand-1/.test(response.text));
   });
-
-  it('does not delegate when validated request context is missing', async function () {
-    const req = requestAdapter();
-    req.user = defaultRequestUser;
-    const res = responseAdapter();
-
-    await controller.create(req, res);
-
-    expect(resolver.resolveCreate.notCalled).to.equal(true);
-    const sent = onlySentResponse(controller);
-    expect(sent.response).to.include({ status: 503, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
-    expect(sent.response).not.to.have.property('errors');
-    expect(JSON.stringify(sent.response)).not.to.include('Validated request string is required');
+  it('refuses missing route context before delegation', async function () {
+    const r = await f.request('/schema');
+    assert.equal(r.status, 404);
+    sinon.assert.notCalled(resolver.resolveCreate);
   });
-
-  it('returns truthful 401 Problem Details for a missing authenticated user before every delegation', async function () {
-    for (const testCase of controllerActionCases(controller, resolver, {})) {
-      resetControllerHistory(controller, resolver);
-      const res = responseAdapter();
-
-      await testCase.run(testCase.request, res);
-
-      expect(testCase.resolver.notCalled).to.equal(true);
-      const sent = onlySentResponse(controller);
-      expect(sent.response).to.include({
-        format: 'raw-json',
-        mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
-        status: 401,
-      });
-      expect(sent.response.data).to.deep.include({
-        type: 'https://redboxresearchdata.com/problems/record-schema-authentication-required',
-        title: 'Authentication is required',
-        status: 401,
-        code: RECORD_SCHEMA_PROBLEM_CODES.AUTHENTICATION_REQUIRED,
-      });
-      expect(sent.response).not.to.have.property('errors');
+  it('returns truthful 401 Problem Details for absent authentication before every delegation', async function () {
+    f.authenticate.resolves(undefined);
+    for (const [action, method] of [
+      ['create', 'resolveCreate'],
+      ['update', 'resolveUpdate'],
+      ['immutable', 'resolveImmutable'],
+    ]) {
+      await request(action);
+      problem('authentication-required', instance(action));
+      sinon.assert.notCalled(resolver[method]);
     }
   });
-
-  it('rejects partial and malformed authenticated users consistently before every delegation', async function () {
-    const malformedUsers: globalThis.Record<string, unknown>[] = [
+  it('refuses partial or malformed client actor hints without authoritative authentication', async function () {
+    f.authenticate.resolves(undefined);
+    for (const user of [
       { id: 'user-1', username: 'alice', roles: [] },
       { ...defaultRequestUser, username: ' ' },
       { ...defaultRequestUser, roles: [{ id: 'role-1', name: 42 }] },
-    ];
-
-    for (const user of malformedUsers) {
-      for (const testCase of controllerActionCases(controller, resolver, { user })) {
-        resetControllerHistory(controller, resolver);
-        const res = responseAdapter();
-
-        await testCase.run(testCase.request, res);
-
-        expect(testCase.resolver.notCalled).to.equal(true);
-        const sent = onlySentResponse(controller);
-        expect(sent.response).to.include({ status: 401, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
-        expect(sent.response).not.to.have.property('errors');
-        expect(JSON.stringify(sent.response)).not.to.include('private-token');
+    ]) {
+      for (const [action, method] of [
+        ['create', 'resolveCreate'],
+        ['update', 'resolveUpdate'],
+        ['immutable', 'resolveImmutable'],
+      ]) {
+        await request(action, { headers: { 'X-User': JSON.stringify(user) } });
+        problem('authentication-required', instance(action));
+        sinon.assert.notCalled(resolver[method]);
+        assert.ok(!response.text.includes('private-token'));
       }
     }
   });
-
-  it('logs only the allowlisted event, controller context, and error type for Error and non-Error failures', async function () {
-    const privateFailureDetails = {
+  it('keeps Error and non-Error failures out of diagnostics and public responses', async function () {
+    const privateDetails = {
       oid: 'oid-1',
       token: 'private-token',
       record: { title: 'private-record-value' },
       ajvErrors: [{ keyword: 'required', instancePath: '/private-field' }],
       validatorDetails: { validator: 'private-validator', schemaPath: '#/private-schema' },
     };
-    const failures = [
-      {
-        value: Object.assign(new Error('private resolver failure for oid-1 with private-token'), privateFailureDetails),
-        errorType: 'error',
-      },
-      {
-        value: {
-          message: 'private non-error resolver failure for oid-1 with private-token',
-          ...privateFailureDetails,
-        },
-        errorType: 'non-error',
-      },
-    ] as const;
-    const privateFailureContent =
-      /private resolver|private non-error|oid-1|private-token|private-record-value|required|private-field|private-validator|private-schema/;
-
-    for (const failure of failures) {
-      for (const testCase of controllerActionCases(controller, resolver)) {
-        controller.resetSentResponses();
-        logError.resetHistory();
-        testCase.resolver.rejects(failure.value);
-        const res = responseAdapter();
-
-        await testCase.run(testCase.request, res);
-
-        const response = onlySentResponse(controller).response;
-        expect(response).to.include({ status: 503, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
-        expect(response).not.to.have.property('errors');
-        expect(response.data).to.deep.include({
-          title: 'Record schema is unavailable',
-          status: 503,
-          detail: 'The record schema capability is temporarily unavailable.',
-          code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+    for (const failure of [
+      Object.assign(new Error('private resolver failure'), privateDetails),
+      { message: 'private non-error', ...privateDetails },
+    ]) {
+      for (const [action, method] of [
+        ['create', 'resolveCreate'],
+        ['update', 'resolveUpdate'],
+        ['immutable', 'resolveImmutable'],
+      ]) {
+        resolver[method].callsFake(async () => {
+          throw failure;
         });
-        expect(JSON.stringify(response)).not.to.match(privateFailureContent);
-        expect(
-          logError.calledOnceWithExactly('record_schema_unexpected_failure', {
-            event: 'record_schema_unexpected_failure',
-            context: testCase.unexpectedFailureContext,
-            error_type: failure.errorType,
-          })
-        ).to.equal(true);
-        expect(JSON.stringify(logError.firstCall.args)).not.to.match(privateFailureContent);
+        f.log.error.resetHistory();
+        await request(action);
+        problem('unavailable', instance(action));
+        assert.ok(!/private|oid-1/.test(response.text));
+        assert.ok(!/private|oid-1/.test(JSON.stringify(f.log.error.args)));
       }
     }
   });
-
-  it('contains no compiler, storage, or direct response implementation', function () {
-    const source = readFileSync(
-      resolve(__dirname, '../../../src/controllers/webservice/RecordSchemaController.ts'),
-      'utf8'
-    );
-
-    expect(source).not.to.match(/RecordContractCompiler|compileRecord|StorageService|RedboxJavaStorageService/);
-    expect(source).not.to.match(/\bres\s*\.\s*json\s*\(/);
+  it('keeps compiler and storage implementations outside the HTTP owner', function () {
+    const source = readFileSync(resolve(__dirname, '../../../src/http/express/recordSchemaReads.ts'), 'utf8');
+    assert.ok(!/RecordContractCompiler|compileRecord|StorageService|RedboxJavaStorageService/.test(source));
+    assert.ok(!source.includes('compat/'));
   });
 });
