@@ -1,0 +1,28 @@
+import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+import { Example, type ExampleInput } from './Example';
+import { createExampleHandler } from './handler';
+import { exampleConfig } from './config';
+import { bootstrapExample, migrateExample } from './work';
+
+export { Example, type ExampleInput } from './Example';
+export type { ExampleWorkInput } from './work';
+
+export function registerRedboxExtension(): RedboxExtension {
+  return {
+    apiVersion: 1,
+    config: { custom: { {{json hookShortName}}: exampleConfig } },
+    modules: [{ name: 'Example{{hookPascalName}}', create: (input: ExampleInput) => new Example(input) }],
+    handlers: [{ name: 'Status{{hookPascalName}}', requires: ['Example{{hookPascalName}}'], create: createExampleHandler }],
+    routes: [{
+      name: 'Status{{hookPascalName}}',
+      method: 'get',
+      path: '/hooks/{{hookShortName}}/status',
+      handler: 'Status{{hookPascalName}}',
+      access: 'public'
+    }],
+    migrations: [{ name: '20261023-{{hookShortName}}-named-query', requires: ['Example{{hookPascalName}}'], run: migrateExample }],
+    bootstrap: [{ name: '{{hookPascalName}}Dashboard', requires: ['Example{{hookPascalName}}'], run: bootstrapExample }],
+    views: ['views'],
+    assets: ['assets']
+  };
+}

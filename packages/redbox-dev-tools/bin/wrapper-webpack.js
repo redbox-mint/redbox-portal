@@ -1,159 +1,28 @@
-// This file is a helper for dev only. It makes it easier to run webpack when parts of the mono repo are in different stages of being built. Refer to the redbox-core webpack.ts for how the hook runs webpack
-const path = require('path');
-const { createRequire } = require('module');
+#!/usr/bin/env node
+'use strict';
 
-const requireFromHere = createRequire(__filename);
-let redboxCore;
-
-const getRedboxCore = () => {
-  if (redboxCore !== undefined) {
-    return redboxCore;
-  }
-
+async function runWebpack(webpack, options, env = process.env, log = console) {
+  if (env.WEBPACK_SKIP === 'true') return;
+  if (!options || !Array.isArray(options.config) || options.config.length === 0)
+    throw new Error('Webpack requires an explicit nonempty config array');
+  const configs = options.config.map(config => ({
+    ...config,
+    ...(env.WEBPACK_CSS_MINI === 'true' ? { optimization: { ...config.optimization, minimize: true } } : {}),
+  }));
+  const compiler = webpack(configs);
   try {
-    redboxCore = require('@researchdatabox/redbox-core');
-  } catch (e) {
-    redboxCore = null;
-  }
-
-  return redboxCore;
-};
-
-const ensureTsNode = () => {
-  try {
-    require('ts-node/register/transpile-only');
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
-
-let defineWebpackHook;
-if (!defineWebpackHook) {
-  try {
-    const core = getRedboxCore();
-    defineWebpackHook = core && core.defineWebpackHook;
-  } catch (e) {}
-}
-if (!defineWebpackHook && ensureTsNode()) {
-  try {
-    defineWebpackHook = requireFromHere('@researchdatabox/redbox-core/src/hooks/webpack.ts').defineWebpackHook;
-  } catch (e) {}
-}
-if (!defineWebpackHook) {
-  const core = getRedboxCore();
-  defineWebpackHook = core && (core.defineWebpackHook || (core.default && core.default.defineWebpackHook));
-}
-
-// Resolve webpack config: prefer exported `Config.webpack.config`, fall back to repo `config/webpack.js`.
-let webpackConfig = [];
-try {
-  // prefer repo config file
-  const repoWebpack = require(path.resolve(process.cwd(), 'config/webpack'));
-  if (repoWebpack && repoWebpack.webpack) {
-    webpackConfig = repoWebpack.webpack.config ? repoWebpack.webpack.config : repoWebpack.webpack;
-  } else {
-    webpackConfig = repoWebpack && repoWebpack.config ? repoWebpack.config : repoWebpack;
-  }
-} catch (e) {
-  // ignore
-}
-if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
-  try {
-    const core = getRedboxCore();
-    webpackConfig = core && core.Config && core.Config.webpack.config;
-  } catch (e) {}
-}
-if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
-  if (ensureTsNode()) {
-    try {
-      const srcWebpack = requireFromHere('@researchdatabox/redbox-core/src/config/webpack.config.ts');
-      webpackConfig = srcWebpack && srcWebpack.webpack ? srcWebpack.webpack.config : srcWebpack.config || srcWebpack;
-    } catch (e) {}
+    await new Promise((resolve, reject) => compiler.run((error, stats) => {
+      if (error) return reject(error);
+      log.log(stats.toString({ colors: Boolean(process.stdout.isTTY), chunks: false }));
+      if (stats.hasErrors()) reject(new Error('Webpack compilation failed'));
+      else resolve();
+    }));
+  } finally {
+    await new Promise((resolve, reject) => compiler.close(error => error ? reject(error) : resolve()));
   }
 }
-if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
-  try {
-    const core = getRedboxCore();
-    const Config = core && (core.Config || (core.default && core.default.Config));
-    if (Config && Config.webpack && Config.webpack.config) {
-      webpackConfig = Config.webpack.config;
-    }
-  } catch (e) {
-    // ignore
-  }
+module.exports = { runWebpack };
+if (require.main === module) {
+  runWebpack(require('webpack'), require('@researchdatabox/redbox-core').Config.webpack)
+    .catch(error => { console.error(error); process.exitCode = 1; });
 }
-
-sails = {
-  config: {
-    webpack: {
-      config: webpackConfig,
-    },
-  },
-  log: require('@researchdatabox/sails-ng-common').consoleLogger,
-};
-async function main() {
-  if (!defineWebpackHook) {
-    console.warn('defineWebpackHook not available from @researchdatabox/redbox-core; running webpack directly');
-    // Fallback: run webpack directly using resolved config
-    const webpack = require('webpack');
-
-    if (!sails.config.webpack) {
-      sails.log.warn('sails-hook-webpack: No Webpack options have been defined.');
-      return;
-    }
-
-    if (
-      !sails.config.webpack.config ||
-      (Array.isArray(sails.config.webpack.config) && sails.config.webpack.config.length === 0)
-    ) {
-      sails.log.warn('sails-hook-webpack: Configure your config/webpack.js file.');
-      return;
-    }
-
-    if (process.env.NODE_ENV !== 'docker' || process.env.WEBPACK_SKIP === 'true') {
-      sails.log.warn(`sails-hook-webpack: Configured to skip webpack.`);
-      return;
-    }
-
-    if (process.env.WEBPACK_CSS_MINI === 'true') {
-      try {
-        sails.config.webpack.config[0].optimization.minimize = true;
-        sails.log.info(`Webpack wrapper is configured for CSS minimization.`);
-      } catch (e) {}
-    }
-
-    const compiler = webpack(sails.config.webpack.config);
-
-    const logCompileInfo = (err, stats) => {
-      if (err) {
-        sails.log.error('sails-hook-webpack: Build error: \n\n', err);
-      }
-      try {
-        sails.log[stats.hasErrors() ? 'error' : 'info'](
-          `sails-hook-webpack:\n${stats.toString({ colors: true, chunks: true })}`
-        );
-      } catch (e) {}
-    };
-
-    let called = false;
-    const compileCallback = (err, stats) => {
-      logCompileInfo(err, stats);
-      if (called) return;
-      called = true;
-      if (err || (stats && stats.hasErrors && stats.hasErrors())) {
-        console.error(err || stats.toString());
-        throw new Error('sails-hook-webpack failed');
-      }
-      console.log('Webpack wrapper done!');
-    };
-
-    compiler.run(compileCallback);
-    return;
-  }
-  await defineWebpackHook(sails).initialize(() => {
-    console.log('Webpack wrapper done!');
-  });
-}
-
-main();

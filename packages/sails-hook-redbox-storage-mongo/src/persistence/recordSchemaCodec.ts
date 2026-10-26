@@ -2,7 +2,7 @@ import {
   normalizeRedboxCanonicalJsonV1,
   RECORD_CONTRACT_FORMAT_V1,
   RECORD_SCHEMA_PROBLEM_CODES,
-} from '@researchdatabox/redbox-core';
+} from '@researchdatabox/redbox-core/extensions/storage';
 import type {
   ContractJsonObject,
   ContractJsonValue,
@@ -10,7 +10,7 @@ import type {
   RecordSchemaArtifactModel,
   RecordSchemaReferenceInput,
   RecordSchemaReferenceModel,
-} from '@researchdatabox/redbox-core';
+} from '@researchdatabox/redbox-core/extensions/storage';
 import type { Document } from 'mongodb';
 
 import { RECORD_SCHEMA_DIGEST_PATTERN } from './schemaConstants';

@@ -8,36 +8,36 @@ services:
     build:
       context: "../../../.."
       dockerfile: "Dockerfile"
-      target: "runtime_pdfgen"
+      target: "rehearsal"
     ports:
       - "1500:1500"
       - "9876:9876"
     volumes:
       - "../../:/opt/redbox-portal/node_modules/@researchdatabox/sails-hook-redbox-pdfgen"
-      - "../api-integration-testing/recordtype.config.js:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core/dist/config/recordtype.config.js:delegated"
+      - "../api-integration-testing:/pdf-fixtures:ro"
+      - "pdf-attachments:/attachments"
       - "./.tmp/attachments/staging:/attachments/staging"
     expose:
       - "1500"
     environment:
-      - NODE_ENV=docker
-      - NODE_PATH=/opt/redbox-portal/node_modules:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core/node_modules
-      - LOAD_DEFAULT_FORMS=true
+      - NODE_ENV=production
+      - REDBOX_APPLICATION_CONFIG=/pdf-fixtures/deployment.cjs
+      - REDBOX_SESSION_SECRET=pdf-fixture-only-session-secret-at-least-32
+      - REDBOX_PUBLIC_URL=http://localhost:1500
       - PORT=1500
-      - NODE_TLS_REJECT_UNAUTHORIZED=0
-      - sails_appUrl=http://localhost:1500
-      # - sails_angularDev='true'
-      - sails_brandingConfigurationDefaults__auth__local__default__token=6b088b4d-d54c-470c-8568-2f2695fcdab9
-      - sails_brandingConfigurationDefaults__pdfgen__token=6b088b4d-d54c-470c-8568-2f2695fcdab9
     networks:
       main:
         aliases:
           - rbportal
     entrypoint: >-
-      /bin/bash -c "set -x;
+      /bin/bash -c "set -eu;
       cd /opt/redbox-portal &&
-      node --enable-source-maps --inspect=0.0.0.0:9876 app.js;"
+      node app.express.cjs --maintenance=indexes:ensure &&
+      exec node --enable-source-maps --inspect=0.0.0.0:9876 app.express.cjs;"
 
   mongodb:
+    ulimits:
+      nofile: { soft: 64000, hard: 64000 }
     image: mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
     networks:
       main:
@@ -50,7 +50,7 @@ services:
       - ".tmp/mongo:/data/db"
 
   solr:
-    image: solr:8.11.1
+    image: solr:10.0.0@sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b
     networks:
       main:
         aliases:
@@ -65,3 +65,6 @@ services:
       - docker-entrypoint.sh
       - solr-precreate
       - redbox
+
+volumes:
+  pdf-attachments:

@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Handlebars from 'handlebars';
 
-
 export interface HookArchetypeOptions {
   cwd: string;
   packageName: string;
@@ -21,7 +20,6 @@ type HookTemplateContext = {
   hookShortName: string;
   hookPascalName: string;
   description: string;
-  integrationDirName: string;
   redboxCoreVersion: string;
   redboxDevToolsVersion: string;
 };
@@ -46,7 +44,10 @@ function toPascalCase(value: string): string {
 }
 
 function normalizePackageName(value: string): string {
-  const cleaned = value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+  const cleaned = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/g, '-');
   return cleaned.startsWith('redbox-hook-') ? cleaned : `redbox-hook-${cleaned}`;
 }
 
@@ -82,13 +83,7 @@ function renderTemplate(sourcePath: string, context: HookTemplateContext): strin
 
 function toOutputRelativePath(templateRoot: string, filePath: string): string {
   const relativePath = path.relative(templateRoot, filePath);
-  return relativePath.endsWith('.hbs')
-    ? relativePath.slice(0, -4)
-    : relativePath;
-}
-
-function shouldMarkExecutable(relativePath: string): boolean {
-  return relativePath.endsWith('.sh');
+  return relativePath.endsWith('.hbs') ? relativePath.slice(0, -4) : relativePath;
 }
 
 function readPackageJson(packageJsonPath: string): PackageJson {
@@ -96,9 +91,7 @@ function readPackageJson(packageJsonPath: string): PackageJson {
 }
 
 function tryReadPackageJson(packageJsonPath: string): PackageJson | undefined {
-  return fs.existsSync(packageJsonPath)
-    ? readPackageJson(packageJsonPath)
-    : undefined;
+  return fs.existsSync(packageJsonPath) ? readPackageJson(packageJsonPath) : undefined;
 }
 
 function getScopedPackageName(packageName: string): string {
@@ -116,7 +109,12 @@ function readOwnPackageVersion(packageRoot: string): string {
 }
 
 function tryReadInstalledPackageVersion(packageRoot: string, packageName: string): string | undefined {
-  const packageJsonPath = path.join(packageRoot, 'node_modules', ...getScopedPackageName(packageName).split('/'), 'package.json');
+  const packageJsonPath = path.join(
+    packageRoot,
+    'node_modules',
+    ...getScopedPackageName(packageName).split('/'),
+    'package.json'
+  );
   return tryReadPackageJson(packageJsonPath)?.version;
 }
 
@@ -127,13 +125,12 @@ function isReusableDependencySpecifier(versionSpecifier: string): boolean {
 function readDeclaredDependencyVersion(packageRoot: string, packageName: string): string | undefined {
   const packageJson = tryReadPackageJson(path.join(packageRoot, 'package.json'));
   const dependencyName = getScopedPackageName(packageName);
-  const versionSpecifier = packageJson?.dependencies?.[dependencyName]
-    ?? packageJson?.peerDependencies?.[dependencyName]
-    ?? packageJson?.devDependencies?.[dependencyName];
+  const versionSpecifier =
+    packageJson?.dependencies?.[dependencyName] ??
+    packageJson?.peerDependencies?.[dependencyName] ??
+    packageJson?.devDependencies?.[dependencyName];
 
-  return versionSpecifier && isReusableDependencySpecifier(versionSpecifier)
-    ? versionSpecifier
-    : undefined;
+  return versionSpecifier && isReusableDependencySpecifier(versionSpecifier) ? versionSpecifier : undefined;
 }
 
 function readDependencyPackageVersion(packageRoot: string, packageName: string): string {
@@ -169,7 +166,6 @@ function buildTemplateContext(options: HookArchetypeOptions): HookTemplateContex
     hookShortName,
     hookPascalName,
     description: options.description ?? `ReDBox hook for ${hookPascalName}`,
-    integrationDirName: `hook-${hookShortName}`,
     redboxCoreVersion: readDependencyPackageVersion(packageRoot, 'redbox-core'),
     redboxDevToolsVersion: readOwnPackageVersion(packageRoot),
   };
@@ -177,7 +173,9 @@ function buildTemplateContext(options: HookArchetypeOptions): HookTemplateContex
 
 export function generateHookArchetype(options: HookArchetypeOptions): HookArchetypeResult {
   const force = options.force ?? false;
-  const templateName = options.templateName ?? 'standard';
+  const templateName = options.templateName ?? 'v6';
+  if (templateName !== 'v6')
+    throw new Error('The only supported hook template is v6; convert existing v5 hooks before use.');
   const templateRoot = getTemplateRoot(templateName);
 
   if (!fs.existsSync(templateRoot)) {
@@ -201,15 +199,7 @@ export function generateHookArchetype(options: HookArchetypeOptions): HookArchet
 
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
-    if (templateFile.endsWith('.hbs')) {
-      fs.writeFileSync(outputPath, renderTemplate(templateFile, context));
-    } else {
-      fs.copyFileSync(templateFile, outputPath);
-    }
-
-    if (shouldMarkExecutable(relativePath)) {
-      fs.chmodSync(outputPath, 0o755);
-    }
+    fs.writeFileSync(outputPath, renderTemplate(templateFile, context));
 
     created.push(relativePath);
   }

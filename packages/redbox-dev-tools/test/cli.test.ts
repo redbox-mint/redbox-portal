@@ -35,6 +35,61 @@ describe('cli smoke test', function () {
     }
   });
 
+  it('compiles a converted hook through the shared base without a hoisted tsconfig package', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-isolated-config-'));
+    fs.mkdirSync(path.join(tempRoot, 'src'));
+    fs.writeFileSync(path.join(tempRoot, 'src/index.ts'), 'export const supportedMajor: number = 26;\n');
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({name:'redbox-hook-config-proof',type:'commonjs'}));
+    const packageLink = path.join(tempRoot,'node_modules/@researchdatabox/redbox-dev-tools');
+    fs.mkdirSync(path.dirname(packageLink),{recursive:true});
+    fs.symlinkSync(packageRoot,packageLink,'dir');
+    const fixtureRequire = require('node:module').createRequire(path.join(tempRoot,'package.json'));
+    expect(() => fixtureRequire.resolve('@tsconfig/node24/tsconfig.json')).to.throw();
+    const config = {extends:'@tsconfig/node24/tsconfig.json',compilerOptions:{outDir:'dist',types:[]},include:['src/**/*.ts']};
+    const file = path.join(tempRoot,'tsconfig.json');
+    const compile = () => spawnSync(process.execPath,
+      ['--require',tsNodeRegister,path.join(packageRoot,'src/bin/run-hook-tsc.ts'),'-p','tsconfig.json'],
+      {cwd:tempRoot,encoding:'utf8',env:{...process.env,TS_NODE_PROJECT:tsNodeProject,TS_NODE_TRANSPILE_ONLY:'true'}});
+    fs.writeFileSync(file,JSON.stringify(config));
+    const legacy = compile();
+    expect(legacy.status).to.not.equal(0);
+    expect(legacy.stdout+legacy.stderr).to.contain("@tsconfig/node24/tsconfig.json");
+    config.extends = '@researchdatabox/redbox-dev-tools/config/tsconfig.base.json';
+    fs.writeFileSync(file,JSON.stringify(config));
+    const converted = compile();
+    expect(converted.status).to.equal(0,converted.stdout+converted.stderr);
+    expect(fs.existsSync(path.join(tempRoot,'dist/index.js'))).to.equal(true);
+  });
+
+  it('generates the initial v6 extension through the public init command', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-v6-init-'));
+    const result = runCli(['init', 'demo-client', '--template', 'v6'], tempRoot);
+    expect(result.status).to.equal(0, result.stderr);
+    const pkg = JSON.parse(fs.readFileSync(path.join(tempRoot, 'package.json'), 'utf8'));
+    expect(pkg.redbox.extension).to.equal('.');
+    expect(pkg.sails).to.equal(undefined);
+    expect(result.stdout).to.contain('matching v6 core');
+    expect(result.stdout).to.contain('README.md');
+    expect(result.stdout).to.contain('npm run build');
+    const checked = runCli(['check'], tempRoot);
+    expect(checked.status).to.equal(0, checked.stderr);
+    expect(runCli(['migrate-hook-dependencies'], tempRoot).status).to.equal(0);
+    const migrated = JSON.parse(fs.readFileSync(path.join(tempRoot, 'package.json'), 'utf8'));
+    expect(migrated.devDependencies.typescript).to.equal(pkg.devDependencies.typescript);
+    expect(runCli(['check'], tempRoot).status).to.equal(0);
+  });
+
+  it('accepts dotted public extension subpaths in the actual preflight command', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-extension-subpath-'));
+    for (const entry of ['./extension.js', './v6.1/extension']) {
+      fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+        name: 'institution-hook', redbox: { extension: entry }, exports: { [entry]: './dist/extension.js' },
+      }));
+      const result = runCli(['check', '--v6'], tempRoot);
+      expect(result.status).to.equal(0, result.stdout + result.stderr);
+    }
+  });
+
   it('should print help for the full command tree and exit 0', () => {
     const result = runCli(['--help']);
     expect(result.status).to.equal(0, result.stderr);
@@ -88,4 +143,168 @@ describe('cli smoke test', function () {
     expect(result.status).to.equal(0, result.stderr);
     expect(result.stdout).to.contain('Hook dependency contract looks good');
   });
+  it('pins historical ranges when migrating shared hook dependencies', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-pins-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name: 'redbox-hook-demo',
+      peerDependencies: { '@researchdatabox/redbox-core': '*' },
+      devDependencies: { '@researchdatabox/redbox-core': '^4.5.1', '@researchdatabox/redbox-dev-tools': '~4.5.1' },
+    }));
+    const result = runCli(['migrate-hook-dependencies'], tempRoot);
+    expect(result.status).to.equal(0, result.stderr);
+    const migrated = JSON.parse(fs.readFileSync(path.join(tempRoot, 'package.json'), 'utf8'));
+    expect(migrated.peerDependencies['@researchdatabox/redbox-core']).to.equal(require('@researchdatabox/redbox-core/package.json').version);
+    expect(migrated.devDependencies['@researchdatabox/redbox-core']).to.equal(require('@researchdatabox/redbox-core/package.json').version);
+    expect(migrated.devDependencies['@researchdatabox/redbox-dev-tools']).to.equal(require('../package.json').version);
+    expect(runCli(['check'], tempRoot).status).to.equal(0);
+  });
+
+  it('rejects nonexact custom dependency versions in the hook check', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-range-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name: 'redbox-hook-demo', dependencies: { 'example-hook-dependency': '^1.2.3' },
+    }));
+    const result = runCli(['check'], tempRoot);
+    expect(result.status).to.equal(1);
+    expect(result.stderr).to.contain('exact version required');
+  });
+
+  it('refuses a dependency-clean legacy hook when checking a v6 conversion', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-metadata-'));
+    const file = path.join(tempRoot, 'package.json');
+    const pkg: any = { name: 'redbox-hook-institution', sails: { isHook: true, hasServices: true } };
+    fs.writeFileSync(file, JSON.stringify(pkg));
+    expect(runCli(['check'], tempRoot).status).to.equal(0);
+    let result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(1);
+    expect(result.stderr).to.contain('sails: remove legacy hook discovery metadata');
+    expect(result.stderr).to.contain('redbox.extension');
+    delete pkg.sails;
+    pkg.redbox = { extension: './extension' };
+    fs.writeFileSync(file, JSON.stringify(pkg));
+    result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(1);
+    expect(result.stderr).to.contain('exports: expose');
+    pkg.exports = { './extension': { default: './dist/index.js' } };
+    fs.writeFileSync(file, JSON.stringify(pkg));
+    expect(runCli(['check', '--v6'], tempRoot).status).to.equal(0);
+    pkg.sails = { isHook: true };
+    fs.writeFileSync(file, JSON.stringify(pkg));
+    expect(runCli(['check'], tempRoot).status).to.equal(1);
+  });
+
+  it('checks runtime export targets, including Node root export shorthand', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-exports-'));
+    fs.mkdirSync(path.join(tempRoot, 'dist'));
+    for (const file of ['index.js', 'index.cjs'])
+      fs.writeFileSync(path.join(tempRoot, 'dist', file), 'exports.registerRedboxExtension = () => ({apiVersion: 1});');
+    fs.writeFileSync(path.join(tempRoot, 'dist/index.mjs'), 'export const registerRedboxExtension = () => ({apiVersion: 1});');
+    fs.writeFileSync(path.join(tempRoot, 'dist/index.d.ts'), 'export declare function registerRedboxExtension(): unknown;');
+    const cases: Array<[unknown, boolean, string?]> = [
+      [{'.': null}, false],
+      [{'.': {types: './dist/index.d.ts'}}, false],
+      [{'.': './dist/index.d.ts'}, false],
+      [{'.': '../outside.js'}, false],
+      [{'.': {default: null, node: './dist/index.js'}}, false],
+      [{'.': {node: null, default: './dist/index.js'}}, false],
+      [{'.': ['./dist/index.d.ts', './dist/index.js']}, false],
+      [{'.': './dist/index.js', default: './dist/index.js'}, false],
+      ['./dist/index.js', true],
+      [{'.': {custom: null, default: './dist/index.js'}}, true],
+      [{'.': [null, '../outside.js', './dist/index.js']}, true],
+      [{node: {require: './dist/index.cjs'}, types: './dist/index.d.ts'}, false],
+      [{node: {import: './dist/index.cjs'}, types: './dist/index.d.ts'}, true],
+      [{'.': {import: './dist/index.mjs', require: './dist/index.cjs'}}, true],
+      [{'.': {node: {require: './dist/index.cjs'}, default: './dist/index.js'}}, true],
+      [{'.': {node: {custom: null}, import: './dist/index.js'}}, true],
+      [{'.': {node: {import: null}, default: './dist/index.js'}}, false],
+      [{'.': {node: [{require: './dist/index.cjs'}], default: './dist/index.js'}}, true],
+      [{'.': {node: [], default: './dist/index.js'}}, false],
+      [{'.': {node: [{require: './dist/index.cjs'}, null], default: './dist/index.js'}}, false],
+      [{'.': {node: ['../outside.js'], default: './dist/index.js'}}, false],
+      [{'.': {node: {'0': './dist/index.js'}, default: './dist/index.js'}}, false],
+      [{'.': {'module-sync': './dist/index.js'}}, true],
+      [{'.': {'node-addons': './dist/index.js'}}, true],
+      [{'.': {'module-sync': './dist/index.d.ts', default: './dist/index.js'}}, false],
+      [{'.': {'node-addons': './dist/index.d.ts', default: './dist/index.js'}}, false],
+      [{'.': './dist/index.js?separator=%2f'}, true],
+      [{'./*': './dist/*.js'}, true, './index'],
+      [{'./*': ['./dist/*.js', './dist/index.js']}, false, './node_modules/index'],
+      [{'./*': './dist/index.js'}, true, './index/'],
+      [{'./*': './dist/*.js', './index': null}, false, './index'],
+      [{'./*': './missing.js', './in*': './dist/in*.js'}, true, './index'],
+      [{'./*': './dist/index.d.ts', './*dex': './dist/index.js'}, true, './index'],
+      [{'./in*': './dist/index.d.ts', './i*ex': './dist/index.js'}, false, './index'],
+      [{'.': './dist/./index.js'}, false],
+      [{'.': './dist/%2e%2e/index.js'}, false],
+      [{'.': './dist/%6eode_modules/index.js'}, false],
+      [{'.': './dist%2findex.js'}, false],
+      [{'.': ['./dist%2findex.js', './dist/index.js']}, false],
+      [{'.': ['./dist/%zz.js', './dist/index.js']}, false],
+      [{'.': './dist/index.d.ts?source=hook'}, false],
+    ];
+    for (const [exports, accepted, entry = '.'] of cases) {
+      fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+        name: 'redbox-hook-exports', redbox: {extension: entry}, exports,
+      }));
+      const result = runCli(['check', '--v6'], tempRoot);
+      expect(result.status).to.equal(accepted ? 0 : 1, JSON.stringify(exports) + result.stderr);
+      const loaded = spawnSync(process.execPath, ['-e',
+        `import(${JSON.stringify('redbox-hook-exports' + entry.slice(1))}).then(m => {if (typeof m.registerRedboxExtension !== 'function') process.exit(2)}).catch(() => process.exit(1))`],
+        {cwd:tempRoot, encoding:'utf8'});
+      expect(loaded.status === 0).to.equal(accepted, JSON.stringify(exports) + loaded.stderr);
+    }
+  }).timeout(360000);
+
+  it('rejects retired globals and the old functions include in hook EJS before runtime', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-views-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name: 'redbox-hook-views', redbox: {extension: '.'}, exports: {'.': './dist/index.js'},
+    }));
+    const views = path.join(tempRoot, 'views/default/default');
+    fs.mkdirSync(views, {recursive: true});
+    fs.writeFileSync(path.join(views, 'homepage.ejs'), '<h1>Home</h1>\n<%= TranslationService.t("welcome") %>\n<%= BrandingService.getBrandAndPortalPath(req) %>');
+    fs.writeFileSync(path.join(views, 'login.ejs'), '<% include("../../../functions") %>');
+    fs.writeFileSync(path.join(views, 'edit.ejs'), '<%= CacheService.getNgAppFileHash("form", "main") %>');
+    fs.writeFileSync(path.join(views, 'legacy.ejs'), '<%= sails.config.appUrl %>');
+    const result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(1, result.stdout + result.stderr);
+    for (const expected of ['homepage.ejs:2', 'TranslationService', 'BrandingService', 'login.ejs:1', 'functions', 'CacheService', 'sails'])
+      expect(result.stderr).to.contain(expected);
+    // Neutral metadata also enables the conversion checks without the flag.
+    expect(runCli(['check'], tempRoot).status).to.equal(1);
+  });
+
+  it('allows current page locals, installed partials and inert mentions of retired APIs', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-current-views-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name: 'redbox-hook-views', redbox: {extension: '.'}, exports: {'.': './dist/index.js'},
+    }));
+    const views = path.join(tempRoot, 'views/default/default');
+    fs.mkdirSync(views, {recursive: true});
+    fs.writeFileSync(path.join(views, 'homepage.ejs'), [
+      'TranslationService is retired. <script>const BrandingService = "browser only";</script>',
+      '<%# TranslationService.t("comment"); include("../../../functions"); %>',
+      '<%%= TranslationService.t("escaped EJS") %>',
+      '<% const label = "TranslationService.t"; /* BrandingService.getRootContext() */ %>',
+      '<%= page.t("welcome") %><a href="<%= page.base %>">Home</a>',
+      '<%- include("layout/menu.ejs") %><%- superPartial("/layout/logo.ejs") %>',
+    ].join('\n'));
+    const result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(0, result.stderr);
+  });
+
+  it('rejects retired framework dependencies even with a neutral manifest and runtime export', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-framework-deps-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name:'redbox-hook-framework', redbox:{extension:'.'}, exports:{'.':'./dist/index.js'},
+      dependencies:{'sails':'1.5.17'}, optionalDependencies:{'@other/sails-hook-example':'1.0.0'},
+      peerDependencies:{'waterline':'0.15.2'},
+    }));
+    const result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(1, result.stdout+result.stderr);
+    for (const entry of ['dependencies.sails', 'optionalDependencies.@other/sails-hook-example', 'peerDependencies.waterline'])
+      expect(result.stderr).to.contain(entry);
+  });
+
 });

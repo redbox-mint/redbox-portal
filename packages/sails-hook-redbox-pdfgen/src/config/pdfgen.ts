@@ -1,16 +1,16 @@
 /**
  * PdfGen Config Interface
- * (sails.config.pdfgen)
+ * (configuration.pdfgen)
  *
  * Configuration for PDF generation via Puppeteer.
  */
 export type PdfgenReadinessStrategy = 'networkIdle' | 'selector' | 'jsFlag' | 'networkIdle+selector';
 
 export interface PdfgenPDFMargin {
-  top?: string;
-  bottom?: string;
-  left?: string;
-  right?: string;
+  top?: string | number;
+  bottom?: string | number;
+  left?: string | number;
+  right?: string | number;
 }
 
 export interface PdfgenPDFOptions {
@@ -21,9 +21,9 @@ export interface PdfgenPDFOptions {
   printBackground?: boolean;
   landscape?: boolean;
   pageRanges?: string;
-  format?: 'Letter' | 'Legal' | 'Tabloid' | 'Ledger' | 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6';
-  width?: string;
-  height?: string;
+  format?: import('puppeteer').PaperFormat;
+  width?: string | number;
+  height?: string | number;
   preferCSSPageSize?: boolean;
   margin?: PdfgenPDFMargin;
   omitBackground?: boolean;

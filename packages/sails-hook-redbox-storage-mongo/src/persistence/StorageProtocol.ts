@@ -1,4 +1,5 @@
-import { prismaModelRow } from '@researchdatabox/redbox-core';
+import { metTriggerCondition } from '@researchdatabox/redbox-core/extensions/storage';
+import { prismaModelRow } from '@researchdatabox/redbox-core/extensions/storage';
 import type { RecordDocuments } from './RecordDocuments';
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
@@ -19,14 +20,14 @@ import type {
   SortDirection,
 } from 'mongodb';
 import stream = require('node:stream');
-import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
 import {
   PersistenceError,
   registerPersistenceResource,
+  persistenceReady,
+  drainAcceptedPersistenceWork,
   writeGridFSStream,
   ownGridFSDownload,
-  Services as services,
   StorageManagerService as StorageManagerServiceTypes,
   DatastreamService,
   StorageService,
@@ -60,10 +61,12 @@ import {
   isRecordRevision,
   nextRecordRevision,
   normalizeAttachmentStagingFileId,
+  TusStorageManagerDataStore,
+  type DatastreamRequestContext,
   type RecordStorageMutationOptions,
   type StorageMutationNonApplicationReason,
   type StorageServiceCapabilities,
-} from '@researchdatabox/redbox-core';
+} from '@researchdatabox/redbox-core/extensions/storage';
 import type {
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
@@ -73,9 +76,9 @@ import type {
   RecordSchemaReferenceInput,
   RecordSchemaReferenceModel,
   RecordSchemaReferenceQuery,
-} from '@researchdatabox/redbox-core';
-import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
-import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
+} from '@researchdatabox/redbox-core/extensions/storage';
+import { ExportJSONTransformer } from '@researchdatabox/redbox-core/extensions/storage';
+import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core/extensions/storage';
 import { RECORD_SCHEMA_REFERENCE_KEY_PATTERN } from './schemaConstants';
 import {
   RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX,
@@ -120,8 +123,9 @@ function sanitizeCsvRecord(record: Record<string, unknown>): Record<string, unkn
   return sanitized;
 }
 
-declare const sails: Sails.Application;
-declare const _: typeof import('lodash');
+import * as _ from 'lodash';
+import type { PersistenceOwner } from '@researchdatabox/redbox-core/extensions/storage';
+import type { StorageCollaborators } from '../collaborators';
 type JsonMap = Record<string, unknown>;
 type StorageRecord = RecordModel;
 type MongoRecordDocument = Document;
@@ -289,12 +293,11 @@ import {
   persistenceStringTimestamps,
   requirePersistenceIndex,
   prismaRecordSnapshot,
-} from '@researchdatabox/redbox-core';
-import type { StoragePrismaClient } from '@researchdatabox/redbox-core';
+} from '@researchdatabox/redbox-core/extensions/storage';
+import type { StoragePrismaClient } from '@researchdatabox/redbox-core/extensions/storage';
 import { prismaSchemaDocuments } from './PrismaSchemaDocuments';
 import { prismaRecordDocuments } from './PrismaRecordDocuments';
 import { inspectPrismaStagedStorage } from './preflight';
-import { storageOperations } from './StoragePersistence';
 function auditDocument(collection: 'recordaudit' | 'integrationaudit', payload: object): Document {
   const fields = storageAuditFields(collection);
   const input: Document = { ...payload };
@@ -341,7 +344,7 @@ const derived = (intent: Document, saves: Document[]): Document => ({
   pending: saves.length > 0,
 });
 
-export class PrismaStorage extends services.Core.Service implements StorageService, DatastreamService {
+export class PrismaStorage implements StorageService, DatastreamService {
   gridFsBucket!: mongodb.GridFSBucket;
 
   recordCol!: RecordDocuments;
@@ -352,7 +355,8 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
 
   protected _requiredIndicesReady = false;
 
-  private readonly binaryApp: Sails.Application;
+  private readonly binaryApp: PersistenceOwner;
+  protected logHeader = 'MongoStorageService::';
 
   private binaryRegistered = false;
 
@@ -362,9 +366,13 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
 
   protected async prepareGridFs(): Promise<void> {
     if (!this.binaryRegistered) {
-      registerPersistenceResource(this.binaryApp ?? sails, 'storage-gridfs', {
+      registerPersistenceResource(this.binaryApp, 'storage-gridfs', {
+        quiesce: () => {
+          this.binaryClosing = true;
+        },
         drain: async () => {
           this.binaryClosing = true;
+          await drainAcceptedPersistenceWork(this.binaryApp);
           while (this.binaryActive.size) await Promise.allSettled(this.binaryActive);
         },
         close: async () => {
@@ -382,7 +390,8 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
   }
 
   private binaryOperation<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.binaryClosing) return Promise.reject(new Error('Storage byte owner is draining.'));
+    if (this.binaryClosing && !persistenceReady(this.binaryApp))
+      return Promise.reject(new Error('Storage byte owner is draining.'));
     return this.trackBinary(Promise.resolve().then(operation));
   }
 
@@ -395,12 +404,11 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     return pending;
   }
 
-  protected _exportedMethods: string[] = [...storageOperations];
-
-  constructor(app?: Sails.Application) {
-    super();
-    this.binaryApp = app ?? sails;
-    this.logHeader = 'MongoStorageService::';
+  constructor(
+    app: PersistenceOwner,
+    private readonly collaborators: StorageCollaborators
+  ) {
+    this.binaryApp = app;
   }
 
   private getUuid(): string {
@@ -467,7 +475,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       typeof requireRevision !== 'boolean' ||
       (expectedRevision === undefined ? requireRevision : !isRecordRevision(expectedRevision))
     ) {
-      sails.log.error(
+      this.collaborators.log.error(
         `${this.logHeader} refusing a mutation for oid ${response.oid}: the supplied revision precondition is invalid`
       );
       this.notApplied(response, 'capability-unavailable', 'A valid record revision is required');
@@ -592,7 +600,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       if (!current || current.active || current.tombstone) return;
       await identities.deleteOne({ redboxOid: oid, incarnationId });
     } catch {
-      sails.log.error(`${this.logHeader} record_identity_reservation_release_failed`, {
+      this.collaborators.log.error(`${this.logHeader} record_identity_reservation_release_failed`, {
         event: 'record_identity_reservation_release_failed',
         outcome: 'unknown',
       });
@@ -771,7 +779,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     response.message = message;
     response.details = { code };
     const errorType = error instanceof Error ? error.name : typeof error;
-    sails.log.error(`${this.logHeader} ${action} failed (${code}; ${errorType})`);
+    this.collaborators.log.error(`${this.logHeader} ${action} failed (${code}; ${errorType})`);
     return response;
   }
 
@@ -792,7 +800,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       throw error;
     }
     const errorType = error instanceof Error ? error.name : typeof error;
-    sails.log.error(`${this.logHeader} ${action} failed (${errorType})`);
+    this.collaborators.log.error(`${this.logHeader} ${action} failed (${errorType})`);
     throw new RecordSchemaPersistenceError(
       RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
       'Record schema storage read failed.'
@@ -883,7 +891,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       return document ? artifactModelFromDocument(document) : null;
     } catch (error) {
       const errorType = error instanceof Error ? error.name : typeof error;
-      sails.log.error(`${this.logHeader} getRecordSchemaArtifact failed (${errorType})`);
+      this.collaborators.log.error(`${this.logHeader} getRecordSchemaArtifact failed (${errorType})`);
       throw new RecordSchemaPersistenceError(
         RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
         'Record schema artifact read failed.'
@@ -1212,7 +1220,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     _user?: unknown,
     options?: RecordStorageMutationOptions
   ): Promise<StorageMutationResponse> {
-    sails.log.verbose(`${this.logHeader} create() -> Begin`);
+    this.collaborators.log.verbose(`${this.logHeader} create() -> Begin`);
     // RecordsService may pre-assign the OID so attachment journal rows can
     // be prepared before the primary metadata commit. Preserve it when
     // supplied, while retaining the historical generated-OID behavior.
@@ -1271,16 +1279,16 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     serverRecord.lastSaveDate = now;
 
     try {
-      sails.log.verbose(`${this.logHeader} Saving to DB...`);
+      this.collaborators.log.verbose(`${this.logHeader} Saving to DB...`);
       await records.insertOne(serverRecord);
       this.committed(response, serverRecord, 'updated');
-      sails.log.verbose(`${this.logHeader} Record created...`);
+      this.collaborators.log.verbose(`${this.logHeader} Record created...`);
     } catch (err) {
       if (this.isDuplicateKeyError(err)) {
         // Another writer owns this OID's state, so its ledger row is correct.
         return this.notApplied(response, 'lifecycle-conflict', 'The record OID already exists');
       }
-      sails.log.error(`${this.logHeader} record_create_outcome_unknown`, {
+      this.collaborators.log.error(`${this.logHeader} record_create_outcome_unknown`, {
         event: 'record_create_outcome_unknown',
         error_type: err instanceof Error ? err.name : 'unknown',
       });
@@ -1301,7 +1309,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       this.unknownMutation(response, 'Record creation could not be confirmed');
       return response;
     }
-    sails.log.verbose(`${this.logHeader} create() -> End`);
+    this.collaborators.log.verbose(`${this.logHeader} create() -> End`);
     return response;
   }
 
@@ -1347,7 +1355,9 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     }
 
     if (this.unsafeCandidateField(candidate) !== undefined) {
-      sails.log.error(`${this.logHeader} refusing an update for oid ${oid}: unsupported candidate field name`);
+      this.collaborators.log.error(
+        `${this.logHeader} refusing an update for oid ${oid}: unsupported candidate field name`
+      );
       return this.notApplied(response, 'capability-unavailable', 'Record candidate contains an unsupported field');
     }
 
@@ -1367,17 +1377,8 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       dispatch: () => this.commitRecordSave(collection, selector, candidate, options),
       classify: () => this.classifyActiveNoMatch(brand, oid, expectedRevision),
       expectedRevision,
-      onDispatchError: err => {
-        sails.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}: ${this.getErrorMessage(err)}`);
-        sails.log.error(
-          `${this.logHeader} Failed to save update to MongoDB: ${JSON.stringify({
-            error: err,
-            response,
-            brand,
-            oid,
-            user,
-          })}`
-        );
+      onDispatchError: _err => {
+        this.collaborators.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}.`);
       },
     });
     if (options?.expectedVersion != null && result.applicationState === 'not-applied') throw new RecordWriteConflict();
@@ -1408,10 +1409,9 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     }
     try {
       return this.notApplied(response, await classify());
-    } catch (err) {
-      sails.log.error(
-        `${this.logHeader} could not classify a certified no-match for oid ${response.oid}: ` +
-          this.getErrorMessage(err)
+    } catch (_err) {
+      this.collaborators.log.error(
+        `${this.logHeader} could not classify a certified no-match for oid ${response.oid}.`
       );
       return this.notApplied(response, 'capability-unavailable');
     }
@@ -1577,7 +1577,9 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     for (const field of ['_id', 'id', 'redboxOid', 'revision', 'incarnationId', 'dateDeleted'])
       _.unset(candidate, field);
     if (this.unsafeCandidateField(candidate) !== undefined) {
-      sails.log.error(`${this.logHeader} refusing a tombstone update for oid ${oid}: unsupported candidate field`);
+      this.collaborators.log.error(
+        `${this.logHeader} refusing a tombstone update for oid ${oid}: unsupported candidate field`
+      );
       return this.notApplied(response, 'capability-unavailable', 'Tombstone candidate contains an unsupported field');
     }
     if (!isDeletedRecordLifecycleState(candidate.lifecycleState)) {
@@ -1919,20 +1921,20 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
         }
         if (rowResponse.applicationState === 'not-applied') {
           notAppliedCount += 1;
-          sails.log.error(`${this.logHeader} createBatch row was not applied`, {
+          this.collaborators.log.error(`${this.logHeader} createBatch row was not applied`, {
             event: 'record_batch_create_row_not_applied',
             row_index: rowIndex,
           });
           continue;
         }
         unknownCount += 1;
-        sails.log.error(`${this.logHeader} createBatch row outcome is unknown`, {
+        this.collaborators.log.error(`${this.logHeader} createBatch row outcome is unknown`, {
           event: 'record_batch_create_row_unknown',
           row_index: rowIndex,
         });
       } catch {
         unknownCount += 1;
-        sails.log.error(`${this.logHeader} createBatch row outcome is unknown`, {
+        this.collaborators.log.error(`${this.logHeader} createBatch row outcome is unknown`, {
           event: 'record_batch_create_row_unknown',
           row_index: rowIndex,
         });
@@ -2017,10 +2019,10 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       return mappingContext;
     }
 
-    const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRecordTypeName));
+    const recordType = await firstValueFrom(this.collaborators.recordTypes.get(brand, currentRecordTypeName));
     const relatedTo = normalizeRecordRelations(currentRecordTypeName, _.get(recordType, 'relatedTo', []));
     if (_.isEmpty(relatedTo)) {
-      sails.log.verbose(`${this.logHeader} RecordType has no relationships: ${currentRecordTypeName}`);
+      this.collaborators.log.verbose(`${this.logHeader} RecordType has no relationships: ${currentRecordTypeName}`);
       return mappingContext;
     }
 
@@ -2038,8 +2040,8 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       }
       mappingContext.visitedTraversalKeys.add(traversalKey);
 
-      sails.log.verbose(`${this.logHeader} Processing relationship:`);
-      sails.log.verbose(JSON.stringify(relationship));
+      this.collaborators.log.verbose(`${this.logHeader} Processing relationship:`);
+      this.collaborators.log.verbose(JSON.stringify(relationship));
 
       const localValues = this.extractRelationshipLocalValues(record, relationship);
       if (_.isEmpty(localValues)) {
@@ -2047,12 +2049,12 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       }
 
       const criteria = this.buildRelationshipCriteria(relationship, localValues);
-      sails.log.verbose(`${this.logHeader} Finding related records criteria:`);
-      sails.log.verbose(JSON.stringify(criteria));
+      this.collaborators.log.verbose(`${this.logHeader} Finding related records criteria:`);
+      this.collaborators.log.verbose(JSON.stringify(criteria));
 
       const relatedRecords = await this.findRelatedRecords(relationship, criteria);
-      sails.log.verbose(`${this.logHeader} Got related records:`);
-      sails.log.verbose(JSON.stringify(relatedRecords));
+      this.collaborators.log.verbose(`${this.logHeader} Got related records:`);
+      this.collaborators.log.verbose(JSON.stringify(relatedRecords));
 
       for (const relatedRecord of relatedRecords as JsonMap[]) {
         const edge = this.buildRelationshipEdge(relationship, currentRecordTypeName, normalizedOid, relatedRecord);
@@ -2171,8 +2173,12 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     );
   }
 
+  protected metTriggerCondition(oid: string | null, record: JsonMap, options: JsonMap): string {
+    return metTriggerCondition(oid, record, options);
+  }
+
   public async updateNotificationLog(oid: string, record: JsonMap, options: JsonMap): Promise<unknown> {
-    if (super.metTriggerCondition(oid, record, options) == 'true') {
+    if (this.metTriggerCondition(oid, record, options) == 'true') {
       if (_.get(options, 'saveRecord', false)) {
         return this.notApplied(
           this.createMutationResponse(oid),
@@ -2180,7 +2186,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
           'Notification writes require the authoritative RecordsService mutation pipeline'
         );
       }
-      sails.log.verbose(`${this.logHeader} Updating notification log for oid: ${oid}`);
+      this.collaborators.log.verbose(`${this.logHeader} Updating notification log for oid: ${oid}`);
       const logName = _.get(options, 'logName', null);
       if (logName) {
         let log = _.get(record, logName, null);
@@ -2196,14 +2202,14 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       if (updateFlagName) {
         _.set(record, updateFlagName, _.get(options, 'flagVal', null));
       }
-      sails.log.verbose(`======== Notification log updates =========`);
-      sails.log.verbose(JSON.stringify(record));
-      sails.log.verbose(`======== End update =========`);
+      this.collaborators.log.verbose(`======== Notification log updates =========`);
+      this.collaborators.log.verbose(JSON.stringify(record));
+      this.collaborators.log.verbose(`======== End update =========`);
     } else {
-      sails.log.verbose(
+      this.collaborators.log.verbose(
         `Notification log name: '${options.name}', for oid: ${oid}, not running, condition not met: ${options.triggerCondition}`
       );
-      sails.log.verbose(JSON.stringify(record));
+      this.collaborators.log.verbose(JSON.stringify(record));
     }
     return record;
   }
@@ -2364,14 +2370,14 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     }
     if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
       const escapedFilterString = this.escapeRegExp(filterString);
-      sails.log.verbose('escapedFilterString ' + escapedFilterString);
+      this.collaborators.log.verbose('escapedFilterString ' + escapedFilterString);
       for (const filterField of filterFields) {
         const filterQuery = {};
         if (filterMode == 'equal') {
           filterQuery[filterField] = filterString;
         } else if (filterMode == 'regex') {
           filterQuery[filterField] = new RegExp(`.*${escapedFilterString}.*`);
-          sails.log.verbose(filterQuery);
+          this.collaborators.log.verbose(filterQuery);
         }
         andArray.push(filterQuery);
       }
@@ -2379,8 +2385,8 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
 
     query['$and'] = andArray;
 
-    sails.log.verbose(`Query: ${JSON.stringify(query)}`);
-    sails.log.verbose(`Options: ${JSON.stringify(options)}`);
+    this.collaborators.log.verbose(`Query: ${JSON.stringify(query)}`);
+    this.collaborators.log.verbose(`Options: ${JSON.stringify(options)}`);
     const { items, totalItems } = await this.runDeletedRecordQuery('record', query, options);
     const response = new StorageServiceResponse();
     response.success = true;
@@ -2465,21 +2471,21 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     }
     if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
       const escapedFilterString = this.escapeRegExp(filterString);
-      sails.log.verbose('escapedFilterString ' + escapedFilterString);
+      this.collaborators.log.verbose('escapedFilterString ' + escapedFilterString);
       for (const filterField of filterFields) {
         if (filterMode == 'equal') {
-          query[filterField] = filterString;
+          andArray.push({ [filterField]: filterString });
         } else if (filterMode == 'regex') {
-          query[filterField] = new RegExp(`.*${escapedFilterString}.*`, 'i');
+          andArray.push({ [filterField]: new RegExp(`.*${escapedFilterString}.*`, 'i') });
         }
       }
     }
 
     query['$and'] = andArray;
 
-    sails.log.verbose(query);
-    sails.log.verbose(`Query: ${JSON.stringify(query)}`);
-    sails.log.verbose(`Options: ${JSON.stringify(options)}`);
+    this.collaborators.log.verbose(query);
+    this.collaborators.log.verbose(`Query: ${JSON.stringify(query)}`);
+    this.collaborators.log.verbose(`Options: ${JSON.stringify(options)}`);
     const { items, totalItems } = await this.runRecordQuery('record', query, options);
     const response = new StorageServiceResponse();
     response.success = true;
@@ -2543,7 +2549,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     };
     andArray.push(permissions);
     const options = {
-      limit: _.toNumber(sails.config.record.export.maxRecords),
+      limit: _.toNumber(this.collaborators.exportMaxRecords()),
       sort: this.getRecordSort(),
     };
     if (!_.isEmpty(modAfter)) {
@@ -2561,57 +2567,39 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
       });
     }
     query['$and'] = andArray;
-    sails.log.verbose(`Query: ${JSON.stringify(query)}`);
-    sails.log.verbose(`Options: ${JSON.stringify(options)}`);
+    this.collaborators.log.verbose(`Query: ${JSON.stringify(query)}`);
+    this.collaborators.log.verbose(`Options: ${JSON.stringify(options)}`);
     if (format == 'csv') {
       // CSV needs the complete column set before the header row, but streaming json2csv derives
       // its columns from the first record only, dropping fields that appear in later records.
       // Stream the export in two passes over Mongo, both bounded to a single page of records in
       // memory: pass 1 collects the union of flattened column keys, pass 2 streams the CSV with
       // that full field set so every record's columns are represented.
-      const passThrough = new stream.PassThrough();
-      (async () => {
-        try {
-          // The client (e.g. the HTTP response) can disconnect mid-export; once the returned
-          // PassThrough is destroyed there is no point continuing to page Mongo, so both passes
-          // bail out when it is no longer writable.
-          const isCancelled = () => passThrough.destroyed;
-          const fields = await this.collectCsvFields(query, options, isCancelled);
-          if (isCancelled()) {
-            return;
-          }
-          if (_.isEmpty(fields)) {
-            // No matching records means no columns to derive a header from; emit an empty file
-            // deterministically rather than relying on json2csv's empty-fields behaviour.
-            passThrough.end();
-            return;
-          }
-          // Populated CSVs retain a UTF-8 BOM so spreadsheet apps detect their encoding correctly.
-          passThrough.write(UTF8_BOM);
-          const sanitize = new stream.Transform({
-            objectMode: true,
-            transform(record: Record<string, unknown>, _encoding, callback) {
-              callback(null, sanitizeCsvRecord(record));
-            },
-          });
-          const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
-          await pipeline(
-            stream.Readable.from(this.fetchAllRecords(query, { ...options })),
-            sanitize,
-            json2csv,
-            passThrough
-          );
-        } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to export records as CSV:`);
-          sails.log.error(err);
-          passThrough.destroy(err as Error);
-        }
-      })();
-      return passThrough;
+      // Readable.from owns the generator's pending page even when the consumer
+      // disconnects during column discovery. Do not detach that first pass.
+      const csv = async function* (storage: PrismaStorage) {
+        const isCancelled = () => output.destroyed;
+        const fields = await storage.collectCsvFields(query, options, isCancelled);
+        if (isCancelled() || _.isEmpty(fields)) return;
+        yield UTF8_BOM;
+        const sanitize = new stream.Transform({
+          objectMode: true,
+          transform(record: Record<string, unknown>, _encoding, callback) {
+            callback(null, sanitizeCsvRecord(record));
+          },
+        });
+        // compose propagates cancellation and source errors through every stage.
+        yield* stream.Readable.from(storage.fetchAllRecords(query, { ...options }))
+          .compose(sanitize)
+          .compose(new Transform({ fields, transforms: [flatten()] }, { objectMode: true }));
+      };
+      const output = stream.Readable.from(csv(this));
+      return output;
     }
 
-    const jsonTransformer = new ExportJSONTransformer(recType, modBefore, modAfter);
-    return stream.Readable.from(this.fetchAllRecords(query, options, true)).pipe(jsonTransformer);
+    return stream.Readable.from(this.fetchAllRecords(query, options, true)).compose(
+      new ExportJSONTransformer(recType, modBefore, modAfter)
+    );
   }
 
   private async collectCsvFields(query, options, isCancelled: () => boolean = () => false): Promise<string[]> {
@@ -2649,13 +2637,12 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     let hasFailure = false;
     for (const fileId of fileIds) {
       try {
-        await this.addDatastream(oid, fileId, StorageManagerService.stagingDisk());
+        await this.addDatastream(oid, fileId, this.collaborators.disks.stagingDisk());
         const successMessage = `Successfully uploaded: ${JSON.stringify(fileId)}`;
         response.message = _.isEmpty(response.message) ? successMessage : `${response.message}\n${successMessage}`;
       } catch (err) {
         hasFailure = true;
-        sails.log.error(`${this.logHeader} Failed to upload datastream for oid '${oid}':`);
-        sails.log.error(err);
+        this.collaborators.log.error(`${this.logHeader} Failed to upload datastream for oid '${oid}':`);
         const failureMessage = `Failed to upload: ${JSON.stringify(fileId)}, error is:\n${this.getErrorMessage(err)}`;
         response.message = _.isEmpty(response.message) ? failureMessage : `${response.message}\n${failureMessage}`;
       }
@@ -2673,7 +2660,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
   ): Observable<Promise<unknown>[]> {
     let stagingDisk: StorageManagerServiceTypes.Services.IDisk;
     if (typeof fileRoot === 'string') {
-      stagingDisk = StorageManagerService.disk(fileRoot);
+      stagingDisk = this.collaborators.disks.disk(fileRoot);
     } else if (fileRoot && typeof fileRoot.getStream === 'function') {
       stagingDisk = fileRoot as StorageManagerServiceTypes.Services.IDisk;
     } else {
@@ -2681,7 +2668,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
         `${this.logHeader} updateDatastream requires fileRoot to be a disk name or an IDisk instance with getStream()`
       );
     }
-    return FormsService.getFormByName(record.metaMetadata.form, true, record.metaMetadata.brandId).pipe(
+    return this.collaborators.forms.getFormByName(record.metaMetadata.form, true, record.metaMetadata.brandId).pipe(
       mergeMap(form => {
         const formConfig = form;
         const attachmentFields = _.get(
@@ -2731,27 +2718,39 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     const fileRes = await this.getFileWithName(fileName).toArray();
     if (!_.isEmpty(fileRes)) {
       const fileDoc = fileRes[0];
-      sails.log.verbose(`${this.logHeader} removeDatastream() -> Deleting:`);
-      sails.log.verbose(JSON.stringify(fileDoc));
+      this.collaborators.log.verbose(`${this.logHeader} removeDatastream() -> Deleting:`);
+      this.collaborators.log.verbose(JSON.stringify(fileDoc));
       try {
         await this.gridFsBucket.delete(fileDoc._id);
-      } catch (err) {
-        sails.log.error(`Error deleting: ${fileDoc._id}`);
-        sails.log.error(JSON.stringify(err));
+      } catch (_err) {
+        this.collaborators.log.error(`Error deleting: ${fileDoc._id}`);
       }
-      sails.log.verbose(`${this.logHeader} removeDatastream() -> Delete successful.`);
+      this.collaborators.log.verbose(`${this.logHeader} removeDatastream() -> Delete successful.`);
     } else {
-      sails.log.verbose(`${this.logHeader} removeDatastream() -> File not found: ${fileName}`);
+      this.collaborators.log.verbose(`${this.logHeader} removeDatastream() -> File not found: ${fileName}`);
     }
   }
 
-  public async removeStagedDatastream(fileId: string): Promise<void> {
+  public async removeStagedDatastream(
+    fileId: string,
+    context?: DatastreamRequestContext & { oid: string }
+  ): Promise<void> {
     const normalizedFileId = normalizeAttachmentStagingFileId(fileId);
     if (!normalizedFileId) throw new Error('Invalid staged attachment identity.');
-    const stagingDisk = StorageManagerService.stagingDisk();
-    if (await stagingDisk.exists(normalizedFileId)) {
-      await stagingDisk.delete(normalizedFileId);
+    if (!context?.oid || !context.actorId || !context.brandId) {
+      throw new Error('Staged attachment cleanup requires its persisted ownership context');
     }
+    const stagingDisk = this.collaborators.disks.stagingDisk();
+    const uploads = new TusStorageManagerDataStore({ disk: stagingDisk });
+    const upload = await uploads.getUpload(normalizedFileId);
+    if (
+      upload.metadata?.redboxActor !== context.actorId ||
+      upload.metadata?.redboxBrand !== context.brandId ||
+      ![context.oid, 'pending-oid'].includes(upload.metadata?.redboxRecord ?? '')
+    ) {
+      throw new Error('Staged attachment ownership does not match the actor, brand and record');
+    }
+    await uploads.remove(normalizedFileId);
   }
 
   public async addDatastream(oid, datastream: Datastream, stagingDisk?: StorageManagerServiceTypes.Services.IDisk) {
@@ -2764,15 +2763,15 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     stagingDisk?: StorageManagerServiceTypes.Services.IDisk
   ) {
     const fileId = datastream.fileId;
-    sails.log.verbose(`${this.logHeader} addDatastream() -> Meta: ${fileId}`);
-    sails.log.verbose(JSON.stringify(datastream));
+    this.collaborators.log.verbose(`${this.logHeader} addDatastream() -> Meta: ${fileId}`);
+    this.collaborators.log.verbose(JSON.stringify(datastream));
     const metadata = _.merge(datastream.metadata, { redboxOid: oid });
     const fileName = `${oid}/${fileId}`;
-    sails.log.verbose(`${this.logHeader} addDatastream() -> Adding: ${fileName}`);
-    const effectiveStagingDisk = stagingDisk ?? StorageManagerService.stagingDisk();
+    this.collaborators.log.verbose(`${this.logHeader} addDatastream() -> Adding: ${fileName}`);
+    const effectiveStagingDisk = stagingDisk ?? this.collaborators.disks.stagingDisk();
     const readable = await effectiveStagingDisk.getStream(fileId);
     await this.streamFileToBucket(readable, fileName, metadata);
-    sails.log.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${fileName}`);
+    this.collaborators.log.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${fileName}`);
   }
 
   private async streamFileToBucket(readable: NodeJS.ReadableStream, fileName: string, metadata: unknown) {
@@ -2824,7 +2823,7 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     const fileName = `${oid}/${fileId}`;
     const fileRes = await this.getFileWithName(fileName).toArray();
     if (_.isArray(fileRes) && fileRes.length === 0) {
-      throw new Error(TranslationService.t('attachment-not-found'));
+      throw new Error(this.collaborators.translate('attachment-not-found'));
     }
     const response = new Attachment() as Attachment & DatastreamContent;
     const readstream = this.gridFsBucket.openDownloadStreamByName(fileName);
@@ -2841,8 +2840,8 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
         const fileName = `${oid}/${fileId}`;
         query = { filename: fileName };
       }
-      sails.log.verbose(`${this.logHeader} listDatastreams() -> Listing attachments of oid: ${oid}`);
-      sails.log.verbose(JSON.stringify(query));
+      this.collaborators.log.verbose(`${this.logHeader} listDatastreams() -> Listing attachments of oid: ${oid}`);
+      this.collaborators.log.verbose(JSON.stringify(query));
       return (await this.gridFsBucket.find(query, {}).toArray()) as unknown as Record<string, unknown>[];
     });
   }
@@ -3088,8 +3087,6 @@ export class PrismaStorage extends services.Core.Service implements StorageServi
     this.recordIdentityCol = prismaRecordDocuments(client, 'recordidentity');
     await this.prepareGridFs();
     this._requiredIndicesReady = true;
-    this.binaryApp.emit('hook:redbox:storage:ready');
-    this.binaryApp.emit('hook:redbox:datastream:ready');
   }
 
   private auditModel(name: 'recordaudit' | 'integrationaudit') {

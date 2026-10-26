@@ -238,7 +238,7 @@ export const PDFGEN_CONFIG_SCHEMA = {
                     type: 'string',
                     title: 'Paper Format',
                     description: 'Paper format to use when generating the PDF.',
-                    enum: ['Letter', 'Legal', 'Tabloid', 'Ledger', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6'],
+                    enum: ['Letter', 'Legal', 'Tabloid', 'Ledger', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'letter', 'legal', 'tabloid', 'ledger', 'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'LETTER', 'LEGAL', 'TABLOID', 'LEDGER'],
                     default: 'A4'
                 },
                 printBackground: {
@@ -302,13 +302,13 @@ export const PDFGEN_CONFIG_SCHEMA = {
                     default: false
                 },
                 width: {
-                    type: 'string',
+                    type: ['string', 'number'],
                     title: 'Paper Width',
                     description: 'Paper width, including a unit such as 8.5in or 210mm.',
                     default: ''
                 },
                 height: {
-                    type: 'string',
+                    type: ['string', 'number'],
                     title: 'Paper Height',
                     description: 'Paper height, including a unit such as 11in or 297mm.',
                     default: ''
@@ -320,22 +320,22 @@ export const PDFGEN_CONFIG_SCHEMA = {
                     additionalProperties: false,
                     properties: {
                         top: {
-                            type: 'string',
+                            type: ['string', 'number'],
                             title: 'Top',
                             default: ''
                         },
                         bottom: {
-                            type: 'string',
+                            type: ['string', 'number'],
                             title: 'Bottom',
                             default: ''
                         },
                         left: {
-                            type: 'string',
+                            type: ['string', 'number'],
                             title: 'Left',
                             default: ''
                         },
                         right: {
-                            type: 'string',
+                            type: ['string', 'number'],
                             title: 'Right',
                             default: ''
                         }

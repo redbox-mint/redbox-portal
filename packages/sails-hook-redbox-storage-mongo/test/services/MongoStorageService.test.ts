@@ -1,3 +1,4 @@
+import type { RecordModel } from '@researchdatabox/redbox-core';
 import * as _ from 'lodash';
 const { expect } = require('chai');
 const sinon = require('sinon');
@@ -17,10 +18,21 @@ async function expectRejects(fn: () => Promise<unknown>, message: string) {
   expect(rejection instanceof Error ? rejection.message : String(rejection)).to.include(message);
 }
 
+function institutionRecord(oid: string, institution: boolean | string): RecordModel {
+  const grants = { edit: [], view: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] };
+  return {
+    id: oid, redboxOid: oid, harvestId: '', metadata: { institution },
+    metaMetadata: { brandId: 'brand-1', createdBy: 'fixture', type: 'rdmp', searchCore: 'default', form: 'rdmp', attachmentFields: [] },
+    workflow: { stage: 'draft', stageLabel: 'Draft' },
+    authorization: { ...grants, stored: { ...grants } }, dateCreated: '2026-01-01', lastSaveDate: '2026-01-01',
+  };
+}
+
 describe('MongoStorageService', function () {
   let sandbox: any;
-  let mockSails: any;
+  let owner: any;
   let service: any;
+  let collaborators: any;
   let mockDb: any;
   let mockBucket: any;
   let Record: any;
@@ -35,7 +47,7 @@ describe('MongoStorageService', function () {
 
   beforeEach(async function () {
     sandbox = sinon.createSandbox();
-    mockSails = {
+    owner = {
       config: {
         storage: {
           mongodb: {
@@ -157,20 +169,20 @@ describe('MongoStorageService', function () {
       openDownloadStreamByName: sandbox.stub().returns(new PassThrough()),
     };
 
-    (global as any).sails = mockSails;
-    (global as any).TranslationService = { t: sandbox.stub().returns('missing attachment') };
-    (global as any).RecordTypesService = { get: sandbox.stub() };
-    (global as any).FormsService = { getFormByName: sandbox.stub().returns(of({ attachmentFields: [] })) };
-    (global as any).StorageManagerService = {
-      stagingDisk: sandbox.stub(),
-      disk: sandbox.stub(),
+    collaborators = {
+      log: owner.log,
+      translate: sandbox.stub().returns('missing attachment'),
+      recordTypes: { get: sandbox.stub() },
+      forms: { getFormByName: sandbox.stub().returns(of({ attachmentFields: [] })) },
+      disks: { stagingDisk: sandbox.stub(), disk: sandbox.stub() },
+      exportMaxRecords: () => owner.config.record.export.maxRecords,
     };
 
     sandbox.stub(mongodb, 'GridFSBucket').callsFake(function () {
       return mockBucket as any;
     });
 
-    service = new (require('../../src/persistence/PrismaStorage').PrismaStorage)(mockSails);
+    service = new (require('../../src/persistence/PrismaStorage').PrismaStorage)(owner, collaborators);
     service.recordCol = recordCollection;
     service.deletedRecordCol = deletedRecordCollection;
     service.recordIdentityCol = recordIdentityCollection;
@@ -212,37 +224,26 @@ describe('MongoStorageService', function () {
 
   afterEach(function () {
     sandbox.restore();
-    delete (global as any).sails;
-    delete (global as any).TranslationService;
-    delete (global as any).FormsService;
-    delete (global as any).RecordTypesService;
-    delete (global as any).StorageManagerService;
   });
 
-  it('allows institution services to override a forwarded operation before exporting it', async () => {
-    const { Services } = require('../../src/services/MongoStorageService');
-    class InstitutionStorageService extends Services.MongoStorageService {
-      getMeta = async (oid: string) => ({ redboxOid: oid, metadata: { institution: true } });
+  it('allows institution services to override an owned operation with an arrow method', async () => {
+    const { PrismaStorage }: typeof import('../../src/persistence/PrismaStorage') = require('../../src/persistence/PrismaStorage');
+    class InstitutionStorageService extends PrismaStorage {
+      getMeta = async (oid: string) => institutionRecord(oid, true);
     }
-    const exported = new InstitutionStorageService().exports();
-    expect(await exported.getMeta('institution-oid')).to.deep.equal({
-      redboxOid: 'institution-oid',
-      metadata: { institution: true },
-    });
+    const exported = new InstitutionStorageService(owner, collaborators);
+    expect(await exported.getMeta('institution-oid')).to.deep.equal(institutionRecord('institution-oid', true));
   });
 
-  it('allows institution services to override a forwarded operation with an ordinary method', async () => {
-    const { Services } = require('../../src/services/MongoStorageService');
-    class InstitutionStorageService extends Services.MongoStorageService {
+  it('allows institution services to override an owned operation with an ordinary method', async () => {
+    const { PrismaStorage }: typeof import('../../src/persistence/PrismaStorage') = require('../../src/persistence/PrismaStorage');
+    class InstitutionStorageService extends PrismaStorage {
       async getMeta(oid: string) {
-        return { redboxOid: oid, metadata: { institution: 'method' } };
+        return institutionRecord(oid, 'method');
       }
     }
-    const exported = new InstitutionStorageService().exports();
-    expect(await exported.getMeta('institution-oid')).to.deep.equal({
-      redboxOid: 'institution-oid',
-      metadata: { institution: 'method' },
-    });
+    const exported = new InstitutionStorageService(owner, collaborators);
+    expect(await exported.getMeta('institution-oid')).to.deep.equal(institutionRecord('institution-oid', 'method'));
   });
 
   it('keeps harvest enrichment scoped by tracked brand and record type', async () => {
@@ -584,6 +585,16 @@ describe('MongoStorageService', function () {
     expect(recordCollection.findOneAndUpdate.notCalled).to.equal(true);
   });
 
+  it('bounds failed mutation diagnostics without serializing actor credentials', async function () {
+    const secret = 'private-mongo-mutation-provider-credential';
+    recordCollection.findOneAndUpdate.rejects(Object.assign(new Error(secret), { credentials: secret }));
+    const response = await service.updateMeta({ id: 'brand-1' }, 'oid-1', { metadata: {} }, { username: 'alice', password: secret, token: secret });
+    expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('unknown');
+    expect(owner.log.error.called).to.equal(true);
+    expect(JSON.stringify(owner.log.error.args)).not.to.include(secret);
+  });
+
   it('returns an unsuccessful response when updateMeta fails', async function () {
     recordCollection.findOneAndUpdate.rejects(new Error('update failed'));
 
@@ -593,7 +604,7 @@ describe('MongoStorageService', function () {
     expect(response.success).to.equal(false);
     expect(response.applicationState).to.equal('unknown');
     expect(String(response.message.message || response.message)).to.include('update failed');
-    expect(mockSails.log.error.calledWithMatch('updateMeta() failed for oid oid-1: update failed')).to.equal(true);
+    expect(owner.log.error.calledWithMatch('updateMeta() failed for oid oid-1.')).to.equal(true);
   });
 
   it('declares concurrency capability only after required indices and typed handles are ready', function () {
@@ -794,8 +805,8 @@ describe('MongoStorageService', function () {
       findOne: sandbox.stub().resolves(null),
     };
     const ServiceClass = service.constructor;
-    const firstService = new ServiceClass(mockSails);
-    const secondService = new ServiceClass(mockSails);
+    const firstService = new ServiceClass(owner, collaborators);
+    const secondService = new ServiceClass(owner, collaborators);
     firstService._requiredIndicesReady = true;
     secondService._requiredIndicesReady = true;
     firstService.recordCol = atomicCollection;
@@ -1293,7 +1304,7 @@ describe('MongoStorageService', function () {
     const getMetaStub = sandbox.stub(service, 'getMeta');
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
-    (global as any).RecordTypesService.get.callsFake((_brand: any, recordTypeName: string) =>
+    collaborators.recordTypes.get.callsFake((_brand: any, recordTypeName: string) =>
       of(
         recordTypeName === 'parent'
           ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId' }] }
@@ -1325,7 +1336,7 @@ describe('MongoStorageService', function () {
     const getMetaStub = sandbox.stub(service, 'getMeta');
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
-    (global as any).RecordTypesService.get.callsFake((_brand: any, recordTypeName: string) =>
+    collaborators.recordTypes.get.callsFake((_brand: any, recordTypeName: string) =>
       of(
         recordTypeName === 'parent'
           ? {
@@ -1358,7 +1369,7 @@ describe('MongoStorageService', function () {
     const getMetaStub = sandbox.stub(service, 'getMeta');
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
-    (global as any).RecordTypesService.get.callsFake((_brand: any, recordTypeName: string) =>
+    collaborators.recordTypes.get.callsFake((_brand: any, recordTypeName: string) =>
       of(
         recordTypeName === 'parent'
           ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId', cardinality: 'one' }] }
@@ -1477,7 +1488,7 @@ describe('MongoStorageService', function () {
   it('refuses direct notification persistence outside the authoritative service pipeline', async function () {
     const updateMetaStub = sandbox.stub(service, 'updateMeta');
     const record = { secret: 'must-not-be-logged-or-mutated' };
-    mockSails.log.verbose.resetHistory();
+    owner.log.verbose.resetHistory();
 
     const result = await service.updateNotificationLog('oid-1', record, {
       name: 'notify',
@@ -1492,7 +1503,7 @@ describe('MongoStorageService', function () {
     expect(result.nonApplicationReason).to.equal('capability-unavailable');
     expect(updateMetaStub.notCalled).to.be.true;
     expect(record).to.deep.equal({ secret: 'must-not-be-logged-or-mutated' });
-    expect(JSON.stringify(mockSails.log.verbose.args)).not.to.include('must-not-be-logged-or-mutated');
+    expect(JSON.stringify(owner.log.verbose.args)).not.to.include('must-not-be-logged-or-mutated');
   });
 
   it('returns the record unchanged when a notification condition is not met', async function () {
@@ -1966,7 +1977,8 @@ describe('MongoStorageService', function () {
 
     expect(response.items).to.deep.equal(['x']);
     const query = runStub.firstCall.args[1];
-    expect(`${query['metadata.title']}`).to.include('a\\+b');
+    expect(`${query.$and[1]['metadata.title']}`).to.include('a\\+b');
+    expect(query['metaMetadata.brandId']).to.equal('brand-1');
   });
 
   it('builds record queries for array filters, package types, workflow, and equal matching', async function () {
@@ -1994,7 +2006,8 @@ describe('MongoStorageService', function () {
     expect(query.$or).to.have.length(2);
     expect(query['metaMetadata.packageType'].$or).to.have.length(2);
     expect(query['workflow.stage']).to.equal('review');
-    expect(query['metadata.title']).to.equal('Exact title');
+    expect(query.$and[1]['metadata.title']).to.equal('Exact title');
+    expect(query['metaMetadata.brandId']).to.equal('brand-1');
     expect(options.sort.lastSaveDate).to.equal(1);
     expect(options.sort.redboxOid).to.equal(-1);
   });
@@ -2223,7 +2236,7 @@ describe('MongoStorageService', function () {
   it('adds a datastream using the default staging disk when one is not supplied', async function () {
     const readable = Readable.from(['hello']);
     const stagingDisk = { getStream: sandbox.stub().resolves(readable) };
-    (global as any).StorageManagerService.stagingDisk.returns(stagingDisk);
+    collaborators.disks.stagingDisk.returns(stagingDisk);
     const chunks: Buffer[] = [];
     const bucketStream = new Writable({
       write(chunk: Buffer, _encoding: string, callback: () => void) {
@@ -2246,9 +2259,9 @@ describe('MongoStorageService', function () {
 
   it('uses a named disk and computes attachment add/remove requests in updateDatastream', async function () {
     const disk = { getStream: sandbox.stub() };
-    (global as any).StorageManagerService.disk.returns(disk);
+    collaborators.disks.disk.returns(disk);
     const addAndRemoveStub = sandbox.stub(service, 'addAndRemoveDatastreams').resolves({ ok: true });
-    (global as any).FormsService.getFormByName.returns(of({ configuration: { attachmentFields: ['files'] } }));
+    collaborators.forms.getFormByName.returns(of({ configuration: { attachmentFields: ['files'] } }));
 
     const result = await firstValueFrom(
       service.updateDatastream(
@@ -2265,8 +2278,8 @@ describe('MongoStorageService', function () {
       )
     );
 
-    expect((global as any).StorageManagerService.disk.calledOnceWith('staging')).to.be.true;
-    expect((global as any).FormsService.getFormByName.calledOnceWith('rdmp', true, 'brand-1')).to.be.true;
+    expect(collaborators.disks.disk.calledOnceWith('staging')).to.be.true;
+    expect(collaborators.forms.getFormByName.calledOnceWith('rdmp', true, 'brand-1')).to.be.true;
     await Promise.all(result);
     expect(addAndRemoveStub.calledOnce).to.be.true;
     expect(addAndRemoveStub.firstCall.args[1][0].fileId).to.equal('new');
@@ -2274,7 +2287,7 @@ describe('MongoStorageService', function () {
   });
 
   it('returns a dummy request when updateDatastream finds no attachment fields', async function () {
-    (global as any).FormsService.getFormByName.returns(of({ attachmentFields: [] }));
+    collaborators.forms.getFormByName.returns(of({ attachmentFields: [] }));
     const disk = { getStream: sandbox.stub() };
 
     const result = await firstValueFrom(
@@ -2319,7 +2332,7 @@ describe('MongoStorageService', function () {
 
     await service.removeDatastream('oid-1', { fileId: 'missing' });
 
-    expect(mockSails.log.verbose.called).to.be.true;
+    expect(owner.log.verbose.called).to.be.true;
   });
 
   it('logs delete callback errors when removing a datastream', async function () {
@@ -2330,7 +2343,23 @@ describe('MongoStorageService', function () {
 
     await service.removeDatastream('oid-1', { fileId: 'file-1' });
 
-    expect(mockSails.log.error.called).to.be.true;
+    expect(owner.log.error.called).to.be.true;
+  });
+
+  it('refuses foreign cancelled staging rather than trusting the journal file id', async function () {
+    const disk = {
+      exists: sandbox.stub().resolves(true),
+      get: sandbox.stub().resolves(JSON.stringify({ id: 'file-1', size: 9, offset: 3,
+        metadata: { redboxActor: 'other-actor', redboxBrand: 'other-brand', redboxRecord: 'other-record' } })),
+      delete: sandbox.stub().resolves(), deleteAll: sandbox.stub().resolves(),
+    };
+    collaborators.disks.stagingDisk.returns(disk);
+    await expectRejects(
+      () => service.removeStagedDatastream('file-1', { oid: 'record', actorId: 'actor', brandId: 'brand' }),
+      'Staged attachment ownership does not match the actor, brand and record'
+    );
+    expect(disk.delete.called).to.equal(false);
+    expect(disk.deleteAll.called).to.equal(false);
   });
 
   it('rejects path-shaped staging cleanup identities before accessing storage', async function () {
@@ -2339,7 +2368,7 @@ describe('MongoStorageService', function () {
       'Invalid staged attachment identity.'
     );
 
-    expect((global as any).StorageManagerService.stagingDisk.notCalled).to.be.true;
+    expect(collaborators.disks.stagingDisk.notCalled).to.be.true;
   });
 
   it('throws a translated error when a datastream is missing', async function () {
@@ -2556,9 +2585,7 @@ describe('MongoStorageService', function () {
       const response = await service[method]({ redboxOid: 'audit-oid', action: 'save' });
       expect(response.success).to.equal(false);
       expect(response.message).to.include('unknown outcome');
-      expect(inspect({ response, logs: mockSails.log.error.args }, { depth: 10 })).not.to.include(
-        'private-native-audit'
-      );
+      expect(inspect({ response, logs: owner.log.error.args }, { depth: 10 })).not.to.include('private-native-audit');
       expect(inspect(response)).not.to.include('private-native-audit');
     });
   }
@@ -2567,10 +2594,10 @@ describe('MongoStorageService', function () {
     it(`preserves invalid sort validation through the deployed ${method} guard`, async () => {
       const runtime = require('@researchdatabox/redbox-core');
       const { guardPrismaStorage } = require('../../src/persistence/PrismaStorage');
-      await runtime.initializePersistence(mockSails);
+      await runtime.initializePersistence(owner);
       const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
       const run = sandbox.stub(service, queryMethod);
-      const guarded = guardPrismaStorage(mockSails, service);
+      const guarded = guardPrismaStorage(owner, service);
       try {
         const failure = await guarded[method](
           'draft', ['rdmp'], 0, 20, 'user', [], { id: 'brand-1' }, undefined, undefined, 'title:sideways'
@@ -2580,7 +2607,7 @@ describe('MongoStorageService', function () {
         expect(failure).to.have.nested.property('displayErrors[0].status', '400');
         expect(run.notCalled).to.equal(true);
       } finally {
-        await runtime.cleanupPersistence(mockSails);
+        await runtime.cleanupPersistence(owner);
       }
     });
   }
@@ -2589,8 +2616,8 @@ describe('MongoStorageService', function () {
     const { PersistenceError } = require('@researchdatabox/redbox-core');
     const { guardPrismaStorage } = require('../../src/persistence/PrismaStorage');
     const runtime = require('@researchdatabox/redbox-core');
-    await runtime.initializePersistence(mockSails);
-    const guarded = guardPrismaStorage(mockSails, service);
+    await runtime.initializePersistence(owner);
+    const guarded = guardPrismaStorage(owner, service);
     RecordAudit.where = () => {
       throw new Error('private-audit-read');
     };
@@ -2606,7 +2633,7 @@ describe('MongoStorageService', function () {
       expect(rejection).to.be.instanceOf(PersistenceError).with.property('code', 'storage-read');
       expect(inspect(rejection, { depth: 10 })).not.to.include('private-');
     }
-    await runtime.cleanupPersistence(mockSails);
+    await runtime.cleanupPersistence(owner);
   });
 
   it('fails closed for empty and populated legacy restore requests', async function () {

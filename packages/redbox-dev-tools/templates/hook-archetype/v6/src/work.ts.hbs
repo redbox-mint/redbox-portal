@@ -1,0 +1,12 @@
+/** Bind actual repository operations after persistence/schema readiness. */
+export interface ExampleWorkInput {
+  ensureNamedQuery(name: string, query: Readonly<Record<string, unknown>>): Promise<void>;
+}
+
+export async function migrateExample(input: ExampleWorkInput): Promise<void> {
+  await input.ensureNamedQuery('{{hookShortName}}-records', { recordType: 'example' });
+}
+
+export async function bootstrapExample(input: ExampleWorkInput): Promise<void> {
+  await input.ensureNamedQuery('{{hookShortName}}-dashboard', { dashboard: 'example' });
+}

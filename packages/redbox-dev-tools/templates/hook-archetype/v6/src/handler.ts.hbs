@@ -1,0 +1,8 @@
+import type { RequestHandler } from '@researchdatabox/redbox-core/extensions';
+import type { Example } from './Example';
+
+export function createExampleHandler(input: { example: Pick<Example, 'greet'> }): RequestHandler {
+  return async (_req, res) => {
+    res.json({ greeting: await input.example.greet() });
+  };
+}

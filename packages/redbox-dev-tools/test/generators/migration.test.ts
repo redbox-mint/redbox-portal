@@ -32,7 +32,7 @@ describe('MigrationGenerator', () => {
 
     const content = fs.readFileSync(migrationPath, 'utf-8');
     expect(content).to.contain("name: '20260608T100000-backfill-dataset-label'");
-    expect(content).to.contain('up: async ({ context: sails } = {}) =>');
+    expect(content).to.contain('up: async ({ context: owner } = {}) =>');
     expect(content).to.contain('is not implemented yet');
     // The skeleton must be loadable as a valid migration module
     const migration = require(migrationPath);

@@ -1,12 +1,20 @@
+import type { PersistenceOwner } from '@researchdatabox/redbox-core/extensions/storage';
 import { storage } from '../config/storage';
 import {
   inspectPersistenceIndex,
   ensurePersistenceIndex,
   requirePersistenceIndex,
   PersistenceError,
-} from '@researchdatabox/redbox-core';
-import type { PersistenceIndex, PersistenceIndexInspection } from '@researchdatabox/redbox-core';
-import { mongoDatabase, persistenceCollections, persistenceCollectionIndexes } from '@researchdatabox/redbox-core';
+} from '@researchdatabox/redbox-core/extensions/storage';
+import type {
+  PersistenceIndex,
+  PersistenceIndexInspection,
+} from '@researchdatabox/redbox-core/extensions/storage';
+import {
+  mongoDatabase,
+  persistenceCollections,
+  persistenceCollectionIndexes,
+} from '@researchdatabox/redbox-core/extensions/storage';
 import {
   RECORD_SCHEMA_ARTIFACT_INDEXES,
   RECORD_SCHEMA_REFERENCE_INDEXES,
@@ -36,7 +44,7 @@ export const prismaStagedStorageIndexes: readonly PersistenceIndex[] = [
     keys: { redboxOid: 1, createdAt: 1 },
   },
 ];
-export async function inspectPrismaStagedStorage(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export async function inspectPrismaStagedStorage(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   try {
     const db = await mongoDatabase(app, 'redboxStorage');
     const build = await db.command({ buildInfo: 1 });
@@ -84,7 +92,7 @@ export async function inspectPrismaStagedStorage(app: Sails.Application): Promis
     );
   }
 }
-export async function ensurePrismaStagedStorageIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export async function ensurePrismaStagedStorageIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   const reports = await inspectPrismaStagedStorage(app);
   for (const report of reports)
     if (report.index === 'conflicting' || report.duplicateKeyGroups) requirePersistenceIndex(report);
@@ -94,7 +102,7 @@ export async function ensurePrismaStagedStorageIndexes(app: Sails.Application): 
   return after;
 }
 
-function storageIndexes(app: Sails.Application): readonly PersistenceIndex[] {
+function storageIndexes(app: PersistenceOwner): readonly PersistenceIndex[] {
   const config = (app.config.storage as { mongodb?: typeof storage.mongodb })?.mongodb ?? storage.mongodb;
   const groups: [string, import('mongodb').IndexDescription[]][] = [
     ['record', config.indices ?? []],

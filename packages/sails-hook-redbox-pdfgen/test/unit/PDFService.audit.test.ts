@@ -1,23 +1,16 @@
-const { Cause, Effect } = require('effect');
+import type { SinonStub } from 'sinon';
+const { Cause, Effect, Logger } = require('effect');
 const sinon = require('sinon');
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
-const {
-  clearPdfgenTestGlobals,
-  installPdfgenTestGlobals,
-  waitForAssertion,
-  navigationResponse,
-  navigationRequest,
-} = require('../support/globals');
-
-const globalAny = global as any;
+const { pdfDependencies, waitForAssertion, navigationResponse, navigationRequest } = require('../support/pdfFixture');
 
 type StubAuditService = {
-  startAudit: sinon.SinonStub;
-  completeAudit: sinon.SinonStub;
-  failAudit: sinon.SinonStub;
+  startAudit: SinonStub;
+  completeAudit: SinonStub;
+  failAudit: SinonStub;
 };
 
-function installAuditServiceStub(): StubAuditService {
+function auditServiceStub(): StubAuditService {
   let nextId = 0;
   const startAudit = sinon.stub().callsFake((oid: string, action: string, opts?: any) => {
     nextId += 1;
@@ -37,24 +30,21 @@ function installAuditServiceStub(): StubAuditService {
   const completeAudit = sinon.stub();
   const failAudit = sinon.stub();
   const stub: StubAuditService = { startAudit, completeAudit, failAudit };
-  (globalThis as any).IntegrationAuditService = stub;
   return stub;
-}
-
-function clearAuditServiceStub() {
-  delete (globalThis as any).IntegrationAuditService;
 }
 
 describe('PDFService Integration Audit', () => {
   let pdfService: any;
+  let input: any;
   let mockPage: any;
   let mockBrowser: any;
   let auditStub: StubAuditService;
 
-  beforeEach(function () {
+  beforeEach(async function () {
     this.timeout(10000);
-    installPdfgenTestGlobals();
-    auditStub = installAuditServiceStub();
+    input = pdfDependencies();
+    auditStub = auditServiceStub();
+    input.audit = auditStub;
 
     const compiledServicePath = require.resolve('../../dist/api/services/PDFService.js');
     const requireCache = (require as NodeJS.Require & { cache?: Record<string, unknown> }).cache;
@@ -62,8 +52,9 @@ describe('PDFService Integration Audit', () => {
       delete requireCache[compiledServicePath];
     }
     const compiledService = require(compiledServicePath);
-    pdfService = new compiledService.Services.PDF();
-    pdfService.DatastreamService = globalAny.sails.services.standarddatastreamservice;
+    pdfService = new compiledService.Services.PDF(input);
+    await pdfService.initialize();
+    await pdfService.activate();
 
     mockPage = {
       setRequestInterception: sinon.stub().resolves(),
@@ -91,8 +82,58 @@ describe('PDFService Integration Audit', () => {
   afterEach(async () => {
     await pdfService?.shutdownPDFRetries();
     sinon.restore();
-    clearAuditServiceStub();
-    clearPdfgenTestGlobals();
+  });
+
+  it('bounds browser diagnostics without logging page messages, errors or URLs', async () => {
+    const secret = 'private-browser-provider-credential';
+    await Effect.runPromise(
+      pdfService.attemptPDFGeneration('oid-logs', {}, { enableChromeLogging: true }, { name: 'default' }, 1)
+    );
+    const callbacks = Object.fromEntries(mockPage.on.getCalls().map((call: any) => call.args));
+    callbacks.console({ text: () => secret });
+    callbacks.pageerror(new Error(secret));
+    callbacks.response({ status: () => 200, url: () => `https://example.invalid/?token=${secret}` });
+    callbacks.requestfailed({
+      failure: () => ({ errorText: secret }),
+      url: () => `https://example.invalid/?token=${secret}`,
+    });
+    expect(JSON.stringify(Object.values(input.log).flatMap((stub: any) => stub.args))).not.to.include(secret);
+  });
+
+  it('bounds failed retry diagnostics while finalizing the parent audit', async () => {
+    const secret = 'private-pdf-retry-provider-credential';
+    mockPage.goto.rejects(Object.assign(new Error(secret), { headers: { authorization: secret } }));
+    await new Promise((resolve, reject) =>
+      pdfService
+        .createPDF('oid-private-failure', { metaMetadata: { brandId: 1 } }, { maxRetries: 1, retryDelayMs: 1 }, {})
+        .subscribe({ next: resolve, error: reject })
+    );
+    await waitForAssertion(() =>
+      expect(
+        auditStub.failAudit.getCalls().some((call: any) => call.args[0]?.integrationAction === 'generatePdfTrigger')
+      ).to.equal(true)
+    );
+    expect(JSON.stringify(Object.values(input.log).flatMap((stub: any) => stub.args))).not.to.include(secret);
+  });
+
+  it('keeps configured URL credentials out of success and duplicate diagnostics', async () => {
+    const secret = 'private-configured-pdf-url-credential';
+    const options = { appUrlOverride: `https://pdf-user:${secret}@portal.invalid` };
+    const effectMessages: unknown[] = [];
+    const capture = Logger.replace(Logger.defaultLogger, Logger.make((entry: any) => {
+      effectMessages.push(entry.message);
+    }));
+    const run = (oid: string) => Effect.runPromise(
+      pdfService.attemptPDFGeneration(oid, {}, options, { name: 'default' }, 1).pipe(Effect.provide(capture))
+    );
+
+    expect((await run('oid-url-success')).outcome).to.equal('generated');
+    pdfService.processMap.add(`${options.appUrlOverride}/default/rdmp/record/view/oid-url-duplicate`);
+    expect((await run('oid-url-duplicate')).outcome).to.equal('duplicateSuppressed');
+
+    expect(JSON.stringify(Object.values(input.log).flatMap((stub: any) => stub.args))).not.to.include(secret);
+    expect(JSON.stringify(effectMessages)).not.to.include(secret);
+    expect(mockPage.goto.firstCall.args[0]).to.include(secret);
   });
 
   it('records a startAudit + completeAudit pair on successful PDF generation', async () => {
@@ -246,8 +287,8 @@ describe('PDFService Integration Audit', () => {
     expect(error._tag).to.equal('BrowserError');
     expect(details.responseSummary.cause).to.equal('Record navigation returned HTTP 500');
     expect(mockPage.pdf.called).to.be.false;
-    expect(globalAny.sails.services.storagemanagerservice.stagingDisk().put.called).to.be.false;
-    expect(globalAny.sails.services.standarddatastreamservice.addDatastream.called).to.be.false;
+    expect(input.stagingDisk().put.called).to.be.false;
+    expect(input.datastreams.addDatastream.called).to.be.false;
   });
 
   it('records a child audit failure when readiness config validation fails', async () => {
@@ -518,7 +559,7 @@ describe('PDFService Integration Audit', () => {
     const record = { metaMetadata: { brandId: 1 } };
     const options = {};
     let markNavigationStarted!: () => void;
-    const navigationStarted = new Promise<void>((resolve) => {
+    const navigationStarted = new Promise<void>(resolve => {
       markNavigationStarted = resolve;
     });
 
@@ -567,9 +608,8 @@ describe('PDFService Integration Audit', () => {
     });
   });
 
-  it('still generates a PDF when IntegrationAuditService global is missing', async () => {
-    clearAuditServiceStub();
-
+  it('still generates a PDF when the optional audit collaborator is missing', async () => {
+    input.audit = undefined;
     const record = { metaMetadata: { brandId: 1 } };
     const options = {};
 

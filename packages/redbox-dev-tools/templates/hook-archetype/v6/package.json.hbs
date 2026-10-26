@@ -1,0 +1,20 @@
+{
+  "name": {{json packageName}},
+  "version": "1.0.0",
+  "description": {{json description}},
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "redbox": { "extension": "." },
+  "files": ["dist", "views", "assets", "README.md"],
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "peerDependencies": { "@researchdatabox/redbox-core": {{json redboxCoreVersion}} },
+  "devDependencies": {
+    "@researchdatabox/redbox-core": {{json redboxCoreVersion}},
+    "@types/node": "24.12.4",
+    "typescript": "5.9.3"
+  }
+}
