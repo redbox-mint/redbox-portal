@@ -11,12 +11,12 @@ Produce a detailed design, implementation plan, and task list for ReDBox feature
 
 ## Required Nuances (Must Apply)
 
-- **Angular apps are embedded, not SPAs.** Do not design Angular routing. Pages are routed by Sails + EJS views, and Angular apps mount inside those views.
-- **Controllers/services/models live in `@researchdatabox/redbox-core` and are surfaced via shims.** Respect loader/shim behavior and registration conventions.
-- **Controllers use `init()` + `_exportedMethods` and respond via `sendResp`.** Avoid `sails` usage in constructors.
-- **Auth and routes are explicit config.** Route entries live in `packages/redbox-core/src/config/routes.config.ts` and auth rules in `packages/redbox-core/src/config/auth.config.ts`.
-- **Hook overrides are first-class.** If the feature is delivered via a hook, ensure `package.json` `sails` capabilities match exports and that overrides use the same names as core components.
-- **Use Hook Kit CLI generators when possible.** Prefer `redbox-dev-tools` generators for scaffolding controllers, services, models, Angular apps/services, and form fields.
+- **Angular apps are embedded, not SPAs.** Do not design Angular routing. Pages are routed by the owned Express host and EJS views, and Angular apps mount inside those views.
+- **Domains, repositories and HTTP adapters live in `@researchdatabox/redbox-core`.** Use explicit factory inputs and neutral extension declarations.
+- **Handlers receive concrete inputs and use owned response functions.** Constructors and registration remain offline; the application owns initialization and shutdown.
+- **Auth and routes are explicit config.** Route groups live in `packages/redbox-core/src/http/express` and auth rules in `packages/redbox-core/src/config/auth.config.ts`.
+- **Hook overrides are first-class.** If the feature is delivered via a hook, declare `redbox.extension`, export `registerRedboxExtension()` and mark selected named overrides with `replaces: true`.
+- **Use Hook Kit CLI generators when possible.** Check the built v6 CLI's `generate --help` for handler/service, Angular and form generators. Declare persistence fields/repositories explicitly; the model generator is retired.
 
 ## Workflow
 
@@ -63,7 +63,7 @@ Use this structure and headings verbatim. Keep content concise but explicit.
 - Relationships and indexes
 - Validation, lifecycle hooks, and defaults
 - Access control considerations
-- File locations and naming (core-types vs hook, and shim implications)
+- File locations and naming (core versus extension, and owned persistence contracts)
 - Repository/service delivery requirements; no model registration or globals
 
 ## 2. Services Layer (Business Logic)
@@ -73,46 +73,46 @@ Use this structure and headings verbatim. Keep content concise but explicit.
 - Transaction boundaries and side effects
 - Dependencies on models, configs, or external services
 - File locations and naming
-- Service conventions (extend `Services.Core.Service`, `_exportedMethods`, `bootstrap()`, RxJS, model globals)
-- Export/update requirements (ServiceExports index and hook overrides)
+- Domain conventions (concrete collaborators, optional `Services.Core.Service` utilities, awaited lifecycle and owned repositories)
+- Export/update requirements (public entrypoints, named extension factories and selected bindings)
 
 ## 3. Webservice Controllers (REST API)
 
 - Endpoint list (method + path)
 - Request/response shapes and status codes
 - Authn/authz and policy usage
-- Error handling and validation (use `sendResp`)
+- Error handling and validation (owned `sendApiData`/`sendApiErrors` contracts)
 - File locations and naming
-- Controller conventions (extend `Controllers.Core.Controller`, `init()`, `_exportedMethods`)
-- Export/update requirements (ControllerExports index, routes, auth config)
+- Handler conventions (explicit typed inputs, declared policies and admitted work ownership)
+- Export/update requirements (route groups, handler factories and policy bindings)
 
 ## 4. Ajax Controllers (Controllers)
 
 - Endpoint list (method + path or action)
 - Request/response shapes
 - Authn/authz and policy usage
-- Error handling and validation (use `sendResp`)
+- Error handling and validation (owned `sendApiData`/`sendApiErrors` contracts)
 - File locations and naming
-- Controller conventions (extend `Controllers.Core.Controller`, `init()`, `_exportedMethods`)
-- Export/update requirements (ControllerExports index, routes, auth config)
+- Handler conventions (explicit typed inputs, declared policies and admitted work ownership)
+- Export/update requirements (route groups, handler factories and policy bindings)
 
 ## 5. Angular App(s)
 
 - Apps/modules to add or modify (embedded apps only)
-- Routes: **Do not use Angular Router**; specify Sails/EJS view routing instead
+- Routes: **Do not use Angular Router**; specify Express/EJS page routing instead
 - Components and services
 - Data flow to/from APIs
 - State management and error handling
 - File locations and naming (Angular workspace + EJS view + assets output)
-- EJS view wiring (component tag + hashed asset includes using `CacheService.getNgAppFileHash`)
-- Render path (typically `RenderViewController.render` with `locals.view`)
+- EJS view wiring (component tag + hashed asset includes using `page.bundleHash`)
+- Render path (selected Express page handler and explicit page locals)
 
 ## 6. Additional Views
 
 - View templates to add/modify
 - Server-side data needed to render
-- Where view is wired in (e.g., RenderViewController.render)
-- Hook asset/view copy behavior if applicable
+- Where the selected page handler is bound
+- Package-relative view/asset declaration and installed artifact behavior
 
 ## 7. Navigation Configuration
 
@@ -152,7 +152,7 @@ Use this structure and headings verbatim. Keep content concise but explicit.
 
 - Reference existing skills by name when writing tasks.
 - Prefer these skills when relevant: Redbox Services, Redbox Controllers, Redbox Angular Apps, Redbox Angular Services, Redbox Hook Development, Redbox Form Config, Redbox Testing, Web Interface Verification.
-- Use Hook Kit CLI generators when they match the task (controllers, services, models, Angular apps/services, form fields).
+- Use the built v6 Hook Kit CLI generators when they match the task; check `generate --help`.
 - If a task does not map cleanly to an existing skill, call it out under "Skill Gaps" and suggest a new skill name and scope.
 
 ## Repo Context Reminders

@@ -1,11 +1,11 @@
 <div class="col-sm-10">
   <div class="logo">
     <% const logoHeadingKey = 'logo-heading-text'; %>
-    <% const logoHeadingText = TranslationService.t(logoHeadingKey); %>
+    <% const logoHeadingText = page.t(logoHeadingKey); %>
     <%# t() falls back to the key name when the bundle has no translation, so treat that as "unset" %>
     <% const hasLogoHeadingText = logoHeadingText && logoHeadingText !== logoHeadingKey && logoHeadingText.trim(); %>
     <h1<% if (hasLogoHeadingText) { %> class="logo-with-heading"<% } %>>
-      <img src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/logo" alt="<%= TranslationService.t('logo-alt-text') %>"/>
+      <img src="<%= page.base %>/images/logo" alt="<%= page.t('logo-alt-text') %>"/>
       <% if (hasLogoHeadingText) { %>
         <span class="logo-heading-text"><%= logoHeadingText %></span>
       <% } %>

@@ -6,12 +6,12 @@
   <div class="col-md-9 col-lg-10 admin-main-content">
     <manage-roles <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
       <div class="col-xs-12">
-        <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+        <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
       </div>
     </manage-roles>
   </div>
 </div>
 
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+<script src="<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
    type="module"></script>
-<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
+<link rel="stylesheet" href="<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css">

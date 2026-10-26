@@ -7,14 +7,14 @@
   <div class="col-md-9 col-lg-10 admin-main-content">
     <% if (userIsAdmin) { %>
       <report-config branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" is-admin="true" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-        <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+        <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
       </report-config>
     <% } else { %>
-      <h1><%= TranslationService.t('reports-heading') %></h1>
-      <p><%= TranslationService.t('reports-description') %></p>
+      <h1><%= page.t('reports-heading') %></h1>
+      <p><%= page.t('reports-description') %></p>
       <ul>
         <% for(var i=0; i<reports.length; i++) {%>
-          <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/report/<%= reports[i].name %>"><%= reports[i].title %></a></li>
+          <li><a href="<%= page.base %>/admin/report/<%= reports[i].name %>"><%= reports[i].title %></a></li>
         <% } %>
       </ul>
     <% } %>
@@ -22,7 +22,7 @@
 </div>
 <% if (userIsAdmin) { %>
 
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+<script src="<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
    type="module"></script>
-<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
+<link rel="stylesheet" href="<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css">
 <% } %>

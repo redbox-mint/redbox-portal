@@ -1,22 +1,22 @@
 <!-- Default home page -->
 <% /* Brand Typeface: keep Google fonts for Default Typography only. */ %>
-<% if (!BrandingService.hasActiveCustomTypeface(BrandingService.getBrandNameFromReq(req))) { %>
+<% if (!page.typeface) { %>
 <link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>
 <% } %>
 
 
 <div class="default-page">
   <div class="header">
-    <h1 id="main-title" class="container"><%- TranslationService.t('welcome-title') %></h1>
+    <h1 id="main-title" class="container"><%- page.t('welcome-title') %></h1>
     <!-- Placeholder for error messages, etc. -->
     <% if (req.query.errorTextCode) { %>
 
       <div class="main container clearfix">
         <h2 class="text-danger text-center">
-          <%= TranslationService.t('error-header') %>
+          <%= page.t('error-header') %>
         </h2>
         <h3 class="text-danger">
-          <%= TranslationService.t(req.query.errorTextCode) %>
+          <%= page.t(req.query.errorTextCode) %>
         </h3>
         <% if (req.query.errorTextRaw) { %>
           <div class="row">
@@ -34,10 +34,10 @@
         <% } %>
       </div>
     <% } else {%>
-      <div class="container"><%- TranslationService.t('welcome-homepage-text') %></div>
+      <div class="container"><%- page.t('welcome-homepage-text') %></div>
       <div class="main container clearfix">
         <br/>
-        <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('welcome-dashboard-link-text') %></a>
+        <a href="<%= page.base %>/researcher/home"><%= page.t('welcome-dashboard-link-text') %></a>
       </div>
     <% } %>
     <br/>

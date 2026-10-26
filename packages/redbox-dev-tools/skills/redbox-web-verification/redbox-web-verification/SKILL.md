@@ -10,18 +10,14 @@ This skill outlines the workflow for verifying the Redbox Portal web interface u
 
 ## Workflow
 
-### 1. Start the Application
-Start the application in development mode with the mount profile.
-**Important:** Capture the `CommandId` returned by this command to monitor logs later.
-
-```bash
-npm run dev:run
-```
-
-Wait for the application to be ready (look for "Sails lifted").
+### 1. Start the application
+Follow `support/development/README.md` with the pinned Node runtime, compiled
+packages and a private `REDBOX_SESSION_SECRET`. Start `npm run dev:run` and retain
+the process/session identifier returned by the execution tool. Poll `/readyz`
+until it returns 200 with ready status; `/healthz` alone is insufficient.
 
 ### 2. Launch Browser
-Use the `browser_subagent` tool to launch a browser session.
+Use the browser automation available in the current environment.
 - **TaskName:** Web Verification
 - **Task:** "Open http://localhost:1500 and [Insert Natural Language Script Here]"
 
@@ -38,7 +34,7 @@ Follow the natural language instructions provided by the user.
 - Verify URLs and UI elements match expectations.
 
 ### 4. Monitor Logs
-While the browser session is active or after a step fails, check the logs of the running application using the `command_status` tool and the captured `CommandId`.
+While the browser session is active or after a step fails, check the logs of the running application using the execution tool's retained process/session identifier.
 - Look for server-side errors (500s, exceptions) that correlate with UI actions.
 
 ### 5. Report Findings

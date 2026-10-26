@@ -1,54 +1,18 @@
 ---
 name: 'Redbox Services'
-description: 'ReDBox business logic is encapsulated in TypeScript services in `@researchdatabox/redbox-core`.'
+description: 'Implement and extend ReDBox owned domains and application modules with explicit inputs.'
 ---
 
-# Skill: Redbox Services
+# ReDBox owned domains
 
-## Context
+Read `support/wiki/Services-Architecture.md` and `support/wiki/Redbox-Core-Types.md`
+for supported classes, exported contracts and composition. Domains live in named
+source folders under `packages/redbox-core/src` and receive repositories, logger,
+configuration and collaborators explicitly. Extension modules declare their
+requirements and bind factories through `RedboxExtension`.
 
-ReDBox business logic is encapsulated in TypeScript services in `@researchdatabox/redbox-core`.
-
-## Locations
-
-- Services: `packages/redbox-core/src/services/`
-- Index: `packages/redbox-core/src/services/index.ts`
-
-## Patterns
-
-- Extend `Services.Core.Service`.
-- Implement `bootstrap()` for initialization.
-- Use `_exportedMethods` to define exposed methods.
-- Often use RxJS Observables for async operations.
-- Access persistence through repository/service interfaces; never declare model globals. See `support/wiki/Persistence-Migration.md`.
-
-## Type Safety Guidance
-
-- Do not use `(object as any)`, `as any`, or other deliberate `any` casts to bypass TypeScript compilation errors. Fix the types, declare appropriate interfaces, or request guidance in the skill instead. Maintaining type safety helps prevent runtime errors and keeps the codebase maintainable.
-
-## Generating Services
-
-Use the `redbox-dev-tools` CLI generator `generate_service`:
-
-- `name`: Service name (e.g., `Records`) as an argument.
-- `--methods <list>`: Comma-separated initial methods.
-
-## Adding Methods
-
-Use `redbox-dev-tools generate method` to add methods to an existing service:
-
-- `--file <path>`: Path to the service file.
-- `--method <name>`: Method name.
-
-## Index Updates
-
-When adding a service, update `packages/redbox-core/src/services/index.ts`:
-
-- Import the service module.
-- Re-export the service.
-- Add to `ServiceExports` with a lazy getter.
-
-## Overriding Services in Hooks
-
-Hooks can override core services by registering them in `registerRedboxServices`.
-Override services should extend the core service they are replacing.
+Constructors remain offline. Initialization prepares state; activation starts
+producers; quiesce refuses new work; drain awaits accepted work; close releases
+owned resources. Preserve receiver binding when delegating lifecycle methods.
+Access persistence through declared repository/service contracts and the owned
+lifetime. Verify actual Mongo behavior for persistence changes.

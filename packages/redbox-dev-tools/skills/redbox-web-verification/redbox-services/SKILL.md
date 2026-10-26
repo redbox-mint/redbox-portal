@@ -1,45 +1,18 @@
-# Skill: Redbox Services
+---
+name: 'Redbox Services'
+description: 'Implement and extend ReDBox owned domains and application modules with explicit inputs.'
+---
 
-## Context
+# ReDBox owned domains
 
-ReDBox business logic is encapsulated in TypeScript services in `@researchdatabox/redbox-core`.
+Read `support/wiki/Services-Architecture.md` and `support/wiki/Redbox-Core-Types.md`
+for supported classes, exported contracts and composition. Domains live in named
+source folders under `packages/redbox-core/src` and receive repositories, logger,
+configuration and collaborators explicitly. Extension modules declare their
+requirements and bind factories through `RedboxExtension`.
 
-## Locations
-
-- Services: `packages/redbox-core/src/services/`
-- Index: `packages/redbox-core/src/services/index.ts`
-
-## Patterns
-
-- Extend `Services.Core.Service`.
-- Implement `bootstrap()` for initialization.
-- Use `_exportedMethods` to define exposed methods.
-- Often use RxJS Observables for async operations.
-- Access persistence through repository/service interfaces; never declare model globals. See `support/wiki/Persistence-Migration.md`.
-
-## Generating Services
-
-Use the `redbox-dev-tools` CLI generator `generate_service`:
-
-- `name`: Service name (e.g., `Records`) as an argument.
-- `--methods <list>`: Comma-separated initial methods.
-
-## Adding Methods
-
-Use `redbox-dev-tools generate method` to add methods to an existing service:
-
-- `--file <path>`: Path to the service file.
-- `--method <name>`: Method name.
-
-## Index Updates
-
-When adding a service, update `packages/redbox-core/src/services/index.ts`:
-
-- Import the service module.
-- Re-export the service.
-- Add to `ServiceExports` with a lazy getter.
-
-## Overriding Services in Hooks
-
-Hooks can override core services by registering them in `registerRedboxServices`.
-Override services should extend the core service they are replacing.
+Constructors remain offline. Initialization prepares state; activation starts
+producers; quiesce refuses new work; drain awaits accepted work; close releases
+owned resources. Preserve receiver binding when delegating lifecycle methods.
+Access persistence through declared repository/service contracts and the owned
+lifetime. Verify actual Mongo behavior for persistence changes.

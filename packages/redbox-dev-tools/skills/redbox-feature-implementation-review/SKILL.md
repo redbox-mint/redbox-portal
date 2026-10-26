@@ -35,17 +35,17 @@ Use this skill after a feature implementation lands (services, controllers, mode
 
 ### Services
 
-1. Services extend `CoreService`.
+1. Domains receive concrete typed collaborators; `Services.Core.Service` utilities are optional.
    - Expected location: `packages/redbox-core/src/services`.
 2. Each service has a unit test in `packages/redbox-core/test`.
 3. Each service has at least one integration test in `typescript/test/unit` (prefer `typescript/test/unit/services`).
 4. Avoid redundant local service declarations.
-   - Rationale: Sails places services on the global scope (and via `sails.services`), so declaring `declare const SomeService` or creating local service aliases in controllers or other modules (a common pattern added by debugging agents) is unnecessary and can cause confusion or type drift.
-   - Expected behavior: reference services via the canonical global (e.g. `SomeService`, `sails.services.someservice`, or via dependency access patterns used elsewhere in the repo) and remove local `declare const` statements or redundant `const X = globalThis.X` aliases.
+   - Rationale: V6 domains and transports receive explicit typed collaborators. Ambient service declarations hide ownership and permit type drift.
+   - Expected behavior: pass collaborators through the selected factory input and remove ambient service declarations and global aliases.
    - Area mapping: `controllers` or `angular` depending on where the declaration appears.
    - Severity: `minor` for stylistic fixes, `major` if the declaration hides or masks a different service implementation.
    - Evidence: include the exact file, line range, and snippet where the local declaration occurs (e.g., `declare const VocabularyService: ...`).
-   - Suggested fix: remove the local declaration and use the global service reference; update typings if necessary instead of duplicating runtime declarations.
+   - Suggested fix: remove the ambient declaration and bind the required collaborator through the selected factory input.
 
 ### Persistence
 
@@ -53,12 +53,10 @@ Use declared Prisma fields and repository interfaces. No model globals, model re
 
 ### Controllers
 
-1. Controllers extend `CoreController`.
-2. All controller actions use `this.sendResp` for responses.
-   - Never use `res.json`, `res.send`, `this.apiRespond`, or `this.ajaxRespond`.
-3. Routing includes both:
-   - CSRF-secured routes on `/:branding/:portal/<path>`.
-   - Non-CSRF routes on `/:branding/:portal/api/<path>`.
+1. HTTP handlers use explicit typed dependencies and owned response contracts.
+2. Route groups bind declared policy implementations before mounting.
+3. Mutations require browser CSRF or the host's independently verified bearer
+   exemption, including `/api` paths. Preserve current actor, brand and object ACLs.
 4. Navigation configuration is set for any new pages or menus.
    - Check core-types config models (for example `packages/redbox-core/src/configmodels/MenuConfig.ts`) and any branding defaults touched by the feature.
 5. Controllers include unit tests.
@@ -95,15 +93,15 @@ Example payload when issues exist:
 {
 "issues": [
 {
-"id": "controller-sendresp",
+"id": "handler-safe-errors",
 "area": "controllers",
-"rule": "All controller actions use this.sendResp for responses.",
+"rule": "HTTP handlers select safe display errors through the owned response contract.",
 "severity": "major",
-"message": "Controller action uses res.json instead of this.sendResp.",
-"file": "packages/redbox-core/src/controllers/MyController.ts",
+"message": "Handler exposes the original provider error to the client.",
+"file": "packages/redbox-core/src/http/express/institution.ts",
 "lines": "L88-L96",
-"evidence": "res.json({ ok: true })",
-"suggested_fix": "Replace res.json with this.sendResp(res, 200, payload)."
+"evidence": "res.status(500).json(error)",
+"suggested_fix": "Use sendApiErrors with a safe code/title and record the original error in the existing request chronicle."
 }
 ]
 }
