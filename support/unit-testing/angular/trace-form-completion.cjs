@@ -3,6 +3,7 @@
 const { spawn } = require('node:child_process');
 const { mkdirSync, appendFileSync } = require('node:fs');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 
 const directory = path.resolve(process.cwd(), '../.tmp/form-completion-trace');
 mkdirSync(directory, { recursive: true });
@@ -74,7 +75,17 @@ function attach(target) {
     if (message.method === 'Network.webSocketFrameSent') {
       const payload = data.response.payloadData;
       const packet = /^\d+\["([^"]+)"/.exec(payload)?.[1];
-      if (packet === 'complete' || payload.length > 1000000) record('websocket-send', { packet, bytes: payload.length });
+      if (packet === 'complete' || payload.length > 1000000) {
+        const data = { packet, bytes: Buffer.byteLength(payload), sha256: createHash('sha256').update(payload.slice(1)).digest('hex') };
+        if (packet === 'complete') {
+          try {
+            const decoded = JSON.parse(payload.slice(payload.indexOf('[')));
+            data.coverageFiles = Object.keys(decoded[1]?.coverage || {}).length;
+            data.keys = Object.keys(decoded[1] || {});
+          } catch (error) { data.parseError = error.message; }
+        }
+        record('websocket-send', data);
+      }
     }
     if (message.method === 'Debugger.paused') {
       record('paused-stack', {
@@ -95,7 +106,7 @@ function attach(target) {
     sampling = true;
     try {
       const result = await command('Runtime.evaluate', {
-        expression: `JSON.stringify([window,...Array.from(document.querySelectorAll('iframe'),frame=>frame.contentWindow)].map(view=>({url:view.location.href,visibility:view.document.visibilityState,state:view.__redboxFormCompletionTrace?.()})))`,
+        expression: `JSON.stringify([window,...Array.from(document.querySelectorAll('iframe'),frame=>frame.contentWindow)].map(view=>({url:view.location.href,visibility:view.document.visibilityState,state:view.__redboxFormCompletionTrace?.(),socket:view.karma?.socket && {connected:view.karma.socket.connected,transport:view.karma.socket.io.engine.transport.name,readyState:view.karma.socket.io.engine.readyState,writeBuffer:view.karma.socket.io.engine.writeBuffer.length}})))`,
         returnByValue: true,
       });
       if (result.exceptionDetails) record('snapshot-exception', { details: result.exceptionDetails });

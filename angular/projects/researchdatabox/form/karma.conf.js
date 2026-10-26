@@ -1,13 +1,15 @@
 module.exports = function (config) {
   const isCI = process.env.CI === 'true';
+  const traceCompletion = process.env.REDBOX_FORM_COMPLETION_TRACE === 'true';
 
   config.set({
     basePath: './',
-    files: process.env.REDBOX_FORM_COMPLETION_TRACE === 'true'
+    files: traceCompletion
       ? [{ pattern: require('path').resolve(__dirname, '../../../../support/unit-testing/angular/form-completion-probe.js'), watched: false }]
       : [],
-    frameworks: ['jasmine', '@angular-devkit/build-angular'],
+    frameworks: ['jasmine', '@angular-devkit/build-angular', ...(traceCompletion ? ['form-completion-server-trace'] : [])],
     plugins: [
+      ...(traceCompletion ? [require('../../../../support/unit-testing/angular/form-completion-server-trace.cjs')] : []),
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
