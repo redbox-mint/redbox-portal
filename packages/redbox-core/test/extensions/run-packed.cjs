@@ -81,9 +81,9 @@ function install(args, log) {
     throw error;
   }
 }
-install(['install', '--prefer-offline', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'install.log');
+install(['install', '--strict-peer-deps', '--legacy-peer-deps=false', '--prefer-offline', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'install.log');
 fs.rmSync(path.join(sandbox, 'node_modules'), { recursive: true, force: true });
-install(['ci', '--offline', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'offline-ci.log');
+install(['ci', '--strict-peer-deps', '--legacy-peer-deps=false', '--offline', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'offline-ci.log');
 fs.copyFileSync(
   path.join(__dirname, maintenance ? '../maintenance/packed-mongo.cjs' : 'packed-consumer.cjs'),
   path.join(sandbox, 'verify.cjs')
