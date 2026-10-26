@@ -746,6 +746,131 @@ describe('QuestionTreeComponent', async () => {
   });
 
   describe("activation rule checks", () => {
+    it('clears loaded answers from branches that are already hidden before initializing the outcome', async () => {
+      const config = structuredClone(clientFormConfig);
+      config.componentDefinitions = config.componentDefinitions!.slice(0, 1);
+      config.componentDefinitions[0].model!.config!.value = {
+        question_1: 'yes', question_2: ['no'], question_3: 'yes',
+      };
+      const {fixture, formComponent} = await createFormAndWaitForReady(config);
+      await advanceTime(fixture);
+      const tree = formComponent.componentDefArr[0].component as QuestionTreeComponent;
+      expect(tree.model?.getValue()).toEqual({
+        question_1: 'yes', question_2: null, question_3: null, [QuestionTreeOutcomeInfoKey]: null,
+      });
+      expect(tree.formFieldCompMapEntries[1].model?.validators).toEqual([]);
+      expect(tree.formFieldCompMapEntries[2].model?.validators).toEqual([]);
+      expect(formComponent.form?.valid).toBeTrue();
+    });
+
+    it('emits the final control and ancestor status when an unanswered branch is activated or hidden', async () => {
+      const config = structuredClone(clientFormConfig);
+      config.componentDefinitions = config.componentDefinitions!.slice(0, 1);
+      const {fixture, formComponent} = await createFormAndWaitForReady(config);
+      await advanceTime(fixture);
+      const tree = formComponent.componentDefArr[0].component as QuestionTreeComponent;
+      const q1 = tree.formFieldCompMapEntries[0].model!;
+      const q2 = tree.formFieldCompMapEntries[1].model!;
+      const questionStatuses: string[] = [];
+      const treeStatuses: string[] = [];
+      const formStatuses: string[] = [];
+      const formValues: unknown[] = [];
+      const subscriptions = [
+        q2.formControl!.statusChanges.subscribe(status => questionStatuses.push(status)),
+        tree.model!.formControl!.statusChanges.subscribe(status => treeStatuses.push(status)),
+        formComponent.form!.statusChanges.subscribe(status => formStatuses.push(status)),
+        formComponent.form!.valueChanges.subscribe(value => formValues.push(value)),
+      ];
+      for (const answer of ['no', 'yes', 'no', 'yes']) {
+        q1.setValue(answer);
+        await advanceTime(fixture);
+        const expectedStatus = answer === 'no' ? 'INVALID' : 'VALID';
+        expect(q2.formControl?.status).toBe(expectedStatus);
+        expect(questionStatuses.at(-1)).toBe(expectedStatus);
+        expect(treeStatuses.at(-1)).toBe(expectedStatus);
+        expect(formStatuses.at(-1)).toBe(expectedStatus);
+        expect(formValues.at(-1)).toEqual(formComponent.form?.value);
+        const settledCounts = [questionStatuses.length, treeStatuses.length, formStatuses.length, formValues.length];
+        await advanceTime(fixture, 500);
+        expect([questionStatuses.length, treeStatuses.length, formStatuses.length, formValues.length]).toEqual(settledCounts);
+      }
+      subscriptions.forEach(subscription => subscription.unsubscribe());
+    });
+
+    it('settles branch validation when a question has no layout wrapper', async () => {
+      const config = structuredClone(clientFormConfig);
+      config.componentDefinitions = config.componentDefinitions!.slice(0, 1);
+      const treeConfig = config.componentDefinitions[0].component.config as QuestionTreeFieldComponentConfigFrame;
+      delete treeConfig.componentDefinitions[1].layout;
+      const {fixture, formComponent} = await createFormAndWaitForReady(config);
+      const tree = formComponent.componentDefArr[0].component as QuestionTreeComponent;
+      const q1 = tree.formFieldCompMapEntries[0].model!;
+      const q2 = tree.formFieldCompMapEntries[1];
+      const q3 = tree.formFieldCompMapEntries[2];
+      expect(q2.layout).toBeUndefined();
+      const questionStatuses: string[] = [];
+      const subscription = q2.model!.formControl!.statusChanges.subscribe(status => questionStatuses.push(status));
+      for (const answer of ['no', 'yes']) {
+        q1.setValue(answer);
+        await advanceTime(fixture, 500);
+        expect(q2.component?.isVisible).toBe(answer === 'no');
+        expect(q2.model?.formControl?.status).toBe(answer === 'no' ? 'INVALID' : 'VALID');
+        const settledCount = questionStatuses.length;
+        await advanceTime(fixture, 500);
+        expect(questionStatuses.length).toBe(settledCount);
+        if (answer === 'no') {
+          q2.model?.setValue(['yes']);
+          await advanceTime(fixture, 500);
+          expect(q3.component?.isVisible).toBeTrue();
+          expect(q3.model?.formControl?.hasError('required')).toBeTrue();
+        } else {
+          expect(q3.component?.isVisible).toBeFalse();
+          expect(q3.model?.formControl?.valid).toBeTrue();
+        }
+      }
+      subscription.unsubscribe();
+    });
+
+    it('keeps configured validators and does not turn generated validators into configuration on reload', async () => {
+      const config = structuredClone(clientFormConfig);
+      config.componentDefinitions = config.componentDefinitions!.slice(0, 1);
+      const treeConfig = config.componentDefinitions[0].component.config as QuestionTreeFieldComponentConfigFrame;
+      const configuredValidator = {class: 'required', message: 'Configured requirement'};
+      treeConfig.componentDefinitions[1].model!.config!.validators = [configuredValidator];
+      const {fixture, formComponent} = await createFormAndWaitForReady(config);
+      await advanceTime(fixture);
+      for (let reload = 0; reload < 2; reload++) {
+        const tree = formComponent.componentDefArr[0].component as QuestionTreeComponent;
+        const q1 = tree.formFieldCompMapEntries[0].model!;
+        const q2 = tree.formFieldCompMapEntries[1].model!;
+        const q3 = tree.formFieldCompMapEntries[2].model!;
+        expect(q2.validators).toEqual([configuredValidator]);
+        expect(q2.formControl?.errors?.['required'].message).toBe('Configured requirement');
+        q1.setValue('no');
+        await advanceTime(fixture);
+        expect(q2.validators).toContain(configuredValidator);
+        q2.setValue(['yes']);
+        await advanceTime(fixture);
+        expect(q3.formControl?.hasError('required')).toBeTrue();
+        q1.setValue('yes');
+        await advanceTime(fixture);
+        expect(q2.validators).toEqual([configuredValidator]);
+        expect(q2.formControl?.errors?.['required'].message).toBe('Configured requirement');
+        expect(q3.validators).toEqual([]);
+        // Leave every question active so a reload would capture any leaked generated rules.
+        q1.setValue('no');
+        await advanceTime(fixture);
+        q2.setValue(['yes']);
+        await advanceTime(fixture);
+        formComponent.componentsContainer?.clear();
+        await formComponent.downloadAndCreateFormComponents(config);
+        await advanceTime(fixture);
+      }
+      const reloadedTree = formComponent.componentDefArr[0].component as QuestionTreeComponent;
+      expect(reloadedTree.formFieldCompMapEntries[1].model?.validators).toEqual([configuredValidator]);
+      expect(reloadedTree.formFieldCompMapEntries[2].model?.validators).toEqual([]);
+    });
+
     it('requires active answers, honors checkbox cardinality and validation groups, and releases hidden questions', async () => {
       const config = structuredClone(clientFormConfig);
       config.enabledValidationGroups = ['all'];
