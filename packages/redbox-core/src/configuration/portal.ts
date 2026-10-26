@@ -331,7 +331,7 @@ export const portalSchema = deploymentSchema
       .object({
         token: z.string(),
         appUrlOverride: z.string(),
-        sourceUrlBase: z.string().url().optional(),
+        sourceUrlBase: z.string().optional(),
         pdfPrefix: z.string().min(1),
         readinessStrategy: z.enum(['networkIdle', 'selector', 'jsFlag', 'networkIdle+selector']),
         readinessTimeout: positive,

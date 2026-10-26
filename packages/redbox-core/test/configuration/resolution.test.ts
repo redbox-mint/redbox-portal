@@ -47,14 +47,51 @@ const core = {
 };
 const executablePaths = ['transform'];
 describe('Startup configuration', () => {
+  it('accepts PDF source path prefixes and the empty value used for the current-brand default', () => {
+    const pdfgen = {
+      token: '',
+      appUrlOverride: '',
+      pdfPrefix: 'pdf',
+      readinessStrategy: 'networkIdle',
+      readinessTimeout: 60000,
+      networkIdleTime: 2000,
+      waitForSelector: '',
+      waitForFunction: '',
+      enableChromeLogging: false,
+      maxRetries: 2,
+      retryDelayMs: 5000,
+      retryBackoffMultiplier: 2,
+    };
+    for (const sourceUrlBase of ['', '/institution/research/record/view', '/institution/research/record/render?oid=']) {
+      const config = resolveStartupConfiguration({
+        schema: portalSchema,
+        core: portalDefaults(),
+        executablePaths: [
+          'dompurify.hooks.afterSanitizeAttributes',
+          'dompurify.hooks.beforeSanitizeElements',
+          'dompurify.hooks.afterSanitizeElements',
+        ],
+        application: { source: 'institution PDF settings', values: { pdfgen: { ...pdfgen, sourceUrlBase } } },
+      });
+      assert.equal(config.pdfgen?.sourceUrlBase, sourceUrlBase);
+    }
+    assert.throws(() => portalSchema.shape.pdfgen.parse({ ...pdfgen, sourceUrlBase: 123 }), /string/);
+  });
   it('accepts explicit IdP logout origins and refuses URLs with paths or credentials', () => {
     const defaults = portalDefaults().values;
     for (const origin of ['https://identity.example.invalid', 'http://localhost:28080']) {
       const result = portalSchema.shape.auth.parse({ ...(defaults.auth as object), logoutOrigins: [origin] });
       assert.deepEqual(result.logoutOrigins, [origin]);
     }
-    for (const origin of ['https://identity.example.invalid/path', 'https://user:password@identity.example.invalid', 'javascript:alert(1)']) {
-      assert.equal(portalSchema.shape.auth.safeParse({ ...(defaults.auth as object), logoutOrigins: [origin] }).success, false);
+    for (const origin of [
+      'https://identity.example.invalid/path',
+      'https://user:password@identity.example.invalid',
+      'javascript:alert(1)',
+    ]) {
+      assert.equal(
+        portalSchema.shape.auth.safeParse({ ...(defaults.auth as object), logoutOrigins: [origin] }).success,
+        false
+      );
     }
   });
   it('resolves every layer in order with typed env and CLI inputs, retaining functions', () => {
