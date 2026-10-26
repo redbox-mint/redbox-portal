@@ -432,3 +432,26 @@ the proof. No product fix or severe ordinary-user access exception is claimed.
 watchdog in the dependency and qualify natural process exit after real jobs and
 stop. Preserve worker/backend-write ownership and failed-drain retry; forcing
 exit or indiscriminately unrefing active-work timers is not a substitute.
+
+## B-17 — P2/P3: inherited developer documentation drift
+
+R23's complete documentation settlement compared the following instructions with
+feature base `a49366803164429f9d8bdd249dadcdf856c9d13e`. The same incorrect
+instructions were already present there. They are separate from instructions
+that became invalid when Sails retired. Exact baseline/current excerpts are in
+[R23's comparison table](final-review-r23/inherited-comparison.json).
+
+| Guidance | Severity and observed problem | Follow-up |
+| --- | --- | --- |
+| `support/wiki/Data-Migrations.md` invokes `npx redbox-dev-tools` | P2: unscoped registry name is not the owned CLI; this identical command predates retirement. | Use the qualified built `@researchdatabox/redbox-dev-tools` entry, with a real application path. |
+| `support/wiki/Translation-Updates-Runbook.md` invokes `packages/redbox-dev-tools/dist/bin/redbox-dev-tools.js` | P2: that executable did not exist at the feature base and still does not; the executable is `packages/redbox-dev-tools/bin/cli.js`. | Correct the command and run an authenticated translation synchronization in an owned fixture. |
+| Bundled testing skills | P2: `RBPORTAL_MOCHA_TESTS` and `test/unit/services/*.js` are not the current selector/path; use `RBPORTAL_MOCHA_TEST_PATHS` and `test/integration/services/*.ts`. The description of the default Mocha/Bruno aliases as nonmount CI paths also predates retirement. | Align both skill copies with `package.json` and the actual runners; add selector/profile argument tests. |
+| Bundled review/test-verification skills | P2: nonexistent `typescript/test/...`, `test/bruno/general`/`test/bruno/run` and `support/wiki/redbox-core.md` paths already existed in the instructions at the base. | Route authors to the actual root integration/Bruno and wiki paths. |
+| Bundled Angular/form generator skills | P2: `generate_angular_app`, `generate_angular_service` and `generate_form_field` names already disagreed with the CLI's `generate` command tree. | Replace with executable built-CLI examples and check `generate --help`. |
+| `translation-content-format-metadata.md` absolute `/Users/andrewbrazzatti/...` links; missing `Improved-Related-Record-Handling.md` link; nonexistent Figshare migration test links | P3: source/navigation links were already absent or machine-specific at the base. | Repair relative links to the actual implementations/tests. |
+| `Server-Side-Form-Validation-Operations.md` combined example | P3: one fenced block combines `module.exports.recordValidation` and a bare record-type `recordValidation` fragment; `node --check` rejects the combined block at both revisions. | Split the module and object-fragment examples and label their insertion locations. |
+
+R23 leaves these inherited items open. Syntax checks also reject literal
+`<shell>` and `https://<portal-host>` placeholders; those are declared replacement
+parameters, not additional product defects. No inherited access-control exception
+was found in this documentation review.

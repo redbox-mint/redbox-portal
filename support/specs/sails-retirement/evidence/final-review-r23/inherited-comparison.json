@@ -1,0 +1,142 @@
+[
+  {
+    "id": "unscoped-migration-cli",
+    "page": "support/wiki/Data-Migrations.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "12: npx redbox-dev-tools --root /path/to/app generate migration backfill-dataset-label"
+    ],
+    "currentLines": [
+      "12: npx redbox-dev-tools --root /path/to/app generate migration backfill-dataset-label"
+    ]
+  },
+  {
+    "id": "translation-cli-path",
+    "page": "support/wiki/Translation-Updates-Runbook.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "45: node packages/redbox-dev-tools/dist/bin/redbox-dev-tools.js sync-translation \\"
+    ],
+    "currentLines": [
+      "45: node packages/redbox-dev-tools/dist/bin/redbox-dev-tools.js sync-translation \\"
+    ]
+  },
+  {
+    "id": "test-selector",
+    "page": "packages/redbox-dev-tools/skills/redbox-testing/SKILL.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "23:   RBPORTAL_MOCHA_TESTS=\"test/unit/services/SolrSearchService.test.js\" npm run test:mocha:mount"
+    ],
+    "currentLines": [
+      "23:   RBPORTAL_MOCHA_TESTS=\"test/unit/services/SolrSearchService.test.js\" npm run test:mocha:mount"
+    ]
+  },
+  {
+    "id": "test-profile",
+    "page": "packages/redbox-dev-tools/skills/redbox-testing/SKILL.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "31:   This runs the tests using the `portal` profile without mounting local code."
+    ],
+    "currentLines": [
+      "31:   This runs the tests using the `portal` profile without mounting local code."
+    ]
+  },
+  {
+    "id": "nonexistent-test-tree",
+    "page": "packages/redbox-dev-tools/skills/redbox-test-verification/SKILL.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "19: - For every new/modified service in `packages/redbox-core/src/services`, add an integration test under `typescript/test/integration/services`. Prefer naming the file after the service (e.g., `MyService.test.ts`).",
+      "21: - Import shared fixtures or helpers from `typescript/test/integration/services/helpers` as needed, but focus on exercising the whole service flow (setup data, call the method or endpoint, then read back the data it should have created/updated).",
+      "22: - Keep the tests in TypeScript, run via Mocha inside the Docker test harness, and update any shared fixtures or `typescript/test/unit/services/index.ts` helpers if required."
+    ],
+    "currentLines": [
+      "19: - For every new/modified service in `packages/redbox-core/src/services`, add an integration test under `typescript/test/integration/services`. Prefer naming the file after the service (e.g., `MyService.test.ts`).",
+      "21: - Import shared fixtures or helpers from `typescript/test/integration/services/helpers` as needed, but focus on exercising the whole service flow (setup data, call the method or endpoint, then read back the data it should have created/updated).",
+      "22: - Keep the tests in TypeScript, run via Mocha inside the Docker test harness, and update any shared fixtures or `typescript/test/unit/services/index.ts` helpers if required."
+    ]
+  },
+  {
+    "id": "generator-spelling",
+    "page": "packages/redbox-dev-tools/skills/redbox-angular-apps/SKILL.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "17: Use the `redbox-dev-tools` CLI generator `generate_angular_app`:"
+    ],
+    "currentLines": [
+      "17: Use the `redbox-dev-tools` CLI generator `generate_angular_app`:"
+    ]
+  },
+  {
+    "id": "absolute-author-links",
+    "page": "support/wiki/translation-content-format-metadata.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "43: 2. Update [I18nEntriesService.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/services/I18nEntriesService.ts):",
+      "50:    - [webservice/TranslationController.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/controllers/webservice/TranslationController.ts)",
+      "51:    - [TranslationController.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/controllers/TranslationController.ts)",
+      "59: Update [translation.service.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts):",
+      "68: Update [translation.component.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.ts):",
+      "102: Update [translation.component.html](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.html):",
+      "117:    - [content.outline.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/sails-ng-common/src/config/component/content.outline.ts)",
+      "118:    - [content.model.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/sails-ng-common/src/config/component/content.model.ts)",
+      "125: 2. Update [construct.visitor.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/visitor/construct.visitor.ts) to pass through `translationContentFormat`.",
+      "127: 3. Update [content.component.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/form/src/app/component/content.component.ts):",
+      "160: Add or update Angular translation app tests in [translation.component.spec.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.spec.ts):",
+      "174: Add or update form content component tests in [content.component.spec.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/form/src/app/component/content.component.spec.ts):"
+    ],
+    "currentLines": [
+      "43: 2. Update [I18nEntriesService.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/services/I18nEntriesService.ts):",
+      "50:    - [webservice/TranslationController.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/controllers/webservice/TranslationController.ts)",
+      "51:    - [TranslationController.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/controllers/TranslationController.ts)",
+      "59: Update [translation.service.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts):",
+      "68: Update [translation.component.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.ts):",
+      "102: Update [translation.component.html](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.html):",
+      "117:    - [content.outline.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/sails-ng-common/src/config/component/content.outline.ts)",
+      "118:    - [content.model.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/sails-ng-common/src/config/component/content.model.ts)",
+      "125: 2. Update [construct.visitor.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/visitor/construct.visitor.ts) to pass through `translationContentFormat`.",
+      "127: 3. Update [content.component.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/form/src/app/component/content.component.ts):",
+      "160: Add or update Angular translation app tests in [translation.component.spec.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/translation/src/app/translation.component.spec.ts):",
+      "174: Add or update form content component tests in [content.component.spec.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/angular/projects/researchdatabox/form/src/app/component/content.component.spec.ts):"
+    ]
+  },
+  {
+    "id": "absent-wiki-page",
+    "page": "support/wiki/Configuring-Record-Types-in-ReDBox.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "3: For the runtime behaviour of record relationships, including default expansion depth and supported `relatedTo` semantics, see [Improved Related Record Handling](Improved-Related-Record-Handling.md)."
+    ],
+    "currentLines": [
+      "9: For the runtime behaviour of record relationships, including default expansion depth and supported `relatedTo` semantics, see [Improved Related Record Handling](Improved-Related-Record-Handling.md)."
+    ]
+  },
+  {
+    "id": "validation-fragment",
+    "page": "support/wiki/Server-Side-Form-Validation-Operations.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "14: recordValidation: {",
+      "50: recordValidation: {"
+    ],
+    "currentLines": [
+      "20: recordValidation: {",
+      "56: recordValidation: {"
+    ]
+  },
+  {
+    "id": "missing-figshare-tests",
+    "page": "support/wiki/Figshare-Service-Technical-Guide.md",
+    "baseline": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+    "baselineLines": [
+      "557: | `packages/redbox-core/test/migrations/figshare-categories-crosswalk-binding.test.ts` | The legacy-config migration, including double-run idempotency |",
+      "558: | `packages/redbox-core/test/migrations/figshare-drop-unused-config-keys.test.ts` | Removal of the unread config keys, including the `articleUrlPaths` carry-over |"
+    ],
+    "currentLines": [
+      "577: | `packages/redbox-core/test/migrations/figshare-categories-crosswalk-binding.test.ts` | The legacy-config migration, including double-run idempotency |",
+      "578: | `packages/redbox-core/test/migrations/figshare-drop-unused-config-keys.test.ts` | Removal of the unread config keys, including the `articleUrlPaths` carry-over |"
+    ]
+  }
+]

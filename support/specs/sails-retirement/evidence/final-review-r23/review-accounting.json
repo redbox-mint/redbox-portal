@@ -1,0 +1,336 @@
+{
+  "round": 23,
+  "inheritanceBase": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "portal": {
+    "branch": "stack/sails-retirement",
+    "incoming": "f22474ec44b337fa6e75bc186ac0c09380990bfa",
+    "product": "9a2d72bd3433c807f0edece68be6d0f0e8ee7e55"
+  },
+  "wsu": {
+    "path": "/home/andrew/src/bitbucket/redbox-hook-wsu-v6",
+    "branch": "feature/v6-express",
+    "incomingAndFinal": "80b2b80c036cbfd286d36ac9140beee2421d42d5",
+    "modified": false
+  },
+  "toolchain": {
+    "node": "26.11.1",
+    "npm": "11.20.0"
+  },
+  "newFindings": {
+    "A_P1": 0,
+    "A_P2": 10,
+    "unfixedA_P1_P2": 0
+  },
+  "gatePassed": false,
+  "tasksChecked": 54,
+  "tasksTotal": 55,
+  "inheritedBacklogGroups": 17,
+  "documentation": {
+    "pages": 133,
+    "incomingSamples": 353,
+    "finalSamples": 346,
+    "classification": {
+      "incoming": {
+        "current": 9902,
+        "wrong": 177,
+        "intentionally historical": 137
+      },
+      "final": {
+        "current": 9982,
+        "intentionally historical": 153,
+        "wrong": 42
+      }
+    },
+    "syntaxChecks": 105,
+    "syntaxSuccess": 102,
+    "syntaxDiagnostics": [
+      "two declared placeholders",
+      "one inherited combined fragment"
+    ]
+  },
+  "runtimeChangesSinceR20": [],
+  "checks": [
+    {
+      "command": "node --test test/tooling/*.test.cjs",
+      "log": "tooling-final.log",
+      "exitCode": 0,
+      "pass": 49,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "command": "npm test --prefix packages/redbox-dev-tools",
+      "log": "devtools-full.log",
+      "exitCode": 0,
+      "pass": 60
+    },
+    {
+      "command": "npm run docs:test",
+      "log": "documentation-tests.log",
+      "exitCode": 0,
+      "pass": 4
+    },
+    {
+      "command": "npm run docs:audit",
+      "log": "documentation-audit-final.log",
+      "exitCode": 0,
+      "surfaces": 43,
+      "advisoryFindings": 524
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p packages/redbox-core/tsconfig.json --noEmit",
+      "log": "core-typecheck-final.log",
+      "exitCode": 0
+    },
+    {
+      "command": "python3 support/specs/sails-retirement/evidence/final-review-r23/verify-examples.py",
+      "log": "all-docs-incoming.log",
+      "exitCode": 0,
+      "expectedFailure": true,
+      "pass": 0,
+      "fail": 10,
+      "incomingSubprocessExitCode": 1
+    },
+    {
+      "command": "bash -euc <exact initial migration guide block>",
+      "log": "migration-guide.log",
+      "exitCode": 0
+    },
+    {
+      "command": "bash -euc <exact Services guide block>",
+      "log": "services-guide.log",
+      "exitCode": 0
+    },
+    {
+      "command": "node support/specs/sails-retirement/evidence/retirement-closure.cjs",
+      "log": "closure-final.log",
+      "exitCode": 0,
+      "scannedFiles": 1227,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0
+    },
+    {
+      "command": "node support/specs/sails-retirement/evidence/inventory.cjs HEAD",
+      "log": "source-inventory.log",
+      "exitCode": 0,
+      "matchedFiles": 1198,
+      "unclassified": 0
+    },
+    {
+      "command": "node support/specs/sails-retirement/evidence/reconcile-retirement-inventory.cjs <source-inventory.log> <closure-final.log>",
+      "log": "inventory-reconciliation.json",
+      "exitCode": 0,
+      "baselineFiles": 1261,
+      "newCandidates": 444
+    },
+    {
+      "command": "npm run build --prefix packages/redbox-dev-tools",
+      "log": "devtools-build-final.log",
+      "exitCode": 0
+    }
+  ],
+  "setupFailures": "Retained logs and verification.md distinguish initial fixture, command-alias and local dependency errors from accepted runs.",
+  "cleanup": {
+    "createdDockerResources": 0,
+    "temporaryDirectoriesRemoved": true,
+    "unchangedCheckoutSafeguards": 13,
+    "pushPublishOrTag": false
+  },
+  "rawArtifacts": [
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/all-docs-incoming.log",
+      "bytes": 150302,
+      "sha256": "ce8a601d37c03e54dc091ce4d9b0fb7005b0f574bf20bb0d6c356c757745942c"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/checkout-safeguards-final.json",
+      "bytes": 4159,
+      "sha256": "da73f906ff3dcf5d6c7ef2edf1002eb4a91ef464232530b7e967e0d0398a6198"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/checkout-safeguards-initial.json",
+      "bytes": 4159,
+      "sha256": "da73f906ff3dcf5d6c7ef2edf1002eb4a91ef464232530b7e967e0d0398a6198"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/closure-final.log",
+      "bytes": 243704,
+      "sha256": "6bd9e0eef10f3a5b4f0a79b5becaf3f5385bbcdb82971857265acb046bcd1afe"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/closure.log",
+      "bytes": 243699,
+      "sha256": "04008290239c3aafdad667bd3e9f2fd7961ce7a10d1224ac6a794418f3df5b83"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/config-guide-fixed.log",
+      "bytes": 199,
+      "sha256": "69ea77e8ff04efcb80b5c4913cd889790acef461388f1c9c2ec74b72b168907d"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/config-guide-incoming.log",
+      "bytes": 1738,
+      "sha256": "107f64b279901a488af6d151dcdfcc18363a26efa80465eb19443c6c347b57b2"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/core-dependency-prepare.log",
+      "bytes": 3418,
+      "sha256": "720d85dd6ab0246b9eb2d71fd1d80a6a7b9c62577d55369711caae8c916d5bf9"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/core-typecheck-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/core-typecheck.log",
+      "bytes": 4876,
+      "sha256": "d2d10c6e86ae40779f1ef90997b4e82eb08daa8fe1ff870adf1f00f7a1940b9a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/devtools-build-final.log",
+      "bytes": 71,
+      "sha256": "8175aefbe65657282411c5ff386e9479ae344b5d78e6ffd81d2c8cb1f5985879"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/devtools-full.log",
+      "bytes": 26571,
+      "sha256": "a4253cd143d7d54e28f901a91853209998f7e53af019c66207989d15daa2bf84"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/doc-api-candidates.txt",
+      "bytes": 49835,
+      "sha256": "d9439068aa6194a39b13e59b785e945bf0a3d7b3fd7275370da5f579f1910fa6"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/docs-fixed-first.log",
+      "bytes": 938,
+      "sha256": "42c2c930792db5872f601e38384d425645616fec393ded560d7e78e776e2d7e6"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/docs-incoming.log",
+      "bytes": 148612,
+      "sha256": "2c656d7286759360c28eebf092fec97dcda5372c3b7867d074233feb8a05fb78"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/documentation-audit-final.log",
+      "bytes": 221,
+      "sha256": "0e1eec794e07725e3070ec101bf8bcb3766fed42a8577f03cb3f133ef6ba6a8a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/documentation-audit.log",
+      "bytes": 2122,
+      "sha256": "208ba4bd971500f922c5387c7af4d3100509e2ed2f4e69dc2b76cdedceef76e3"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/documentation-extracted.json",
+      "bytes": 1253386,
+      "sha256": "e74ab2e5e4d8a74be669bd1bdd67697f4eff3c0f4628f8500715d3af89810cb8"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/documentation-tests.log",
+      "bytes": 591,
+      "sha256": "1552524ffc711b22b610a054259c9f466cfbc8fe0beb09ccf48dfa7ba8da0d37"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/example-survey-final.log",
+      "bytes": 250,
+      "sha256": "a0047e9e519952e8adb53a53098c22fbc3bbe2ebf088ca4a1f0d991547cf5e92"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/example-survey.log",
+      "bytes": 250,
+      "sha256": "a0047e9e519952e8adb53a53098c22fbc3bbe2ebf088ca4a1f0d991547cf5e92"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/incoming-documentation-extracted.json",
+      "bytes": 1259694,
+      "sha256": "a53513760c05dbd1c5cb6d7dd72e7194904784943034e9dbc412dd0798752912"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/incoming-missing-path-candidates.json",
+      "bytes": 14440,
+      "sha256": "51f91936a94454cc082e903bb267b764ae383e2219150258c2cab79ca7891ade"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/inventory-reconciliation.json",
+      "bytes": 884950,
+      "sha256": "5c2264a75d8f6714c2aa8cb1696817a5d45c115d54022a8a0f82bdf921620623"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/js-syntax.json",
+      "bytes": 3031,
+      "sha256": "bdb97414687c9f4b23fe598cc44650e9bb7e65f0f12b51f56b1516859b67c4d8"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/migration-guide.json",
+      "bytes": 503,
+      "sha256": "8dba9f83a36ebbee18ce7fd37d0fc499edcf62f9a144406433263b5a88084d53"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/migration-guide.log",
+      "bytes": 1650,
+      "sha256": "7a825a1ada1fd65aa05f9ae1c2be612702413714d91ad593d335b3a3611720a3"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/missing-path-candidates.json",
+      "bytes": 9312,
+      "sha256": "ec23649f193056061b392e38e9ab6790535875ec4812e7a2611c459b46067de2"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/missing-symbols.json",
+      "bytes": 595,
+      "sha256": "cdeb66c8361ee787fe3fe266823c996597cae7c213273abdc7880ab3be9e5a0c"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/npm-script-check.json",
+      "bytes": 175,
+      "sha256": "4884c317896a37dc1beb9b47759138a3f96eb713a6062627502afdcf48f9d3c9"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/runtime-since-r20.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/services-guide.json",
+      "bytes": 182,
+      "sha256": "57fdc7a4250963e431e61316891de00b6ef3d38ede8414c12d32db085d2729eb"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/services-guide.log",
+      "bytes": 532,
+      "sha256": "820fc51ec2030897b74e33119d0813ac2ebc7532a5210e50ae7d8aa7de41cafd"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/source-inventory.log",
+      "bytes": 446565,
+      "sha256": "3561b7621c6abef5f1d77613431c06710f0d94ffd7039ebca8f048970b00974a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/syntax-final.json",
+      "bytes": 25632,
+      "sha256": "8b5c8a614259a29bc0c4db7facd7982fd1eae6e83aed35d5e0e4d3598c4e0e9a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/tooling-final.log",
+      "bytes": 4375,
+      "sha256": "0a9f3fd08f019f7b51f8ebf7d708e11c799eba3018490d99b1f1bba8d37512f1"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/tooling-full-final.log",
+      "bytes": 4373,
+      "sha256": "36da19da67e8b7145495ea2e972cb753e723960930bbe2892dc273d70e06d3b5"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/tooling-full.log",
+      "bytes": 5463,
+      "sha256": "f82791acb7448ef06718819fb7cb2f946450b8d6014da9ceb0a0c1b48292b3af"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r23/update-guides.py",
+      "bytes": 11854,
+      "sha256": "ebc51ef2d7a75d443f5d4846cf74ff33a92e79be21f99085c8e91386f7452a4a"
+    }
+  ]
+}
