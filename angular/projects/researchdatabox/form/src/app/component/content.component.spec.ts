@@ -11,7 +11,12 @@ import { UtilityService, HandlebarsTemplateService, TranslationService } from "@
 describe('ContentComponent', () => {
   let utilityService: UtilityService;
   let translationService: any;
-  let lastTemplateContext: any;
+  let lastTemplateContext: {
+    content?: unknown;
+    outputFormat?: string;
+    translationService?: Pick<TranslationService, 't'>;
+    runtimeContext?: { record?: { hasEditAccess?: boolean } };
+  } | undefined;
   let dynamicAssetOptions: DynamicAssetOptions
   const mockHandlebarsTemplateService = {};
 
@@ -83,7 +88,7 @@ describe('ContentComponent', () => {
       }] };
       const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, undefined, undefined, assets);
       const link = (fixture.nativeElement as HTMLElement).querySelector('a');
-      expect(lastTemplateContext.runtimeContext.record.hasEditAccess).toBe(hasEditAccess);
+      expect(lastTemplateContext?.runtimeContext?.record?.hasEditAccess).toBe(hasEditAccess);
       expect(!!link).toBe(hasEditAccess === true);
       expect(formComponent.editMode()).toBeFalse();
       if (hasEditAccess) expect(link?.getAttribute('href')).toContain(formComponent.oid());

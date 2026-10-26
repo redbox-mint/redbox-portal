@@ -469,6 +469,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
+    this.clearLoadedForm();
     if (!formConfig) {
       this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
       this.formDefMap = await this.formService.downloadFormComponents(
@@ -528,6 +529,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Finally set the flag indicating components are loaded
     this.componentsLoaded.set(true);
   }
+  private clearLoadedForm(): void {
+    // A reused form host must release the previous record before loading another.
+    this.componentsLoaded.set(false);
+    Object.values(this.subMaps).forEach(sub => sub.unsubscribe());
+    this.subMaps = {};
+    this.behaviourManager.destroy();
+    this.componentsContainer?.clear();
+    this.form = undefined;
+    this.formDefMap = undefined;
+    this.componentDefQuerySource = undefined;
+  }
+
   /**
    * Set up the JSONata query source from component definitions
    */
@@ -537,7 +550,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   public getExpressionRuntimeContext(): JSONataQueryRuntimeContext {
     const serverContext = this.formDefMap?.formConfigMeta?.['runtimeContext'] as JSONataQueryRuntimeContext | undefined;
-    return { ...serverContext, requestParams: this.requestParams(), oid: this.trimmedParams.oid() };
+    return structuredClone({ ...serverContext, requestParams: this.requestParams(), oid: this.trimmedParams.oid() });
   }
   /**
    *

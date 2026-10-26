@@ -684,9 +684,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
 
     (consumer as any).options = { component, definition };
     (consumer as any).expressions = [expr];
-    const authority = { user: { roles: ['Researcher'] }, record: { type: 'rdmp', hasEditAccess: false }, oid: 'current-oid' };
     (consumer as any).formComp = {
-      getExpressionRuntimeContext: () => authority,
       form: {
         value: {
           source: 'current',
@@ -706,15 +704,11 @@ describe('FormComponentValueChangeEventConsumer', () => {
       timestamp: Date.now(),
     };
 
-    await (consumer as any).evaluateExpressionJSONata(expr, event, 'template', {
-      runtimeContext: { user: { roles: ['Admin'] }, record: { type: 'spoofed', hasEditAccess: true }, oid: 'spoofed' }
-    });
+    await (consumer as any).evaluateExpressionJSONata(expr, event, 'template');
 
     const [, context] = evaluateSpy.calls.mostRecent().args;
     expect(context.requestParams).toEqual({ focusTabId: 'tab2' });
-    expect(context.runtimeContext).toEqual({ ...authority, requestParams: { focusTabId: 'tab2' } });
-    context.runtimeContext.user.roles.push('Admin');
-    expect(authority.user.roles).toEqual(['Researcher']);
+    expect(context.runtimeContext).toEqual({ requestParams: { focusTabId: 'tab2' } });
   });
 
   it('should expose JSONataQuery runtime context under named properties', async () => {

@@ -179,11 +179,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       const eventClone = this.cloneExpressionContextValue(event, 'event');
       const formData = this.cloneExpressionContextValue(rawFormValue, 'formData');
       const requestParams = this.cloneExpressionContextValue(
-        (additionalData as { requestParams?: unknown }).requestParams ?? this.formComp?.requestParams?.() ?? {},
+        this.formComp?.requestParams?.() ?? (additionalData as { requestParams?: unknown }).requestParams ?? {},
         'requestParams'
       );
       const runtimeContext = this.cloneExpressionContextValue(
-        { ...(additionalData as { runtimeContext?: object }).runtimeContext, ...this.formComp?.getExpressionRuntimeContext?.(), requestParams },
+        { ...this.formComp?.getExpressionRuntimeContext?.(), requestParams },
         'runtimeContext'
       );
 
