@@ -1326,6 +1326,28 @@ export namespace Services {
       return isRecordRevision(record.revision) ? record.revision : undefined;
     }
 
+    /**
+     * A postSync hook may persist the record itself and return the committed
+     * snapshot. Adopt its revision so the chained write targets what storage holds.
+     * Only a strictly newer, valid revision is adopted; the storage CAS still
+     * rejects the write if anything else committed after the hook.
+     */
+    private adoptHookCommittedRevision(candidate: AnyRecord | undefined, currentRevision: number): number;
+    private adoptHookCommittedRevision(
+      candidate: AnyRecord | undefined,
+      currentRevision: number | undefined
+    ): number | undefined;
+    private adoptHookCommittedRevision(
+      candidate: AnyRecord | undefined,
+      currentRevision: number | undefined
+    ): number | undefined {
+      return isRecordRevision(candidate?.revision) &&
+        currentRevision !== undefined &&
+        candidate.revision > currentRevision
+        ? candidate.revision
+        : currentRevision;
+    }
+
     private recordMutationOptions(
       context: RecordSaveContext,
       expectedRevision?: number,
@@ -4616,6 +4638,7 @@ export namespace Services {
             // The awaited post-sync phase succeeded; later work is detached.
             hookOperation.completedThrough = 'postSync';
             if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
+              currentRevision = this.adoptHookCommittedRevision(postSyncCandidate, currentRevision);
               const hookMutationState = await this.persistPostSyncCandidate({
                 brand: brandObj,
                 oid,
@@ -4709,6 +4732,7 @@ export namespace Services {
               let transitionProblem: RecordSaveProblem | undefined;
               if (!this.hookResponseFailed(transitionResponse)) {
                 if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow')) {
+                  currentRevision = this.adoptHookCommittedRevision(transitionCandidate, currentRevision);
                   const transitionMutationState = await this.persistPostSyncCandidate({
                     brand: brandObj,
                     oid,
@@ -5878,6 +5902,7 @@ export namespace Services {
             if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
               const postSyncCandidate = this.mergeValidationCandidate(beforePostSyncCandidate, recordObj);
               recordObj = postSyncCandidate;
+              currentRevision = this.adoptHookCommittedRevision(postSyncCandidate, currentRevision);
               const hookMutationState = await this.persistPostSyncCandidate({
                 brand: brandObj,
                 oid,
@@ -5978,6 +6003,7 @@ export namespace Services {
                 if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
                   const transitionCandidate = this.mergeValidationCandidate(beforeTransitionCandidate, recordObj);
                   recordObj = transitionCandidate;
+                  currentRevision = this.adoptHookCommittedRevision(transitionCandidate, currentRevision);
                   const transitionMutationState = await this.persistPostSyncCandidate({
                     brand: brandObj,
                     oid,
