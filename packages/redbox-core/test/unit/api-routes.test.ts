@@ -87,7 +87,7 @@ import {
   resolveCreateRecordSchemaRoute,
   resolveUpdateRecordSchemaRoute,
 } from '../../src/api-routes/groups/record-schemas';
-import { objectField, stringField } from '../../src/api-routes/schemas/common';
+import { booleanField, integerField, objectField, stringField } from '../../src/api-routes/schemas/common';
 import {
   buildContractApiPolicies,
   mergeContractApiPolicies,
@@ -173,21 +173,105 @@ describe('API routes contract layer', function () {
   it('routes datastream filenames with extensions to the protected download action', function () {
     const routes = buildSailsRouteConfig([getDataStreamRoute]);
     expect(routes['get /:branding/:portal/api/records/datastreams/:oid/:datastreamId']).to.include({
-      controller: 'webservice/RecordController', action: 'getDataStream', skipAssets: false,
+      controller: 'webservice/RecordController',
+      action: 'getDataStream',
+      skipAssets: false,
     });
   });
   it('preserves named-query string filters and rejects structured filter values', function () {
-    const request = (query: Record<string, unknown>) => ({ params: {}, query, headers: {}, body: {} }) as unknown as Sails.Req;
-    const query = { queryName: 'listRecordNotificationLogs', start: '0', rows: '10', oid: 'synthetic-log', dateFrom: '2026-10-01', empty: '' };
+    const request = (query: Record<string, unknown>) =>
+      ({ params: {}, query, headers: {}, body: {} }) as unknown as Sails.Req;
+    const query = {
+      queryName: 'listRecordNotificationLogs',
+      start: '0',
+      rows: '10',
+      oid: 'synthetic-log',
+      dateFrom: '2026-10-01',
+      empty: '',
+      numeric: '123',
+      boolean: 'true',
+      json: '{"$ne":null}',
+    };
     const result = validateApiRouteRequest(request(query), executeNamedQueryRoute);
     expect(result.valid).to.equal(true);
     if (!result.valid) throw new Error('Expected named-query filters to pass validation');
     expect(result.query).to.deep.equal(query);
     for (const value of [{ $ne: null }, ['a', 'b'], null, 123, true]) {
-      const invalid = validateApiRouteRequest(request({ queryName: query.queryName, oid: value }), executeNamedQueryRoute);
+      const invalid = validateApiRouteRequest(
+        request({ queryName: query.queryName, oid: value }),
+        executeNamedQueryRoute
+      );
       expect(invalid.valid, JSON.stringify(value)).to.equal(false);
+      if (invalid.valid) throw new Error('Expected structured or non-string filters to fail validation');
       expect(invalid.issues.some(issue => issue.path === 'query.oid')).to.equal(true);
     }
+  });
+
+  for (const [name, field, raw, expected, type] of [
+    ['integer', integerField(), '42', 42, 'integer'],
+    ['boolean', booleanField(), 'true', true, 'boolean'],
+    ['nested', objectField({ count: integerField() }, ['count']), { count: '3' }, { count: 3 }, 'object'],
+    [
+      'nested catchall',
+      objectField({}, [], undefined, booleanField()),
+      { enabled: 'false' },
+      { enabled: false },
+      'object',
+    ],
+  ] as const) {
+    it(`coerces typed ${name} additional properties like declared fields and documents their schema`, function () {
+      const schema = objectField({ declared: field }, ['declared'], 'Typed values', field);
+      const route = apiRoute('post', '/typed-values', 'TestController', 'typedValues', {
+        query: schema,
+        body: { content: { 'application/json': { schema } } },
+      });
+      const req = {
+        query: { declared: raw, configured: raw },
+        body: { declared: raw, configured: raw },
+      } as unknown as Sails.Req;
+      const validated = validateApiRouteRequest(req, route);
+      expect(validated.valid).to.equal(true);
+      if (!validated.valid) throw new Error(JSON.stringify(validated.issues));
+      expect(validated.body).to.deep.equal({ declared: expected, configured: expected });
+      expect(validated.query).to.deep.equal({ declared: expected, configured: expected });
+
+      const document = buildOpenApiDocument([route], { title: 'Typed values', version: '1.0.0' });
+      const operation = asOpenApiOperation(document.paths['/typed-values'].post);
+      const body = operation.requestBody?.content?.['application/json']?.schema;
+      expect(body?.additionalProperties).to.deep.equal(body?.properties?.declared);
+      expect(body?.additionalProperties).to.have.property('type', type);
+      expect(
+        operation.parameters?.find(parameter => parameter.name === 'additionalQueryParams')?.schema?.additionalProperties
+      ).to.deep.equal(body?.additionalProperties);
+    });
+  }
+
+  it('preserves unknown passthrough values without coercion and strips disallowed extras', function () {
+    const configured = { count: '3', enabled: 'true', values: [1, 'two'] };
+    for (const additionalProperties of [true, false] as const) {
+      const schema = objectField({ count: integerField() }, ['count'], undefined, additionalProperties);
+      const req = { query: { count: '3', configured } } as unknown as Sails.Req;
+      const validated = validateApiRouteRequest(
+        req,
+        apiRoute('get', '/values', 'TestController', 'values', { query: schema })
+      );
+      expect(validated.valid).to.equal(true);
+      if (!validated.valid) throw new Error(JSON.stringify(validated.issues));
+      expect(validated.query).to.deep.equal(additionalProperties ? { count: 3, configured } : { count: 3 });
+    }
+  });
+
+  it('documents configured named-query filters as exploded top-level string parameters', async function () {
+    const document = buildOpenApiDocument([executeNamedQueryRoute], { title: 'Reports', version: '1.0.0' });
+    const operation = asOpenApiOperation(document.paths['/{branding}/{portal}/api/report/namedQuery'].get);
+    const extras = operation.parameters?.find(parameter => parameter.name === 'additionalQueryParams');
+    expect(extras).to.include({ in: 'query', style: 'form', explode: true, required: false });
+    expect(extras?.schema).to.include({ type: 'object' });
+    expect(extras?.schema?.additionalProperties).to.include({ type: 'string' });
+    expect(operation.parameters?.find(parameter => parameter.name === 'queryName')).to.include({ required: true });
+    expect(buildApiBlueprint([executeNamedQueryRoute])).to.include('Each filter value must be a scalar string');
+    expect(buildApiBlueprint([executeNamedQueryRoute])).to.include('Objects and arrays are rejected');
+    await SwaggerParser.validate(JSON.parse(JSON.stringify(document)));
   });
 
   it('should specialize the OpenAPI paths for the requested branding and portal', async function () {

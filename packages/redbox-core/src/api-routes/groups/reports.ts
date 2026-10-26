@@ -37,7 +37,7 @@ export const executeNamedQueryRoute = apiRoute(
   {
     tags: ['Reports'],
     summary: 'Execute named query report',
-    description: 'Supply additional query parameters using the names configured in the named query queryParams.',
+    description: 'Supply additional query parameters using the names configured in the named query queryParams. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected.',
     responses: {
       200: responseField(listApiResponseSchema(namedQueryResponseRecordSchema), 'Named query results'),
       400: badRequestResponse,

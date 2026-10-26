@@ -646,36 +646,37 @@ export const addDataStreamsRoute = apiRoute(
   }
 );
 
-export const getDataStreamRoute = defineApiRoute({ ...apiRoute(
-  'get',
-  '/:branding/:portal/api/records/datastreams/:oid/:datastreamId',
-  'webservice/RecordController',
-  'getDataStream',
-  {
-    params: datastreamParams,
-    query: recordDownloadQuery,
-    legacyParamFallbacks: recordDownloadLegacyFallbacks,
-  },
-  {
-    tags: ['Records'],
-    summary: 'Download datastream',
-    responses: {
-      200: {
-        description: 'Datastream file download',
-        headers: {
-          'Content-Disposition': stringField('Attachment filename'),
-        },
-        content: {
-          'application/octet-stream': {
-            schema: binaryField('Datastream file contents'),
+export const getDataStreamRoute = defineApiRoute({
+  ...apiRoute(
+    'get',
+    '/:branding/:portal/api/records/datastreams/:oid/:datastreamId',
+    'webservice/RecordController',
+    'getDataStream',
+    {
+      params: datastreamParams,
+      query: recordDownloadQuery,
+      legacyParamFallbacks: recordDownloadLegacyFallbacks,
+    },
+    {
+      tags: ['Records'],
+      summary: 'Download datastream',
+      responses: {
+        200: {
+          description: 'Datastream file download',
+          headers: {
+            'Content-Disposition': stringField('Attachment filename'),
+          },
+          content: {
+            'application/octet-stream': {
+              schema: binaryField('Datastream file contents'),
+            },
           },
         },
+        403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+        404: responseField(apiErrorResponseSchema, 'Record or datastream not found in the active brand'),
       },
-      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
-      404: responseField(apiErrorResponseSchema, 'Record or datastream not found in the active brand'),
-    },
-  }
-),
+    }
+  ),
   // Datastream identifiers are filenames, including .pdf and other extensions.
   skipAssets: false,
 });

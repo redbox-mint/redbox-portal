@@ -558,9 +558,10 @@ export function coerceValueForSchema(value: unknown, schema: ZodType): unknown {
       }
     }
     if (allowsAdditionalObjectProperties(schema)) {
+      const catchall = schema._zod.def.catchall;
       for (const [key, childValue] of Object.entries(value)) {
         if (!Object.prototype.hasOwnProperty.call(shape, key)) {
-          result[key] = childValue;
+          result[key] = catchall instanceof ZodType ? coerceValueForSchema(childValue, catchall) : childValue;
         }
       }
     }
