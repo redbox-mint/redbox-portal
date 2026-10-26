@@ -5,8 +5,9 @@ installable framework hooks and their `sails` manifest flags are retired.
 Published packages with historical names, including `sails-ng-common` and the
 bundled PDF/storage packages, keep those names and expose neutral entrypoints.
 
-Generate the supported scaffold with `redbox-dev-tools init institution-name`.
-`--template v6` is equivalent. The former `standard` template is rejected.
+Use the [built-source quick start](Redbox-Hook-Kit.md) to generate, compile,
+check and pack the supported scaffold with the qualified v6 artifacts.
+The CLI command is `init institution-name`; `--template v6` is equivalent. The former `standard` template is rejected.
 The package declares `redbox.extension` and exports
 `registerRedboxExtension(): RedboxExtension` with `apiVersion: 1`.
 

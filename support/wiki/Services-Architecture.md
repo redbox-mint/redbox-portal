@@ -43,10 +43,12 @@ its concrete dependencies and must explicitly accept extension-specific contract
 Do not pass a general service locator. Overrides declare `replaces: true` and
 preserve the selected contract's security, errors, concurrency, schema, audit and
 partial-effect rules. Use the validated example in
-`support/documentation/examples/hook-override.ts` and the v6 scaffold:
+`support/documentation/examples/hook-override.ts` and the v6 scaffold. From an
+empty hook directory, with `REDBOX_PORTAL_ROOT` set to the built qualified portal
+checkout (see the [quick start](Redbox-Hook-Kit.md)), run:
 
 ```sh
-npx redbox-dev-tools init redbox-hook-example --template v6
+node "$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js" init example --template v6
 ```
 
 Configured actions and record hooks resolve registered operation names. They

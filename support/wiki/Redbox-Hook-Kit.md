@@ -1,137 +1,54 @@
-# Redbox Dev Tools
+# Redbox Dev Tools for v6 hooks
 
-The `@researchdatabox/redbox-dev-tools` package provides shared configuration, generators, and migration tooling for developing ReDBox customisation hooks.
+Use the built `@researchdatabox/redbox-dev-tools` and core artifacts from the
+same qualified v6 portal checkout. Historical npm packages with the same version
+numbers can still contain the Sails implementation. An unqualified registry
+install does not establish v6 compatibility.
 
-## Overview
+Complete the portal's `npm run compile:all` first, using Node 26.11.1 and npm
+11.20.0. From that built portal checkout, this complete example creates a new
+hook in an empty sibling directory:
 
-This package provides:
-- **Shared TypeScript configuration** - Pre-configured TypeScript settings and type definitions
-- **Shared configuration** - Base `tsconfig.json` following ReDBox conventions
-- **CLI scaffolding** - Quick project initialization with `npx`
-- **Version alignment** - Versioned to match ReDBox core releases
-
-## Installation
-
-```bash
-npm install --save-dev @researchdatabox/redbox-dev-tools
-npm install @researchdatabox/redbox-core
+```sh
+export REDBOX_PORTAL_ROOT="$PWD"
+mkdir ../redbox-hook-demo-client
+cd ../redbox-hook-demo-client
+node "$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js" init demo-client --template v6
+npm install --save-dev --save-exact --ignore-scripts --strict-peer-deps --legacy-peer-deps=false "$REDBOX_PORTAL_ROOT/packages/redbox-core"
+npm run build
+node "$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js" check --v6
+npm pack --ignore-scripts
 ```
 
-## Quick Start
+`init` writes into the current directory. Its name argument sets the package
+name. The scaffold has exact compiler/type pins, a neutral `redbox.extension`
+manifest, a public runtime export, and package-relative views/assets. It declares
+`registerRedboxExtension()` with `apiVersion: 1`; it does not generate Sails
+controllers, service registrations, model shims or a standalone deployment.
 
-Initialize a new hook project:
+The `file:` core reference is for local development. Before publication, replace
+it with the deployment's exact qualified v6 core version or complete packed
+dependency set, then repeat isolated installation, build and pack. Do not publish
+a developer's local paths. Keep runtime-owned shared dependencies on the core
+contract rather than adding them to the hook.
 
-```bash
-npx @researchdatabox/redbox-dev-tools init
-```
+For a converted hook that uses the shared compiler, install the matching exact
+qualified dev-tools artifact as well. Extend
+`@researchdatabox/redbox-dev-tools/config/tsconfig.base.json` and retain its
+`run-hook-tsc.js` and `run-hook-mocha.js` wrappers. They resolve shared runtime
+packages through the core/toolchain contract. The generated minimal v6 scaffold
+instead has explicit compiler settings and its own pinned TypeScript compiler.
+The conservative Node 24 type base does not select the executing Node runtime.
 
-This creates:
-- `src/` with starter hook registrations for config, form configs, services, controllers, and migrations
-- `support/bootstrap-data`, `assets`, `views`, and `language-defaults` placeholders for client customisation material
-- Docker-backed development and Mocha integration harnesses, including a mounted-core workflow for testing against a local `redbox-portal` checkout
-- `tsconfig.json` extending the shared base configuration
+Registration returns declarations and named factories. The application binds
+each factory's concrete inputs, awaits initialization and migrations, activates
+workers and HTTP, then owns drain and close. EJS receives `page`; configuration
+and services are explicit inputs. Old `sails.hasControllers`,
+`registerRedboxControllers()` and `Core.Controller` examples are unsupported.
 
-## TypeScript Configuration
-
-Your hook's `tsconfig.json` should extend the shared configuration:
-
-```json
-{
-    "extends": "@researchdatabox/redbox-dev-tools/config/tsconfig.base.json",
-    "compilerOptions": {
-        "outDir": "./dist",
-        "typeRoots": [
-            "./node_modules/@types"
-        ]
-    },
-    "include": [
-        "src/**/*.ts",
-        "src/**/*.d.ts"
-    ]
-}
-```
-
-> **Note:** Shared runtime resolution for packages supplied by the Redbox contract is handled by the dev-tools compile and test wrappers, not by hook-local `paths` entries.
-
-## Compiling TypeScript
-
-Compile hooks with the dev tools wrapper so shared runtime resolution stays aligned with the Redbox hook contract:
-
-```bash
-node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json
-```
-
-Or add to your `package.json` scripts:
-
-```json
-{
-    "scripts": {
-        "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
-        "watch": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json --watch"
-    }
-}
-```
-
-This avoids hook-local `paths` hacks and ensures shared runtime packages such as `rxjs`, `axios`, and `lodash` resolve through the Redbox runtime/tooling contract.
-
-## Example Controller
-
-```typescript
-import { Controllers as controllers } from '@researchdatabox/redbox-core';
-
-declare var sails;
-
-export module Controllers {
-    export class MyController extends controllers.Core.Controller {
-        protected _exportedMethods: any = ['myAction'];
-
-        public myAction(req: any, res: any) {
-            return res.json({ message: 'Hello from my hook!' });
-        }
-    }
-}
-
-module.exports.registerRedboxControllers = function() {
-    return {
-        MyController: new Controllers.MyController().exports()
-    };
-};
-```
-
-Add `"sails": { "hasControllers": true }` to your hook `package.json` so the loader discovers your controller registration.
-
-For webservice controllers, export `registerRedboxWebserviceControllers()` instead of `registerRedboxControllers()`.
-
-## Included Dependencies
-
-The dev tools package includes these development dependencies:
-- `typescript` - TypeScript compiler
-- `ts-node` - TypeScript execution environment
-- `@tsconfig/node24` - Base TypeScript configuration for Node.js 24
-- `@types/node` - Node.js type definitions
-- `@types/lodash` - Lodash type definitions
-- `lodash` - Utility library
-- `rxjs` - Reactive extensions
-
-## Peer Dependencies
-
-- `@researchdatabox/redbox-core` (required)
-
-## Versioning
-
-Package versions match ReDBox Portal releases. For example, version `4.5.1` is compatible with ReDBox Portal `4.5.1`.
-
-## CLI Commands
-
-| Command | Description |
-|---|---|
-| `npx @researchdatabox/redbox-dev-tools init` | Initialize a migration-friendly ReDBox client hook archetype |
-| `npx @researchdatabox/redbox-dev-tools migrate-form-config --input <legacy.js> --output <migrated.ts>` | Migrate a legacy v4 JS form config file to v5 TS format |
-| `npx @researchdatabox/redbox-dev-tools completion <shell>` | Output shell completion script for `bash`, `zsh`, `fish`, and `powershell` |
-| `npx @researchdatabox/redbox-dev-tools help` | Show CLI help and usage information |
-
-## See Also
-
-- [Redbox Core Types](Redbox-Core-Types) - Core type definitions and business logic
-- [Customising ReDBox with a v6 extension](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
-- [Redbox Loader](Redbox-Loader) - How hooks are discovered and loaded
+Follow the [complete conversion guide](../specs/sails-retirement/hook-migration-v6.md)
+for compiler conversion, factory/work bindings, policies, persisted expressions,
+packaged pages and installed verification. The [extension contract](../specs/sails-retirement/extensions-v6.md)
+and [loading guide](Redbox-Loader.md) define the supported runtime. CLI help and
+completion are available through the same built CLI; form migration tools have
+separate input-specific guidance.
