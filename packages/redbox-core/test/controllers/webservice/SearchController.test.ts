@@ -1,140 +1,55 @@
-import {createSinonStubLogger} from "../../logger.test";
-
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { Controllers } from '../../../src/controllers/webservice/SearchController';
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountQueryReadRoutes } from '../../../src/http/express/queryReads';
+import { mountIntegrationOperationRoutes } from '../../../src/http/express/integrationOperations';
 
-function makeReq(req: Record<string, unknown>): Sails.Req {
-    return {
-        ...req,
-        apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
-            params: (req.params ?? {}) as Record<string, unknown>,
-            query: (req.query ?? {}) as Record<string, unknown>,
-            body: req.body,
-            files: (req.files as Record<string, unknown[]>) ?? {},
-        },
-    } as Sails.Req;
-}
-
-describe('Webservice SearchController', () => {
-    let controller: Controllers.Search;
-    let mockSails: any;
-    let originalSails: any;
-    let originalBrandingService: any;
-
-    beforeEach(() => {
-        originalSails = (global as any).sails;
-        originalBrandingService = (global as any).BrandingService;
-
-        mockSails = {
-            config: {
-                search: { serviceName: 'solrsearchservice' },
-                record: { search: { returnFields: ['id', 'title'] } }
-            },
-            services: {
-                recordsservice: {
-                    getMeta: sinon.stub(),
-                    getRecords: sinon.stub()
-                },
-                solrsearchservice: {
-                    index: sinon.stub(),
-                    remove: sinon.stub(),
-                    searchFuzzy: sinon.stub()
-                }
-            },
-            log: createSinonStubLogger(sinon),
-            after: sinon.stub(),
-            on: sinon.stub()
-        };
-
-        (global as any).sails = mockSails;
-        (global as any).BrandingService = {
-            getBrand: sinon.stub().returns({ id: 'brand-1' })
-        };
-
-        controller = new Controllers.Search();
-        controller.init();
-        // Trigger the hook ready event handler
-        const readyHandler = mockSails.after.firstCall.args[1];
-        readyHandler();
+describe('Search Express operations', () => {
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let records: Record<string, sinon.SinonStub>, search: Record<string, sinon.SinonStub>;
+  beforeEach(async () => {
+    records = { getMeta: sinon.stub(), getRecords: sinon.stub() };
+    search = {
+      index: sinon.stub().resolves(true),
+      removeBrand: sinon.stub().resolves(),
+      searchFuzzy: sinon.stub().resolves({}),
+    };
+    f = await httpRouteFixture((router, input) => {
+      mountQueryReadRoutes(router, { ...input, search, returnFields: ['id', 'title'] } as any);
+      mountIntegrationOperationRoutes(router, { ...input, search, records, audit: sinon.stub().resolves() } as any);
     });
-
-    afterEach(() => {
-        sinon.restore();
-        (global as any).sails = originalSails;
-        (global as any).BrandingService = originalBrandingService;
-    });
-
-    describe('index', () => {
-        it('should fetch record meta and index it', async () => {
-            const req = makeReq({ query: { oid: '123' } });
-            const res = {} as unknown as Sails.Res;
-            const mockRecord = { id: '123', metadata: { title: 'Test' } };
-            mockSails.services.recordsservice.getMeta.resolves(mockRecord);
-            mockSails.services.solrsearchservice.index.resolves(true);
-            const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
-
-            await controller.index(req, res);
-
-            expect(mockSails.services.recordsservice.getMeta.calledWith('123')).to.be.true;
-            expect(mockSails.services.solrsearchservice.index.calledWith('123', mockRecord)).to.be.true;
-            expect(apiRespondStub.called).to.be.true;
-        });
-    });
-
-    describe('removeAll', () => {
-        it('should call remove with wildcard', async () => {
-            const req = makeReq({ session: { branding: 'default' } as Sails.Req['session'] });
-            const res = {} as unknown as Sails.Res;
-            mockSails.services.solrsearchservice.remove.resolves();
-            const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
-
-            await controller.removeAll(req, res);
-
-            expect(mockSails.services.solrsearchservice.remove.calledWith('*')).to.be.true;
-            expect(apiRespondStub.called).to.be.true;
-        });
-    });
-
-    describe('search', () => {
-        it('should pass bracket-style exact and facet maps to the search service', async () => {
-            const req = makeReq({
-                session: { branding: 'default' } as Sails.Req['session'],
-                user: { username: 'tester', roles: [] },
-                apiRequest: {
-                    params: {},
-                    query: {
-                        searchStr: 'galaxy',
-                        exactNames: {
-                            title: 'Nebula',
-                            creator: 'Andromeda'
-                        },
-                        facetNames: {
-                            subject: 'Astronomy'
-                        }
-                    },
-                    body: undefined,
-                    files: {},
-                }
-            });
-            const res = {} as unknown as Sails.Res;
-            mockSails.services.solrsearchservice.searchFuzzy.resolves({});
-            const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
-
-            await controller.search(req, res);
-
-            expect(mockSails.services.solrsearchservice.searchFuzzy.calledOnce).to.be.true;
-            const searchArgs = mockSails.services.solrsearchservice.searchFuzzy.firstCall.args;
-            expect(searchArgs[3]).to.equal('galaxy');
-            expect(searchArgs[4]).to.deep.equal([
-                { name: 'title', value: 'Nebula' },
-                { name: 'creator', value: 'Andromeda' }
-            ]);
-            expect(searchArgs[5]).to.deep.equal([
-                { name: 'subject', value: 'Astronomy' }
-            ]);
-            expect(apiRespondStub.called).to.be.true;
-        });
-    });
+  });
+  afterEach(async () => {
+    await f?.close();
+  });
+  it('fetches authorized record metadata before indexing', async () => {
+    const record = { id: '123', metaMetadata: { brandId: f.brand.id }, metadata: { title: 'Test' } };
+    records.getMeta.resolves(record);
+    const result = await f.request('/default/portal/api/search/index?oid=123', { method: 'POST' });
+    assert.equal(result.status, 200);
+    assert(records.getMeta.calledOnceWithExactly('123'));
+    assert(search.index.calledOnceWithExactly('123', record));
+    assert.equal(result.body.oid, '123');
+  });
+  it('removes only the active brand index', async () => {
+    const result = await f.request('/default/portal/api/search/removeAll', { method: 'POST' });
+    assert.equal(result.status, 200);
+    assert(search.removeBrand.calledOnceWithExactly(f.brand.id));
+  });
+  it('passes bracket-style exact and facet maps to the search domain', async () => {
+    const result = await f.request(
+      '/default/portal/api/search?searchStr=galaxy&exactNames[title]=Nebula&exactNames[creator]=Andromeda&facetNames[subject]=Astronomy'
+    );
+    assert.equal(result.status, 200);
+    assert(search.searchFuzzy.calledOnce);
+    const args = search.searchFuzzy.firstCall.args;
+    assert.equal(args[3], 'galaxy');
+    assert.deepEqual(args[4], [
+      { name: 'title', value: 'Nebula' },
+      { name: 'creator', value: 'Andromeda' },
+    ]);
+    assert.deepEqual(args[5], [{ name: 'subject', value: 'Astronomy' }]);
+    assert.equal(args[6].id, f.brand.id);
+    assert.deepEqual(args[9], ['id', 'title']);
+  });
 });

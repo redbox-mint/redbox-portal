@@ -1,138 +1,68 @@
-import {createSinonStubLogger} from "../logger.test";
+import assert from 'node:assert/strict';
+import { pageInputFixture } from '../helpers/pageInputFixture';
+import { preparePage } from '../../src/http/express/pages';
 
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-import { menuResolver } from '../../src/policies/menuResolver';
-import * as sinon from "sinon";
-
-// Mock globals
-
-(global as any).sails = {
-    log: createSinonStubLogger(sinon),
-};
-
-(global as any).NavigationService = {
-    resolveMenu: async () => ({ items: [], showSearch: true }),
-    resolveHomePanels: async () => ({ panels: [] }),
-    resolveAdminSidebar: async () => ({ header: { title: 'Admin', iconClass: 'fa fa-cog' }, sections: [], footerLinks: [] })
-};
-
-describe('menuResolver policy', function () {
-    let originalSails: any;
-    let originalNavigationService: any;
-
-    beforeEach(function () {
-        originalSails = (global as any).sails;
-        originalNavigationService = (global as any).NavigationService;
-
-        (global as any).sails = {
-            log: createSinonStubLogger(sinon),
-        };
+describe('page-owned navigation resolution', () => {
+  it('attaches resolved menu, home panels and sidebar to explicit page locals', async () => {
+    const f = await pageInputFixture();
+    f.settings.resolves({
+      menu: { items: [{ id: 'home', labelKey: 'Home', href: '/home' }], showSearch: false },
+      homePanels: { panels: [{ id: 'panel1', titleKey: 'Panel', items: [{ labelKey: 'Item', href: '/home' }] }] },
+      adminSidebar: { header: { title: 'Admin', iconClass: 'fa fa-gear' }, sections: [], footerLinks: [] },
     });
-
-    afterEach(function () {
-        (global as any).sails = originalSails;
-        (global as any).NavigationService = originalNavigationService;
+    const page = await preparePage(f.req, f.res, f.input);
+    assert.equal((page.locals.menu as any).items[0].label, 'Home');
+    assert.equal((page.locals.menu as any).showSearch, false);
+    assert.equal((page.locals.homePanels as any).panels[0].id, 'panel1');
+    assert.deepEqual((page.locals.adminSidebar as any).sections, []);
+    assert.equal(Reflect.get(f.req, 'options')?.locals?.menu, undefined);
+  });
+  it('provides empty structures when navigation resolution fails', async () => {
+    const f = await pageInputFixture();
+    f.settings.resolves({
+      get menu() {
+        throw new Error('Menu error');
+      },
+      get homePanels() {
+        throw new Error('Panels error');
+      },
+      get adminSidebar() {
+        throw new Error('Sidebar error');
+      },
     });
-
-    function createMockReqRes() {
-        const req: any = { options: {} };
-        const res: any = {};
-        return { req, res };
-    }
-
-    it('should attach resolved menu to res.locals and req.options.locals', async function () {
-        const resolvedMenu = { items: [{ label: 'Home' }], showSearch: false };
-        const resolvedHomePanels = { panels: [{ id: 'panel1' }] };
-        const resolvedAdminSidebar = { header: { title: 'Admin', iconClass: 'fa fa-gear' }, sections: [{ id: 's1' }], footerLinks: [] };
-
-        (global as any).NavigationService = {
-            resolveMenu: async () => resolvedMenu,
-            resolveHomePanels: async () => resolvedHomePanels,
-            resolveAdminSidebar: async () => resolvedAdminSidebar
-        };
-
-        const { req, res } = createMockReqRes();
-        let nextCalled = false;
-
-        await menuResolver(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(res.locals.menu).to.deep.equal(resolvedMenu);
-        expect(res.locals.homePanels).to.deep.equal(resolvedHomePanels);
-        expect(res.locals.adminSidebar).to.deep.equal(resolvedAdminSidebar);
-        expect(req.options.locals.menu).to.deep.equal(resolvedMenu);
-        expect(req.options.locals.homePanels).to.deep.equal(resolvedHomePanels);
-        expect(req.options.locals.adminSidebar).to.deep.equal(resolvedAdminSidebar);
+    const page = await preparePage(f.req, f.res, f.input);
+    assert.deepEqual(page.locals.menu, { items: [], showSearch: true });
+    assert.deepEqual(page.locals.homePanels, { panels: [] });
+    assert.deepEqual((page.locals.adminSidebar as any).sections, []);
+    assert.deepEqual((page.locals.adminSidebar as any).footerLinks, []);
+  });
+  it('creates page locals without preexisting response locals', async () => {
+    const f = await pageInputFixture();
+    assert.equal(f.res.locals, undefined);
+    const page = await preparePage(f.req, f.res, f.input);
+    assert(page.locals.menu);
+    assert(page.locals.homePanels);
+    assert(page.locals.adminSidebar);
+  });
+  it('handles missing framework options while navigation falls back', async () => {
+    const f = await pageInputFixture();
+    f.settings.resolves({
+      get menu() {
+        throw new Error('fail');
+      },
     });
-
-    it('should provide empty structures on NavigationService error', async function () {
-        (global as any).NavigationService = {
-            resolveMenu: async () => { throw new Error('Menu error'); },
-            resolveHomePanels: async () => { throw new Error('Panels error'); },
-            resolveAdminSidebar: async () => { throw new Error('Sidebar error'); }
-        };
-
-        const { req, res } = createMockReqRes();
-        let nextCalled = false;
-
-        await menuResolver(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(res.locals.menu).to.deep.equal({ items: [], showSearch: true });
-        expect(res.locals.homePanels).to.deep.equal({ panels: [] });
-        expect(res.locals.adminSidebar.sections).to.deep.equal([]);
-        expect(res.locals.adminSidebar.footerLinks).to.deep.equal([]);
+    const page = await preparePage(f.req, f.res, f.input);
+    assert.deepEqual((page.locals.menu as any).items, []);
+    assert.equal(Reflect.get(f.req, 'options'), undefined);
+  });
+  it('records navigation resolution failures', async () => {
+    const f = await pageInputFixture();
+    f.settings.resolves({
+      get menu() {
+        throw new Error('Test error');
+      },
     });
-
-    it('should initialize res.locals if undefined', async function () {
-        (global as any).NavigationService = {
-            resolveMenu: async () => ({ items: [], showSearch: true }),
-            resolveHomePanels: async () => ({ panels: [] }),
-            resolveAdminSidebar: async () => ({ header: {}, sections: [], footerLinks: [] })
-        };
-
-        const req: any = { options: {} };
-        const res: any = {}; // No locals
-        let nextCalled = false;
-
-        await menuResolver(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(res.locals).to.be.an('object');
-        expect(res.locals.menu).to.exist;
-    });
-
-    it('should handle missing req.options gracefully in error case', async function () {
-        (global as any).NavigationService = {
-            resolveMenu: async () => { throw new Error('fail'); },
-            resolveHomePanels: async () => { throw new Error('fail'); },
-            resolveAdminSidebar: async () => { throw new Error('fail'); }
-        };
-
-        const req: any = {}; // No options
-        const res: any = {};
-        let nextCalled = false;
-
-        await menuResolver(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(res.locals.menu).to.exist;
-    });
-
-    it('should log warning on error', async function () {
-        let warningLogged = false;
-        (global as any).sails.log.warn = () => { warningLogged = true; };
-        (global as any).NavigationService = {
-            resolveMenu: async () => { throw new Error('Test error'); },
-            resolveHomePanels: async () => ({}),
-            resolveAdminSidebar: async () => ({})
-        };
-
-        const { req, res } = createMockReqRes();
-
-        await menuResolver(req, res, () => { });
-
-        expect(warningLogged).to.be.true;
-    });
+    await preparePage(f.req, f.res, f.input);
+    assert(f.log.error.called);
+  });
 });

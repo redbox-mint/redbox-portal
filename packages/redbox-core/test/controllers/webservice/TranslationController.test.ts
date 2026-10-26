@@ -1,71 +1,26 @@
-import {createSinonStubLogger} from "../../logger.test";
-
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { Controllers } from '../../../src/controllers/webservice/TranslationController';
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountConfigurationWriteRoutes } from '../../../src/http/express/configurationWrites';
 
-function makeReq(req: Record<string, unknown>): Sails.Req {
-    return {
-        ...req,
-        apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
-            params: (req.params ?? {}) as Record<string, unknown>,
-            query: (req.query ?? {}) as Record<string, unknown>,
-            body: req.body,
-            files: (req.files as Record<string, unknown[]>) ?? {},
-        },
-    } as Sails.Req;
-}
-
-describe('Webservice TranslationController', () => {
-    let controller: Controllers.Translation;
-
-    beforeEach(() => {
-        (global as any).sails = {
-            services: {
-                brandingservice: {
-                    getBrandNameFromReq: sinon.stub().returns('default'),
-                    getBrand: sinon.stub().returns({ id: 'default' }),
-                },
-                i18nentriesservice: {
-                    setBundle: sinon.stub().resolves({ id: 'bundle-1' }),
-                },
-                translationservice: {
-                    reloadResources: sinon.stub(),
-                },
-            },
-            log: createSinonStubLogger(sinon),
-        };
-        controller = new Controllers.Translation();
-        (global as any).BrandingService = (global as any).sails.services.brandingservice;
-        (global as any).I18nEntriesService = (global as any).sails.services.i18nentriesservice;
-        (global as any).TranslationService = (global as any).sails.services.translationservice;
-    });
-
-    afterEach(() => {
-        sinon.restore();
-        delete (global as any).BrandingService;
-        delete (global as any).I18nEntriesService;
-        delete (global as any).TranslationService;
-        delete (global as any).sails;
-    });
-
-    it('preserves false query params when setting a bundle', async () => {
-        const req = makeReq({
-            params: { locale: 'en', namespace: 'translation' },
-            query: { splitToEntries: false, overwriteEntries: false },
-            body: { data: { greeting: 'hello' } },
-        });
-        const res = {} as Sails.Res;
-        const apiRespond = sinon.stub(controller as any, 'apiRespond');
-
-        await controller.setBundle(req, res);
-
-        expect((global as any).I18nEntriesService.setBundle.calledOnce).to.be.true;
-        expect((global as any).I18nEntriesService.setBundle.firstCall.args[5]).to.deep.equal({
-            splitToEntries: false,
-            overwriteEntries: false,
-        });
-        expect(apiRespond.calledOnce).to.be.true;
-    });
+describe('Translation Express bundle writes', () => {
+  it('preserves false query parameters when setting a bundle', async () => {
+    const setBundle = sinon.stub().resolves({ id: 'bundle-1' });
+    const f = await httpRouteFixture((router, input) =>
+      mountConfigurationWriteRoutes(router, { ...input, translations: { setBundle } } as any)
+    );
+    try {
+      const result = await f.request(
+        '/default/portal/api/i18n/bundles/en/translation?splitToEntries=false&overwriteEntries=false',
+        { method: 'POST', body: { data: { greeting: 'hello' } } }
+      );
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.body, { id: 'bundle-1' });
+      assert(setBundle.calledOnce);
+      assert.deepEqual(setBundle.firstCall.args[5], { splitToEntries: false, overwriteEntries: false });
+      assert.equal(setBundle.firstCall.args[0].id, f.brand.id);
+    } finally {
+      await f.close();
+    }
+  });
 });

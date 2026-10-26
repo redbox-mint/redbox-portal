@@ -1,123 +1,42 @@
-import {createSinonStubLogger} from "../logger.test";
+import assert from 'node:assert/strict';
+import { httpPolicyFixture } from '../helpers/httpPolicyFixture';
+import { applyPageHeaders } from '../../src/http/express/pageHeaders';
 
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-import { noCache } from '../../src/policies/noCache';
-import * as sinon from "sinon";
-
-// Mock sails
-(global as any).sails = {
-    config: {
-        views: {
-            noCache: []
-        }
-    },
-    log: createSinonStubLogger(sinon),
-};
-
-describe('noCache policy', function () {
-    let originalSails: any;
-
-    beforeEach(function () {
-        originalSails = (global as any).sails;
-        (global as any).sails = {
-            config: {
-                views: {
-                    noCache: []
-                }
-            },
-            log: createSinonStubLogger(sinon),
-        };
-    });
-
-    afterEach(function () {
-        (global as any).sails = originalSails;
-    });
-
-    function createMockReqRes(path: string, viewLocals?: any) {
-        const req: any = {
-            path,
-            options: viewLocals !== undefined ? { locals: { view: viewLocals } } : { locals: {} }
-        };
-        const headers: Record<string, string> = {};
-        const res: any = {
-            setHeader: (name: string, value: string) => {
-                headers[name] = value;
-            }
-        };
-        return { req, res, getHeaders: () => headers };
-    }
-
-    it('should set cache-control headers for non-view requests', function () {
-        const { req, res, getHeaders } = createMockReqRes('/api/data');
-        let nextCalled = false;
-
-        noCache(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        const headers = getHeaders();
-        expect(headers['Cache-Control']).to.include('no-store');
-        expect(headers['Cache-Control']).to.include('no-cache');
-        expect(headers['Pragma']).to.equal('no-cache');
-        expect(headers['Expires']).to.equal('0');
-        expect(headers['Surrogate-Control']).to.equal('no-store');
-    });
-
-    it('should not set headers for view controller requests by default', function () {
-        const { req, res, getHeaders } = createMockReqRes('/dashboard', 'home');
-        let nextCalled = false;
-
-        noCache(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        const headers = getHeaders();
-        expect(headers['Cache-Control']).to.be.undefined;
-    });
-
-    it('should set headers for view paths in noCache config', function () {
-        (global as any).sails.config.views.noCache = ['/dashboard'];
-
-        const { req, res, getHeaders } = createMockReqRes('/dashboard', 'home');
-        let nextCalled = false;
-
-        noCache(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        const headers = getHeaders();
-        expect(headers['Cache-Control']).to.include('no-store');
-    });
-
-    it('should not set headers for view paths not in noCache config', function () {
-        (global as any).sails.config.views.noCache = ['/other'];
-
-        const { req, res, getHeaders } = createMockReqRes('/dashboard', 'home');
-        let nextCalled = false;
-
-        noCache(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        const headers = getHeaders();
-        expect(headers['Cache-Control']).to.be.undefined;
-    });
-
-    it('should set headers when view local is null', function () {
-        const { req, res, getHeaders } = createMockReqRes('/api/test');
-        req.options.locals.view = null;
-        let nextCalled = false;
-
-        noCache(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        const headers = getHeaders();
-        expect(headers['Cache-Control']).to.include('no-store');
-    });
-
-    it('should always call next', function () {
-        const { req, res } = createMockReqRes('/any');
-        let nextCalled = false;
-
-        noCache(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-    });
+describe('explicit no-cache and page-header ownership', () => {
+  it('sets complete no-store headers on a protected HTTP response', async () => {
+    const f = httpPolicyFixture();
+    await f.run('nocache');
+    assert.match(f.headers['cache-control'], /no-store/);
+    assert.match(f.headers['cache-control'], /no-cache/);
+    assert.equal(f.headers.pragma, 'no-cache');
+    assert.equal(f.headers.expires, '0');
+    assert.equal(f.headers['surrogate-control'], 'no-store');
+    assert(f.next.calledOnce);
+  });
+  it('retains private session-age caching for an unprotected page', () => {
+    const f = httpPolicyFixture();
+    applyPageHeaders(f.req, f.res, { sessionMaxAgeMs: 60000 });
+    assert.equal(f.headers['cache-control'], 'max-age=60, private');
+  });
+  it('sets no-store for an explicitly configured page suffix', () => {
+    const f = httpPolicyFixture();
+    applyPageHeaders(f.req, f.res, { noCache: ['/page'] });
+    assert.equal(f.headers['cache-control'], 'no-cache, no-store');
+  });
+  it('retains private caching for an unmatched page suffix', () => {
+    const f = httpPolicyFixture();
+    applyPageHeaders(f.req, f.res, { noCache: ['/other'] });
+    assert.equal(f.headers['cache-control'], 'max-age=31536000, private');
+  });
+  it('does not depend on a framework view-local flag', async () => {
+    const f = httpPolicyFixture();
+    Object.assign(f.req, { options: { locals: { view: null } } });
+    await f.run('nocache');
+    assert.match(f.headers['cache-control'], /no-store/);
+  });
+  it('always calls next without requiring globals or page locals', async () => {
+    const f = httpPolicyFixture();
+    await f.run('nocache');
+    assert(f.next.calledOnceWithExactly());
+  });
 });

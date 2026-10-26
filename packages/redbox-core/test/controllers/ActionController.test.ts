@@ -1,82 +1,62 @@
-import {createSinonStubLogger} from "../logger.test";
-
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { Controllers } from '../../src/controllers/ActionController';
+import { httpRouteFixture } from '../helpers/httpRouteFixture';
+import { mountConfiguredActionRoutes } from '../../src/http/express/configuredActions';
 
-describe('ActionController', () => {
-    let controller: Controllers.Action;
-    let mockSails: any;
-    let originalSails: any;
-
-    beforeEach(() => {
-        originalSails = (global as any).sails;
-        mockSails = {
-            config: {
-                action: {
-                    testAction: {
-                        service: {
-                            testMethod: sinon.stub()
-                        },
-                        method: 'testMethod'
-                    }
-                }
-            },
-            log: createSinonStubLogger(sinon)
-        };
-        (global as any).sails = mockSails;
-        controller = new Controllers.Action();
+describe('Named configured actions through owned HTTP', () => {
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let execute: sinon.SinonStub;
+  let authorize: sinon.SinonStub;
+  let audit: sinon.SinonStub;
+  beforeEach(async () => {
+    execute = sinon.stub().resolves({ ok: true });
+    authorize = sinon.stub().resolves(true);
+    audit = sinon.stub().resolves();
+    f = await httpRouteFixture((router, input) =>
+      mountConfiguredActionRoutes(router, {
+        ...input,
+        actions: { testAction: { authorize, execute } },
+        audit,
+      })
+    );
+  });
+  afterEach(async () => {
+    await f.close();
+  });
+  it('invokes the selected operation once with explicit actor and request facts', async () => {
+    const response = await f.request('/default/portal/action/testAction?oid=123', {
+      method: 'POST',
+      body: { value: 1 },
     });
-
-    afterEach(() => {
-        sinon.restore();
-        (global as any).sails = originalSails;
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, { ok: true });
+    assert.equal(authorize.calledOnce, true);
+    assert.equal(execute.calledOnce, true);
+    const context = execute.firstCall.args[0];
+    assert.deepEqual(context.actor, { id: f.actor.id, username: f.actor.username });
+    assert.deepEqual(context.brand, f.brand);
+    assert.equal(context.portal, 'portal');
+    assert.deepEqual(context.query, { oid: '123' });
+    assert.deepEqual(context.body, { value: 1 });
+    assert.equal('req' in context, false);
+    assert.equal('res' in context, false);
+    assert.equal(audit.calledOnce, true);
+  });
+  it('awaits asynchronous operation data before responding and auditing', async () => {
+    let finished = false;
+    execute.callsFake(async () => {
+      await new Promise<void>(resolve => setImmediate(resolve));
+      finished = true;
+      return { data: 'test' };
     });
-
-    describe('callService', () => {
-        it('should call the configured service method', () => {
-            const paramStub = sinon.stub();
-            const req = {
-                param: paramStub
-            } as unknown as Sails.Req;
-            paramStub.withArgs('action').returns('testAction');
-            paramStub.withArgs('oid').returns('123');
-
-            const res = {
-                writableEnded: true
-            } as unknown as Sails.Res;
-
-            controller.callService(req, res);
-
-            expect(mockSails.config.action.testAction.service.testMethod.calledOnce).to.be.true;
-            expect(mockSails.config.action.testAction.service.testMethod.calledWith(req, res, sinon.match({ config: mockSails.config.action.testAction }))).to.be.true;
-        });
-
-        it('should subscribe to response if not writableEnded', () => {
-            const paramStub = sinon.stub();
-            const req = {
-                param: paramStub
-            } as unknown as Sails.Req;
-            paramStub.withArgs('action').returns('testAction');
-            paramStub.withArgs('oid').returns('123');
-
-            const res = {
-                writableEnded: false
-            } as unknown as Sails.Res;
-
-            const mockResult = { data: 'test' };
-            const mockObservable = {
-                subscribe: sinon.stub().callsArgWith(0, mockResult)
-            };
-            mockSails.config.action.testAction.service.testMethod.returns(mockObservable);
-
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            controller.callService(req, res);
-
-            expect(mockObservable.subscribe.calledOnce).to.be.true;
-            expect(sendRespStub.calledWith(req, res, sinon.match({ data: mockResult }))).to.be.true;
-        });
+    audit.callsFake(async () => {
+      assert(finished);
     });
+    const response = await f.request('/default/portal/action/testAction', { method: 'POST', body: {} });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, { data: 'test' });
+    assert(finished);
+    assert.equal(execute.calledOnce, true);
+    assert.equal(audit.calledOnce, true);
+  });
 });

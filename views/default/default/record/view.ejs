@@ -5,18 +5,18 @@
   <div class="row">
     <div class="col-xs-2"></div>
     <div class="col-xs-8">
-    <redbox-form oid="<%= req.param('oid') %>" editMode="false"
+    <redbox-form oid="<%= page.param('oid') %>" editMode="false"
                  branding="<%= typeof branding == 'undefined'? data.branding : branding %>"
                  portal="<%= typeof portal == 'undefined'? data.portal : portal %>"
                  <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+      <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
     </redbox-form>
     </div>
     <div class="col-xs-2"></div>
   </div>
-  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+  <script src="<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
     type="module"></script>
-  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
+  <link rel="stylesheet" href="<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css">
 
 <!-- app js and css bundle -->
-<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>
+<script src="<%= page.base %>/js/index.bundle.js" data-redbox-root="<%= page.root %>"></script>

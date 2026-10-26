@@ -32,34 +32,35 @@
 
 
 %>
+<% const errorData = typeof data === 'undefined' ? req.session.data : data; %>
 <div class="container">
   <div class="row">
     <div class="col-xs-2"></div>
     <div class="col-xs-8">
       <div class="panel panel-danger">
         <div class="panel-heading">
-           <h3 class="panel-title"><%= TranslationService.t('error-403-heading') %></h3>
+           <h3 class="panel-title"><%= page.t('error-403-heading') %></h3>
          </div>
          <div class="panel-body">
            <p>
-             <% if( typeof req.session.data == 'undefined') { %>
+             <% if( typeof errorData == 'undefined') { %>
               You don't have permission on this page, please contact an administrator.
-            <% } else if( typeof req.session.data == 'object') { %>
-              <%= TranslationService.t(req.session.data.message) %>
+            <% } else if( typeof errorData == 'object') { %>
+              <%= page.t(errorData.message) %>
             </p>
             <p>
-              <% if( req.session.data.interpolation === true) { %>
-                <%= TranslationService.tInter(req.session.data.detailedMessage, req.session.data.interpolationObj) %>
+              <% if( errorData.interpolation === true) { %>
+                <%= page.t(errorData.detailedMessage, errorData.interpolationObj) %>
                <% }  else { %>
-                 <%= TranslationService.t(req.session.data.detailedMessage) %>
+                 <%= page.t(errorData.detailedMessage) %>
                <% } %>
 
             <% }  else { %>
-              <%= TranslationService.t(req.session.data) %>
+              <%= page.t(errorData) %>
             <% } %>
            </p>
            <p>
-               <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/home">Click here to return to the home page.</a>
+               <a href="<%= page.base %>/home">Click here to return to the home page.</a>
            </p>
          </div>
       </div>

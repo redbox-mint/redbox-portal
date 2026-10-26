@@ -1,5 +1,9 @@
 import * as sinon from 'sinon';
-import { Controllers } from '../../../src/controllers/webservice/FigshareCrosswalkController';
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import {
+  mountFigshareAdministrationRoutes,
+  figshareAdministrationRoutes,
+} from '../../../src/http/express/figshareAdministration';
 import {
   CrosswalkRevisionError,
   FigshareTransportError,
@@ -8,86 +12,97 @@ import {
 
 let expect: Chai.ExpectStatic;
 
-function makeReq(req: Record<string, unknown> = {}): Sails.Req {
-  return {
-    ...req,
-    apiRequest: {
-      params: (req.params ?? {}) as Record<string, unknown>,
-      query: (req.query ?? {}) as Record<string, unknown>,
-      body: req.body,
-      files: {},
-    },
-  } as unknown as Sails.Req;
-}
-
 describe('Webservice FigshareCrosswalkController', () => {
-  let controller: Controllers.FigshareCrosswalk;
+  let fixture: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let response: Awaited<ReturnType<typeof fixture.request>>;
+  const makeReq = (value: any = {}) => value;
+  async function request(action: string, value: any) {
+    const route = figshareAdministrationRoutes.find(route => route.action === action)!;
+    const params = { branding: 'default', portal: 'portal', ...value.params };
+    const path = route.path.replace(/:([A-Za-z]+)/g, (_match, key) => encodeURIComponent(params[key] ?? 'missing'));
+    const query = new URLSearchParams(Object.entries(value.query ?? {}).map(([key, value]) => [key, String(value)]));
+    if (value.user)
+      fixture.authenticate.resolves({
+        ...fixture.actor,
+        ...value.user,
+        id: String(value.user.id),
+        username: value.user.username ?? String(value.user.id),
+        roles: [{ brandId: fixture.brand.id, name: 'Admin' }],
+      });
+    response = await fixture.request(path + '?' + query, {
+      method: route.method.toUpperCase(),
+      body: value.body,
+      headers: { 'X-ReDBox-Api-Version': '2.0' },
+    });
+  }
   let service: Record<string, sinon.SinonStub>;
-  let sendResp: sinon.SinonStub;
-  const res = {} as Sails.Res;
 
   before(async () => {
     const chai = await import('chai');
     expect = chai.expect;
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     service = {
-      listCrosswalks: sinon.stub().resolves({ data: [{ id: 'cw-1' }], meta: { total: 7, limit: 5, offset: 10 } }),
-      getCrosswalk: sinon.stub().resolves({ id: 'cw-1', revision: 3 }),
+      listCrosswalks: sinon
+        .stub()
+        .resolves({ data: [{ id: '111111111111111111111111' }], meta: { total: 7, limit: 5, offset: 10 } }),
+      getCrosswalk: sinon.stub().resolves({ id: '111111111111111111111111', revision: 3 }),
       createCrosswalk: sinon.stub().resolves({ id: 'cw-2' }),
       getCrosswalkUsage: sinon.stub().resolves({ records: 4 }),
       listCrosswalkLocalEntries: sinon
         .stub()
         .resolves({ data: [{ id: 'e1' }], meta: { total: 1, limit: 0, offset: 0 } }),
       listCrosswalkMappings: sinon.stub().resolves({ data: [{ id: 'm1' }], meta: { total: 1, limit: 25, offset: 0 } }),
-      saveMappings: sinon.stub().resolves({ id: 'cw-1', revision: 4 }),
-      approveCrosswalk: sinon.stub().resolves({ id: 'cw-1', status: 'approved' }),
+      saveMappings: sinon.stub().resolves({ id: '111111111111111111111111', revision: 4 }),
+      approveCrosswalk: sinon.stub().resolves({ id: '111111111111111111111111', status: 'approved' }),
       deleteCrosswalk: sinon.stub().resolves(),
     };
 
-    (global as any).sails = { log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() } };
-    (global as any).FigshareVocabularyService = service;
-    (global as any).BrandingService = {
-      getBrandNameFromReq: sinon.stub().returns('default'),
-      getBrand: sinon.stub().returns({ id: 'brand-1' }),
-    };
-
-    controller = new Controllers.FigshareCrosswalk();
-    sendResp = sinon.stub(controller as any, 'sendResp');
-    sinon.stub(controller as any, 'getNoCacheHeaders').returns({ 'Cache-Control': 'no-store' });
+    fixture = await httpRouteFixture((router, input) =>
+      mountFigshareAdministrationRoutes(router, {
+        ...input,
+        vocabulary: service as any,
+        audit: sinon.stub().resolves(),
+      })
+    );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await fixture.close();
     sinon.restore();
-    delete (global as any).FigshareVocabularyService;
-    delete (global as any).BrandingService;
-    delete (global as any).sails;
   });
 
   describe('list', () => {
     it('forwards every supported filter', async () => {
       const req = makeReq({
-        query: { q: 'anzsrc', status: 'approved', localVocabularyId: 'v-1', sourceId: 's1', limit: 5, offset: 10 },
+        query: {
+          q: 'anzsrc',
+          status: 'approved',
+          localVocabularyId: 'v-1',
+          sourceId: '333333333333333333333333',
+          limit: 5,
+          offset: 10,
+        },
       });
 
-      await controller.list(req, res);
+      await request('list', req);
 
       expect(service.listCrosswalks.firstCall.args[0]).to.deep.equal({
         q: 'anzsrc',
         status: 'approved',
         localVocabularyId: 'v-1',
-        sourceId: 's1',
+        sourceId: '333333333333333333333333',
         limit: 5,
         offset: 10,
       });
     });
 
     it('wraps the result in a list response with a computed page number', async () => {
-      await controller.list(makeReq({ query: {} }), res);
+      await request('list', makeReq({ query: {} }));
 
-      const data = sendResp.firstCall.args[2]?.data;
-      expect(data.records).to.deep.equal([{ id: 'cw-1' }]);
+      const data = response.body.data;
+      expect(data.records).to.deep.equal([{ id: '111111111111111111111111' }]);
       expect(data.summary.numFound).to.equal(7);
       expect(data.summary.start).to.equal(10);
       expect(data.summary.page).to.equal(3);
@@ -97,122 +112,135 @@ describe('Webservice FigshareCrosswalkController', () => {
       const req = makeReq({ query: {} });
       (req as any).user = { id: 7, username: 'jane' };
 
-      await controller.list(req, res);
+      await request('list', req);
 
       expect(service.listCrosswalks.firstCall.args[1]).to.deep.equal({ brandId: 'brand-1', userId: 'jane' });
     });
 
-    it('falls back to the user id then to unknown', async () => {
-      const req = makeReq({ query: {} });
-      (req as any).user = { id: 7 };
-      (global as any).BrandingService.getBrand.returns(undefined);
-
-      await controller.list(req, res);
-
-      expect(service.listCrosswalks.firstCall.args[1]).to.deep.equal({ brandId: '', userId: '7' });
-
-      sendResp.resetHistory();
-      service.listCrosswalks.resetHistory();
-
-      await controller.list(makeReq({ query: {} }), res);
-
-      expect(service.listCrosswalks.firstCall.args[1]).to.deep.equal({ brandId: '', userId: 'unknown' });
+    it('refuses unresolved brand and anonymous actor before domain access', async () => {
+      fixture.getBrand.resolves(undefined);
+      await request('list', makeReq({ query: {}, user: { id: 7 } }));
+      expect(response.status).to.equal(404);
+      expect(service.listCrosswalks.notCalled).to.equal(true);
+      fixture.getBrand.resolves(fixture.brand);
+      fixture.authenticate.resolves(undefined);
+      await request('list', makeReq({ query: {} }));
+      expect(response.status).to.equal(401);
+      expect(service.listCrosswalks.notCalled).to.equal(true);
     });
 
     it('maps service errors to an error response', async () => {
       service.listCrosswalks.rejects(new Error('boom'));
 
-      await controller.list(makeReq({ query: {} }), res);
+      await request('list', makeReq({ query: {} }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
-      expect(sendResp.firstCall.args[2]?.displayErrors).to.deep.equal([{ title: 'Bad request', detail: 'boom' }]);
+      expect(response.status).to.equal(500);
+      expect(response.body.errors).to.deep.equal([
+        { title: 'Operation failed', detail: 'Review current state before retrying.' },
+      ]);
     });
+  });
+
+  it('refuses malformed pagination and revisions before accessing storage', async () => {
+    for (const query of [
+      { limit: '5x' },
+      { limit: ' ' },
+      { limit: '0' },
+      { offset: '-1' },
+      { offset: '2.5' },
+      { revision: 'NaN' },
+    ]) {
+      await request('listLocalEntries', { params: { id: '111111111111111111111111' }, query });
+      expect(response.status).to.equal(400);
+      expect(service.listCrosswalkLocalEntries.notCalled).to.equal(true);
+    }
   });
 
   describe('get', () => {
     it('returns the requested crosswalk', async () => {
-      await controller.get(makeReq({ params: { id: 'cw-1' } }), res);
+      await request('get', makeReq({ params: { id: '111111111111111111111111' } }));
 
-      expect(service.getCrosswalk.firstCall.args[0]).to.equal('cw-1');
-      expect(sendResp.firstCall.args[2]?.data).to.deep.equal({ id: 'cw-1', revision: 3 });
+      expect(service.getCrosswalk.firstCall.args[0]).to.equal('111111111111111111111111');
+      expect(response.body.data).to.deep.equal({ id: '111111111111111111111111', revision: 3 });
     });
 
-    it('coerces a missing id to an empty string', async () => {
-      await controller.get(makeReq({ params: {} }), res);
-
-      expect(service.getCrosswalk.firstCall.args[0]).to.equal('');
+    it('refuses an absent resource identifier before domain access', async () => {
+      await request('get', makeReq({ params: {} }));
+      expect(response.status).to.equal(400);
+      expect(service.getCrosswalk.notCalled).to.equal(true);
     });
 
     it('returns 404 for a cross-brand identifier', async () => {
       service.getCrosswalk.rejects(new RelationshipBoundaryError('not found'));
 
-      await controller.get(makeReq({ params: { id: 'cw-1' } }), res);
+      await request('get', makeReq({ params: { id: '111111111111111111111111' } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(404);
+      expect(response.status).to.equal(404);
     });
   });
 
   describe('create', () => {
     it('creates the crosswalk and returns 201', async () => {
-      const req = makeReq({ body: { name: 'ANZSRC map', localVocabularyId: 'v-1', sourceId: 's1' } });
+      const req = makeReq({
+        body: { name: 'ANZSRC map', localVocabularyId: 'v-1', sourceId: '333333333333333333333333' },
+      });
 
-      await controller.create(req, res);
+      await request('create', req);
 
       expect(service.createCrosswalk.firstCall.args[0]).to.deep.equal({
         name: 'ANZSRC map',
         localVocabularyId: 'v-1',
-        sourceId: 's1',
+        sourceId: '333333333333333333333333',
       });
-      expect(sendResp.firstCall.args[2]?.status).to.equal(201);
-      expect(sendResp.firstCall.args[2]?.data).to.deep.equal({ id: 'cw-2' });
+      expect(response.status).to.equal(201);
+      expect(response.body.data).to.deep.equal({ id: 'cw-2' });
     });
 
-    it('coerces a non-object body to empty strings', async () => {
-      await controller.create(makeReq({ body: 'nope' }), res);
-
-      expect(service.createCrosswalk.firstCall.args[0]).to.deep.equal({
-        name: '',
-        localVocabularyId: '',
-        sourceId: '',
-      });
+    it('refuses a non-object body before creating a crosswalk', async () => {
+      await request('create', makeReq({ body: 'nope' }));
+      expect(response.status).to.equal(400);
+      expect(service.createCrosswalk.notCalled).to.equal(true);
     });
 
     it('maps service errors to an error response', async () => {
       service.createCrosswalk.rejects(new FigshareTransportError('unreachable'));
 
-      await controller.create(makeReq({ body: {} }), res);
+      await request(
+        'create',
+        makeReq({ body: { name: 'Map', localVocabularyId: 'v-1', sourceId: '333333333333333333333333' } })
+      );
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(502);
+      expect(response.status).to.equal(502);
     });
   });
 
   describe('usage', () => {
     it('returns the usage summary', async () => {
-      await controller.usage(makeReq({ params: { id: 'cw-1' } }), res);
+      await request('usage', makeReq({ params: { id: '111111111111111111111111' } }));
 
-      expect(service.getCrosswalkUsage.firstCall.args[0]).to.equal('cw-1');
-      expect(sendResp.firstCall.args[2]?.data).to.deep.equal({ records: 4 });
+      expect(service.getCrosswalkUsage.firstCall.args[0]).to.equal('111111111111111111111111');
+      expect(response.body.data).to.deep.equal({ records: 4 });
     });
 
     it('maps service errors to an error response', async () => {
       service.getCrosswalkUsage.rejects(new Error('nope'));
 
-      await controller.usage(makeReq({ params: { id: 'cw-1' } }), res);
+      await request('usage', makeReq({ params: { id: '111111111111111111111111' } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+      expect(response.status).to.equal(500);
     });
   });
 
   describe('listLocalEntries', () => {
     it('coerces the revision to a number', async () => {
       const req = makeReq({
-        params: { id: 'cw-1' },
+        params: { id: '111111111111111111111111' },
         query: { q: 'bio', mapped: 'false', revision: '3', limit: 10, offset: 0 },
       });
 
-      await controller.listLocalEntries(req, res);
+      await request('listLocalEntries', req);
 
-      expect(service.listCrosswalkLocalEntries.firstCall.args[0]).to.equal('cw-1');
+      expect(service.listCrosswalkLocalEntries.firstCall.args[0]).to.equal('111111111111111111111111');
       expect(service.listCrosswalkLocalEntries.firstCall.args[1]).to.deep.equal({
         q: 'bio',
         mapped: 'false',
@@ -223,29 +251,29 @@ describe('Webservice FigshareCrosswalkController', () => {
     });
 
     it('leaves the revision undefined when absent and reports page 1 for a zero page size', async () => {
-      await controller.listLocalEntries(makeReq({ params: { id: 'cw-1' }, query: {} }), res);
+      await request('listLocalEntries', makeReq({ params: { id: '111111111111111111111111' }, query: {} }));
 
       expect(service.listCrosswalkLocalEntries.firstCall.args[1]).to.deep.include({ revision: undefined });
-      expect(sendResp.firstCall.args[2]?.data.summary.page).to.equal(1);
+      expect(response.body.data.summary.page).to.equal(1);
     });
 
     it('maps service errors to an error response', async () => {
       service.listCrosswalkLocalEntries.rejects(new Error('nope'));
 
-      await controller.listLocalEntries(makeReq({ params: { id: 'cw-1' }, query: {} }), res);
+      await request('listLocalEntries', makeReq({ params: { id: '111111111111111111111111' }, query: {} }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+      expect(response.status).to.equal(500);
     });
   });
 
   describe('listMappings', () => {
     it('forwards the mapping filters', async () => {
       const req = makeReq({
-        params: { id: 'cw-1' },
+        params: { id: '111111111111111111111111' },
         query: { status: 'proposed', q: 'bio', revision: '2', limit: 25, offset: 0 },
       });
 
-      await controller.listMappings(req, res);
+      await request('listMappings', req);
 
       expect(service.listCrosswalkMappings.firstCall.args[1]).to.deep.equal({
         status: 'proposed',
@@ -257,7 +285,7 @@ describe('Webservice FigshareCrosswalkController', () => {
     });
 
     it('leaves the revision undefined when absent', async () => {
-      await controller.listMappings(makeReq({ params: { id: 'cw-1' }, query: {} }), res);
+      await request('listMappings', makeReq({ params: { id: '111111111111111111111111' }, query: {} }));
 
       expect(service.listCrosswalkMappings.firstCall.args[1]).to.deep.include({ revision: undefined });
     });
@@ -265,16 +293,16 @@ describe('Webservice FigshareCrosswalkController', () => {
     it('maps service errors to an error response', async () => {
       service.listCrosswalkMappings.rejects(new Error('nope'));
 
-      await controller.listMappings(makeReq({ params: { id: 'cw-1' }, query: {} }), res);
+      await request('listMappings', makeReq({ params: { id: '111111111111111111111111' }, query: {} }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(400);
+      expect(response.status).to.equal(500);
     });
   });
 
   describe('saveMappings', () => {
     it('normalises add and remove changes', async () => {
       const req = makeReq({
-        params: { id: 'cw-1' },
+        params: { id: '111111111111111111111111' },
         body: {
           revision: '3',
           changes: [
@@ -285,79 +313,90 @@ describe('Webservice FigshareCrosswalkController', () => {
         },
       });
 
-      await controller.saveMappings(req, res);
+      await request('saveMappings', req);
+      expect(response.status).to.equal(400);
+      expect(service.saveMappings.notCalled).to.equal(true);
+      req.body.changes.pop();
+      await request('saveMappings', req);
 
-      expect(service.saveMappings.firstCall.args[0]).to.equal('cw-1');
+      expect(service.saveMappings.firstCall.args[0]).to.equal('111111111111111111111111');
       expect(service.saveMappings.firstCall.args[1]).to.deep.equal({
         revision: 3,
         changes: [
           { op: 'add', localEntryId: 'e1', figshareCategoryId: 'f1', matchType: 'exact', status: 'approved' },
           { op: 'remove', localEntryId: 'e2', figshareCategoryId: 'f2', matchType: undefined, status: undefined },
-          { op: 'add', localEntryId: '', figshareCategoryId: '', matchType: undefined, status: undefined },
         ],
       });
     });
 
     it('treats an unrecognised op as an add', async () => {
       const req = makeReq({
-        params: { id: 'cw-1' },
+        params: { id: '111111111111111111111111' },
         body: { revision: 1, changes: [{ op: 'replace', localEntryId: 'e1', figshareCategoryId: 'f1' }] },
       });
 
-      await controller.saveMappings(req, res);
+      await request('saveMappings', req);
 
       expect(service.saveMappings.firstCall.args[1].changes[0].op).to.equal('add');
     });
 
-    it('defaults to no changes when the body omits them', async () => {
-      await controller.saveMappings(makeReq({ params: { id: 'cw-1' }, body: { revision: 1 } }), res);
-
+    it('requires explicit changes and accepts an empty changes list', async () => {
+      await request('saveMappings', makeReq({ params: { id: '111111111111111111111111' }, body: { revision: 1 } }));
+      expect(response.status).to.equal(400);
+      expect(service.saveMappings.notCalled).to.equal(true);
+      await request(
+        'saveMappings',
+        makeReq({ params: { id: '111111111111111111111111' }, body: { revision: 1, changes: [] } })
+      );
       expect(service.saveMappings.firstCall.args[1]).to.deep.equal({ revision: 1, changes: [] });
     });
 
     it('returns 409 when the revision moved', async () => {
       service.saveMappings.rejects(new CrosswalkRevisionError());
 
-      await controller.saveMappings(makeReq({ params: { id: 'cw-1' }, body: { revision: 1 } }), res);
+      await request(
+        'saveMappings',
+        makeReq({ params: { id: '111111111111111111111111' }, body: { revision: 1, changes: [] } })
+      );
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(409);
+      expect(response.status).to.equal(409);
     });
   });
 
   describe('approve', () => {
     it('approves at the supplied revision', async () => {
-      await controller.approve(makeReq({ params: { id: 'cw-1' }, body: { revision: '3' } }), res);
+      await request('approve', makeReq({ params: { id: '111111111111111111111111' }, body: { revision: '3' } }));
 
-      expect(service.approveCrosswalk.firstCall.args[0]).to.equal('cw-1');
+      expect(service.approveCrosswalk.firstCall.args[0]).to.equal('111111111111111111111111');
       expect(service.approveCrosswalk.firstCall.args[1]).to.equal(3);
-      expect(sendResp.firstCall.args[2]?.data).to.deep.equal({ id: 'cw-1', status: 'approved' });
+      expect(response.body.data).to.deep.equal({ id: '111111111111111111111111', status: 'approved' });
     });
 
     it('maps service errors to an error response', async () => {
       service.approveCrosswalk.rejects(new CrosswalkRevisionError('stale'));
 
-      await controller.approve(makeReq({ params: { id: 'cw-1' }, body: { revision: 1 } }), res);
+      await request('approve', makeReq({ params: { id: '111111111111111111111111' }, body: { revision: 1 } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(409);
-      expect(sendResp.firstCall.args[2]?.displayErrors[0].detail).to.equal('stale');
+      expect(response.status).to.equal(409);
+      expect(response.body.errors[0].detail).to.equal('stale');
     });
   });
 
   describe('delete', () => {
     it('returns 204 with no body', async () => {
-      await controller.delete(makeReq({ params: { id: 'cw-1' } }), res);
+      await request('delete', makeReq({ params: { id: '111111111111111111111111' } }));
 
-      expect(service.deleteCrosswalk.firstCall.args[0]).to.equal('cw-1');
-      expect(sendResp.firstCall.args[2]?.status).to.equal(204);
-      expect(sendResp.firstCall.args[2]?.data).to.be.undefined;
+      expect(service.deleteCrosswalk.firstCall.args[0]).to.equal('111111111111111111111111');
+      expect(response.status).to.equal(204);
+      expect(response.body).to.be.undefined;
     });
 
     it('maps service errors to an error response', async () => {
       service.deleteCrosswalk.rejects(new RelationshipBoundaryError('not found'));
 
-      await controller.delete(makeReq({ params: { id: 'cw-1' } }), res);
+      await request('delete', makeReq({ params: { id: '111111111111111111111111' } }));
 
-      expect(sendResp.firstCall.args[2]?.status).to.equal(404);
+      expect(response.status).to.equal(404);
     });
   });
 });

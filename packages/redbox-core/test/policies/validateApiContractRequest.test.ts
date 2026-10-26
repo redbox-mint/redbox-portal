@@ -1,408 +1,210 @@
-import {createSinonStubLogger} from "../logger.test";
+import assert from 'node:assert/strict';
+import { inspect } from 'node:util';
+import { registerCoreApiRoutes, validateApiRouteRequest, type ApiRequestInput } from '../../src/api-routes';
+import { mountRecordSchemaReadRoutes } from '../../src/http/express/recordSchemaReads';
+import { mountRecordMutationRoutes, type RecordMutationHttpInput } from '../../src/http/express/recordMutations';
+import { httpAction } from '../../src/http/express/middleware';
+import { httpRouteFixture } from '../helpers/httpRouteFixture';
 
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-import * as sinon from 'sinon';
-
-import * as apiRoutes from '../../src/api-routes';
-import { validateApiContractRequest } from '../../src/policies/validateApiContractRequest';
-
-type TestResponse = Sails.Res & {
-    body?: unknown;
-    headers?: Record<string, string>;
-    statusCode?: number;
-};
-
-interface MalformedRecordSchemaRequestCase {
-    readonly name: string;
-    readonly path: string;
-    readonly routePath: string;
-    readonly params: Record<string, string>;
-    readonly query: Record<string, string>;
-    readonly headers: Record<string, string>;
+const routes = registerCoreApiRoutes();
+function validate(path: string, input: ApiRequestInput = {}) {
+  const req = {
+    method: 'GET',
+    path,
+    params: { branding: 'default', portal: 'portal' },
+    query: {},
+    headers: {},
+    ...input,
+  };
+  const route = routes.find(route => route.path === path && route.method === req.method.toLowerCase());
+  assert(route, `Missing test route ${path}`);
+  return { route, result: validateApiRouteRequest(req, route) };
 }
 
-const malformedRecordSchemaRequestCases: readonly MalformedRecordSchemaRequestCase[] = [
-    {
-        name: 'digest',
-        path: `/default/rdmp/api/records/schemas/${'A'.repeat(64)}`,
-        routePath: '/:branding/:portal/api/records/schemas/:digest',
-        params: { branding: 'default', portal: 'rdmp', digest: 'A'.repeat(64) },
-        query: {},
-        headers: {},
-    },
-    {
-        name: 'operation',
-        path: '/default/rdmp/api/records/schemas/create/dataset',
-        routePath: '/:branding/:portal/api/records/schemas/create/:recordType',
-        params: { branding: 'default', portal: 'rdmp', recordType: 'dataset' },
-        query: { operation: 'malformed operation' },
-        headers: {},
-    },
-    {
-        name: 'If-None-Match',
-        path: '/default/rdmp/api/records/schemas/update/record-1',
-        routePath: '/:branding/:portal/api/records/schemas/update/:oid',
-        params: { branding: 'default', portal: 'rdmp', oid: 'record-1' },
-        query: {},
-        headers: { 'if-none-match': `W/"sha256:${'a'.repeat(64)}"` },
-    },
-];
-
-function createReq(overrides: Partial<Sails.Req> = {}): Sails.Req {
-    return {
-        method: 'GET',
-        path: '/default/rdmp/api/admin/config',
-        originalUrl: '/default/rdmp/api/admin/config',
-        url: '/default/rdmp/api/admin/config',
-        route: { path: '/:branding/:portal/api/admin/config' },
-        params: { branding: 'default', portal: 'rdmp' },
-        query: {},
-        headers: {},
-        session: { branding: 'default', portal: 'rdmp' } as Sails.Req['session'],
-        isAuthenticated: (() => true) as Sails.Req['isAuthenticated'],
-        ...overrides,
-    } as Sails.Req;
-}
-
-function createRes(): TestResponse {
-    const res = {
-        set(this: TestResponse, field: string | Record<string, string>, value?: string) {
-            this.headers = {
-                ...this.headers,
-                ...(typeof field === 'string' ? { [field]: value ?? '' } : field),
-            };
-            return this;
-        },
-        status(this: TestResponse, code: number) {
-            this.statusCode = code;
-            return this;
-        },
-        json(this: TestResponse, body: unknown) {
-            this.body = body;
-            return this;
-        },
-    } as unknown as TestResponse;
-
-    return res;
-}
-
-describe('validateApiContractRequest policy', function () {
-    let originalSails: unknown;
-    let originalLodash: unknown;
-
-    before(async function () {
-        const chai = await import('chai');
-        expect = chai.expect;
-    });
-
-    beforeEach(function () {
-        originalSails = (global as Record<string, unknown>).sails;
-        originalLodash = (global as Record<string, unknown>)._;
-        (global as Record<string, unknown>).sails = {
-            log: createSinonStubLogger(sinon),
-            config: {},
-        };
-        (global as Record<string, unknown>)._ = require('lodash');
-        apiRoutes.resetResolvedApiRouteCache();
-    });
-
-    afterEach(function () {
-        sinon.restore();
-        (global as Record<string, unknown>).sails = originalSails;
-        (global as Record<string, unknown>)._ = originalLodash;
-        apiRoutes.resetResolvedApiRouteCache();
-    });
-
-    it('attaches resolved route and validated request on success', function () {
-        const req = createReq();
-        const res = createRes();
-        let nextCalled = false;
-
-        validateApiContractRequest(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.equal(true);
-        expect(req.apiRoute?.path).to.equal('/:branding/:portal/api/admin/config');
-        expect(req.apiRequest?.params).to.deep.equal({ branding: 'default', portal: 'rdmp' });
-        expect(req.apiRequest?.query).to.deep.equal({});
-        expect(res.statusCode).to.equal(undefined);
-    });
-
-    it('returns 400 for invalid params', function () {
-        const req = createReq({
-            path: '/default/rdmp/api/admin/config/theme',
-            originalUrl: '/default/rdmp/api/admin/config/theme',
-            url: '/default/rdmp/api/admin/config/theme',
-            route: { path: '/:branding/:portal/api/admin/config/:configKey' },
-            params: { branding: 'default', portal: 'rdmp' },
-        });
-        const res = createRes();
-
-        validateApiContractRequest(req, res, () => undefined);
-
-        expect(res.statusCode).to.equal(400);
-        expect((res.body as { message?: string }).message).to.equal('params.configKey');
-    });
-
-    it('returns 400 for invalid query', function () {
-        const req = createReq({
-            path: '/default/rdmp/api/recordtypes/get',
-            originalUrl: '/default/rdmp/api/recordtypes/get',
-            url: '/default/rdmp/api/recordtypes/get',
-            route: { path: '/:branding/:portal/api/recordtypes/get' },
-        });
-        const res = createRes();
-
-        validateApiContractRequest(req, res, () => undefined);
-
-        expect(res.statusCode).to.equal(400);
-        expect((res.body as { message?: string }).message).to.equal('query.name');
-    });
-
-    it('returns stable sanitized operation contract failures for both API versions', function () {
-        for (const apiVersion of ['1.0', '2.0']) {
-            const req = createReq({
-                method: 'POST',
-                path: '/default/rdmp/api/records/metadata/dataset',
-                originalUrl: '/default/rdmp/api/records/metadata/dataset',
-                url: '/default/rdmp/api/records/metadata/dataset',
-                route: { path: '/:branding/:portal/api/records/metadata/:recordType' },
-                params: { branding: 'default', portal: 'rdmp', recordType: 'dataset' },
-                query: { operation: 'malformed operation secret' },
-                headers: { 'x-redbox-api-version': apiVersion },
-                body: {},
-            });
-            const res = createRes();
-
-            validateApiContractRequest(req, res, () => undefined);
-
-            expect(res.statusCode).to.equal(400);
-            expect(JSON.stringify(res.body)).to.include('record-validation-operation-invalid');
-            expect(JSON.stringify(res.body)).not.to.include('malformed operation secret');
-        }
-    });
-
-    for (const malformed of malformedRecordSchemaRequestCases) {
-        it(`returns raw 400 Problem Details for malformed record-schema ${malformed.name} in both API versions`, function () {
-            for (const apiVersion of ['1.0', '2.0']) {
-                const req = createReq({
-                    path: malformed.path,
-                    originalUrl: malformed.path,
-                    url: malformed.path,
-                    route: { path: malformed.routePath },
-                    params: { ...malformed.params },
-                    query: { ...malformed.query },
-                    headers: {
-                        ...malformed.headers,
-                        'x-redbox-api-version': apiVersion,
-                    },
-                });
-                const res = createRes();
-                let nextCalled = false;
-
-                validateApiContractRequest(req, res, () => { nextCalled = true; });
-
-                expect(nextCalled, `${apiVersion} ${malformed.name}`).to.equal(false);
-                expect(res.statusCode, `${apiVersion} ${malformed.name}`).to.equal(400);
-                expect(res.headers?.['Content-Type'], `${apiVersion} ${malformed.name}`).to.equal(
-                    'application/problem+json'
-                );
-                expect(res.headers?.['Cache-Control'], `${apiVersion} ${malformed.name}`).to.equal(
-                    'private, no-cache'
-                );
-                expect(res.headers?.Vary, `${apiVersion} ${malformed.name}`).to.equal('Authorization');
-                expect(res.body, `${apiVersion} ${malformed.name}`).to.deep.equal({
-                    type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
-                    title: 'Record schema request is invalid',
-                    status: 400,
-                    detail: 'The record schema request is malformed.',
-                    instance: malformed.path,
-                    code: 'record-schema.invalid-request',
-                });
-                expect(res.body, `${apiVersion} ${malformed.name}`).not.to.have.property('message');
-                expect(res.body, `${apiVersion} ${malformed.name}`).not.to.have.property('errors');
-                expect(res.body, `${apiVersion} ${malformed.name}`).not.to.have.property('meta');
-                expect(res.body, `${apiVersion} ${malformed.name}`).not.to.have.property('data');
-            }
-        });
+describe('API contracts without an ambient validation policy', () => {
+  it('returns the resolved route and normalized request on success', () => {
+    const { route, result } = validate('/:branding/:portal/api/admin/config');
+    assert.equal(route.path, '/:branding/:portal/api/admin/config');
+    assert.equal(result.valid, true);
+    if (!result.valid) throw new Error('Unexpected invalid request');
+    assert.deepEqual(result.params, { branding: 'default', portal: 'portal' });
+    assert.deepEqual(result.query, {});
+  });
+  it('rejects invalid params before dispatch', () => {
+    const { result } = validate('/:branding/:portal/api/admin/config/:configKey');
+    assert.equal(result.valid, false);
+    if (result.valid) throw new Error('Missing configKey accepted');
+    assert(result.issues.some(issue => issue.path === 'params.configKey'));
+  });
+  it('rejects an absent required query', () => {
+    const { result } = validate('/:branding/:portal/api/recordtypes/get');
+    assert.equal(result.valid, false);
+    if (result.valid) throw new Error('Missing query accepted');
+    assert(result.issues.some(issue => issue.path === 'query.name'));
+  });
+  it('returns sanitized operation failures over actual HTTP in both API versions', async () => {
+    const f = await httpRouteFixture((router, input) =>
+      mountRecordMutationRoutes(router, {
+        ...input,
+        records: {},
+        recordTypes: {},
+        workflows: {},
+        forms: {},
+        contextVariables: {},
+        schemaEnabled: true,
+      } as RecordMutationHttpInput)
+    );
+    try {
+      for (const version of ['1.0', '2.0']) {
+        const response = await f.request(
+          '/default/portal/api/records/metadata/dataset?operation=malformed%20operation%20secret',
+          {
+            method: 'POST',
+            headers: { 'x-redbox-api-version': version },
+            body: {},
+          }
+        );
+        assert.equal(response.status, 400);
+        assert.match(response.text, /record-validation-operation-invalid/);
+        assert(!response.text.includes('malformed operation secret'));
+      }
+    } finally {
+      await f.close();
     }
-
-    it('returns 400 for repeated If-Match values on update and transition routes', function () {
-        const ifMatch = `"sha256:${'a'.repeat(64)}"`;
-        for (const apiVersion of ['1.0', '2.0']) {
-            for (const action of ['update', 'transition'] as const) {
-                const transition = action === 'transition';
-                const path = transition
-                    ? '/default/rdmp/api/records/workflow/step/published/record-1'
-                    : '/default/rdmp/api/records/metadata/record-1';
-                const routePath = transition
-                    ? '/:branding/:portal/api/records/workflow/step/:targetStep/:oid'
-                    : '/:branding/:portal/api/records/metadata/:oid';
-                const req = createReq({
-                    method: transition ? 'POST' : 'PUT',
-                    path,
-                    originalUrl: path,
-                    url: path,
-                    route: { path: routePath },
-                    params: {
-                        branding: 'default',
-                        portal: 'rdmp',
-                        oid: 'record-1',
-                        ...(transition ? { targetStep: 'published' } : {}),
-                    },
-                    query: {},
-                    headers: {
-                        'x-redbox-api-version': apiVersion,
-                    },
-                    body: {},
-                });
-                Object.defineProperty(req.headers, 'if-match', {
-                    value: [ifMatch, ifMatch],
-                    enumerable: true,
-                    configurable: true,
-                    writable: true,
-                });
-                const res = createRes();
-                let nextCalled = false;
-
-                validateApiContractRequest(req, res, () => { nextCalled = true; });
-
-                expect(res.statusCode, `${apiVersion} ${action}`).to.equal(400);
-                expect(nextCalled, `${apiVersion} ${action}`).to.equal(false);
-                expect(JSON.stringify(res.body), `${apiVersion} ${action}`).to.include('If-Match');
-            }
-        }
-    });
-
-    it('returns 400 for invalid body', function () {
-        const req = createReq({
-            method: 'POST',
-            path: '/default/rdmp/api/admin/config/theme',
-            originalUrl: '/default/rdmp/api/admin/config/theme',
-            url: '/default/rdmp/api/admin/config/theme',
-            route: { path: '/:branding/:portal/api/admin/config/:configKey' },
-            params: { branding: 'default', portal: 'rdmp', configKey: 'theme' },
-        });
-        const res = createRes();
-
-        validateApiContractRequest(req, res, () => undefined);
-
-        expect(res.statusCode).to.equal(400);
-        expect((res.body as { message?: string }).message).to.contain('Body is required');
-    });
-
-    it('returns 400 for file validation failures when request files are pre-parsed', function () {
-        const req = createReq({
-            method: 'POST',
-            path: '/default/rdmp/api/branding/logo',
-            originalUrl: '/default/rdmp/api/branding/logo',
-            url: '/default/rdmp/api/branding/logo',
-            route: { path: '/:branding/:portal/api/branding/logo' },
-            files: {
-                logo: [{
-                    type: 'image/gif',
-                    size: 1024,
-                }],
+  });
+  for (const [name, path, headers] of [
+    ['digest', '/default/portal/api/records/schemas/' + 'A'.repeat(64), {}],
+    ['operation', '/default/portal/api/records/schemas/create/dataset?operation=malformed%20operation', {}],
+    [
+      'If-None-Match',
+      '/default/portal/api/records/schemas/update/record-1',
+      { 'if-none-match': `W/"sha256:${'a'.repeat(64)}"` },
+    ],
+  ] as const) {
+    it(`returns raw 400 Problem Details for malformed schema ${name} in both API versions`, async () => {
+      const f = await httpRouteFixture((router, input) =>
+        mountRecordSchemaReadRoutes(router, {
+          ...input,
+          schemas: {
+            resolveCreate: async () => {
+              throw new Error('Invalid requests must not dispatch');
             },
-        });
-        const res = createRes();
-
-        validateApiContractRequest(req, res, () => undefined);
-
-        expect(res.statusCode).to.equal(400);
-        expect((res.body as { message?: string }).message).to.contain('Unsupported mime type');
+            resolveUpdate: async () => {
+              throw new Error('Invalid requests must not dispatch');
+            },
+            resolveImmutable: async () => {
+              throw new Error('Invalid requests must not dispatch');
+            },
+          },
+        })
+      );
+      try {
+        for (const version of ['1.0', '2.0']) {
+          const response = await f.request(path, { headers: { ...headers, 'x-redbox-api-version': version } });
+          assert.equal(response.status, 400);
+          assert.match(response.headers.get('content-type')!, /^application\/problem\+json/);
+          assert.equal(response.headers.get('cache-control'), 'private, no-cache');
+          assert.equal(response.headers.get('vary'), 'Authorization');
+          assert.deepEqual(response.body, {
+            type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
+            title: 'Record schema request is invalid',
+            status: 400,
+            detail: 'The record schema request is malformed.',
+            instance: path.split('?')[0],
+            code: 'record-schema.invalid-request',
+          });
+        }
+      } finally {
+        await f.close();
+      }
     });
-
-    it('returns 500 when route resolution fails during fallback matching', function () {
-        const req = createReq({
-            path: '/default/rdmp/api/does-not-exist',
-            originalUrl: '/default/rdmp/api/does-not-exist',
-            url: '/default/rdmp/api/does-not-exist',
-            route: { path: '/:branding/:portal/api/does-not-exist' },
+  }
+  it('rejects repeated If-Match on update and transition contracts in both API versions', () => {
+    const etag = `"sha256:${'a'.repeat(64)}"`;
+    for (const version of ['1.0', '2.0'])
+      for (const transition of [false, true]) {
+        const path = transition
+          ? '/:branding/:portal/api/records/workflow/step/:targetStep/:oid'
+          : '/:branding/:portal/api/records/metadata/:oid';
+        const { result } = validate(path, {
+          method: transition ? 'POST' : 'PUT',
+          params: {
+            branding: 'default',
+            portal: 'portal',
+            oid: 'record-1',
+            ...(transition ? { targetStep: 'published' } : {}),
+          },
+          headers: { 'x-redbox-api-version': version, 'if-match': [etag, etag] },
+          body: {},
         });
-        const res = createRes();
-
-        validateApiContractRequest(req, res, () => undefined);
-
-        expect(res.statusCode).to.equal(500);
-        expect((res.body as { message?: string }).message).to.equal('Internal server error');
+        assert.equal(result.valid, false);
+        assert.match(JSON.stringify(result), /If-Match/);
+      }
+  });
+  it('rejects a missing required body', () => {
+    const { result } = validate('/:branding/:portal/api/admin/config/:configKey', {
+      method: 'POST',
+      params: { branding: 'default', portal: 'portal', configKey: 'theme' },
     });
-
-    it('returns 500 when the route cannot be resolved', function () {
-        const privateOid = 'private-record-oid';
-        const privateDigest = 'a'.repeat(64);
-        const req = createReq({
-            route: { path: '/:branding/:portal/api/not-registered' },
-            path: `/default/rdmp/api/not-registered/${privateOid}/${privateDigest}`,
-            originalUrl: `/default/rdmp/api/not-registered/${privateOid}/${privateDigest}`,
-            url: `/default/rdmp/api/not-registered/${privateOid}/${privateDigest}`,
-        });
-        const res = createRes();
-
-        validateApiContractRequest(req, res, () => undefined);
-
-        expect(res.statusCode).to.equal(500);
-        expect((res.body as { message?: string }).message).to.equal('Internal server error');
-        const logged = JSON.stringify((sails.log.error as sinon.SinonStub).firstCall.args);
-        expect(logged).to.include('GET unresolved-api-route');
-        expect(logged).not.to.include(privateOid);
-        expect(logged).not.to.include(privateDigest);
+    assert.equal(result.valid, false);
+    assert.match(JSON.stringify(result), /Body is required/);
+  });
+  it('rejects pre-parsed files with an unsupported MIME type', () => {
+    const { result } = validate('/:branding/:portal/api/branding/logo', {
+      method: 'POST',
+      files: { logo: [{ type: 'image/gif', size: 1024 }] },
     });
-
-    it('logs a resolved route identifier without request OIDs or digests when validation throws', function () {
-        const privateOid = 'private-record-oid';
-        const privateDigest = 'b'.repeat(64);
-        const privateError = 'private-validation-error';
-        const path = `/default/rdmp/api/records/schemas/update/${privateOid}?digest=${privateDigest}`;
-        const req = createReq({
-            path,
-            originalUrl: path,
-            url: path,
-            route: { path: '/:branding/:portal/api/records/schemas/update/:oid' },
-            params: { branding: 'default', portal: 'rdmp', oid: privateOid },
-        });
-        const res = createRes();
-        Object.defineProperty(req, 'params', {
+    assert.equal(result.valid, false);
+    assert.match(JSON.stringify(result), /Unsupported mime type/);
+  });
+  it('leaves unregistered routes unresolved for the HTTP router to return 404', async () => {
+    const f = await httpRouteFixture(() => {});
+    try {
+      assert.equal((await f.request('/default/portal/api/does-not-exist')).status, 404);
+    } finally {
+      await f.close();
+    }
+  });
+  it('does not emit request identifiers or digests in logs for unregistered routes', async () => {
+    const f = await httpRouteFixture(() => {});
+    try {
+      const response = await f.request('/default/portal/api/not-registered/private-record-oid/' + 'a'.repeat(64));
+      assert.equal(response.status, 404);
+      assert.equal(f.log.error.called, false);
+    } finally {
+      await f.close();
+    }
+  });
+  it('sanitizes unexpected validation failures at the actual HTTP error boundary', async () => {
+    const privateOid = 'private-record-oid';
+    const digest = 'b'.repeat(64);
+    const secret = 'private-validation-error';
+    const f = await httpRouteFixture(router => {
+      router.get(
+        '/:branding/:portal/api/records/schemas/update/:oid',
+        httpAction(async (req, res) => {
+          const route = routes.find(route => route.path === '/:branding/:portal/api/records/schemas/update/:oid')!;
+          Object.defineProperty(req, 'params', {
             configurable: true,
             get: () => {
-                throw new Error(privateError);
+              throw new Error(secret);
             },
-        });
-
-        validateApiContractRequest(req, res, () => undefined);
-
-        expect(res.statusCode).to.equal(500);
-        const logged = JSON.stringify((sails.log.error as sinon.SinonStub).firstCall.args);
-        expect(logged).to.include('webservice/RecordSchemaController.update');
-        expect(logged).to.include('\"error_type\":\"error\"');
-        expect(logged).not.to.include(privateOid);
-        expect(logged).not.to.include(privateDigest);
-        expect(logged).not.to.include(privateError);
+            set: value => Object.defineProperty(req, 'params', { configurable: true, writable: true, value }),
+          });
+          res.json(validateApiRouteRequest(req, route));
+        })
+      );
     });
-
-    it('distinguishes admin config routes by matched route path', function () {
-        const listReq = createReq({
-            path: '/default/rdmp/api/admin/config',
-            originalUrl: '/default/rdmp/api/admin/config',
-            url: '/default/rdmp/api/admin/config',
-            route: { path: '/:branding/:portal/api/admin/config' },
-        });
-        const byKeyReq = createReq({
-            path: '/default/rdmp/api/admin/config/theme',
-            originalUrl: '/default/rdmp/api/admin/config/theme',
-            url: '/default/rdmp/api/admin/config/theme',
-            route: { path: '/:branding/:portal/api/admin/config/:configKey' },
-            params: { branding: 'default', portal: 'rdmp', configKey: 'theme' },
-        });
-        const listRes = createRes();
-        const byKeyRes = createRes();
-
-        validateApiContractRequest(listReq, listRes, () => undefined);
-        validateApiContractRequest(byKeyReq, byKeyRes, () => undefined);
-
-        expect(listReq.apiRoute?.path).to.equal('/:branding/:portal/api/admin/config');
-        expect(byKeyReq.apiRoute?.path).to.equal('/:branding/:portal/api/admin/config/:configKey');
-        expect(listReq.apiRoute?.action).to.equal('getAppConfig');
-        expect(byKeyReq.apiRoute?.action).to.equal('getAppConfig');
-    });
+    try {
+      const response = await f.request(`/default/portal/api/records/schemas/update/${privateOid}?digest=${digest}`);
+      assert.equal(response.status, 500);
+      assert.equal(response.body.message, 'Internal server error');
+      const output =
+        response.text +
+        inspect(['error', 'warn', 'info'].flatMap(level => f.log[level].getCalls().map(call => call.args)));
+      for (const privateValue of [privateOid, digest, secret]) assert(!output.includes(privateValue));
+    } finally {
+      await f.close();
+    }
+  });
 });

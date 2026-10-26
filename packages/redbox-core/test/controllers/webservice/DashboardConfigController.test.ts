@@ -1,39 +1,23 @@
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { Controllers } from '../../../src/controllers/webservice/DashboardConfigController';
-import { createSinonStubLogger } from '../../logger.test';
-import { Controllers as AdminControllers } from '../../../src/controllers/DashboardConfigController';
-import { Services } from '../../../src/services/DashboardConfigService';
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountMetadataReadRoutes } from '../../../src/http/express/metadata';
+import { mountConfigurationWriteRoutes } from '../../../src/http/express/configurationWrites';
+import { configurationWriteRoutes } from '../../../src/http/express/configurationWrites';
+import { metadataReadRoutes } from '../../../src/http/express/metadata';
+import { pageRoutes } from '../../../src/http/express/pages';
+import { Services as Dashboard } from '../../../src/dashboards/DashboardConfig';
 
-let expect: Chai.ExpectStatic;
-
-describe('Webservice DashboardConfigController', () => {
-  let controller: Controllers.DashboardConfig;
-  let originalSails: any;
-  let originalBrandingService: any;
-  let originalDashboardConfigService: any;
-
-  before(async () => {
-    const chai = await import('chai');
-    expect = chai.expect;
-  });
-
-  function request(params: Record<string, string> = {}, body?: unknown): Sails.Req {
-    const all: Record<string, string> = { branding: 'default', portal: 'rdmp', ...params };
-    return { param: (name: string) => all[name], body, session: { branding: 'default' } } as unknown as Sails.Req;
-  }
-
-  beforeEach(() => {
-    originalSails = (global as any).sails;
-    originalBrandingService = (global as any).BrandingService;
-    originalDashboardConfigService = (global as any).DashboardConfigService;
-    (global as any).sails = { log: createSinonStubLogger(sinon) };
-    (global as any).BrandingService = {
-      getBrand: sinon
-        .stub()
-        .callsFake((name: string) => (name === 'default' ? { id: 'brand-1', name: 'default' } : undefined)),
-      getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-    };
-    (global as any).DashboardConfigService = {
+const settings = {
+  searchable: true,
+  showStageTitle: true,
+  tableConfig: { rowConfig: [], rowRulesConfig: [], groupRowConfig: [], groupRowRulesConfig: [], formatRules: {} },
+};
+describe('Dashboard configuration through owned HTTP', () => {
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  let service: Record<string, sinon.SinonStub>;
+  beforeEach(async () => {
+    service = {
       getTargetCatalogue: sinon.stub().resolves({ targets: [{ key: 'k' }], removed: [], fingerprint: 'fp' }),
       getTargetSettings: sinon.stub().resolves({ revision: 3 }),
       saveTargetSettings: sinon.stub().resolves({ revision: 4 }),
@@ -42,108 +26,102 @@ describe('Webservice DashboardConfigController', () => {
       applyCopy: sinon.stub().resolves({ updated: 2 }),
       preflightLegacyMigration: sinon.stub().resolves([{ brand: { id: 'brand-1', name: 'default' } }]),
     };
-    controller = new Controllers.DashboardConfig();
-  });
-
-  afterEach(() => {
-    sinon.restore();
-    (global as any).sails = originalSails;
-    (global as any).BrandingService = originalBrandingService;
-    (global as any).DashboardConfigService = originalDashboardConfigService;
-  });
-
-  it('lists targets for the route brand without profiles', async () => {
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-    await controller.listTargets(request(), {} as Sails.Res);
-    expect((global as any).DashboardConfigService.getTargetCatalogue.firstCall.args[0]).to.deep.equal({
-      id: 'brand-1',
-      name: 'default',
+    f = await httpRouteFixture((router, input) => {
+      mountMetadataReadRoutes(router, { ...input, dashboardConfig: service } as any);
+      mountConfigurationWriteRoutes(router, { ...input, dashboardConfig: service } as any);
     });
-    expect(sendResp.firstCall.args[2].data).to.deep.equal({ targets: [{ key: 'k' }], catalogueFingerprint: 'fp' });
   });
-
-  it('does not fall back to the default brand for an unknown brand', async () => {
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-    await controller.listTargets(request({ branding: 'other' }), {} as Sails.Res);
-    expect(sendResp.firstCall.args[2].status).to.equal(404);
-    expect((global as any).DashboardConfigService.getTargetCatalogue.called).to.equal(false);
+  afterEach(async () => {
+    await f.close();
   });
-
-  it('delegates workflow and view reads and saves with typed targets', async () => {
-    sinon.stub(controller as any, 'sendResp');
-    await controller.getWorkflowTarget(request({ recordType: 'rdmp', stage: 'draft' }), {} as Sails.Res);
-    await controller.saveViewTarget(
-      request({ view: 'consolidated', step: 'main' }, { expectedRevision: 3, settings: {} }),
-      {} as Sails.Res
+  const base = '/default/portal/api/dashboard-config';
+  it('lists targets for the route brand without profiles', async () => {
+    const response = await f.request(base + '/targets');
+    assert.equal(response.status, 200);
+    assert.equal(service.getTargetCatalogue.firstCall.args[0].id, f.brand.id);
+    assert.deepEqual(response.body, { targets: [{ key: 'k' }], catalogueFingerprint: 'fp' });
+  });
+  it('does not fall back to the default brand for unknown brands', async () => {
+    f.getBrand.resolves(undefined);
+    assert.equal((await f.request('/other/portal/api/dashboard-config/targets')).status, 404);
+    assert.equal(service.getTargetCatalogue.called, false);
+  });
+  it('delegates workflow reads and view saves with typed targets', async () => {
+    assert.equal((await f.request(base + '/workflows/rdmp/draft')).status, 200);
+    assert.equal(
+      (await f.request(base + '/views/consolidated/main', { method: 'PUT', body: { expectedRevision: 3, settings } }))
+        .status,
+      200
     );
-    const svc = (global as any).DashboardConfigService;
-    expect(svc.getTargetSettings.firstCall.args[1]).to.deep.equal({
+    assert.deepEqual(service.getTargetSettings.firstCall.args[1], {
       kind: 'workflow',
       recordType: 'rdmp',
       stage: 'draft',
     });
-    expect(svc.saveTargetSettings.firstCall.args[1]).to.deep.equal({
+    assert.deepEqual(service.saveTargetSettings.firstCall.args[1], {
       kind: 'view',
       view: 'consolidated',
       step: 'main',
     });
-    expect(svc.saveTargetSettings.firstCall.args[2]).to.deep.equal({ expectedRevision: 3, settings: {} });
+    assert.deepEqual(service.saveTargetSettings.firstCall.args[2], {
+      expectedRevision: 3,
+      settings,
+      validationFingerprint: undefined,
+      acknowledgedWarningIds: undefined,
+    });
   });
-
-  it('rejects a non-object body', async () => {
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-    await controller.applyCopy(request({}, 'nope'), {} as Sails.Res);
-    expect(sendResp.firstCall.args[2].status).to.equal(400);
-    expect((global as any).DashboardConfigService.applyCopy.called).to.equal(false);
+  it('rejects a non-object copy body', async () => {
+    const response = await f.request(base + '/copy/apply', { method: 'POST', body: 'nope' });
+    assert.equal(response.status, 400);
+    assert.equal(service.applyCopy.called, false);
   });
-
-  it('translates typed errors to status codes with structured details', async () => {
-    (global as any).DashboardConfigService.saveTargetSettings = sinon.stub().rejects(
-      new Services.DashboardConfigError('warnings-require-review', 'Review warnings', {
+  it('translates typed errors to status codes and structured v2 details', async () => {
+    service.saveTargetSettings.rejects(
+      new Dashboard.DashboardConfigError('warnings-require-review', 'Review warnings', {
         warnings: [{ id: 'w1' }],
         validationFingerprint: 'v',
       })
     );
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-    await controller.saveWorkflowTarget(
-      request({ recordType: 'rdmp', stage: 'draft' }, { expectedRevision: 1, settings: {} }),
-      {} as Sails.Res
-    );
-    const response = sendResp.firstCall.args[2];
-    expect(response.status).to.equal(409);
-    expect(response.displayErrors[0].code).to.equal('warnings-require-review');
-    expect(response.meta).to.deep.equal({ warnings: [{ id: 'w1' }], validationFingerprint: 'v' });
+    const response = await f.request(base + '/workflows/rdmp/draft', {
+      method: 'PUT',
+      body: { expectedRevision: 1, settings },
+      headers: { 'x-redbox-api-version': '2.0' },
+    });
+    assert.equal(response.status, 409);
+    assert.equal(response.body.errors[0].code, 'warnings-require-review');
+    assert.deepEqual(response.body.meta, { warnings: [{ id: 'w1' }], validationFingerprint: 'v' });
   });
-
   it('passes the route brand to migration preflight', async () => {
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-    await controller.migrationPreflight(request(), {} as Sails.Res);
-    const svc = (global as any).DashboardConfigService;
-    expect(svc.preflightLegacyMigration.firstCall.args[0]).to.deep.equal({ id: 'brand-1', name: 'default' });
-    expect(sendResp.firstCall.args[2].data.reports).to.deep.equal([{ brand: { id: 'brand-1', name: 'default' } }]);
+    const response = await f.request(base + '/migration/preflight');
+    assert.equal(response.status, 200);
+    assert.equal(service.preflightLegacyMigration.firstCall.args[0].id, f.brand.id);
+    assert.deepEqual(response.body.reports, [{ brand: { id: 'brand-1', name: 'default' } }]);
   });
-
-  it('returns 410 for retired profile, default and override operations', async () => {
-    const sendResp = sinon.stub(controller as any, 'sendResp');
-    await controller.retiredOperation(request(), {} as Sails.Res);
-    const response = sendResp.firstCall.args[2];
-    expect(response.status).to.equal(410);
-    expect(response.displayErrors[0].code).to.equal('legacy-operation-retired');
-    expect(response.displayErrors[0].detail).to.contain('/api/dashboard-config/targets');
+  it('returns 410 and remediation for retired profile operations', async () => {
+    const response = await f.request(base + '/defaults', { headers: { 'x-redbox-api-version': '2.0' } });
+    assert.equal(response.status, 410);
+    assert.equal(response.body.errors[0].code, 'legacy-operation-retired');
+    assert.match(response.body.errors[0].detail, /\/api\/dashboard-config\/targets/);
   });
-
-  it('exposes the same operations on the CSRF-protected admin controller', () => {
-    const admin = new AdminControllers.DashboardConfig();
-    const exported = (admin as any)._exportedMethods as string[];
-    expect(exported).to.include.members([
-      'editor',
+  it('declares matching admin operations with CSRF and no retired operation alias', () => {
+    assert(pageRoutes.some(route => route.path.endsWith('/admin/dashboard-config') && route.action === 'editor'));
+    for (const action of [
       'listTargets',
       'saveWorkflowTarget',
       'saveViewTarget',
       'validateSettings',
       'previewCopy',
       'applyCopy',
-    ]);
-    expect(exported).to.not.include('retiredOperation');
+    ])
+      assert(
+        [...configurationWriteRoutes, ...metadataReadRoutes].some(
+          route => route.path.includes('/admin/dashboard-config/') && route.action === action
+        )
+      );
+    assert(
+      ![...configurationWriteRoutes, ...metadataReadRoutes].some(
+        route => route.path.includes('/admin/dashboard-config/') && route.action === 'retiredOperation'
+      )
+    );
   });
 });

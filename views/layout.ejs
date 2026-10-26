@@ -7,11 +7,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="<%= typeof description == 'undefined' ? 'ReDBox research data management portal' : description %>">
   <title>
-    <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
+    <%=typeof title == 'undefined' ? page.t('default-title') : title%>
   </title>
 
   <% /* Brand Typeface: preload Regular once for an active custom typeface, else current Google fonts. */ %>
-  <% var __brandTypefaceFont = BrandingService.getActiveTypefaceFontInfo(BrandingService.getBrandNameFromReq(req)); %>
+  <% var __brandTypefaceFont = page.typeface; %>
   <% if (__brandTypefaceFont) { %>
   <link rel="preload" href="<%= __brandTypefaceFont.regularUrl %>" as="font" type="font/woff2" crossorigin>
   <% } else { %>
@@ -22,18 +22,18 @@
   <% } %>
 
   <!-- Bootstrap -->
-  <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/4_1_3-bootstrap.min.css">
+  <link rel="stylesheet" href="<%= page.base %>/styles/4_1_3-bootstrap.min.css">
 
   <!-- Font Awesome included via compiled SCSS (FA6) -->
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/styles/style.min.css">
+  <link rel="stylesheet" href="<%= page.config.appUrl %><%= page.root %>/styles/style.min.css">
   <% /* Theme CSS is versioned by the publication hash so a republish applies immediately instead of waiting out the browser cache. */ %>
-  <% var __themeBrand = BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)); %>
+  <% var __themeBrand = page.brand; %>
   <% var __themeCssVer = (__themeBrand && __themeBrand.hash) ? ('?v=' + __themeBrand.hash) : ''; %>
-  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/styles/theme.css<%= __themeCssVer %>">
+  <link rel="stylesheet" href="<%= page.config.appUrl %><%= page.root %>/<%= typeof theme == 'undefined' ? page.param('theme') : theme %>/<%= typeof portal == 'undefined' ? page.param('portal') : portal %>/styles/theme.css<%= __themeCssVer %>">
 
-  <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>"></angular-bootstrap>
+  <angular-bootstrap rootContext="<%= page.root %>"></angular-bootstrap>
 </head>
 
 <body>
@@ -47,7 +47,10 @@
                 <li><a href="user/login"><i class="fa fa-user"></i>Login</a></li>
               <% } else { %>
                 <li><i class="fa fa-user"></i>&nbsp;Welcome <%= req.user.name %></li>
-                <li><a href="user/logout">Logout</a></li>
+                <li><form class="redbox-logout" method="post" action="<%= page.base %>/user/logout">
+                  <input type="hidden" name="_csrf" value="<%= typeof _csrf !== 'undefined' ? _csrf : '' %>">
+                  <button type="submit" class="btn btn-link">Logout</button>
+                </form></li>
               <% } %>
             </ul>
           </div>
@@ -62,7 +65,7 @@
       <div class="row">
         <div class="col-sm-10">
           <div class="logo">
-            <h1><img src="images/<%= sails.config.static_assets.logoName %>"/></h1>
+            <h1><img src="images/<%= page.config.static_assets.logoName %>"/></h1>
           </div>
         </div>
 
@@ -92,7 +95,7 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="<%= BrandingService.getRootContext() %>">Home</a></li>
+            <li class="active"><a href="<%= page.root %>">Home</a></li>
           </ul>
         </div>
       </div>
@@ -134,12 +137,12 @@
 
   <!-- Latest jQuery form server -->
   <script
-  src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"
+  src="<%= page.base %>/js/jquery.min.js"
   integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
   crossorigin="anonymous" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 
   <!-- Bootstrap JS form CDN -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/3_4_1-bootstrap.min.js"
+  <script src="<%= page.base %>/js/3_4_1-bootstrap.min.js"
     integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
     crossorigin="anonymous" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 

@@ -1,6 +1,6 @@
 /**
  * Webpack Config
- * (sails.config.webpack)
+ * (configuration.webpack)
  */
 
 import * as path from 'path';
@@ -15,123 +15,125 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 // because this config file will run from inside node_modules or compiled dist folder.
 const topDir = process.cwd();
 const outputDir = path.resolve(topDir, './.tmp/public');
-const isDevelopmentAssetMode = process.env.REDBOX_ASSET_MODE === 'development' || process.env.NODE_ENV === 'development';
+const isDevelopmentAssetMode =
+  process.env.REDBOX_ASSET_MODE === 'development' || process.env.NODE_ENV === 'development';
 const enableCssMinimizerPlugin = process.env.WEBPACK_ENABLE_CSS_MINI_PLUGIN === 'true';
 
 export interface WebpackConfig {
-    config: Configuration[];
-    watch: boolean;
-    watchOptions?: {
-        ignored?: string[];
-        aggregateTimeout?: number;
-        poll?: number | boolean;
-    };
+  config: Configuration[];
+  watch: boolean;
+  watchOptions?: {
+    ignored?: string[];
+    aggregateTimeout?: number;
+    poll?: number | boolean;
+  };
 }
 
 export const webpack: WebpackConfig = {
-    config: [
+  config: [
+    {
+      stats: {
+        loggingDebug: ['sass-loader'],
+      },
+      mode: isDevelopmentAssetMode ? 'development' : 'production',
+      // Angular owns its emitted HTML. Native HTML processing in webpack 5.111
+      // re-minifies copied entry pages and passes unsupported embedded-script
+      // options to Terser. Keep these bytes intact while minifying shared JS/CSS.
+      experiments: { html: false },
+      devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
+      entry: './assets/default/default/js/client-script.js',
+      output: {
+        filename: './default/default/js/index.bundle.js',
+        path: outputDir,
+        library: 'redboxClientScript',
+        publicPath: '/',
+        clean: true,
+      },
+      plugins: [
+        new MiniCssExtractPlugin({
+          // Relative to 'output.path' above!
+          filename: './default/default/styles/style.min.css',
+        }),
+        new CopyPlugin({
+          patterns: [
+            {
+              // Copy files directly to the output folder, in the same folder structure.
+              from: './assets',
+              // The 'to' property is relative to 'output.path' above!
+              to: './',
+              globOptions: {
+                // Ignore files that shouldn't be copied.
+                ignore: ['*js/**/*', '**/*.gitkeep', '**/*.scss', '**/*.less'],
+              },
+            },
+            // Copy vendor scripts directly to specific output path.
+            {
+              from: './node_modules/bootstrap/dist/js/bootstrap.bundle.min.js',
+              to: './default/default/js/',
+            },
+            {
+              from: './node_modules/jquery/dist/jquery.min.js',
+              to: './default/default/js/',
+            },
+            {
+              from: './node_modules/redoc/bundles/redoc.standalone.js',
+              to: './default/default/js/',
+            },
+          ],
+        }),
+      ],
+      module: {
+        rules: [
+          {
+            // Compile scss files referenced in entry file to css files.
+            test: /\.(sa|sc|c)ss$/,
+            exclude: /\.\.\/angular/,
+            use: [
+              { loader: MiniCssExtractPlugin.loader, options: { publicPath: '../../../' } },
+              'css-loader',
+              'sass-loader',
+            ],
+            include: [path.resolve(topDir, './assets/styles'), path.resolve(topDir, './assets/default/default/styles')],
+          },
+          {
+            // Compile referenced font files referenced in entry file to a separate file and exports the URL
+            test: /\.(woff2?|ttf|otf|eot|svg)$/,
+            type: 'asset/resource',
+            exclude: /\.\.\/angular/,
+          },
+          {
+            // extract inline svg files to separate resources (needed for bootstrap and the redbox loading svg)
+            mimetype: 'image/svg+xml',
+            scheme: 'data',
+            type: 'asset/resource',
+            generator: {
+              filename: 'icons/[hash].svg',
+            },
+          },
+        ],
+      },
+      optimization: {
+        minimizer:
+          !isDevelopmentAssetMode || enableCssMinimizerPlugin
+            ? [
+                // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`), uncomment the next line
+                `...`,
+                new CssMinimizerPlugin(),
+              ]
+            : undefined,
+        minimize: !isDevelopmentAssetMode,
+      },
+      ignoreWarnings: [
         {
-            stats: {
-                loggingDebug: ["sass-loader"],
-            },
-            mode: isDevelopmentAssetMode ? 'development' : 'production',
-            devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
-            entry: './assets/default/default/js/client-script.js',
-            output: {
-                filename: './default/default/js/index.bundle.js',
-                path: outputDir,
-                library: 'redboxClientScript',
-                publicPath: '/',
-                clean: true,
-            },
-            plugins: [
-                new MiniCssExtractPlugin({
-                    // Relative to 'output.path' above!
-                    filename: './default/default/styles/style.min.css',
-                }),
-                new CopyPlugin({
-                    patterns: [
-                        {
-                            // Copy files directly to the output folder, in the same folder structure.
-                            from: './assets',
-                            // The 'to' property is relative to 'output.path' above!
-                            to: './',
-                            globOptions: {
-                                // Ignore files that shouldn't be copied.
-                                ignore: [
-                                    '*js/**/*',
-                                    '**/*.gitkeep',
-                                    '**/*.scss',
-                                    '**/*.less',
-                                ]
-                            }
-                        },
-                        // Copy vendor scripts directly to specific output path.
-                        {
-                            from: './node_modules/bootstrap/dist/js/bootstrap.bundle.min.js',
-                            to: './default/default/js/'
-                        },
-                        {
-                            from: './node_modules/jquery/dist/jquery.min.js',
-                            to: './default/default/js/'
-                        },
-                        {
-                            from: './node_modules/redoc/bundles/redoc.standalone.js',
-                            to: './default/default/js/'
-                        }
-                    ],
-                }),
-            ],
-            module: {
-                rules: [
-                    {
-                        // Compile scss files referenced in entry file to css files.
-                        test: /\.(sa|sc|c)ss$/,
-                        exclude: /\.\.\/angular/,
-                        use: [MiniCssExtractPlugin.loader, "css-loader", "sass-loader"],
-                        include: [path.resolve(topDir, './assets/styles'), path.resolve(topDir, './assets/default/default/styles')]
-                    },
-                    {
-                        // Compile referenced font files referenced in entry file to a separate file and exports the URL
-                        test: /\.(woff2?|ttf|otf|eot|svg)$/,
-                        type: 'asset/resource',
-                        exclude: /\.\.\/angular/
-                    },
-                    {
-                        // extract inline svg files to separate resources (needed for bootstrap and the redbox loading svg)
-                        mimetype: 'image/svg+xml',
-                        scheme: 'data',
-                        type: 'asset/resource',
-                        generator: {
-                            filename: 'icons/[hash].svg'
-                        }
-                    },
-                ]
-            },
-            optimization: {
-                minimizer: !isDevelopmentAssetMode || enableCssMinimizerPlugin
-                    ? [
-                        // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`), uncomment the next line
-                        `...`,
-                        new CssMinimizerPlugin(),
-                    ]
-                    : undefined,
-                minimize: !isDevelopmentAssetMode,
-            },
-            ignoreWarnings: [
-                {
-                    // ignore warnings from sass-loader raised by files in node_modules
-                    message: /Deprecation Warning on [^\n]*? of file[^\n]*?\/node_modules\/[^\n]*?:/,
-                    module: /sass-loader/,
-                }
-            ],
-        }
-    ],
-    watch: false,
-    watchOptions: {
-        ignored: [
-            "support/**/*",
-            "node_modules/**/*"
-        ]
-    }
+          // ignore warnings from sass-loader raised by files in node_modules
+          message: /Deprecation Warning on [^\n]*? of file[^\n]*?\/node_modules\/[^\n]*?:/,
+          module: /sass-loader/,
+        },
+      ],
+    },
+  ],
+  watch: false,
+  watchOptions: {
+    ignored: ['support/**/*', 'node_modules/**/*'],
+  },
 };

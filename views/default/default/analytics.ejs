@@ -10,15 +10,7 @@
   // Include with a `position` local: 'head' emits the loader scripts (in
   // <head>), 'body' emits the GTM <noscript> fallback (top of <body>).
   var analyticsPosition = (typeof position !== 'undefined') ? position : 'head';
-  var webAnalyticsConfig = {};
-  try {
-    if (typeof sails !== 'undefined' && typeof sails.config.brandingAware === 'function') {
-      var analyticsBrandName = BrandingService.getBrandNameFromReq(req);
-      webAnalyticsConfig = sails.config.brandingAware(analyticsBrandName).webAnalytics || {};
-    }
-  } catch (e) {
-    webAnalyticsConfig = {};
-  }
+  var webAnalyticsConfig = page.settings.webAnalytics || {};
   // Only render for enabled config with a safe, whitelisted tracking id. The id
   // is admin-entered, so restrict to the characters valid in GA4/GTM ids to
   // prevent breaking out of the attribute/JS string context.

@@ -1,51 +1,25 @@
-let expect: Chai.ExpectStatic;
-import * as sinon from 'sinon';
-import { Controllers } from '../../src/controllers/RenderViewController';
+import assert from 'node:assert/strict';
+import { httpPagesFixture } from '../helpers/httpPagesFixture';
 
-before(async () => {
-  expect = (await import('chai')).expect;
-});
-
-describe('RenderViewController', () => {
-  let controller: Controllers.RenderView;
-  let originalTranslationService: unknown;
-
-  beforeEach(() => {
-    originalTranslationService = (global as any).TranslationService;
-    (global as any).TranslationService = {
-      t: sinon.stub().callsFake((key: string) => ({
-        'default-title': 'Site',
-        'welcome-title': 'Welcome',
-      }[key] ?? key)),
-    };
-    controller = new Controllers.RenderView();
+describe('Declared page titles through actual EJS rendering', () => {
+  let f: Awaited<ReturnType<typeof httpPagesFixture>>;
+  beforeEach(async () => {
+    f = await httpPagesFixture(input => {
+      input.translate = (_brand, _language, key) =>
+        ({ 'default-title': 'Site', 'welcome-title': 'Welcome' })[key] ?? key;
+    });
   });
-
-  afterEach(() => {
-    sinon.restore();
-    (global as any).TranslationService = originalTranslationService;
+  afterEach(async () => {
+    await f.close();
   });
-
-  it('formats translated pageTitleKey into title local', () => {
-    const req = { options: { locals: { view: 'homepage', pageTitleKey: 'welcome-title' } } } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendViewStub = sinon.stub(controller, 'sendView');
-
-    controller.render(req, res);
-
-    expect(sendViewStub.calledOnce).to.be.true;
-    expect(sendViewStub.firstCall.args[2]).to.equal('homepage');
-    expect(sendViewStub.firstCall.args[3]).to.deep.equal({ title: 'Welcome | Site' });
+  it('formats a translated declared title', async () => {
+    const response = await f.request('/default/portal/home');
+    assert.equal(response.status, 200);
+    assert.equal(response.text.match(/<title>([\s\S]*?)<\/title>/)?.[1].trim(), 'Welcome | Site');
   });
-
-  it('supports literal pageTitle', () => {
-    const req = { options: { locals: { view: 'getAdvice', pageTitle: 'Get advice' } } } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendViewStub = sinon.stub(controller, 'sendView');
-
-    controller.render(req, res);
-
-    expect(sendViewStub.calledOnce).to.be.true;
-    expect(sendViewStub.firstCall.args[3]).to.deep.equal({ title: 'Get advice | Site' });
+  it('supports a literal declared title', async () => {
+    const response = await f.request('/default/portal/getAdvice');
+    assert.equal(response.status, 200);
+    assert.equal(response.text.match(/<title>([\s\S]*?)<\/title>/)?.[1].trim(), 'Get advice | Site');
   });
 });

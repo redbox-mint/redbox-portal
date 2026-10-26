@@ -1,57 +1,45 @@
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
-
-import { Controllers } from '../../../src/controllers/webservice/FormManagementController';
-import { Services as FormsServices } from '../../../src/services/FormsService';
+import { Forms } from '../../../src/forms/Forms';
+import { BrandingModel } from '../../../src/model/storage/BrandingModel';
+import { nothingLogger } from '@researchdatabox/sails-ng-common';
+import { referenceFixtures } from '../../helpers/serviceRepositories';
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountConfigurationReadRoutes } from '../../../src/http/express/configuration';
 import type { FormAttributes } from '../../../src/persistence/rows';
 
-let expect: Chai.ExpectStatic;
-
-describe('Webservice FormManagementController validation operation metadata', function () {
-  let controller: Controllers.FormManagement;
-  let formsService: FormsServices.Forms;
-  let priorSails: unknown;
-  let priorBrandingService: unknown;
-  let priorFormsService: unknown;
-
-  before(async function () {
-    expect = (await import('chai')).expect;
-  });
-
-  beforeEach(function () {
-    priorSails = (global as any).sails;
-    priorBrandingService = (global as any).BrandingService;
-    priorFormsService = (global as any).FormsService;
-    (global as any).sails = {
-      config: {},
-      services: {},
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
+describe('Form management discovery through owned HTTP and public projection', () => {
+  let formsService: Forms;
+  let loadRecord: sinon.SinonStub;
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
+  beforeEach(async () => {
+    loadRecord = sinon.stub().resolves(null);
+    const brand = Object.assign(new BrandingModel(), { id: 'brand-1', name: 'default' });
+    formsService = new Forms({
+      repository: referenceFixtures(),
+      log: nothingLogger,
+      config: { appmode: {} },
+      records: {
+        getMeta: loadRecord,
+        hasViewAccess: () => true,
+        hasEditAccess: () => true,
+        hasTransitionRoleAuthorization: () => true,
       },
-    };
-    (global as any)._ = require('lodash');
-    (global as any).BrandingService = {
-      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-      getDefault: sinon.stub().returns({ id: 'default-brand', name: 'default' }),
-    };
-    formsService = new FormsServices.Forms();
-    (global as any).FormsService = formsService;
-    controller = new Controllers.FormManagement();
+      validation: { discoverOperations: async () => [] },
+      recordTypes: { get: () => of(null!) },
+      workflowSteps: { getAllForRecordType: () => of([]) },
+      vocabulary: { getEntries: async () => null!, defaultBrand: () => 'default' },
+      formRegistry: () => ({}),
+      defaultBrand: () => brand,
+    });
+    f = await httpRouteFixture((router, input) =>
+      mountConfigurationReadRoutes(router, { ...input, forms: formsService, loadRecord } as any)
+    );
   });
-
-  afterEach(function () {
+  afterEach(async () => {
+    await f.close();
     sinon.restore();
-    if (priorSails === undefined) delete (global as any).sails;
-    else (global as any).sails = priorSails;
-    if (priorBrandingService === undefined) delete (global as any).BrandingService;
-    else (global as any).BrandingService = priorBrandingService;
-    if (priorFormsService === undefined) delete (global as any).FormsService;
-    else (global as any).FormsService = priorFormsService;
   });
 
   it('adds only safe discovery fields and strips the internal operation definition', async function () {
@@ -81,20 +69,13 @@ describe('Webservice FormManagementController validation operation metadata', fu
         allowedTargetSteps: ['review'],
       },
     ]);
-    const respond = sinon.stub(controller as any, 'apiRespond');
-    const req = {
-      apiRequest: {
-        params: {},
-        query: { name: 'dataset-draft', editable: 'true', recordType: 'dataset' },
-        body: {},
-        files: {},
-      },
-      user: { username: 'alice', roles: [{ name: 'Researcher' }] },
-    } as unknown as Sails.Req;
 
-    await controller.getForm(req, {} as Sails.Res);
+    const response = await f.request(
+      '/default/portal/api/forms/get?name=dataset-draft&editable=true&recordType=dataset'
+    );
 
-    const body = respond.firstCall.args[2];
+    expect(response.status).to.equal(200);
+    const body = response.body;
     expect(body.configuration).not.to.have.property('validationOperations');
     expect(body.validationOperations).to.deep.equal([
       {
@@ -125,14 +106,11 @@ describe('Webservice FormManagementController validation operation metadata', fu
         },
       ] as unknown as FormAttributes[])
     );
-    const respond = sinon.stub(controller as any, 'apiRespond');
-    const req = {
-      apiRequest: { params: {}, query: {}, body: {}, files: {} },
-    } as unknown as Sails.Req;
 
-    await controller.listForms(req, {} as Sails.Res);
+    const response = await f.request('/default/portal/api/forms');
 
-    const body = respond.firstCall.args[2];
+    expect(response.status).to.equal(200);
+    const body = response.body;
     expect(body.records[0].configuration).not.to.have.property('validationOperations');
     expect(body.records[0]).not.to.have.property('validationOperations');
     expect(JSON.stringify(body)).not.to.include('Admin');
@@ -149,25 +127,15 @@ describe('Webservice FormManagementController validation operation metadata', fu
       })
     );
     const discover = sinon.stub(formsService, 'discoverValidationOperations').resolves([{ name: 'submit' }]);
-    (global as any).sails.services.recordsservice = {
-      getMeta: sinon.stub().rejects(new Error('raw storage failure')),
-    };
-    const respond = sinon.stub(controller as any, 'apiRespond');
-    const req = {
-      apiRequest: {
-        params: {},
-        query: { name: 'dataset-draft', editable: 'true', oid: 'unavailable-record' },
-        body: {},
-        files: {},
-      },
-      user: { username: 'alice', roles: [] },
-    } as unknown as Sails.Req;
+    loadRecord.rejects(new Error('raw storage failure'));
 
-    await controller.getForm(req, {} as Sails.Res);
+    const response = await f.request(
+      '/default/portal/api/forms/get?name=dataset-draft&editable=true&oid=unavailable-record'
+    );
 
     expect(discover.called).to.equal(false);
-    expect(respond.firstCall.args[2].validationOperations).to.deep.equal([]);
-    expect(JSON.stringify(respond.firstCall.args[2])).not.to.include('raw storage failure');
+    expect(response.body.validationOperations).to.deep.equal([]);
+    expect(JSON.stringify(response.body)).not.to.include('raw storage failure');
   });
 
   it('omits discovery when the loaded record belongs to another brand', async function () {
@@ -180,27 +148,17 @@ describe('Webservice FormManagementController validation operation metadata', fu
       })
     );
     const discover = sinon.stub(formsService, 'discoverValidationOperations').resolves([{ name: 'submit' }]);
-    (global as any).sails.services.recordsservice = {
-      getMeta: sinon.stub().resolves({
-        redboxOid: 'other-brand-record',
-        metadata: {},
-        metaMetadata: { brandId: 'brand-2', type: 'dataset', form: 'dataset-draft' },
-      }),
-    };
-    const respond = sinon.stub(controller as any, 'apiRespond');
-    const req = {
-      apiRequest: {
-        params: {},
-        query: { name: 'dataset-draft', editable: 'true', oid: 'other-brand-record' },
-        body: {},
-        files: {},
-      },
-      user: { username: 'alice', roles: [] },
-    } as unknown as Sails.Req;
+    loadRecord.resolves({
+      redboxOid: 'other-brand-record',
+      metadata: {},
+      metaMetadata: { brandId: 'brand-2', type: 'dataset', form: 'dataset-draft' },
+    });
 
-    await controller.getForm(req, {} as Sails.Res);
+    const response = await f.request(
+      '/default/portal/api/forms/get?name=dataset-draft&editable=true&oid=other-brand-record'
+    );
 
     expect(discover.called).to.equal(false);
-    expect(respond.firstCall.args[2].validationOperations).to.deep.equal([]);
+    expect(response.body.validationOperations).to.deep.equal([]);
   });
 });
