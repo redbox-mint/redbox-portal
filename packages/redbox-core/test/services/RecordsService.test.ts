@@ -10706,6 +10706,592 @@ describe('RecordsService', function () {
       }
     });
 
+    describe('postSync committed revisions', function () {
+      type Snapshot = ReturnType<typeof baseRecord> & {
+        revision: number;
+        metadata: { title: string; hookSaved?: boolean; concurrent?: boolean; laterHook?: boolean };
+      };
+
+      const installStorage = (legacy = false) => {
+        let current: Snapshot = { ...baseRecord(), revision: 1 };
+        if (!legacy) {
+          mockStorageService.getCapabilities = sinon.stub().returns({
+            recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
+          });
+        }
+        const response = (oid: string) => ({
+          success: true,
+          oid,
+          applicationState: 'applied',
+          ...(!legacy ? { committedRevision: current.revision, committedRecord: structuredClone(current) } : {}),
+        });
+        mockStorageService.getMeta.callsFake(async () => structuredClone(current));
+        mockStorageService.create.callsFake(async (_brand: unknown, candidate: Snapshot) => {
+          current = { ...structuredClone(candidate), revision: 0 };
+          return response(current.redboxOid);
+        });
+        mockStorageService.updateMeta.callsFake(
+          async (
+            _brand: unknown,
+            oid: string,
+            candidate: Snapshot,
+            _user: unknown,
+            options: { precondition?: { expectedRevision?: number } }
+          ) => {
+            const expected = options.precondition?.expectedRevision;
+            if (expected !== undefined && expected !== current.revision) {
+              return { success: false, oid, applicationState: 'not-applied', nonApplicationReason: 'stale-revision' };
+            }
+            current = { ...structuredClone(candidate), redboxOid: oid, revision: current.revision + 1 };
+            return response(oid);
+          }
+        );
+        mockRecordValidationService.resolve.resolves(allowResult());
+        return {
+          snapshot: () => structuredClone(current),
+          concurrentWrite: () => {
+            current = {
+              ...current,
+              revision: current.revision + 1,
+              metadata: { ...current.metadata, concurrent: true },
+            };
+          },
+        };
+      };
+
+      const published = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], editRoles: [], viewRoles: [] },
+        },
+      };
+      const actor = { username: 'user-1', roles: [{ name: 'Publisher' }] };
+
+      for (const operation of ['create', 'update'] as const) {
+        for (const phase of [
+          'save',
+          'target-transition',
+          'hook-transition',
+          'committed-transition',
+          'legacy-transition',
+        ] as const) {
+          for (const replacement of phase === 'save'
+            ? (['full', 'partial', 'older', 'old-full', 'committed-partial'] as const)
+            : phase === 'target-transition'
+              ? (['full', 'partial', 'older', 'committed-partial'] as const)
+              : (['full', 'partial', 'older'] as const)) {
+            it(`adopts a self-persisting ${operation} hook snapshot during ${phase} with a ${replacement} replacement`, async function () {
+              const storage = installStorage(phase === 'legacy-transition');
+              authorizeCreateFromStartingStep('Publisher');
+              const events: string[] = [];
+              let hookRevision: number | undefined;
+              let olderSnapshot: Snapshot;
+              const saveMode = operation === 'create' ? 'onCreate' : 'onUpdate';
+              const selfPersist = { function: '(oid, record) => globalThis.__postSyncCommit(oid, record)' };
+              const laterHooks =
+                replacement === 'full' || replacement === 'committed-partial'
+                  ? []
+                  : [
+                      {
+                        function:
+                          replacement === 'old-full'
+                            ? '() => globalThis.__postSyncOlderCopy()'
+                            : replacement === 'partial'
+                              ? '(_oid, record) => ({ metadata: { ...record.metadata, laterHook: true } })'
+                              : '(_oid, record) => ({ ...record, revision: record.revision - 1, metadata: { ...record.metadata, laterHook: true } })',
+                      },
+                    ];
+              const recordType = {
+                name: 'rdmp',
+                searchable: false,
+                hooks: {
+                  [saveMode]: {
+                    postSync: [
+                      phase === 'target-transition' ? { function: '(_oid, record) => record' } : selfPersist,
+                      ...laterHooks,
+                    ],
+                    post: [{ function: '() => globalThis.__postSyncCommitEvents.push("save-post")' }],
+                  },
+                  onTransitionWorkflow: {
+                    postSync: [selfPersist, ...laterHooks],
+                    post: [{ function: '() => globalThis.__postSyncCommitEvents.push("transition-post")' }],
+                  },
+                },
+              };
+              const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+              const steps = Reflect.get(globalThis, 'WorkflowStepsService') as { get: sinon.SinonStub };
+              types.get.returns(of(recordType));
+              steps.get.returns(of(published));
+              Object.assign(globalThis, {
+                __postSyncCommitEvents: events,
+                __postSyncOlderCopy: () => ({
+                  ...olderSnapshot,
+                  metadata: { ...olderSnapshot.metadata, laterHook: true },
+                }),
+                __postSyncCommit: async (oid: string, record: Snapshot) => {
+                  events.push('self-save');
+                  olderSnapshot = storage.snapshot();
+                  const mutate = (snapshot: Snapshot) => ({
+                    ...snapshot,
+                    metadata: { ...snapshot.metadata, hookSaved: true },
+                    authorization: {
+                      ...snapshot.authorization,
+                      edit: [],
+                      editRoles: [],
+                      view: ['private-viewer'],
+                      viewRoles: [],
+                    },
+                    metaMetadata: { ...snapshot.metaMetadata, hookCommittedMarker: true },
+                    ...(phase === 'committed-transition' ? { workflow: { stage: 'published' } } : {}),
+                  });
+                  // Simulate an adapter commit for a hook that already completed its
+                  // workflow change; mutateMetaInternal forbids workflow bypass.
+                  if (phase === 'legacy-transition' || phase === 'committed-transition') {
+                    const snapshot = storage.snapshot();
+                    const saved = await mockStorageService.updateMeta({ id: 'brand-1' }, oid, mutate(snapshot), actor, {
+                      precondition: { expectedRevision: snapshot.revision },
+                    });
+                    expect(saved.applicationState).to.equal('applied');
+                  } else {
+                    const result = await RecordsService.mutateMetaInternal({
+                      actor: { kind: 'service', id: 'RecordsServiceTest.postSync' },
+                      authorization: { kind: 'service' },
+                      oid,
+                      user: actor,
+                      brand: { id: 'brand-1' },
+                      triggerPreSaveTriggers: false,
+                      triggerPostSaveTriggers: false,
+                      mutate,
+                    });
+                    expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+                  }
+                  const committed = storage.snapshot();
+                  hookRevision = committed.revision;
+                  if (replacement === 'committed-partial') {
+                    return {
+                      metadata: { ...committed.metadata, laterHook: true },
+                      revision: committed.revision,
+                    };
+                  }
+                  // Preserve a hook-requested workflow change for #5005's
+                  // configured-target validation at the outer save boundary.
+                  return {
+                    ...record,
+                    ...committed,
+                    ...(phase === 'hook-transition'
+                      ? {
+                          workflow: { stage: 'published' },
+                          authorization: { edit: [], view: ['user-1'], editRoles: [], viewRoles: [] },
+                        }
+                      : {}),
+                  };
+                },
+              });
+              try {
+                const target = phase === 'target-transition' || phase === 'legacy-transition';
+                const result =
+                  operation === 'create'
+                    ? await RecordsService.create(
+                        { id: 'brand-1' },
+                        { metadata: { title: 'Self-saving hook' } },
+                        recordType,
+                        actor,
+                        true,
+                        true,
+                        target ? 'published' : undefined
+                      )
+                    : await RecordsService.updateMeta(
+                        { id: 'brand-1' },
+                        'record-123',
+                        baseRecord('Self-saving hook'),
+                        actor,
+                        true,
+                        true,
+                        target ? published : {},
+                        undefined,
+                        createRecordSaveContext({
+                          routeFamily: 'browser',
+                          operation: target ? 'transition' : 'update',
+                          ...(target ? { targetStep: 'published' } : {}),
+                        })
+                      );
+                await new Promise(resolve => setImmediate(resolve));
+                const stored = storage.snapshot();
+                expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+                expect(result.problems).to.deep.equal([]);
+                expect(stored.metadata.hookSaved).to.equal(
+                  replacement === 'old-full' ? olderSnapshot.metadata.hookSaved : true
+                );
+                expect(stored.authorization.edit).to.deep.equal(
+                  replacement === 'old-full' ? olderSnapshot.authorization.edit : []
+                );
+                expect(stored.authorization.view).to.deep.equal(
+                  replacement === 'old-full'
+                    ? olderSnapshot.authorization.view
+                    : phase === 'hook-transition'
+                      ? ['user-1']
+                      : ['private-viewer']
+                );
+                expect(Reflect.get(stored.metaMetadata, 'hookCommittedMarker')).to.equal(
+                  replacement === 'old-full' ? Reflect.get(olderSnapshot.metaMetadata, 'hookCommittedMarker') : true
+                );
+                if (replacement !== 'full') expect(stored.metadata.laterHook).to.equal(true);
+                expect(stored.revision).to.equal(hookRevision! + 1);
+                expect(result.concurrency.revision).to.equal(stored.revision);
+                expect(events).to.deep.equal(
+                  phase === 'save'
+                    ? ['self-save', 'save-post']
+                    : phase === 'target-transition'
+                      ? ['self-save', 'save-post', 'transition-post']
+                      : ['self-save', 'self-save', 'save-post', 'transition-post']
+                );
+                if (phase === 'hook-transition') expect(stored.authorization.edit).to.deep.equal([]);
+                if (phase !== 'save') {
+                  expect(stored.workflow.stage).to.equal('published');
+                  expect(stored.metaMetadata.form).to.equal('published-form');
+                }
+              } finally {
+                Reflect.deleteProperty(globalThis, '__postSyncCommit');
+                Reflect.deleteProperty(globalThis, '__postSyncOlderCopy');
+                Reflect.deleteProperty(globalThis, '__postSyncCommitEvents');
+              }
+            });
+          }
+        }
+      }
+
+      it('stores identical committed sections with and without a trailing partial replacement', async function () {
+        // Freeze only Date so independent saves have comparable audit timestamps.
+        sinon.useFakeTimers({ now: Date.UTC(2026, 9, 26), toFake: ['Date'] });
+        const storedSections: unknown[] = [];
+        for (const partial of [false, true]) {
+          const storage = installStorage();
+          const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+          types.get.returns(
+            of({
+              name: 'rdmp',
+              searchable: false,
+              hooks: {
+                onUpdate: {
+                  postSync: [
+                    { function: '(oid) => globalThis.__postSyncEquivalence(oid)' },
+                    ...(partial
+                      ? [{ function: '(_oid, record) => ({ metadata: { ...record.metadata, laterHook: true } })' }]
+                      : []),
+                  ],
+                },
+              },
+            })
+          );
+          Reflect.set(globalThis, '__postSyncEquivalence', async (oid: string) => {
+            const result = await RecordsService.mutateMetaInternal({
+              actor: { kind: 'service', id: 'RecordsServiceTest.equivalence' },
+              authorization: { kind: 'service' },
+              oid,
+              user: actor,
+              brand: { id: 'brand-1' },
+              triggerPreSaveTriggers: false,
+              triggerPostSaveTriggers: false,
+              mutate: (snapshot: Snapshot) => ({
+                ...snapshot,
+                authorization: { ...snapshot.authorization, edit: [] },
+                metaMetadata: { ...snapshot.metaMetadata, hookCommittedMarker: true },
+              }),
+            });
+            expect(result.outcome).to.equal('saved');
+            return storage.snapshot();
+          });
+          try {
+            const result = await RecordsService.updateMeta(
+              { id: 'brand-1' },
+              'record-123',
+              baseRecord(),
+              actor,
+              true,
+              true
+            );
+            expect(result.outcome).to.equal('saved');
+            const stored = storage.snapshot();
+            storedSections.push({ authorization: stored.authorization, metaMetadata: stored.metaMetadata });
+            expect(stored.metadata.laterHook).to.equal(partial ? true : undefined);
+          } finally {
+            Reflect.deleteProperty(globalThis, '__postSyncEquivalence');
+          }
+        }
+        expect(storedSections[1]).to.deep.equal(storedSections[0]);
+      });
+
+      for (const operation of ['create', 'update'] as const) {
+        for (const phase of ['save', 'transition'] as const) {
+          for (const scenario of ['bogus', 'concurrent', 'read-failure', 'invalid-read', 'race-after-read'] as const) {
+            it(`rejects ${operation} ${phase} postSync ${scenario} verification without overwriting storage`, async function () {
+              const storage = installStorage();
+              authorizeCreateFromStartingStep('Publisher');
+              let expectedSnapshot: Snapshot;
+              let writesAfterHook = 0;
+              let hookRevision: number;
+              const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+              const steps = Reflect.get(globalThis, 'WorkflowStepsService') as { get: sinon.SinonStub };
+              steps.get.returns(of(published));
+              const mode = operation === 'create' ? 'onCreate' : 'onUpdate';
+              const chain = [{ function: '(oid, record) => globalThis.__postSyncVerification(oid, record)' }];
+              const recordType = {
+                name: 'rdmp',
+                searchable: false,
+                hooks: {
+                  [mode]: { postSync: phase === 'save' ? chain : [] },
+                  onTransitionWorkflow: { postSync: phase === 'transition' ? chain : [] },
+                },
+              };
+              types.get.returns(of(recordType));
+              Reflect.set(globalThis, '__postSyncVerification', async (oid: string, record: Snapshot) => {
+                if (scenario !== 'bogus') {
+                  const result = await RecordsService.mutateMetaInternal({
+                    actor: { kind: 'service', id: 'RecordsServiceTest.verification' },
+                    authorization: { kind: 'service' },
+                    oid,
+                    user: actor,
+                    brand: { id: 'brand-1' },
+                    triggerPreSaveTriggers: false,
+                    triggerPostSaveTriggers: false,
+                    mutate: (snapshot: Snapshot) => ({
+                      ...snapshot,
+                      authorization: { ...snapshot.authorization, edit: [] },
+                      metaMetadata: { ...snapshot.metaMetadata, hookCommittedMarker: true },
+                    }),
+                  });
+                  expect(result.outcome).to.equal('saved');
+                }
+                hookRevision = scenario === 'bogus' ? record.revision + 10 : storage.snapshot().revision;
+                if (scenario === 'concurrent') storage.concurrentWrite();
+                expectedSnapshot = storage.snapshot();
+                const nextRead = mockStorageService.getMeta.onCall(mockStorageService.getMeta.callCount);
+                if (scenario === 'read-failure') nextRead.rejects(new Error('verification read failed'));
+                if (scenario === 'invalid-read') nextRead.resolves({ revision: hookRevision });
+                if (scenario === 'race-after-read')
+                  nextRead.callsFake(async () => {
+                    const verified = storage.snapshot();
+                    storage.concurrentWrite();
+                    expectedSnapshot = storage.snapshot();
+                    return verified;
+                  });
+                writesAfterHook = mockStorageService.updateMeta.callCount;
+                return { metadata: { ...record.metadata, laterHook: true }, revision: hookRevision };
+              });
+              try {
+                const result =
+                  operation === 'create'
+                    ? await RecordsService.create(
+                        { id: 'brand-1' },
+                        { metadata: { title: 'Verify' } },
+                        recordType,
+                        actor,
+                        true,
+                        true,
+                        phase === 'transition' ? 'published' : undefined
+                      )
+                    : await RecordsService.updateMeta(
+                        { id: 'brand-1' },
+                        'record-123',
+                        baseRecord('Verify'),
+                        actor,
+                        true,
+                        true,
+                        phase === 'transition' ? published : {}
+                      );
+                expect(result.outcome, JSON.stringify(result)).to.equal('saved-with-warnings');
+                expect(
+                  result.problems.some((problem: RecordSaveProblem) =>
+                    problem.issues?.some(issue => issue.code === 'record-revision-stale')
+                  )
+                ).to.equal(true);
+                expect(storage.snapshot()).to.deep.equal(expectedSnapshot);
+                expect(result.concurrency.revision).to.equal(expectedSnapshot.revision);
+                expect(mockStorageService.updateMeta.callCount).to.equal(
+                  writesAfterHook + (scenario === 'race-after-read' ? 1 : 0)
+                );
+                if (scenario === 'race-after-read') {
+                  expect(mockStorageService.updateMeta.lastCall.args[4].precondition.expectedRevision).to.equal(
+                    hookRevision
+                  );
+                }
+              } finally {
+                Reflect.deleteProperty(globalThis, '__postSyncVerification');
+              }
+            });
+          }
+        }
+      }
+
+      for (const operation of ['create', 'update'] as const) {
+        for (const phase of ['save', 'transition'] as const) {
+          it(`adds no storage read when ${operation} ${phase} postSync does not offer a newer revision`, async function () {
+            const readCounts: number[] = [];
+            for (const hook of [
+              undefined,
+              '(_oid, record) => record',
+              '(_oid, record) => ({ metadata: record.metadata })',
+            ]) {
+              installStorage();
+              authorizeCreateFromStartingStep('Publisher');
+              const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+              const steps = Reflect.get(globalThis, 'WorkflowStepsService') as { get: sinon.SinonStub };
+              steps.get.returns(of(published));
+              const mode = operation === 'create' ? 'onCreate' : 'onUpdate';
+              const chain = hook ? [{ function: hook }] : [];
+              const recordType = {
+                name: 'rdmp',
+                searchable: false,
+                hooks: {
+                  [mode]: { postSync: phase === 'save' ? chain : [] },
+                  onTransitionWorkflow: { postSync: phase === 'transition' ? chain : [] },
+                },
+              };
+              types.get.returns(of(recordType));
+              const beforeReads = mockStorageService.getMeta.callCount;
+              const result =
+                operation === 'create'
+                  ? await RecordsService.create(
+                      { id: 'brand-1' },
+                      { metadata: { title: 'No adoption' } },
+                      recordType,
+                      actor,
+                      true,
+                      true,
+                      phase === 'transition' ? 'published' : undefined
+                    )
+                  : await RecordsService.updateMeta(
+                      { id: 'brand-1' },
+                      'record-123',
+                      baseRecord(),
+                      actor,
+                      true,
+                      true,
+                      phase === 'transition' ? published : {}
+                    );
+              expect(result.outcome).to.equal('saved');
+              readCounts.push(mockStorageService.getMeta.callCount - beforeReads);
+            }
+            expect(readCounts[1]).to.equal(readCounts[0]);
+            expect(readCounts[2]).to.equal(readCounts[0]);
+          });
+        }
+      }
+
+      for (const scenario of [
+        'concurrent',
+        'bogus',
+        'lower',
+        'equal',
+        'absent',
+        'negative',
+        'fractional',
+        'string',
+        'nan',
+        'unsafe',
+      ] as const) {
+        for (const partial of scenario === 'concurrent' || scenario === 'bogus' ? [false, true] : [false]) {
+          it(`preserves CAS behavior for a ${scenario} postSync revision${partial ? ' before a partial replacement' : ''}`, async function () {
+            const storage = installStorage();
+            let returnedRevision: unknown;
+            const recordType = {
+              name: 'rdmp',
+              searchable: false,
+              hooks: {
+                onUpdate: {
+                  postSync: [
+                    { function: '(oid, record) => globalThis.__postSyncRevision(oid, record)' },
+                    ...(partial
+                      ? [{ function: '(_oid, record) => ({ metadata: { ...record.metadata, laterHook: true } })' }]
+                      : []),
+                  ],
+                },
+              },
+            };
+            const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+            types.get.returns(of(recordType));
+            Reflect.set(globalThis, '__postSyncRevision', async (oid: string, record: Snapshot) => {
+              if (scenario === 'concurrent') {
+                await RecordsService.mutateMetaInternal({
+                  actor: { kind: 'service', id: 'RecordsServiceTest.postSyncRace' },
+                  authorization: { kind: 'service' },
+                  oid,
+                  user: actor,
+                  brand: { id: 'brand-1' },
+                  triggerPreSaveTriggers: false,
+                  triggerPostSaveTriggers: false,
+                  mutate: (snapshot: Snapshot) => ({
+                    ...snapshot,
+                    metadata: { ...snapshot.metadata, hookSaved: true },
+                  }),
+                });
+                const committed = storage.snapshot();
+                returnedRevision = committed.revision;
+                storage.concurrentWrite();
+                return committed;
+              }
+              returnedRevision = {
+                bogus: record.revision + 10,
+                lower: record.revision - 1,
+                equal: record.revision,
+                absent: undefined,
+                negative: -1,
+                fractional: 1.5,
+                string: '99',
+                nan: NaN,
+                unsafe: Number.MAX_SAFE_INTEGER + 1,
+              }[scenario];
+              const candidate = {
+                ...record,
+                metadata: { ...record.metadata, hookSaved: true },
+                revision: returnedRevision,
+              };
+              if (scenario === 'absent') Reflect.deleteProperty(candidate, 'revision');
+              return candidate;
+            });
+            try {
+              const result = await RecordsService.updateMeta(
+                { id: 'brand-1' },
+                'record-123',
+                baseRecord('Primary save'),
+                actor,
+                true,
+                true
+              );
+              const rejected = scenario === 'concurrent' || scenario === 'bogus';
+              expect(result.outcome, JSON.stringify(result)).to.equal(rejected ? 'saved-with-warnings' : 'saved');
+              const lastWrite = mockStorageService.updateMeta.lastCall;
+              if (rejected) {
+                expect(mockStorageService.updateMeta.callCount).to.equal(scenario === 'concurrent' ? 2 : 1);
+              } else {
+                expect(lastWrite.args[4].precondition.expectedRevision).to.equal(2);
+              }
+              const stored = storage.snapshot();
+              expect(result.concurrency.revision).to.equal(stored.revision);
+              if (rejected) {
+                expect(
+                  result.problems.some((problem: RecordSaveProblem) =>
+                    problem.issues?.some(issue => issue.code === 'record-revision-stale')
+                  )
+                ).to.equal(true);
+                expect(stored.metadata.hookSaved).to.equal(scenario === 'concurrent' ? true : undefined);
+                expect(stored.metadata.concurrent).to.equal(scenario === 'concurrent' ? true : undefined);
+                expect(stored.metadata.laterHook).to.equal(undefined);
+              } else {
+                expect(result.problems).to.deep.equal([]);
+                expect(stored.metadata.hookSaved).to.equal(true);
+                expect(stored.revision).to.equal(3);
+              }
+            } finally {
+              Reflect.deleteProperty(globalThis, '__postSyncRevision');
+            }
+          });
+        }
+      }
+    });
+
     for (const concurrentRevocation of [false, true]) {
       it(`retains initial save authority after its ACL hook removes the approver${concurrentRevocation ? ' but preserves a concurrent winning revision' : ''}`, async function () {
         type Snapshot = ReturnType<typeof baseRecord> & {
