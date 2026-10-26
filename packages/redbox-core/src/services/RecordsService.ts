@@ -4579,6 +4579,7 @@ export namespace Services {
         }
 
         if (triggerPostSaveTriggers) {
+          let hookTransitionCommitted = false;
           // post-save sync
           try {
             const beforePostSync = _.cloneDeep(recordObj) as AnyRecord;
@@ -4655,6 +4656,8 @@ export namespace Services {
                 );
               }
               currentRevision = postSyncRevision;
+              hookTransitionCommitted =
+                this.candidateWorkflowStep(hookMutationState.candidate) !== this.candidateWorkflowStep(beforePostSync);
               // A committed hook transition supplies the authority for the
               // following transition hooks, including its configured form.
               wfStep = hookMutationState.authoritativeStep ?? wfStep;
@@ -4685,7 +4688,7 @@ export namespace Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordTypeObj, 'onCreate', userObj, hookOperation);
 
-          if (targetStepName) {
+          if (targetStepName || hookTransitionCommitted) {
             try {
               const beforeTransitionPostSync = _.cloneDeep(recordObj) as AnyRecord;
               const transitionOutcome = await this.runPostSaveSyncTriggers({
@@ -5837,6 +5840,7 @@ export namespace Services {
         }
         // post-save async
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
+          let hookTransitionCommitted = false;
           // Trigger Post-save sync hooks ...
           try {
             const beforePostSyncCandidate = this.mergeValidationCandidate(originalRecord, recordObj);
@@ -5919,6 +5923,9 @@ export namespace Services {
                 );
               }
               currentRevision = postSyncRevision;
+              hookTransitionCommitted =
+                this.candidateWorkflowStep(hookMutationState.candidate) !==
+                this.candidateWorkflowStep(beforePostSyncCandidate);
               nextStepObj = hookMutationState.authoritativeStep ?? nextStepObj;
               if (this.committedRevision(hookMutationState.response) !== undefined) {
                 recordObj.revision = currentRevision;
@@ -5951,7 +5958,7 @@ export namespace Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj, hookOperation);
 
-          if (transitionRequested) {
+          if (transitionRequested || hookTransitionCommitted) {
             try {
               const beforeTransitionCandidate = this.mergeValidationCandidate(authoritativeCandidate, recordObj);
               const transitionOutcome = await this.runPostSaveSyncTriggers({
