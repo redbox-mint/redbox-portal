@@ -1,4 +1,4 @@
-import {Component, computed, effect, signal} from '@angular/core';
+import {Component, computed, DestroyRef, effect, inject, signal} from '@angular/core';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {FormFieldCompMapEntry, ModifyOptions} from '@researchdatabox/portal-ng-common';
 import {FormComponentEventType, createFormSaveRequestedEvent} from '../form-state';
@@ -29,10 +29,11 @@ export class SaveButtonComponent extends ButtonBaseComponent {
   protected currentLabel = signal<string | undefined>(this.componentDefinition?.config?.label);
   protected hasTargetStep = signal<boolean>(false);
   private readonly configuredDisabled = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly validationSignal = this.eventBus.selectSignal(FormComponentEventType.FORM_VALIDATION_BROADCAST);
 
   readonly disabled = computed(() => {
-    if (!this.getFormComponent.editMode() || this.configuredDisabled()) return true;
+    if (!this.getFormComponent.editMode() || this.configuredDisabled() || this.getFormComponent.saveBlockedByConflict()) return true;
     const dataStatusEvent = this.validationSignal();
     // The event bus does not replay validation broadcasts to newly created buttons.
     // Track the initial snapshot even before the FormGroup exists, so loading
@@ -84,14 +85,18 @@ export class SaveButtonComponent extends ButtonBaseComponent {
   }
 
   public async save() {
-    if (!this.disabled()) {
-      if (!await this.confirmSave() || this.disabled()) return;
+    const form = this.getFormComponent.form;
+    const oid = this.getFormComponent.trimmedParams.oid();
+    const stillCurrent = () => !this.destroyRef.destroyed && this.getFormComponent.form === form &&
+      this.getFormComponent.trimmedParams.oid() === oid;
+    if (stillCurrent() && !this.disabled()) {
+      if (!await this.confirmSave() || !stillCurrent() || this.disabled()) return;
       // Publish a typed event to request save; NgRx effects will orchestrate execution
       const redirectLocation = String(this.componentDefinition?.config?.redirectLocation ?? '').trim();
       const resolvedRedirectLocation = await this.resolveRedirectLocation(redirectLocation);
       // Redirect template resolution yields even without a configured redirect.
       // Recheck the action boundary before publishing into the save pipeline.
-      if (this.disabled()) return;
+      if (!stillCurrent() || this.disabled()) return;
       this.eventBus.publish(
         createFormSaveRequestedEvent({
           force: this.componentDefinition?.config?.forceSave || this.hasTargetStep(),

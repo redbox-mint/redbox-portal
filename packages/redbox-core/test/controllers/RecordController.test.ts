@@ -6,6 +6,7 @@ import { firstValueFrom, of } from 'rxjs';
 import { Settings } from 'luxon';
 import { Controllers } from '../../src/controllers/RecordController';
 import { UserModel, RoleModel } from '../../src/model';
+import { Services as RecordServices } from '../../src/services/RecordsService';
 import { Controllers as AsynchControllers } from '../../src/controllers/AsynchController';
 import { RecordSaveResponse } from '../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
@@ -792,6 +793,46 @@ describe('RecordController getWorkflowSteps', () => {
           expect(editAccess.firstCall.args[3]).to.deep.include({ redboxOid: 'oid-1', metadata: { title: 'Saved title' } });
         });
       }
+    }
+  }
+
+  for (const selection of ['named', 'saved']) {
+    for (const persona of ['owner', 'editor', 'admin', 'viewer', 'outsider', 'anonymous']) {
+      it(`enforces real record ACLs for ${persona} on the ${selection} edit route despite spoofed query authority`, async () => {
+        const originalRoles = Reflect.get(globalThis, 'RolesService');
+        const role = Object.assign(new RoleModel(), { id: 'admin-role', name: 'Admin' });
+        const user = persona === 'anonymous' ? undefined : Object.assign(new UserModel(), {
+          username: persona, roles: persona === 'admin' ? [role] : [],
+        });
+        const authorized = ['owner', 'editor', 'admin'].includes(persona);
+        Reflect.set(globalThis, 'RolesService', { getRole: (_brand: unknown, name: string) => name === 'Admin' ? role : undefined });
+        try {
+          const service = new RecordServices.Records();
+          (controller.recordsService.hasEditAccess as sinon.SinonStub).callsFake(service.hasEditAccess.bind(service));
+          (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+            redboxOid: 'oid-1', metaMetadata: { type: 'rdmp', form: 'saved-form' },
+            authorization: { edit: ['owner', 'editor'], editRoles: ['Admin'], view: ['viewer'], viewRoles: [] },
+            metadata: { title: 'Protected saved title' },
+          });
+          (FormsService.getFormByName as sinon.SinonStub).returns(of({ configuration: { type: 'rdmp' } }));
+          const req = {
+            param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : (!authorized && name === 'recordType' ? 'spoofed-type' : '')),
+            query: { hasEditAccess: true, edit: 'true', roles: ['Admin'], runtimeContext: { record: { hasEditAccess: true } } },
+            session: { branding: 'default' }, user,
+            options: { locals: selection === 'named' ? { localFormName: 'named-form' } : {} },
+          } as unknown as Sails.Req;
+          const forbidden = sinon.stub();
+          const sendView = sinon.stub(controller, 'sendView');
+          await controller.edit(req, { forbidden } as unknown as Sails.Res);
+          expect(forbidden.called).to.equal(!authorized);
+          expect(sendView.called).to.equal(authorized);
+          expect((FormsService.getFormByName as sinon.SinonStub).called).to.equal(authorized);
+          expect((FormsService.getFormByStartingWorkflowStep as sinon.SinonStub).called).to.be.false;
+          if (authorized) expect(sendView.firstCall.args[3]).to.include({ title: 'Protected saved title | Site' });
+        } finally {
+          Reflect.set(globalThis, 'RolesService', originalRoles);
+        }
+      });
     }
   }
 
