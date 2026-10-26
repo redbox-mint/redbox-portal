@@ -312,8 +312,9 @@ export namespace Services {
         if (sendResult.success) {
           this.updateChronicle({ emailNotificationOutcome: 'sent' });
           const postSendHooks = _.get(options, "onNotifySuccess", null);
-          if (postSendHooks) {
-            _.each(postSendHooks, (postSendHook: Record<string, unknown>) => {
+          if (Array.isArray(postSendHooks)) {
+            sails.log.verbose(`Processing onNotifySuccess hooks`);
+            for (const postSendHook of postSendHooks) {
               const postSendHookFnName = _.get(postSendHook, 'function', null);
               if (typeof postSendHookFnName === 'string' && postSendHookFnName.length > 0) {
                 this.updateChronicle({ emailNotificationHookOutcome: 'processing' });
@@ -327,13 +328,14 @@ export namespace Services {
                   postSendHookResult = Promise.resolve(postSendHookResult);
                 }
 
-                (postSendHookResult as Promise<Record<string, unknown>>).then(() => {
+                try {
+                  await postSendHookResult;
                   this.updateChronicle({ emailNotificationHookOutcome: 'success' });
-                }).catch(error => {
+                } catch (error) {
                   this.updateChronicle({ emailNotificationHookOutcome: 'failure' }, [error]);
-                });
+                }
               }
-            });
+            }
           }
         }
         if (!_.isEmpty(response)) {

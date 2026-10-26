@@ -20,7 +20,7 @@
 import { Component, Inject, ElementRef } from '@angular/core';
 import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, HandlebarsTemplateService } from '@researchdatabox/portal-ng-common';
 import { RecordSource } from '@researchdatabox/portal-ng-common';
-import {  RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
+import {  RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, map as _map } from 'lodash-es';
 import { DateTime } from 'luxon';
 /**
@@ -50,6 +50,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   paginationMaxSize: number = 10;
   // See https://moment.github.io/luxon/docs/manual/zones.html#specifying-a-zone
   dateParamTz: string = 'utc';
+  dateParamTzByFilter: Record<string, Record<string, string>> = {};
   // Branding and portal for template loading
   branding: string = '';
   portal: string = '';
@@ -73,8 +74,12 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   }
 
   async gotoPage(pageNum: number): Promise<RecordPageDto> {
+    const params = this.getParams();
+    if (params === null) {
+      return this.reportResult;
+    }
     this.initTracker.resultsReturned = false;
-    this.reportResult =  await this.reportService.getReportResult(this.reportName, pageNum, this.getParams(), this.recordsPerPage);
+    this.reportResult =  await this.reportService.getReportResult(this.reportName, pageNum, params, this.recordsPerPage);
     this.initTracker.resultsReturned = true;
     return this.reportResult;
   }
@@ -89,6 +94,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     _set(this.optTemplateData, 'brandingAndPortalUrl', this.brandingAndPortalUrl);
     this.recordsPerPage = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'recordsPerPage', this.recordsPerPage);
     this.dateParamTz = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'dateParamTz', this.dateParamTz);
+    this.dateParamTzByFilter = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'dateParamTzByFilter', this.dateParamTzByFilter);
     this.paginationMaxSize = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'paginationMaxSize', this.paginationMaxSize);
 
     // Extract branding and portal from the URL for template loading
@@ -115,31 +121,81 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   }
 
   public getDownloadCSVUrl() {
-    let url = `${this.brandingAndPortalUrl}/admin/downloadReportCSV?name=${this.reportName}`;
-    let params = this.getParams();
-    for(var key in params) {
-      url=url+'&'+key+"="+params[key];
+    const params = this.getParams();
+    if (params === null) {
+      return null;
     }
-    return url;
+    const query = new URLSearchParams({ name: this.reportName });
+    for (const key in params) {
+      query.set(key, params[key]);
+    }
+    return `${this.brandingAndPortalUrl}/admin/downloadReportCSV?${query}`;
   }
 
   public getLuxonDateFromJs(srcDate: Date, tz: string, mode: string) {
+    const date = new Date(srcDate.getTime());
     if (mode == 'floor') {
-      srcDate.setHours(0, 0, 0, 0);
+      date.setHours(0, 0, 0, 0);
     } else if (mode == 'ceil') {
-      srcDate.setHours(23, 59, 59, 999);
+      date.setHours(23, 59, 59, 999);
     }
-    return DateTime.fromJSDate(srcDate, {zone: tz});
+    return DateTime.fromJSDate(date, {zone: tz});
+  }
+
+  private getDateRangeBound(srcDate: Date, filter: ReportFilterDto, mode: 'floor' | 'ceil') {
+    const zone = this.dateParamTzByFilter[this.reportName]?.[filter.paramName];
+    if (!zone) {
+      return this.getLuxonDateFromJs(srcDate, this.dateParamTz, mode);
+    }
+    // Datepickers represent a selected calendar day with browser-local fields.
+    // Build that day in the configured zone, then serialize UTC for query comparisons.
+    const date = DateTime.fromObject({
+      year: srcDate.getFullYear(), month: srcDate.getMonth() + 1, day: srcDate.getDate(),
+    }, { zone });
+    return (mode === 'floor' ? date.startOf('day') : date.endOf('day')).toUTC();
+  }
+
+  public get dateRangeError(): string | null {
+    for (const filter of this.report?.filter ?? []) {
+      if (filter.type !== 'date-range') {
+        continue;
+      }
+      const from = this.filterParams[filter.paramName + '_fromDate'];
+      const to = this.filterParams[filter.paramName + '_toDate'];
+      const hasBound = (value: unknown) => value !== null && value !== undefined && value !== '';
+      if ([from, to].some(value => hasBound(value) &&
+        (!(value instanceof Date) || !Number.isFinite(value.getTime())))) {
+        return this.translationService.t('report-filter-invalid-date',
+          '{{filter}}: enter valid dates in dd/mm/yyyy format before filtering or downloading.',
+          { filter: this.translationService.t(filter.message) });
+      }
+      const fromBound = hasBound(from) ? this.getDateRangeBound(from, filter, 'floor') : null;
+      const toBound = hasBound(to) ? this.getDateRangeBound(to, filter, 'ceil') : null;
+      if ((fromBound && !fromBound.isValid) || (toBound && !toBound.isValid)) {
+        return this.translationService.t('report-filter-invalid-timezone',
+          '{{filter}}: the date filter time zone is not configured correctly. Contact your administrator before filtering or downloading.',
+          { filter: this.translationService.t(filter.message) });
+      }
+      if (fromBound && toBound && fromBound.toMillis() > toBound.toMillis()) {
+        return this.translationService.t('report-filter-reversed-date-range',
+          '{{filter}}: the From date must be on or before the To date before filtering or downloading.',
+          { filter: this.translationService.t(filter.message) });
+      }
+    }
+    return null;
   }
 
   public getParams() {
+    if (this.dateRangeError) {
+      return null;
+    }
     var params:any = {};
-    for(let filter of this.report.filter) {
+    for(let filter of this.report?.filter ?? []) {
       if (filter.type == 'date-range') {
         const fromDateJs = this.filterParams[filter.paramName + "_fromDate"];
         const toDateJs = this.filterParams[filter.paramName + "_toDate"];
-        var fromDate = fromDateJs ? this.getLuxonDateFromJs(fromDateJs, this.dateParamTz, 'floor') : null;
-        var toDate = toDateJs ? this.getLuxonDateFromJs(toDateJs, this.dateParamTz, 'ceil') : null;
+        var fromDate = fromDateJs ? this.getDateRangeBound(fromDateJs, filter, 'floor') : null;
+        var toDate = toDateJs ? this.getDateRangeBound(toDateJs, filter, 'ceil') : null;
 
         if (fromDate != null) {
           params[filter.paramName + "_fromDate"] = fromDate.toISO();

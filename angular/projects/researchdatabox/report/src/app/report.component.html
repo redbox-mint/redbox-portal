@@ -44,6 +44,8 @@
                   <div class="form-group">
                     <label class="control-label mr-2">{{ 'report-filter-date-from' | i18next }}</label>
                     <input type="text" [id]="filter.paramName + '_fromDate'"
+                      [attr.aria-invalid]="dateRangeError ? 'true' : null"
+                      [attr.aria-describedby]="dateRangeError ? 'report-date-range-error' : null"
                       [bsConfig] = "datePickerOpts"
                       [placeholder] = "datePickerPlaceHolder"
                       [(ngModel)]="filterParams[ filter['paramName'] + '_fromDate']"
@@ -54,6 +56,8 @@
                   <div class="form-group">
                     <label class="control-label mr-2">{{ 'report-filter-date-to' | i18next }}</label>
                     <input type="text" [id]="filter.paramName + '_toDate'"
+                      [attr.aria-invalid]="dateRangeError ? 'true' : null"
+                      [attr.aria-describedby]="dateRangeError ? 'report-date-range-error' : null"
                       [bsConfig] = "datePickerOpts"
                       [placeholder] = "datePickerPlaceHolder"
                       [(ngModel)]="filterParams[ filter['paramName'] + '_toDate']"
@@ -63,6 +67,9 @@
                 <div class="col-md-2"></div>
               </div>
             }
+          }
+          @if (dateRangeError; as error) {
+            <div class="alert alert-danger" role="alert" id="report-date-range-error">{{error}}</div>
           }
           <div class="row">
             <div class="col-xs-2"></div>
@@ -95,7 +102,10 @@
       </div>
       <div class="col-xs-8"></div>
       <div class="col-xs-2">
-        <a class="btn btn-large btn-primary" [href]="getDownloadCSVUrl()">
+        <a class="btn btn-large btn-primary" [class.disabled]="!!dateRangeError"
+          [attr.aria-disabled]="dateRangeError ? 'true' : null"
+          [attr.tabindex]="dateRangeError ? -1 : null" [attr.href]="getDownloadCSVUrl()"
+          (click)="dateRangeError ? $event.preventDefault() : null">
           <span class="glyphicon glyphicon-download"></span>
           {{ 'report-csv-download' | i18next }}
         </a>

@@ -322,8 +322,10 @@ export namespace Services {
 
     private getTemplateStringFunction(template: string, providerName: string) {
       return (map: Record<string, unknown>) => template.replace(/\$\{([^}]+)\}/g, (_match: string, rawPath: string) => {
-        const propertyPath = String(rawPath ?? '').trim();
-        if (!this.isSafeTemplatePath(propertyPath)) {
+        // Values are URL components, never raw URL syntax. The explicit solr
+        // modifier escapes literal search punctuation before URL encoding.
+        const [propertyPath, modifier, ...extra] = String(rawPath ?? '').split('|').map(part => part.trim());
+        if (!this.isSafeTemplatePath(propertyPath) || extra.length || (modifier !== undefined && modifier !== 'solr')) {
           throw this.createFormVocabularyError(
             'external-vocab-invalid-config',
             `External vocabulary provider '${providerName}' contains unsupported template path '${propertyPath}'.`
@@ -331,7 +333,15 @@ export namespace Services {
         }
 
         const value = _.get(map, propertyPath);
-        return this.normalizeTemplateValue(value);
+        const text = this.normalizeTemplateValue(value);
+        // Escape punctuation, regex delimiters, backslashes and Boolean words
+        // together so an input backslash cannot neutralize another escape.
+        // Keep internal spaces for tokenized autocomplete; boundary spaces
+        // must not separate the configured trailing wildcard into its own term.
+        const literal = modifier === 'solr'
+          ? text.trim().replace(/[+\-&|!(){}[\]^"~*?:/\\]|\b(?:AND|OR|NOT)\b/g, '\\$&')
+          : text;
+        return encodeURIComponent(literal);
       });
     }
 

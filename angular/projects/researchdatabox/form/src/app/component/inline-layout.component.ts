@@ -38,7 +38,7 @@ import { FormService } from "../form.service";
     <div class="rb-form-inline-layout">
       @if (getStringProperty('label') && isVisible) {
         <div class="rb-form-inline-layout__row">
-          <label class="form-label mb-0 d-inline-block flex-shrink-0 rb-form-inline-label">
+          <label class="form-label mb-0 d-inline-block flex-shrink-0 rb-form-inline-label" [attr.for]="labelableControlId">
             <span [innerHtml]="getStringProperty('label') | i18next" [title]="tooltip | i18next"></span>
             @if (isRequired) {
               <span
