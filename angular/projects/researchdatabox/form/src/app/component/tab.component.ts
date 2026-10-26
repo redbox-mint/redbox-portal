@@ -198,8 +198,10 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
     let selectedTabName = null;
     for (let index = 0; index < this.tabs.length; index++) {
       const tab = this.tabs[index];
+      const configIndex = this.tabConfig.tabs.indexOf(tab);
       const tabWrapperRef = this.tabsContainer.createComponent(FormBaseWrapperComponent<null>);
-      tab.name = `${tab.name || index}`;
+      // Keep positional names stable when an earlier tab has been pruned.
+      tab.name = `${tab.name || configIndex}`;
       // Ensure tab is hidden immediately upon creation to prevent flash of content
       tabWrapperRef.instance.hostBindingCssClasses = 'd-none';
       tabWrapperRef.changeDetectorRef.detectChanges();
@@ -212,7 +214,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
           layout: [`${tab?.name}-layout`],
           dataModel: [],
           // Compiled templates retain the original server-config index.
-          formConfig: ['component', 'config', 'tabs', this.tabConfig.tabs!.indexOf(tab)],
+          formConfig: ['component', 'config', 'tabs', configIndex],
         }),
       };
 
