@@ -8,6 +8,26 @@ const { test } = require('node:test');
 const auditor = path.resolve(__dirname, '../../support/specs/sails-retirement/evidence/retirement-closure.cjs');
 
 for (const [label, source, count] of [
+  ['exact rejected EJS fixture', "fs.writeFileSync(file, '<%= sails.config.appUrl %>');", 0],
+  ['evaluated legacy path', "eval('sails.config.appUrl');", 1],
+  ['live access beside the fixture', "fs.writeFileSync(file, '<%= sails.config.appUrl %>'); sails.lift();", 1],
+]) {
+  test(`retirement audit checks CLI ${label}`, () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-view-audit-'));
+    try {
+      const fixture = path.join(directory, 'packages/redbox-dev-tools/test');
+      fs.mkdirSync(fixture, {recursive:true});
+      fs.writeFileSync(path.join(fixture, 'cli.test.ts'), source);
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], {encoding:'utf8'});
+      assert.equal(result.error, undefined);
+      const audit = JSON.parse(result.stdout);
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {fs.rmSync(directory, {recursive:true, force:true});}
+  });
+}
+
+for (const [label, source, count] of [
   ['forbidden package table', "const rejected = ['sails','sails.io.js','skipper','waterline'].includes(leaf);", 0],
   ['actual forbidden package import', "require('sails.io.js');", 1],
   ['unrelated runtime path', "const rejected = ['sails','sails.config.synthetic','skipper','waterline'].includes(leaf);", 1],

@@ -282,6 +282,12 @@ for (const file of files) {
       if (/\/(?:src|dist)\/recordTypes\/RecordHookNames\.[cm]?[jt]s$/.test(file))
         classify(node, 'Finite persisted-declaration conversion key or rejected legacy prefix; never evaluated');
       else if (
+        /\/redbox-dev-tools\/test\/cli\.test\.ts$/.test(file) && ts.isStringLiteralLike(node) &&
+        node.text === '<%= sails.config.appUrl %>' && ts.isCallExpression(node.parent) &&
+        node.parent.expression.getText(ast) === 'fs.writeFileSync' && node.parent.arguments[1] === node
+      )
+        classify(node, 'Exact negative EJS fixture written for offline v6 rejection; never rendered');
+      else if (
         file.endsWith('/test/qualification/installed-dependency-graph.cjs') &&
         ts.isStringLiteralLike(node) && node.text === 'sails.io.js' &&
         ts.isArrayLiteralExpression(node.parent) &&

@@ -8,6 +8,26 @@ and envelopes remain unless the row below explicitly changes them. Complete the
 with your exact clients, hooks, identity provider and topology. Internal test
 qualification does not designate a representative institution.
 
+Hook authors should run `redbox-dev-tools check --v6` before an installed
+rehearsal. It rejects legacy discovery metadata, missing runtime exports and
+known retired server EJS APIs in `views/`, with file/line locations. Convert
+`TranslationService.t(...)` to `page.t(...)`, branding URLs to `page.root` or
+`page.base`, and bundle hashes to `page.bundleHash(...)`. Remove ancestor
+`functions` includes; the host supplies `superPartial`. UWA/JCU-style page
+overrides need the same conversion as WSU. Inspect additional declared view roots
+and custom helpers, compile in an isolated install with a declared compiler base,
+then render the packaged overrides and require anonymous home/login HTML 200.
+Readiness and JSON API/login checks alone do not exercise those views.
+
+Core lexical converters only rewrite their finite built-in expression table.
+Institution-owned service expressions in persisted record-type hooks and queued
+payloads require an explicit hook-local converter ordered before the core v6
+conversion. Preserve migration names and opaque templates, map only known names,
+and leave unknown names to strict validation. The
+[hook migration guide](../specs/sails-retirement/hook-migration-v6.md#institution-expressions-in-persisted-definitions)
+describes ordering, nested declarations, regression cases and composition bindings.
+WSU's mapping does not convert other institutions' expressions.
+
 | Change in v6 | Affected clients/operators | Required remediation |
 |---|---|---|
 | Protected API reads return **401** with a Bearer challenge for missing/invalid credentials; protected browser record-form/branding reads also enforce authentication. Legacy paths could return 403 or HTML login redirects. Revoked bearer credentials return 401. | Record-type, configuration/forms/translations, metadata, record/query/report/history and identity clients; custom branding/form callers | Supply an authorized bearer credential or a fresh browser session. Treat 401 as authentication failure, never as successful HTML. Public translation namespace reads remain public. |

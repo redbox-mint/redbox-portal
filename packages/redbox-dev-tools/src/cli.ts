@@ -14,6 +14,7 @@ import {
 import { generateCompletionScript } from './completion';
 import { parseLanguageDefaults, parseNavMappings, parseRoutes } from './cli-parsers';
 import { registerSyncTranslationCommand } from './commands/sync-translation';
+import { findRetiredViewApis, hasRuntimeExtensionExport } from './utils/v6-checks';
 
 const program = new Command();
 const packageJson = readPackageJson(path.resolve(__dirname, '..', 'package.json')) as { version?: string };
@@ -184,7 +185,7 @@ program
 program
   .command('check')
   .description('Validate that a hook uses the shared Redbox dependency contract')
-  .option('--v6', 'Also require neutral v6 extension metadata and a public entrypoint')
+  .option('--v6', 'Also check neutral v6 metadata, runtime exports and retired APIs in views/')
   .action((options: { v6?: boolean }) => {
     const packageJsonPath = path.join(process.cwd(), 'package.json');
     if (!fs.existsSync(packageJsonPath)) {
@@ -199,8 +200,9 @@ program
       const entry = pkg.redbox?.extension;
       if (typeof entry !== 'string' || (entry !== '.' && !/^\.\/[A-Za-z0-9_/-]+$/.test(entry)))
         findings.push('redbox.extension: declare a public v6 extension subpath');
-      else if (!pkg.exports || !Object.hasOwn(pkg.exports, entry))
-        findings.push('exports: expose the declared redbox.extension subpath');
+      else if (!hasRuntimeExtensionExport(pkg.exports, entry))
+        findings.push('exports: expose the declared redbox.extension subpath with a runtime target');
+      findings.push(...findRetiredViewApis(process.cwd()));
     }
 
     if (findings.length === 0) {

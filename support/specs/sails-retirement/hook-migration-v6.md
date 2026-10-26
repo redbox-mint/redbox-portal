@@ -26,10 +26,16 @@ For a released hook, replace it with the exact qualified v6 core version or the
 deployment's complete packed dependency set, then repeat installation, build and
 pack in isolation. Do not publish a manifest containing a developer's local path.
 
-`check --v6` checks the dependency contract and neutral manifest/public export.
+`check --v6` checks the dependency contract, neutral manifest/runtime export and
+known retired APIs in server EJS blocks under `views/`. It rejects
+`TranslationService`, `BrandingService`, `CacheService` and `sails` member access,
+and ancestor `functions` includes, with file/line locations. Node's root-export
+shorthand is supported; null, types-only and declaration-file targets are rejected.
+The check is static: it neither imports the hook nor requires built output.
 It does not prove that runtime services, persisted declarations or deployment
 bindings have been converted; compile, offline inspection and an installed
-rehearsal remain required.
+rehearsal remain required. Inspect any additional declared view roots and custom
+helpers explicitly; this targeted scan is not a complete template/type validator.
 
 The template lives in this repository at
 `packages/redbox-dev-tools/templates/hook-archetype/v6/`. V6 is now the only scaffold and the default; `standard` is rejected. The v6
@@ -206,11 +212,23 @@ Convert institution overrides themselves, including anonymous pages. For example
 `BrandingService.getBrandAndPortalPath(req)` becomes `page.base`. Remove the old
 `include('../../../functions')` helper from login overrides; the host already
 supplies `superPartial`. Do not copy legacy helpers or install service globals.
+Run `check --v6` after converting every override; it catches these known server
+EJS usages before rendering. It ignores EJS comments, escaped EJS and ordinary
+text/string mentions, and does not execute templates. `CacheService` bundle-hash
+lookups become `page.bundleHash(...)`; choose the correct `page.root`/`page.base`
+replacement for each branding lookup rather than replacing names blindly.
 Render the actual packaged home and login overrides with `PageArtifacts` and
 only declared locals, including the homepage error branches and escaped messages.
 Then require HTTP 200 and HTML from both anonymous `/home` and `/user/login`
 under the configured brand/portal in the installed artifact, before acquiring a
 session. Readiness, JSON login and form API checks alone missed both WSU failures.
+
+Inventory generated-file mounts as well as packaged views/assets. A legacy
+`.tmp/public/published` mapping is not reproduced by the v6 page adapter: bind an
+explicit HTTP handler for the selected persistent publication directory. Verify
+the advertised landing URL, its directory index and every generated harvest
+format before/after restart, with current publication/embargo eligibility and
+path bounds. Do not expose an entire output directory as arbitrary static bytes.
 
 The development hook contributes named record operations and explicit page settings.
 A finite migration table converts known persisted v5 expressions to owned operation
@@ -258,6 +276,12 @@ declarations too. Keep templates and ordinary metadata opaque. Never evaluate a
 service expression, map unknown names, or merely change new startup definitions:
 persisted types and already queued payloads also require conversion. Bind the new
 operation names in the institution composition before starting maintenance or HTTP.
+This is required per institution: running the core converters alone does not
+convert custom hook expressions. Inventory its persisted record-type hooks and
+queued declarations from the actual checkpoint. Add regression cases for known
+conversions, nested declarations, opaque templates, idempotence and unknown-name
+rejection, then rehearse the lexical ordering against that checkpoint. WSU's four
+expression mapping is an example, not a generic institution conversion table.
 
 A real hook needs an institution composition executable using `createPortalHost`
 and its concrete `bindings`. The default `app.express.cjs` has no application-specific

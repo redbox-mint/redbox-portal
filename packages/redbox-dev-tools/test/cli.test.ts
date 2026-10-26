@@ -182,4 +182,70 @@ describe('cli smoke test', function () {
     expect(runCli(['check'], tempRoot).status).to.equal(1);
   });
 
+  it('checks runtime export targets, including Node root export shorthand', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-exports-'));
+    fs.mkdirSync(path.join(tempRoot, 'dist'));
+    for (const file of ['index.js', 'index.cjs'])
+      fs.writeFileSync(path.join(tempRoot, 'dist', file), 'exports.registerRedboxExtension = () => ({apiVersion: 1});');
+    fs.writeFileSync(path.join(tempRoot, 'dist/index.mjs'), 'export const registerRedboxExtension = () => ({apiVersion: 1});');
+    fs.writeFileSync(path.join(tempRoot, 'dist/index.d.ts'), 'export declare function registerRedboxExtension(): unknown;');
+    for (const [exports, accepted] of [
+      [{'.': null}, false],
+      [{'.': {types: './dist/index.d.ts'}}, false],
+      [{'.': './dist/index.d.ts'}, false],
+      [{'.': '../outside.js'}, false],
+      ['./dist/index.js', true],
+      [{node: {require: './dist/index.cjs'}, types: './dist/index.d.ts'}, true],
+      [{'.': {import: './dist/index.mjs', require: './dist/index.cjs'}}, true],
+    ]) {
+      fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+        name: 'redbox-hook-exports', redbox: {extension: '.'}, exports,
+      }));
+      const result = runCli(['check', '--v6'], tempRoot);
+      expect(result.status).to.equal(accepted ? 0 : 1, JSON.stringify(exports) + result.stderr);
+      const loaded = spawnSync(process.execPath, ['-e',
+        "if (typeof require('redbox-hook-exports').registerRedboxExtension !== 'function') process.exit(2)"],
+        {cwd:tempRoot, encoding:'utf8'});
+      expect(loaded.status === 0).to.equal(accepted, JSON.stringify(exports) + loaded.stderr);
+    }
+  });
+
+  it('rejects retired globals and the old functions include in hook EJS before runtime', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-views-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name: 'redbox-hook-views', redbox: {extension: '.'}, exports: {'.': './dist/index.js'},
+    }));
+    const views = path.join(tempRoot, 'views/default/default');
+    fs.mkdirSync(views, {recursive: true});
+    fs.writeFileSync(path.join(views, 'homepage.ejs'), '<h1>Home</h1>\n<%= TranslationService.t("welcome") %>\n<%= BrandingService.getBrandAndPortalPath(req) %>');
+    fs.writeFileSync(path.join(views, 'login.ejs'), '<% include("../../../functions") %>');
+    fs.writeFileSync(path.join(views, 'edit.ejs'), '<%= CacheService.getNgAppFileHash("form", "main") %>');
+    fs.writeFileSync(path.join(views, 'legacy.ejs'), '<%= sails.config.appUrl %>');
+    const result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(1, result.stdout + result.stderr);
+    for (const expected of ['homepage.ejs:2', 'TranslationService', 'BrandingService', 'login.ejs:1', 'functions', 'CacheService', 'sails'])
+      expect(result.stderr).to.contain(expected);
+    // Neutral metadata also enables the conversion checks without the flag.
+    expect(runCli(['check'], tempRoot).status).to.equal(1);
+  });
+
+  it('allows current page locals, installed partials and inert mentions of retired APIs', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-current-views-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name: 'redbox-hook-views', redbox: {extension: '.'}, exports: {'.': './dist/index.js'},
+    }));
+    const views = path.join(tempRoot, 'views/default/default');
+    fs.mkdirSync(views, {recursive: true});
+    fs.writeFileSync(path.join(views, 'homepage.ejs'), [
+      'TranslationService is retired. <script>const BrandingService = "browser only";</script>',
+      '<%# TranslationService.t("comment"); include("../../../functions"); %>',
+      '<%%= TranslationService.t("escaped EJS") %>',
+      '<% const label = "TranslationService.t"; /* BrandingService.getRootContext() */ %>',
+      '<%= page.t("welcome") %><a href="<%= page.base %>">Home</a>',
+      '<%- include("layout/menu.ejs") %><%- superPartial("/layout/logo.ejs") %>',
+    ].join('\n'));
+    const result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(0, result.stderr);
+  });
+
 });
