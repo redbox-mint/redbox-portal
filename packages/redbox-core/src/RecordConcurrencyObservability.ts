@@ -131,7 +131,7 @@ export function recordConcurrencyMetricLabels(event: RecordConcurrencyEvent): At
  */
 export function emitRecordConcurrencyEvent(
   event: RecordConcurrencyEvent,
-  logger: Pick<Console, 'info' | 'warn'> = sails.log
+  logger: Pick<Console, 'info' | 'warn'> = console
 ): Readonly<SafeRecordConcurrencyEvent> {
   const expectedRevision = boundedRevision(event.expectedRevision);
   const currentRevision = boundedRevision(event.currentRevision);

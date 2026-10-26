@@ -14,7 +14,7 @@ export interface RecordBaseUrlConfig {
 }
 
 export interface RecordAPIEndpoint {
-  method: 'get' | 'post' | 'put' | 'patch' | 'delete';
+  method: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   url: string;
   readTimeout?: number;
 }
@@ -63,6 +63,8 @@ export interface RecordAttachmentsConfig {
 export interface RecordFormConfig {
   htmlSanitizationMode: 'sanitize' | 'reject';
   returnMetadataOnSave: boolean;
+  /** Maximum SVG source bytes accepted by the DOM sanitizer. */
+  svgMaxBytes?: number;
 }
 
 export interface RecordConfig {

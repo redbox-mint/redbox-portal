@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import { firstValueFrom } from 'rxjs';
 import sinon from 'sinon';
@@ -14,21 +15,21 @@ describe('The RecordsService', function () {
   let originalRecordValidationConfig;
 
   before(function () {
-    recordsService = sails.services.recordsservice;
+    recordsService = fixture.services.RecordsService;
     if (typeof recordsService.getServices === 'function') {
       recordsService.getServices(recordsService);
     }
   });
 
   beforeEach(function () {
-    originalRecordSchemaConfig = sails.config.recordSchema;
-    originalRecordValidationConfig = sails.config.recordValidation;
+    originalRecordSchemaConfig = fixture.config.recordSchema;
+    originalRecordValidationConfig = fixture.config.recordValidation;
   });
 
   afterEach(async function () {
     sinon.restore();
-    sails.config.recordSchema = originalRecordSchemaConfig;
-    sails.config.recordValidation = originalRecordValidationConfig;
+    fixture.config.recordSchema = originalRecordSchemaConfig;
+    fixture.config.recordValidation = originalRecordValidationConfig;
 
     for (const digest of createdSchemaDigests) {
       await fixtureRemove("RecordSchemaReference", { digest });
@@ -65,10 +66,10 @@ describe('The RecordsService', function () {
 
   it('stores sequential workspace associations from null as an array through WorkspaceService and Mongo', async function () {
     const oid = `workspace-associations-${Date.now()}`;
-    const brand = BrandingService.getDefault();
+    const brand = fixture.services.BrandingService.getDefault();
     const user = { username: 'admin', roles: [{ name: 'Admin' }] };
-    const storage = sails.services.mongostorageservice;
-    const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
+    const storage = fixture.services.MongoStorageService;
+    const recordType = await firstValueFrom(fixture.services.RecordTypesService.get(brand, 'rdmp'));
     const metadata = { title: 'Workspace association regression', workspaces: null, unrelated: { retained: true } };
     const created = await storage.create(
       brand,
@@ -102,7 +103,7 @@ describe('The RecordsService', function () {
     expect(created.success).to.equal(true);
     createdOids.push(oid);
 
-    const workspaceService = sails.services.workspaceservice;
+    const workspaceService = fixture.services.WorkspaceService;
     const first = { id: 'workspace-first', reference: 'RDS-FIRST', capacity: '100 GB' };
     const second = { id: 'workspace-second', reference: 'RDS-SECOND', capacity: '200 GB' };
     for (const association of [first, second, { ...first }]) {
@@ -126,15 +127,15 @@ describe('The RecordsService', function () {
     const viewerUsername = `recordaudit-viewer-${suffix}`;
 
     const editor = await firstValueFrom(
-      UsersService.addLocalUser(editorUsername, 'Record Audit Editor', `${editorUsername}@example.edu.au`, 'RBTest123!')
+      fixture.services.UsersService.addLocalUser(editorUsername, 'Record Audit Editor', `${editorUsername}@example.edu.au`, 'RBTest123!')
     );
     const viewer = await firstValueFrom(
-      UsersService.addLocalUser(viewerUsername, 'Record Audit Viewer', `${viewerUsername}@example.edu.au`, 'RBTest123!')
+      fixture.services.UsersService.addLocalUser(viewerUsername, 'Record Audit Viewer', `${viewerUsername}@example.edu.au`, 'RBTest123!')
     );
     createdUserIds.push(String(editor.id), String(viewer.id));
 
-    const brand = BrandingService.getDefault();
-    const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
+    const brand = fixture.services.BrandingService.getDefault();
+    const recordType = await firstValueFrom(fixture.services.RecordTypesService.get(brand, 'rdmp'));
     const requestedOid = `records-service-permissions-${suffix}`;
 
     const createResponse = await recordsService.create(
@@ -204,24 +205,24 @@ describe('The RecordsService', function () {
   });
 
   it('wires loader-discovered contributors into the lifted RecordSchemaService export', async function () {
-    sails.config.recordSchema = { ...sails.config.recordSchema, enabled: true };
-    const contributorState = sails.config.recordContractContributorState;
+    fixture.config.recordSchema = { ...fixture.config.recordSchema, enabled: true };
+    const contributorState = fixture.config.recordContractContributorState;
     expect(contributorState?.registrations).to.have.length(36);
     expect(
       contributorState?.registrations.every(registration => typeof registration.contributor.compile === 'function')
     ).to.equal(true);
 
-    expect(() => sails.services.recordschemaservice.init()).not.to.throw();
+    expect(() => fixture.services.RecordSchemaService.init()).not.to.throw();
 
-    const brand = BrandingService.getDefault();
-    const resolution = await sails.services.recordschemaservice.resolveCreate({
+    const brand = fixture.services.BrandingService.getDefault();
+    const resolution = await fixture.services.RecordSchemaService.resolveCreate({
       brand: brand.id,
       portal: 'rdmp',
       recordType: 'rdmp',
       targetStep: 'draft',
       caller: {
         brand,
-        user: { username: 'admin', roles: [RolesService.getRole(brand, 'Admin')] },
+        user: { username: 'admin', roles: [fixture.services.RolesService.getRole(brand, 'Admin')] },
       },
     });
     expect(resolution.kind, JSON.stringify(resolution)).to.equal('partial');
@@ -231,19 +232,19 @@ describe('The RecordsService', function () {
   });
 
   it('runs the lifted update save boundary through schema, merge, hooks, business validation, Mongo, and usage', async function () {
-    const environmentRecordSchemaConfig = { ...sails.config.recordSchema };
+    const environmentRecordSchemaConfig = { ...fixture.config.recordSchema };
     Reflect.set(environmentRecordSchemaConfig, 'enabled', 'true');
-    sails.config.recordSchema = environmentRecordSchemaConfig;
-    sails.config.recordValidation = { ...sails.config.recordValidation, mode: 'shadow' };
+    fixture.config.recordSchema = environmentRecordSchemaConfig;
+    fixture.config.recordValidation = { ...fixture.config.recordValidation, mode: 'shadow' };
 
     const suffix = Date.now().toString();
     const oid = `records-service-save-boundary-${suffix}`;
-    const brand = BrandingService.getDefault();
+    const brand = fixture.services.BrandingService.getDefault();
     const user = { username: 'admin', roles: [{ name: 'Admin' }] };
-    const storage = sails.services.mongostorageservice;
-    const schemaService = sails.services.recordschemaservice;
-    const validationService = sails.services.recordvalidationservice;
-    const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
+    const storage = fixture.services.MongoStorageService;
+    const schemaService = fixture.services.RecordSchemaService;
+    const validationService = fixture.services.RecordValidationService;
+    const recordType = await firstValueFrom(fixture.services.RecordTypesService.get(brand, 'rdmp'));
 
     const initialRecord = {
       redboxOid: oid,
@@ -357,16 +358,16 @@ describe('The RecordsService', function () {
   });
 
   it('persists an actual schema-invalid update with advisory shadow validation', async function () {
-    sails.config.recordSchema = { ...sails.config.recordSchema, enabled: true };
-    sails.config.recordValidation = { ...sails.config.recordValidation, mode: 'shadow' };
+    fixture.config.recordSchema = { ...fixture.config.recordSchema, enabled: true };
+    fixture.config.recordValidation = { ...fixture.config.recordValidation, mode: 'shadow' };
 
     const suffix = Date.now().toString();
     const oid = `record-schema-shadow-rollout-${suffix}`;
-    const brand = BrandingService.getDefault();
+    const brand = fixture.services.BrandingService.getDefault();
     const user = { username: 'admin', roles: [{ name: 'Admin' }] };
-    const storage = sails.services.mongostorageservice;
-    const schemaService = sails.services.recordschemaservice;
-    const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
+    const storage = fixture.services.MongoStorageService;
+    const schemaService = fixture.services.RecordSchemaService;
+    const recordType = await firstValueFrom(fixture.services.RecordTypesService.get(brand, 'rdmp'));
     const initialRecord = {
       redboxOid: oid,
       revision: 0,

@@ -187,6 +187,7 @@ export function createRecordMetadataDelta(
  * Type safety will be improved incrementally in future phases.
  */
 export interface RecordsService {
+  provideUserAccessAndRemovePendingAccess(oid: string, userid: unknown, pendingValue: unknown): Promise<RecordSaveResponse>;
   triggerPreSaveTriggers(
     oid: string,
     record: RecordInput,

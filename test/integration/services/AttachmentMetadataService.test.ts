@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove, fixtureRows, fixtureCount, fixtureCreate, fixturePatchOne } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
@@ -10,7 +11,7 @@ describe('AttachmentMetadataService integration', function () {
   let service: AttachmentMetadataServices.AttachmentMetadataService;
 
   before(function () {
-    service = new AttachmentMetadataServices.AttachmentMetadataService();
+    service = new AttachmentMetadataServices.AttachmentMetadataService(getStorageRepositories(fixture.owner).attachments);
   });
 
   beforeEach(async function () {
@@ -109,7 +110,7 @@ describe('AttachmentMetadataService integration', function () {
 
   it('does not append an audit when the baseline metadata update fails', async function () {
     const baselineService = new AttachmentMetadataServices.AttachmentMetadataService(
-      getStorageRepositories().attachments
+      getStorageRepositories(fixture.owner).attachments
     );
     await service.upsert({
       oid: 'oid-1',
@@ -119,7 +120,7 @@ describe('AttachmentMetadataService integration', function () {
     });
     const originalRow = await service.findOneByStorageKey('attachments/oid-1/file-1');
 
-    const model = Reflect.get(getStorageRepositories().attachments, 'client').orm.attachmentmetadata;
+    const model = Reflect.get(getStorageRepositories(fixture.owner).attachments, 'client').orm.attachmentmetadata;
     const where = model.where.bind(model);
     const updateOneStub = sinon.stub(model, 'where').callsFake((criteria: any) => {
       const query = where(criteria);
@@ -155,14 +156,14 @@ describe('AttachmentMetadataService integration', function () {
 
   it('propagates failures during baseline recordAccess audit creation', async function () {
     const baselineService = new AttachmentMetadataServices.AttachmentMetadataService(
-      getStorageRepositories().attachments
+      getStorageRepositories(fixture.owner).attachments
     );
     const failure = Object.assign(new Error('private audit payload'), {
       code: 121,
       errInfo: { document: 'private audit document' },
       cause: new Error('private audit credentials'),
     });
-    const createStub = sinon.stub(Reflect.get(getStorageRepositories().attachments, 'client').orm.attachmentaccessaudit, 'create').throws(failure);
+    const createStub = sinon.stub(Reflect.get(getStorageRepositories(fixture.owner).attachments, 'client').orm.attachmentaccessaudit, 'create').throws(failure);
 
     try {
       await baselineService.recordAccess({ oid: 'oid-1', action: 'list' });
@@ -179,6 +180,6 @@ describe('AttachmentMetadataService integration', function () {
 
   it('rejects blank attachment identifiers through the service', async () => {
     try { await service.upsert({ oid: '   ', fileId: 'file-1', storageKey: 'attachments/invalid' }); expect.fail('Expected rejection'); }
-    catch (error) { expect(error).to.have.property('code', 'storage-unknown'); }
+    catch (error) { expect(error).to.have.property('code', 'storage-validation'); }
   });
 });

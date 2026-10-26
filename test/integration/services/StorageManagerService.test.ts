@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { expect } from 'chai';
 import { Services as StorageManagerServices } from '../../../packages/redbox-core/src/services/StorageManagerService.ts';
 import { Readable } from 'node:stream';
@@ -7,8 +8,8 @@ describe('StorageManagerService', function () {
   let manager: InstanceType<typeof StorageManagerServices.StorageManager>;
 
   beforeEach(function () {
-    originalStorageConfig = (sails.config as Record<string, unknown>).storage;
-    (sails.config as Record<string, unknown>).storage = {
+    originalStorageConfig = (fixture.config as Record<string, unknown>).storage;
+    (fixture.config as Record<string, unknown>).storage = {
       serviceName: 'standarddatastreamservice',
       defaultDisk: 'primary',
       stagingDisk: 'staging',
@@ -19,7 +20,7 @@ describe('StorageManagerService', function () {
       },
     };
 
-    manager = new StorageManagerServices.StorageManager();
+    manager = new StorageManagerServices.StorageManager({ get config() { return fixture.config.storage; }, log: fixture.log, owner: fixture.owner });
 
     (manager as unknown as { _DiskConstructor: (new (driver: unknown) => unknown) | null })._DiskConstructor = class {
       constructor(_driver: unknown) {
@@ -51,7 +52,7 @@ describe('StorageManagerService', function () {
   });
 
   afterEach(function () {
-    (sails.config as Record<string, unknown>).storage = originalStorageConfig;
+    (fixture.config as Record<string, unknown>).storage = originalStorageConfig;
   });
 
   it('bootstraps configured disks and resolves them', async function () {
@@ -72,7 +73,7 @@ describe('StorageManagerService', function () {
 
   it('passes extended S3 options through to the S3 driver', async function () {
     const capturedDrivers: unknown[] = [];
-    (sails.config as Record<string, unknown>).storage = {
+    (fixture.config as Record<string, unknown>).storage = {
       serviceName: 'standarddatastreamservice',
       stagingDisk: undefined,
       primaryDisk: undefined,
@@ -95,7 +96,7 @@ describe('StorageManagerService', function () {
       },
     };
 
-    manager = new StorageManagerServices.StorageManager();
+    manager = new StorageManagerServices.StorageManager({ get config() { return fixture.config.storage; }, log: fixture.log, owner: fixture.owner });
     (manager as unknown as { _DiskConstructor: (new (driver: unknown) => unknown) | null })._DiskConstructor = class {
       constructor(driver: unknown) {
         capturedDrivers.push(driver);
@@ -139,7 +140,7 @@ describe('StorageManagerService', function () {
   });
 
   it('throws when staging disk name is not configured', async function () {
-    (sails.config as Record<string, unknown>).storage = {
+    (fixture.config as Record<string, unknown>).storage = {
       serviceName: 'standarddatastreamservice',
       stagingDisk: 'missing',
       primaryDisk: 'primary',

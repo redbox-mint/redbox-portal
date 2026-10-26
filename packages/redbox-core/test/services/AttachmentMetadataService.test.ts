@@ -4,7 +4,7 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { inspect } from 'node:util';
-import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
+import { createDomainFixture, installRepositoryFixtures, restoreRepositoryFixtures } from './testHelper';
 
 describe('AttachmentMetadataService mutation journal', function () {
   let model: any;
@@ -19,7 +19,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       create: sinon.stub(),
       destroy: sinon.stub(),
     };
-    setupServiceTestGlobals(createMockSails({ services: {} }));
+    installRepositoryFixtures();
     repositoryFixtures.AttachmentMetadata = model;
     repositoryFixtures.AttachmentAccessAudit = {
       create: sinon.stub(),
@@ -31,7 +31,7 @@ describe('AttachmentMetadataService mutation journal', function () {
   afterEach(function () {
     delete repositoryFixtures.AttachmentMetadata;
     delete repositoryFixtures.AttachmentAccessAudit;
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     sinon.restore();
   });
 
@@ -435,6 +435,7 @@ describe('AttachmentMetadataService mutation journal', function () {
         oid: 'oid-1',
         attachmentId: 'a',
         mutationFileId: 'file-1',
+        stagingActorId: 'saved-actor', stagingBrandId: 'saved-brand',
         generation: 'generation-1',
         mutationState: 'cancelled',
         storageKey: '/private/staging/path',
@@ -474,6 +475,7 @@ describe('AttachmentMetadataService mutation journal', function () {
         oid: 'oid-1',
         attachmentId: 'a',
         fileId: 'file-1',
+        actorId: 'saved-actor', brandId: 'saved-brand',
         generation: 'generation-1',
         token: set.firstCall.args[0].coordinationToken,
         phase: 'checking',
@@ -513,6 +515,7 @@ describe('AttachmentMetadataService mutation journal', function () {
         storageKey: 'journal/oid-1/a/generation-1',
         attachmentId: 'a',
         operation: 'delete',
+        stagingActorId: 'saved-actor', stagingBrandId: 'saved-brand',
         generation: 'generation-1',
       },
     ]);
@@ -525,6 +528,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       mutationFileId: 'file-1',
       isJournal: true,
       mutationState: 'prepared',
+      stagingActorId: 'saved-actor', stagingBrandId: 'saved-brand',
     });
     expect(model.create.secondCall.args[0].fileId).to.match(/^journal-a-generation-1-/);
   });
@@ -768,7 +772,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       code: 121, errInfo: { document: 'private audit document' }, cause: new Error('private audit credentials'),
     });
     const logger = { error: sinon.spy(), verbose: sinon.spy() };
-    Object.defineProperty(service, 'logger', { value: logger });
+    service = attachmentFixture({ log: logger });
     const fetch = sinon.stub().rejects(failure);
     repositoryFixtures.AttachmentAccessAudit.create.returns({ fetch });
 

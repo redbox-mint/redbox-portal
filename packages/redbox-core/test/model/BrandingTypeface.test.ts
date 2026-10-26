@@ -91,33 +91,22 @@ describe('BrandingTypeface contracts', function () {
 
   it('falls back to defaults for invalid operator config with a logged warning', function () {
     const warnings: string[] = [];
-    const prevSails = (globalThis as { sails?: unknown }).sails;
-    (globalThis as { sails?: any }).sails = {
-      config: { branding: { typefaceFaceMaxBytes: -5 } },
-      log: { warn: (msg: string) => warnings.push(msg) },
-    };
-    try {
-      expect(getBrandingPositiveInt('typefaceFaceMaxBytes', 10)).to.equal(10);
-      expect(warnings.length).to.equal(1);
-      for (const key of [
-        'typefaceFaceMaxBytes',
-        'typefaceFamilyMaxBytes',
-        'historyMaxVersions',
-        'typefaceOrphanGraceMs',
-      ] as const) {
-        (globalThis as { sails?: any }).sails.config.branding[key] = 1.5;
-        expect(getBrandingPositiveInt(key, 10)).to.equal(10);
-      }
-      expect(warnings.length).to.equal(5);
-      (globalThis as { sails?: any }).sails.config.branding.typefaceFaceMaxBytes = 123;
-      expect(getBrandingPositiveInt('typefaceFaceMaxBytes', 10)).to.equal(123);
-    } finally {
-      if (prevSails === undefined) {
-        delete (globalThis as { sails?: unknown }).sails;
-      } else {
-        (globalThis as { sails?: unknown }).sails = prevSails;
-      }
+    const config: Record<string, number> = { typefaceFaceMaxBytes: -5 };
+    const log = { warn: (message: string) => warnings.push(message) };
+    expect(getBrandingPositiveInt(config, log, 'typefaceFaceMaxBytes', 10)).to.equal(10);
+    expect(warnings.length).to.equal(1);
+    for (const key of [
+      'typefaceFaceMaxBytes',
+      'typefaceFamilyMaxBytes',
+      'historyMaxVersions',
+      'typefaceOrphanGraceMs',
+    ] as const) {
+      config[key] = 1.5;
+      expect(getBrandingPositiveInt(config, log, key, 10)).to.equal(10);
     }
+    expect(warnings.length).to.equal(5);
+    config.typefaceFaceMaxBytes = 123;
+    expect(getBrandingPositiveInt(config, log, 'typefaceFaceMaxBytes', 10)).to.equal(123);
   });
 
 

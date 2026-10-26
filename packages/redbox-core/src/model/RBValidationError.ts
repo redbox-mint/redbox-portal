@@ -1,4 +1,3 @@
-import { Services } from '../services/TranslationService';
 import type { RecordSaveProblemKind } from '@researchdatabox/sails-ng-common';
 import { ErrorResponseItemV2 } from './api';
 
@@ -167,7 +166,7 @@ export class RBValidationError extends Error {
    */
   public static displayMessage(
     options: {
-      t?: Services.Translation;
+      t?: { t(key: string): string };
       errors?: (Error | unknown)[];
       displayErrors?: ErrorResponseItemV2[];
       defaultMessage?: string;

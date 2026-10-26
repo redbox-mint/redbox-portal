@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { prismaDatabase, mongoDatabase } from '@researchdatabox/redbox-core';
 import { PrismaStorage } from '../../../packages/sails-hook-redbox-storage-mongo/src/persistence/PrismaStorage';
 import { prismaRecordDocuments } from '../../../packages/sails-hook-redbox-storage-mongo/src/persistence/PrismaRecordDocuments';
@@ -12,12 +13,12 @@ describe('Mongo storage concurrency across service instances', function () {
   let secondService: any;
 
   before(async function () {
-    const db = await mongoDatabase(sails, 'redboxStorage');
+    const db = await mongoDatabase(fixture.owner, 'redboxStorage');
     recordCollection = db.collection('record');
     tombstoneCollection = db.collection('deletedrecord');
-    const client = await prismaDatabase(sails, 'redboxStorage');
-    firstService = new PrismaStorage(sails);
-    secondService = new PrismaStorage(sails);
+    const client = await prismaDatabase(fixture.owner, 'redboxStorage');
+    firstService = new PrismaStorage(fixture.owner);
+    secondService = new PrismaStorage(fixture.owner);
     for (const service of [firstService, secondService]) {
       service.client = client;
       service.recordCol = prismaRecordDocuments(client, 'record');

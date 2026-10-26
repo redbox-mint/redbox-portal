@@ -1,0 +1,1653 @@
+import { HarvestHistory } from '../queries/HarvestHistory';
+import { toRunModel, toChunkModel } from '../queries/harvestModels';
+import * as _ from 'lodash';
+import { createHash } from 'node:crypto';
+import { firstValueFrom, Observable } from 'rxjs';
+
+import type { ILogger } from '@researchdatabox/sails-ng-common';
+import type { RecordSchemaConfig } from '../config/recordSchema.config';
+import type { Services as Workflow } from '../workflows/WorkflowSteps';
+import type { HarvestRepositories } from '../persistence/harvest/HarvestRepositories';
+import { RecordsService as RecordsServiceContract } from '../RecordsService';
+import {
+  HarvestRunService as HarvestRunServiceContract,
+  HarvestRunServiceError,
+  HarvestTrackedChunkRequest,
+  HarvestTrackedChunkResponse,
+  HarvestTrackedRecordRequest,
+  HarvestTrackedRecordResponse,
+} from '../HarvestRunService';
+import { APIHarvestResponse } from '../model/APIHarvestResponse';
+import { BrandingModel } from '../model/storage/BrandingModel';
+import { RecordModel } from '../model/storage/RecordModel';
+import { RecordTypeModel } from '../model/storage/RecordTypeModel';
+import { UserModel } from '../model/storage/UserModel';
+import {
+  HarvestChunkStatus,
+  HarvestCounterSummary,
+  HarvestOperation,
+  HarvestOutcome,
+  HarvestRunStatus,
+} from '../model/storage/HarvestRunModel';
+import { HarvestRunsConfig } from '../config/harvestRuns.config';
+import { isRecordSchemaEnabled } from '../config/recordSchema.config';
+import {
+  createRecordSaveContext,
+  isRecordSaveContext,
+  type RecordSaveContext,
+  type RecordSaveOperation,
+} from '../RecordSaveResponse';
+import type {
+  HarvestRunRow,
+  HarvestChunkRow as HarvestRunChunkRow,
+  HarvestEventRow as HarvestRecordEventRow,
+} from '../persistence/harvest/HarvestRepositories';
+import type { StorageService } from '../StorageService';
+
+type AnyRecord = Record<string, unknown>;
+type RecordTypeWithName = RecordTypeModel & { name?: string };
+type HarvestRecordEventCreateInput = Omit<HarvestRecordEventRow, 'id'>;
+type TrackedOperation = HarvestOperation | 'invalid';
+type TrackedUpdateStrategy = 'replace' | 'merge' | 'ignoreIfExists';
+type ProcessingContext = {
+  existingByHarvestId: Map<string, AnyRecord[]>;
+  duplicateHarvestIds: Set<string>;
+  events: HarvestRecordEventCreateInput[];
+};
+type ProcessTrackedRecordResult = {
+  response: HarvestTrackedRecordResponse;
+  rollback?: () => Promise<void>;
+};
+
+export namespace Services {
+  export class HarvestRunService implements HarvestRunServiceContract {
+
+    protected readonly logHeader = 'HarvestRunService::';
+    public constructor(
+      protected readonly input: {
+        records: Pick<
+          RecordsServiceContract,
+          | 'getMeta'
+          | 'updateMetaInternal'
+          | 'create'
+          | 'setWorkflowStepRelatedMetadata'
+          | 'delete'
+          | 'restoreRecord'
+          | 'hasEditAccess'
+        >;
+        storage: Pick<StorageService, 'findHarvestRecords'>;
+        workflows: Pick<Workflow.WorkflowSteps, 'get'>;
+        repository: HarvestRepositories;
+        config: { harvestRuns?: Partial<HarvestRunsConfig>; recordSchema?: RecordSchemaConfig };
+        log: ILogger;
+      }
+    ) {}
+    protected get logger(): ILogger {
+      return this.input.log;
+    }
+    public quiesce(): void {
+      this.draining = true;
+    }
+
+    private draining = false;
+    private readonly submissions = new Set<Promise<unknown>>();
+
+    /** Stop admission and finish accepted storage/event/checkpoint/counter work before persistence closes. */
+    public async drain(): Promise<void> {
+      this.draining = true;
+      await Promise.allSettled(this.submissions);
+    }
+
+    private acceptSubmission<T>(work: () => Promise<T>): Promise<T> {
+      if (this.draining) return Promise.reject(new HarvestRunServiceError('Harvest submissions are draining.', 503));
+      const pending = Promise.resolve().then(work);
+      this.submissions.add(pending);
+      void pending.then(
+        () => this.submissions.delete(pending),
+        () => this.submissions.delete(pending)
+      );
+      return pending;
+    }
+
+    private asError(error: unknown): Error {
+      return error instanceof Error ? error : new Error(String(error));
+    }
+
+    private resolveBrandId(brand: BrandingModel | string): string {
+      if (typeof brand === 'string') {
+        return brand.trim();
+      }
+      return String(brand?.id ?? brand?.name ?? '').trim();
+    }
+
+    private resolveRecordTypeName(recordTypeModel: RecordTypeWithName | Partial<RecordTypeWithName>): string {
+      return String((recordTypeModel as RecordTypeWithName | undefined)?.name ?? '').trim();
+    }
+
+    private authoritativeHarvestContext(context: RecordSaveContext | undefined): RecordSaveContext | undefined {
+      if (isRecordSaveContext(context)) return context;
+      if (!isRecordSchemaEnabled(this.input.config.recordSchema)) {
+        return undefined;
+      }
+      if (!isRecordSaveContext(context)) {
+        throw new HarvestRunServiceError(
+          'Harvest record saves require a context created by createRecordSaveContext().'
+        );
+      }
+      return context;
+    }
+
+    private recordSaveContext(
+      context: RecordSaveContext | undefined,
+      operation: RecordSaveOperation
+    ): RecordSaveContext {
+      if (context === undefined) {
+        return createRecordSaveContext({ operation });
+      }
+      return createRecordSaveContext({
+        requestId: context.requestId,
+        routeFamily: context.routeFamily,
+        operation,
+        portal: context.portal,
+        targetStep: context.targetStep,
+        validationOperation: context.validationOperation,
+        validationRequestParameters: context.validationRequestParameters,
+        validationRuntimeContext: context.validationRuntimeContext,
+        validationBypass: context.validationBypass,
+        recordSchemaIfMatch: context.ifMatch,
+      });
+    }
+
+    private nowIso(): string {
+      return new Date().toISOString();
+    }
+
+    private parsePositiveInt(value: unknown, fallback: number): number {
+      const parsed = Number.parseInt(String(value ?? ''), 10);
+      return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+    }
+
+    private harvestRunConfig(): HarvestRunsConfig {
+      const configured = (
+        _.isPlainObject(this.input.config?.harvestRuns) ? this.input.config.harvestRuns : {}
+      ) as Partial<HarvestRunsConfig>;
+      return {
+        maxRecordsPerChunk: this.parsePositiveInt(configured.maxRecordsPerChunk, 250),
+        maxChunkBytes: this.parsePositiveInt(configured.maxChunkBytes, 5_000_000),
+        processingChunkTimeoutMinutes: this.parsePositiveInt(configured.processingChunkTimeoutMinutes, 30),
+        eventCreateBatchSize: this.parsePositiveInt(configured.eventCreateBatchSize, 250),
+        failedSnapshotMaxBytes: this.parsePositiveInt(configured.failedSnapshotMaxBytes, 32 * 1024),
+      };
+    }
+
+    private isProcessingChunkStale(chunk: HarvestRunChunkRow): boolean {
+      const submittedAt = new Date(String(chunk.submittedAt ?? '')).getTime();
+      if (Number.isNaN(submittedAt)) {
+        return false;
+      }
+      return Date.now() - submittedAt > this.harvestRunConfig().processingChunkTimeoutMinutes * 60 * 1000;
+    }
+
+    private normalizeTrackedOperation(value: unknown): TrackedOperation {
+      switch (String(value ?? HarvestOperation.upsert).trim()) {
+        case HarvestOperation.create:
+          return HarvestOperation.create;
+        case HarvestOperation.update:
+          return HarvestOperation.update;
+        case HarvestOperation.upsert:
+          return HarvestOperation.upsert;
+        case HarvestOperation.delete:
+          return HarvestOperation.delete;
+        default:
+          return 'invalid';
+      }
+    }
+
+    private normalizeTrackedUpdateStrategy(value: unknown): TrackedUpdateStrategy {
+      switch (String(value ?? 'replace').trim()) {
+        case 'merge':
+          return 'merge';
+        case 'ignoreIfExists':
+          return 'ignoreIfExists';
+        default:
+          return 'replace';
+      }
+    }
+
+    private buildEmptyCounters(): HarvestCounterSummary {
+      return {
+        totalProcessed: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+      };
+    }
+
+    private incrementCounters(counters: HarvestCounterSummary, outcome: HarvestOutcome): void {
+      counters.totalProcessed += 1;
+      switch (outcome) {
+        case HarvestOutcome.created:
+          counters.created += 1;
+          break;
+        case HarvestOutcome.updated:
+          counters.updated += 1;
+          break;
+        case HarvestOutcome.deleted:
+          counters.deleted += 1;
+          break;
+        case HarvestOutcome.unchanged:
+          counters.unchanged += 1;
+          break;
+        case HarvestOutcome.failed:
+        default:
+          counters.failed += 1;
+          break;
+      }
+    }
+
+    private normalizeMetadata(recordRequest: AnyRecord | undefined): AnyRecord {
+      const metadata = _.get(recordRequest, 'metadata');
+      if (_.isPlainObject(metadata)) {
+        return metadata as AnyRecord;
+      }
+      return (_.isPlainObject(recordRequest) ? recordRequest : {}) as AnyRecord;
+    }
+
+    private isMetadataEqual(meta1: AnyRecord, meta2: AnyRecord): boolean {
+      return _.isEqual(meta1, meta2);
+    }
+
+    private harvestStorage(): Pick<StorageService, 'findHarvestRecords'> {
+      const storage = this.input.storage;
+      if (!storage || typeof storage.findHarvestRecords !== 'function')
+        throw new HarvestRunServiceError(
+          'The configured storage service must implement findHarvestRecords for harvest enrichment. Port the storage hook before enabling harvest.'
+        );
+      return storage;
+    }
+
+    private canUseExistingRecord(
+      brand: BrandingModel,
+      user: UserModel,
+      record: AnyRecord,
+      context: RecordSaveContext | undefined
+    ): boolean {
+      if (context?.routeFamily !== 'api' && context?.routeFamily !== 'browser') return true;
+      return (
+        _.get(record, 'metaMetadata.brandId') === this.resolveBrandId(brand) &&
+        this.input.records.hasEditAccess(
+          brand,
+          user,
+          (user.roles ?? []).map(role => ({ ...role })),
+          record as unknown as RecordModel
+        )
+      );
+    }
+
+    private async findExistingHarvestRecord(
+      harvestId: string,
+      recordType: string,
+      brandId: string
+    ): Promise<AnyRecord[]> {
+      return this.harvestStorage().findHarvestRecords!([harvestId], recordType, brandId);
+    }
+
+    private async findExistingTrackedHarvestRecordsBatch(
+      brandId: string,
+      harvestIds: string[],
+      recordType: string
+    ): Promise<Map<string, AnyRecord[]>> {
+      const uniqueHarvestIds = _.uniq(harvestIds.filter(harvestId => !_.isEmpty(harvestId)));
+      if (!uniqueHarvestIds.length) return new Map();
+      const rows = await this.harvestStorage().findHarvestRecords!(uniqueHarvestIds, recordType, brandId);
+      const byHarvestId = new Map<string, AnyRecord[]>();
+      for (const row of rows) {
+        const harvestId = String(row.harvestId ?? '').trim();
+        if (!harvestId) continue;
+        const matches = byHarvestId.get(harvestId) ?? [];
+        matches.push(row);
+        byHarvestId.set(harvestId, matches);
+      }
+      return byHarvestId;
+    }
+
+    private async legacyUpdateHarvestRecord(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      updateMode: string,
+      body: AnyRecord,
+      oid: string,
+      harvestId: string,
+      user: UserModel,
+      context: RecordSaveContext | undefined
+    ): Promise<APIHarvestResponse> {
+      const shouldMerge = updateMode === 'merge';
+      try {
+        const record: RecordModel = await this.input.records.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return new APIHarvestResponse(
+            harvestId,
+            oid,
+            false,
+            `Failed to update meta, cannot find existing record with oid: ${oid}`
+          );
+        }
+
+        const sourceMetadata = body?.['sourceMetadata'];
+        if (!_.isEmpty(sourceMetadata)) {
+          (record['metaMetadata'] as unknown as AnyRecord)['sourceMetadata'] = `${sourceMetadata}`;
+        }
+
+        const response = await this.input.records.updateMetaInternal({
+          actor: { kind: 'service', id: 'HarvestRunService.legacyUpdateHarvestRecord' },
+          authorization: {
+            kind: context?.routeFamily === 'api' || context?.routeFamily === 'browser' ? 'record-edit' : 'service',
+          },
+          mutationClass: 'full-record',
+          brand,
+          oid,
+          record,
+          user,
+          metadata: body,
+          metadataMode: shouldMerge ? 'merge' : 'replace',
+          context: this.recordSaveContext(context, 'update'),
+        });
+        if (!response.wasPersisted()) {
+          return new APIHarvestResponse(
+            harvestId,
+            oid,
+            false,
+            `Record update was not fully completed: ${response.outcome}`
+          );
+        }
+        return new APIHarvestResponse(harvestId, oid, true, String(response.message || response.outcome));
+      } catch (error) {
+        const result = new APIHarvestResponse(
+          harvestId,
+          oid,
+          false,
+          error instanceof Error ? error.message : 'Failed to update meta'
+        );
+        this.logger.error(`${this.logHeader} Failed to update harvest record ${oid}`);
+        return result;
+      }
+    }
+
+    private async legacyCreateHarvestRecord(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      body: AnyRecord,
+      harvestId: string,
+      updateMode: string,
+      user: UserModel,
+      context: RecordSaveContext | undefined
+    ): Promise<APIHarvestResponse> {
+      const metadata = body?.['metadata'];
+      const workflowStage = body?.['workflowStage'];
+      const request: AnyRecord = {};
+      if (updateMode !== 'create') {
+        request['harvestId'] = harvestId;
+      }
+
+      request['metadata'] = metadata == null ? body : metadata;
+
+      try {
+        const response = await this.input.records.create(
+          brand,
+          request,
+          recordTypeModel,
+          user,
+          true,
+          true,
+          undefined,
+          this.recordSaveContext(context, 'create')
+        );
+        if (workflowStage) {
+          try {
+            const wfStep = await firstValueFrom(
+              this.input.workflows.get(recordTypeModel, String(workflowStage)) as Observable<unknown>
+            );
+            this.input.records.setWorkflowStepRelatedMetadata(request, wfStep as AnyRecord);
+          } catch (_error) {
+            this.logger.warn(`${this.logHeader} Failed to resolve workflow step ${String(workflowStage)}`);
+          }
+        }
+
+        if (response.wasPersisted()) {
+          return new APIHarvestResponse(harvestId, response.oid, true, String(response.message || response.outcome));
+        }
+
+        this.logger.error(`${this.logHeader} Record creation failed for harvestId ${harvestId}`);
+        return new APIHarvestResponse(harvestId, '', false, 'Record creation failed');
+      } catch (error) {
+        this.logger.error(`${this.logHeader} Exception creating harvest record ${harvestId}`);
+        return new APIHarvestResponse(harvestId, '', false, String(error));
+      }
+    }
+
+    private buildTrackedFailureResponse(
+      harvestId: string,
+      operation: HarvestOperation | string,
+      message: string,
+      details = '',
+      oid = ''
+    ): HarvestTrackedRecordResponse {
+      return {
+        harvestId,
+        oid,
+        operation: String(operation),
+        outcome: HarvestOutcome.failed,
+        status: false,
+        message,
+        details,
+      };
+    }
+
+    private async createTrackedRecord(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      recordRequest: AnyRecord,
+      harvestId: string,
+      user: UserModel,
+      context: RecordSaveContext | undefined
+    ): Promise<HarvestTrackedRecordResponse> {
+      const request: AnyRecord = {
+        harvestId,
+        metadata: this.normalizeMetadata(recordRequest),
+      };
+
+      try {
+        const response = await this.input.records.create(
+          brand,
+          request,
+          recordTypeModel,
+          user,
+          true,
+          true,
+          undefined,
+          this.recordSaveContext(context, 'create')
+        );
+        if (response.wasPersisted()) {
+          return {
+            harvestId,
+            oid: String(response.oid ?? ''),
+            operation: HarvestOperation.create,
+            outcome: HarvestOutcome.created,
+            status: true,
+            message: String(response.message || response.outcome),
+            details: '',
+          };
+        }
+
+        return this.buildTrackedFailureResponse(
+          harvestId,
+          HarvestOperation.create,
+          String(response.message ?? 'Record creation failed'),
+          typeof response.details === 'string' ? response.details : ''
+        );
+      } catch (error) {
+        return this.buildTrackedFailureResponse(harvestId, HarvestOperation.create, this.asError(error).message);
+      }
+    }
+
+    private async updateTrackedRecord(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      metadata: AnyRecord,
+      oid: string,
+      user: UserModel,
+      strategy: TrackedUpdateStrategy,
+      context: RecordSaveContext | undefined
+    ): Promise<{
+      success: boolean;
+      message: string;
+      details: string;
+      previousRecord?: RecordModel;
+      committedRevision?: number;
+    }> {
+      try {
+        const record: RecordModel = await this.input.records.getMeta(oid);
+        if (_.isEmpty(record)) {
+          return {
+            success: false,
+            message: `Failed to update meta, cannot find existing record with oid: ${oid}`,
+            details: '',
+          };
+        }
+
+        const previousRecord = _.cloneDeep(record);
+
+        const sourceMetadata = metadata['sourceMetadata'];
+        if (!_.isEmpty(sourceMetadata)) {
+          (record['metaMetadata'] as unknown as AnyRecord)['sourceMetadata'] = `${sourceMetadata}`;
+        }
+
+        const response = await this.input.records.updateMetaInternal({
+          actor: { kind: 'service', id: 'HarvestRunService.updateTrackedRecord' },
+          authorization: {
+            kind: context?.routeFamily === 'api' || context?.routeFamily === 'browser' ? 'record-edit' : 'service',
+          },
+          mutationClass: 'full-record',
+          brand,
+          oid,
+          record,
+          user,
+          metadata,
+          metadataMode: strategy === 'merge' ? 'merge' : 'replace',
+          context: this.recordSaveContext(context, 'update'),
+        });
+        if (!response.wasPersisted()) {
+          return {
+            success: false,
+            message: String(response.message ?? 'Failed to update meta'),
+            details: typeof response.details === 'string' ? response.details : '',
+          };
+        }
+
+        return {
+          success: true,
+          message: String(response.message || response.outcome),
+          details: typeof response.details === 'string' ? response.details : '',
+          previousRecord,
+          committedRevision: response.concurrency?.revision,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: this.asError(error).message,
+          details: '',
+        };
+      }
+    }
+
+    private async rollbackCreatedTrackedRecord(
+      oid: string,
+      recordTypeModel: RecordTypeModel,
+      user: UserModel
+    ): Promise<void> {
+      const currentRecord = await this.input.records.getMeta(oid);
+      const response = await this.input.records.delete(oid, false, currentRecord, recordTypeModel, user);
+      if (!response.isSuccessful()) {
+        throw new Error(String(response.message ?? `Failed to rollback created record ${oid}.`));
+      }
+    }
+
+    private async rollbackUpdatedTrackedRecord(
+      brand: BrandingModel,
+      oid: string,
+      previousRecord: RecordModel,
+      committedRevision: number,
+      user: UserModel,
+      context: RecordSaveContext | undefined
+    ): Promise<void> {
+      const rollbackCandidate = _.cloneDeep(previousRecord);
+      rollbackCandidate.revision = committedRevision;
+      const rollbackContext = isRecordSchemaEnabled(this.input.config.recordSchema)
+        ? createRecordSaveContext({
+            requestId: context?.requestId,
+            routeFamily: 'internal',
+            operation: 'update',
+            validationBypass: {
+              mode: 'bypass',
+              reason: 'trusted-data-migration',
+              actor: { kind: 'service', id: 'HarvestRunService.trackedEventCompensation' },
+            },
+          })
+        : this.recordSaveContext(context, 'update');
+      const response = await this.input.records.updateMetaInternal({
+        actor: { kind: 'service', id: 'HarvestRunService.trackedEventCompensation' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        brand,
+        oid,
+        record: rollbackCandidate,
+        user,
+        triggerPreSaveTriggers: false,
+        triggerPostSaveTriggers: false,
+        context: rollbackContext,
+      });
+      if (!response.wasPersisted()) {
+        throw new Error(String(response.message ?? `Failed to rollback updated record ${oid}.`));
+      }
+    }
+
+    private async rollbackDeletedTrackedRecord(oid: string, user: UserModel): Promise<void> {
+      const response = await this.input.records.restoreRecord(oid, user);
+      if (!response.isSuccessful()) {
+        throw new Error(String(response.message ?? `Failed to rollback deleted record ${oid}.`));
+      }
+    }
+
+    private captureRecordSnapshot(record: HarvestTrackedRecordRequest): Record<string, unknown> {
+      const snapshot = {
+        harvestId: String(record.harvestId ?? ''),
+        operation: String(record.operation ?? HarvestOperation.upsert),
+        updateStrategy: String(record.updateStrategy ?? 'replace'),
+        reason: record.reason,
+        recordRequest: _.isPlainObject(record.recordRequest) ? record.recordRequest : undefined,
+      };
+      const serialized = JSON.stringify(snapshot);
+      const maxBytes = this.harvestRunConfig().failedSnapshotMaxBytes;
+      if (Buffer.byteLength(serialized, 'utf8') <= maxBytes) {
+        // Match the JSON stored by Waterline, including nested optional-field omission.
+        return JSON.parse(serialized);
+      }
+      return {
+        truncated: true,
+        sizeBytes: Buffer.byteLength(serialized, 'utf8'),
+        preview: serialized.slice(0, maxBytes),
+      };
+    }
+
+    private buildTrackedEvent(
+      run: HarvestRunRow,
+      chunk: HarvestRunChunkRow,
+      recordTypeName: string,
+      request: HarvestTrackedRecordRequest,
+      response: HarvestTrackedRecordResponse,
+      errorCode?: string
+    ): HarvestRecordEventCreateInput {
+      return {
+        runId: String(run.id ?? ''),
+        chunkId: String(chunk.id ?? ''),
+        brandId: String(run.brandId ?? ''),
+        recordType: recordTypeName,
+        sourceRunId: String(run.sourceRunId ?? ''),
+        harvestId: response.harvestId,
+        oid: response.oid || undefined,
+        operation: response.operation,
+        outcome: response.outcome,
+        status: response.status,
+        message: response.message || undefined,
+        details: response.details || undefined,
+        errorCode,
+        recordSnapshot: response.status ? undefined : this.captureRecordSnapshot(request),
+        createdAt: this.nowIso(),
+      };
+    }
+
+    private bufferTrackedEvent(
+      context: ProcessingContext,
+      run: HarvestRunRow,
+      chunk: HarvestRunChunkRow,
+      recordTypeName: string,
+      request: HarvestTrackedRecordRequest,
+      response: HarvestTrackedRecordResponse,
+      errorCode?: string
+    ): void {
+      context.events.push(this.buildTrackedEvent(run, chunk, recordTypeName, request, response, errorCode));
+    }
+
+    private async persistTrackedEvents(events: HarvestRecordEventCreateInput[]): Promise<void> {
+      if (events.length === 0) {
+        return;
+      }
+      const batchSize = this.harvestRunConfig().eventCreateBatchSize;
+      for (let index = 0; index < events.length; index += batchSize) {
+        await this.input.repository.events.appendEvents(events.slice(index, index + batchSize));
+      }
+    }
+
+    private buildCountersFromTrackedEvents(events: HarvestRecordEventRow[]): HarvestCounterSummary {
+      const counters = this.buildEmptyCounters();
+      for (const event of events) {
+        this.incrementCounters(counters, (event.outcome as HarvestOutcome) ?? HarvestOutcome.failed);
+      }
+      return counters;
+    }
+
+    private async listCheckpointedChunkEvents(
+      runId: string | undefined,
+      brandId: string,
+      chunkIds: string[]
+    ): Promise<HarvestRecordEventRow[]> {
+      const resolvedChunkIds = _.uniq(chunkIds.filter(chunkId => !_.isEmpty(chunkId)));
+      if (_.isEmpty(runId) || resolvedChunkIds.length === 0) {
+        return [];
+      }
+      return this.input.repository.events.listCheckpointed(runId!, brandId, resolvedChunkIds);
+    }
+
+    private async checkpointChunkProgress(
+      chunkId: string | undefined,
+      recordCount: number,
+      counters: HarvestCounterSummary
+    ): Promise<void> {
+      if (_.isEmpty(chunkId)) {
+        return;
+      }
+      await this.input.repository.chunks.reviseAttempt(chunkId!, {
+        recordCount,
+        totalProcessed: counters.totalProcessed,
+        created: counters.created,
+        updated: counters.updated,
+        deleted: counters.deleted,
+        unchanged: counters.unchanged,
+        failed: counters.failed,
+        responseSummary: this.buildChunkResponseSummary(counters),
+      });
+    }
+
+    private canonicalizeValue(value: unknown, seen = new WeakSet<object>()): unknown {
+      if (value === undefined) {
+        return undefined;
+      }
+      if (value === null || typeof value === 'boolean') {
+        return value;
+      }
+      if (typeof value === 'string') {
+        return value.normalize('NFC');
+      }
+      if (typeof value === 'number') {
+        if (!Number.isFinite(value)) {
+          throw new HarvestRunServiceError('Tracked harvest payload contains an invalid number value.', 400);
+        }
+        return Object.is(value, -0) ? 0 : value;
+      }
+      if (typeof value === 'bigint' || typeof value === 'function' || typeof value === 'symbol') {
+        throw new HarvestRunServiceError('Tracked harvest payload contains a non-serializable value.', 400);
+      }
+      if (Array.isArray(value)) {
+        return value.map(entry => this.canonicalizeValue(entry, seen));
+      }
+      if (value instanceof Date) {
+        return value.toISOString();
+      }
+      if (typeof value === 'object') {
+        if (seen.has(value as object)) {
+          throw new HarvestRunServiceError('Tracked harvest payload contains circular data.', 400);
+        }
+        seen.add(value as object);
+        const result = Object.keys(value as AnyRecord)
+          .sort((left, right) => left.localeCompare(right))
+          .reduce((acc, key) => {
+            const normalized = this.canonicalizeValue((value as AnyRecord)[key], seen);
+            if (normalized !== undefined) {
+              acc[key] = normalized;
+            }
+            return acc;
+          }, {} as AnyRecord);
+        seen.delete(value as object);
+        return result;
+      }
+      return value;
+    }
+
+    private buildChunkContentHash(
+      brandId: string,
+      recordTypeName: string,
+      request: HarvestTrackedChunkRequest
+    ): string {
+      const payload = {
+        algorithm: 'redbox-harvest-chunk-v1',
+        brandId,
+        recordType: recordTypeName,
+        sourceName: request.sourceName,
+        sourceRunId: request.sourceRunId,
+        chunkIndex: request.chunk?.index,
+        records: this.canonicalizeValue(request.records),
+      };
+      return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+    }
+
+    private validateTrackedChunkRequest(body: Record<string, unknown> | undefined): HarvestTrackedChunkRequest {
+      const request = (_.isPlainObject(body) ? body : {}) as AnyRecord;
+      let serializedRequest: string;
+      try {
+        serializedRequest = JSON.stringify(request);
+      } catch {
+        throw new HarvestRunServiceError('Tracked harvest payload contains non-serializable data.', 400);
+      }
+      if (Buffer.byteLength(serializedRequest, 'utf8') > this.harvestRunConfig().maxChunkBytes) {
+        throw new HarvestRunServiceError('Tracked harvest request exceeds the configured maximum payload size.', 413);
+      }
+      const sourceRunId = String(request.sourceRunId ?? '').trim();
+      const sourceName = String(request.sourceName ?? '').trim();
+      const records = Array.isArray(request.records) ? (request.records as HarvestTrackedRecordRequest[]) : [];
+      const chunk = (_.isPlainObject(request.chunk) ? request.chunk : {}) as AnyRecord;
+      const chunkIndex = chunk.index;
+      if (
+        !sourceRunId ||
+        !sourceName ||
+        records.length === 0 ||
+        !Number.isInteger(chunkIndex) ||
+        Number(chunkIndex) < 0
+      ) {
+        throw new HarvestRunServiceError('Invalid tracked harvest request body.', 400);
+      }
+      if (records.length > this.harvestRunConfig().maxRecordsPerChunk) {
+        throw new HarvestRunServiceError(
+          'Tracked harvest request exceeds the configured maximum records per chunk.',
+          413
+        );
+      }
+      return {
+        sourceRunId,
+        sourceName,
+        sourceUri: request.sourceUri ? String(request.sourceUri) : undefined,
+        finalChunk: Boolean(request.finalChunk),
+        chunk: {
+          index: Number(chunkIndex),
+          label: chunk.label ? String(chunk.label) : undefined,
+          totalExpected: chunk.totalExpected == null ? undefined : Number(chunk.totalExpected),
+        },
+        records,
+      };
+    }
+
+    private async findOrCreateRun(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      request: HarvestTrackedChunkRequest,
+      user: UserModel
+    ): Promise<HarvestRunRow> {
+      const brandId = this.resolveBrandId(brand);
+      const recordTypeName = this.resolveRecordTypeName(recordTypeModel);
+      const where = {
+        brandId,
+        recordType: recordTypeName,
+        sourceName: request.sourceName,
+        sourceRunId: request.sourceRunId,
+      };
+
+      const existing = (await this.input.repository.runs.findRun(where)) as HarvestRunRow | null;
+      if (existing) {
+        return existing;
+      }
+
+      const now = this.nowIso();
+      try {
+        return (await this.input.repository.runs.createRun({
+          ...where,
+          sourceUri: request.sourceUri,
+          status: HarvestRunStatus.running,
+          startedAt: now,
+          lastChunkAt: now,
+          startedBy: String(user?.username ?? ''),
+          totalProcessed: 0,
+          created: 0,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          chunksProcessed: 0,
+          duplicateChunks: 0,
+        })) as HarvestRunRow;
+      } catch (error) {
+        const recovered = (await this.input.repository.runs.findRun(where)) as HarvestRunRow | null;
+        if (recovered) {
+          return recovered;
+        }
+        throw error;
+      }
+    }
+
+    private async updateRunAfterChunk(
+      run: HarvestRunRow,
+      counters: HarvestCounterSummary,
+      finalChunk: boolean,
+      completedAt: string
+    ): Promise<HarvestRunRow> {
+      return this.input.repository.runs.completeChunkCounters(run, counters, finalChunk, completedAt);
+    }
+
+    private async bumpDuplicateChunkCount(run: HarvestRunRow): Promise<HarvestRunRow> {
+      return this.input.repository.runs.incrementDuplicateChunks(run, this.nowIso());
+    }
+
+    private async processTrackedRecord(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      run: HarvestRunRow,
+      chunk: HarvestRunChunkRow,
+      request: HarvestTrackedRecordRequest,
+      user: UserModel,
+      saveContext: RecordSaveContext | undefined,
+      context: ProcessingContext
+    ): Promise<ProcessTrackedRecordResult> {
+      const recordTypeName = String(run.recordType ?? '');
+      const operation = this.normalizeTrackedOperation(request.operation);
+      const harvestId = String(request.harvestId ?? '').trim();
+
+      if (!harvestId) {
+        const response = this.buildTrackedFailureResponse('', HarvestOperation.upsert, 'HarvestId was not specified');
+        this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'missing-harvest-id');
+        return { response };
+      }
+
+      if (operation === 'invalid') {
+        const response = this.buildTrackedFailureResponse(
+          harvestId,
+          String(request.operation ?? ''),
+          'Invalid record operation supplied.'
+        );
+        this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'invalid-operation');
+        return { response };
+      }
+
+      if (context.duplicateHarvestIds.has(harvestId)) {
+        const response = this.buildTrackedFailureResponse(
+          harvestId,
+          operation,
+          `HarvestId ${harvestId} appears more than once in this chunk.`
+        );
+        this.bufferTrackedEvent(
+          context,
+          run,
+          chunk,
+          recordTypeName,
+          request,
+          response,
+          'duplicate-harvest-id-in-chunk'
+        );
+        return { response };
+      }
+
+      const existingRecords = context.existingByHarvestId.get(harvestId) ?? [];
+      if (existingRecords.length > 1) {
+        const response = this.buildTrackedFailureResponse(
+          harvestId,
+          operation,
+          `Multiple records were found for harvestId ${harvestId}.`
+        );
+        this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'duplicate-harvest-id');
+        return { response };
+      }
+
+      if (existingRecords[0] && !this.canUseExistingRecord(brand, user, existingRecords[0], saveContext)) {
+        const response = this.buildTrackedFailureResponse(harvestId, operation, 'Access Denied');
+        this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'access-denied');
+        return { response };
+      }
+
+      const recordRequest = (_.isPlainObject(request.recordRequest) ? request.recordRequest : {}) as AnyRecord;
+      const metadata = this.normalizeMetadata(recordRequest);
+      const updateStrategy = this.normalizeTrackedUpdateStrategy(request.updateStrategy);
+
+      switch (operation) {
+        case HarvestOperation.create: {
+          if (existingRecords.length > 0) {
+            const response = this.buildTrackedFailureResponse(
+              harvestId,
+              operation,
+              `Record already exists for harvestId ${harvestId}.`,
+              '',
+              String(existingRecords[0]?.redboxOid ?? '')
+            );
+            this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'record-exists');
+            return { response };
+          }
+          const response = await this.createTrackedRecord(
+            brand,
+            recordTypeModel,
+            recordRequest,
+            harvestId,
+            user,
+            saveContext
+          );
+          this.bufferTrackedEvent(
+            context,
+            run,
+            chunk,
+            recordTypeName,
+            request,
+            response,
+            response.status ? undefined : 'create-failed'
+          );
+          return {
+            response,
+            rollback:
+              response.status && !_.isEmpty(response.oid)
+                ? async () => await this.rollbackCreatedTrackedRecord(response.oid, recordTypeModel, user)
+                : undefined,
+          };
+        }
+
+        case HarvestOperation.update: {
+          if (existingRecords.length === 0) {
+            const response = this.buildTrackedFailureResponse(
+              harvestId,
+              operation,
+              `No record was found for harvestId ${harvestId}.`
+            );
+            this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'missing-record');
+            return { response };
+          }
+
+          const existingRecord = existingRecords[0] as AnyRecord;
+          const oid = String(existingRecord.redboxOid ?? '');
+          const existingMetadata = (existingRecord.metadata ?? {}) as AnyRecord;
+          if (this.isMetadataEqual(metadata, existingMetadata)) {
+            const response: HarvestTrackedRecordResponse = {
+              harvestId,
+              oid,
+              operation,
+              outcome: HarvestOutcome.unchanged,
+              status: true,
+              message: `Record metadata is unchanged, skipping update. oid: ${oid}`,
+              details: '',
+            };
+            this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response);
+            return { response };
+          }
+
+          const updateResult = await this.updateTrackedRecord(
+            brand,
+            recordTypeModel,
+            metadata,
+            oid,
+            user,
+            updateStrategy,
+            saveContext
+          );
+          const response: HarvestTrackedRecordResponse = {
+            harvestId,
+            oid,
+            operation,
+            outcome: updateResult.success ? HarvestOutcome.updated : HarvestOutcome.failed,
+            status: updateResult.success,
+            message: updateResult.message,
+            details: updateResult.details,
+          };
+          this.bufferTrackedEvent(
+            context,
+            run,
+            chunk,
+            recordTypeName,
+            request,
+            response,
+            updateResult.success ? undefined : 'update-failed'
+          );
+          return {
+            response,
+            rollback:
+              updateResult.success && updateResult.previousRecord && updateResult.committedRevision !== undefined
+                ? async () =>
+                    await this.rollbackUpdatedTrackedRecord(
+                      brand,
+                      oid,
+                      updateResult.previousRecord!,
+                      updateResult.committedRevision!,
+                      user,
+                      saveContext
+                    )
+                : undefined,
+          };
+        }
+
+        case HarvestOperation.delete: {
+          if (existingRecords.length === 0) {
+            const response = this.buildTrackedFailureResponse(
+              harvestId,
+              operation,
+              `No record was found for harvestId ${harvestId}.`
+            );
+            this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'missing-record');
+            return { response };
+          }
+
+          const existingRecord = existingRecords[0] as AnyRecord;
+          const oid = String(existingRecord.redboxOid ?? '');
+          try {
+            const deleteResponse = await this.input.records.delete(
+              oid,
+              false,
+              existingRecord,
+              recordTypeModel,
+              user,
+              this.recordSaveContext(saveContext, 'delete')
+            );
+            const response: HarvestTrackedRecordResponse = {
+              harvestId,
+              oid,
+              operation,
+              outcome: deleteResponse.isSuccessful() ? HarvestOutcome.deleted : HarvestOutcome.failed,
+              status: deleteResponse.isSuccessful(),
+              message: deleteResponse.isSuccessful()
+                ? 'Record deleted successfully'
+                : String(deleteResponse.message ?? 'Record deletion failed'),
+              details: typeof deleteResponse.details === 'string' ? deleteResponse.details : '',
+            };
+            this.bufferTrackedEvent(
+              context,
+              run,
+              chunk,
+              recordTypeName,
+              request,
+              response,
+              response.status ? undefined : 'delete-failed'
+            );
+            return {
+              response,
+              rollback:
+                response.status && !_.isEmpty(oid)
+                  ? async () => await this.rollbackDeletedTrackedRecord(oid, user)
+                  : undefined,
+            };
+          } catch (error) {
+            const response = this.buildTrackedFailureResponse(
+              harvestId,
+              operation,
+              this.asError(error).message,
+              '',
+              oid
+            );
+            this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'delete-failed');
+            return { response };
+          }
+        }
+
+        case HarvestOperation.upsert:
+        default: {
+          if (existingRecords.length === 0) {
+            const response = await this.createTrackedRecord(
+              brand,
+              recordTypeModel,
+              recordRequest,
+              harvestId,
+              user,
+              saveContext
+            );
+            response.operation = HarvestOperation.upsert;
+            this.bufferTrackedEvent(
+              context,
+              run,
+              chunk,
+              recordTypeName,
+              request,
+              response,
+              response.status ? undefined : 'create-failed'
+            );
+            return {
+              response,
+              rollback:
+                response.status && !_.isEmpty(response.oid)
+                  ? async () => await this.rollbackCreatedTrackedRecord(response.oid, recordTypeModel, user)
+                  : undefined,
+            };
+          }
+
+          const existingRecord = existingRecords[0] as AnyRecord;
+          const oid = String(existingRecord.redboxOid ?? '');
+          if (updateStrategy === 'ignoreIfExists') {
+            const response: HarvestTrackedRecordResponse = {
+              harvestId,
+              oid,
+              operation,
+              outcome: HarvestOutcome.unchanged,
+              status: true,
+              message: `Record ignored as the record already exists. oid: ${oid}`,
+              details: '',
+            };
+            this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response);
+            return { response };
+          }
+
+          const existingMetadata = (existingRecord.metadata ?? {}) as AnyRecord;
+          if (this.isMetadataEqual(metadata, existingMetadata)) {
+            const response: HarvestTrackedRecordResponse = {
+              harvestId,
+              oid,
+              operation,
+              outcome: HarvestOutcome.unchanged,
+              status: true,
+              message: `Record metadata is unchanged, skipping update. oid: ${oid}`,
+              details: '',
+            };
+            this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response);
+            return { response };
+          }
+
+          const updateResult = await this.updateTrackedRecord(
+            brand,
+            recordTypeModel,
+            metadata,
+            oid,
+            user,
+            updateStrategy,
+            saveContext
+          );
+          const response: HarvestTrackedRecordResponse = {
+            harvestId,
+            oid,
+            operation,
+            outcome: updateResult.success ? HarvestOutcome.updated : HarvestOutcome.failed,
+            status: updateResult.success,
+            message: updateResult.message,
+            details: updateResult.details,
+          };
+          this.bufferTrackedEvent(
+            context,
+            run,
+            chunk,
+            recordTypeName,
+            request,
+            response,
+            updateResult.success ? undefined : 'update-failed'
+          );
+          return {
+            response,
+            rollback:
+              updateResult.success && updateResult.previousRecord && updateResult.committedRevision !== undefined
+                ? async () =>
+                    await this.rollbackUpdatedTrackedRecord(
+                      brand,
+                      oid,
+                      updateResult.previousRecord!,
+                      updateResult.committedRevision!,
+                      user,
+                      saveContext
+                    )
+                : undefined,
+          };
+        }
+      }
+    }
+
+    public async submitCompatibilityRecords(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      body: Record<string, unknown> | undefined,
+      updateMode: string,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<APIHarvestResponse[]> {
+      return this.acceptSubmission(() =>
+        this.submitCompatibilityRecordsInternal(brand, recordTypeModel, body, updateMode, user, context)
+      );
+    }
+
+    private async submitCompatibilityRecordsInternal(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      body: Record<string, unknown> | undefined,
+      updateMode: string,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<APIHarvestResponse[]> {
+      if (body == null || _.isEmpty(body['records'])) {
+        throw new HarvestRunServiceError('Invalid request body', 400);
+      }
+      const saveContext = this.authoritativeHarvestContext(context);
+
+      const recordType = this.resolveRecordTypeName(recordTypeModel);
+      const records = body['records'] as AnyRecord[];
+      const recordResponses: APIHarvestResponse[] = [];
+      for (const record of records) {
+        const harvestId = String(record['harvestId'] ?? '');
+        if (_.isEmpty(harvestId)) {
+          recordResponses.push(new APIHarvestResponse(harvestId, '', false, 'HarvestId was not specified'));
+          continue;
+        }
+
+        const recordRequest = (_.isPlainObject(record['recordRequest']) ? record['recordRequest'] : undefined) as
+          | AnyRecord
+          | undefined;
+        const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType, this.resolveBrandId(brand));
+        if (existingRecord[0] && !this.canUseExistingRecord(brand, user, existingRecord[0], saveContext)) {
+          recordResponses.push(new APIHarvestResponse(harvestId, '', false, 'Access Denied'));
+          continue;
+        }
+        if (existingRecord.length === 0 || updateMode === 'create') {
+          recordResponses.push(
+            await this.legacyCreateHarvestRecord(
+              brand,
+              recordTypeModel,
+              (recordRequest ?? {}) as AnyRecord,
+              harvestId,
+              updateMode,
+              user,
+              saveContext
+            )
+          );
+          continue;
+        }
+
+        const oid = String(existingRecord[0]?.redboxOid ?? '');
+        if (updateMode === 'ignore') {
+          recordResponses.push(
+            new APIHarvestResponse(harvestId, oid, true, `Record ignored as the record already exists. oid: ${oid}`)
+          );
+          continue;
+        }
+
+        const newMetadata = this.normalizeMetadata(recordRequest);
+        const existingMetadata = (existingRecord[0]?.metadata ?? {}) as AnyRecord;
+        if (this.isMetadataEqual(newMetadata, existingMetadata)) {
+          recordResponses.push(
+            new APIHarvestResponse(harvestId, oid, true, `Record metadata is unchanged, skipping update. oid: ${oid}`)
+          );
+          continue;
+        }
+
+        recordResponses.push(
+          await this.legacyUpdateHarvestRecord(
+            brand,
+            recordTypeModel,
+            updateMode,
+            (recordRequest?.metadata ?? {}) as AnyRecord,
+            oid,
+            harvestId,
+            user,
+            saveContext
+          )
+        );
+      }
+      return recordResponses;
+    }
+
+    public async submitLegacyRecords(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      body: Record<string, unknown> | undefined,
+      merge: boolean,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<APIHarvestResponse[]> {
+      return this.acceptSubmission(() =>
+        this.submitLegacyRecordsInternal(brand, recordTypeModel, body, merge, user, context)
+      );
+    }
+
+    private async submitLegacyRecordsInternal(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      body: Record<string, unknown> | undefined,
+      merge: boolean,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<APIHarvestResponse[]> {
+      if (body == null || _.isEmpty(body['records'])) {
+        throw new HarvestRunServiceError('Invalid request body', 400);
+      }
+      const saveContext = this.authoritativeHarvestContext(context);
+
+      const recordType = this.resolveRecordTypeName(recordTypeModel);
+      const records = body['records'] as AnyRecord[];
+      const responses: APIHarvestResponse[] = [];
+      for (const record of records) {
+        const harvestId = String(record['harvest_id'] ?? '');
+        if (_.isEmpty(harvestId)) {
+          responses.push(new APIHarvestResponse(harvestId, '', false, 'HarvestId was not specified'));
+          continue;
+        }
+
+        const metadata = (_.isPlainObject(record['metadata']) ? record['metadata'] : undefined) as
+          | AnyRecord
+          | undefined;
+        const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType, this.resolveBrandId(brand));
+        if (existingRecord[0] && !this.canUseExistingRecord(brand, user, existingRecord[0], saveContext)) {
+          responses.push(new APIHarvestResponse(harvestId, '', false, 'Access Denied'));
+          continue;
+        }
+        if (existingRecord.length === 0) {
+          responses.push(
+            await this.legacyCreateHarvestRecord(
+              brand,
+              recordTypeModel,
+              (metadata?.data ?? {}) as AnyRecord,
+              harvestId,
+              'update',
+              user,
+              saveContext
+            )
+          );
+          continue;
+        }
+
+        const updateMode = merge ? 'merge' : 'update';
+        const oid = String(existingRecord[0]?.redboxOid ?? '');
+        const oldMetadata = (existingRecord[0]?.metadata ?? {}) as AnyRecord;
+        const newMetadata = (metadata?.data ?? {}) as AnyRecord;
+        if (this.isMetadataEqual(newMetadata, oldMetadata)) {
+          responses.push(
+            new APIHarvestResponse(
+              harvestId,
+              oid,
+              true,
+              `skip update of harvestId ${harvestId} oid ${oid} metadata sent is equal to metadata in existing record`
+            )
+          );
+          continue;
+        }
+
+        responses.push(
+          await this.legacyUpdateHarvestRecord(
+            brand,
+            recordTypeModel,
+            updateMode,
+            newMetadata,
+            oid,
+            harvestId,
+            user,
+            saveContext
+          )
+        );
+      }
+
+      return responses;
+    }
+
+    private getDuplicateHarvestIds(records: HarvestTrackedRecordRequest[]): Set<string> {
+      const seen = new Set<string>();
+      const duplicates = new Set<string>();
+      for (const record of records) {
+        const harvestId = String(record.harvestId ?? '').trim();
+        if (_.isEmpty(harvestId)) {
+          continue;
+        }
+        if (seen.has(harvestId)) {
+          duplicates.add(harvestId);
+        }
+        seen.add(harvestId);
+      }
+      return duplicates;
+    }
+
+    private buildChunkResponseSummary(counters: HarvestCounterSummary): Record<string, unknown> {
+      return {
+        totalProcessed: counters.totalProcessed,
+        created: counters.created,
+        updated: counters.updated,
+        deleted: counters.deleted,
+        unchanged: counters.unchanged,
+        failed: counters.failed,
+      };
+    }
+
+    private async findMatchingChunks(runId: string | undefined, contentHash: string): Promise<HarvestRunChunkRow[]> {
+      if (_.isEmpty(runId)) {
+        return [];
+      }
+      return this.input.repository.chunks.findAttempts(runId!, contentHash);
+    }
+
+    public async submitChunk(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      requestBody: Record<string, unknown> | undefined,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<HarvestTrackedChunkResponse> {
+      return this.acceptSubmission(() => this.submitChunkInternal(brand, recordTypeModel, requestBody, user, context));
+    }
+
+    private async submitChunkInternal(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      requestBody: Record<string, unknown> | undefined,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<HarvestTrackedChunkResponse> {
+      const request = this.validateTrackedChunkRequest(requestBody);
+      const saveContext = this.authoritativeHarvestContext(context);
+      const brandId = this.resolveBrandId(brand);
+      const recordTypeName = this.resolveRecordTypeName(recordTypeModel);
+      const run = await this.findOrCreateRun(brand, recordTypeModel, request, user);
+      const contentHash = this.buildChunkContentHash(brandId, recordTypeName, request);
+
+      const existingChunks = await this.findMatchingChunks(run.id, contentHash);
+      const processedChunk = existingChunks.find(chunk => chunk.status === HarvestChunkStatus.processed);
+      if (processedChunk) {
+        const updatedRun = await this.bumpDuplicateChunkCount(run);
+        return {
+          run: toRunModel(updatedRun),
+          chunk: toChunkModel(processedChunk, true),
+        };
+      }
+
+      const processingChunk = existingChunks.find(chunk => chunk.status === HarvestChunkStatus.processing);
+      const resumeChunkIds = existingChunks
+        .filter(chunk => chunk.status === HarvestChunkStatus.failed || chunk.status === HarvestChunkStatus.failedStale)
+        .map(chunk => String(chunk.id ?? ''));
+      if (processingChunk) {
+        if (!this.isProcessingChunkStale(processingChunk)) {
+          throw new HarvestRunServiceError('Chunk is already processing', 409);
+        }
+        await this.input.repository.chunks.reviseAttempt(processingChunk.id!, {
+          status: HarvestChunkStatus.failedStale,
+          completedAt: this.nowIso(),
+          errorMessage: 'Processing chunk was marked stale before retry.',
+        });
+        resumeChunkIds.push(String(processingChunk.id ?? ''));
+      }
+
+      const checkpointedEvents = await this.listCheckpointedChunkEvents(run.id, brandId, resumeChunkIds);
+      if (checkpointedEvents.length > request.records.length) {
+        throw new HarvestRunServiceError(
+          'Tracked harvest retry state is inconsistent with the submitted payload.',
+          409
+        );
+      }
+
+      const submittedAt = this.nowIso();
+      const nextAttempt =
+        existingChunks.reduce((maxAttempt, chunk) => Math.max(maxAttempt, Number(chunk.attempt ?? 1)), 0) + 1;
+      const createdChunk = (await this.input.repository.chunks.createAttempt({
+        runId: String(run.id ?? ''),
+        brandId,
+        recordType: recordTypeName,
+        sourceRunId: request.sourceRunId,
+        contentHash,
+        attempt: nextAttempt,
+        chunkIndex: request.chunk?.index,
+        chunkLabel: request.chunk?.label,
+        totalExpected: request.chunk?.totalExpected,
+        status: HarvestChunkStatus.processing,
+        recordCount: request.records.length,
+        totalProcessed: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+        failed: 0,
+        duplicate: false,
+        submittedAt,
+        responseSummary: this.buildChunkResponseSummary(this.buildEmptyCounters()),
+      })) as HarvestRunChunkRow;
+
+      const counters = this.buildCountersFromTrackedEvents(checkpointedEvents);
+      try {
+        const duplicateHarvestIds = this.getDuplicateHarvestIds(request.records);
+        const existingByHarvestId = await this.findExistingTrackedHarvestRecordsBatch(
+          brandId,
+          request.records.map(record => String(record.harvestId ?? '').trim()),
+          recordTypeName
+        );
+        const context: ProcessingContext = {
+          duplicateHarvestIds,
+          existingByHarvestId,
+          events: [],
+        };
+        for (const record of request.records.slice(checkpointedEvents.length)) {
+          const processed = await this.processTrackedRecord(
+            brand,
+            recordTypeModel,
+            run,
+            createdChunk,
+            record,
+            user,
+            saveContext,
+            context
+          );
+          try {
+            await this.persistTrackedEvents(context.events);
+          } catch (error) {
+            context.events = [];
+            if (processed.rollback) {
+              try {
+                await processed.rollback();
+              } catch (rollbackError) {
+                throw new Error(
+                  `Failed to persist tracked harvest events: ${this.asError(error).message}. ` +
+                    `Record rollback also failed: ${this.asError(rollbackError).message}`
+                );
+              }
+            }
+            throw error;
+          }
+          context.events = [];
+          this.incrementCounters(counters, processed.response.outcome as HarvestOutcome);
+          await this.checkpointChunkProgress(createdChunk.id, request.records.length, counters);
+        }
+
+        const completedAt = this.nowIso();
+        const chunkUpdates: Partial<HarvestRunChunkRow> = {
+          status: HarvestChunkStatus.processed,
+          recordCount: request.records.length,
+          totalProcessed: counters.totalProcessed,
+          created: counters.created,
+          updated: counters.updated,
+          deleted: counters.deleted,
+          unchanged: counters.unchanged,
+          failed: counters.failed,
+          completedAt,
+          responseSummary: this.buildChunkResponseSummary(counters),
+        };
+
+        const updatedChunk = (await this.input.repository.chunks.reviseAttempt(
+          createdChunk.id!,
+          chunkUpdates
+        )) as HarvestRunChunkRow | null;
+        const updatedRun = await this.updateRunAfterChunk(run, counters, Boolean(request.finalChunk), completedAt);
+        return {
+          run: toRunModel(updatedRun),
+          chunk: toChunkModel(updatedChunk ?? { ...createdChunk, ...chunkUpdates }),
+        };
+      } catch (error) {
+        await this.input.repository.chunks.reviseAttempt(createdChunk.id!, {
+          status: HarvestChunkStatus.failed,
+          recordCount: request.records.length,
+          totalProcessed: counters.totalProcessed,
+          created: counters.created,
+          updated: counters.updated,
+          deleted: counters.deleted,
+          unchanged: counters.unchanged,
+          failed: counters.failed,
+          completedAt: this.nowIso(),
+          errorMessage: this.asError(error).message,
+          responseSummary: this.buildChunkResponseSummary(counters),
+        });
+        throw error;
+      }
+    }
+
+    private history(): HarvestHistory {
+      return new HarvestHistory(this.input.repository);
+    }
+    public listRuns(...args: Parameters<HarvestHistory['listRuns']>) {
+      return this.history().listRuns(...args);
+    }
+    public getRun(...args: Parameters<HarvestHistory['getRun']>) {
+      return this.history().getRun(...args);
+    }
+    public runExists(...args: Parameters<HarvestHistory['runExists']>) {
+      return this.history().runExists(...args);
+    }
+    public listRunEvents(...args: Parameters<HarvestHistory['listRunEvents']>) {
+      return this.history().listRunEvents(...args);
+    }
+  }
+}
