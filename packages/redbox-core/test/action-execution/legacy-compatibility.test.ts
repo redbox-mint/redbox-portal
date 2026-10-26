@@ -321,7 +321,7 @@ describe('record-hook legacy compatibility characterization', function () {
     expect(seen[2]).to.equal(partial);
     expect(seen[3]).to.equal(partial);
     final.custom.applied = false;
-    expect(result.committedRecord.custom).to.deep.equal({ applied: true });
+    expect(result.committedRecord?.custom).to.deep.equal({ applied: true });
   });
 
   it('keeps a committed base isolated when a later hook fails without an applied result', async function () {
