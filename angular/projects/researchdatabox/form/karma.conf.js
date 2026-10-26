@@ -47,6 +47,9 @@ module.exports = function (config) {
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
+    // CI can queue the multi-megabyte coverage packet behind console/results.
+    // Keep its heartbeat alive within the existing browser activity deadline.
+    pingTimeout: isCI ? 120000 : 5000,
     browserNoActivityTimeout: 120000,
     browserDisconnectTimeout: 10000,
     browserDisconnectTolerance: 2,
