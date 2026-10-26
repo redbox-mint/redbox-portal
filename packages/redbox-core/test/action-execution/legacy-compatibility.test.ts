@@ -27,6 +27,34 @@ function tick(): Promise<void> {
 }
 
 describe('record-hook legacy compatibility characterization', function () {
+  it('passes immutable server operation context without shifting legacy arguments or trusting candidate context', async function () {
+    const actor = { username: 'user' };
+    const record = { operation: 'create', metadata: { operation: 'create' } };
+    const options = { operation: 'create', retained: true };
+    for (const [operationMode, hookMode, expected] of [
+      ['onCreate', 'onTransitionWorkflow', 'create'],
+      ['onUpdate', 'onUpdate', 'update'],
+      ['onTransitionWorkflow', 'onTransitionWorkflow', 'update'],
+      ['onDelete', 'onDelete', 'delete'],
+    ] as const) {
+      const calls: unknown[][] = [];
+      const instance = new RecordHookCoordinator({
+        operation: createActionExecutionOperation(operationMode),
+        resolveHook: () => (...args: unknown[]) => {
+          calls.push(args);
+          return args[1];
+        },
+      });
+      await instance.runPre('oid-1', record, {
+        hooks: { [hookMode]: { pre: [{ function: 'capture', options }] } },
+      }, hookMode, actor);
+      expect(calls).to.have.length(1);
+      expect(calls[0].slice(0, 5)).to.deep.equal(['oid-1', record, options, actor, undefined]);
+      expect(calls[0][5]).to.deep.equal({ operation: expected });
+      expect(Object.isFrozen(calls[0][5])).to.equal(true);
+    }
+  });
+
   it('preserves plain, Promise, Observable, and native Effect pre-hook values', async function () {
     const values = await Promise.all([
       coordinator(() => () => 'plain').runPre(
