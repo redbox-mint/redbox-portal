@@ -40,7 +40,7 @@
     "@uppy/core": "6.3.0",
     "@uppy/dashboard": "6.0.1",
     "@uppy/dropbox": "6.0.0",
-    "@uppy/google-drive": "6.0.0",
+    "@uppy/google-drive": "6.0.1",
     "@uppy/onedrive": "6.0.0",
     "@uppy/tus": "6.0.0",
     "dompurify": "3.4.17",
