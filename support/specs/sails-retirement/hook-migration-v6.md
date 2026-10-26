@@ -26,7 +26,8 @@ For a released hook, replace it with the exact qualified v6 core version or the
 deployment's complete packed dependency set, then repeat installation, build and
 pack in isolation. Do not publish a manifest containing a developer's local path.
 
-`check --v6` checks the dependency contract, neutral manifest/runtime export and
+`check --v6` checks the dependency contract (including retired framework packages
+in dependencies, dev/peer/optional dependencies), neutral manifest/runtime export and
 known retired APIs in server EJS blocks under `views/`. It rejects
 `TranslationService`, `BrandingService`, `CacheService` and `sails` member access,
 and ancestor `functions` includes, with file/line locations. Node's root-export

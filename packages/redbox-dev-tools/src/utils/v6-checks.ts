@@ -2,6 +2,22 @@ import * as fs from 'fs';
 import * as path from 'path';
 import ts from 'typescript';
 
+export function findRetiredFrameworkDependencies(pkg: Record<string, any>): string[] {
+  const historicalNames = new Set([
+    '@researchdatabox/sails-ng-common', '@researchdatabox/sails-hook-redbox-storage-mongo',
+    '@researchdatabox/sails-hook-redbox-pdfgen',
+  ]);
+  const findings: string[] = [];
+  for (const section of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'])
+    for (const name of Object.keys(pkg[section] || {})) {
+      const leaf = name.split('/').pop()!;
+      if (name.startsWith('@sailshq/') || /^(?:sails|sails[.]io[.]js|skipper|waterline)$/.test(leaf) ||
+          /^(?:skipper-|waterline-)/.test(leaf) || (leaf.startsWith('sails-') && !historicalNames.has(name)))
+        findings.push(`${section}.${name}: retired framework package is unsupported in v6`);
+    }
+  return findings;
+}
+
 /** Check declarations without importing the hook or requiring a completed build. */
 export function hasRuntimeExtensionExport(exports: unknown, entry: string): boolean {
   const runtimeTarget = (value: unknown): boolean => {

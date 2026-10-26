@@ -248,4 +248,17 @@ describe('cli smoke test', function () {
     expect(result.status).to.equal(0, result.stderr);
   });
 
+  it('rejects retired framework dependencies even with a neutral manifest and runtime export', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-v6-framework-deps-'));
+    fs.writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({
+      name:'redbox-hook-framework', redbox:{extension:'.'}, exports:{'.':'./dist/index.js'},
+      dependencies:{'sails':'1.5.17'}, optionalDependencies:{'@other/sails-hook-example':'1.0.0'},
+      peerDependencies:{'waterline':'0.15.2'},
+    }));
+    const result = runCli(['check', '--v6'], tempRoot);
+    expect(result.status).to.equal(1, result.stdout+result.stderr);
+    for (const entry of ['dependencies.sails', 'optionalDependencies.@other/sails-hook-example', 'peerDependencies.waterline'])
+      expect(result.stderr).to.contain(entry);
+  });
+
 });

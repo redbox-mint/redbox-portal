@@ -9,7 +9,8 @@ with your exact clients, hooks, identity provider and topology. Internal test
 qualification does not designate a representative institution.
 
 Hook authors should run `redbox-dev-tools check --v6` before an installed
-rehearsal. It rejects legacy discovery metadata, missing runtime exports and
+rehearsal. It rejects legacy discovery metadata, retired framework dependencies
+(including optional/peer declarations), missing runtime exports and
 known retired server EJS APIs in `views/`, with file/line locations. Convert
 `TranslationService.t(...)` to `page.t(...)`, branding URLs to `page.root` or
 `page.base`, and bundle hashes to `page.bundleHash(...)`. Remove ancestor

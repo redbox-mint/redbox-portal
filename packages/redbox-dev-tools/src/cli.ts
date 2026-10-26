@@ -14,7 +14,7 @@ import {
 import { generateCompletionScript } from './completion';
 import { parseLanguageDefaults, parseNavMappings, parseRoutes } from './cli-parsers';
 import { registerSyncTranslationCommand } from './commands/sync-translation';
-import { findRetiredViewApis, hasRuntimeExtensionExport } from './utils/v6-checks';
+import { findRetiredFrameworkDependencies, findRetiredViewApis, hasRuntimeExtensionExport } from './utils/v6-checks';
 
 const program = new Command();
 const packageJson = readPackageJson(path.resolve(__dirname, '..', 'package.json')) as { version?: string };
@@ -196,6 +196,7 @@ program
     const pkg = readPackageJson(packageJsonPath);
     const findings = findForbiddenHookDeps(pkg);
     if (options.v6 || pkg.redbox?.extension != null) {
+      findings.push(...findRetiredFrameworkDependencies(pkg));
       if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata');
       const entry = pkg.redbox?.extension;
       if (typeof entry !== 'string' || (entry !== '.' && !/^\.\/[A-Za-z0-9_/-]+$/.test(entry)))
