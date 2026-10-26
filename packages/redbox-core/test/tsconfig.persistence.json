@@ -1,5 +1,5 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": { "noEmit": true, "rootDir": "..", "types": ["node", "mocha", "chai"] },
-  "include": ["../src/**/*.ts", "./unit/persistence-shutdown.test.ts", "./unit/persistence-foundation.test.ts", "./unit/prisma-runtime.test.ts", "./unit/identity-persistence.test.ts", "./unit/storage-named-query.test.ts", "./unit/migration-persistence.test.ts", "./unit/reference-persistence.test.ts", "./unit/configuration-persistence.test.ts", "./unit/progress-persistence.test.ts", "./unit/harvest-persistence.test.ts", "./unit/siem-persistence.test.ts", "./unit/figshare-persistence.test.ts", "./unit/vocabulary-persistence.test.ts", "./integration/PrismaPersistence.test.ts"]
+  "include": ["../src/**/*.ts", "./unit/persistence-owner.test.ts", "./unit/persistence-shutdown.test.ts", "./unit/persistence-foundation.test.ts", "./unit/prisma-runtime.test.ts", "./unit/identity-persistence.test.ts", "./unit/storage-named-query.test.ts", "./unit/migration-persistence.test.ts", "./unit/reference-persistence.test.ts", "./unit/configuration-persistence.test.ts", "./unit/progress-persistence.test.ts", "./unit/harvest-persistence.test.ts", "./unit/siem-persistence.test.ts", "./unit/figshare-persistence.test.ts", "./unit/vocabulary-persistence.test.ts", "./integration/PrismaPersistence.test.ts"]
 }

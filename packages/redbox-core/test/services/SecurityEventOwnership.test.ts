@@ -1,3 +1,5 @@
+import { securityCaptureInput, siemForwardingInput } from '../helpers/siemInputs';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { installSiemRepositoryStub } from './siemRepositoryStub';
 import { ObjectId } from 'mongodb';
@@ -10,7 +12,7 @@ import { Services as Forwarding } from '../../src/services/SiemForwardingService
 import { DEFAULT_SIEM_REDACTION } from '../../src/configmodels/SiemConfiguration';
 import { redactForSiem } from '../../src/services/siem/SiemPayloadRedactor';
 import type { SecurityEventAttributes } from '../../src/persistence/rows';
-import { createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
 
 describe('SIEM ownership and primitive privacy boundaries', () => {
   const originals = new Map<string, unknown>();
@@ -27,13 +29,13 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
   let lookup: sinon.SinonStub;
   beforeEach(() => {
     installSiemRepositoryStub();
-    keys.forEach(key => originals.set(key, Reflect.get(globalThis, key)));
+    keys.forEach(key => originals.set(key, Reflect.get(collaborators, key)));
     queued = [];
-    capture = new Capture.SecurityEventService();
+    capture = new Capture.SecurityEventService(securityCaptureInput(collaborators));
     lookup = sinon.stub().returns({ siem: { enabled: true } });
-    Object.assign(globalThis, {
+    Object.assign(collaborators, {
       _: lodash,
-      sails: createMockSails(),
+      environment: createDomainFixture(),
       BrandingService: {
         getBrandById: (id: string) => (id === 'other-id' ? { id, name: 'other' } : undefined),
         getBrand: (name: string) => (name === 'other' ? { id: 'other-id', name } : undefined),
@@ -49,7 +51,7 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
   });
   afterEach(() => {
     originals.forEach((value, key) =>
-      value === undefined ? Reflect.deleteProperty(globalThis, key) : Reflect.set(globalThis, key, value)
+      value === undefined ? Reflect.deleteProperty(collaborators, key) : Reflect.set(collaborators, key, value)
     );
     delete repositoryFixtures.siem;
     sinon.restore();
@@ -104,7 +106,7 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
   });
   it('resolves record ownership through the configured record service seam',async()=>{
     const getMeta=sinon.stub().resolves({metaMetadata:{brandId:'other-id'}});
-    Reflect.set(globalThis,'RecordsService',{getMeta});
+    Reflect.set(collaborators,'RecordsService',{getMeta});
     await capture.emitFromAttachmentAudit({redboxOid:'stored-record',action:'download',status:'success'});
     expect(getMeta.calledOnceWithExactly('stored-record')).to.equal(true);
     expect(queued).to.have.length(1);expect(queued[0].event.brandId).to.equal('other-id');
@@ -152,7 +154,7 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
         saveDelivery: async (_event: unknown, values: object) => { Object.assign(stored, values); return true; },
         cleanupDeadLetters: async () => {},
       };
-      await new Forwarding.SiemForwardingService().forwardSecurityEvents({ attrs: { data: { brandId: 'unknown' } } });
+      await new Forwarding.SiemForwardingService(siemForwardingInput(collaborators)).forwardSecurityEvents({ attrs: { data: { brandId: 'unknown' } } });
       expect(lookup.called).to.equal(false);
       expect(requests).to.equal(0);
       expect(stored.deliveryState).to.equal('ignored');

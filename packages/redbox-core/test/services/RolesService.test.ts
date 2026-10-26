@@ -1,3 +1,5 @@
+import { getIdentityRepositories as identityRepositories } from '../../src/persistence/identity/runtime';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import {createSinonStubLogger} from "../logger.test";
@@ -5,18 +7,18 @@ import {createSinonStubLogger} from "../logger.test";
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 
 describe('RolesService', function() {
-  let mockSails: any;
+  let fixture: any;
   let RolesService: any;
   let mockRole: any;
   let mockBrandingConfig: any;
 
   beforeEach(function() {
     installIdentityRepositoryMock();
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         auth: {
@@ -43,34 +45,34 @@ describe('RolesService', function() {
       })
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.Role = mockRole;
     repositoryFixtures.BrandingConfig = mockBrandingConfig;
-    (global as any).ConfigService = {
+    collaborators.ConfigService = {
       getBrand: sinon.stub().returns({
         aaf: { defaultRole: 'Researcher' },
         defaultRole: 'Guest'
       })
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getDefault: sinon.stub().returns({ id: 'brand-1' }),
       refreshBrandingCache: sinon.stub().resolves(),
       loadAvailableBrands: sinon.stub().returns(of([]))
     };
 
     const { Services } = require('../../src/services/RolesService');
-    RolesService = new Services.Roles();
+    RolesService = new Services.Roles({ repository: identityRepositories(), log: fixture.log, auth: brand => collaborators.ConfigService.getBrand(brand), roles: () => fixture.config.auth.roles, defaultBrand: () => collaborators.BrandingService.getDefault(), refreshBrand: id => collaborators.BrandingService.refreshBrandingCache(id), loadBrands: () => collaborators.BrandingService.loadAvailableBrands() });
 
-    // Inject brandingservice into sails.services for bootstrap
-    mockSails.services.brandingservice = (global as any).BrandingService;
+    // Inject brandingservice into explicit collaborators for bootstrap
+    fixture.collaborators.brandingservice = collaborators.BrandingService;
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.Role;
     delete repositoryFixtures.BrandingConfig;
-    delete (global as any).ConfigService;
-    delete (global as any).BrandingService;
+    delete collaborators.ConfigService;
+    delete collaborators.BrandingService;
     sinon.restore();
   });
 
@@ -183,7 +185,7 @@ describe('RolesService', function() {
 
       expect(mockRole.create.called).to.be.true;
       expect(mockBrandingConfig.addToCollection.called).to.be.true;
-      expect(BrandingService.refreshBrandingCache).to.have.property('calledOnce', true);
+      expect(collaborators.BrandingService.refreshBrandingCache).to.have.property('calledOnce', true);
     });
 
     it('should skip creation if role exists', async function() {
@@ -233,7 +235,7 @@ describe('RolesService', function() {
 
   describe('exports', function() {
     it('should export all public methods', function() {
-      const exported = RolesService.exports();
+      const exported = RolesService;
 
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('getRole');

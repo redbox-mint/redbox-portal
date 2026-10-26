@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRow, fixtureCreate, fixtureRemove } from '../../helpers/persistenceFixtures';
 import assert from 'node:assert/strict';
 
@@ -5,7 +6,7 @@ import assert from 'node:assert/strict';
 describe('P5 portal cache selection and preview compatibility', function () {
   this.timeout(30_000);
   const core = () => require('@researchdatabox/redbox-core');
-  const repository = () => core().getCacheEntryRepository();
+  const repository = () => core().getCacheEntryRepository(fixture.owner);
   let draftRevision: number;
   before(async () => {
     assert.equal(repository().constructor.name, 'PrismaCacheEntryRepository');
@@ -14,42 +15,42 @@ describe('P5 portal cache selection and preview compatibility', function () {
   });
 
   it('awaits draft persistence, returns scoped content, deletes a valid token and preserves the missing-token error', async () => {
-    const preview = await BrandingService.preview('default', 'rdmp', draftRevision);
+    const preview = await fixture.services.BrandingService.preview('default', 'rdmp', draftRevision);
     const name = `branding-preview:${preview.token}`;
     const row = await repository().findByName(name);
     assert(row);
     assert.equal(row.data.branding, 'default');
     assert.equal(row.data.portal, 'rdmp');
-    const data = await BrandingService.fetchPreview(preview.token);
+    const data = await fixture.services.BrandingService.fetchPreview(preview.token);
     assert.equal(data.hash, preview.hash);
     assert.equal(data.branding, 'default');
     assert.equal(await repository().findByName(name), null);
-    await assert.rejects(BrandingService.fetchPreview(preview.token), /^Error: preview-not-found$/);
-    await assert.rejects(BrandingService.fetchPreview('missing-p5-token'), /^Error: preview-not-found$/);
+    await assert.rejects(fixture.services.BrandingService.fetchPreview(preview.token), /^Error: preview-not-found$/);
+    await assert.rejects(fixture.services.BrandingService.fetchPreview('missing-p5-token'), /^Error: preview-not-found$/);
   });
 
   it('deletes an expired preview before returning the unchanged expiry error', async () => {
-    const preview = await BrandingService.preview('default', 'rdmp', draftRevision);
+    const preview = await fixture.services.BrandingService.preview('default', 'rdmp', draftRevision);
     const name = `branding-preview:${preview.token}`;
     const row = await repository().findByName(name);
     await repository().updateByName(name, {
       name,
       data: row.data,
-      ts_added: Math.floor(Date.now() / 1000) - (sails.config.branding.previewTtlSeconds ?? 300) - 10,
+      ts_added: Math.floor(Date.now() / 1000) - (fixture.config.branding.previewTtlSeconds ?? 300) - 10,
     });
-    await assert.rejects(BrandingService.fetchPreview(preview.token), /^Error: preview-expired$/);
+    await assert.rejects(fixture.services.BrandingService.fetchPreview(preview.token), /^Error: preview-expired$/);
     assert.equal(await repository().findByName(name), null);
   });
 
   it('preserves HTTP CSS responses and 404 bodies for valid, consumed, expired and missing tokens', async () => {
-    const preview = await BrandingService.preview('default', 'rdmp', draftRevision);
-    const base = `http://127.0.0.1:${sails.config.port}/default/rdmp/preview/`;
+    const preview = await fixture.services.BrandingService.preview('default', 'rdmp', draftRevision);
+    const base = `http://127.0.0.1:${fixture.config.port}/default/rdmp/preview/`;
     const valid = await fetch(`${base}${preview.token}.css`);
     assert.equal(valid.status, 200);
     assert.match(valid.headers.get('content-type')!, /text\/css/);
     assert.equal(valid.headers.get('cache-control'), 'no-cache, no-store');
     assert((await valid.text()).length > 0);
-    const conditionalPreview = await BrandingService.preview('default', 'rdmp', draftRevision);
+    const conditionalPreview = await fixture.services.BrandingService.preview('default', 'rdmp', draftRevision);
     const conditional = await fetch(`${base}${conditionalPreview.token}.css`, {
       headers: { 'If-None-Match': valid.headers.get('etag')! },
     });
@@ -61,7 +62,7 @@ describe('P5 portal cache selection and preview compatibility', function () {
       assert.equal(missing.status, 404);
       assert.equal(await missing.text(), '/* preview not found */');
     }
-    const expired = await BrandingService.preview('default', 'rdmp', draftRevision);
+    const expired = await fixture.services.BrandingService.preview('default', 'rdmp', draftRevision);
     const name = `branding-preview:${expired.token}`;
     const row = await repository().findByName(name);
     await repository().updateByName(name, { name, data: row.data, ts_added: 1 });
@@ -94,22 +95,22 @@ describe('P5 portal cache selection and preview compatibility', function () {
       variables: {},
     });
     try {
-      const preview = await BrandingService.previewVersion({ branding: 'default', portal: 'rdmp', versionId: own.id });
-      const data = await BrandingService.fetchPreview(preview.token);
+      const preview = await fixture.services.BrandingService.previewVersion({ branding: 'default', portal: 'rdmp', versionId: own.id });
+      const data = await fixture.services.BrandingService.fetchPreview(preview.token);
       assert.equal(data.versionId, own.id);
       assert.equal(data.branding, 'default');
       assert(data.css.includes('#123456'));
       assert.equal(await repository().findByName(`branding-preview:${preview.token}`), null);
       await assert.rejects(
-        BrandingService.previewVersion({ branding: 'default', portal: 'rdmp', versionId: other.id }),
+        fixture.services.BrandingService.previewVersion({ branding: 'default', portal: 'rdmp', versionId: other.id }),
         error => error.code === 'history-not-found'
       );
       await assert.rejects(
-        BrandingService.previewVersion({ branding: 'default', portal: 'rdmp', versionId: 'missing' }),
+        fixture.services.BrandingService.previewVersion({ branding: 'default', portal: 'rdmp', versionId: 'missing' }),
         error => error.code === 'history-not-found'
       );
       await assert.rejects(
-        BrandingService.preview('p5-missing-brand', 'rdmp', 0),
+        fixture.services.BrandingService.preview('p5-missing-brand', 'rdmp', 0),
         error => error.code === 'branding-not-found'
       );
       const after = await fixtureRow("BrandingConfig", { id: brand.id });

@@ -48,6 +48,8 @@ function journalRow(row: AttachmentMetadataInput): Partial<AttachmentMetadataInp
   if (mutationFileId) {
     journal.mutationFileId = mutationFileId;
   }
+  if (row.stagingActorId !== undefined) journal.stagingActorId = optionalIdentifier(row.stagingActorId);
+  if (row.stagingBrandId !== undefined) journal.stagingBrandId = optionalIdentifier(row.stagingBrandId);
   const coordinationToken = optionalIdentifier(row.coordinationToken);
   if (coordinationToken) {
     journal.coordinationToken = coordinationToken;

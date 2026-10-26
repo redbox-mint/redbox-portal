@@ -1,16 +1,26 @@
+import { prepareSessionIndexes } from './sessions/indexes';
+import type { PersistenceOwner } from './owner';
 import { initializePersistence } from './runtime';
 import { PersistenceError } from './errors';
 import type { PersistenceGroup } from './types';
+import { prepareAgendaIndexes } from '../queues/indexes';
+import type { AgendaQueueOptions } from '../config/agendaQueue.config';
 import type { PersistenceIndexInspection } from './indexes';
 
-interface IndexReport extends Omit<PersistenceIndexInspection, 'datastore'> {
-  group: PersistenceGroup | 'cache';
+export interface IndexReport extends Omit<PersistenceIndexInspection, 'datastore'> {
+  group: PersistenceGroup | 'cache' | 'agenda' | 'sessions';
+}
+
+export interface StorageIndexPreparation {
+  inspectPrismaStagedStorage(app: PersistenceOwner): Promise<PersistenceIndexInspection[]>;
+  ensurePrismaStagedStorageIndexes(app: PersistenceOwner): Promise<unknown>;
 }
 
 /** One entry per group; inspect every group before any explicit DDL. */
 export async function prepareSelectedPersistenceIndexes(
-  app: Sails.Application,
-  mode: 'inspect' | 'ensure'
+  app: PersistenceOwner,
+  mode: 'inspect' | 'ensure',
+  selected: { storage?: StorageIndexPreparation; agenda?: AgendaQueueOptions; session?: Record<string, unknown> } = {}
 ): Promise<{ mode: string; ready: boolean; groups: IndexReport[] }> {
   await initializePersistence(app);
   const cache = require('./cache/preflight') as typeof import('./cache/preflight');
@@ -25,14 +35,12 @@ export async function prepareSelectedPersistenceIndexes(
   const branding = require('./branding/preflight') as typeof import('./branding/preflight');
   const identity = require('./identity/preflight') as typeof import('./identity/preflight');
   const storage = require('./storage/preflight') as typeof import('./storage/preflight');
-  const hook = require('@researchdatabox/sails-hook-redbox-storage-mongo/dist/persistence/preflight') as {
-    inspectPrismaStagedStorage(app: Sails.Application): Promise<PersistenceIndexInspection[]>;
-    ensurePrismaStagedStorageIndexes(app: Sails.Application): Promise<unknown>;
-  };
+  const hook: StorageIndexPreparation =
+    selected.storage ?? require('@researchdatabox/sails-hook-redbox-storage-mongo/extension');
   const scopes: Array<{
     group: IndexReport['group'];
-    inspect(app: Sails.Application): Promise<Omit<IndexReport, 'group'>[]>;
-    ensure(app: Sails.Application): Promise<unknown>;
+    inspect(app: PersistenceOwner): Promise<Omit<IndexReport, 'group'>[]>;
+    ensure(app: PersistenceOwner): Promise<unknown>;
   }> = [
     {
       group: 'cache',
@@ -103,6 +111,18 @@ export async function prepareSelectedPersistenceIndexes(
       },
     },
   ];
+  if (selected.agenda)
+    scopes.push({
+      group: 'agenda',
+      inspect: app => prepareAgendaIndexes(app, selected.agenda!, 'inspect'),
+      ensure: app => prepareAgendaIndexes(app, selected.agenda!, 'ensure'),
+    });
+  if (selected.session)
+    scopes.push({
+      group: 'sessions',
+      inspect: app => prepareSessionIndexes(app, selected.session!, 'inspect'),
+      ensure: app => prepareSessionIndexes(app, selected.session!, 'ensure'),
+    });
   const inspect = async (): Promise<IndexReport[]> => {
     const reports: IndexReport[] = [];
     try {

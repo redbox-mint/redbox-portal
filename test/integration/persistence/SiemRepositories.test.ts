@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { mongoDatabase } from '@researchdatabox/redbox-core';
 import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import assert from 'node:assert/strict';
@@ -6,8 +7,8 @@ import { getSiemRepository } from '@researchdatabox/redbox-core';
 
 describe('Selected SIEM persistence in the stock application',()=>{
  it('uses the selected owner for raw-compatible capture, history and fenced delivery',async()=>{
-  const repo=getSiemRepository();const eventId=`stock-${randomUUID()}`;const brandId=String(BrandingService.getDefault().id);
-  const manager = await mongoDatabase(sails, 'mongodb');
+  const repo=getSiemRepository(fixture.owner);const eventId=`stock-${randomUUID()}`;const brandId=String(fixture.services.BrandingService.getDefault().id);
+  const manager = await mongoDatabase(fixture.owner, 'mongodb');
   try{
    await repo.capture({eventId,brandId,eventType:'test',category:'authentication',severity:'info',occurredAt:new Date().toISOString(),source:'stock',deliveryState:'pending',payload:{safe:true}});
    const event=await repo.findEvent(eventId,brandId);assert(event);assert.equal(Reflect.get(event,'_id'),undefined);

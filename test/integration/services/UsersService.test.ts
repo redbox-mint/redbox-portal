@@ -1,19 +1,20 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 describe('The UsersService', function () {
   before(function (done) {
     done();
   });
 
   it('should retrieve user using ID, with valid roles, can update roles', function (done) {
-    var brand = BrandingService.getDefault();
-    RolesService.getRolesWithBrand(brand).subscribe(function(roles){
-      var adminRole = RolesService.getAdminFromRoles(roles);
+    var brand = fixture.services.BrandingService.getDefault();
+    fixture.services.RolesService.getRolesWithBrand(brand).subscribe(function(roles){
+      var adminRole = fixture.services.RolesService.getAdminFromRoles(roles);
       var adminUser = adminRole.users[0];
-      UsersService.getUserWithId(adminUser.id).subscribe(function(retrievedUser) {
+      fixture.services.UsersService.getUserWithId(adminUser.id).subscribe(function(retrievedUser) {
         expect(retrievedUser).to.have.property('id', adminUser.id);
-        expect(UsersService.hasRole(retrievedUser, adminRole)).to.have.property('id', adminRole.id);
+        expect(fixture.services.UsersService.hasRole(retrievedUser, adminRole)).to.have.property('id', adminRole.id);
         var newRolesIds = _.filter(roles, role => role.name !== 'Admin').map(role => role.id);
-        UsersService.updateUserRoles(adminUser.id, newRolesIds).subscribe(function(updatedUser){
-          expect(RolesService.getRoleWithName(updatedUser.roles, 'Admin')).to.be.undefined;
+        fixture.services.UsersService.updateUserRoles(adminUser.id, newRolesIds).subscribe(function(updatedUser){
+          expect(fixture.services.RolesService.getRoleWithName(updatedUser.roles, 'Admin')).to.be.undefined;
           done();
         });
       });
@@ -111,9 +112,9 @@ describe('The UsersService', function () {
         const authType = _.get(args, 'authType', 'oidc');
         const brandName = 'default';
         const email = args.email;
-        const brand = BrandingService.getBrand(brandName);
-        await AppConfigService.createOrUpdateConfig(brand, 'authorizedDomainsEmails', args.conf);
-        const result = UsersService.checkAuthorizedEmail(email, brandName, authType);
+        const brand = fixture.services.BrandingService.getBrand(brandName);
+        await fixture.services.AppConfigService.createOrUpdateConfig(brand, 'authorizedDomainsEmails', args.conf);
+        const result = fixture.services.UsersService.checkAuthorizedEmail(email, brandName, authType);
         expect(result).to.equal(expected);
       });
     });

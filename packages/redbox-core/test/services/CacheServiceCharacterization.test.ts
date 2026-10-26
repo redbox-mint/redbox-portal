@@ -4,12 +4,12 @@ import NodeCache from 'node-cache';
 import { firstValueFrom, Observable } from 'rxjs';
 import { stubCacheEntryRepository } from '../helpers/cacheRepository';
 import { Services } from '../../src/services/CacheService';
-import { createMockSails, setupServiceTestGlobals } from './testHelper';
+import { createDomainFixture, installRepositoryFixtures } from './testHelper';
 import { MongoNetworkError } from 'mongodb';
 
 class CharacterizedCache extends Services.Cache {
-  constructor() {
-    super();
+  constructor(input: ConstructorParameters<typeof Services.Cache>[0]) {
+    super(input);
     this.cache = new NodeCache({ stdTTL: 60, checkperiod: 0 });
   }
   memory(): NodeCache {
@@ -29,27 +29,21 @@ describe('CacheService persistence characterization (P0)', function () {
   const now = 1_792_339_200;
 
   beforeEach(function () {
-    savedGlobals = Object.getOwnPropertyDescriptors(globalThis);
+
     sinon.useFakeTimers({ now: now * 1000, toFake: ['Date'] });
-    const mockSails = createMockSails({ config: { custom_cache: { cacheExpiry: 60 } } });
-    errors = mockSails.log.error;
-    setupServiceTestGlobals(mockSails);
+    const fixture = createDomainFixture({ config: { custom_cache: { cacheExpiry: 60 } } });
+    errors = fixture.log.error;
+    installRepositoryFixtures();
     const repo = stubCacheEntryRepository();
     find = repo.findByName;
     create = repo.create;
     update = repo.updateByName;
-    cache = new CharacterizedCache();
+    cache = new CharacterizedCache({ entries: () => repo, config: { ...fixture.config, appPath: '/app' }, log: fixture.log });
   });
 
   afterEach(async function () {
-    // Let CoreBase's constructor finish its asynchronous logger setup before restoring globals.
-    await Promise.resolve();
     cache.memory().close();
     sinon.restore();
-    for (const key of ['sails', '_']) {
-      if (savedGlobals[key]) Object.defineProperty(globalThis, key, savedGlobals[key]);
-      else Reflect.deleteProperty(globalThis, key);
-    }
   });
 
   it('returns an Observable, bypasses persistence for truthy memory, and returns null for a miss', async function () {

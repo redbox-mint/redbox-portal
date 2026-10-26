@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { brandingThemeAllowedVariableNames } from '../../services/BrandingThemeTokens';
 import { ObjectId } from 'mongodb';
 import type { CorePrismaClient, StoragePrismaClient } from '../prisma/client';
@@ -71,7 +72,7 @@ async function operation<T>(work: () => Promise<T>): Promise<T> {
 export function prismaBrandingRepository(
   application: CorePrismaClient,
   storage: StoragePrismaClient,
-  app: Sails.Application
+  app: PersistenceOwner
 ): BrandingRepository {
   const collection = (history: boolean) =>
     history ? storage.orm.brandingconfighistory : application.orm.brandingconfig;

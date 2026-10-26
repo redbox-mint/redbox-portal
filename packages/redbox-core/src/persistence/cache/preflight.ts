@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { initializePersistence, persistenceOperation } from '../runtime';
 import { inspectPersistenceCollections } from '../indexPreflight';
 import { inspectPersistenceIndex, ensurePersistenceIndex } from '../indexes';
@@ -35,7 +36,7 @@ export function requireCacheIndex(report: CacheIndexInspection): void {
     );
 }
 
-async function cacheIndex(app: Sails.Application, ensure: boolean): Promise<CacheIndexInspection> {
+async function cacheIndex(app: PersistenceOwner, ensure: boolean): Promise<CacheIndexInspection> {
   try {
     await initializePersistence(app);
     return await persistenceOperation(app, async () => {
@@ -47,7 +48,7 @@ async function cacheIndex(app: Sails.Application, ensure: boolean): Promise<Cach
     throw safePersistenceFailure(error);
   }
 }
-export const inspectCachePersistence = (app: Sails.Application): Promise<CacheIndexInspection> =>
+export const inspectCachePersistence = (app: PersistenceOwner): Promise<CacheIndexInspection> =>
   cacheIndex(app, false);
-export const ensureCachePersistenceIndex = (app: Sails.Application): Promise<CacheIndexInspection> =>
+export const ensureCachePersistenceIndex = (app: PersistenceOwner): Promise<CacheIndexInspection> =>
   cacheIndex(app, true);

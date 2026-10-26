@@ -1,10 +1,11 @@
+import type { PersistenceOwner } from '../owner';
 import { persistenceCollections, persistenceCollectionIndexes } from '../prisma/catalog';
 import { persistenceOperation } from '../runtime';
 import type { PersistenceIndexInspection } from '../indexes';
 import { identityFields } from './fields';
 
 /** No new unique indexes or collation policy. Catalog inspection preserves every existing index unchanged. */
-export async function inspectIdentityPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export async function inspectIdentityPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return persistenceOperation(app, async () => {
     const collections = await persistenceCollections(app);
     const reports: PersistenceIndexInspection[] = [];
