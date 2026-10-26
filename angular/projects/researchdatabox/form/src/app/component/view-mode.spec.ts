@@ -20,7 +20,7 @@ describe('View mode editing prompts', () => {
   });
 
   for (const layout of ['DefaultLayout', 'InlineLayout'] as const) {
-    it(`retains invalid answers while hiding ${layout} errors, summary and actions in view mode`, async () => {
+    it(`retains invalid answers while hiding ${layout} errors, summary and Save in view mode`, async () => {
       const config: FormConfigFrame = {
         name: 'mode-test', enabledValidationGroups: ['submit'],
         componentDefinitions: [
@@ -54,12 +54,12 @@ describe('View mode editing prompts', () => {
       await fixture.whenStable();
       expect(element.querySelector('.rb-form-content')).toBeNull();
       expect(element.querySelector('.validation-summary, .suggested-validation-summary, .alert-info, redbox-field-error-summary')).toBeNull();
-      expect(element.querySelector('.rb-form-save-button, .rb-form-delete-button')).toBeNull();
+      expect(element.querySelector('.rb-form-save-button')).toBeNull();
+      expect(element.querySelector('.rb-form-delete-button')).not.toBeNull();
       const bus = TestBed.inject(FormComponentEventBus);
       const publish = spyOn(bus, 'publish');
       const confirm = spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.resolveTo(true);
       await (formComponent.componentDefArr[2].component as SaveButtonComponent).save();
-      await (formComponent.componentDefArr[3].component as DeleteButtonComponent).delete();
       expect(publish).not.toHaveBeenCalled();
       expect(confirm).not.toHaveBeenCalled();
       expect(control.errors).toBe(errors);
@@ -76,7 +76,7 @@ describe('View mode editing prompts', () => {
     });
   }
 
-  it('blocks direct actions on a valid form that permits those actions in edit mode', async () => {
+  it('blocks Save in view mode while retaining confirmed Delete and edit-mode actions', async () => {
     const { fixture, formComponent } = await createFormAndWaitForReady({ name: 'valid-actions', componentDefinitions: [
       { name: 'save', component: { class: 'SaveButtonComponent', config: { targetStep: 'next' } } },
       { name: 'delete', component: { class: 'DeleteButtonComponent', config: { confirmationMessage: 'Delete?' } } },
@@ -90,10 +90,16 @@ describe('View mode editing prompts', () => {
     const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish');
     formComponent.editMode.set(false);
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-form-save-button')).toBeNull();
+    expect((fixture.nativeElement.querySelector('.rb-form-delete-button button') as HTMLButtonElement | null)?.disabled).toBeFalse();
     await save.save();
-    await remove.delete();
     expect(publish).not.toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();
+    await remove.delete();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(publish.calls.allArgs().map(args => args[0].type)).toEqual(['form.delete.requested']);
+    publish.calls.reset();
+    confirm.calls.reset();
     formComponent.editMode.set(true);
     fixture.detectChanges();
     await save.save();
