@@ -267,9 +267,15 @@ class CalendarDateFormControl extends FormControl<DateInputModelValueType> imple
   }
 
   setDateBounds(minimum?: Date, maximum?: Date): void {
-    this.minimumDay = normalizeCalendarDate(minimum) ?? null;
-    this.maximumDay = normalizeCalendarDate(maximum) ?? null;
-    this.updateValueAndValidity({ emitEvent: false });
+    const minimumDay = normalizeCalendarDate(minimum) ?? null;
+    const maximumDay = normalizeCalendarDate(maximum) ?? null;
+    if (minimumDay === this.minimumDay && maximumDay === this.maximumDay) return;
+    this.minimumDay = minimumDay;
+    this.maximumDay = maximumDay;
+    // Notify control and ancestor subscribers, including async validation completion.
+    // The value-event producer suppresses unchanged answers; equivalent bounds above
+    // must also avoid restarting validation when picker options are refreshed.
+    this.updateValueAndValidity();
   }
 
   override setValidators(validators: ValidatorFn | ValidatorFn[] | null): void {
@@ -337,18 +343,20 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
             type="text"
             class="form-control date-input-width"
             bsDatepicker
+            triggers="manual"
             #dateInputEl
             [bsConfig]="bsConfig"
             [minDate]="bsConfig.minDate"
             [maxDate]="bsConfig.maxDate"
             [bsValue]="calendarPickerValue"
             [disabled]="formControl.disabled"
-            [isDisabled]="formControl.disabled"
+            [isDisabled]="isReadonly"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
             [readonly]="isReadonly"
             [title]="tooltip | i18next"
             [placeholder]="placeholder | i18next"
+            (click)="toggleDatepicker()"
             (input)="model?.dateOnly && formControl.markAsDirty()"
             (blur)="onInputBlur($event)"
             (bsValueChange)="onDatepickerValueChange($event)"
@@ -358,16 +366,19 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
             type="text"
             class="form-control date-input-width"
             bsDatepicker
+            triggers="manual"
             #dateInputEl
             [bsConfig]="bsConfig"
             [minDate]="bsConfig.minDate"
             [maxDate]="bsConfig.maxDate"
             [formControl]="inputControl"
+            [isDisabled]="isReadonly"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
             [readonly]="isReadonly"
             [title]="tooltip | i18next"
             [placeholder]="placeholder | i18next"
+            (click)="toggleDatepicker()"
             (input)="model?.dateOnly && formControl.markAsDirty()"
             (blur)="onInputBlur($event)"
             (bsValueChange)="onDatepickerValueChange($event)"
@@ -421,7 +432,8 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   get calendarPickerValue(): Date | undefined {
-    return (this.inputControl.value as Date | null) ?? undefined;
+    const value = this.inputControl.value;
+    return value instanceof Date ? value : undefined;
   }
 
   override ngAfterViewInit() {
@@ -490,6 +502,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   onDatepickerValueChange(dateValue: DateInputModelValueType): void {
+    if (this.isReadonly) return;
     if (this.model?.dateOnly) {
       const day = normalizeCalendarDate(dateValue);
       if (day !== undefined && day !== this.formControl.value) {
@@ -682,9 +695,11 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   public toggleDatepicker(): void {
+    // The timestamp value accessor can reset this flag while attaching the control.
+    this.datepicker.isDisabled = this.isReadonly;
     if (this.datepicker.isOpen) {
       this.datepicker.hide();
-    } else {
+    } else if (!this.isReadonly) {
       this.datepicker.show();
     }
   }

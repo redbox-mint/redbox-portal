@@ -127,4 +127,30 @@ describe('Date bounds through nested field expressions', () => {
     expect(end.formControl.pristine).toBeTrue();
   });
 
+  it('notifies nested status subscribers after expression bounds settle without changing End or retriggering expressions', async () => {
+    const { dates: [, end], formComponent, type, contexts, settle } = await createRange('2026-01-08', '2026-01-09');
+    const statuses: string[] = [];
+    const nestedStatuses: string[] = [];
+    const formStatuses: string[] = [];
+    const subscriptions = [
+      end.formControl.statusChanges.subscribe(status => statuses.push(status)),
+      end.formControl.parent!.statusChanges.subscribe(status => nestedStatuses.push(status)),
+      formComponent.form!.statusChanges.subscribe(status => formStatuses.push(status)),
+    ];
+    for (const [text, status] of [['2026/01/10', 'INVALID'], ['2026/01/08', 'VALID'],
+      ['2026/01/12', 'INVALID'], ['', 'VALID']]) {
+      await type(0, text);
+      expect(statuses.at(-1)).toBe(status);
+      expect(nestedStatuses.at(-1)).toBe(status);
+      expect(formStatuses.at(-1)).toBe(status);
+      expect(end.formControl.value).toBe('2026-01-09');
+      expect(end.formControl.pristine && end.formControl.untouched).toBeTrue();
+      const counts = [statuses.length, nestedStatuses.length, formStatuses.length, contexts.length];
+      await settle();
+      expect([statuses.length, nestedStatuses.length, formStatuses.length, contexts.length]).toEqual(counts);
+    }
+    expect(statuses).toEqual(['INVALID', 'VALID', 'INVALID', 'VALID']);
+    subscriptions.forEach(subscription => subscription.unsubscribe());
+  });
+
 });
