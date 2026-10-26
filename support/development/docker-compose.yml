@@ -94,7 +94,7 @@ services:
     ports:
       - '27017:27017'
   solr:
-    image: solr:latest@sha256:4316295f16175f676ac6798769f7a21729131ab555f1ba8663839dd7abd92e13
+    image: solr:latest@sha256:1a712cae556d96883e032622692d2acfba7917d3b16c800deb4f8d2fbf0b77ea
     expose:
       - '8983'
     ports:
