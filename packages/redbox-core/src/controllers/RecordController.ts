@@ -863,12 +863,16 @@ export namespace Controllers {
       if (hasExistingRecord) {
         try {
           existingRecord = await this.recordsService.getMeta(oid);
+          if (_.isEmpty(existingRecord)) {
+            return res.notFound();
+          }
+          const canEdit = await firstValueFrom(this.hasEditAccess(brand, req.user, existingRecord));
+          if (!canEdit) {
+            return res.forbidden();
+          }
         } catch (error) {
           sails.log.error(error);
           return res.serverError();
-        }
-        if (_.isEmpty(existingRecord)) {
-          return res.notFound();
         }
       }
       const buildEditViewLocals = (pageTitle?: string) => ({
@@ -1018,7 +1022,7 @@ export namespace Controllers {
           // Check user's record access
           if (!hasAccess) {
             return this.sendResp(req, res, {
-              status: 500,
+              status: this.getApiVersion(req) === '1.0' ? 500 : 403,
               displayErrors: [{ code: 'view-error-no-permissions' }],
               v1: { message: TranslationService.t('view-error-no-permissions') },
             });

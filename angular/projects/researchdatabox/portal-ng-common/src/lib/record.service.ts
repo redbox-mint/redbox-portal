@@ -1331,7 +1331,9 @@ export class RecordActionResult implements RecordSaveResult {
       return conflictCodes.has('record-lifecycle-operation-conflict') ? 'stale' : null;
     }
     if (status === 403 && outcome === 'not-saved') {
-      return problems.some(problem => problem.kind === 'authorization') ? 'authorization-lost' : 'none';
+      return problems.some(problem => problem.kind === 'authorization' && problem.issues.some(
+        issue => issue.code === 'record-validation-edit-unauthorized'
+      )) ? 'authorization-lost' : 'none';
     }
     return 'none';
   }

@@ -116,6 +116,33 @@ describe('SaveButton native confirmation', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  for (const pendingStage of ['confirmation', 'redirect']) {
+    it(`does not apply an old button's workflow action to a replacement record after ${pendingStage}`, async () => {
+      const { fixture, formComponent } = await createFormAndWaitForReady(formConfig(
+        pendingStage === 'confirmation' ? 'Move old record?' : '',
+        { redirectLocation: pendingStage === 'redirect' ? '/record/{{oid}}' : undefined },
+      ), props);
+      let confirm!: (accepted: boolean) => void;
+      let templates!: (response: DynamicScriptResponse) => void;
+      const confirmation = new Promise<boolean>(resolve => { confirm = resolve; });
+      const compiled = new Promise<DynamicScriptResponse>(resolve => { templates = resolve; });
+      const confirmSpy = spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.returnValue(confirmation);
+      const compileSpy = spyOn(formComponent, 'getRecordCompiledItems').and.returnValue(compiled);
+      const save = spyOn(formComponent, 'saveForm').and.stub();
+      const button = formComponent.getComponentDefByName('confirmActive')!.component as SaveButtonComponent;
+      const pending = button.save();
+      await Promise.resolve();
+      expect(pendingStage === 'confirmation' ? confirmSpy : compileSpy).toHaveBeenCalledTimes(1);
+      formComponent.oid.set('replacement-oid');
+      await formComponent.downloadAndCreateFormComponents(formConfig(''));
+      confirm(true);
+      templates({ evaluate: () => '/record/old-oid' });
+      await pending;
+      expect(save).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
+
   it('renders translated title, message, Yes/No labels and configured button styling in the real dialog', async () => {
     Object.assign(translationMap, {
       '@confirm-title': 'Activate RDMP?', '@confirm-message': 'Move this record?',
