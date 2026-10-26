@@ -242,6 +242,32 @@ describe('FormVocabularyService', function () {
       expect(url.searchParams.get('raw')).to.equal(term);
     });
 
+    it('escapes every Lucene punctuation character along with slash and backslash', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/select?q=basic_name:(${query|solr}*)', 'testProvider'
+      );
+      const term = '+-&|!(){}[]^"~*?:\\/end';
+      const escaped = String.raw`\+\-\&\|\!\(\)\{\}\[\]\^\"\~\*\?\:\\\/end`;
+      expect(new URL(interpolate({ query: term })).searchParams.get('q')).to.equal(`basic_name:(${escaped}*)`);
+    });
+
+    it('preserves literal backslashes before slash, punctuation and Boolean tokens', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/select?q=basic_name:(${query|solr}*)&raw=${query}', 'testProvider'
+      );
+      for (const [term, escaped] of [
+        [String.raw`\/foo/`, String.raw`\\\/foo\/`],
+        [String.raw`\\NOT`, String.raw`\\\\\NOT`],
+        [String.raw`\NOT /foo/`, String.raw`\\\NOT \/foo\/`],
+        [String.raw`\) OR *:*`, String.raw`\\\) \OR \*\:\*`],
+        [String.raw`\AND\OR\NOT`, String.raw`\\\AND\\\OR\\\NOT`],
+      ]) {
+        const url = new URL(interpolate({ query: term }));
+        expect(url.searchParams.get('q')).to.equal(`basic_name:(${escaped}*)`);
+        expect(url.searchParams.get('raw')).to.equal(term);
+      }
+    });
+
     it('interpolates simple property paths without executing code', function () {
       const interpolate = (FormVocabularyService as any).getTemplateStringFunction(
         'https://external.example.com/search?q=${query}&dept=${user.department}&id=${results.0.id}',

@@ -54,6 +54,12 @@ liveDescribe('FormVocabularyService real Solr literal autocomplete', function ()
       ['regex-target', 'foo', 'neutral'],
       ['slash', '/foo/', 'neutral'],
       ['slash-open', '/foo', 'neutral'],
+      ['backslash-slash', String.raw`\/foo/`, 'neutral'],
+      ['double-backslash-slash', String.raw`\\/foo/`, 'neutral'],
+      ['backslash-not', String.raw`\NOT`, 'neutral'],
+      ['double-backslash-not', String.raw`\\NOT`, 'neutral'],
+      ['bare-not', 'NOT', 'neutral'],
+      ['backslash-star', String.raw`\*`, 'neutral'],
       ['star', 'a*b', 'neutral'],
       ['star-prefix', 'a*bcd', 'neutral'],
       ['star-decoy', 'axxb', 'neutral'],
@@ -120,11 +126,20 @@ liveDescribe('FormVocabularyService real Solr literal autocomplete', function ()
       });
 
       it(`${provider} keeps slashes and Boolean words literal with q.op=${operator}`, async function () {
-        for (const input of ['/foo/', '/foo', '/.*/', 'a AND b', 'a OR b', 'a NOT b']) {
+        for (const input of [
+          '/foo/',
+          '/foo',
+          '/.*/',
+          'a AND b',
+          'a OR b',
+          'a NOT b',
+          String.raw`\NOT /foo/`,
+          String.raw`\) OR *:*`,
+        ]) {
           const result = await search(provider, input, operator);
           assert.doesNotMatch(result.debug.parsedquery, /RegexpQuery|MatchAllDocsQuery|_text_:/);
           assert.equal(ids(result).includes('unrelated'), false);
-          const word = input.match(/\b(?:AND|OR|NOT)\b/)?.[0];
+          const word = input.match(/^a (AND|OR|NOT) b$/)?.[1];
           if (word) {
             assert.ok(result.debug.parsedquery.includes(`basic_name:${word.toLowerCase()}`));
             if (operator === 'AND') assert.deepEqual(ids(result), [`a-${word.toLowerCase()}-b`]);
@@ -139,6 +154,11 @@ liveDescribe('FormVocabularyService real Solr literal autocomplete', function ()
           ['a*b', ['star', 'star-prefix']],
           ['a?b', ['question']],
           ['*', []],
+          [String.raw`\/foo/`, ['backslash-slash']],
+          [String.raw`\\/foo/`, ['double-backslash-slash']],
+          [String.raw`\NOT`, ['backslash-not']],
+          [String.raw`\\NOT`, ['double-backslash-not']],
+          [String.raw`\*`, ['backslash-star']],
         ] as const) {
           const result = await search(provider, input, operator, 'keyword_name');
           assert.doesNotMatch(result.debug.parsedquery, /RegexpQuery|MatchAllDocsQuery|_text_:/);
