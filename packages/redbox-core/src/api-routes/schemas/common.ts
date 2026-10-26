@@ -109,7 +109,11 @@ export function objectField(
     {} as Record<string, ApiSchemaField>
   ) as ZodRawShape;
 
-  const objectSchema = additionalProperties === true ? z.object(shape).passthrough() : z.object(shape);
+  const objectSchema = additionalProperties === true
+    ? z.object(shape).passthrough()
+    : additionalProperties === false
+      ? z.object(shape)
+      : z.object(shape).catchall(additionalProperties);
   return description
     ? withOpenApi(
         objectSchema,

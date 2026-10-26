@@ -209,7 +209,22 @@ export namespace Services {
         }
         return new RBValidationError({
           message: `Failed validating field using regex record ${record} options ${options}`,
-          displayErrors: [{ detail: displayErrorDetail, meta: displayErrorMeta }],
+          problemKind: 'validation',
+          displayErrors: [
+            {
+              code: 'field-validation',
+              title: errorLanguageCode.startsWith('@') ? errorLanguageCode : '@record-save-record-validation-failed',
+              detail: displayErrorDetail,
+              source: {
+                pointer:
+                  '/' +
+                  _.toPath(fieldDBName)
+                    .map(part => part.replace(/~/g, '~0').replace(/\//g, '~1'))
+                    .join('/'),
+              },
+              meta: displayErrorMeta,
+            },
+          ],
         });
       };
       const hasValue = function (data: unknown) {

@@ -202,6 +202,72 @@ describe('FormVocabularyService', function () {
   });
 
   describe('findInExternalService', function () {
+    it('keeps punctuation and Unicode inside a single URL parameter', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/search?q=${query}&rows=7', 'testProvider'
+      );
+      const term = ' café & Zealand#x?admin=true + 20% ';
+      const url = new URL(interpolate({ query: term }));
+      expect([...url.searchParams.keys()]).to.deep.equal(['q', 'rows']);
+      expect(url.searchParams.get('q')).to.equal(term);
+      expect(url.hash).to.equal('');
+    });
+
+    it('escapes literal Solr punctuation while retaining the configured prefix wildcard', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/select?q=basic_name%3A(${query|solr}*)&rows=7', 'testProvider'
+      );
+      for (const term of ['Australia & Zealand', 'SCU " : & no-place', 'a+b?c*d\\e', 'café Δ']) {
+        const url = new URL(interpolate({ query: term }));
+        const escaped = term.replace(/[+\-&|!(){}\[\]^"~*?:\\]/g, '\\$&');
+        expect(url.searchParams.get('q')).to.equal(`basic_name:(${escaped}*)`);
+        expect([...url.searchParams.keys()]).to.deep.equal(['q', 'rows']);
+      }
+    });
+
+    it('rejects unsupported interpolation modifiers', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/search?q=${query|eval}', 'testProvider'
+      );
+      expect(() => interpolate({ query: 'x' })).to.throw('unsupported template path');
+    });
+
+    it('treats slash and Boolean syntax as literal Solr input and trims only its boundary whitespace', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/select?q=basic_name:(${query|solr}*)&raw=${query}', 'testProvider'
+      );
+      const term = ' /foo/ AND New York NOT OR ';
+      const url = new URL(interpolate({ query: term }));
+      expect(url.searchParams.get('q')).to.equal('basic_name:(\\/foo\\/ \\AND New York \\NOT \\OR*)');
+      expect(url.searchParams.get('raw')).to.equal(term);
+    });
+
+    it('escapes every Lucene punctuation character along with slash and backslash', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/select?q=basic_name:(${query|solr}*)', 'testProvider'
+      );
+      const term = '+-&|!(){}[]^"~*?:\\/end';
+      const escaped = String.raw`\+\-\&\|\!\(\)\{\}\[\]\^\"\~\*\?\:\\\/end`;
+      expect(new URL(interpolate({ query: term })).searchParams.get('q')).to.equal(`basic_name:(${escaped}*)`);
+    });
+
+    it('preserves literal backslashes before slash, punctuation and Boolean tokens', function () {
+      const interpolate = FormVocabularyService.getTemplateStringFunction(
+        'https://external.example.com/select?q=basic_name:(${query|solr}*)&raw=${query}', 'testProvider'
+      );
+      for (const [term, escaped] of [
+        [String.raw`\/foo/`, String.raw`\\\/foo\/`],
+        [String.raw`\\NOT`, String.raw`\\\\\NOT`],
+        [String.raw`\NOT /foo/`, String.raw`\\\NOT \/foo\/`],
+        [String.raw`\) OR *:*`, String.raw`\\\) \OR \*\:\*`],
+        [String.raw`\AND\OR\NOT`, String.raw`\\\AND\\\OR\\\NOT`],
+      ]) {
+        const url = new URL(interpolate({ query: term }));
+        expect(url.searchParams.get('q')).to.equal(`basic_name:(${escaped}*)`);
+        expect(url.searchParams.get('raw')).to.equal(term);
+      }
+    });
+
     it('interpolates simple property paths without executing code', function () {
       const interpolate = (FormVocabularyService as any).getTemplateStringFunction(
         'https://external.example.com/search?q=${query}&dept=${user.department}&id=${results.0.id}',

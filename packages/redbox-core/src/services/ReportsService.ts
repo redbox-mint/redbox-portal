@@ -50,6 +50,7 @@ type ReportFilterLike = ReportConfig['filter'][number] & {
 type TemplateConfig = {
   template: string;
   json?: boolean;
+  noEscape?: boolean;
 };
 
 type SolrSearchResponse = {
@@ -103,7 +104,7 @@ export namespace Services {
   export class Reports extends services.Core.Service {
 
     searchService!: SearchService;
-    // Cache for compiled Handlebars templates (keyed by template string)
+    // Escaped UI and plain-text CSV templates must not share compiled options.
     private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
 
     protected override _exportedMethods: string[] = [
@@ -620,7 +621,7 @@ export namespace Services {
           optTemplateData: optTemplateData
         });
 
-        retVal = this.runTemplate(data, { template: template });
+        retVal = this.runTemplate(data, { template: template, noEscape: true });
       } else {
         retVal = _.get(row, col.property, val);
       }
@@ -641,12 +642,13 @@ export namespace Services {
      * Get or compile a Handlebars template.
      * Uses a cache to avoid recompiling the same template multiple times.
      */
-    private getCompiledTemplate(templateString: string): HandlebarsTemplateDelegate {
-      if (!this.compiledTemplates.has(templateString)) {
-        const compiled = handlebarsCompile(templateString);
-        this.compiledTemplates.set(templateString, compiled);
+    private getCompiledTemplate(templateString: string, noEscape = false): HandlebarsTemplateDelegate {
+      const cacheKey = JSON.stringify([noEscape, templateString]);
+      if (!this.compiledTemplates.has(cacheKey)) {
+        const compiled = handlebarsCompile(templateString, { noEscape });
+        this.compiledTemplates.set(cacheKey, compiled);
       }
-      return this.compiledTemplates.get(templateString)!;
+      return this.compiledTemplates.get(cacheKey)!;
     }
 
     /**
@@ -660,7 +662,7 @@ export namespace Services {
      */
     runTemplate(data: Record<string, unknown>, config: TemplateConfig, additionalImports: Record<string, unknown> = {}, _field: unknown = undefined) {
       try {
-        const template = this.getCompiledTemplate(config.template);
+        const template = this.getCompiledTemplate(config.template, config.noEscape === true);
         // Build context compatible with the new Handlebars templates
         // The data is provided as the root context
         const context = _.merge({}, data, additionalImports);

@@ -103,7 +103,7 @@ export namespace Controllers {
 
         this.updateChronicle(req, {reportName: name});
 
-        const results = await ReportsService.getCSVResult(brand, name, { param: (name: string) => req.param(name) as string | undefined | null });
+        const results = await ReportsService.getCSVResult(brand, name, req);
         const fileName = name + '.csv';
         this.updateChronicle(req, {reportDownloadFilename: fileName});
 
