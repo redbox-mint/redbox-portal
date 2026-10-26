@@ -120,14 +120,20 @@ export namespace Services.Core {
      */
     public exports(): Record<string, unknown> {
       const exportedMethods: Record<string, unknown> = {};
-      if (process.env['sails_redbox__mochaTesting'] === 'true') {
-        const allProperties = [
-          ...Object.getOwnPropertyNames(Object.getPrototypeOf(this)), // Prototype methods
-          ...Object.getOwnPropertyNames(this), // Instance properties
-        ];
-
-        const uniqueProperties = Array.from(new Set(allProperties));
-        uniqueProperties.forEach(property => {
+      if (process.env["sails_redbox__mochaTesting"] === "true") {
+        // Hook overrides can add several levels above a core service. Test
+        // exports must retain inherited methods just as production exports do.
+        const properties = new Set<string>();
+        let owner: object | null = this;
+        while (owner && owner !== Object.prototype) {
+          for (const property of Object.getOwnPropertyNames(owner)) {
+            const descriptor = Object.getOwnPropertyDescriptor(owner, property);
+            if (typeof descriptor?.value === 'function') properties.add(property);
+          }
+          owner = Object.getPrototypeOf(owner);
+        }
+        const uniqueProperties = Array.from(properties);
+        uniqueProperties.forEach((property) => {
           const value = (this as Record<string, unknown>)[property];
 
           // Check if the property is a function

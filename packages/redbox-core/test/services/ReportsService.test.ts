@@ -6,6 +6,8 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 import { DateTime } from 'luxon';
+import { Readable } from 'node:stream';
+import csvParser = require('csv-parser');
 
 describe('ReportsService', function () {
   let mockSails: any;
@@ -476,8 +478,39 @@ describe('ReportsService', function () {
     });
   });
 
-  describe('getCSVResult', function () {
-    it('should return CSV string', async function () {
+  describe('getCSVResult', function() {
+    it('round-trips templated text through CSV while retaining formula protection and HTML escaping', async function() {
+      const special = 'A "quoted", café & <study>\nsecond line';
+      const template = '{{title}}';
+      mockReport.findOne.returns(createQueryObject({
+        reportSource: 'database',
+        databaseQuery: { queryName: 'testQuery' },
+        columns: [{ label: 'Title', property: 'title', exportTemplate: template }]
+      }));
+      NamedQueryService.performNamedQueryFromConfig = sinon.stub().resolves({
+        summary: { numFound: 2, start: 0, page: 1 },
+        records: [{ title: special }, { title: '=SUM(1,2)' }]
+      });
+      const escaped = 'A &quot;quoted&quot;, café &amp; &lt;study&gt;\nsecond line';
+      expect(ReportsService.runTemplate({ title: special }, { template })).to.equal(escaped);
+
+      const csv = await ReportsService.getCSVResult({ id: 'brand-1' }, 'report-1', { param: sinon.stub() });
+      const rows: Record<string, string>[] = [];
+      await new Promise<void>((resolve, reject) => {
+        Readable.from([csv]).pipe(csvParser())
+          .on('data', (row: Record<string, string>) => rows.push(row))
+          .on('end', resolve).on('error', reject);
+      });
+      expect(rows).to.deep.equal([{ Title: special }, { Title: "'=SUM(1,2)" }]);
+      expect(ReportsService.runTemplate({ title: special }, { template })).to.equal(escaped);
+      // Also protect the opposite compilation order from leaking CSV options.
+      const otherTemplate = '{{title}}!';
+      expect(ReportsService.getDataRows({ columns: [{ label: 'Title', property: 'title', template: otherTemplate }] }, [{ title: special }], {}))
+        .to.deep.equal([[special + '!']]);
+      expect(ReportsService.runTemplate({ title: special }, { template: otherTemplate })).to.equal(escaped + '!');
+    });
+
+    it('should return CSV string', async function() {
       const brand = { id: 'brand-1' };
       const req = { param: sinon.stub() };
 
@@ -570,8 +603,27 @@ describe('ReportsService', function () {
     });
   });
 
-  describe('Handlebars Helpers', function () {
-    it('should support shared helpers like formatDate', function () {
+  describe('Handlebars Helpers', function() {
+    it('uses the explicit Sydney zone in exported rows while preserving text and source values', function() {
+      const template = '{{formatDate date_object_modified "dd/MM/yyyy hh:mm a" "Australia/Sydney"}}';
+      const report = { columns: [
+        { label: 'Modified', property: 'date_object_modified', template },
+        { label: 'Title', property: 'title' }
+      ] };
+      const data = [
+        { date_object_modified: '2028-01-01T00:01:00.000Z', title: 'A & B <research>, "quoted"' },
+        { date_object_modified: '2028-07-01T00:01:00.000Z', title: 'July' }
+      ];
+      const before = JSON.stringify(data);
+
+      expect(ReportsService.getDataRows(report, data, {})).to.deep.equal([
+        ['01/01/2028 11:01 AM', 'A & B <research>, "quoted"'],
+        ['01/07/2028 10:01 AM', 'July']
+      ]);
+      expect(JSON.stringify(data)).to.equal(before);
+    });
+
+    it('should support shared helpers like formatDate', function() {
       const report = {
         columns: [
           {

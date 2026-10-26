@@ -52,6 +52,36 @@ describe('DeleteButtonComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('retains view-mode confirmation cancellation and confirmed Delete publication', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: 'view-record', editMode: false });
+    const remove = formComponent.componentDefArr[0].component as DeleteButtonComponent;
+    const confirmation = spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.resolveTo(false);
+    const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish');
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBeFalse();
+    button.click();
+    await fixture.whenStable();
+    expect(confirmation).toHaveBeenCalledTimes(1);
+    expect(publish).not.toHaveBeenCalled();
+    confirmation.and.resolveTo(true);
+    await remove.delete();
+    expect(confirmation).toHaveBeenCalledTimes(2);
+    expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({ type: 'form.delete.requested', sourceId: 'delete_button' }));
+  });
+
+  it('keeps a configured disabled Delete disabled in view mode', async () => {
+    const config = formConfig.componentDefinitions?.[0]?.component?.config;
+    if (!config) throw new Error('Missing Delete config');
+    config.disabled = true;
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: 'view-record', editMode: false });
+    const confirmation = spyOn(TestBed.inject(ConfirmationDialogService), 'confirm');
+    const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish');
+    expect((fixture.nativeElement.querySelector('button') as HTMLButtonElement).disabled).toBeTrue();
+    await (formComponent.componentDefArr[0].component as DeleteButtonComponent).delete();
+    expect(confirmation).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+  });
+
   it('publishes form.delete.requested after confirmation', async () => {
     const dynamicAssetOptions: DynamicAssetOptions = {
       entries: [{

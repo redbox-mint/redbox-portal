@@ -246,7 +246,9 @@ export class TranslationService extends HttpClientService implements Service {
     }
 
     if (typeof defaultValueOrOptions === 'string') {
-      const result = this.i18NextService.t(key, defaultValueOrOptions, options);
+      const result = options === undefined
+        ? this.i18NextService.t(key, defaultValueOrOptions)
+        : this.i18NextService.t(key, defaultValueOrOptions, options);
       this.translationKeyValueCache.set(cacheKey, result);
       return result;
     }
