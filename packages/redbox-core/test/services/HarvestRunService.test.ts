@@ -14,6 +14,7 @@ import type {
   PersistRecordSchemaSaveUsageResult,
 } from '../../src/services/RecordSchemaService';
 import type { RecordValidationRequest, RecordValidationResult } from '../../src/services/RecordValidationService';
+import type { Services as RecordServices } from '../../src/services/RecordsService';
 import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
@@ -2080,34 +2081,138 @@ describe('HarvestRunService', function () {
     const user = { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] };
     Reflect.set(globalThis, 'RecordTypesService', { get: sinon.stub().returns(of(recordType)) });
     const recordModel = Reflect.get(globalThis, 'Record') as { find: sinon.SinonStub };
-    recordModel.find.callsFake((criteria: { harvestId: string }) => ({
+    recordModel.find.callsFake((criteria: {
+      harvestId: string;
+      'metaMetadata.type'?: string;
+      'metaMetadata.brandId'?: string;
+    }) => ({
       meta: sinon
         .stub()
         .callsFake(async () =>
           [...runtime.persistedRecords.values()]
-            .filter(record => record.harvestId === criteria.harvestId)
+            .filter(record => record.harvestId === criteria.harvestId
+              && record.metaMetadata.type === criteria['metaMetadata.type']
+              && (criteria['metaMetadata.brandId'] === undefined
+                || record.metaMetadata.brandId === criteria['metaMetadata.brandId']))
             .map(record => structuredClone(record))
         ),
     }));
     // Exercise real RecordsService persistence with a representative pure
     // normalization hook: the stored snapshot differs from the raw feed.
+    const recordsWithHooks: Pick<RecordServices.Records, 'triggerPreSaveTriggers'> = runtime.realRecordsService;
     const normalize = sinon
-      .stub(runtime.realRecordsService, 'triggerPreSaveTriggers')
-      .callsFake(async (_oid: string, candidate: { metadata: Record<string, unknown> }) => {
-        candidate.metadata.normalised_status = candidate.metadata.status === 'Completed' ? 'approved' : 'edit';
+      .stub(recordsWithHooks, 'triggerPreSaveTriggers')
+      .callsFake(async (_oid, candidate) => {
+        const metadata = candidate.metadata as Record<string, unknown>;
+        metadata.normalised_status = metadata.status === 'Completed' ? 'approved' : 'edit';
         return candidate;
       });
     mockSails.config.record.auditing.enabled = true;
-    const submit = (metadata: Record<string, unknown>, merge = false) =>
+    const submit = (metadata: Record<string, unknown>, merge = false, submitBrand = brand) =>
       service.submitLegacyRecords(
-        brand,
+        submitBrand,
         recordType,
         { records: [{ harvest_id: 'source-1', metadata: { data: metadata } }] },
         merge,
         user
       );
-    return { ...runtime, normalize, submit };
+    const submitCompatibility = (metadata: Record<string, unknown>, submitBrand = brand) =>
+      service.submitCompatibilityRecords(
+        submitBrand,
+        recordType,
+        { records: [{ harvestId: 'source-1', recordRequest: { metadata } }] },
+        'update',
+        user
+      );
+    return { ...runtime, brand, recordType, user, normalize, submit, submitCompatibility };
   }
+
+  for (const format of ['legacy', 'compatibility'] as const) {
+    it(`creates a local ${format} record when only another brand has the same harvest ID and source`, async function () {
+      const runtime = configureLegacyReplay();
+      const foreignBrand = { id: 'brand-2', name: 'other' };
+      const source = { title: 'Shared source', status: 'Completed' };
+      const foreign = await runtime.submit(source, false, foreignBrand);
+      expect(foreign[0].status).to.equal(true);
+      const foreignBefore = structuredClone(runtime.persistedRecords.get(foreign[0].oid));
+      const submit = format === 'legacy' ? runtime.submit : runtime.submitCompatibility;
+
+      const created = await submit(source);
+      expect(created[0].status).to.equal(true);
+      expect(created[0].oid).not.to.equal(foreign[0].oid);
+      expect(runtime.persistedRecords.size).to.equal(2);
+      expect(runtime.persistedRecords.get(created[0].oid).metaMetadata.brandId).to.equal('brand-1');
+      expect(runtime.persistedRecords.get(foreign[0].oid)).to.deep.equal(foreignBefore);
+      expect(runtime.storageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it(`updates and skips only the local ${format} record when another brand has a matching source signature`, async function () {
+      const runtime = configureLegacyReplay();
+      const foreignBrand = { id: 'brand-2', name: 'other' };
+      const source = { title: 'Shared source', status: 'Completed' };
+      // Insert the foreign match first, so an unscoped lookup selects it.
+      const foreign = await runtime.submit(source, false, foreignBrand);
+      // Seed the local record directly so both records exist even with the faulty lookup.
+      const local = await runtime.realRecordsService.create(
+        runtime.brand,
+        { harvestId: 'source-1', metadata: { title: 'Local source', status: 'Draft' } },
+        runtime.recordType,
+        runtime.user,
+        true,
+        true
+      );
+      expect(foreign[0].status).to.equal(true);
+      expect(local.wasPersisted()).to.equal(true);
+      const foreignBefore = structuredClone(runtime.persistedRecords.get(foreign[0].oid));
+      const localBefore = structuredClone(runtime.persistedRecords.get(local.oid));
+      runtime.storageService.updateMeta.resetHistory();
+      const submit = format === 'legacy' ? runtime.submit : runtime.submitCompatibility;
+
+      const updated = await submit(source);
+      expect(updated[0].status).to.equal(true);
+      expect(updated[0].oid).to.equal(local.oid);
+      expect(runtime.storageService.updateMeta.calledOnce).to.equal(true);
+      const localAfter = structuredClone(runtime.persistedRecords.get(local.oid));
+      expect(localAfter.metadata).to.deep.equal(foreignBefore.metadata);
+      expect(localAfter.revision).to.equal(localBefore.revision + 1);
+      if (format === 'legacy') {
+        expect(localAfter.harvestSource).to.deep.equal(foreignBefore.harvestSource);
+      }
+
+      // Raw replay exercises the signature; compatibility retains exact snapshot comparison.
+      const unchanged = await submit(format === 'legacy' ? source : localAfter.metadata);
+      expect(unchanged[0].status).to.equal(true);
+      expect(unchanged[0].oid).to.equal(local.oid);
+      expect(runtime.storageService.updateMeta.calledOnce).to.equal(true);
+      expect(runtime.persistedRecords.get(local.oid)).to.deep.equal(localAfter);
+      expect(runtime.persistedRecords.get(foreign[0].oid)).to.deep.equal(foreignBefore);
+    });
+  }
+
+  it('rejects a foreign-brand legacy candidate at the common save boundary even with service authorization', async function () {
+    const runtime = configureLegacyReplay();
+    const foreignBrand = { id: 'brand-2', name: 'other' };
+    const foreign = await runtime.submit({ title: 'Foreign source', status: 'Completed' }, false, foreignBrand);
+    expect(foreign[0].status).to.equal(true);
+    const foreignBefore = structuredClone(runtime.persistedRecords.get(foreign[0].oid));
+
+    const rejected = await runtime.realRecordsService.updateMetaInternal({
+      actor: { kind: 'service', id: 'HarvestRunService.legacyUpdateHarvestRecord' },
+      authorization: { kind: 'service' },
+      mutationClass: 'full-record',
+      brand: runtime.brand,
+      oid: foreign[0].oid,
+      record: structuredClone(foreignBefore),
+      user: runtime.user,
+      metadata: { title: 'Local source' },
+      metadataMode: 'replace',
+    });
+
+    expect(rejected.wasPersisted()).to.equal(false);
+    expect(rejected.problems[0].issues[0].code).to.equal('internal-record-brand-unauthorized');
+    expect(runtime.storageService.updateMeta.notCalled).to.equal(true);
+    expect(runtime.persistedRecords.get(foreign[0].oid)).to.deep.equal(foreignBefore);
+  });
 
   it('skips unchanged raw legacy sources and exact normalized snapshots without writes, audits or timestamp changes', async function () {
     const runtime = configureLegacyReplay();

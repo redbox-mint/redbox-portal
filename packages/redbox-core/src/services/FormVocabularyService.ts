@@ -29,13 +29,13 @@ import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
 import axios from 'axios';
-import luceneEscapeQuery = require('lucene-escape-query');
-
-// The dependency exposes .escape at runtime while its declaration also permits
-// a callable CommonJS export.
+// Keep the untyped CommonJS dependency explicit for consumers whose projects
+// do not include the package's ambient declarations.
+const luceneEscapeQuery: ((value: string) => string) | { escape: (value: string) => string } =
+  require('lucene-escape-query');
 const escapeSolrTerm = typeof luceneEscapeQuery === 'function'
   ? luceneEscapeQuery
-  : (luceneEscapeQuery as { escape: (value: string) => string }).escape;
+  : luceneEscapeQuery.escape;
 
 export namespace Services {
   type FormVocabularyUserContext = Record<string, unknown>;
@@ -341,7 +341,13 @@ export namespace Services {
 
         const value = _.get(map, propertyPath);
         const text = this.normalizeTemplateValue(value);
-        return encodeURIComponent(modifier === 'solr' ? escapeSolrTerm(text) : text);
+        // lucene-escape-query 1.x omits regex delimiters and Boolean tokens.
+        // Keep internal spaces for tokenized autocomplete; boundary spaces
+        // must not separate the configured trailing wildcard into its own term.
+        const literal = modifier === 'solr'
+          ? escapeSolrTerm(text.trim()).replace(/\//g, '\\/').replace(/\b(?:AND|OR|NOT)\b/g, word => `\\${word}`)
+          : text;
+        return encodeURIComponent(literal);
       });
     }
 
