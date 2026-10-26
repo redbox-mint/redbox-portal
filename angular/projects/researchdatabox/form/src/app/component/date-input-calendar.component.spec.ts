@@ -84,6 +84,139 @@ describe('DateInputComponent calendar dates', () => {
     expect(control.touched).toBeTrue();
   });
 
+  it('updates and clears dynamic bounds without replacing an existing calendar value', async () => {
+    const { fixture, component, control, formComponent, input } = await createDateField('2026-01-09');
+    component.setProperty('bsFullConfig.minDate', '2026-01-10');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(component.datepicker.minDate?.getDate()).toBe(10);
+    expect(control.value).toBe('2026-01-09');
+    expect(input.value).toBe('09/01/2026');
+    expect(control.hasError('dateMin')).toBeTrue();
+    expect(formComponent.form?.invalid).toBeTrue();
+    // Native validation-group changes must not discard the date bound.
+    control.setValidators([Validators.required]);
+    control.updateValueAndValidity();
+    expect(control.hasError('dateMin')).toBeTrue();
+    component.setProperty('bsFullConfig.minDate', '2026-01-08');
+    fixture.detectChanges();
+    expect(control.valid).toBeTrue();
+    component.setProperty('bsFullConfig.minDate', null);
+    fixture.detectChanges();
+    expect(component.datepicker.minDate).toBeUndefined();
+    expect(control.value).toBe('2026-01-09');
+    expect(control.pristine).toBeTrue();
+  });
+
+  it('disables earlier calendar days and prevents typed dates bypassing the bound', async () => {
+    const { fixture, component, input, control } = await createDateField('2026-01-11');
+    component.setProperty('bsFullConfig', { minDate: '2026-01-10' });
+    fixture.detectChanges();
+    component.datepicker.show();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const ninth = Array.from(document.querySelectorAll('bs-datepicker-container .bs-datepicker-body span'))
+      .filter(element => element.textContent?.trim() === '9');
+    expect(ninth.some(element => element.classList.contains('disabled'))).toBeTrue();
+    component.datepicker.hide();
+    input.value = '09/01/2026';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(control.value === '2026-01-09' && control.valid).toBeFalse();
+    expect(typeof control.value).toBe('string');
+  });
+
+  it('enforces inclusive maximum bounds, disables later days, and preserves saved answers', async () => {
+    const { fixture, component, control, input } = await createDateField('2026-01-11', {
+      maxDate: new Date(2026, 0, 10),
+    });
+    expect(control.hasError('dateMax')).toBeTrue();
+    expect(control.value).toBe('2026-01-11');
+    expect(input.value).toBe('11/01/2026');
+    expect(control.pristine).toBeTrue();
+    component.datepicker.show();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(Array.from(document.querySelectorAll('bs-datepicker-container .bs-datepicker-body span'))
+      .some(element => element.textContent?.trim() === '11' && element.classList.contains('disabled'))).toBeTrue();
+    component.datepicker.hide();
+    control.setValidators(Validators.required);
+    control.updateValueAndValidity();
+    expect(control.hasError('dateMax')).toBeTrue();
+    component.setProperty('bsFullConfig.maxDate', '2026-01-11T23:00:00-10:00');
+    fixture.detectChanges();
+    expect(component.datepicker.maxDate).toEqual(new Date(2026, 0, 11));
+    expect(control.valid).toBeTrue();
+    component.setProperty('bsFullConfig.maxDate', '2026-01-10');
+    fixture.detectChanges();
+    input.value = '12/01/2026';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+    fixture.detectChanges();
+    expect(control.value).toBe('2026-01-12');
+    expect(control.hasError('dateMax')).toBeTrue();
+    component.setProperty('bsFullConfig', { minDate: '2026-01-12', maxDate: '2026-01-12' });
+    fixture.detectChanges();
+    expect(control.valid).toBeTrue();
+  });
+
+  it('removes missing and invalid bounds without changing values or unrelated validators', async () => {
+    const { fixture, component, control } = await createDateField('2026-01-09');
+    const customValidator = () => ({ customError: true });
+    control.setValidators(customValidator);
+    for (const bound of ['minDate', 'maxDate'] as const) {
+      for (const value of [undefined, null, '', 'not a date', '2026-02-30', new Date(NaN)]) {
+        component.setProperty(`bsFullConfig.${bound}`, value);
+        fixture.detectChanges();
+        expect(component.datepicker[bound]).toBeUndefined();
+        expect(control.hasError('dateMin')).toBeFalse();
+        expect(control.hasError('dateMax')).toBeFalse();
+        expect(control.hasError('customError')).toBeTrue();
+        expect(control.value).toBe('2026-01-09');
+        expect(control.pristine).toBeTrue();
+      }
+    }
+    component.setProperty('bsFullConfig', { minDate: '2026-01-10', maxDate: '2026-01-08' });
+    control.setValue(null);
+    expect(control.hasError('dateMin') || control.hasError('dateMax')).toBeFalse();
+    expect(control.hasError('customError')).toBeTrue();
+  });
+
+  it('normalizes timestamp bounds while preserving the timestamp value and picker options', async () => {
+    const saved = '2026-01-11T12:30:00.000Z';
+    const { fixture } = await createFormAndWaitForReady({
+      name: 'timestamp-bounds',
+      componentDefinitions: [{ name: 'date',
+        model: { class: 'DateInputModel', config: { value: saved } },
+        component: { class: 'DateInputComponent', config: { bsFullConfig: {
+          dateInputFormat: 'DD/MM/YYYY', useUtc: true,
+        } } },
+      }],
+    });
+    const component = fixture.debugElement.query(By.directive(DateInputComponent)).componentInstance as DateInputComponent;
+    const originalValue = component.formControl.value;
+    component.setProperty('bsFullConfig.minDate', '2026-01-10T09:15:00Z');
+    component.setProperty('bsFullConfig.maxDate', '2026-01-12T17:45:00Z');
+    fixture.detectChanges();
+    expect(component.datepicker.minDate).toEqual(new Date('2026-01-10T09:15:00Z'));
+    expect(component.datepicker.maxDate).toEqual(new Date('2026-01-12T17:45:00Z'));
+    expect(component.bsConfig.useUtc).toBeTrue();
+    expect(component.formControl.value).toBe(originalValue);
+    expect(component.formControl.pristine).toBeTrue();
+    component.setProperty('bsFullConfig.minDate', '2026-02-30');
+    component.setProperty('bsFullConfig.maxDate', 'invalid');
+    fixture.detectChanges();
+    expect(component.datepicker.minDate).toBeUndefined();
+    expect(component.datepicker.maxDate).toBeUndefined();
+    expect(component.formControl.value).toBe(originalValue);
+    component.setProperty('bsFullConfig', {});
+    fixture.detectChanges();
+    expect(component.datepicker.minDate).toBeUndefined();
+    expect(component.datepicker.maxDate).toBeUndefined();
+  });
+
   for (const robustParsing of [true, false]) {
     it(`uses the picker format for typed calendar dates with robust parsing ${robustParsing}`, async () => {
       const { fixture, component, input, control } = await createDateField(
