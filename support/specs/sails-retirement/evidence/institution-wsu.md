@@ -59,6 +59,20 @@ qualification; R20's broader Mongo/upgrade/recovery proof is historical. SR-005,
 SR-045 and SR-049 retain their existing authorized local scope. **SR-055 stays
 open:** R22 is not a zero-new-findings round. Production acceptance is unchanged.
 
+**R24 confirmation:** [R24](final-review-r24.md) verifies all ten R23 guidance
+fixes and finds one further A/P2 outside R22's default-port case. WSU development
+published an overridden `REDBOX_PORTAL_HOST_PORT` while keeping the browser origin
+on port 1500, so CSRF rejected login. WSU `8dd6111` restores the dependent default,
+preserves an explicit `REDBOX_PORTAL_APP_URL` and adds four origin regressions.
+All **559 compile/unit tests** pass; real offline Compose and actual CSRF
+middleware verify default, selected-port, explicit-URL and empty-selector cases.
+This is configuration/regression qualification, not a new installed image,
+database matrix or recovery rehearsal. Portal runtime is unchanged since R20;
+WSU runtime bodies are unchanged since the R22-qualified diagnostic. Historical
+R20–R23 qualification retains its recorded limits. **SR-055 stays open:** R24
+found one new A/P2 even though it is fixed. SR-005, SR-045 and SR-049 retain their
+existing authorized local scope; production-only acceptance remains unchanged.
+
 ## SR-005 — Institution, source decision and topology
 
 The portal maintainer designated Western Sydney University (WSU), specifically

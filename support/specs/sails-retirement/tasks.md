@@ -1,8 +1,9 @@
 # Sails retirement: v6 task list
 
 Status: **54 of 55 tasks are complete for the recorded qualification scope.**
-SR-055 remains open: R23 found ten new introduced P2 documentation issues,
-now fixed; a subsequent round with zero new A/P1/P2 findings is still required.
+SR-055 remains open: R24 found one new introduced P2 in the WSU development
+browser origin, now fixed; a subsequent round with zero new A/P1/P2 findings is
+still required.
 WSU is the designated institution. Its authorized released-v5 source fallback,
 converted v6 hook, two-major local topology matrix, installed cutover and complete
 checkpoint recovery pass. Clean final artifacts and inventory closure pass.
@@ -43,7 +44,8 @@ Review evidence: [R1](evidence/final-review-r1.md), [R2](evidence/final-review-r
 [R9](evidence/final-review-r9.md), [R10](evidence/final-review-r10.md), [R11](evidence/final-review-r11.md), [R12](evidence/final-review-r12.md),
 [R13](evidence/final-review-r13.md), [R14](evidence/final-review-r14.md), [R15](evidence/final-review-r15.md), [R16](evidence/final-review-r16.md),
 [R17](evidence/final-review-r17.md), [R18](evidence/final-review-r18.md), [R19](evidence/final-review-r19.md),
-[R20](evidence/final-review-r20.md), [R21](evidence/final-review-r21.md), [R22](evidence/final-review-r22.md), [R23](evidence/final-review-r23.md).
+[R20](evidence/final-review-r20.md), [R21](evidence/final-review-r21.md), [R22](evidence/final-review-r22.md), [R23](evidence/final-review-r23.md),
+[R24](evidence/final-review-r24.md).
 The [inherited-defects backlog](evidence/inherited-defects-backlog.md) records 17
 inherited groups separately from the feature gate. The formerly outstanding institution criteria are now covered by the WSU
 local-equivalent qualification below; production-only access gaps remain explicit.
@@ -924,17 +926,26 @@ Read the [design](design.md) for behavior and the
 - [ ] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
 
   **Status:** open for the zero-new-findings confirmation gate.
-  [R23](evidence/final-review-r23.md) finds ten introduced P2 documentation
-  issues across configuration/forms, startup/diagnostics, handlers, uploads,
-  bundled agent guidance, dashboard upgrade, provider lifecycle, Figshare and
-  the new configuration helper. Portal `9a2d72bd3` fixes all ten with executable
-  doc regressions. The complete 133-page table and inherited B-17 comparison are
-  recorded in R23. Remediation does not make R23 a zero-finding round.
-  Root tooling 49, dev-tools 60 and documentation tests 4 pass; docs audit and
-  source closure pass. R22's clean-clone/CI/development entrypoint settlement
-  remains historical with its prerequisite/publication/architecture limits.
-  Core runtime is unchanged since R20; its full core/root, Mongo 8/9 and
-  cutover/recovery results remain historical.
+  [R24](evidence/final-review-r24.md) confirms all ten R23 fixes and their
+  sensitive regressions, then finds one introduced P2 beyond R22's default-port
+  qualification: WSU development publishes a selected host port but keeps the
+  canonical browser origin on port 1500, causing CSRF to reject login. WSU
+  `8dd6111` restores the host-port default with explicit URL precedence; four
+  origin regressions and all 559 compile/unit tests pass. Real offline Compose
+  and the production CSRF middleware reproduce the incoming 403 and verify the
+  correction. R24 is not a zero-finding round.
+  Fresh R24 checks pass root tooling 49, dev-tools 60, documentation tests 4,
+  focused core configuration/Companion/pages 17 and PDF lifecycle 5; docs audit,
+  core typecheck and source closure pass. The 20-item documentation spot-audit
+  records one P3 ledger-label correction separately. R23's full documentation
+  table and B-17 comparison remain historical evidence, as do R22's clean-clone/
+  CI/development runs and their prerequisite/publication/architecture limits.
+  No executable portal source under `packages/*/src`, host or dependency contract
+  changed since R20. WSU `src` is unchanged; R22's bounded startup diagnostic
+  remains covered by its recorded full WSU/installed/development runs. R24 changes
+  WSU Compose data, guidance and tests only. Full R20 core/root, Mongo 8/9 and
+  cutover/recovery results remain historical; R24 claims no new image or recovery
+  qualification.
   The [institution qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
   retains the authorized local scope and unchecked production acceptance work.
   A subsequent confirmation round finding zero new A/P1/P2 issues is required.
