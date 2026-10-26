@@ -49,6 +49,16 @@ gate, and the historical four-tick disposition below, are superseded. Inherited
 defects and delayed-exit limitations are recorded in R20; production acceptance
 remains unchecked.
 
+**R22 build/deployment confirmation:** [R22](final-review-r22.md) verifies the
+R21 fixes with real clean-clone Docker builds, then finds five further introduced
+P2 author/build/deployment defects. Portal `55f00268e` and WSU `6212c02`/
+`80b2b80` fix them with regression coverage. The source/entrypoint accounting,
+actual image inputs, fresh results, expected prerequisite refusals and cleanup
+are retained there. No core runtime changes since R20 require a new full runtime
+qualification; R20's broader Mongo/upgrade/recovery proof is historical. SR-005,
+SR-045 and SR-049 retain their existing authorized local scope. **SR-055 stays
+open:** R22 is not a zero-new-findings round. Production acceptance is unchanged.
+
 ## SR-005 — Institution, source decision and topology
 
 The portal maintainer designated Western Sydney University (WSU), specifically

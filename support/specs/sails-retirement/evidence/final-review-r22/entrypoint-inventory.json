@@ -1,0 +1,345 @@
+{
+  "wsuRevision": "80b2b80c036cbfd286d36ac9140beee2421d42d5",
+  "portalRevision": "55f00268e5b148451a3ee774c9a1fb4e1ec2629b",
+  "npmScripts": {
+    "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "npm run compile && TS_NODE_PROJECT=./test/tsconfig.json TS_NODE_TRANSPILE_ONLY=true node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-mocha.js --config ./test/unit/.mocharc.cjs ./test/unit",
+    "test:integration:mocha": "npm run test:integration",
+    "test:integration:mocha:clean": "npm run test:integration:clean",
+    "dev:run:prepare": "mkdir -p ./support/development/.tmp/attachments/staging ./support/development/.tmp/mongo ./support/development/.tmp/seaweedfs/data ./support/development/.tmp/publications && npm run compile",
+    "dev:run": "npm run dev:run:prepare && docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal",
+    "dev:run:build": "docker compose -f ./support/development/docker-compose.yml build",
+    "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down -v --remove-orphans --timeout 180",
+    "dev:run:core:prepare": "bash ./support/development/prepare-core-mount.sh",
+    "dev:run:core": "bash ./support/development/prepare-core-mount.sh",
+    "dev:run:core:clean": "bash ./support/development/prepare-core-mount.sh",
+    "build": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
+    "test:integration": "docker compose -f support/v6/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from rbportal",
+    "test:integration:clean": "docker compose -f support/v6/docker-compose.test.yml down -v --remove-orphans --timeout 180",
+    "dev:run:indexes:inspect": "npm run dev:run:prepare && docker compose -f ./support/development/docker-compose.yml run --rm rbportal node node_modules/redbox-hook-wsu/support/v6/app.cjs --maintenance=indexes:inspect",
+    "dev:run:indexes:ensure": "npm run dev:run:prepare && docker compose -f ./support/development/docker-compose.yml run --rm rbportal node node_modules/redbox-hook-wsu/support/v6/app.cjs --maintenance=indexes:ensure"
+  },
+  "buildScripts": [
+    "support/build/build_local.sh",
+    "support/build/docker-build-vars.sh",
+    "support/build/nexus_deploy.sh",
+    "support/build/nexus_publish_manifest.sh",
+    "support/build/test.sh"
+  ],
+  "dockerfileStages": [
+    "builder",
+    "redbox-hook-wsu"
+  ],
+  "composeFiles": [
+    "support/development/docker-compose.core-mount.yml",
+    "support/development/docker-compose.yml",
+    "support/integration-testing/docker-compose.mocha.yml",
+    "support/v6/docker-compose.test.yml"
+  ],
+  "circleJobs": {
+    "test": {
+      "machine": {
+        "image": "ubuntu-2404:current"
+      },
+      "steps": [
+        "checkout",
+        {
+          "run": {
+            "name": "Run  unit tests",
+            "command": "bash support/build/test.sh"
+          }
+        },
+        {
+          "run": {
+            "name": "Run integration tests",
+            "command": "docker compose -f support/v6/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from rbportal"
+          }
+        },
+        {
+          "run": {
+            "name": "Clean up integration test containers",
+            "command": "docker compose -f support/v6/docker-compose.test.yml down -v --remove-orphans --timeout 180 || true",
+            "when": "always"
+          }
+        }
+      ]
+    },
+    "deploy": {
+      "machine": {
+        "image": "ubuntu-2404:current"
+      },
+      "steps": [
+        "checkout",
+        {
+          "run": {
+            "name": "Build and deploy",
+            "command": "chmod +x support/build/nexus_deploy.sh support/build/docker-build-vars.sh && support/build/nexus_deploy.sh linux/amd64 -amd64"
+          }
+        }
+      ]
+    },
+    "deploy-arm64": {
+      "machine": {
+        "image": "ubuntu-2404:current"
+      },
+      "resource_class": "arm.medium",
+      "steps": [
+        "checkout",
+        {
+          "run": {
+            "name": "Build arm64 image",
+            "command": "chmod +x support/build/nexus_deploy.sh support/build/docker-build-vars.sh && support/build/nexus_deploy.sh linux/arm64 -arm64"
+          }
+        }
+      ]
+    },
+    "publish-manifest": {
+      "machine": {
+        "image": "ubuntu-2404:current"
+      },
+      "steps": [
+        "checkout",
+        {
+          "run": {
+            "name": "Publish multi-arch manifest",
+            "command": "chmod +x support/build/nexus_publish_manifest.sh support/build/docker-build-vars.sh && support/build/nexus_publish_manifest.sh"
+          }
+        }
+      ]
+    },
+    "local": {
+      "machine": {
+        "image": "ubuntu-2404:current"
+      },
+      "steps": [
+        "checkout",
+        {
+          "run": {
+            "name": "Build locally",
+            "command": "chmod +x support/build/build_local.sh support/build/docker-build-vars.sh && support/build/build_local.sh"
+          }
+        }
+      ]
+    }
+  },
+  "circleRunSteps": [
+    {
+      "job": "test",
+      "name": "Run  unit tests",
+      "command": "bash support/build/test.sh"
+    },
+    {
+      "job": "test",
+      "name": "Run integration tests",
+      "command": "docker compose -f support/v6/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from rbportal"
+    },
+    {
+      "job": "test",
+      "name": "Clean up integration test containers",
+      "command": "docker compose -f support/v6/docker-compose.test.yml down -v --remove-orphans --timeout 180 || true",
+      "when": "always"
+    },
+    {
+      "job": "deploy",
+      "name": "Build and deploy",
+      "command": "chmod +x support/build/nexus_deploy.sh support/build/docker-build-vars.sh && support/build/nexus_deploy.sh linux/amd64 -amd64"
+    },
+    {
+      "job": "deploy-arm64",
+      "name": "Build arm64 image",
+      "command": "chmod +x support/build/nexus_deploy.sh support/build/docker-build-vars.sh && support/build/nexus_deploy.sh linux/arm64 -arm64"
+    },
+    {
+      "job": "publish-manifest",
+      "name": "Publish multi-arch manifest",
+      "command": "chmod +x support/build/nexus_publish_manifest.sh support/build/docker-build-vars.sh && support/build/nexus_publish_manifest.sh"
+    },
+    {
+      "job": "local",
+      "name": "Build locally",
+      "command": "chmod +x support/build/build_local.sh support/build/docker-build-vars.sh && support/build/build_local.sh"
+    }
+  ],
+  "circleWorkflows": {
+    "branch-deploy": {
+      "jobs": [
+        {
+          "test": {
+            "filters": {
+              "branches": {
+                "only": "/.*/"
+              },
+              "tags": {
+                "ignore": "/.*/"
+              }
+            }
+          }
+        },
+        {
+          "deploy": {
+            "requires": [
+              "test"
+            ],
+            "filters": {
+              "branches": {
+                "only": "/.*/"
+              },
+              "tags": {
+                "ignore": "/.*/"
+              }
+            }
+          }
+        },
+        {
+          "deploy-arm64": {
+            "requires": [
+              "test"
+            ],
+            "filters": {
+              "branches": {
+                "only": "/.*/"
+              },
+              "tags": {
+                "ignore": "/.*/"
+              }
+            }
+          }
+        },
+        {
+          "publish-manifest": {
+            "requires": [
+              "deploy",
+              "deploy-arm64"
+            ],
+            "filters": {
+              "branches": {
+                "only": "/.*/"
+              },
+              "tags": {
+                "ignore": "/.*/"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "tag-deploy": {
+      "jobs": [
+        {
+          "test": {
+            "filters": {
+              "branches": {
+                "ignore": "/.*/"
+              },
+              "tags": {
+                "only": "/.*/"
+              }
+            }
+          }
+        },
+        {
+          "deploy-arm64": {
+            "requires": [
+              "test"
+            ],
+            "filters": {
+              "branches": {
+                "ignore": "/.*/"
+              },
+              "tags": {
+                "only": "/.*/"
+              }
+            }
+          }
+        },
+        {
+          "publish-manifest": {
+            "requires": [
+              "deploy",
+              "deploy-arm64"
+            ],
+            "filters": {
+              "branches": {
+                "ignore": "/.*/"
+              },
+              "tags": {
+                "only": "/.*/"
+              }
+            }
+          }
+        },
+        {
+          "deploy": {
+            "requires": [
+              "test"
+            ],
+            "filters": {
+              "branches": {
+                "ignore": "/.*/"
+              },
+              "tags": {
+                "only": "/.*/"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "wsuEntrypointSourceHashes": {
+    ".circleci/config.yml": "0ef8b575ee97ba3f223e819b2e970f736ad7b956f3b4bdd428d8ddbe3b227044",
+    ".dockerignore": "40602aabcc317188231bad7843163694317dc544802f1c6fd200ab240e4d7e11",
+    "Dockerfile": "678e048f30377d6575309857b2f7ddb2a7ccd4e226dfbd0de6fc007ef6dcf712",
+    "package-lock.json": "439555dd414b2fdcca1cbd07e4c4ea046b5af7b46e4c42092277c06f21e7f075",
+    "package.json": "5ebbed0f43b25b4f90a225709a903abe243c34d74da77896de8524ceddd42f18",
+    "support/build/build_local.sh": "c9ef5aa8840bcf53551e1c7decf3f6c85bf40f9c5a39b44b046e0088defbc430",
+    "support/build/docker-build-vars.sh": "3b610117da283483023b9413042ca4458d2c4ce7c7d27c4568d7bf6e2b0d1f80",
+    "support/build/nexus_deploy.sh": "ec8ecb3dad0811bbc532bed04a74ba55c34135d69a6f4a07697eb42fb2819a4c",
+    "support/build/nexus_publish_manifest.sh": "dbe5140d6ba296c83d3bdc39e14c5695378c8cfe0723242caef7699babdd3645",
+    "support/build/test.sh": "e1e35a7a4dde733ae93d2f4c4f1a078ccee7d84c992ac75309868c784addd943",
+    "support/development/docker-compose.core-mount.yml": "8ba95f3fee412495bd91ba55e21144340a811c6628579b99b56592f1b3ee717c",
+    "support/development/docker-compose.yml": "010f616732595b836ee3492c2c927790484e1a97ff85e7b9669183f0c41da2b9",
+    "support/development/prepare-core-mount.sh": "c762306eadd456af2a12e4944d44461b4ec8fc0a9dcb34aad673b87af4b0b383",
+    "support/integration-testing/docker-compose.mocha.yml": "8ba95f3fee412495bd91ba55e21144340a811c6628579b99b56592f1b3ee717c",
+    "support/integration-testing/run-mocha-hook.sh": "c762306eadd456af2a12e4944d44461b4ec8fc0a9dcb34aad673b87af4b0b383",
+    "support/integration-testing/run-mocha-redbox.sh": "c762306eadd456af2a12e4944d44461b4ec8fc0a9dcb34aad673b87af4b0b383",
+    "support/prepare-s3.sh": "c548cb639dc40378cc5a4a3d5476690c2a64f3b26e8b8b2cb69a8ed28426be0b",
+    "support/v6/README.md": "ddae457237c9cf8406d427e46a029bb648b72172403f3a5dbc0effbb2ce18b5b",
+    "support/v6/app.cjs": "838b1b22986d75a4aa459c074a09063866ac4ebd56800b895e9b1d187898a1e4",
+    "support/v6/application.cjs": "591ce1c0c7c185050e63e3e3f1533ccb3126fbe40cd1ea71acc1db2900076699",
+    "support/v6/docker-compose.test.yml": "ce920b800b37ff0f13ac3c736bc4845731950c40ec9ca819983642a0a0e1db38",
+    "support/v6/test.cjs": "9a00250b83d02892b4c62e3dc1383e6d588a176fe2c3f6c959de991905975e1b",
+    "support/v6/verify.cjs": "39032d5f8248b2a3f9d36b3ec4074380c6f4b870074ec7fc4b1a20ad6bb1bb0c",
+    "test/unit/build-entrypoints.test.ts": "acba8f9ec94ea2e93086d12e33c00688e5cd3ff47a16387cefa380a64a1e502e",
+    "test/unit/startup-diagnostics.test.ts": "02802527f8419c1332b6a80cc70fe2d93706588da63a794c4e68aad3e16f4fe8"
+  },
+  "portalDocSourceHashes": {
+    "support/specs/sails-retirement/hook-migration-v6.md": "0ae410a5d13d12f13603e707e61b1db706ca4468d663d949041ff59d1fa649a8",
+    "support/wiki/Redbox-Hook-Kit.md": "cfdf82a154f23782a8adfe3a910de0f02248d9183283ff10c3bee2125c59da1a",
+    "support/wiki/Services-Architecture.md": "cfcf3439dc695d722fecf21e6053a5be9b375e06b675beaae8bae82e9aebd014",
+    "support/wiki/Using-a-Sails-Hook-to-customise-ReDBox.md": "b64424ab89b6f1c88abe1434f7568a8dac8dcbb329cb5e59c621529abb69f765",
+    "support/wiki/Installation-Guide.md": "15eb47b301a357faa4ded10e1ff1d3f2172f3e505899357dd672b2aa50c3d369"
+  },
+  "documentedShellBlocks": {
+    "support/specs/sails-retirement/hook-migration-v6.md": [
+      "export REDBOX_PORTAL_ROOT=\"$PWD\"\nmkdir ../redbox-hook-demo-client\ncd ../redbox-hook-demo-client\nnode \"$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js\" init demo-client --template v6\nnpm install --save-dev --save-exact \"$REDBOX_PORTAL_ROOT/packages/redbox-core\"\nnpm run build\nnode \"$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js\" check --v6\nnpm pack --ignore-scripts\n"
+    ],
+    "support/wiki/Redbox-Hook-Kit.md": [
+      "export REDBOX_PORTAL_ROOT=\"$PWD\"\nmkdir ../redbox-hook-demo-client\ncd ../redbox-hook-demo-client\nnode \"$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js\" init demo-client --template v6\nnpm install --save-dev --save-exact --ignore-scripts --strict-peer-deps --legacy-peer-deps=false \"$REDBOX_PORTAL_ROOT/packages/redbox-core\"\nnpm run build\nnode \"$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js\" check --v6\nnpm pack --ignore-scripts\n"
+    ],
+    "support/wiki/Services-Architecture.md": [
+      "node \"$REDBOX_PORTAL_ROOT/packages/redbox-dev-tools/bin/cli.js\" init example --template v6\n"
+    ],
+    "support/wiki/Using-a-Sails-Hook-to-customise-ReDBox.md": [],
+    "support/wiki/Installation-Guide.md": [
+      "npm run compile:all\nexport REDBOX_SESSION_SECRET=\"$(openssl rand -hex 32)\"\nnpm run dev:run:build\n",
+      "REDBOX_APPLICATION_CONFIG=/etc/redbox/application.cjs node app.express.cjs --maintenance=indexes:inspect\nREDBOX_APPLICATION_CONFIG=/etc/redbox/application.cjs node app.express.cjs --maintenance=indexes:ensure\nREDBOX_APPLICATION_CONFIG=/etc/redbox/application.cjs node app.express.cjs --initialize-only\n"
+    ]
+  },
+  "wsuGuideShellBlocks": [
+    ": \"${REDBOX_BUILD_IMAGE:?Set the qualified portal test image reference}\"\n: \"${REDBOX_PORTAL_IMAGE:?Set the qualified PDF runtime image reference}\"\ndocker build --build-arg \"REDBOX_BUILD_IMAGE=$REDBOX_BUILD_IMAGE\" --build-arg \"REDBOX_PORTAL_IMAGE=$REDBOX_PORTAL_IMAGE\" -t redbox-wsu:local .\n",
+    "export REDBOX_APPLICATION_CONFIG=/etc/redbox/wsu.cjs\nnode node_modules/redbox-hook-wsu/support/v6/app.cjs --maintenance=indexes:inspect\n# Review the report and a complete checkpoint before ensure.\nnode node_modules/redbox-hook-wsu/support/v6/app.cjs --maintenance=indexes:ensure\nnode node_modules/redbox-hook-wsu/support/v6/app.cjs --initialize-only\nnode node_modules/redbox-hook-wsu/support/v6/app.cjs\n",
+    "npm run dev:run:indexes:inspect\n# A fresh database exits 2 because indexes are missing. Review the report.\n# For existing data, take a checkpoint and resolve conflicts before ensure.\nnpm run dev:run:indexes:ensure\nnpm run dev:run\n"
+  ]
+}

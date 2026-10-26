@@ -1,8 +1,8 @@
 # Sails retirement: v6 task list
 
 Status: **54 of 55 tasks are complete for the recorded qualification scope.**
-SR-055 remains open: R21 found two new introduced P2 issues, now fixed; a
-subsequent round with zero new A/P1/P2 findings is still required.
+SR-055 remains open: R22 found five new introduced P2 build/deployment/documentation
+issues, now fixed; a subsequent round with zero new A/P1/P2 findings is still required.
 WSU is the designated institution. Its authorized released-v5 source fallback,
 converted v6 hook, two-major local topology matrix, installed cutover and complete
 checkpoint recovery pass. Clean final artifacts and inventory closure pass.
@@ -22,7 +22,7 @@ qualify that exact source; subsequent fixes are absent from those images. See
 [P8 evidence](evidence/p8-retirement.md#final-qualification-and-task-disposition)
 and [exact artifacts/results](evidence/p8-artifacts.json).
 
-**Latest completed qualification:** [R16](evidence/final-review-r16.md) records
+**Historical broad qualification:** [R16](evidence/final-review-r16.md) records
 runtime/test revision `4bf60062fd2a9d1cf387d3ac993cf531c1b6032b`: core 5,631
 passed/7 unchanged pending; real-service core 224 passed; root 422 passed/10
 unchanged pending; full Playwright 124 and harness 19 passed; dedicated retirement
@@ -32,7 +32,7 @@ passed. Pending cases are separate. These current source/compiled-tree results d
 not claim replacement immutable images or a repeated topology matrix. They do
 not designate an institution or grant production release acceptance.
 
-**Latest confirmation review:** [R17](evidence/final-review-r17.md) found zero
+**Historical pre-institution confirmation review:** [R17](evidence/final-review-r17.md) found zero
 class-(A) P1/P2 issues. It changes review evidence and status text only; R16's
 full qualification still applies to the unchanged runtime/test tree. Fresh
 authentication recovery, late-fix regression and structural checks are recorded
@@ -42,8 +42,9 @@ Review evidence: [R1](evidence/final-review-r1.md), [R2](evidence/final-review-r
 [R5](evidence/final-review-r5.md), [R6](evidence/final-review-r6.md), [R7](evidence/final-review-r7.md), [R8](evidence/final-review-r8.md),
 [R9](evidence/final-review-r9.md), [R10](evidence/final-review-r10.md), [R11](evidence/final-review-r11.md), [R12](evidence/final-review-r12.md),
 [R13](evidence/final-review-r13.md), [R14](evidence/final-review-r14.md), [R15](evidence/final-review-r15.md), [R16](evidence/final-review-r16.md),
-[R17](evidence/final-review-r17.md).
-The [inherited-defects backlog](evidence/inherited-defects-backlog.md) records 14
+[R17](evidence/final-review-r17.md), [R18](evidence/final-review-r18.md), [R19](evidence/final-review-r19.md),
+[R20](evidence/final-review-r20.md), [R21](evidence/final-review-r21.md), [R22](evidence/final-review-r22.md).
+The [inherited-defects backlog](evidence/inherited-defects-backlog.md) records 16
 unchanged groups separately from the feature gate. The formerly outstanding institution criteria are now covered by the WSU
 local-equivalent qualification below; production-only access gaps remain explicit.
 
@@ -923,18 +924,16 @@ Read the [design](design.md) for behavior and the
 - [ ] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
 
   **Status:** open for the zero-new-findings confirmation gate.
-  [R21](evidence/final-review-r21.md) finds two introduced P2 build/CI issues,
-  fixed in WSU `8679736` and `1b9b1ac`; successful remediation does not make R21 a zero-finding
-  round. The complete WSU suite passes 546 tests; dev-tools 60, root tooling 38,
-  focused core loading/ownership 15 and the 1,271-case resolver comparison pass.
-  Source closure and all 1,261 baseline inventory entries reconcile. Twelve
-  byte-identical R20 tarballs pass 20 fresh production/offline consumer checks
-  with explicit strict/nonlegacy peers after portal `15f8a8d58`; R20's original
-  strict-peer claim is qualified. R21 changes build/test/documentation inputs,
-  not core or WSU runtime bodies. R20's full core/root, derivative-image,
-  Mongo 8/9, installed cutover/restoration and migration evidence remain historical,
-  with their provenance and limitations retained. The
-  [institution qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
+  [R22](evidence/final-review-r22.md) finds five introduced P2 issues: unsupported
+  documented image inputs, forced registry pulls for local builds, incomplete
+  retirement of old entrypoints, obsolete hook-author guidance and missing
+  development index-preparation guidance. WSU `6212c02`/`80b2b80` and portal
+  `55f00268e` fix them with sensitive regressions. Remediation does not make R22
+  a zero-finding round. Clean-clone image/unit/integration and the complete
+  entrypoint settlement are recorded in R22, including expected prerequisite
+  refusals and publication/architecture limits. Core runtime is unchanged since
+  R20; its full core/root, Mongo 8/9 and cutover/recovery results remain historical.
+  The [institution qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
   retains the authorized local scope and unchecked production acceptance work.
   A subsequent confirmation round finding zero new A/P1/P2 issues is required.
 
