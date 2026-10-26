@@ -228,6 +228,37 @@ describe('EmailService', function() {
       expect(options).to.deep.equal(original);
     });
 
+    it('waits for success hooks in order before resolving the notification', async function() {
+      const record = { metadata: { title: 'Notification' } };
+      let releaseFirst!: () => void;
+      let markStarted!: () => void;
+      const firstStarted = new Promise<void>(resolve => { markStarted = resolve; });
+      const firstFinished = new Promise<void>(resolve => { releaseFirst = resolve; });
+      const order: string[] = [];
+      mockSails.services.notificationtest = {
+        first: async () => { order.push('first-start'); markStarted(); await firstFinished; order.push('first-end'); return record; },
+        second: () => { order.push('second'); return of(record); },
+      };
+      sinon.stub(EmailService, 'metTriggerCondition').returns('true');
+      sinon.stub(EmailService, 'buildFromTemplateAsync').resolves({ status: 200, body: 'Body' });
+      sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+      let completed = false;
+      const sending = EmailService.sendRecordNotification('oid-1', record, {
+        template: 'test-template', to: 'to@example.com', triggerCondition: 'true',
+        onNotifySuccess: [
+          { function: 'sails.services.notificationtest.first', options: {} },
+          { function: 'sails.services.notificationtest.second', options: {} },
+        ],
+      }, {}, {}).then(() => { completed = true; });
+      await firstStarted;
+      expect(completed).to.equal(false);
+      expect(order).to.deep.equal(['first-start']);
+      releaseFirst();
+      await sending;
+      expect(order).to.deep.equal(['first-start', 'first-end', 'second']);
+      expect(completed).to.equal(true);
+    });
+
     it('should send notification if condition met', async function() {
       const record = { id: '1', metadata: { title: 'Test' } };
       const options = {
