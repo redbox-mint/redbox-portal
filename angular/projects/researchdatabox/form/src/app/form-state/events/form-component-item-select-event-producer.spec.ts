@@ -95,6 +95,19 @@ describe('FormComponentItemSelectEventProducer', () => {
     expect(event.selectedItem).toBeNull();
   }));
 
+  it('publishes an explicit clear after the initial null without requiring a lookup selection', fakeAsync(() => {
+    const selectedItem = signal<unknown | null>(null, { equal: () => false });
+    producer.bind(createOptions(selectedItem));
+    tick();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+
+    selectedItem.set(null);
+    tick();
+    expect(eventBus.publish).toHaveBeenCalledTimes(1);
+    const event = eventBus.publish.calls.mostRecent().args[0] as FormComponentEventResult<FieldItemSelectedEvent>;
+    expect(event.selectedItem).toBeNull();
+  }));
+
   it('should not bind when selectedItem signal is missing', () => {
     producer.bind({
       component: {},
@@ -142,6 +155,18 @@ describe('FormComponentItemSelectEventProducer', () => {
     selectedItem.set({ id: 'second' });
     tick();
 
+    expect(eventBus.publish).not.toHaveBeenCalled();
+  }));
+
+  it('defers sibling autofill outside the signal render and cancels a queued selection on destroy', fakeAsync(() => {
+    const selectedItem = signal<unknown | null>(null);
+    producer.bind(createOptions(selectedItem));
+    tick();
+    selectedItem.set({ id: 'queued' });
+    TestBed.flushEffects();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+    producer.destroy();
+    tick();
     expect(eventBus.publish).not.toHaveBeenCalled();
   }));
 });

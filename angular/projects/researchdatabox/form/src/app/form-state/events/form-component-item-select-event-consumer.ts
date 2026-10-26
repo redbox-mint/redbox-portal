@@ -43,7 +43,9 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
   override bind(options: FormComponentEventBindingOptions): void {
     this.destroy();
     this.options = options;
-    this.formComp = options.formComponent;
+    // Wrappers supply the form through the inherited setter before binding.
+    // Retain it when the binding only supplies the field definition.
+    this.formComp = options.formComponent ?? this.formComp;
 
     const config = options.definition?.compConfigJson?.component?.config;
     this.onItemSelect = config?.onItemSelect;

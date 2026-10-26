@@ -143,7 +143,9 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
   private readonly typeaheadDataService = inject(TypeaheadDataService);
 
   public readonly displayControl = new FormControl<string>('');
-  public readonly selectedItem = signal<TypeaheadOption | null>(null);
+  // An explicit clear must also reach sibling autofill consumers for hydrated
+  // values, where no lookup selection has happened in this component instance.
+  public readonly selectedItem = signal<TypeaheadOption | null>(null, { equal: () => false });
   public readonly suggestions$: Observable<TypeaheadOption[]> = defer(() =>
     from(this.lookup(String(this.displayControl.value ?? '')))
   );
@@ -203,10 +205,14 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       if (this.programmaticDisplayUpdate) {
         return;
       }
-      if (this.selectedItem() !== null) {
+      const text = String(value ?? '');
+      // Selection-only typing is provisional until a match is chosen or the
+      // input is cleared. Preserve the confirmed item's sibling values when an
+      // unmatched edit is discarded on blur.
+      if (!text.trim() || (this.allowFreeText && this.selectedItem() !== null)) {
         this.selectedItem.set(null);
       }
-      this.onInputTextChanged(String(value ?? ''));
+      this.onInputTextChanged(text);
     });
   }
 
@@ -312,13 +318,11 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     }
     this.lookupRequestId += 1;
     this.isOpen = text.length >= this.minChars;
-    if (!text) {
+    if (!text.trim()) {
       this.searchState = 'idle';
       this.statusMessage = '';
       this.isOpen = false;
-      if (this.allowFreeText) {
-        this.setModelValue(null);
-      }
+      this.setModelValue(null);
       return;
     }
     if (text.length < this.minChars) {

@@ -75,6 +75,29 @@ describe('FormComponentItemSelectEventConsumer', () => {
     });
   }
 
+  it('retains the wrapper form reference when bind omits it and refreshes status after clearing', async () => {
+    const form = jasmine.createSpyObj('FormComponent', ['broadcastFormStatus']);
+    consumer.formComponent = form;
+    const { control, options } = createBindOptions();
+    consumer.bind(options as any);
+    emitEvent('/record/contributors/0/funderSearch', null);
+    await Promise.resolve();
+    expect(control.value).toBe('');
+    expect(consumer.formComponent).toBe(form);
+    expect(form.broadcastFormStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses an explicitly supplied replacement form reference', async () => {
+    consumer.formComponent = jasmine.createSpyObj('OldForm', ['broadcastFormStatus']);
+    const form = jasmine.createSpyObj('NewForm', ['broadcastFormStatus']);
+    const { options } = createBindOptions();
+    consumer.bind({ ...options, formComponent: form } as any);
+    emitEvent('/record/contributors/0/funderSearch', { label: 'Selected' });
+    await Promise.resolve();
+    expect(consumer.formComponent).toBe(form);
+    expect(form.broadcastFormStatus).toHaveBeenCalledTimes(1);
+  });
+
   it('should subscribe to FIELD_ITEM_SELECTED when onItemSelect is configured', () => {
     const { options } = createBindOptions();
 
