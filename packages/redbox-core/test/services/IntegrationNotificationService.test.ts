@@ -1,7 +1,10 @@
+
+const collaborators: any = {};
+let fixture: any;
 import * as sinon from 'sinon';
-import { of, throwError } from 'rxjs';
+import { of, throwError, firstValueFrom } from 'rxjs';
 import { Services, EmailChannel, IntegrationNotificationPayload } from '../../src/services/IntegrationNotificationService';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import { restoreRepositoryFixtures, createDomainFixture, installRepositoryFixtures } from './testHelper';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect!: Chai.ExpectStatic;
@@ -43,7 +46,7 @@ describe('IntegrationNotificationService', function () {
       sendMessage: sinon.stub().returns(of({ success: true, msg: 'Sent' })),
     };
 
-    const mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         emailnotification: {
           settings: { enabled: true, templateDir: 'views/emailTemplates/' },
@@ -53,20 +56,20 @@ describe('IntegrationNotificationService', function () {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
-    (global as any).AppConfigService = mockAppConfigService;
-    (global as any).BrandingService = mockBrandingService;
-    (global as any).CacheService = mockCacheService;
-    (global as any).EmailService = mockEmailService;
-    service = new Services.IntegrationNotificationService();
+    installRepositoryFixtures();
+    collaborators.AppConfigService = mockAppConfigService;
+    collaborators.BrandingService = mockBrandingService;
+    collaborators.CacheService = mockCacheService;
+    collaborators.EmailService = mockEmailService;
+    service = new Services.IntegrationNotificationService({ get log() { return fixture.log; }, get email() { return collaborators.EmailService; }, configuration: async brandId => collaborators.AppConfigService.getAppConfigByBrandAndKey(brandId ?? collaborators.BrandingService.getDefault().id, 'integrationNotifications'), state: { get: key => firstValueFrom(collaborators.CacheService.get(key)), set: (key, value, expiry) => collaborators.CacheService.set(key, value, expiry) } });
   }
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).AppConfigService;
-    delete (global as any).BrandingService;
-    delete (global as any).CacheService;
-    delete (global as any).EmailService;
+    restoreRepositoryFixtures();
+    delete collaborators.AppConfigService;
+    delete collaborators.BrandingService;
+    delete collaborators.CacheService;
+    delete collaborators.EmailService;
     sinon.restore();
   });
 
@@ -302,7 +305,7 @@ describe('IntegrationNotificationService', function () {
         timestamp: new Date().toISOString(),
       };
 
-      const emailChannel = new EmailChannel();
+      const emailChannel = new EmailChannel({ email: mockEmailService as any, log: fixture.log });
       await emailChannel.send(payload, {
         recipients: ['admin@example.com', 'ops@example.com'],
         channelConfig: {},
@@ -331,14 +334,14 @@ describe('IntegrationNotificationService', function () {
         timestamp: new Date().toISOString(),
       };
 
-      const emailChannel = new EmailChannel();
+      const emailChannel = new EmailChannel({ email: mockEmailService as any, log: fixture.log });
       await emailChannel.send(payload, {
         recipients: [],
         channelConfig: {},
       });
 
       expect(mockEmailService.sendMessage.called).to.be.false;
-      expect((global as any).sails.log.warn.called).to.be.true;
+      expect(fixture.log.warn.called).to.be.true;
     });
 
     it('uses custom template name when specified in channel config', async function () {
@@ -357,7 +360,7 @@ describe('IntegrationNotificationService', function () {
         timestamp: new Date().toISOString(),
       };
 
-      const emailChannel = new EmailChannel();
+      const emailChannel = new EmailChannel({ email: mockEmailService as any, log: fixture.log });
       await emailChannel.send(payload, {
         recipients: ['admin@example.com'],
         channelConfig: { template: 'customTemplate' },

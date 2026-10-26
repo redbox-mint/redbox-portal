@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove, fixtureCreate, fixtureRows } from '../../helpers/persistenceFixtures';
 describe('The IntegrationAuditService', function () {
   const createdOids: string[] = [];
@@ -19,7 +20,7 @@ describe('The IntegrationAuditService', function () {
   }
 
   before(function () {
-    integrationAuditService = sails.services.integrationauditservice;
+    integrationAuditService = fixture.services.IntegrationAuditService;
     if (typeof integrationAuditService.getStorageService === 'function') {
       integrationAuditService.getStorageService(integrationAuditService);
     }

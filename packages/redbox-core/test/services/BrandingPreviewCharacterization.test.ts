@@ -1,36 +1,33 @@
+import { brandingInput } from '../helpers/brandingInputs';
 import assert from 'node:assert/strict';
 import sinon from 'sinon';
 import { stubCacheEntryRepository } from '../helpers/cacheRepository';
 import { Services } from '../../src/services/BrandingService';
-import { createMockSails, setupServiceTestGlobals } from './testHelper';
+import { createDomainFixture } from './testHelper';
 
 describe('Branding preview persistence characterization (P0)', function () {
   let service: Services.Branding;
   let find: sinon.SinonStub;
   let destroy: sinon.SinonStub;
-  let savedGlobals: PropertyDescriptorMap;
+  let fixture: any;
   const now = 1_792_339_200;
   const data = { css: '/* synthetic */', branding: 'brand-a', portal: 'portal-a', hash: 'synthetic', revision: 2 };
 
   beforeEach(function () {
-    savedGlobals = Object.getOwnPropertyDescriptors(globalThis);
     sinon.useFakeTimers({ now: now * 1000, toFake: ['Date'] });
-    setupServiceTestGlobals(createMockSails({ config: { branding: {} } }));
+    fixture = createDomainFixture({ config: { branding: {} } });
     find = sinon.stub().resolves({ id: 'preview-id', name: 'branding-preview:token', data, ts_added: now });
     destroy = sinon.stub().resolves([]);
     const repo = stubCacheEntryRepository();
     repo.findByName = find;
     repo.deleteById = destroy;
-    service = new Services.Branding();
+    service = new Services.Branding(brandingInput(fixture));
   });
 
   afterEach(async function () {
     await Promise.resolve();
     sinon.restore();
-    for (const key of ['sails', '_']) {
-      if (savedGlobals[key]) Object.defineProperty(globalThis, key, savedGlobals[key]);
-      else Reflect.deleteProperty(globalThis, key);
-    }
+
   });
 
   it('reads by token and deletes by string ID before returning the scoped payload', async function () {
@@ -66,7 +63,7 @@ describe('Branding preview persistence characterization (P0)', function () {
   });
 
   it('uses the configured preview TTL independently of the general cache TTL', async function () {
-    Object.assign(sails.config.branding, { previewTtlSeconds: 5 });
+    Object.assign(fixture.config.branding, { previewTtlSeconds: 5 });
     find.resolves({ id: 'preview-id', name: 'branding-preview:token', data, ts_added: now - 6 });
     await assert.rejects(service.fetchPreview('expired'), /preview-expired/);
     assert.equal(destroy.callCount, 1);

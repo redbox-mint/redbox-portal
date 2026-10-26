@@ -2,7 +2,7 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import fs from 'fs';
 import path from 'path';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
+import { createDomainFixture } from './testHelper';
 import type { BrandingTypefaceFace, BrandingTypefaceState } from '../../src/model/BrandingTypeface';
 
 const FACE_SHA = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
@@ -31,11 +31,9 @@ function customState(
 
 describe('BrandingThemeCssService', function () {
   beforeEach(function () {
-    setupServiceTestGlobals();
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
   });
 
   it('generates default runtime css and hash', function () {

@@ -1,3 +1,5 @@
+import { brandingInput } from '../helpers/brandingInputs';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { installIdentityRepositoryMock } from '../helpers/identityMock';
 let expect: Chai.ExpectStatic;
@@ -7,7 +9,7 @@ import { stubCacheEntryRepository } from '../helpers/cacheRepository';
 import type { JsonValue } from '../../src/persistence/cache/CacheEntryRepository';
 import fs from 'node:fs';
 import path from 'node:path';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 function buildWoff2(variant = 64): Buffer {
   const name = variant === 64 ? 'regular' : variant === 65 ? 'bold' : 'italic';
@@ -131,7 +133,7 @@ describe('BrandingService lifecycle', function () {
   beforeEach(function () {
     const identity = installIdentityRepositoryMock();
     sinon.stub(identity, 'list').resolves([]);
-    const mockSails = createMockSails({
+    const fixture = createDomainFixture({
       config: {
         appPath: '/app',
         http: { rootContext: '' },
@@ -140,7 +142,7 @@ describe('BrandingService lifecycle', function () {
         branding: {},
       },
     });
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     disk = new FakeDisk();
     brands = [brandFixture()];
     histories = [];
@@ -152,11 +154,11 @@ describe('BrandingService lifecycle', function () {
     failNextHistoryCreate = null;
     let historySeq = 100;
 
-    (global as unknown as Record<string, unknown>).StorageManagerService = { primaryDisk: () => disk };
+    collaborators.StorageManagerService = { primaryDisk: () => disk };
     const themeCss = require('../../src/services/BrandingThemeCssService');
-    (global as unknown as Record<string, unknown>).BrandingThemeCssService = new themeCss.Services.BrandingThemeCss();
+    collaborators.BrandingThemeCssService = new themeCss.Services.BrandingThemeCss();
     const typeface = require('../../src/services/BrandingTypefaceService');
-    (global as unknown as Record<string, unknown>).BrandingTypefaceService = new typeface.Services.BrandingTypeface();
+    collaborators.BrandingTypefaceService = new typeface.Services.BrandingTypeface(brandingInput(fixture, disk));
     repositoryFixtures.BrandingConfig = {
       findOne: (criteria: Record<string, unknown>) =>
         brandQuery(structuredClone(brands.find(row => matches(row, criteria)) ?? null)),
@@ -232,17 +234,17 @@ describe('BrandingService lifecycle', function () {
       previews.delete(id);
     });
     const { Services } = require('../../src/services/BrandingService');
-    service = new Services.Branding();
+    service = new Services.Branding(brandingInput(fixture, disk));
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.BrandingConfig;
     delete repositoryFixtures.BrandingConfigHistory;
     sinon.restore();
-    delete (global as unknown as Record<string, unknown>).BrandingThemeCssService;
-    delete (global as unknown as Record<string, unknown>).BrandingTypefaceService;
-    delete (global as unknown as Record<string, unknown>).StorageManagerService;
+    delete collaborators.BrandingThemeCssService;
+    delete collaborators.BrandingTypefaceService;
+    delete collaborators.StorageManagerService;
   });
 
   async function conflictOf(

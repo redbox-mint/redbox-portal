@@ -1,30 +1,31 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove, fixtureCreate, fixtureRow, fixturePatch, fixtureRows, fixtureCount } from '../../helpers/persistenceFixtures';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { normalizeSiemConfiguration, type SiemConfigDto } from '@researchdatabox/sails-ng-common';
 describe('The SiemForwardingService', function () {
   let siemForwardingService: any;
-  let originalGetAppConfigurationForBrand: typeof AppConfigService.getAppConfigurationForBrand;
-  let originalGetBrandById: typeof BrandingService.getBrandById;
-  let originalGetBrand: typeof BrandingService.getBrand;
+  let originalGetAppConfigurationForBrand: typeof fixture.services.AppConfigService.getAppConfigurationForBrand;
+  let originalGetBrandById: typeof fixture.services.BrandingService.getBrandById;
+  let originalGetBrand: typeof fixture.services.BrandingService.getBrand;
   let brandId: string;
   let config: SiemConfigDto;
   const createdEventIds: string[] = [];
   const createdAttemptEventIds: string[] = [];
 
   before(function () {
-    siemForwardingService = sails.services.siemforwardingservice;
+    siemForwardingService = fixture.services.SiemForwardingService;
   });
 
   beforeEach(function () {
-    originalGetAppConfigurationForBrand = AppConfigService.getAppConfigurationForBrand;
-    originalGetBrandById = BrandingService.getBrandById;
-    originalGetBrand = BrandingService.getBrand;
-    const defaultBrand = BrandingService.getDefault();
+    originalGetAppConfigurationForBrand = fixture.services.AppConfigService.getAppConfigurationForBrand;
+    originalGetBrandById = fixture.services.BrandingService.getBrandById;
+    originalGetBrand = fixture.services.BrandingService.getBrand;
+    const defaultBrand = fixture.services.BrandingService.getDefault();
     brandId = randomUUID();
     const brand = { ...defaultBrand, id: brandId, name: `siem-forwarding-${brandId}` };
-    BrandingService.getBrandById = id => (id === brandId ? brand : originalGetBrandById.call(BrandingService, id));
-    BrandingService.getBrand = name => (name === brand.name ? brand : originalGetBrand.call(BrandingService, name));
+    fixture.services.BrandingService.getBrandById = id => (id === brandId ? brand : originalGetBrandById.call(fixture.services.BrandingService, id));
+    fixture.services.BrandingService.getBrand = name => (name === brand.name ? brand : originalGetBrand.call(fixture.services.BrandingService, name));
     config = normalizeSiemConfiguration({
       enabled: false,
       destinations: [],
@@ -44,16 +45,16 @@ describe('The SiemForwardingService', function () {
         includeUserAgent: false,
       },
     });
-    AppConfigService.getAppConfigurationForBrand = name =>
+    fixture.services.AppConfigService.getAppConfigurationForBrand = name =>
       name === brand.name
-        ? { ...originalGetAppConfigurationForBrand.call(AppConfigService, defaultBrand.name), siem: config }
-        : originalGetAppConfigurationForBrand.call(AppConfigService, name);
+        ? { ...originalGetAppConfigurationForBrand.call(fixture.services.AppConfigService, defaultBrand.name), siem: config }
+        : originalGetAppConfigurationForBrand.call(fixture.services.AppConfigService, name);
   });
 
   afterEach(async function () {
-    AppConfigService.getAppConfigurationForBrand = originalGetAppConfigurationForBrand;
-    BrandingService.getBrandById = originalGetBrandById;
-    BrandingService.getBrand = originalGetBrand;
+    fixture.services.AppConfigService.getAppConfigurationForBrand = originalGetAppConfigurationForBrand;
+    fixture.services.BrandingService.getBrandById = originalGetBrandById;
+    fixture.services.BrandingService.getBrand = originalGetBrand;
     if (createdAttemptEventIds.length > 0) {
       await fixtureRemove("SiemDeliveryAttempt", { eventId: createdAttemptEventIds.splice(0, createdAttemptEventIds.length) });
     }
@@ -89,15 +90,15 @@ describe('The SiemForwardingService', function () {
   });
 
   it('leaves unrelated-brand pending and expired dead-letter rows unchanged', async function () {
-    const defaultBrand = BrandingService.getDefault();
-    const defaultConfig = originalGetAppConfigurationForBrand.call(AppConfigService, defaultBrand.name);
-    expect(AppConfigService.getAppConfigurationForBrand(defaultBrand.name)).to.deep.equal(defaultConfig);
-    expect(BrandingService.getBrandById(defaultBrand.id)).to.deep.equal(defaultBrand);
-    expect(BrandingService.getBrand(defaultBrand.name)).to.deep.equal(defaultBrand);
+    const defaultBrand = fixture.services.BrandingService.getDefault();
+    const defaultConfig = originalGetAppConfigurationForBrand.call(fixture.services.AppConfigService, defaultBrand.name);
+    expect(fixture.services.AppConfigService.getAppConfigurationForBrand(defaultBrand.name)).to.deep.equal(defaultConfig);
+    expect(fixture.services.BrandingService.getBrandById(defaultBrand.id)).to.deep.equal(defaultBrand);
+    expect(fixture.services.BrandingService.getBrand(defaultBrand.name)).to.deep.equal(defaultBrand);
 
     // Neither sentinel belongs to a brand enumerated by the live retry worker.
     const unrelatedBrandId = randomUUID();
-    expect(BrandingService.getAvailable().map(name => BrandingService.getBrand(name)?.id)).not.to.include(
+    expect(fixture.services.BrandingService.getAvailable().map(name => fixture.services.BrandingService.getBrand(name)?.id)).not.to.include(
       unrelatedBrandId
     );
     const pendingId = `siem-unrelated-pending-${randomUUID()}`;
@@ -304,7 +305,7 @@ describe('The SiemForwardingService', function () {
       createdAttemptEventIds.push(eventId);
       await securityEvent(eventId);
       const job = { attrs: { data: { brandId } } };
-      const collection = (await require('@researchdatabox/redbox-core').prismaDatabase(sails, 'mongodb')).orm.securityevent;
+      const collection = (await require('@researchdatabox/redbox-core').prismaDatabase(fixture.owner, 'mongodb')).orm.securityevent;
       for (let round = 0; round < 3; round++) {
         if (round)
           await fixturePatch('SecurityEvent', { eventId }, { nextEligibleAt: null, destinationStates: { ...(await fixtureRow('SecurityEvent', { eventId })).destinationStates, long: { ...(await fixtureRow('SecurityEvent', { eventId })).destinationStates.long, nextEligibleAt: new Date(0).toISOString() } } });

@@ -51,7 +51,7 @@ export interface HomePanelItem {
   requiredRoles?: string[];
 
   /**
-   * Optional feature flag key (evaluated via sails.config.appmode)
+   * Optional feature flag key (evaluated via configuration.appmode)
    * @title Feature Flag
    */
   featureFlag?: string;
@@ -176,9 +176,9 @@ export const DEFAULT_HOME_PANEL_CONFIG: HomePanelConfigData = {
         {
           id: 'plan-advice',
           labelKey: 'get-advice',
-          href: '/getAdvice'
-        }
-      ]
+          href: '/getAdvice',
+        },
+      ],
     },
     {
       id: 'organise',
@@ -190,9 +190,9 @@ export const DEFAULT_HOME_PANEL_CONFIG: HomePanelConfigData = {
         {
           id: 'org-services',
           labelKey: 'workspace-services-list',
-          href: '/availableServicesList'
-        }
-      ]
+          href: '/availableServicesList',
+        },
+      ],
     },
     {
       id: 'manage',
@@ -201,8 +201,8 @@ export const DEFAULT_HOME_PANEL_CONFIG: HomePanelConfigData = {
       columnClass: 'col-md-3 homepanel',
       items: [
         { id: 'manage-create', labelKey: 'create-datarecord', href: '/record/dataRecord/edit' },
-        { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' }
-      ]
+        { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' },
+      ],
     },
     {
       id: 'publish',
@@ -211,10 +211,10 @@ export const DEFAULT_HOME_PANEL_CONFIG: HomePanelConfigData = {
       columnClass: 'col-md-3 homepanel',
       items: [
         { id: 'publish-create', labelKey: 'create-data-publication', href: '/record/dataPublication/edit' },
-        { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' }
-      ]
-    }
-  ]
+        { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' },
+      ],
+    },
+  ],
 };
 
 /**
@@ -231,8 +231,8 @@ export const HOME_PANEL_CONFIG_SCHEMA = {
       description: 'Panels to display on the researcher home page',
       widget: {
         formlyConfig: {
-          type: 'home-panels-editor'
-        }
+          type: 'home-panels-editor',
+        },
       },
       items: {
         type: 'object',
@@ -253,24 +253,28 @@ export const HOME_PANEL_CONFIG_SCHEMA = {
                 external: { type: 'boolean', title: 'External Link', default: false },
                 requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
                 hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
-                requiredRoles: { 
-                  type: 'array', 
+                requiredRoles: {
+                  type: 'array',
                   title: 'Required Roles',
                   items: { type: 'string' },
-                  default: []
+                  default: [],
                 },
                 featureFlag: { type: 'string', title: 'Feature Flag' },
-                visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false }
+                visibleWhenTranslationExists: {
+                  type: 'boolean',
+                  title: 'Visible When Translation Exists',
+                  default: false,
+                },
               },
-              required: ['labelKey', 'href']
+              required: ['labelKey', 'href'],
             },
-            default: []
-          }
+            default: [],
+          },
         },
-        required: ['titleKey', 'iconClass', 'items']
+        required: ['titleKey', 'iconClass', 'items'],
       },
-      default: []
-    }
+      default: [],
+    },
   },
-  required: ['panels']
+  required: ['panels'],
 };

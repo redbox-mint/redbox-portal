@@ -4,26 +4,25 @@ import { Readable } from 'node:stream';
 import { GridFSBucket, MongoClient, ObjectId } from 'mongodb';
 import * as runtime from '../../src/persistence/runtime';
 import { Services } from '../../src/services/BrandingLogoService';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import { restoreRepositoryFixtures, createDomainFixture, installRepositoryFixtures } from './testHelper';
 
 describe('legacy branding GridFS download ownership', () => {
   afterEach(() => {
-    cleanupServiceTestGlobals();
-    Reflect.deleteProperty(globalThis, 'StorageManagerService');
+    restoreRepositoryFixtures();
     sinon.restore();
   });
 
   it('keeps an errored read tracked until its chunk cursor closes', async () => {
-    const app = createMockSails();
+    const app = createDomainFixture();
     app.config.datastores = { mongodb: { url: 'mongodb://fixture/logos' } };
-    setupServiceTestGlobals(app);
-    Reflect.set(globalThis, 'StorageManagerService', {
+    installRepositoryFixtures();
+    const disks = {
       primaryDisk: () => ({
         getBytes: async () => {
           throw new Error('ENOENT');
         },
       }),
-    });
+    };
     await runtime.initializePersistence(app);
     sinon.stub(runtime, 'mongoDatabase').resolves(new MongoClient('mongodb://fixture/logos').db());
     let release!: () => void, entered!: () => void;
@@ -53,7 +52,7 @@ describe('legacy branding GridFS download ownership', () => {
     sinon
       .stub(GridFSBucket.prototype, 'openDownloadStream')
       .returns(stream as unknown as ReturnType<GridFSBucket['openDownloadStream']>);
-    const service = new Services.BrandingLogo();
+    const service = new Services.BrandingLogo({ repository: require('../helpers/serviceRepositories').brandingFixtures(), disk: () => disks.primaryDisk(), legacyDatabase: () => runtime.mongoDatabase(app), sanitize: value => value, config: {}, log: app.log });
     let completed = false,
       drained = false;
     const read = service.getBinaryAsync(new ObjectId().toHexString()).then(value => {
@@ -61,7 +60,7 @@ describe('legacy branding GridFS download ownership', () => {
       return value;
     });
     await closing;
-    const cleanup = runtime.cleanupPersistence(app).then(() => {
+    const cleanup = service.close().then(() => runtime.cleanupPersistence(app)).then(() => {
       drained = true;
     });
     try {

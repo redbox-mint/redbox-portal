@@ -51,7 +51,7 @@ export interface MenuItem {
   requiredRoles?: string[];
 
   /**
-   * Optional feature flag key (evaluated via sails.config.appmode)
+   * Optional feature flag key (evaluated via configuration.appmode)
    * @title Feature Flag
    */
   featureFlag?: string;
@@ -138,7 +138,7 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
       id: 'home-auth',
       labelKey: 'menu-home',
       href: '/researcher/home',
-      requiresAuth: true
+      requiresAuth: true,
     },
     {
       id: 'plan',
@@ -152,9 +152,9 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
           id: 'plan-advice',
           labelKey: 'get-advice',
           href: '/getAdvice',
-          visibleWhenTranslationExists: true
-        }
-      ]
+          visibleWhenTranslationExists: true,
+        },
+      ],
     },
     {
       id: 'org',
@@ -167,9 +167,9 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
           id: 'org-services',
           labelKey: 'workspace-services-list',
           href: '/availableServicesList',
-          visibleWhenTranslationExists: true
-        }
-      ]
+          visibleWhenTranslationExists: true,
+        },
+      ],
     },
     {
       id: 'manage',
@@ -178,8 +178,8 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
       requiresAuth: true,
       children: [
         { id: 'manage-create', labelKey: 'create-datarecord', href: '/record/dataRecord/edit' },
-        { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' }
-      ]
+        { id: 'manage-dashboard', labelKey: 'edit-dashboard-datarecord', href: '/dashboard/dataRecord' },
+      ],
     },
     {
       id: 'publish',
@@ -188,25 +188,25 @@ export const DEFAULT_MENU_CONFIG: MenuConfigData = {
       requiresAuth: true,
       children: [
         { id: 'publish-create', labelKey: 'create-data-publication', href: '/record/dataPublication/edit' },
-        { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' }
-      ]
+        { id: 'publish-dashboard', labelKey: 'edit-dashboard-publication', href: '/dashboard/dataPublication' },
+      ],
     },
     {
       id: 'admin',
       labelKey: 'menu-admin',
       href: '/admin',
       requiresAuth: true,
-      requiredRoles: ['Admin', 'Librarians']
+      requiredRoles: ['Admin', 'Librarians'],
     },
     {
       id: 'home-anon',
       labelKey: 'menu-home',
       href: '/home',
       requiresAuth: false,
-      hideWhenAuth: true
-    }
+      hideWhenAuth: true,
+    },
   ],
-  showSearch: true
+  showSearch: true,
 };
 
 /**
@@ -221,7 +221,7 @@ export const MENU_CONFIG_SCHEMA = {
       type: 'boolean',
       title: 'Show Search Bar',
       default: true,
-      description: 'Whether to show the search bar in the navigation menu'
+      description: 'Whether to show the search bar in the navigation menu',
     },
     items: {
       type: 'array',
@@ -229,8 +229,8 @@ export const MENU_CONFIG_SCHEMA = {
       description: 'Navigation menu items to display',
       widget: {
         formlyConfig: {
-          type: 'menu-editor'
-        }
+          type: 'menu-editor',
+        },
       },
       items: {
         type: 'object',
@@ -241,11 +241,11 @@ export const MENU_CONFIG_SCHEMA = {
           external: { type: 'boolean', title: 'External Link', default: false },
           requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
           hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
-          requiredRoles: { 
-            type: 'array', 
+          requiredRoles: {
+            type: 'array',
             title: 'Required Roles',
             items: { type: 'string' },
-            default: []
+            default: [],
           },
           featureFlag: { type: 'string', title: 'Feature Flag' },
           visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
@@ -253,13 +253,13 @@ export const MENU_CONFIG_SCHEMA = {
             type: 'array',
             title: 'Children',
             items: { $ref: '#/properties/items/items' },
-            default: []
-          }
+            default: [],
+          },
         },
-        required: ['labelKey', 'href']
+        required: ['labelKey', 'href'],
       },
-      default: []
-    }
+      default: [],
+    },
   },
-  required: ['items', 'showSearch']
+  required: ['items', 'showSearch'],
 };
