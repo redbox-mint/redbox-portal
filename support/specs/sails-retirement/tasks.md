@@ -138,6 +138,8 @@ Read the [design](design.md) for behavior and the
   [WSU designation and source reasoning](evidence/institution-wsu.md#sr-005--institution-source-decision-and-topology).
   [R19 review](evidence/final-review-r19.md) confirms this explicitly limited cohort
   and rechecks the evidence hashes after R18/R19 remediation.
+  [R20](evidence/final-review-r20.md) retains this designation and verifies the
+  original/R18/R19 ledgers; production-only access gaps remain unchecked.
 
   **Depends on:** SR-001, SR-003.
 
@@ -736,6 +738,10 @@ Read the [design](design.md) for behavior and the
   the final corrected WSU `c1c847d` artifact repeats both rows successfully in
   [R19](evidence/final-review-r19.md), including actual vocabulary migration and
   normalized notation lookup checks on both majors.
+  [R20](evidence/final-review-r20.md) repeats both installed rows with portal
+  `5786b7e77` and WSU `50293cc2`: assertions pass, pools/Prisma clients close,
+  and processes naturally exit 0. Its delayed-exit diagnosis qualifies timing;
+  zero pools alone is not proof of immediate process exit.
   [historical generic matrix](evidence/p7-qualification.md#sr-045--database-matrix).
 
   **Depends on:** SR-005, SR-002, SR-025, SR-037, SR-044.
@@ -814,6 +820,10 @@ Read the [design](design.md) for behavior and the
   production source/infrastructure gaps remain explicit.
   [WSU recovery](evidence/institution-wsu.md#sr-049--released-wsu-cutover-and-complete-recovery).
   Earlier bundled-hook stand-in evidence remains historical and separate.
+  [R20](evidence/final-review-r20.md) repeats installed cutover/restart/stop,
+  partial-initialization failure and exact four-database restoration with portal
+  `5786b7e77` and WSU `50293cc2`, and verifies the corrected ordinary PDF GET
+  before/after restart. The complete native recovery remains historical.
 
   **Depends on:** SR-047, SR-048, SR-046, SR-045.
 
@@ -908,25 +918,19 @@ Read the [design](design.md) for behavior and the
   example/reference validation and `docs:audit` results are recorded. Update the
   doc router only where the implemented documentation structure requires it.
 
-- [x] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
+- [ ] **SR-055 — Qualify the final Sails-free artifact and close the inventory.**
 
-  **Status:** done for the recorded WSU/local release qualification scope after
-  [R19 remediation](evidence/final-review-r19.md). The clean portal `03c2cbad5`
-  bare/bundled artifacts and original complete recovery remain historical proof.
-  WSU `c1c847d` is rebuilt from its exact archive on that unchanged runtime;
-  fresh installed integration (including generated publication HTTP), both Mongo
-  rows, cutover/restart/stop and partial-failure/database-restoration checks pass.
-  Final dev-tools `60f93bc29` passes separately rebuilt packed-consumer checks
-  (12 packs/20 checks), its full suite/build, and source retirement closure.
-  All 1,261 baseline files reconcile with zero executable/dependency violations;
-  the corrected installed WSU AST/dependency graph also passes. Fresh affected
-  suites: WSU 440, dev-tools 59, root tooling 38. R16's broad suites qualify the
-  unchanged portal application runtime; they are not new executions. Exact
-  artifact provenance, retained historical coverage, failures, cleanup and still
-  unchecked production-only acceptance work are recorded in R19 and
-  [WSU final qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
-  and [machine results](evidence/institution-wsu-results.json).
-  Actual production deployment acceptance is not asserted.
+  **Status:** reopened for the zero-new-findings confirmation gate. [R20](evidence/final-review-r20.md)
+  finds five introduced P2 issues, fixed by portal `5786b7e77` and WSU
+  `50293cc2`; successful remediation does not make R20 a zero-finding round.
+  Source/installed retirement closure and all 1,261 baseline inventory entries
+  reconcile. Fresh core/root, WSU, dev-tools and tooling suites plus 12 packed
+  artifacts/20 consumer checks pass; exact derivative-image provenance, installed
+  qualification, migration/resolver differential results, inherited limitations
+  and historical coverage are recorded in R20. R19's prior gate-closure claim is
+  superseded. The [institution qualification](evidence/institution-wsu.md#sr-055--final-artifacts-inventory-and-task-disposition)
+  retains the authorized local scope and unchecked production acceptance work.
+  A further confirmation round finding zero new A/P1/P2 issues is required.
 
   **Depends on:** SR-052, SR-053, SR-054, SR-049, SR-050.
 

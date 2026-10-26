@@ -1,0 +1,13 @@
+**R20 drain follow-up: B/P2 inherited Agenda watchdog latency (B-16). No A regression or pool leak verified; no product fix made.**
+
+Matrix8 naturally exited **0** at **2026-10-26 01:53:28.783274 UTC**, after **329.869 seconds** total. At uptime 319.469 seconds, its only live resources were stdout/stderr pipes and a referenced **300,000 ms timer**, started at uptime **29.748 seconds**. Its due time, approximately 329.748 seconds, matches exit. There were no active network handles or requests. The earlier cleanup socket/four-timeout counts were transient.
+
+Agenda's `runOrRetry()` races job completion against a watchdog sleeping for `max(processEvery/2, lockLifetime/2)`. The default ten-minute lock lifetime produces a five-minute timer. Successful completion sets `jobIsRunning=false` without cancelling that sleep; `JobProcessor.stop()` clears polling, not the watchdog.
+
+Inheritance is established before retirement: feature base **`a49366803`** pins Agenda **6.2.6**. The released v5.0.4/WSU image **`2a0ca941…`** contains **6.2.5**, whose delay line and complete watchdog/race block are byte-identical to 6.2.6. Its actual queue service starts Agenda and schedules `MoveCompletedJobsToHistory` without a lock-lifetime override, making this path reachable. V5, R18 and R20 dependency reproductions each completed a job, stopped its processor, retained a referenced **600 ms** watchdog under a scaled 1,200 ms lock lifetime, then naturally exited **0**. No timer was cleared or unrefed by the harness. This is not a full v5 shutdown qualification.
+
+Inspector activity enabled SIGUSR1 debugging, evaluated handles/timers, released diagnostic object references and disconnected. Heap querying can trigger GC. It did not pause execution, close application resources, alter timer refs/deadlines or force exit. Docker records only SIGUSR1 before die/0.
+
+Required contract: [design.md:406](../../design.md) says “Report clean stop only when every required owner has completed cleanup.” Zero pools alone does not prove prompt natural process exit. SR-045/049/055 evidence supports its actual assertions and eventual exit 0; it supplies no general prompt-exit guarantee. Historical exit claims remain compatible with this delay. Matrix9's later natural exit 0 is parent-reported.
+
+Raw scripts, logs, source snapshots, comparisons, timing and ledger are under `.tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/`. Three installed-dependency reproductions passed. All four diagnostic containers were removed; no databases, volumes or networks were created. Matrix8 was never stopped, matrix9 was untouched, and **no further Docker use is needed**.

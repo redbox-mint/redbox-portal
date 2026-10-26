@@ -1,0 +1,13 @@
+Pinned review: portal `00de66500`, WSU `c1c847d`. **Two verified A/P2 findings; no P1 or new B finding.**
+
+1. **A/P2 — Latest-PDF browser navigation returns 403.** [WSU index.ts:41](/home/andrew/src/bitbucket/redbox-hook-wsu-v6/src/index.ts:41) adds `csrf` to the read-only GET. Core CSRF checks GET and rejects query tokens, so ordinary links cannot reach the redirect despite valid authentication and view permission. Four controlled Express cases returned: ordinary GET **403**, query token **403**, header token **302**, otherwise-identical chain without CSRF **302**. WSU `14ab99e:src/index.ts:38–41` explicitly set `csrf:false`; this is introduced. Existing handler tests omit CSRF from their mounted chain.
+
+   Required spec: [design.md:34](/home/andrew/src/github/redbox-portal/support/specs/sails-retirement/design.md:34), “Preserve externally used HTTP URLs, response envelopes, status codes and normal record/form/workflow behavior by default.”
+
+2. **A/P2 — Preflight validates different export semantics from the host.** Pinned [v6-checks.ts:58](/home/andrew/src/github/redbox-portal/packages/redbox-dev-tools/src/utils/v6-checks.ts:58) recognizes `module-sync`/`node-addons`; [loading.ts:77](/home/andrew/src/github/redbox-portal/packages/redbox-core/src/extensions/loading.ts:77) resolves through `import-meta-resolve@4.2.0`, whose conditions are only `node`/`import`. Both condition-only exports pass preflight but actual `loadExtensionModule` fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. Null/declaration branches before valid import/default branches also cause false rejection.
+
+   Required spec: [hook-migration-v6.md:29](/home/andrew/src/github/redbox-portal/support/specs/sails-retirement/hook-migration-v6.md:29) requires checking the “neutral manifest/runtime export”; lines 36–37 incorrectly promise those optional conditions. Match the actual loader and correct the documentation. The host additionally rejects R19’s nested-fallthrough controls; native-Node comparisons do not establish host compatibility.
+
+Verification: requested three-dot diffs and pinned `git show`; Node **26.11.1** in-memory probes: **4 HTTP cases**, **15 loader cases**, including **8 condition discrepancies, 2 nested discrepancies, 5 agreeing controls**. Python SHA256 verification: **66/66 + 83/83 + 117/117** evidence files; **226/226** archived WSU files match `c1c847d`. Historical results remain historical.
+
+**Disposition:** SR-005/SR-045 stand within their stated local scope. SR-049 needs affected PDF behavior requalification; SR-055’s final gate remains open pending fixes. No additional publication-byte authorization or evidence-integrity defect verified. No files changed, agents spawned, or Docker resources created.

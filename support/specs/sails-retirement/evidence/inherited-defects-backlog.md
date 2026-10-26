@@ -1,7 +1,8 @@
 # Inherited defects retained for separate follow-up
 
-Through R18 this cumulative backlog records **14 inherited groups**. R18 added no
-new inherited group. The opening
+Through R20 this cumulative backlog records **16 inherited groups**. R18/R19 added
+no new inherited group; R20 adds B-15 from the migration differential and B-16
+from the installed-process drain diagnosis. The opening
 R5 context and later entries retain their original provenance; feature-introduced
 findings are fixed and recorded in their respective review reports.
 
@@ -356,3 +357,78 @@ No authorization bypass or severe access-control exception was demonstrated.
 
 **Suggested fix:** construct the URL with the selected root context on the server
 and cover the rendered download link under both empty and nonempty roots.
+
+## B-15 — P2: failed branding history insertion is not recovered on migration retry
+
+**Locations:** WSU `c1c847d`,
+`src/migrations/2026.07.21T000000-set-wsu-branding-variables.ts:107–118` and
+`2026.07.21T010000-repair-wsu-branding-variables.ts:12` (delegation).
+
+**Reproduction:** persist `updateBrand`, then reject `createBrandHistory` before
+its insertion. The saved brand has the intended variables/CSS/hash and advanced
+version, but its matching history is missing. All subsequent runs take
+`if (!changed) { continue; }` and never retry the missing history. This leaves
+the operator without that version's historical snapshot. The
+[R20 migration differential](r20-migrations.md) records **12 failure-boundary
+observations**, six for each migration, across existing and initially absent
+brands. Both failure immediately after update and failure before history insert
+produce the gap. The matching brand hash remains, with no repair on rerun.
+
+**Inheritance:** archived WSU `14ab99e`, the same first migration at lines
+118–129, already updates before creating history and has the same unchanged-brand
+skip. Its repair migration calls the same function. The pinned actual migration
+bodies reproduce identical outcomes through synthetic ports in both versions;
+this is not a released-v5/Waterline/Mongo integration run. No class-A regression,
+missing current brand data or severe access-control exception is claimed.
+
+**Contract and scope:** [hook migration guidance](../hook-migration-v6.md#awaited-bootstrap-and-migrations)
+says migrations provide “no transaction, rollback, or exactly-once guarantee.”
+That limitation is retained; the defect is specifically that a retry can complete
+while permanently omitting its intended history. No product change was made.
+
+**Suggested fix:** reconcile the required history for the persisted brand version
+before treating an unchanged brand as complete, with a duplicate-safe identity
+and tests for update acknowledgement loss and failed/acknowledgement-lost history
+insertion. Keep this separate from the retirement feature gate.
+
+## B-16 — P2: completed Agenda jobs leave watchdog timers delaying natural exit
+
+**Location:** installed Agenda 6.2.6 `dist/JobProcessor.js:5,434–462,484`;
+`JobProcessor.stop()` at lines 93–110.
+
+**Reproduction:** R20 installed WSU matrix8 completed its assertions and reported
+zero registered pools, clients, operations and cleanup resources, but remained
+alive. Inspector observation at uptime 319.469 seconds found only stdio pipes and
+one referenced 300,000 ms timer, created at uptime 29.748 seconds; no network
+handles or requests remained. Docker records natural exit **0** after **329.869
+seconds**, matching the timer's expiry. Agenda races `job.run()` against a
+watchdog sleeping for half the lock lifetime (five minutes by default). Job
+completion sets `jobIsRunning=false` without cancelling the sleep, and processor
+stop does not clear it. This is bounded operator-facing exit latency, not evidence
+of lost writes, open persistence pools or an access-control defect.
+
+**Inheritance:** pre-retirement feature base `a49366803` already pins Agenda 6.2.6.
+The designated released v5.0.4/WSU image `sha256:2a0ca94182fed139207c0d4da41102f58a7e42638cb747ad57636a2b12160b48`
+contains Agenda 6.2.5 with a byte-identical delay line and complete watchdog/race
+block. V5's installed queue service starts Agenda and schedules
+`MoveCompletedJobsToHistory` without overriding its lock lifetime, so this path
+is reachable there. Isolated invocations of the actual installed dependency in
+v5, R18 and R20 each completed a job, stopped the processor, retained a referenced
+600 ms watchdog under a scaled 1,200 ms lock lifetime, and naturally exited 0.
+The harness never cleared/unrefed timers; this does not claim a full v5 shutdown
+qualification. R18/current dependency equality alone is not the inheritance basis.
+
+**Contract and evidence scope:** [design.md:406](../design.md) requires “Report
+clean stop only when every required owner has completed cleanup.” Zero registered
+pools does not establish prompt natural process exit. SR-045/SR-049/SR-055 may
+retain their actual successful checks and eventual natural exit 0, with this
+inherited latency disclosed; no general prompt-exit guarantee follows. The
+[R20 drain report](final-review-r20/drain-review.md) and raw
+`.tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/` scripts, inspector
+snapshot, Docker events, three reproduction logs and exact v5 sources retain
+the proof. No product fix or severe ordinary-user access exception is claimed.
+
+**Suggested follow-up:** arrange cancellation/join of Agenda's completed-job
+watchdog in the dependency and qualify natural process exit after real jobs and
+stop. Preserve worker/backend-write ownership and failed-drain retry; forcing
+exit or indiscriminately unrefing active-work timers is not a substitute.

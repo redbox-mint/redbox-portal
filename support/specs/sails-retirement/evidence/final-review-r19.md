@@ -1,5 +1,11 @@
 # Sails retirement final review — round 19
 
+> R20 correction: the opening statement below that remediation met the final
+> gate is superseded. The gate requires a round with zero new class-(A) P1/P2
+> findings. R19 found four, so its successful remediation did not close that
+> confirmation requirement. Its recorded test results and artifact scope remain
+> historical evidence; see [R20](final-review-r20.md).
+
 **Four introduced class-(A) P2 findings; no P1; all four fixed. Zero class-(A)
 P1/P2 findings remain open, so the gate is met after remediation.** This
 confirmation round found further export-validation and migration defects; it was

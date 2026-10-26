@@ -34,6 +34,21 @@ unchecked list below still applies. Both review-built images, six remaining
 service containers and ten attached volumes were removed, and the owned engines
 stopped. The original/sibling checkouts and untracked bytes remain unchanged.
 
+**R20 correction:** [R20](final-review-r20.md) found five new A/P2 issues and
+fixed them with portal `5786b7e77` and WSU `50293cc2`. The actual host now shares
+Node 26 export selection with preflight, and ordinary authenticated latest-PDF
+links work. Fresh full core/root and affected suites, packed consumers, installed
+smoke/two-major matrix, cutover/restart/stop, partial initialization failure and
+exact four-database restoration pass. Its image is an explicit current-core/WSU
+derivative of the qualified base, not a new whole Angular/root rebuild. The
+25-migration differential found no introduced data-safety defect. Original/R18/
+R19 ledgers match their recorded hashes. **SR-005, SR-045 and SR-049 stand only
+for the authorized local cohort; SR-055 is reopened:** a confirmation round must
+find zero new A/P1/P2 issues. R19's statement that remediation alone closed the
+gate, and the historical four-tick disposition below, are superseded. Inherited
+defects and delayed-exit limitations are recorded in R20; production acceptance
+remains unchecked.
+
 ## SR-005 — Institution, source decision and topology
 
 The portal maintainer designated Western Sydney University (WSU), specifically
@@ -384,7 +399,7 @@ passing gate. The final WSU build instead combines the clean portal builder/PDF
 runtime stages with the hook Dockerfile's compile/pack/install stages and a clean
 named WSU source context; it never exports a developer dependency overlay.
 
-**Disposition:** SR-005, SR-045, SR-049 and SR-055 are complete for the explicitly
+**Historical disposition (superseded for SR-055 by R20 above):** SR-005, SR-045, SR-049 and SR-055 were recorded complete for the explicitly
 authorized WSU released-source fallback and faithful local topology cohort. This
 meets their designation, persistence/ownership/maintenance, institution
 cutover/recovery and clean-artifact/inventory criteria. It does not assert actual

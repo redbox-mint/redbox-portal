@@ -1,0 +1,1551 @@
+{
+  "round": 20,
+  "date": "2026-10-26",
+  "branch": "stack/sails-retirement",
+  "incoming": {
+    "portalBase": "8b049580d",
+    "portalHead": "00de66500d79640b148a046dc03e4133a22308ec",
+    "wsuBase": "14ab99eb3a89434b9c886d51d5edc37447f43588",
+    "wsuHead": "c1c847ddb4b09673cfff65e5d85f0eb527164f7b"
+  },
+  "reviewedFixTree": "5786b7e77dfa56bec6e8e5919a01d206c41bf289",
+  "wsuFixTree": "50293cc2cc1b8d34e6ec649d80c1faa64d4235ff",
+  "completeDeltaCommands": [
+    "git diff 8b049580d...5786b7e77dfa56bec6e8e5919a01d206c41bf289",
+    "git -C /home/andrew/src/bitbucket/redbox-hook-wsu-v6 diff 14ab99e...50293cc2cc1b8d34e6ec649d80c1faa64d4235ff"
+  ],
+  "findings": [
+    {
+      "id": "R20-01",
+      "classification": "A",
+      "priority": "P2",
+      "summary": "Invalid wildcard captures pass preflight and can incorrectly fall through arrays",
+      "fixedBy": "5786b7e77dfa56bec6e8e5919a01d206c41bf289",
+      "status": "fixed"
+    },
+    {
+      "id": "R20-02",
+      "classification": "A",
+      "priority": "P2",
+      "summary": "Valid trailing-slash export patterns are rejected",
+      "fixedBy": "5786b7e77dfa56bec6e8e5919a01d206c41bf289",
+      "status": "fixed"
+    },
+    {
+      "id": "R20-03",
+      "classification": "A",
+      "priority": "P2",
+      "summary": "Encoded separators in target query/hash are incorrectly rejected",
+      "fixedBy": "5786b7e77dfa56bec6e8e5919a01d206c41bf289",
+      "status": "fixed"
+    },
+    {
+      "id": "R20-04",
+      "classification": "A",
+      "priority": "P2",
+      "summary": "Actual host conditions and nested fallthrough disagree with Node/preflight",
+      "fixedBy": "5786b7e77dfa56bec6e8e5919a01d206c41bf289",
+      "status": "fixed"
+    },
+    {
+      "id": "R20-05",
+      "classification": "A",
+      "priority": "P2",
+      "summary": "Read-only latest-PDF browser GET is rejected by CSRF",
+      "fixedBy": "wsu:50293cc2cc1b8d34e6ec649d80c1faa64d4235ff",
+      "status": "fixed"
+    }
+  ],
+  "counts": {
+    "introducedP1": 0,
+    "introducedP2": 5,
+    "remainingIntroducedP1P2": 0,
+    "newInheritedGroups": 2,
+    "retainedInheritedGroups": 16
+  },
+  "confirmationGate": {
+    "passed": false,
+    "reason": "Five new A/P2 findings in R20. Successful fixes do not constitute a zero-finding round."
+  },
+  "toolchain": {
+    "node": "26.11.1",
+    "npm": "11.20.0",
+    "path": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin"
+  },
+  "suites": [
+    {
+      "name": "dev-tools full",
+      "command": "npm test --prefix packages/redbox-dev-tools",
+      "passing": 60,
+      "log": "devtools-full.log",
+      "exitCode": 0
+    },
+    {
+      "name": "dev-tools build",
+      "command": "npm run build --prefix packages/redbox-dev-tools",
+      "log": "devtools-build.log",
+      "exitCode": 0
+    },
+    {
+      "name": "core build",
+      "command": "npm run build --prefix packages/redbox-core",
+      "log": "core-build.log",
+      "exitCode": 0
+    },
+    {
+      "name": "WSU full compile/unit",
+      "cwd": "/home/andrew/src/bitbucket/redbox-hook-wsu-v6",
+      "command": "npm run test:unit",
+      "passing": 443,
+      "log": "wsu-unit.log",
+      "exitCode": 0
+    },
+    {
+      "name": "root tooling full",
+      "command": "node --test test/tooling/*.test.cjs",
+      "passing": 38,
+      "log": "tooling-full.log",
+      "exitCode": 0
+    },
+    {
+      "name": "core full with persistence fixtures",
+      "runner": "run-full.sh",
+      "passing": 5632,
+      "pending": 7,
+      "log": "core-full-fixtures.log",
+      "exitCode": 0
+    },
+    {
+      "name": "additional real-service core group",
+      "runner": "run-full.sh",
+      "passing": 224,
+      "log": "core-real.log",
+      "exitCode": 0
+    },
+    {
+      "name": "Companion lifecycle",
+      "runner": "run-full.sh",
+      "passing": 2,
+      "log": "CompanionLifecycleProbe.log",
+      "exitCode": 0
+    },
+    {
+      "name": "Companion real uploads",
+      "runner": "run-full.sh",
+      "passing": 6,
+      "log": "CompanionUploadsMongo.log",
+      "exitCode": 0
+    },
+    {
+      "name": "root full application integration",
+      "runner": "run-full.sh",
+      "passing": 422,
+      "pending": 10,
+      "log": "root-full.log",
+      "exitCode": 0
+    },
+    {
+      "name": "packed isolated production/offline consumers",
+      "runner": "packed-run.cjs",
+      "packs": 12,
+      "checks": 20,
+      "log": "packed.log",
+      "exitCode": 0
+    },
+    {
+      "name": "installed smoke",
+      "runner": "run-installed.sh",
+      "log": "installed-smoke.log",
+      "exitCode": 0
+    },
+    {
+      "name": "installed Mongo8.0.34 FCV8.0",
+      "runner": "run-installed.sh",
+      "log": "installed-matrix8.log",
+      "exitCode": 0
+    },
+    {
+      "name": "installed Mongo9.0.4 FCV9.0",
+      "runner": "run-installed.sh",
+      "log": "installed-matrix9.log",
+      "exitCode": 0
+    },
+    {
+      "name": "installed cutover/restart/stop/failure/exact restore",
+      "runner": "run-cutover.sh",
+      "log": "cutover-runner.log",
+      "exitCode": 0
+    }
+  ],
+  "resolver": {
+    "cases": 1271,
+    "incomingCheckerDiscrepancies": 200,
+    "incomingHostDiscrepancies": 70,
+    "finalDiscrepancies": 0,
+    "cliImportCases": 41,
+    "independentGeneratedShapes": 25000,
+    "numericConditionControls": 11,
+    "namespaceIdentityComparisons": 40,
+    "rejectionControls": 4,
+    "independentFinalDiscrepancies": 0,
+    "importAndRequireRecordedSeparately": true,
+    "missingFilesExecutionComparedSeparately": true,
+    "defaultNode26ImportConditionsOnly": true
+  },
+  "migrations": {
+    "bodies": 25,
+    "cleanPairs": 55,
+    "partialFailurePairs": 1368,
+    "totalPairs": 1423,
+    "versionExecutions": 2846,
+    "assertions": 3452796,
+    "versionMismatches": 0,
+    "exactPartialRecoveries": 1356,
+    "inheritedAuditHistoryGaps": 12,
+    "method": "Actual v5/current migration bodies with synthetic ports and actual current codecs; released-v5 normalization callbacks. Not released-v5 Waterline/Mongo integration.",
+    "report": "../r20-migrations.md"
+  },
+  "installed": {
+    "image": "sha256:0cb517fa72cbf846ac97712bb052c4618ce908db168f62a0085c08cdf9012a5a",
+    "base": "redbox-portal@sha256:2ce824c3c7bef21b866a099481eb31494b087a182e56fa4a82237792f0a6e7c7",
+    "basePortalCommit": "03c2cbad5",
+    "method": "Fresh current core pack replaces base core source/dist, unchanged core dependency metadata; strict production install of fresh WSU pack. Explicit derivative, not a fresh whole Angular/root image rebuild. No app/dist/dependency mounts for installed verification.",
+    "databasesRestored": 4,
+    "restoredCollections": 28,
+    "restoredDocuments": 5162,
+    "processExitQualification": "See spec-drain-diagnosis and main report: inherited Agenda watchdog delays natural verifier exit."
+  },
+  "audits": {
+    "sourceCandidates": 1212,
+    "installedCandidates": 3417,
+    "installedManifests": 1230,
+    "violations": 0,
+    "baselineFiles": 1261,
+    "baselineClassified": 742,
+    "baselineRemoved": 136,
+    "baselineRetainedWithoutCandidate": 365,
+    "baselineDependencyMetadata": 18,
+    "additionalCandidates": 423,
+    "classifierControls": 73,
+    "viewFindings": {
+      "core": 0,
+      "WSU": 0,
+      "UWA": 16,
+      "JCU": 59
+    }
+  },
+  "historicalIntegrity": {
+    "originalWSULedger": 66,
+    "r18Ledger": 83,
+    "r19Ledger": 117,
+    "incomingWSUSourceHashes": 226,
+    "allMatch": true
+  },
+  "historicalNotRerun": [
+    "Whole Angular/browser/build image qualification",
+    "Original generic replica-set/stepdown matrix",
+    "Bare/bundled installed artifacts",
+    "Complete native source-image/files/configuration/Solr recovery"
+  ],
+  "taskDisposition": {
+    "SR-005": "stands for authorized local cohort",
+    "SR-045": "stands for authorized local cohort with inherited shutdown watchdog qualification",
+    "SR-049": "stands for authorized local rehearsal",
+    "SR-055": "reopened; zero-new-findings confirmation required",
+    "productionAcceptance": "unchecked"
+  },
+  "rawRoot": "/home/andrew/src/github/redbox-portal/.tmp/sails-retirement/final-review-r20",
+  "reproductionEntrypoints": [
+    "resolve-sensitivity.cjs",
+    "run-full.sh",
+    "run-installed.sh",
+    "run-cutover.sh",
+    "migration-differential.cjs",
+    "spec-followup/README.md",
+    "spec-drain-diagnosis/"
+  ],
+  "failedAttempts": "Main report and retained logs distinguish incoming sensitivity failures, URL/matrix harness corrections, invalid nofile fixtures, installed FROM/staging harness corrections and migration fixture/classification iterations from accepted final runs.",
+  "safeguards": {
+    "protectedOriginalSiblingRepos": 12,
+    "unchanged": true,
+    "convertedWSUClean": true,
+    "graphqlSpecUntouched": true,
+    "pushPublishOrGitTag": false
+  },
+  "rawArtifacts": [
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/CompanionLifecycleProbe.log",
+      "bytes": 272,
+      "sha256": "283064d90792475d59503ab6c75f5b6a7324d806032b8d6e82ef645e6f3ce359"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/CompanionUploadsMongo.log",
+      "bytes": 1208,
+      "sha256": "68e5a0f72882c3570c4c6ad15e59a82f790be5fca776526a63a19c988e5c24ee"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/README.md",
+      "bytes": 3416,
+      "sha256": "6f19d51a14d8ae3da032c9696497c0d55f17053e18531d3b4bef5b839b47c3a0"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/auth-isolated.log",
+      "bytes": 710,
+      "sha256": "021b97fa098ee07406b745a5a2025383e75eefe0e370f6ffd49bd76bd07086fd"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/base-manifest.log",
+      "bytes": 2586,
+      "sha256": "f7bea2877362d332aff714a8af7b41f1276d94b13bcf111a42a01fca11002d3d"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/capture-safeguards.py",
+      "bytes": 1113,
+      "sha256": "bad9c22ca3a4586fb7adebafc2d90ea15ece96efa9513e80ca8fc52cb2209aae"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/checkout-safeguards-final.json",
+      "bytes": 4159,
+      "sha256": "da73f906ff3dcf5d6c7ef2edf1002eb4a91ef464232530b7e967e0d0398a6198"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/checkout-safeguards-initial.json",
+      "bytes": 4159,
+      "sha256": "da73f906ff3dcf5d6c7ef2edf1002eb4a91ef464232530b7e967e0d0398a6198"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cleanup-commands.json",
+      "bytes": 4447,
+      "sha256": "acb8f747cb54fb686d071e708bd03f8c6b7ed58aeb422e6c7e4db9fffdb5f696"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cleanup-first-attempt-events-command.json",
+      "bytes": 275,
+      "sha256": "e467441e1908fe2ead653833fe1ce9900f9335e3154f487c24422403ba754fce"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cleanup-first-attempt-events.jsonl",
+      "bytes": 43130,
+      "sha256": "7cd95ce4163d14a21d160d8bc5fceed07ccc43f636bf263ceff9acf1f5ad5972"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cleanup-first-attempt.log",
+      "bytes": 237,
+      "sha256": "4ddbcd23e1369dff28dfc80ea08dc085856c5b5359ff8d616d1221abcf390ab3"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cleanup-orphan-volumes.json",
+      "bytes": 2391,
+      "sha256": "f02c7ceab796748d0b36189699576225db34998c277044445dfe0af444cdaebd"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cleanup.json",
+      "bytes": 8424,
+      "sha256": "e89e2893e7e3c9cc039a8dd3f55265bfba41db975d62d5271597490e9feffe39"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cleanup.log",
+      "bytes": 2831,
+      "sha256": "85a4361c6d875b28727b80e932d66923fc2a29120e2478d5e1926384364b49ac"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cleanup.py",
+      "bytes": 5633,
+      "sha256": "7ce0e0ac98419bce7ddd80f67f29611e8da03142100f76f2a96042b73cf76c86"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/core-build.log",
+      "bytes": 3028,
+      "sha256": "68fd82e916220b3c1ea3167159f28a72d5cd72209b63076900800fe9efbd62ea"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/core-full-fixtures-invalid-fixture.log",
+      "bytes": 270506,
+      "sha256": "232c31cd2646f163aa382aa171949e2546c4c9e99560cbd75dc4f0771638f21f"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/core-full-fixtures.log",
+      "bytes": 460543,
+      "sha256": "ed5f02f7ff023026e53029e217273efde21f7cfaeacf77144ba24ae7907e19fd"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/core-full.log",
+      "bytes": 457202,
+      "sha256": "63984905c60bd425b59bfdc93f552992abf7810026b617f51139b147655863c9"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/core-real-invalid-fixture.log",
+      "bytes": 37,
+      "sha256": "c48673907fe582fa602926d7527cc12e4565ea3ae142186a2f3bd3fde530755e"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/core-real-nofile-failure.log",
+      "bytes": 16668,
+      "sha256": "6a43cf53fc2d8a5e75bf04c52fb64187b8463a8d219a41ab32942cbe50ffd54b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/core-real.log",
+      "bytes": 34570,
+      "sha256": "40e85ca1ee1fbcc82846b73a0101f295c4dbd9accc2fa35a6f9f64b3aca09e4f"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/cutover-runner.log",
+      "bytes": 1471,
+      "sha256": "fca340b4136f19e6711e8b45b1b0a50545f2357cd38013e3186b4b208eee2bc1"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/devtools-build.log",
+      "bytes": 71,
+      "sha256": "8175aefbe65657282411c5ff386e9479ae344b5d78e6ffd81d2c8cb1f5985879"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/devtools-first-matrix-harness-failure.log",
+      "bytes": 80849,
+      "sha256": "ca079f69ef5496b2f3966785c7c9871006c4b84c847ad055caa5d2c1ee423ce2"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/devtools-full.log",
+      "bytes": 26600,
+      "sha256": "ea5558e22e871a6d2cc1afac0ec10a8731469e01ab995e71cacd1fdb5c6301cb"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/export-full-final.json",
+      "bytes": 851926,
+      "sha256": "16304ed55fb492c99e0eaaa972cdd6351a535c6564301d04a3453bb025dc28d1"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/export-full-incoming.json",
+      "bytes": 1019236,
+      "sha256": "c0fced3d3bc5a72a9a0fc46a33be4d73df9eb71c1821a03955384392b738c570"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/export-matrix-corrected.json",
+      "bytes": 627037,
+      "sha256": "5c53d778fa3a91ad5f6a97cb43613085a2bc99471f2fa33726067a6f8f651c19"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/export-matrix-corrected.log",
+      "bytes": 57,
+      "sha256": "17f730ad728d099a44234c72cabc6ab0894f840f317760c8e9beaaf4fdeae02b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/export-matrix-incoming.json",
+      "bytes": 476182,
+      "sha256": "2c9e26a361148ae589bdb076370b65df72aa2cf4768fc7b0ccc004f012e91dc8"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/export-matrix-incoming.log",
+      "bytes": 21171,
+      "sha256": "a76c58e8cccfa23255dbf4aaa30e7853f74ad7e9b6dac46ccddf89b71bbf2b40"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/export-matrix-test.log",
+      "bytes": 430,
+      "sha256": "fe73b2bcd41758de505ca4fc55e43003783f553039b2f9fb1790a714a6459c0d"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/export-matrix.cjs",
+      "bytes": 5473,
+      "sha256": "565f87595465d93a1432639f58178fc8cec64c7ff6e279cfe36d6b3df3750f7f"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/fixture-nofile-correction.json",
+      "bytes": 1290,
+      "sha256": "78853a9fcfe7adeab48978651f0b9c88bbbadcd033a2a1e0232399a7214127fb"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/fixtures-recreated.json",
+      "bytes": 4455,
+      "sha256": "e3424f19ea1697d72db3ad4a057f3fd33518a572cb873353a91084077b6f9cfd"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/fixtures-start.json",
+      "bytes": 4062,
+      "sha256": "c5d6768e0ae2ee82f58de026de6d07468a3c8b4c296b0524e05ed3f5220c1fbe"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/full-runner.log",
+      "bytes": 111,
+      "sha256": "edccbddff71117003d736016c12f4d780f3e8b04574c5cf61918c812fffc6223"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/incoming-checker.cjs",
+      "bytes": 10174,
+      "sha256": "bb2b53607dc3aca546e38b072c0550b7cca7da38166cada549049b3f307293d7"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/incoming-loader.cjs",
+      "bytes": 4577,
+      "sha256": "100d1f339d6f8aea265c719080c8e98686569692ec87c6cfc0b1a955a83194c0"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed/Dockerfile",
+      "bytes": 868,
+      "sha256": "5895d9a33e6d709f28e96f0af9902c19000126e80cf82df39df0e0c21861c31a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed/core.tgz",
+      "bytes": 2643665,
+      "sha256": "5f89784fb60d7d09b0f147dc337b8743d3d62b9f85148e2f462fef19e471a2f0"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed/image.id",
+      "bytes": 71,
+      "sha256": "590341bcc718c1a96d16fe629a657f24b1aab7c404ea45025b9e46449e5a8940"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed/matrix8.cjs",
+      "bytes": 1074,
+      "sha256": "5724898c42df23bf957a6be670a64490b69a2414dbbf919eeb05ddf6cfca0596"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed/matrix9.cjs",
+      "bytes": 1074,
+      "sha256": "74b5d50ee0bda805af146e5f01a2e8c655ae3f74855c3f5b7e1e1cb6d645c961"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed/smoke.cjs",
+      "bytes": 1070,
+      "sha256": "6360cf5c22f1e258e8c88362e40a5c5d5b2f979708c514f3af81d4bee2ea56c8"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed/wsu.tgz",
+      "bytes": 853209,
+      "sha256": "1076ee2d15d413c939735c076d78789c36cf3d04e1b640b7fd09dd27510743bf"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-build-before-staging-correction.log",
+      "bytes": 3023,
+      "sha256": "29a46ce09af0c21d58cedb4e8d0c375fe5a2f02f10c2e965bf71ccc373dd9300"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-build-before-verifier-correction.log",
+      "bytes": 3143,
+      "sha256": "85f232012c0b2285abfa553e9c74babcabfee86018d968f52761ad908a4f45ff"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-build-first-failure.log",
+      "bytes": 1175,
+      "sha256": "48e09d8f1f0ecefbb533d100a3e11b259af18233cde3136fc21e1e15ac9a8e5c"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-build.log",
+      "bytes": 2793,
+      "sha256": "859d23936bd89dce2c95b1f1ab34820c3bebf6236158e3e08f3f696fe293c1be"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-matrix8.log",
+      "bytes": 1461,
+      "sha256": "22b46e76197f1144ce56e4e47c9ac61eaabaff36829e92e5a0830e6d9e4ddda4"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-matrix9.log",
+      "bytes": 1137,
+      "sha256": "51a664f803a4ead362b2a756f8bc1d8e3cbea9dcd381a212a0fff4de2ae968bf"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-runner.log",
+      "bytes": 43,
+      "sha256": "d459b4561f034a3efd0af06a464595f6dfba23f453d8ba83d8650243b0ab5f5b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-smoke-gridfs-harness-failure.log",
+      "bytes": 909,
+      "sha256": "84f971f91926fe3dcbfeef688060d79b299a42e857c647e614e7f3524e63e619"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-smoke-incomplete-staging-harness-failure.log",
+      "bytes": 347,
+      "sha256": "bbbe2a4c7943268e2d94544dd250bba01727274da948553b7d7b503ef59d0305"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/installed-smoke.log",
+      "bytes": 195,
+      "sha256": "041d536bf909309b7ffdb1d3f07b0014292ea76592606f18fcdc2073dc39d789"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/inventory-reconciliation.json",
+      "bytes": 874141,
+      "sha256": "714034221e52caaa15d9a896eba2868f8d9d88763b52e7e7c7a9b7296eed3c78"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/migration-differential.cjs",
+      "bytes": 34523,
+      "sha256": "b28f9e18faf9562bb3d4454840ac7f6fbc985717cfa850c1175e43ec0b959650"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/migration-differential.json",
+      "bytes": 4145090,
+      "sha256": "e429520ab116be7f73cb25f17f5748c13fdc71a3f9d7dd585757092ba98e3fe0"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/migration-differential.log",
+      "bytes": 16264,
+      "sha256": "8e286ab4977f08594306f64201306c99d0341024ceebf06dc013252a174233db"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/node-esm-resolve-source.js",
+      "bytes": 39210,
+      "sha256": "e4ea0abd4a7b61d69cf8a383c9690306ceceb1eb677818bc10ce2163ffc26eae"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/install.log",
+      "bytes": 27,
+      "sha256": "4c1127f6a0b2225eb703f34404d5559783c33a6251a38f6fd615ef8639f9d91a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/offline-ci.log",
+      "bytes": 27,
+      "sha256": "df861c170a1cb306f1d30666a18541bd20ac76c85ef1e6f987e4399e5e3d63de"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/redbox-hook-dev-1.0.0.tgz",
+      "bytes": 84816,
+      "sha256": "8da96cff08682b094af044fd131d439dc99983479fcb3ff063dc4319846fcb7a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+      "bytes": 11751,
+      "sha256": "76d426e7ab5d9c71af1fff96e528bf800970132eb5ea4431eb7d9a87c2a3720f"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+      "bytes": 18479,
+      "sha256": "d40363198433495e887285046e26e5a7067917b7e690540e2ccb57ec48d30adf"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+      "bytes": 2643665,
+      "sha256": "5f89784fb60d7d09b0f147dc337b8743d3d62b9f85148e2f462fef19e471a2f0"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/researchdatabox-redbox-dev-tools-4.5.1.tgz",
+      "bytes": 65483,
+      "sha256": "92adb27a203905592e21342958aedd90c643d37e4acfba254b6bc13f7b216143"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+      "bytes": 47843,
+      "sha256": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz",
+      "bytes": 42955,
+      "sha256": "e1aee124b43bf4a476cb16effe00f30d290d856063564339b584dd32eadd5a90"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz",
+      "bytes": 80967,
+      "sha256": "bd52140007cb7d41ed0f5cc8b9b3c198be342ee883565521cec47275db1b5f80"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/researchdatabox-sails-ng-common-0.2.1.tgz",
+      "bytes": 335062,
+      "sha256": "6d23632ef3a9f4c59637fc9e8ca44e480e7c87d6218132bf3ca81289c9442a72"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/result.json",
+      "bytes": 3251,
+      "sha256": "6e46d49f46fb83796423a99333d0457da99e2d726af4400b523f3f420d18a73c"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/sr-commonjs-hook-1.0.0.tgz",
+      "bytes": 427,
+      "sha256": "60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/sr-esm-hook-1.0.0.tgz",
+      "bytes": 470,
+      "sha256": "89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed/sr-esm-only-1.0.0.tgz",
+      "bytes": 305,
+      "sha256": "e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed-run.cjs",
+      "bytes": 3633,
+      "sha256": "409183cecc30ba52cbe982c5bb4fe98a642766551a5fdbba4f301c3381065070"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/packed.log",
+      "bytes": 9713,
+      "sha256": "3b609bbf0908b3706ab8aa41f3ea7525313f522a34f89c79a02bd00dba031e87"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/redbox-hook-wsu-2.0.0-v6.0.tgz",
+      "bytes": 853209,
+      "sha256": "1076ee2d15d413c939735c076d78789c36cf3d04e1b640b7fd09dd27510743bf"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/resolve-sensitivity.cjs",
+      "bytes": 1801,
+      "sha256": "8d9a1b26fb34d5aa67f8f8a66c438593fa856ca624dafaa03d15fa9b9865a5ad"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/resolve-sensitivity.log",
+      "bytes": 333,
+      "sha256": "2a23987ee663589e6302c02c1064d762a0c3f52e30e06131585421f0424ce65d"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/root-full.log",
+      "bytes": 94693,
+      "sha256": "1dbbc71a3a8c14e88891d6d7f31c36b08c4f6baf7bd432a05918aa5342097c0c"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/root-reset.log",
+      "bytes": 204,
+      "sha256": "fd8c6f91fbc45f8ee1109eb46d9e5588c5237a295bfe3d838ec794365ebf9477"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/root-solr-reset.log",
+      "bytes": 59,
+      "sha256": "e69f806cb2f9263ccdcf12b76eec210b98141cdfe2bb34a3a14a7ed606ad2044"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/run-cutover.sh",
+      "bytes": 3505,
+      "sha256": "3c6a6228a5ec778a68ae4f8ad8a88bd42b6808666f0771961ebdab2b4a15ea7a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/run-full.sh",
+      "bytes": 2773,
+      "sha256": "04002f73a088a7f4ac716599dcea78fbc63e871ec2fcac6bf3c94d89c91add9d"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/run-installed.sh",
+      "bytes": 1337,
+      "sha256": "948121ff1463aed84b3f6366329538477710a4720bf8b9adc3f90fff088a3094"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/source-closure.json",
+      "bytes": 241103,
+      "sha256": "ce2a93a22205950a6fa50301181672e5b119c55d559c945642a93b480441bfaa"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/source-inventory.json",
+      "bytes": 440703,
+      "sha256": "a760dfcc1dac4bbf9aed4b641dc6a1e76c00e65007ab5aa1fdf3254bce54db95"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/source-provenance.json",
+      "bytes": 245072,
+      "sha256": "c9cd5a08be65874222687c512ce0b03b1e4e9edd04eddb4d11ee2b9d3640df61"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/SHA256SUMS",
+      "bytes": 3771,
+      "sha256": "95bf846ea87effc1835d4001606ba1757e41296a870091ee8c3ed689f5275324"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/agenda-comparison-v5.json",
+      "bytes": 3008,
+      "sha256": "d25ebbf17742f9e4bf0b4fb0844a81da8780e42b44efd876409fccab26ff657d"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/agenda-comparison.json",
+      "bytes": 5832,
+      "sha256": "1b24c92443d445b8e3427821256b803d77b003b7b6a989e8cadc534a5561c338"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/agenda-watchdog-repro.cjs",
+      "bytes": 4132,
+      "sha256": "1c04ae65f576ac7758fe79e0e46a9607b7ea2f689ecf2f8ce9f97e8fe2c38d59"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/collect-state.py",
+      "bytes": 2158,
+      "sha256": "769e9d6e2b341edc417cfeaebcfbae75cfb45c248a4ee9afe63bd2624bb4bc68"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/collect-v5-sources.cjs",
+      "bytes": 1090,
+      "sha256": "69ff6e365c74fdecbddf2ef8cd93f67aa9c8f53a7024e763cb0acda4a638f886"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/diagnosis-ledger.json",
+      "bytes": 4822,
+      "sha256": "1f574e8a2fec483b11a1858a5e0b997dfbb4a50983f0aaa451debc58dfccb182"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/diagnosis.md",
+      "bytes": 3621,
+      "sha256": "37670b2bfb173145a04602bf80197afbee0b9f9d5f277cdb07dac0f7d48a8aaa"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/agenda-JobProcessor.js",
+      "bytes": 26434,
+      "sha256": "5209ef99b40da0af155742bfdc61ed0622d46c8b398353cc9a23c487c33c1ddf"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/agenda-index.js",
+      "bytes": 29985,
+      "sha256": "0e9d4ca1a96826f0b14deb11486e496f0a907fe8d608ff86b705a34e69cd0007"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/agenda-package.json",
+      "bytes": 1939,
+      "sha256": "0e178c893a9a9b19c14121173470eb5d564c8c5b299dade576e9e8d0698fdfe5"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/shared-watchdog-block.js",
+      "bytes": 2206,
+      "sha256": "b31c4591c705fbff308c16333a2561a3916b6ea89853bd44357cd0cc718a29dd"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/v5-agenda-JobProcessor.js",
+      "bytes": 26001,
+      "sha256": "53c54be042689d67ab0710e97fd8bc4d62b1a12991381914186ac11624a979e0"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/v5-agenda-index.js",
+      "bytes": 29247,
+      "sha256": "aab68e70a1b67256f8b1729e3fea64d9c142104de1b605d4479a334c058b1ced"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/v5-agenda-package.json",
+      "bytes": 1937,
+      "sha256": "0b7f48d9961d70e42a4dff1454502867207361cea8dc42ee75f687ec8773252a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/v5-core-AgendaQueueService.js",
+      "bytes": 46197,
+      "sha256": "a9c72e717cdc23ae8a58189f7f2b554e4f84c9703be92e04b548ecce1bcb9b1b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/v5-core-agendaQueue.config.js",
+      "bytes": 8084,
+      "sha256": "7b133810f99f9824cf6992e996e084cd83306aed2f26eceb4bdb235143aa9706"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/v5-tag-AgendaQueueService.ts",
+      "bytes": 23094,
+      "sha256": "1ac78ee8b2db62d5d27c61909d465fa00589a869feb7ee3047f68ee27353d823"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/v5-tag-agendaQueue.config.ts",
+      "bytes": 6432,
+      "sha256": "90d3377f17a4881f5047f74716f6d44ac701cb977d6d4201015412112d118325"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inputs/wsu-driver.cjs",
+      "bytes": 8875,
+      "sha256": "c0042fb0493d2dc196da7fa8ff23a2521b2948e3b22df232390c18bd1934bb1f"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inspector-snapshot.json",
+      "bytes": 4804,
+      "sha256": "db1ea3560efdd62ae0d669d22d2cd241c6423c5a316782f2f8691b5d7136254b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/inspector-snapshot.mjs",
+      "bytes": 3494,
+      "sha256": "ab8e8c511c58938e906308769c778d6d39322f3e16e31041d97e3077150e79a5"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/matrix8-events-command.json",
+      "bytes": 317,
+      "sha256": "ebaef8c7199893982504cdf420393264d5e6c7deea3312bab3f41ed86edc77e6"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/matrix8-events.jsonl",
+      "bytes": 31358,
+      "sha256": "ea00b4a90584f354cfa63ed21a8414f1512bb73071c179c99dae99440285d321"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/matrix8-exit-summary.json",
+      "bytes": 1226,
+      "sha256": "47530b9e493f6a7885901d349724736af98c359d05b6ada75155826ee04fe74f"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/pre-retirement-dependency.json",
+      "bytes": 141,
+      "sha256": "ef70512786841061f85b556cea7b3a9c5222e0e95d61fda840921b721340009d"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/r18-agenda-result.json",
+      "bytes": 2812,
+      "sha256": "93f488985b62e9dd03d18ddfb1258ccb805d6252243418e7016bcc2b19dffb30"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/r18-agenda.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/r18-agenda.stdout.log",
+      "bytes": 1414,
+      "sha256": "b13ee173ce6727b548d8d8402ca5881f5a5dbeba1546ea28b2f4ac12c4d6e990"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/r20-agenda-result.json",
+      "bytes": 2819,
+      "sha256": "ecce202c1ccb9afc40e6d80c70e5ca1cc371a0b387dbc66628ec3421678897d4"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/r20-agenda.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/r20-agenda.stdout.log",
+      "bytes": 1421,
+      "sha256": "1a35110e5460bae9bf94cabcb1e266769dd7b11451ec8428ff4d8abfc3a1a149"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/review-base-dependency.json",
+      "bytes": 96,
+      "sha256": "8d95cd423fbfb4d5bd6b1fada13eb490436ca97c47d9aa00c5e13867216a7501"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/run-agenda-comparison.py",
+      "bytes": 3105,
+      "sha256": "64d7b3ad64ccfb8cdfc54e3242f03a236032aaa92403358929a60756b626be5c"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/state-20261026T015148Z.json",
+      "bytes": 5757,
+      "sha256": "ae4dbed2d5c68f7a86056f36e21466f92e4bc506653d67f940df5c1af47c987e"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/state-20261026T015348Z.json",
+      "bytes": 3163,
+      "sha256": "a8df12187e8558d3b53e6740b2794dab32f891b170ca32196c46c72b8c189975"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/v5-agenda-result.json",
+      "bytes": 2906,
+      "sha256": "ec79e382a04f691c4e1d2bef1d9839e59f65800af2fb1d62914b3f2896bcf0c0"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/v5-agenda.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/v5-agenda.stdout.log",
+      "bytes": 1512,
+      "sha256": "95cca257cccf57b030dc8685113ff8efd2e8c44d1b131ebf09f5094187889d72"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/v5-source-capture-command.json",
+      "bytes": 725,
+      "sha256": "f04131fcbce96dd5d6d47c381212d4a89f27439117a5a3179316fa4320a5d559"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/v5-source-capture.json",
+      "bytes": 114799,
+      "sha256": "9f478fca2811d84a73a6487534217906e4846d91fe3e229781c338cba57c8ff1"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-drain-diagnosis/watchdog-source-comparison.json",
+      "bytes": 1096,
+      "sha256": "dd48ec3b495f0c0a7cc8526900942416b9f525a27611aa3dcc81f0ad541e7e85"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/README.md",
+      "bytes": 2612,
+      "sha256": "a43dde1df8129ab6864ac86e5bcbbcbf722de102eaacc936612aee403bf9abdb"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/SHA256SUMS",
+      "bytes": 2847,
+      "sha256": "e5c7e41c8c416ee4763108d61ecdab67d11fc31603bbcafc129e403b84cde9bc"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/evidence-report.sha256",
+      "bytes": 150,
+      "sha256": "8ecb859a428351e96131637180319c8fbad51d8cebc97f7d5b713bc725275e03"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/initial-harness-run/README.md",
+      "bytes": 497,
+      "sha256": "f44150a154a840a673bf4db90af6484942a3436a929b157a6ccac912ddfb3a3e"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/initial-harness-run/probe-common.cjs",
+      "bytes": 3755,
+      "sha256": "d5836788539c9008c6ddcb0064bee7fc8dfc0c8a092e4a3f1572e11abe6f439b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/initial-harness-run/run-summary.json",
+      "bytes": 1074,
+      "sha256": "f341c86ec75f553d0f9f8f55fe6f7f0e289c53f8247301abd322fa06590ba44a"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/initial-harness-run/shapes-25000-rows.jsonl",
+      "bytes": 8630899,
+      "sha256": "548ed512d3e52752fdf28769b30a514b16a82a169a2500d09f752d14dcd3d426"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/initial-harness-run/shapes-25000-summary.json",
+      "bytes": 5872,
+      "sha256": "be127ca65355e90d4c825a9fa582f6c73ef39137420bd5a4022b64e3e426b583"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/initial-harness-run/shapes-25000.cjs",
+      "bytes": 3728,
+      "sha256": "7180383b58d11e72d3977364b48de26c57dae5edbd119b7863edada412163304"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/initial-harness-run/shapes-25000.stderr.log",
+      "bytes": 244091,
+      "sha256": "b3ee38eb4a978af3649dd595de7ca1999613c85b72fcacc2e17e217c3601fc8e"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/initial-harness-run/shapes-25000.stdout.log",
+      "bytes": 5872,
+      "sha256": "be127ca65355e90d4c825a9fa582f6c73ef39137420bd5a4022b64e3e426b583"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/inputs/node26-esm-resolve.js",
+      "bytes": 39209,
+      "sha256": "7f5808c907e8906b425df004cb7b5ccb8ba5cef025e8f80ca8c07c5cd42e84ff"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/inputs/packages__redbox-core__dist__extensions__exports.js",
+      "bytes": 11016,
+      "sha256": "0a93c0b5b1a3c7d151e57c5507108a45017b97c09687a189b5c70b836b724fef"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/inputs/packages__redbox-core__dist__extensions__loading.js",
+      "bytes": 10793,
+      "sha256": "32136085e4b2c552cefe859ee9b62fec437ee10c8b22a50522cc0a28ec38fa26"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/inputs/packages__redbox-core__src__extensions__exports.ts",
+      "bytes": 4488,
+      "sha256": "fa65dbf932ec7040a5115353c5ae867848d6b4300de7dc2d0603b3be99d88c4e"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/inputs/packages__redbox-core__src__extensions__loading.ts",
+      "bytes": 5074,
+      "sha256": "8b499b840ab05640739755a75eb728711aa93cbc58db7eb5117908acbb833ed8"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/ledger.json",
+      "bytes": 2171,
+      "sha256": "23601ed8d3b9811a877c2ae814fbb6ba4daaf8a08840b5c2f81b8ba0d9922e58"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/namespace-identity-rows.jsonl",
+      "bytes": 28820,
+      "sha256": "402d9c91e1aa477042517b7575644e33091b344f234458a3f7f801d108c03d70"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/namespace-identity-summary.json",
+      "bytes": 2267,
+      "sha256": "fcdb025556238e5e7b045dea0a62b69338b6a4637221d2552fdbe377195fcf8c"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/namespace-identity.cjs",
+      "bytes": 6072,
+      "sha256": "1034aa3c0fec0164979418694defd9e88169e75f832a21ff83522a4eb4f73573"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/namespace-identity.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/namespace-identity.stdout.log",
+      "bytes": 2267,
+      "sha256": "fcdb025556238e5e7b045dea0a62b69338b6a4637221d2552fdbe377195fcf8c"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/probe-common.cjs",
+      "bytes": 3965,
+      "sha256": "6038fe67ee0d33f668a29bcf8fa06593de420ba4cf2dec824859ec98f5343430"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/run-all.cjs",
+      "bytes": 1716,
+      "sha256": "0757e9d3a2c5cb464044b2e90ebca87b8f10e34d2a10938782cf5dc6a62ee53f"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/run-summary.json",
+      "bytes": 1073,
+      "sha256": "27a90594a9712a896c6b88d4c5a77e3bb6f10098852e6d1d6d94d9316318f2d3"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/shapes-25000-rows.jsonl",
+      "bytes": 8610892,
+      "sha256": "437a14e7d6c9b4fc777f70f33828bd98502862935f9ec36eb5a136f2242a4404"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/shapes-25000-summary.json",
+      "bytes": 2230,
+      "sha256": "43f5a85ca72521230a100429972e4dd95f263a8b368cf5d2df2f16cc431beefa"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/shapes-25000.cjs",
+      "bytes": 3779,
+      "sha256": "03f46948a420a3fefccfe60eaba96dbcc666a7288f3fc4871858976e0eb0c3a5"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/shapes-25000.stderr.log",
+      "bytes": 244091,
+      "sha256": "21d87c0d91e02af6500413988fba604affcef2dab40bdd9967fb3b34ce65b5d5"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/spec-followup/shapes-25000.stdout.log",
+      "bytes": 2230,
+      "sha256": "43f5a85ca72521230a100429972e4dd95f263a8b368cf5d2df2f16cc431beefa"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/start-fixtures.py",
+      "bytes": 1947,
+      "sha256": "ad693b1e8677e1cca202d8f76c92d011f5bd25be7f568d6081d2d07ff909766b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/start-wsu.py",
+      "bytes": 2521,
+      "sha256": "6c50ebf1d9480370b489575375f7c447d690def3a193226d4fc5e96403804e8e"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/tooling-full.log",
+      "bytes": 3363,
+      "sha256": "3fe54c094f58324d334ac3e09a52c9c1a70041efeb9fef6aa3b87739cb7c4017"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade/reviewed-upgrade.cjs",
+      "bytes": 1311,
+      "sha256": "4a82dcd6505af03eaf2ec6b9801c96256d0196afd0acc2430d0dfddc4a1872d7"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade--initialize-only.log",
+      "bytes": 6991,
+      "sha256": "aff588f22c717a58c64b073ae3302d2d24446a2b350765990011de8184cd42db"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade--maintenance-indexes-ensure.log",
+      "bytes": 13331,
+      "sha256": "158200ed3ecf35ef9a26952f84744a79630d04ea88787fba04a44aaaa2cb6dbb"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade--maintenance-indexes-inspect.log",
+      "bytes": 13332,
+      "sha256": "dc7a663c6fb750bcc654e82fbcccf57ecdbe7facb9128b1be1cf67d61ec79dd1"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-candidate-probe.log",
+      "bytes": 152,
+      "sha256": "8e01d4a55c08810c5ac005e7f6d1c182917e2e888aa57a6e778d33e2369cfd09"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-candidate-restarted-probe.log",
+      "bytes": 152,
+      "sha256": "8e01d4a55c08810c5ac005e7f6d1c182917e2e888aa57a6e778d33e2369cfd09"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-candidate-restarted-runtime.log",
+      "bytes": 2585,
+      "sha256": "77eb64464205e7b96ed0520eaac0bd4250f8cfc4f21cfa4624b25abab1a0a929"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-candidate-restarted-stop.json",
+      "bytes": 566,
+      "sha256": "f44bfe9f67067eb24c653f17b2be714608e71259520d728ef407b5d9d3c666fa"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-candidate-runtime.log",
+      "bytes": 1829,
+      "sha256": "b4a45b42c9e0f781660d50fcc960a0c8b12debc7be5571a7a6de8328f51296e6"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-candidate-stop.json",
+      "bytes": 567,
+      "sha256": "8ffbd9bbe722615ae27349f9699c41df616dd3da7a7b3700938bca2a033e9770"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-partial-failure.log",
+      "bytes": 124,
+      "sha256": "db288474c58e7aa9d6a71dfbdf99260ebe918f00aa98b4489ec7ce5ae3473dd4"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-restore-source.log",
+      "bytes": 21427,
+      "sha256": "a19b6a00f24653243ba3199d1144cf880450a189c25ba989110747c5e6c95071"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-restored-checkpoint.log",
+      "bytes": 21427,
+      "sha256": "033fb232f8b67420d93f846f29ce7d134c7ee953d377aa57f631f5196a004e71"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/upgrade-review-index.log",
+      "bytes": 70,
+      "sha256": "2d7533797e43a3137f54a35c67dc660281d406de98a028f680660e63848d7217"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/view-preflights.cjs",
+      "bytes": 1169,
+      "sha256": "9996792073ad0c3d14a52d0a6dcc6a158cf340ab11a17e4f4c5cd9d04425d470"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/view-preflights.json",
+      "bytes": 20587,
+      "sha256": "371d33dbab009f7301cf8e94ec1905b6fe0054ba5da3413d2a3e66ffb4380890"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/view-preflights.log",
+      "bytes": 1809,
+      "sha256": "558ef39e0c4605d5ca64bfa13430a638ab8f4e388ba357d5b03b52e512689e18"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/write-accounting.py",
+      "bytes": 7322,
+      "sha256": "ac256e34af86b7670eb3c8740dadcc8b04d8354411b9646a40743268632047db"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-fixtures-start.json",
+      "bytes": 4536,
+      "sha256": "6a9e444914ba1a988af429545cb303f908bc0b01bc735769f2215855ec50cd25"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-installed-closure.json",
+      "bytes": 122533,
+      "sha256": "953514d25e34733f35b7a6351bb7f0be1cb0d0492ea145178f3ee9642327c8d1"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-installed-closure.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-installed-dependency-graph.json",
+      "bytes": 139,
+      "sha256": "f0e64e23c64742ce5e09971996687f7843cf028acdb4250dff58e0bbf4a64d0b"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-installed-dependency-graph.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-migrations.diff",
+      "bytes": 122543,
+      "sha256": "654c5ae10f2237741d06ac295d9015046b1e861d06d33fb6c041e1c4091b29ec"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-pack.json",
+      "bytes": 37916,
+      "sha256": "6ac9a369acfa34d954bfcd6fc14fbcdba3c5c9e6f562743b4955d2b7dcb2c858"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-pdf-incoming-final.log",
+      "bytes": 1149,
+      "sha256": "1d47bd8555efe09e66e665a0c123f4f811db2de8fee309deae13dfa8f26dfe81"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-pdf-incoming.log",
+      "bytes": 1568,
+      "sha256": "9c9c734b410d4dd28d145defd8bf94d965e1cd019537838b94e01c7d298ab3f4"
+    },
+    {
+      "path": ".tmp/sails-retirement/final-review-r20/wsu-unit.log",
+      "bytes": 44307,
+      "sha256": "e13becf3e8cc51f62b7250a8502f1fe30eb0c61151b756d9700836e5d33dcf17"
+    }
+  ],
+  "cleanup": {
+    "at": "2026-10-26T02:05:21.418341+00:00",
+    "containersRemoved": 12,
+    "attachedAnonymousVolumesRemoved": 9,
+    "imagesRemoved": [
+      "sha256:0cb517fa72cbf846ac97712bb052c4618ce908db168f62a0085c08cdf9012a5a"
+    ],
+    "remainingContainers": [],
+    "remainingVolumes": [],
+    "remainingCustomNetworks": [],
+    "remainingOwnedImages": [],
+    "ownedDaemonsStopped": [
+      {
+        "pid": 137291,
+        "command": "dockerd --data-root /mnt/docker-storage/sr-p7-isolated --exec-root /run/sr-r20/docker --pidfile /run/sr-r20/docker.pid --host unix:///run/sr-r20/docker.sock --containerd /run/sr-r20/containerd.sock --containerd-namespace sr-p7-isolated-moby --containerd-plugins-namespace sr-p7-isolated-plugins.moby --bridge=none --iptables=false --ip-masq=false ",
+        "stopped": true
+      },
+      {
+        "pid": 137093,
+        "command": "containerd --root /mnt/docker-storage/sr-p7-isolated/containerd --state /run/sr-r20/containerd --address /run/sr-r20/containerd.sock ",
+        "stopped": true
+      }
+    ],
+    "commands": [
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "ps",
+          "-aq",
+          "--filter",
+          "label=sr.review=r20"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "image",
+          "ls",
+          "-q",
+          "--filter",
+          "label=sr.review=r20"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "ps",
+          "-aq"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "ps",
+          "-aq",
+          "--filter",
+          "label=sr.diagnostic=r20-spec-drain"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "volume",
+          "ls",
+          "-q"
+        ],
+        "exitCode": 0,
+        "stdout": "0c32e093d94e5a26b4c6a3e31e969596c5be69eda4e506653713f357e7959d05\n42ef6c18c21c2e3845866139888ef9aa0ca581e18a0402adb40a9d315c8c56fe\n4217f40e1f63f8c3c5e88fba8f94052b8b60d04371520d7f938301b842f2b27e\n199615598c438665a9fa01646227ecba11b8461ab43cd0ad9c7223f862111255\na14f03cac159c5019b7253061b62a3e64cdc8ac65afb5fbe8190dd7a928afb30\nbcee8c7c82ca1f31a18bd24e2ba798fb9abdacf5270445f6f80a155cc116a28f\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "network",
+          "ls",
+          "--format",
+          "{{.Name}}"
+        ],
+        "exitCode": 0,
+        "stdout": "host\nnone\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "image",
+          "ls",
+          "-q",
+          "--filter",
+          "label=sr.review=r20"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "volume",
+          "rm",
+          "0c32e093d94e5a26b4c6a3e31e969596c5be69eda4e506653713f357e7959d05"
+        ],
+        "exitCode": 0,
+        "stdout": "0c32e093d94e5a26b4c6a3e31e969596c5be69eda4e506653713f357e7959d05\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "volume",
+          "rm",
+          "42ef6c18c21c2e3845866139888ef9aa0ca581e18a0402adb40a9d315c8c56fe"
+        ],
+        "exitCode": 0,
+        "stdout": "42ef6c18c21c2e3845866139888ef9aa0ca581e18a0402adb40a9d315c8c56fe\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "volume",
+          "rm",
+          "4217f40e1f63f8c3c5e88fba8f94052b8b60d04371520d7f938301b842f2b27e"
+        ],
+        "exitCode": 0,
+        "stdout": "4217f40e1f63f8c3c5e88fba8f94052b8b60d04371520d7f938301b842f2b27e\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "volume",
+          "rm",
+          "199615598c438665a9fa01646227ecba11b8461ab43cd0ad9c7223f862111255"
+        ],
+        "exitCode": 0,
+        "stdout": "199615598c438665a9fa01646227ecba11b8461ab43cd0ad9c7223f862111255\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "volume",
+          "rm",
+          "a14f03cac159c5019b7253061b62a3e64cdc8ac65afb5fbe8190dd7a928afb30"
+        ],
+        "exitCode": 0,
+        "stdout": "a14f03cac159c5019b7253061b62a3e64cdc8ac65afb5fbe8190dd7a928afb30\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "volume",
+          "rm",
+          "bcee8c7c82ca1f31a18bd24e2ba798fb9abdacf5270445f6f80a155cc116a28f"
+        ],
+        "exitCode": 0,
+        "stdout": "bcee8c7c82ca1f31a18bd24e2ba798fb9abdacf5270445f6f80a155cc116a28f\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "docker",
+          "--host",
+          "unix:///run/sr-r20/docker.sock",
+          "volume",
+          "ls",
+          "-q"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "sudo",
+          "-n",
+          "kill",
+          "-TERM",
+          "137291"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "sudo",
+          "-n",
+          "kill",
+          "-TERM",
+          "137093"
+        ],
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "protectedSystemDaemons": [
+      {
+        "pid": 792,
+        "alive": true,
+        "command": "/usr/bin/containerd "
+      },
+      {
+        "pid": 976,
+        "alive": true,
+        "command": "/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock "
+      }
+    ],
+    "finalDaemonLogs": [
+      {
+        "path": ".tmp/sails-retirement/final-review-r20/docker.log",
+        "sha256": "74e586638503ad839f03d4fad25d0c118f30bacbb098acd74378515d1fb80c6c"
+      },
+      {
+        "path": ".tmp/sails-retirement/final-review-r20/containerd.log",
+        "sha256": "1ac351c216add9fd24c9925022c5d87c7ec6cc2488c3693669e46d24ab904b8e"
+      }
+    ],
+    "priorPartialCleanup": {
+      "firstAttempt": "cleanup-first-attempt.log",
+      "reason": "Unprivileged SIGTERM of root-owned isolated daemons failed after successful resource removal; resumed with sudo -n after PID identity checks.",
+      "containersRemoved": [
+        "sr-r20-builder",
+        "sr-r20-wsu-s3",
+        "sr-r20-wsu-storage9",
+        "sr-r20-keycloak",
+        "sr-r20-mailpit",
+        "sr-r20-wsu-core9",
+        "sr-r20-wsu-solr",
+        "sr-r20-auth-mongo",
+        "sr-r20-wsu-storage8",
+        "sr-r20-wsu-core8",
+        "sr-r20-mongo",
+        "sr-r20-solr"
+      ],
+      "attachedVolumesRemoved": [
+        "9ea927934e5c5f28a37a2c2f293f88bcc674716b3713f6f0961cef82de3319d6",
+        "b9e10adb05897dea3fa13b2c3f952370a64979eb84a2b79bf5d9b8f289f60fb0",
+        "138611c8f8c8027e96675b9d341a3c38ada3386fefae3ec628d7095373665235",
+        "d5597050504d90e05fb8b85ccdf0b3be208988f244f6fa0b9d0035e807e851c9",
+        "470ab1f288b9ad951cd7db85e85d26fbfa6e477f1fc9adbf0565db8e21637716",
+        "1c1bc33599dcd714e1bd2fc436ecd26fff3322a59cdb0be97dcef9ea66bc2a7a",
+        "395318c3ae9e12abd1a657964e429ccd0538080299a9b5d200de4f04f34dadc7",
+        "c21b0e70ed13cbdd4d63b77e7e958e1a578d390ae494b866647e24ce29e48f9d",
+        "be11a0a73a46723b37df4bc87a5799c5c8b90226dfe7128fbe0f12a112cfe78f"
+      ],
+      "imageRemoved": "sha256:0cb517fa72cbf846ac97712bb052c4618ce908db168f62a0085c08cdf9012a5a",
+      "eventEvidence": "cleanup-first-attempt-events.jsonl"
+    },
+    "earlierFixtureOrphanVolumesRemoved": [
+      "0c32e093d94e5a26b4c6a3e31e969596c5be69eda4e506653713f357e7959d05",
+      "42ef6c18c21c2e3845866139888ef9aa0ca581e18a0402adb40a9d315c8c56fe",
+      "4217f40e1f63f8c3c5e88fba8f94052b8b60d04371520d7f938301b842f2b27e",
+      "199615598c438665a9fa01646227ecba11b8461ab43cd0ad9c7223f862111255",
+      "a14f03cac159c5019b7253061b62a3e64cdc8ac65afb5fbe8190dd7a928afb30",
+      "bcee8c7c82ca1f31a18bd24e2ba798fb9abdacf5270445f6f80a155cc116a28f"
+    ]
+  }
+}
