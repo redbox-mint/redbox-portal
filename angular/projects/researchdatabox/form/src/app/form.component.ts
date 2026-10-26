@@ -90,6 +90,7 @@ import {
   isRecordFormFingerprint,
   isMatchingLineagePaths,
   JSONataQuerySource,
+  JSONataQueryRuntimeContext,
   LineagePathsOptional,
 } from '@researchdatabox/sails-ng-common';
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
@@ -531,9 +532,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Set up the JSONata query source from component definitions
    */
   protected setupQuerySource() {
-    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, {
-      requestParams: this.requestParams(),
-    });
+    this.componentDefQuerySource = this.formService.getJSONataQuerySource(this.componentDefArr, this.getExpressionRuntimeContext());
+  }
+
+  public getExpressionRuntimeContext(): JSONataQueryRuntimeContext {
+    const serverContext = this.formDefMap?.formConfigMeta?.['runtimeContext'] as JSONataQueryRuntimeContext | undefined;
+    return { ...serverContext, requestParams: this.requestParams(), oid: this.trimmedParams.oid() };
   }
   /**
    *
@@ -1468,6 +1472,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               const createdOid = String(response?.oid);
               this.oid.set(createdOid);
               this.locationService.replaceState(this.buildEditRecordPath(createdOid));
+              this.setupQuerySource();
             }
             const oid = !_isEmpty(response?.oid) ? String(response?.oid) : this.trimmedParams.oid();
             const redirectLocation = isComplete

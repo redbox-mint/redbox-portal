@@ -1,5 +1,6 @@
 import {FormConfigFrame, handlebarsCompile, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
+import { FormService } from "../form.service";
 import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -56,6 +57,38 @@ describe('ContentComponent', () => {
       }]
     };
   });
+
+  for (const hasEditAccess of [undefined, false, true]) {
+    it(`renders the authoritative record-edit context (${hasEditAccess}) without changing view mode`, async () => {
+      const template = '{{#if runtimeContext.record.hasEditAccess}}<a href="/record/edit/{{oid}}">Edit</a>{{/if}}';
+      const formConfig: FormConfigFrame = {
+        name: 'testing', componentDefinitions: [
+          { name: 'edit_link', component: { class: 'ContentComponent', config: { content: {}, template } } }
+        ]
+      };
+      // Supply API metadata before child components render, as a real form load does.
+      const service = TestBed.inject(FormService);
+      const createMap = service.createFormComponentsMap.bind(service);
+      spyOn(service, 'createFormComponentsMap').and.callFake((config, paths, meta, mode, concurrency) =>
+        createMap(config, paths, {
+          ...meta,
+          runtimeContext: { user: { roles: ['Researcher', 'Admin'] }, record: { hasEditAccess } }
+        }, mode, concurrency));
+      const assets: DynamicAssetOptions = { entries: [{
+        urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-',
+        callable: (_keyString, _key, context) => {
+          lastTemplateContext = context;
+          return handlebarsCompile(template)(context);
+        }
+      }] };
+      const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, undefined, undefined, assets);
+      const link = (fixture.nativeElement as HTMLElement).querySelector('a');
+      expect(lastTemplateContext.runtimeContext.record.hasEditAccess).toBe(hasEditAccess);
+      expect(!!link).toBe(hasEditAccess === true);
+      expect(formComponent.editMode()).toBeFalse();
+      if (hasEditAccess) expect(link?.getAttribute('href')).toContain(formComponent.oid());
+    });
+  }
 
   it('should create component', () => {
     setUpDynamicAssets();

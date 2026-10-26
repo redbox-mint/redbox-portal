@@ -1157,9 +1157,9 @@ describe('RecordController getWorkflowSteps', () => {
       param: sinon
         .stub()
         .callsFake((name: string) => (name === 'name' ? 'dataset' : name === 'formName' ? 'dataset-draft' : undefined)),
-      query: { edit: 'true' },
+      query: { edit: 'true', roles: ['Superuser'], hasEditAccess: true, recordType: 'spoofed' },
       session: { branding: 'default' },
-      user: { username: 'alice', roles: [] },
+      user: { username: 'alice', roles: [{ name: 'Researcher' }, { name: 'Admin' }] },
     } as unknown as Sails.Req;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -1170,6 +1170,7 @@ describe('RecordController getWorkflowSteps', () => {
       formFingerprint: 'form-fingerprint-1',
       recordType: 'dataset',
       oid: null,
+      runtimeContext: { user: { roles: ['Researcher', 'Admin'] }, record: { type: 'dataset', hasEditAccess: false } },
     });
     // A create has no stored record, so its contract is the starting step the
     // save will apply, not the form object this route happened to load.
@@ -1181,6 +1182,59 @@ describe('RecordController getWorkflowSteps', () => {
     expect(createArgs[1]).to.deep.equal({ name: 'dataset' });
     expect(createArgs[2]).to.equal(form);
   });
+
+  for (const { editable, edit } of [{ editable: true, edit: 'true' }, { editable: true, edit: 'false' }, { editable: false, edit: 'false' }]) {
+    for (const apiVersion of ['1.0', '2.0']) {
+      it(`reports authoritative edit access ${editable} in mode ${edit} (API ${apiVersion})`, async function () {
+        const record = {
+          redboxOid: 'oid-1',
+          metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+          metadata: { title: 'Visible to both personas' },
+        };
+        const form = { name: 'dataset-draft', configuration: { type: 'dataset', componentDefinitions: [] } };
+        const forms = Reflect.get(globalThis, 'FormsService') as {
+          getForm: sinon.SinonStub;
+          buildClientFormConfig: sinon.SinonStub;
+          discoverValidationOperations: sinon.SinonStub;
+        };
+        const sails = Reflect.get(globalThis, 'sails');
+        sails.config = { reusableFormDefinitions: {} };
+        sails.services = { formpayloadprehydrateservice: { build: sinon.stub().resolves({}) } };
+        (controller.recordsService.getMeta as sinon.SinonStub).resolves(record);
+        (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(editable);
+        Object.assign(controller.recordsService, { getRecordFormFingerprint: sinon.stub().resolves('fingerprint') });
+        forms.getForm.resolves(form);
+        forms.buildClientFormConfig.resolves(form.configuration);
+        forms.discoverValidationOperations.resolves([]);
+        const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
+        types.get.returns(of({ name: 'dataset' }));
+        const req = {
+          param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : name === 'name' ? 'spoofed-route-type' : undefined),
+          query: { edit, apiVersion, roles: ['Admin'], recordType: 'spoofed', hasEditAccess: !editable, runtimeContext: { user: { roles: ['Admin'] }, record: { type: 'spoofed', hasEditAccess: !editable } } },
+          session: { branding: 'default' },
+          user: { username: 'reader-or-owner', roles: [{ name: 'Researcher' }] },
+        } as unknown as Sails.Req;
+        const json = sinon.stub().returnsThis();
+        const res = { status: sinon.stub().returnsThis(), json, set: sinon.stub() } as unknown as Sails.Res;
+
+        await controller.getForm(req, res);
+
+        expect(forms.buildClientFormConfig.firstCall.args[1]).to.equal(edit === 'true' ? 'edit' : 'view');
+        if (apiVersion === '1.0') {
+          // The native v1 contract returns only form data, without a metadata envelope.
+          expect(json.firstCall.args[0]).to.deep.equal(form.configuration);
+          return;
+        }
+        const meta = json.firstCall.args[0].meta;
+        expect(meta.runtimeContext).to.deep.equal({
+          user: { roles: ['Researcher'] },
+          record: { type: 'dataset', hasEditAccess: editable },
+        });
+        expect(meta.recordType).to.equal('dataset');
+        expect((controller.recordsService.hasEditAccess as sinon.SinonStub).calledOnce).to.equal(true);
+      });
+    }
+  }
 
   it('fingerprints the authoritative delivered form independently of target intent', async function () {
     const currentRec = {

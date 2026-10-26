@@ -1399,6 +1399,22 @@ describe('FormComponent', () => {
     });
   });
 
+  it('exposes server role names and the current oid independently of request parameters', async () => {
+    const { formComponent } = await createFormAndWaitForReady({ name: 'runtime-context', componentDefinitions: [
+      { name: 'title', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' } },
+    ] });
+    formComponent.formDefMap!.formConfigMeta = { runtimeContext: { user: { roles: ['Admin', 'Researcher'] } } };
+    formComponent.oid.set('saved-oid');
+    formComponent.refreshRequestParamsFromUrl('http://localhost/?oid=spoofed&rdmpOid=source-oid');
+    expect(formComponent.getExpressionRuntimeContext()).toEqual({
+      user: { roles: ['Admin', 'Researcher'] }, oid: 'saved-oid',
+      requestParams: { oid: 'spoofed', rdmpOid: 'source-oid' },
+    });
+    expect(formComponent.getQuerySource()!.runtimeContext).toEqual(formComponent.getExpressionRuntimeContext());
+    formComponent.oid.set('updated-oid');
+    expect(formComponent.getExpressionRuntimeContext()['oid']).toBe('updated-oid');
+  });
+
   it('returns an empty request-param map when the URL has no query string', () => {
     setWindowSearch('');
 
@@ -2518,7 +2534,11 @@ describe('FormComponent', () => {
     });
     const bus = TestBed.inject(FormComponentEventBus);
     const events: FormSaveSuccessEvent[] = [];
-    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => events.push(event));
+    const eventContextOids: unknown[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => {
+      events.push(event);
+      eventContextOids.push(formComponent.getQuerySource()?.runtimeContext?.['oid']);
+    });
 
     try {
       const location = fixture.debugElement.injector.get(Location);
@@ -2526,12 +2546,15 @@ describe('FormComponent', () => {
       (formComponent.recordService as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
       spyOn(formComponent.recordService, 'create').and.resolveTo(persistedSaveResponse({ oid: 'oid-123' }));
 
+      expect(formComponent.getQuerySource()?.runtimeContext?.['oid']).toBe('');
       await formComponent.saveForm({force: true});
 
       expect(formComponent.oid()).toBe('oid-123');
+      expect(formComponent.getQuerySource()!.runtimeContext?.['oid']).toBe('oid-123');
       expect(replaceStateSpy).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-123');
 
       expect(events.length).toBe(1);
+      expect(eventContextOids).toEqual(['oid-123']);
       expect(events[0].type).toEqual(FormComponentEventType.FORM_SAVE_SUCCESS);
       expect(events[0].savedData).toEqual({text_create: 'create value'});
       expect(events[0].oid).toEqual('oid-123');
