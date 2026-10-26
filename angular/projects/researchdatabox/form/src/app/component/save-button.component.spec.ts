@@ -59,6 +59,53 @@ describe('SaveButtonComponent', () => {
   });
 
 
+  for (const value of ['', 'ready']) {
+    it(`uses initial form validity when Save renders before a later ${value ? 'valid' : 'invalid'} field`, async () => {
+      const initSave = SaveButtonComponent.prototype.initComponent;
+      const initField = SimpleInputComponent.prototype.initComponent;
+      let renderedSave!: SaveButtonComponent;
+      let saveInitialized!: () => void;
+      let releaseField!: () => void;
+      const saveReady = new Promise<void>(resolve => { saveInitialized = resolve; });
+      const fieldReady = new Promise<void>(resolve => { releaseField = resolve; });
+      spyOn(SaveButtonComponent.prototype, 'initComponent').and.callFake(async function (this: SaveButtonComponent, entry) {
+        await initSave.call(this, entry);
+        renderedSave = this;
+        saveInitialized();
+      });
+      spyOn(SimpleInputComponent.prototype, 'initComponent').and.callFake(async function (this: SimpleInputComponent, entry) {
+        await fieldReady;
+        await initField.call(this, entry);
+      });
+      const creating = createFormAndWaitForReady({
+        name: 'save-before-fields', enabledValidationGroups: ['all'],
+        componentDefinitions: [
+          { name: 'save', component: { class: 'SaveButtonComponent', config: { targetStep: 'next', forceSave: true } } },
+          { name: 'answer', model: { class: 'SimpleInputModel', config: {
+            value, validators: [{ class: 'required' }],
+          } }, component: { class: 'SimpleInputComponent' } },
+        ],
+      }, { editMode: true });
+      await saveReady;
+      // A workflow button can render while a later field is still loading.
+      // Read its computed state before the FormGroup exists, without broadcasting.
+      expect(renderedSave.disabled()).toBeFalse();
+      releaseField();
+      const { fixture, formComponent } = await creating;
+      const valid = value !== '';
+      const save = formComponent.componentDefArr[0].component as SaveButtonComponent;
+      const saveForm = spyOn(formComponent, 'saveForm');
+      const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
+      expect(formComponent.form!.valid).toBe(valid);
+      expect(save.disabled()).toBe(!valid);
+      expect((fixture.nativeElement.querySelector('button') as HTMLButtonElement).disabled).toBe(!valid);
+      await save.save();
+      await fixture.whenStable();
+      expect(publish.calls.allArgs().filter(([event]) => event.type === 'form.save.requested').length).toBe(valid ? 1 : 0);
+      if (!valid) expect(saveForm).not.toHaveBeenCalled();
+    });
+  }
+
   for (const scenario of ['server action', 'local form', 'server field']) {
     it(`permits a different save after an action rejection, but keeps ${scenario} validation scoped`, async () => {
       const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });

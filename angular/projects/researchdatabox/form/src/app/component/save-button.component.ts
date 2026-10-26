@@ -35,8 +35,10 @@ export class SaveButtonComponent extends ButtonBaseComponent {
     if (!this.getFormComponent.editMode() || this.configuredDisabled()) return true;
     const dataStatusEvent = this.validationSignal();
     // The event bus does not replay validation broadcasts to newly created buttons.
-    // Use the form's current snapshot until the first broadcast is received.
-    const dataStatus = dataStatusEvent?.status ?? (this.getFormComponent.form ? this.getFormComponent.formGroupStatus() : undefined);
+    // Track the initial snapshot even before the FormGroup exists, so loading
+    // later fields invalidates the workflow button's cached fallback.
+    const initialStatus = this.getFormComponent.formGroupStatus();
+    const dataStatus = dataStatusEvent?.status ?? (this.getFormComponent.form ? initialStatus : undefined);
     const isSaving = this.formStateFacade.isSaving();
     const isValidationPending = this.formStateFacade.isValidationPending();
     const hasTargetStep = this.hasTargetStep();
