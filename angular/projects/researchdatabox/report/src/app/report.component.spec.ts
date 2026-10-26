@@ -263,6 +263,101 @@ describe('ReportComponent', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
+  for (const configPath of ['override', 'fallback']) {
+    for (const bounds of ['from-only', 'to-only', 'both']) {
+      it(`blocks ${bounds} requests with an invalid ${configPath} time zone and recovers after correction`, async () => {
+        const fixture = await readyReport();
+        const app = fixture.componentInstance;
+        const previousResult = app.reportResult;
+        const request = spyOn(reportService, 'getReportResult').and.callThrough();
+        const translate = spyOn(translationService, 't').and.callThrough();
+        const param = 'dateObjectModifiedRange';
+        if (configPath === 'override') {
+          app.dateParamTzByFilter = { [app.reportName]: { [param]: 'Australia/Sydny' } };
+        } else {
+          app.dateParamTz = 'Australia/Sydny';
+        }
+        app.filterParams = {};
+        if (bounds !== 'to-only') app.filterParams[param + '_fromDate'] = new Date(2028, 5, 20);
+        if (bounds !== 'from-only') app.filterParams[param + '_toDate'] = new Date(2028, 5, 21);
+        await app.filter();
+        await app.gotoPage(2);
+        fixture.detectChanges();
+        expect(request).not.toHaveBeenCalled();
+        expect(app.getParams()).toBeNull();
+        expect(app.getDownloadCSVUrl()).toBeNull();
+        expect(app.reportResult).toBe(previousResult);
+        expect(app.initTracker.resultsReturned).toBeTrue();
+        expect(fixture.nativeElement.querySelector('[role="alert"]').textContent)
+          .toContain('date filter time zone is not configured correctly');
+        expect(translate.calls.allArgs().some(args => args[0] === 'report-filter-invalid-timezone')).toBeTrue();
+        const download = fixture.nativeElement.querySelector('a[aria-disabled="true"]');
+        expect(download).not.toBeNull();
+        if (download) {
+          expect(download.hasAttribute('href')).toBeFalse();
+          const click = new MouseEvent('click', { cancelable: true });
+          download.dispatchEvent(click);
+          expect(click.defaultPrevented).toBeTrue();
+        }
+
+        if (configPath === 'override') {
+          app.dateParamTzByFilter[app.reportName][param] = 'Australia/Sydney';
+        } else {
+          app.dateParamTz = 'Australia/Sydney';
+        }
+        await app.filter();
+        await app.gotoPage(2);
+        fixture.detectChanges();
+        expect(app.dateRangeError).toBeNull();
+        expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+        expect(fixture.nativeElement.querySelector('a[aria-disabled="true"]')).toBeNull();
+        expect(request).toHaveBeenCalledTimes(2);
+        expect(request.calls.allArgs().map(args => args[1])).toEqual([1, 2]);
+        const params = app.getParams();
+        expect(request.calls.mostRecent().args[2]).toEqual(params);
+        const csv = new URL(app.getDownloadCSVUrl()!, 'https://example.invalid');
+        expect(Object.keys(params).length).toBe(bounds === 'both' ? 2 : 1);
+        for (const key of Object.keys(params)) {
+          expect(Number.isFinite(Date.parse(params[key]))).toBeTrue();
+          expect(csv.searchParams.get(key)).toBe(params[key]);
+        }
+      });
+    }
+  }
+
+  it('allows reports with no selected date bounds even when configured time zones are invalid', async () => {
+    const fixture = await readyReport();
+    const app = fixture.componentInstance;
+    app.dateParamTz = 'Invalid/Fallback';
+    app.dateParamTzByFilter = { [app.reportName]: { dateObjectModifiedRange: 'Invalid/Override' } };
+    app.filterParams = { title: 'research' };
+    const request = spyOn(reportService, 'getReportResult').and.callThrough();
+    await app.filter();
+    fixture.detectChanges();
+    expect(app.dateRangeError).toBeNull();
+    expect(request.calls.mostRecent().args[2]).toEqual({ title: 'research' });
+    expect(app.getDownloadCSVUrl()).toContain('title=research');
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('uses a valid filter override when an invalid fallback is unused, including by other unbounded filters', async () => {
+    const fixture = await readyReport();
+    const app = fixture.componentInstance;
+    app.dateParamTz = 'Invalid/Fallback';
+    app.dateParamTzByFilter = { [app.reportName]: { dateObjectModifiedRange: 'Australia/Sydney' } };
+    app.report.filter.push({ paramName: 'otherDate', type: 'date-range', property: 'otherDate', message: 'Other date' });
+    app.filterParams = { dateObjectModifiedRange_fromDate: new Date(2028, 5, 20) };
+    const request = spyOn(reportService, 'getReportResult').and.callThrough();
+    await app.filter();
+    fixture.detectChanges();
+    const params = { dateObjectModifiedRange_fromDate: '2028-06-19T14:00:00.000Z' };
+    expect(app.dateRangeError).toBeNull();
+    expect(request.calls.mostRecent().args[2]).toEqual(params);
+    expect(new URL(app.getDownloadCSVUrl()!, 'https://example.invalid').searchParams.get('dateObjectModifiedRange_fromDate'))
+      .toBe(params.dateObjectModifiedRange_fromDate);
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it('explains reversed ranges and allows filtering and downloading after correction', async () => {
     const fixture = await readyReport();
     const app = fixture.componentInstance;

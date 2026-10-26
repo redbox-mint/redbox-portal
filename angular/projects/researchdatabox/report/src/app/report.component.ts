@@ -169,9 +169,14 @@ export class ReportComponent extends BaseComponent implements RecordSource {
           '{{filter}}: enter valid dates in dd/mm/yyyy format before filtering or downloading.',
           { filter: this.translationService.t(filter.message) });
       }
-      if (hasBound(from) && hasBound(to) &&
-        this.getDateRangeBound(from, filter, 'floor').toMillis() >
-        this.getDateRangeBound(to, filter, 'ceil').toMillis()) {
+      const fromBound = hasBound(from) ? this.getDateRangeBound(from, filter, 'floor') : null;
+      const toBound = hasBound(to) ? this.getDateRangeBound(to, filter, 'ceil') : null;
+      if ((fromBound && !fromBound.isValid) || (toBound && !toBound.isValid)) {
+        return this.translationService.t('report-filter-invalid-timezone',
+          '{{filter}}: the date filter time zone is not configured correctly. Contact your administrator before filtering or downloading.',
+          { filter: this.translationService.t(filter.message) });
+      }
+      if (fromBound && toBound && fromBound.toMillis() > toBound.toMillis()) {
         return this.translationService.t('report-filter-reversed-date-range',
           '{{filter}}: the From date must be on or before the To date before filtering or downloading.',
           { filter: this.translationService.t(filter.message) });
