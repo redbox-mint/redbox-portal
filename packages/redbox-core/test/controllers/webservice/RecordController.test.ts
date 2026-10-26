@@ -2096,7 +2096,10 @@ describe('Webservice RecordController body source', () => {
         });
 
         await testCase.invoke(readRequest(testCase.name === 'list'));
-        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({ status: 404 });
+        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({
+          status: 404,
+          ...(testCase.name === 'download' ? { displayErrors: [{ code: 'error-404-heading' }] } : {}),
+        });
         expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
         expect(JSON.stringify(sendResp.firstCall.args[2]), testCase.name).not.to.include('must-not-return');
 
@@ -2110,7 +2113,10 @@ describe('Webservice RecordController body source', () => {
         sendResp.resetHistory();
 
         await testCase.invoke(readRequest(testCase.name === 'list'));
-        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({ status: 403 });
+        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({
+          status: 403,
+          ...(testCase.name === 'download' ? { displayErrors: [{ code: 'edit-error-no-permissions' }] } : {}),
+        });
         expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
         expect(JSON.stringify(sendResp.firstCall.args[2]), testCase.name).not.to.include('must-not-return');
       });
