@@ -83,6 +83,19 @@ export interface SolrSearchConfig {
     };
 }
 
+// A fresh namespace leaves previously indexed field/DocValues layouts intact.
+// Index jobs must wait for verified schema initialization before sending these.
+// Existing documents require index-only reprocessing.
+export const SOLR_EXACT_ACL_VERSION = '1';
+export const SOLR_EXACT_ACL_FIELDS: SolrFieldDefinition[] = [
+    { name: 'redbox_acl2_view', type: 'string', indexed: true, stored: true, multiValued: true, docValues: false },
+    { name: 'redbox_acl2_edit', type: 'string', indexed: true, stored: true, multiValued: true, docValues: false },
+    { name: 'redbox_acl2_view_roles', type: 'string', indexed: true, stored: true, multiValued: true, docValues: false },
+    { name: 'redbox_acl2_edit_roles', type: 'string', indexed: true, stored: true, multiValued: true, docValues: false },
+    { name: 'redbox_acl2_brand', type: 'string', indexed: true, stored: true, multiValued: false, docValues: false },
+    { name: 'redbox_acl2_version', type: 'string', indexed: true, stored: true, multiValued: false, docValues: false }
+];
+
 export const solr: SolrSearchConfig = {
     createOrUpdateJobName: 'SolrSearchService-CreateOrUpdateIndex',
     deleteJobName: 'SolrSearchService-DeleteFromIndex',
@@ -97,6 +110,7 @@ export const solr: SolrSearchConfig = {
             },
             schema: {
                 'add-field': [
+                    ...SOLR_EXACT_ACL_FIELDS.map(field => ({ ...field })),
                     { name: 'full_text', type: 'text_general', indexed: true, stored: false, multiValued: true },
                     { name: 'title', type: 'text_general', indexed: true, stored: true, multiValued: false },
                     { name: 'description', type: 'text_general', indexed: true, stored: true, multiValued: false },

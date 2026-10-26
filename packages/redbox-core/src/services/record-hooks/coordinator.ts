@@ -36,6 +36,11 @@ export interface RecordHookPreResult {
   terminalCause?: unknown;
 }
 
+/** Server-owned save operation, independent of the hook phase being invoked. */
+export interface RecordHookPreContext {
+  readonly operation: 'create' | 'update' | 'delete';
+}
+
 export interface RecordHookPostSyncResult {
   record: AnyRecord;
   response: AnyRecord;
@@ -264,9 +269,14 @@ export class RecordHookCoordinator {
   ): Promise<RecordHookPreResult> {
     // Each hook receives the record produced by the previous one.
     let currentRecord = this.normalizeRecord(record);
+    const operationMode = this.options.operation.mode;
+    const hookContext: RecordHookPreContext = Object.freeze({
+      operation: operationMode === 'onCreate' ? 'create' : operationMode === 'onDelete' ? 'delete' : 'update',
+    });
     const actions = this.actions(recordType, mode, 'pre', hook => {
       const fn = this.options.resolveHook(hook, mode, 'pre');
-      return fn(oid, currentRecord, hookOptions(hook), user);
+      // Keep the fifth response slot aligned with postSync; pre has no response.
+      return fn(oid, currentRecord, hookOptions(hook), user, undefined, hookContext);
     });
     const context = this.phaseContext(mode, 'pre');
     const outcome = await Effect.runPromise(
