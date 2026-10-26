@@ -3,7 +3,7 @@ import { RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { TestBed } from '@angular/core/testing';
 import { FormConfigFrame, jsonataCompile } from '@researchdatabox/sails-ng-common';
-import { FormService } from '../form.service';
+import { FormComponentsMap, FormService } from '../form.service';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { ContentComponent } from './content.component';
 import { SimpleInputComponent } from './simple-input.component';
@@ -138,6 +138,104 @@ describe('Expression runtime context integration', () => {
     expect(formComponent.form!.get('title')!.value).toBe('Second');
     expect(formComponent.getQuerySource()!.runtimeContext).toEqual({ ...authority, oid: 'second-oid', requestParams: {} });
     fixture.destroy();
+  });
+
+  for (const outcome of ['resolves', 'rejects']) {
+    it(`keeps the newer record and authority when an earlier download ${outcome} last`, async () => {
+      const config = (value: string): FormConfigFrame => ({ name: value, componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel', config: { value } }, component: { class: 'SimpleInputComponent' } },
+      ] });
+      const { fixture, formComponent } = await createFormAndWaitForReady(config('Initial'), { oid: 'initial-oid' });
+      const service = TestBed.inject(FormService);
+      const paths = service.buildLineagePaths({ angularComponents: [], dataModel: [], formConfig: ['componentDefinitions'], layout: [] });
+      const older = await service.createFormComponentsMap(config('Older'), paths, {
+        runtimeContext: { user: { roles: ['Researcher'] }, record: { type: 'rdmp', hasEditAccess: false } },
+      });
+      const authority = { user: { roles: ['Admin'] }, record: { type: 'dataset', hasEditAccess: true } };
+      const newer = await service.createFormComponentsMap(config('Newer'), paths, { runtimeContext: authority });
+      let release!: (map: FormComponentsMap) => void;
+      let reject!: (error: Error) => void;
+      const pending = new Promise<FormComponentsMap>((resolve, fail) => { release = resolve; reject = fail; });
+      spyOn(service, 'downloadFormComponents').and.callFake(oid => oid === 'older-oid' ? pending : Promise.resolve(newer));
+      formComponent.oid.set('older-oid');
+      const loadingOlder = formComponent.downloadAndCreateFormComponents();
+      expect(formComponent.componentDefArr).toEqual([]);
+      formComponent.refreshRequestParamsFromUrl('http://localhost/?source=newer');
+      expect(formComponent.getQuerySource()).toBeUndefined();
+      formComponent.oid.set('newer-oid');
+      await formComponent.downloadAndCreateFormComponents();
+      if (outcome === 'resolves') release(older);
+      else reject(new Error('Superseded download failed'));
+      await expectAsync(loadingOlder).toBeResolved();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(formComponent.form!.get('title')!.value).toBe('Newer');
+      expect(formComponent.getExpressionRuntimeContext()).toEqual({ ...authority, oid: 'newer-oid', requestParams: { source: 'newer' } });
+      expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(1);
+      fixture.destroy();
+    });
+  }
+
+  it('does not reconnect a replaced field that finishes initializing after the next record loads', async () => {
+    const config = (value: string): FormConfigFrame => ({ name: value, componentDefinitions: [
+      { name: 'title', model: { class: 'SimpleInputModel', config: { value } }, component: { class: 'SimpleInputComponent' } },
+    ] });
+    const { fixture, formComponent } = await createFormAndWaitForReady(config('Initial'), { oid: 'initial-oid' });
+    const service = TestBed.inject(FormService);
+    const paths = service.buildLineagePaths({ angularComponents: [], dataModel: [], formConfig: ['componentDefinitions'], layout: [] });
+    const older = await service.createFormComponentsMap({ ...config('Older'), componentDefinitions: [
+      ...config('Older').componentDefinitions!,
+      { name: 'oldExtra', model: { class: 'SimpleInputModel', config: { value: 'Old extra' } }, component: { class: 'SimpleInputComponent' } },
+    ] }, paths);
+    const newer = await service.createFormComponentsMap(config('Newer'), paths);
+    spyOn(service, 'downloadFormComponents').and.callFake(oid => Promise.resolve(oid === 'older-oid' ? older : newer));
+    let release!: () => void;
+    let started!: () => void;
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    const initializing = new Promise<void>(resolve => { started = resolve; });
+    const init = SimpleInputComponent.prototype.initComponent;
+    spyOn(SimpleInputComponent.prototype, 'initComponent').and.callFake(async function(this: SimpleInputComponent, entry) {
+      await init.call(this, entry);
+      if (entry?.model?.formControl?.value === 'Older') {
+        started();
+        await pending;
+      }
+    });
+    formComponent.oid.set('older-oid');
+    const loadingOlder = formComponent.downloadAndCreateFormComponents();
+    await initializing;
+    formComponent.oid.set('newer-oid');
+    await formComponent.downloadAndCreateFormComponents();
+    release();
+    await loadingOlder;
+    const staleValues: unknown[] = [];
+    const subscription = TestBed.inject(FormComponentEventBus).select$('field.value.changed').subscribe(event => staleValues.push(event.value));
+    older.components[0].model!.formControl!.setValue('Stale field change');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(staleValues).toEqual([]);
+    expect(formComponent.form!.get('title')!.value).toBe('Newer');
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(1);
+    subscription.unsubscribe();
+    fixture.destroy();
+  });
+
+  it('discards a form download that completes after its host is destroyed', async () => {
+    const config: FormConfigFrame = { name: 'pending-record', componentDefinitions: [
+      { name: 'title', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' } },
+    ] };
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, { oid: 'initial-oid' });
+    const service = TestBed.inject(FormService);
+    const downloaded = await service.createFormComponentsMap(config, service.buildLineagePaths({ angularComponents: [], dataModel: [], formConfig: ['componentDefinitions'], layout: [] }));
+    let release!: (map: FormComponentsMap) => void;
+    const pending = new Promise<FormComponentsMap>(resolve => { release = resolve; });
+    spyOn(service, 'downloadFormComponents').and.returnValue(pending);
+    const loading = formComponent.downloadAndCreateFormComponents();
+    fixture.destroy();
+    release(downloaded);
+    await expectAsync(loading).toBeResolved();
+    expect(formComponent.formDefMap).toBeUndefined();
+    expect(formComponent.componentDefArr).toEqual([]);
   });
 
   it('publishes the created OID to save-success observers and later field expressions', async () => {

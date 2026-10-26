@@ -349,6 +349,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   subMaps: Record<string, Subscription> = {};
 
   private isDestroyed = false;
+  private formLoadRevision = 0;
   private readonly destroy$ = new Subject<void>();
 
   /**
@@ -469,66 +470,80 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public async downloadAndCreateFormComponents(formConfig?: FormConfigFrame): Promise<void> {
+    if (this.isDestroyed) return;
+    const revision = ++this.formLoadRevision;
+    const isCurrentLoad = () => !this.isDestroyed && revision === this.formLoadRevision;
     this.clearLoadedForm();
-    if (!formConfig) {
-      this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
-      this.formDefMap = await this.formService.downloadFormComponents(
-        this.trimmedParams.oid(),
-        this.trimmedParams.recordType(),
-        this.editMode(),
-        this.trimmedParams.formName(),
-        this.modulePaths
-      );
+    try {
+      let formDefMap: FormComponentsMap;
+      if (!formConfig) {
+        this.loggerService.info(`${this.logName}: creating form definition by downloading config`);
+        formDefMap = await this.formService.downloadFormComponents(
+          this.trimmedParams.oid(),
+          this.trimmedParams.recordType(),
+          this.editMode(),
+          this.trimmedParams.formName(),
+          this.modulePaths
+        );
+      } else {
+        this.loggerService.info(`${this.logName}: creating form definition from provided config`);
+        const parentLineagePaths = this.formService.buildLineagePaths({
+          angularComponents: [],
+          dataModel: [],
+          formConfig: ['componentDefinitions'],
+          layout: [],
+        });
+        formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
+      }
+      if (!isCurrentLoad()) return;
+      this.formDefMap = formDefMap;
       // Store the form recordType if the recordType was not provided by the page.
-      if (!this.trimmedParams.recordType() && this.formDefMap?.formConfig?.type) {
-        this.recordType.set(this.formDefMap?.formConfig?.type);
+      if (!this.trimmedParams.recordType() && formDefMap.formConfig?.type) {
+        this.recordType.set(formDefMap.formConfig.type);
       }
-    } else {
-      this.loggerService.info(`${this.logName}: creating form definition from provided config`);
-      const parentLineagePaths = this.formService.buildLineagePaths({
-        angularComponents: [],
-        dataModel: [],
-        formConfig: ['componentDefinitions'],
-        layout: [],
-      });
-      this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
-    }
-    this.componentDefArr = this.formDefMap.components;
-    if (this.shouldRefreshDebugSnapshots()) {
-      this.refreshTranslatedConfigDebugInfo(true);
-      if (this.shouldRefreshComponentDebugInfo()) {
-        this.refreshComponentDebugInfo();
+      this.componentDefArr = formDefMap.components;
+      if (this.shouldRefreshDebugSnapshots()) {
+        this.refreshTranslatedConfigDebugInfo(true);
+        if (this.shouldRefreshComponentDebugInfo()) {
+          this.refreshComponentDebugInfo();
+        }
       }
-    }
-    const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
-    if (!compContainerRef) {
-      throw new Error(`${this.logName}: No component container found. Cannot load components.`);
-    }
-    for (const componentDefEntry of this.componentDefArr) {
-      const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
-      componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
-      componentRef.changeDetectorRef.detectChanges();
+      const compContainerRef: ViewContainerRef | undefined = this.componentsContainer;
+      if (!compContainerRef) {
+        throw new Error(`${this.logName}: No component container found. Cannot load components.`);
+      }
+      for (const componentDefEntry of this.componentDefArr) {
+        const componentRef = compContainerRef.createComponent(FormBaseWrapperComponent);
+        componentRef.instance.defaultComponentConfig = this.formDefMap?.formConfig?.defaultComponentConfig;
+        componentRef.changeDetectorRef.detectChanges();
 
-      await componentRef.instance.initWrapperComponent(componentDefEntry);
-    }
-    // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
-    await this.createFormGroup();
-    this.captureLoadedRecordBaseline();
-    // Dispatch load success action (R16.2, AC53)
-    this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
+        await componentRef.instance.initWrapperComponent(componentDefEntry);
+        if (!isCurrentLoad()) return;
+      }
+      // Moved the creation of the FormGroup to after all components are created, allows for components that have custom management of their children components.
+      await this.createFormGroup();
+      if (!isCurrentLoad()) return;
+      this.captureLoadedRecordBaseline();
+      // Dispatch load success action (R16.2, AC53)
+      this.store.dispatch(FormActions.loadInitialDataSuccess({ data: this.form?.value || {} }));
 
-    // Build the initial query source for component definitions
-    this.setupQuerySource();
-    // Initialize subscriptions to event bus
-    this.initSubscriptions();
-    // Behaviours subscribe before the ready event is published. This ordering is
-    // deliberate and is the key runtime contract for form-level automation in v1.
-    this.behaviourManager.bind(this);
-    // Publish the form definition ready event
-    this.eventBus.publish(createFormDefinitionReadyEvent({}));
-    // Finally set the flag indicating components are loaded
-    this.componentsLoaded.set(true);
+      // Build the initial query source for component definitions
+      this.setupQuerySource();
+      // Initialize subscriptions to event bus
+      this.initSubscriptions();
+      // Behaviours subscribe before the ready event is published. This ordering is
+      // deliberate and is the key runtime contract for form-level automation in v1.
+      this.behaviourManager.bind(this);
+      // Publish the form definition ready event
+      this.eventBus.publish(createFormDefinitionReadyEvent({}));
+      // Finally set the flag indicating components are loaded
+      this.componentsLoaded.set(true);
+    } catch (error) {
+      // A superseded request must not report failure against the replacement form.
+      if (isCurrentLoad()) throw error;
+    }
   }
+
   private clearLoadedForm(): void {
     // A reused form host must release the previous record before loading another.
     this.componentsLoaded.set(false);
@@ -538,6 +553,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.componentsContainer?.clear();
     this.form = undefined;
     this.formDefMap = undefined;
+    this.componentDefArr = [];
     this.componentDefQuerySource = undefined;
   }
 
