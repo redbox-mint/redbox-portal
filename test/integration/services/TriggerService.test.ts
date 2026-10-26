@@ -59,7 +59,10 @@ describe('The TriggerService', function () {
                 expect(err.name).to.eq("RBValidationError");
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
                 expect(err.displayErrors).to.eql([{
+                    code: "field-validation",
+                    title: "@record-save-record-validation-failed",
                     detail: "Title is required Submission format is invalid",
+                    source: {pointer: "/testing-field"},
                     meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
                 }]);
             }
@@ -89,7 +92,10 @@ describe('The TriggerService', function () {
                 expect(err.name).to.eq("RBValidationError");
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
                 expect(err.displayErrors).to.eql([{
+                    code: "field-validation",
+                    title: "@record-save-record-validation-failed",
                     detail: "Title is required Submission format is invalid",
+                    source: {pointer: "/testing-field"},
                     meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
                 }]);
             }
@@ -131,7 +137,10 @@ describe('The TriggerService', function () {
                 expect(err.name).to.eq("RBValidationError");
                 expect(err.message).to.include(`Failed validating field using regex record ${record} options ${options}`);
                 expect(err.displayErrors).to.eql([{
+                    code: "field-validation",
+                    title: "@record-save-record-validation-failed",
                     detail: "Title is required Submission format is invalid",
+                    source: {pointer: "/testing-field"},
                     meta: {errorLanguageCode: "invalid-format", fieldLanguageCode: "title-required"}
                 }]);
             }

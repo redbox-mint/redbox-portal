@@ -20,13 +20,13 @@
 import { QueueService } from '../QueueService';
 import { SearchService } from '../SearchService';
 import type { SolrSearchConfig, SolrCoreConfig, SolrCoreOptions, SolrCoreSchema, SolrFieldDefinition, SolrCopyFieldDefinition } from '../config/solr.config';
+import { SOLR_EXACT_ACL_FIELDS, SOLR_EXACT_ACL_VERSION } from '../config/solr.config';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
 import { RoleModel } from '../model/storage/RoleModel';
 import { RecordModel } from '../model/storage/RecordModel';
 import { SolrDocument } from '../model/SolrDocument';
 import { Services as services } from '../CoreService';
-import { RecordsService } from '../RecordsService';
 import { DateTime } from 'luxon';
 
 type SolrOptions = SolrCoreOptions;
@@ -69,6 +69,18 @@ function normalizeSolrDateValue(value: unknown): unknown {
   const date = DateTime.fromISO(value, { zone: 'utc', setZone: true });
   return date.isValid ? date.toUTC().toISO() ?? value : value;
 }
+
+function exactAclValues(value: unknown): string[] {
+  return (Array.isArray(value) ? value : [value]).filter((entry): entry is string => typeof entry === 'string');
+}
+
+// These names may have incompatible persisted DocValues from the first rollout.
+// Leave their schema untouched and never send them in newly indexed documents.
+const RETIRED_EXACT_ACL_FIELD_NAMES = [
+  'authorization_view_exact', 'authorization_edit_exact',
+  'authorization_viewRoles_exact', 'authorization_editRoles_exact',
+  'metaMetadata_brandId_exact', 'authorization_exact_version'
+];
 
 class SolrClient {
   options: SolrOptions;
@@ -139,6 +151,7 @@ export namespace Services {
   type PreIndexFlattenSpecialConfig = { field: string; source: string; dest?: string; options?: Record<string, unknown> };
   type SolrSchema = {
     fields?: SolrFieldDefinition[];
+    fieldTypes?: Array<{ name: string; class: string }>;
     dynamicFields?: SolrFieldDefinition[];
     copyFields?: SolrCopyFieldDefinition[];
   };
@@ -164,6 +177,7 @@ export namespace Services {
     private clients: {
       [key: string]: SolrClient;
     } = {};
+    private exactAclSchemaReady = new Set<string>();
 
     private initialization?: Promise<void>;
 
@@ -197,6 +211,13 @@ export namespace Services {
       return this.initialization;
     }
 
+    private async requireIndexSchema(coreId: string): Promise<void> {
+      await this.ensureInitialized();
+      if (!this.exactAclSchemaReady.has(coreId)) {
+        throw new Error('Exact authorization search schema is not ready.');
+      }
+    }
+
     protected override async processDynamicImports() {
       flat = await import("flat");
     }
@@ -218,24 +239,29 @@ export namespace Services {
       for (const coreId of coreNameKeys) {
         const core: SolrCore = solrConfig.cores[coreId];
         const coreName = core.options.core;
+        ref.exactAclSchemaReady.delete(coreId);
         await ref.waitForSolr(coreId, ref);
 
         try {
-          const liveSchema = await ref.getSchema(coreId, ref);
+          let liveSchema = await ref.getSchema(coreId, ref);
           const schemaDef = ref.getMissingSchemaDefinitions(coreId, core, liveSchema.schema, ref);
           if (ref.isSchemaDefinitionEmpty(schemaDef)) {
             sails.log.verbose(`${ref.logHeader} Schema already reconciled for core: ${coreName}.`);
-            continue;
+          } else {
+            const schemaUrl = `${ref.getBaseUrl(core.options)}${coreName}/schema`;
+            sails.log.verbose(`${ref.logHeader} Sending missing schema definitions for core: ${coreName}.`);
+            const response = await axios.post(schemaUrl, schemaDef, solrSetupRequestOptions()).then((response: { data: unknown }) => response.data);
+            sails.log.verbose(`${ref.logHeader} Schema reconciliation successful, response: `);
+            sails.log.verbose(JSON.stringify(response));
+            // An accepted schema update is not proof of the live field types.
+            liveSchema = await ref.getSchema(coreId, ref);
           }
-
-          const schemaUrl = `${ref.getBaseUrl(core.options)}${coreName}/schema`;
-          sails.log.verbose(`${ref.logHeader} Sending missing schema definitions for core: ${coreName}.`);
-          const response = await axios.post(schemaUrl, schemaDef, solrSetupRequestOptions()).then((response: { data: unknown }) => response.data);
-          sails.log.verbose(`${ref.logHeader} Schema reconciliation successful, response: `);
-          sails.log.verbose(JSON.stringify(response));
+          ref.assertExactAclSchema(liveSchema.schema);
+          ref.exactAclSchemaReady.add(coreId);
+          sails.log.verbose(`${ref.logHeader} Exact authorization search schema verified for core: ${coreName}.`);
         } catch (err) {
           sails.log.error(`${ref.logHeader} Failed to reconcile SOLR schema for core: ${coreName}.`);
-          sails.log.error(JSON.stringify(err));
+          sails.log.error(err instanceof Error ? err.message : JSON.stringify(err));
           throw err;
         }
       }
@@ -249,6 +275,11 @@ export namespace Services {
 
     private getMissingSchemaDefinitions(coreId: string, core: SolrCore, liveSchema: SolrSchema, ref: SolrSearchService = this): SolrCoreSchema {
       const configuredFields = [...(core.schema['add-field'] || [])];
+      for (const field of SOLR_EXACT_ACL_FIELDS) {
+        if (!configuredFields.some(configured => configured.name === field.name)) {
+          configuredFields.push({ ...field });
+        }
+      }
       if (core.initSchemaFlag && !configuredFields.some(field => field.name === core.initSchemaFlag?.name)) {
         configuredFields.push({ ...core.initSchemaFlag });
       }
@@ -294,10 +325,33 @@ export namespace Services {
       });
     }
 
+    private assertExactAclSchema(schema: SolrSchema): void {
+      const stringType = schema.fieldTypes?.find(type => type.name === 'string');
+      if (!stringType || !['solr.StrField', 'org.apache.solr.schema.StrField'].includes(stringType.class)) {
+        throw new Error('Exact authorization search requires a non-analyzed string field type.');
+      }
+      for (const required of SOLR_EXACT_ACL_FIELDS) {
+        const live = schema.fields?.find(field => field.name === required.name);
+        if (!live || !this.schemaFieldsMatch(required, live)) {
+          throw new Error(`Exact authorization search schema is missing or conflicts: ${required.name}.`);
+        }
+        // Solr copyFields run after preIndex and must not add untrusted grants.
+        const hasIncomingCopy = schema.copyFields?.some(copy => {
+          const wildcard = copy.dest.indexOf('*');
+          return wildcard < 0 ? copy.dest === required.name :
+            required.name.startsWith(copy.dest.slice(0, wildcard)) &&
+            required.name.endsWith(copy.dest.slice(wildcard + 1));
+        });
+        if (hasIncomingCopy) {
+          throw new Error(`Exact authorization search field cannot be a copyField destination: ${required.name}.`);
+        }
+      }
+    }
+
     private async getSchema(coreId: string, ref: SolrSearchService = this): Promise<SolrSchemaResponse> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
-      const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
+      const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json&showDefaults=true`;
       return await axios.get(schemaUrl, solrSetupRequestOptions()).then((response: { data: SolrSchemaResponse }) => response.data);
     }
 
@@ -388,7 +442,10 @@ export namespace Services {
     }
 
     public async searchFuzzy(coreId: string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: SearchField[], facetSearches: SearchField[], brand: BrandingModel, user: UserModel, roles: RoleModel[], returnFields: string[], start: number = 0, rows: number = 10): Promise<Record<string, unknown>> {
-      const username = user.username;
+      if (!this.exactAclSchemaReady.has(coreId)) {
+        throw new Error('Exact authorization search schema is not ready.');
+      }
+      const username = user?.username ?? '';
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
@@ -495,6 +552,7 @@ export namespace Services {
         if (!this.clients[coreId]) {
           throw new Error(`Unknown SOLR core: ${coreId}`);
         }
+        await this.requireIndexSchema(coreId);
         // storage_id is used as the main ID in searches
         const solrDocument: SolrDocument = new SolrDocument(data);
         this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'index' });
@@ -514,6 +572,15 @@ export namespace Services {
     // TODO: This method shouldn't need to be public
     // but can't unit test it easily if it isn't
     public preIndex(data: SolrDocument): Record<string, unknown> {
+      // Snapshot trusted values before templates/moves/copies can touch them.
+      const exactAuthorization = {
+        redbox_acl2_view: exactAclValues(data.authorization?.view),
+        redbox_acl2_edit: exactAclValues(data.authorization?.edit),
+        redbox_acl2_view_roles: exactAclValues(data.authorization?.viewRoles),
+        redbox_acl2_edit_roles: exactAclValues(data.authorization?.editRoles),
+        redbox_acl2_version: SOLR_EXACT_ACL_VERSION
+      };
+      const exactBrand = typeof data.metaMetadata?.brandId === 'string' ? data.metaMetadata.brandId : undefined;
       let processedData: Record<string, unknown> = _.cloneDeep(data) as unknown as Record<string, unknown>;
 
       const coreId = _.get(data, 'metaMetadata.searchCore', 'default');
@@ -603,6 +670,12 @@ export namespace Services {
           _.unset(processedData, k);
         }
       });
+      // Reserved fields always come from the original record envelope, after
+      // every configurable transform, including flattening and templates.
+      for (const field of SOLR_EXACT_ACL_FIELDS) delete processedData[field.name];
+      for (const name of RETIRED_EXACT_ACL_FIELD_NAMES) delete processedData[name];
+      Object.assign(processedData, exactAuthorization);
+      if (exactBrand) processedData.redbox_acl2_brand = exactBrand;
       return processedData;
     }
 
@@ -611,25 +684,42 @@ export namespace Services {
     }
 
     protected addAuthParams(allParams: Array<{ key: string; value: string }> | URLSearchParams, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
-      let roleString = ""
-      let matched = false;
-      for (let i = 0; i < roles.length; i++) {
-        const role = roles[i]
-        const roleBrandId = (role.branding as BrandingModel | string | undefined);
-        if ((typeof roleBrandId === 'object' ? roleBrandId?.id : roleBrandId) == brand.id) {
-          if (matched) {
-            roleString += " OR ";
-            matched = false;
-          }
-          roleString += roles[i].name;
-          matched = true;
-        }
+      const params = allParams instanceof URLSearchParams ? allParams :
+        new URLSearchParams(allParams.map(param => [param.key, param.value]));
+      // Parameter references must resolve only to server-supplied identities,
+      // including when the URL already contains duplicate/reserved parameters.
+      for (const name of [...params.keys()]) {
+        if (name.startsWith('rbAcl')) params.delete(name);
       }
-      const fqValue = "authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
-      if (allParams instanceof URLSearchParams) {
-        allParams.append('fq', fqValue);
+      const clauses: string[] = [];
+      if (typeof username === 'string' && username.length > 0) {
+        params.set('rbAclUser', username);
+        clauses.push('_query_:"{!term f=redbox_acl2_edit v=$rbAclUser}"');
+        if (!editAccessOnly) clauses.push('_query_:"{!term f=redbox_acl2_view v=$rbAclUser}"');
+      }
+      const roleNames = new Set<string>();
+      for (const role of roles ?? []) {
+        const roleBrand = role.branding as BrandingModel | string | undefined;
+        const roleBrandId = typeof roleBrand === 'object' ? roleBrand?.id : roleBrand;
+        if (roleBrandId === brand?.id && typeof role.name === 'string' && role.name.length > 0) roleNames.add(role.name);
+      }
+      [...roleNames].forEach((name, index) => {
+        const parameter = `rbAclRole${index}`;
+        params.set(parameter, name);
+        clauses.push(`_query_:"{!term f=redbox_acl2_edit_roles v=$${parameter}}"`);
+        if (!editAccessOnly) clauses.push(`_query_:"{!term f=redbox_acl2_view_roles v=$${parameter}}"`);
+      });
+      params.set('rbAclVersion', SOLR_EXACT_ACL_VERSION);
+      params.append('fq', '{!term f=redbox_acl2_version v=$rbAclVersion}');
+      if (typeof brand?.id === 'string' && brand.id.length > 0 && clauses.length > 0) {
+        params.set('rbAclBrand', brand.id);
+        params.append('fq', '{!term f=redbox_acl2_brand v=$rbAclBrand}');
+        params.append('fq', `{!lucene}(${clauses.join(' OR ')})`);
       } else {
-        allParams.push({ key: 'fq', value: fqValue });
+        params.append('fq', '{!lucene}(*:* AND -(*:*))');
+      }
+      if (!(allParams instanceof URLSearchParams)) {
+        allParams.splice(0, allParams.length, ...[...params].map(([key, value]) => ({ key, value })));
       }
     }
 
@@ -647,9 +737,9 @@ export namespace Services {
     }
 
     protected addAuthFilter(url: string, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
-      const allParams: Array<{ key: string; value: string }> = [];
-      this.addAuthParams(allParams, username, roles, brand, editAccessOnly);
-      return url + allParams.map(param => `&${param.key}=${param.value}`).join('');
+      const parsed = new URL(url);
+      this.addAuthParams(parsed.searchParams, username, roles, brand, editAccessOnly);
+      return parsed.toString();
     }
 
     public async solrDelete(job: QueueJob<RecordModel>) {
@@ -660,6 +750,7 @@ export namespace Services {
         if (!this.clients[coreId]) {
           throw new Error(`Unknown SOLR core: ${coreId}`);
         }
+        await this.requireIndexSchema(coreId);
         const solrDocument: SolrDocument = new SolrDocument(data);
         this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'delete' });
         await this.clients[coreId].delete('id', solrDocument.id);
