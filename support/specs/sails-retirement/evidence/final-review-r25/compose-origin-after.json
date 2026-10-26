@@ -1,0 +1,154 @@
+[
+  {
+    "source": "baseline",
+    "case": "default",
+    "publishedPort": "1500",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:1500",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "baseline",
+    "case": "selected-port",
+    "publishedPort": "18599",
+    "publicUrl": "http://localhost:18599",
+    "browserOrigin": "http://localhost:18599",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "baseline",
+    "case": "explicit-url",
+    "publishedPort": "18599",
+    "publicUrl": "https://wsu.example.invalid",
+    "browserOrigin": "https://wsu.example.invalid",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "baseline",
+    "case": "empty-selectors",
+    "publishedPort": "1500",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:1500",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "incoming",
+    "case": "default",
+    "publishedPort": "1500",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:1500",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "incoming",
+    "case": "selected-port",
+    "publishedPort": "18599",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:18599",
+    "status": 403,
+    "passed": false,
+    "body": {
+      "errors": [
+        {
+          "detail": "Cross-origin request denied"
+        }
+      ],
+      "meta": {}
+    }
+  },
+  {
+    "source": "incoming",
+    "case": "explicit-url",
+    "publishedPort": "18599",
+    "publicUrl": "https://wsu.example.invalid",
+    "browserOrigin": "https://wsu.example.invalid",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "incoming",
+    "case": "empty-selectors",
+    "publishedPort": "1500",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:1500",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "r24Fix",
+    "case": "default",
+    "publishedPort": "1500",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:1500",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "r24Fix",
+    "case": "selected-port",
+    "publishedPort": "18599",
+    "publicUrl": "http://localhost:18599",
+    "browserOrigin": "http://localhost:18599",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "r24Fix",
+    "case": "explicit-url",
+    "publishedPort": "18599",
+    "publicUrl": "https://wsu.example.invalid",
+    "browserOrigin": "https://wsu.example.invalid",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "r24Fix",
+    "case": "empty-selectors",
+    "publishedPort": "1500",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:1500",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "current",
+    "case": "default",
+    "publishedPort": "1500",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:1500",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "current",
+    "case": "selected-port",
+    "publishedPort": "18599",
+    "publicUrl": "http://localhost:18599",
+    "browserOrigin": "http://localhost:18599",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "current",
+    "case": "explicit-url",
+    "publishedPort": "18599",
+    "publicUrl": "https://wsu.example.invalid",
+    "browserOrigin": "https://wsu.example.invalid",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "source": "current",
+    "case": "empty-selectors",
+    "publishedPort": "1500",
+    "publicUrl": "http://localhost:1500",
+    "browserOrigin": "http://localhost:1500",
+    "status": 200,
+    "passed": true
+  }
+]

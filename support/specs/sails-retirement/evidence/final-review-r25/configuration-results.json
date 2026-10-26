@@ -1,0 +1,621 @@
+[
+  {
+    "case": "defaults",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "canonical-listener-and-origin",
+    "result": "pass",
+    "server": {
+      "port": 18599,
+      "hostname": "127.0.0.1",
+      "publicUrl": "http://localhost:18599",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 45000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "http://localhost:18599/published/abc",
+      "instrument": "http://localhost:18599/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "listen-port-independent-of-explicit-origin",
+    "result": "pass",
+    "server": {
+      "port": 18599,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "tls-proxy-root-and-cookie",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "https://wsu.example.invalid/research",
+      "rootContext": "/research",
+      "trustProxy": [
+        "loopback"
+      ],
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": true,
+      "path": "/research"
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://wsu.example.invalid/research/published/abc",
+      "instrument": "https://wsu.example.invalid/research/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "numeric-proxy-and-auto-cookie",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": 1,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "strict",
+      "secure": "auto",
+      "maxAge": 3600000,
+      "domain": "example.invalid"
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "explicit-false-proxy",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "separate-mongo-targets",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "core",
+      "storage": "objects",
+      "session": "sessions",
+      "agenda": "jobs"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "replica-tls-and-session-database",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": true
+    },
+    "targets": {
+      "core": "core",
+      "storage": "redbox-storage",
+      "session": "selected_sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "queue-environment",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "s3-role-credentials",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "s3-endpoint-and-prefix",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "s3-prefix-fallback-and-boolean-variants",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "s3-empty-defaults",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "solr-canonical-and-selected-port",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "brand-portal-and-landing",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "admin-and-logging",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "doi-public-url-environment",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "https://wsu.example.invalid/research",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://wsu.example.invalid/research/published/abc",
+      "instrument": "https://wsu.example.invalid/research/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "doi-explicit-urls-and-provider",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "https://wsu.example.invalid/research",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://public.example.invalid/pages/abc",
+      "instrument": "https://instrument.example.invalid/view/abc"
+    }
+  },
+  {
+    "case": "mail-figshare-and-pdf",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "configuration-precedence",
+    "result": "pass",
+    "server": {
+      "port": 1505,
+      "hostname": "0.0.0.0",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "selected-environment-and-local",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "local-host",
+      "publicUrl": "http://localhost:1500",
+      "rootContext": "",
+      "trustProxy": false,
+      "stopDeadlineMs": 30000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "cli-origin-and-root",
+    "result": "pass",
+    "server": {
+      "port": 1500,
+      "hostname": "127.0.0.1",
+      "publicUrl": "https://cli.example.invalid/prefix",
+      "rootContext": "/prefix",
+      "trustProxy": false,
+      "stopDeadlineMs": 60000
+    },
+    "cookie": {
+      "httpOnly": true,
+      "sameSite": "lax",
+      "secure": false
+    },
+    "targets": {
+      "core": "redbox-portal",
+      "storage": "redbox-storage",
+      "session": "redbox-sessions",
+      "agenda": "redbox-agenda"
+    },
+    "doiUrls": {
+      "public": "https://research-data.westernsydney.edu.au/published/abc",
+      "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc"
+    }
+  },
+  {
+    "case": "short-secret-refused",
+    "result": "expected-refusal",
+    "path": "redboxSession.secret"
+  },
+  {
+    "case": "invalid-proxy-refused",
+    "result": "expected-refusal",
+    "path": "server.trustProxy"
+  },
+  {
+    "case": "retired-doi-alias-refused",
+    "result": "expected-refusal",
+    "path": "SAILS_DOI__PUBLICLANDINGURL"
+  },
+  {
+    "case": "unknown-redbox-input-refused",
+    "result": "expected-refusal",
+    "path": "REDBOX_NOT_A_SETTING"
+  }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "publicUrl": "http://localhost:1500",
+    "rootContext": "",
+    "callback": "http://localhost:1500/user/login_oidc",
+    "actualRedirectUri": "http://localhost:1500/user/login_oidc",
+    "pkce": true,
+    "state": true,
+    "result": "pass"
+  },
+  {
+    "publicUrl": "http://localhost:18599",
+    "rootContext": "",
+    "callback": "http://localhost:18599/user/login_oidc",
+    "actualRedirectUri": "http://localhost:18599/user/login_oidc",
+    "pkce": true,
+    "state": true,
+    "result": "pass"
+  },
+  {
+    "publicUrl": "https://institution.example.invalid/research",
+    "rootContext": "/research",
+    "callback": "https://institution.example.invalid/research/user/login_oidc",
+    "actualRedirectUri": "https://institution.example.invalid/research/user/login_oidc",
+    "pkce": true,
+    "state": true,
+    "result": "pass"
+  }
+]

@@ -1,0 +1,41 @@
+{
+  "node": "v26.11.1",
+  "portal": "a4089ad238f78ca0d0f5b9227a61f8fd5ecf8061",
+  "current": "8dd61118eed9582be8d4d01359677b9be4dba631",
+  "baseline": "14ab99eb3a89434b9c886d51d5edc37447f43588",
+  "s3": {
+    "baseline": {
+      "omitsKey": true,
+      "driverOmitsCredentials": true
+    },
+    "current": {
+      "omitsKey": true,
+      "driverOmitsCredentials": true,
+      "loaderFailure": {
+        "name": "ConfigurationError",
+        "source": "wsu",
+        "path": "storage.disks.primary.config.key",
+        "message": "Configuration wsu at storage.disks.primary.config.key: invalid configuration (invalid_type)."
+      }
+    }
+  },
+  "publication": {
+    "supplied": {
+      "triggerCondition": "true",
+      "outputPath": "/review/publications",
+      "templatePath": "/review/custom-template.ejs",
+      "baseUrl": "https://portal.example.invalid/research",
+      "landingPageUrl": "https://portal.example.invalid/research/published",
+      "rifGroupName": "Reviewed WSU Registry"
+    },
+    "finalizedOptionsPreserved": true,
+    "baseline": {
+      "customTemplateUsed": true,
+      "rifGroup": "Reviewed WSU Registry"
+    },
+    "current": {
+      "customTemplateUsed": false,
+      "rifGroup": "Western Sydney University"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "node": "v26.11.1",
+  "rows": [
+    {
+      "input": "<omitted>",
+      "accepted": true,
+      "providerBase": "/institution/rdmp/record/view"
+    },
+    {
+      "input": "",
+      "accepted": true,
+      "providerBase": "/institution/rdmp/record/view"
+    },
+    {
+      "input": "/institution/research/record/view",
+      "accepted": true,
+      "providerBase": "/institution/research/record/view"
+    },
+    {
+      "input": "/institution/research/record/render?oid=",
+      "accepted": true,
+      "providerBase": "/institution/research/record/render?oid="
+    },
+    {
+      "input": 123,
+      "rejected": true
+    },
+    {
+      "input": null,
+      "rejected": true
+    },
+    {
+      "input": false,
+      "rejected": true
+    },
+    {
+      "input": {},
+      "rejected": true
+    }
+  ]
+}

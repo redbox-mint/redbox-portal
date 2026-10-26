@@ -1,0 +1,50 @@
+[
+  {
+    "case": "default-browser",
+    "port": 36637,
+    "publicUrl": "http://localhost:36637",
+    "rootContext": "",
+    "cookie": {
+      "path": "/",
+      "secure": false
+    },
+    "login": 302,
+    "loginRedirect": "/default/rdmp/home",
+    "foreignOrigin": 403,
+    "invalidToken": 403,
+    "home": 200,
+    "asset": 200
+  },
+  {
+    "case": "selected-host-port",
+    "port": 36559,
+    "publicUrl": "http://localhost:36559",
+    "rootContext": "",
+    "cookie": {
+      "path": "/",
+      "secure": false
+    },
+    "login": 302,
+    "loginRedirect": "/default/rdmp/home",
+    "foreignOrigin": 403,
+    "invalidToken": 403,
+    "home": 200,
+    "asset": 200
+  },
+  {
+    "case": "tls-proxy-prefix-and-brand",
+    "port": 35585,
+    "publicUrl": "https://wsu.example.invalid/research",
+    "rootContext": "/research",
+    "cookie": {
+      "path": "/research",
+      "secure": true
+    },
+    "login": 302,
+    "loginRedirect": "/research/institution/research/home",
+    "foreignOrigin": 403,
+    "invalidToken": 403,
+    "home": 200,
+    "asset": 200
+  }
+]

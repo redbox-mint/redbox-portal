@@ -73,6 +73,24 @@ R20–R23 qualification retains its recorded limits. **SR-055 stays open:** R24
 found one new A/P2 even though it is fixed. SR-005, SR-045 and SR-049 retain their
 existing authorized local scope; production-only acceptance remains unchanged.
 
+**R25 configuration confirmation:** [R25](final-review-r25.md) verifies WSU
+`8dd6111` and its R24 origin regressions, then finds three new A/P2 issues.
+WSU `63e8535` restores schema-valid AWS credential-chain settings; `764851e`
+preserves configured exporter template/group options. Portal `25a455de8` accepts
+PDF source path prefixes and the empty current-brand fallback. All three have
+sensitive regressions and independent remediation acceptance. The complete WSU
+compile/unit suite passes **565** tests; deployment configuration/Compose/callback
+and three real HTTP-start tables pass within the recorded synthetic-provider
+scope. The inventory enumerates **79 environment inputs and 542 configuration
+leaf/array or exporter-option inputs**. Inherited DOI URL derivation is B-18.
+The core schema fix changes executable source since R20, so R25 repeats full
+core/root runtime qualification; exact fresh results and pending cases are in
+its report. Historical installed images, two-major topology, cutover and recovery
+below do not contain these R25 fixes and are not relabelled current artifacts.
+SR-005/SR-045/SR-049 retain their qualified local historical scope; **SR-055
+remains open**, with **54/55** tasks ticked. Three remediated findings still fail
+the zero-new-findings confirmation rule. All production-only checks remain open.
+
 ## SR-005 — Institution, source decision and topology
 
 The portal maintainer designated Western Sydney University (WSU), specifically

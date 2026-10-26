@@ -1,0 +1,107 @@
+[
+  {
+    "case": "development-defaults",
+    "result": "pass",
+    "publishedPorts": [
+      1500,
+      9876,
+      27017,
+      8983,
+      9000,
+      9001
+    ],
+    "publicUrl": "http://localhost:1500",
+    "connectionTargets": {
+      "core": "mongodb://mongodb/redbox-portal",
+      "storage": "mongodb://storage-mongodb/redbox-storage",
+      "session": "mongodb://mongodb/redbox-sessions",
+      "queue": "mongodb://mongodb/redbox-agenda",
+      "solr": {
+        "host": "solr",
+        "port": 8983,
+        "core": "redbox"
+      },
+      "s3": "http://seaweedfs:8333"
+    },
+    "s3Bucket": "test-aws-redbox-hook-wsu-attachments"
+  },
+  {
+    "case": "development-selected-ports",
+    "result": "pass",
+    "publishedPorts": [
+      18599,
+      19876,
+      29017,
+      18983,
+      19000,
+      19001
+    ],
+    "publicUrl": "http://localhost:18599",
+    "connectionTargets": {
+      "core": "mongodb://mongodb/redbox-portal",
+      "storage": "mongodb://storage-mongodb/redbox-storage",
+      "session": "mongodb://mongodb/redbox-sessions",
+      "queue": "mongodb://mongodb/redbox-agenda",
+      "solr": {
+        "host": "solr",
+        "port": 8983,
+        "core": "redbox"
+      },
+      "s3": "http://seaweedfs:8333"
+    },
+    "s3Bucket": "test-aws-redbox-hook-wsu-attachments"
+  },
+  {
+    "case": "development-proxy-prefix",
+    "result": "pass",
+    "publishedPorts": [
+      18599,
+      19876,
+      29017,
+      18983,
+      19000,
+      19001
+    ],
+    "publicUrl": "https://wsu.example.invalid/research",
+    "connectionTargets": {
+      "core": "mongodb://mongodb/redbox-portal",
+      "storage": "mongodb://storage-mongodb/redbox-storage",
+      "session": "mongodb://mongodb/redbox-sessions",
+      "queue": "mongodb://mongodb/redbox-agenda",
+      "solr": {
+        "host": "solr",
+        "port": 8983,
+        "core": "redbox"
+      },
+      "s3": "http://seaweedfs:8333"
+    },
+    "s3Bucket": "test-aws-redbox-hook-wsu-attachments"
+  },
+  {
+    "case": "retired-development-core-mount",
+    "result": "expected-refusal",
+    "reason": "retired v5 entrypoint"
+  },
+  {
+    "case": "integration-disposable",
+    "result": "pass",
+    "connectionTargets": {
+      "core": "mongodb://mongodb/redbox-portal",
+      "storage": "mongodb://storage-mongodb/redbox-storage",
+      "session": "mongodb://mongodb/redbox-sessions",
+      "queue": "mongodb://mongodb/redbox-agenda",
+      "solr": {
+        "host": "solr",
+        "port": 8983,
+        "core": "redbox"
+      },
+      "s3": "http://seaweedfs:8333"
+    },
+    "s3Bucket": "wsu-integration"
+  },
+  {
+    "case": "retired-integration",
+    "result": "expected-refusal",
+    "reason": "retired v5 entrypoint"
+  }
+]

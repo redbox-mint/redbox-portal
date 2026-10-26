@@ -1,8 +1,9 @@
 # Inherited defects retained for separate follow-up
 
-Through R20 this cumulative backlog records **16 inherited groups**. R18/R19 added
-no new inherited group; R20 adds B-15 from the migration differential and B-16
-from the installed-process drain diagnosis. The opening
+Through R25 this cumulative backlog records **18 inherited groups**. R18/R19 added
+no new inherited group; R20 added B-15 from the migration differential and B-16
+from the installed-process drain diagnosis. R23 added B-17 documentation drift;
+R25 adds B-18 DOI configuration derivation. The opening
 R5 context and later entries retain their original provenance; feature-introduced
 findings are fixed and recorded in their respective review reports.
 
@@ -455,3 +456,32 @@ R23 leaves these inherited items open. Syntax checks also reject literal
 `<shell>` and `https://<portal-host>` placeholders; those are declared replacement
 parameters, not additional product defects. No inherited access-control exception
 was found in this documentation review.
+
+## B-18 — P2: WSU DOI landing defaults ignore selected URL and brand settings
+
+WSU `src/config/doiPublishing.ts` derives its landing bases at module evaluation
+from ambient environment, rather than the resolved application configuration.
+Setting only `server.publicUrl` in an application/environment/local file or CLI
+therefore leaves the production WSU landing URL in DOI payloads. With an ambient
+public URL, instrument URLs still append the literal `/default/rdmp/record/view`,
+even when the deployment selects another brand and portal.
+
+The [R25 six-case comparison](final-review-r25/inherited-doi.cjs) compiles the
+actual released-source baseline `14ab99e` and incoming `8dd6111` in memory and
+evaluates their real JSONata expressions. Both versions use the WSU production
+base when no ambient URL is supplied; both retain `default/rdmp` with a custom
+brand/portal. V6 renamed the ambient application URL to `REDBOX_PUBLIC_URL`;
+the baseline reads `SAILS_APP_URL`/`sails_appUrl`. The behavior otherwise agrees.
+The actual R25 configuration-resolution matrix separately confirms that selected
+files and CLI change `server.publicUrl` without changing these DOI expressions.
+
+Explicit `DOI_PUBLIC_LANDING_URL` and `DOI_INSTRUMENT_LANDING_URL` produce the
+intended bases in both versions and are the current workaround. A record handle
+or explicit instrument `metadata.landingPageUrl` also retains its precedence.
+The comparison has **six passing scenarios**, including both explicit
+workaround controls, without minting a DOI or contacting DataCite. This is one
+inherited group, left open; it does not increase R25's introduced finding count.
+
+Follow up by deriving fallback bases from the final resolved URL and selected
+brand/portal while preserving explicit DOI base and record-level overrides.
+Qualify existing dynamic AppConfig data separately from fresh bootstrap defaults.

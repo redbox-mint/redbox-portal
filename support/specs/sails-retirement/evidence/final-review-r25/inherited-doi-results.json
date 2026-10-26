@@ -1,0 +1,68 @@
+[
+  {
+    "source": "baseline",
+    "revision": "14ab99eb3a89434b9c886d51d5edc37447f43588",
+    "case": "selected-file-url-only",
+    "selectedServerPublicUrl": "https://institution.example.invalid/research",
+    "selectedBrand": "institution",
+    "selectedPortal": "research",
+    "public": "https://research-data.westernsydney.edu.au/published/abc",
+    "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc",
+    "disposition": "inherited P2: ambient-only URL/default brand derivation"
+  },
+  {
+    "source": "baseline",
+    "revision": "14ab99eb3a89434b9c886d51d5edc37447f43588",
+    "case": "ambient-url-custom-brand",
+    "selectedServerPublicUrl": "https://institution.example.invalid/research",
+    "selectedBrand": "institution",
+    "selectedPortal": "research",
+    "public": "https://institution.example.invalid/research/published/abc",
+    "instrument": "https://institution.example.invalid/research/default/rdmp/record/view/abc",
+    "disposition": "inherited P2: ambient-only URL/default brand derivation"
+  },
+  {
+    "source": "baseline",
+    "revision": "14ab99eb3a89434b9c886d51d5edc37447f43588",
+    "case": "explicit-doi-bases",
+    "selectedServerPublicUrl": "https://institution.example.invalid/research",
+    "selectedBrand": "institution",
+    "selectedPortal": "research",
+    "public": "https://public.example.invalid/pages/abc",
+    "instrument": "https://institution.example.invalid/research/institution/research/record/view/abc",
+    "disposition": "explicit workaround accepted"
+  },
+  {
+    "source": "incoming",
+    "revision": "8dd61118eed9582be8d4d01359677b9be4dba631",
+    "case": "selected-file-url-only",
+    "selectedServerPublicUrl": "https://institution.example.invalid/research",
+    "selectedBrand": "institution",
+    "selectedPortal": "research",
+    "public": "https://research-data.westernsydney.edu.au/published/abc",
+    "instrument": "https://research-data.westernsydney.edu.au/default/rdmp/record/view/abc",
+    "disposition": "inherited P2: ambient-only URL/default brand derivation"
+  },
+  {
+    "source": "incoming",
+    "revision": "8dd61118eed9582be8d4d01359677b9be4dba631",
+    "case": "ambient-url-custom-brand",
+    "selectedServerPublicUrl": "https://institution.example.invalid/research",
+    "selectedBrand": "institution",
+    "selectedPortal": "research",
+    "public": "https://institution.example.invalid/research/published/abc",
+    "instrument": "https://institution.example.invalid/research/default/rdmp/record/view/abc",
+    "disposition": "inherited P2: ambient-only URL/default brand derivation"
+  },
+  {
+    "source": "incoming",
+    "revision": "8dd61118eed9582be8d4d01359677b9be4dba631",
+    "case": "explicit-doi-bases",
+    "selectedServerPublicUrl": "https://institution.example.invalid/research",
+    "selectedBrand": "institution",
+    "selectedPortal": "research",
+    "public": "https://public.example.invalid/pages/abc",
+    "instrument": "https://institution.example.invalid/research/institution/research/record/view/abc",
+    "disposition": "explicit workaround accepted"
+  }
+]
