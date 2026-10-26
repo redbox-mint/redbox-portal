@@ -293,11 +293,11 @@ describe('HarvestRunService', function () {
     };
   }
 
-  function configureTrackedCreateChunk() {
+  function configureTrackedCreateChunk(recordType = 'dataset') {
     const run = {
       id: 'run-1',
       brandId: 'brand-1',
-      recordType: 'dataset',
+      recordType,
       sourceName: 'source-a',
       sourceRunId: 'source-run-1',
       status: 'running',
@@ -315,7 +315,7 @@ describe('HarvestRunService', function () {
       id: 'chunk-1',
       runId: 'run-1',
       brandId: 'brand-1',
-      recordType: 'dataset',
+      recordType,
       sourceRunId: 'source-run-1',
       contentHash: 'hash-1',
       attempt: 1,
@@ -2082,7 +2082,7 @@ describe('HarvestRunService', function () {
     Reflect.set(globalThis, 'RecordTypesService', { get: sinon.stub().returns(of(recordType)) });
     const recordModel = Reflect.get(globalThis, 'Record') as { find: sinon.SinonStub };
     recordModel.find.callsFake((criteria: {
-      harvestId: string;
+      harvestId: string | { in: string[] };
       'metaMetadata.type'?: string;
       'metaMetadata.brandId'?: string;
     }) => ({
@@ -2090,10 +2090,15 @@ describe('HarvestRunService', function () {
         .stub()
         .callsFake(async () =>
           [...runtime.persistedRecords.values()]
-            .filter(record => record.harvestId === criteria.harvestId
-              && record.metaMetadata.type === criteria['metaMetadata.type']
-              && (criteria['metaMetadata.brandId'] === undefined
-                || record.metaMetadata.brandId === criteria['metaMetadata.brandId']))
+            .filter(
+              record =>
+                (typeof criteria.harvestId === 'string'
+                  ? record.harvestId === criteria.harvestId
+                  : criteria.harvestId.in.includes(record.harvestId)) &&
+                record.metaMetadata.type === criteria['metaMetadata.type'] &&
+                (criteria['metaMetadata.brandId'] === undefined ||
+                  record.metaMetadata.brandId === criteria['metaMetadata.brandId'])
+            )
             .map(record => structuredClone(record))
         ),
     }));
@@ -2116,15 +2121,151 @@ describe('HarvestRunService', function () {
         merge,
         user
       );
-    const submitCompatibility = (metadata: Record<string, unknown>, submitBrand = brand) =>
+    const submitCompatibility = (
+      metadata: Record<string, unknown>,
+      submitBrand = brand,
+      updateMode: 'update' | 'merge' = 'update'
+    ) =>
       service.submitCompatibilityRecords(
         submitBrand,
         recordType,
         { records: [{ harvestId: 'source-1', recordRequest: { metadata } }] },
-        'update',
+        updateMode,
         user
       );
     return { ...runtime, brand, recordType, user, normalize, submit, submitCompatibility };
+  }
+
+  function configureHarvestRewrite(route: 'compatibility' | 'tracked', mode: 'replace' | 'merge') {
+    const runtime = configureLegacyReplay();
+    if (route === 'tracked') configureTrackedCreateChunk(runtime.recordType.name);
+    const rewrite = async (metadata: Record<string, unknown>) => {
+      if (route === 'compatibility') {
+        const response = await runtime.submitCompatibility(
+          metadata,
+          runtime.brand,
+          mode === 'merge' ? 'merge' : 'update'
+        );
+        return response[0].status;
+      }
+      const response = await service.submitChunk(
+        runtime.brand,
+        runtime.recordType,
+        {
+          sourceRunId: 'source-run-1',
+          sourceName: 'source-a',
+          chunk: { index: 1 },
+          records: [{ harvestId: 'source-1', operation: 'update', updateStrategy: mode, recordRequest: { metadata } }],
+        },
+        runtime.user
+      );
+      return response.chunk.responseSummary.updated === 1;
+    };
+    return { ...runtime, rewrite };
+  }
+
+  for (const route of ['compatibility', 'tracked'] as const) {
+    for (const mode of ['replace', 'merge'] as const) {
+      it(`restores legacy A after ${route} ${mode} B through the real save merge, then skips raw and normalized A`, async function () {
+        const runtime = configureHarvestRewrite(route, mode);
+        const source = { title: 'A', status: 'Completed', people: ['One'] };
+        // A foreign match precedes the local one; neither lookup nor signature comparison may select it.
+        const foreign = await runtime.submit(source, false, { id: 'brand-2', name: 'other' });
+        const foreignBefore = structuredClone(runtime.persistedRecords.get(foreign[0].oid));
+        const created = await runtime.submit(source);
+        expect(created[0].status).to.equal(true);
+        const before = structuredClone(runtime.persistedRecords.get(created[0].oid));
+
+        expect(await runtime.rewrite({ title: 'B', status: 'Draft' })).to.equal(true);
+        const rewritten = structuredClone(runtime.persistedRecords.get(created[0].oid));
+        expect(rewritten.metadata).to.include({ title: 'B', status: 'Draft', normalised_status: 'edit' });
+        expect(rewritten.revision).to.equal(before.revision + 1);
+
+        const replay = await runtime.submit(source);
+        expect(replay[0].status).to.equal(true);
+        expect(replay[0].message).not.to.include('skip update');
+        const restored = structuredClone(runtime.persistedRecords.get(created[0].oid));
+        expect(restored.metadata).to.deep.equal(before.metadata);
+        expect(restored.harvestSource).to.deep.equal(before.harvestSource);
+        expect(restored.revision).to.equal(before.revision + 2);
+        expect(rewritten.harvestSource).to.equal(null);
+        expect(runtime.storageService.updateMeta.firstCall.args[2].harvestSource).to.equal(null);
+
+        const auditCount = runtime.realRecordsService.queueService.now.callCount;
+        for (const replaySource of [source, restored.metadata]) {
+          expect((await runtime.submit(replaySource))[0].message).to.include('skip update');
+          expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(restored);
+        }
+        expect(runtime.storageService.updateMeta.callCount).to.equal(2);
+        expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+        expect(runtime.persistedRecords.get(foreign[0].oid)).to.deep.equal(foreignBefore);
+      });
+
+      it(`preserves the legacy signature and shared snapshot after a failed ${route} ${mode} save`, async function () {
+        const runtime = configureHarvestRewrite(route, mode);
+        const source = { title: 'A', status: 'Completed', sourceMetadata: 'original-source' };
+        const created = await runtime.submit(source);
+        const before = structuredClone(runtime.persistedRecords.get(created[0].oid));
+        // Model storage/cache adapters that return a shared snapshot. Keep the real RecordsService save boundary.
+        runtime.storageService.getMeta.callsFake(async (oid: string) => runtime.persistedRecords.get(oid));
+        runtime.storageService.updateMeta.onFirstCall().resolves({
+          success: false,
+          applicationState: 'not-applied',
+          nonApplicationReason: 'lifecycle-conflict',
+        });
+        const auditCount = runtime.realRecordsService.queueService.now.callCount;
+
+        expect(await runtime.rewrite({ title: 'B', status: 'Draft', sourceMetadata: 'changed-source' })).to.equal(false);
+        expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(before);
+        expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+        for (const replaySource of [source, before.metadata]) {
+          expect((await runtime.submit(replaySource))[0].message).to.include('skip update');
+        }
+        expect(runtime.storageService.updateMeta.callCount).to.equal(1);
+        expect(runtime.storageService.updateMeta.firstCall.args[2].harvestSource).to.equal(null);
+        expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(before);
+      });
+    }
+  }
+
+  for (const mode of ['replace', 'merge'] as const) {
+    it(`restores the prior legacy signature and metadata when tracked ${mode} event persistence fails`, async function () {
+      const runtime = configureHarvestRewrite('tracked', mode);
+      const source = { title: 'A', status: 'Completed', sourceMetadata: 'original-source' };
+      const created = await runtime.submit(source);
+      const sharedSnapshot = runtime.persistedRecords.get(created[0].oid);
+      const before = structuredClone(sharedSnapshot);
+      runtime.storageService.getMeta.callsFake(async (oid: string) => runtime.persistedRecords.get(oid));
+      const eventModel = Reflect.get(globalThis, 'HarvestRecordEvent') as { createEach: sinon.SinonStub };
+      eventModel.createEach.rejects(new Error('event write failed'));
+
+      let caught: unknown;
+      try {
+        await runtime.rewrite({ title: 'B', status: 'Draft', sourceMetadata: 'changed-source' });
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught).to.be.an('error').with.property('message', 'event write failed');
+      expect(runtime.storageService.updateMeta.callCount).to.equal(2);
+      const updated = runtime.storageService.updateMeta.firstCall.args[2];
+      const rollback = runtime.storageService.updateMeta.secondCall.args[2];
+      expect(updated.harvestSource).to.equal(null);
+      expect(updated.metadata.title).to.equal('B');
+      expect(updated.revision).to.equal(before.revision);
+      expect(rollback.harvestSource).to.deep.equal(before.harvestSource);
+      expect(rollback.metadata).to.deep.equal(before.metadata);
+      expect(rollback.metaMetadata.sourceMetadata).to.equal(before.metaMetadata.sourceMetadata);
+      expect(rollback.revision).to.equal(before.revision + 1);
+      expect(sharedSnapshot).to.deep.equal(before);
+      const restored = structuredClone(runtime.persistedRecords.get(created[0].oid));
+      expect(restored.metadata).to.deep.equal(before.metadata);
+      expect(restored.harvestSource).to.deep.equal(before.harvestSource);
+      expect(restored.revision).to.equal(before.revision + 2);
+      for (const replaySource of [source, restored.metadata]) {
+        expect((await runtime.submit(replaySource))[0].message).to.include('skip update');
+      }
+      expect(runtime.storageService.updateMeta.callCount).to.equal(2);
+    });
   }
 
   for (const format of ['legacy', 'compatibility'] as const) {

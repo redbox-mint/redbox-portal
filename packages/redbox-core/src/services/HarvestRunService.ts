@@ -560,8 +560,9 @@ export namespace Services {
 
         // The source signature must commit with the metadata, never as a
         // separate write. A failed save must not alter a cached snapshot.
-        if (harvestSource) record['harvestSource'] = harvestSource;
-        else delete record['harvestSource'];
+        // Omitted fields are restored by the save merge. Explicit null
+        // invalidates a prior legacy source after a compatibility write.
+        record['harvestSource'] = harvestSource ?? null;
 
         const response = await RecordsService.updateMetaInternal({
           actor: { kind: 'service', id: 'HarvestRunService.legacyUpdateHarvestRecord' },
@@ -731,7 +732,7 @@ export namespace Services {
       committedRevision?: number;
     }> {
       try {
-        const record: RecordModel = await RecordsService.getMeta(oid);
+        const record: RecordModel = _.cloneDeep(await RecordsService.getMeta(oid));
         if (_.isEmpty(record)) {
           return {
             success: false,
@@ -741,6 +742,9 @@ export namespace Services {
         }
 
         const previousRecord = _.cloneDeep(record);
+        // Tracked metadata no longer corresponds to the prior legacy source.
+        // Keep the original signature in previousRecord for compensation.
+        record['harvestSource'] = null;
 
         const sourceMetadata = metadata['sourceMetadata'];
         if (!_.isEmpty(sourceMetadata)) {
