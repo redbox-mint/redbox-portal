@@ -75,7 +75,12 @@ describe('Form Save Flow Integration', () => {
       const evaluate = jasmine.createSpy('evaluate').and.returnValue('/record/resolved');
       let resolve!: (items: DynamicScriptResponse) => void;
       const compiledItems = new Promise<DynamicScriptResponse>(done => { resolve = done; });
-      const getCompiledItems = spyOn(formComponent, 'getRecordCompiledItems').and.returnValue(compiledItems);
+      let resolvingRedirect!: () => void;
+      const redirectStarted = new Promise<void>(done => { resolvingRedirect = done; });
+      const getCompiledItems = spyOn(formComponent, 'getRecordCompiledItems').and.callFake(() => {
+        resolvingRedirect();
+        return compiledItems;
+      });
       const eventBus = TestBed.inject(FormComponentEventBus);
       const requested: string[] = [];
       const executed: string[] = [];
@@ -90,6 +95,9 @@ describe('Form Save Flow Integration', () => {
       try {
         expect(save.disabled()).toBeFalse();
         const saving = save.save();
+        // Confirmation is also asynchronous, including when no dialog is configured.
+        // Exercise the separate guard after redirect resolution has actually begun.
+        await redirectStarted;
         expect(getCompiledItems).toHaveBeenCalledTimes(1);
         expect(requested).toEqual([]);
         if (switchToView) formComponent.editMode.set(false);
