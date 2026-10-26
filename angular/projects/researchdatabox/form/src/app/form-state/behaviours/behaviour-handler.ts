@@ -1,4 +1,4 @@
-import { debounceTime, Observable, Subscription } from 'rxjs';
+import { debounceTime, filter, groupBy, mergeMap, Observable, Subscription } from 'rxjs';
 import {
   ExpressionsConditionKind,
   FieldPathKind,
@@ -70,9 +70,24 @@ export class BehaviourHandler {
     this.validateActions('actions', this.behaviour.actions ?? []);
     this.validateActions('onError', this.behaviour.onError ?? []);
 
-    const observable = this.getEventObservable();
+    const observable = this.getEventObservable().pipe(
+      filter(event => !event.formScopeId || event.formScopeId === this.ctx.formComponent.eventScopeId)
+    );
     const debounceMs = this.behaviour.debounceMs ?? 0;
-    const source$ = debounceMs > 0 ? observable.pipe(debounceTime(debounceMs)) : observable;
+    const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
+    const isJSONataInitializer =
+      this.behaviour.runOnFormReady === true &&
+      (conditionKind === ExpressionsConditionKind.JSONata || conditionKind === ExpressionsConditionKind.JSONataQuery);
+    const source$ = debounceMs > 0
+      ? isJSONataInitializer
+        ? observable.pipe(
+            // Initial field notifications and later status events must not displace
+            // native readiness. Both streams still share the once-only reservation.
+            groupBy((event): boolean => event.type === FormComponentEventType.FORM_DEFINITION_READY),
+            mergeMap(events => events.pipe(debounceTime(debounceMs)))
+          )
+        : observable.pipe(debounceTime(debounceMs))
+      : observable;
     this.subscriptions.push(
       source$.subscribe(event => {
         void this.execute(event);
@@ -99,7 +114,7 @@ export class BehaviourHandler {
     const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
     if (conditionKind === ExpressionsConditionKind.JSONPointer) {
       const pointerCondition = getEventJSONPointerCondition(this.behaviour.condition || '');
-      if (pointerCondition.event !== '*' && pointerCondition.event !== FormComponentEventType.FORM_DEFINITION_READY) {
+      if (pointerCondition.event !== '*') {
         return this.ctx.eventBus.select$(pointerCondition.event as keyof FormComponentEventMap);
       }
     }

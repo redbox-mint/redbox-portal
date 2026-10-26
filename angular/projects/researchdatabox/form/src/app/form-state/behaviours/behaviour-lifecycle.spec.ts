@@ -1,10 +1,12 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { jsonataEvaluateFunc } from '@researchdatabox/sails-ng-common';
 import { BehaviourHandler } from './behaviour-handler';
+import { FormBehaviourManager } from './form-behaviour-manager.service';
 import { matchBehaviourCondition } from './behaviour-condition-matcher';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
+import { FormComponentValueChangeEventProducer } from '../events/form-component-change-event-producer';
 import { createFormDefinitionReadyEvent, createFormSaveSuccessEvent } from '../events/form-component-event.types';
 
 const ready = { ...createFormDefinitionReadyEvent({}), timestamp: 1 } as any;
@@ -196,8 +198,8 @@ describe('explicit form lifecycle behaviours', () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  for (const nativeFirst of [true, false]) {
-    it(`executes a ready initializer once with concurrent notifications (native first: ${nativeFirst})`, async () => {
+  for (const conditionKind of ['jsonata', 'jsonata_query'] as const) for (const nativeFirst of [true, false]) {
+    it(`executes a ready initializer once with concurrent notifications (${conditionKind}, native first: ${nativeFirst})`, async () => {
       const logger = jasmine.createSpyObj('logger', ['debug', 'warn', 'error']);
       TestBed.configureTestingModule({
         providers: [FormComponentEventBus, { provide: LoggerService, useValue: logger }],
@@ -220,7 +222,7 @@ describe('explicit form lifecycle behaviours', () => {
         {
           name: 'once',
           condition: 'true',
-          conditionKind: 'jsonata_query',
+          conditionKind,
           runOnFormReady: true,
           actions: [{ type: 'runTemplate', config: { template: 'true', hasTemplate: true } }],
         } as any,
@@ -296,4 +298,156 @@ describe('explicit form lifecycle behaviours', () => {
       handler.destroy();
     }
   });
+
+  for (const conditionKind of ['jsonpointer', 'jsonata', 'jsonata_query'] as const) {
+    it(`keeps debounced native readiness through real field fan-out and later status events (${conditionKind})`, fakeAsync(() => {
+      const logger = jasmine.createSpyObj('logger', ['debug', 'warn', 'error']);
+      TestBed.configureTestingModule({ providers: [FormComponentEventBus, { provide: LoggerService, useValue: logger }] });
+      const bus = TestBed.inject(FormComponentEventBus);
+      const action = jasmine.createSpy('action');
+      const form: any = {
+        eventScopeId: 'owner', form: { value: {} }, requestParams: () => ({}),
+        getQuerySource: () => ({ jsonPointerSource: {}, querySource: [], queryOrigSource: [] }),
+        getRecordCompiledItems: async () => ({ evaluate: async (key: any, ctx: any) => {
+          if (key.at(-1) === 'condition') return ctx.event.type === ready.type;
+          action(ctx.event.type);
+          return true;
+        } }),
+      };
+      // Field producers subscribe before the manager, and re-enter the bus synchronously.
+      const producers = Array.from({ length: 87 }, (_, i) => {
+        const producer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventProducer(bus));
+        producer.bind({ definition: {
+          model: { formControl: new FormControl('initial') },
+          lineagePaths: { angularComponentsJsonPointer: `/main/field-${i}` },
+        } as any });
+        return producer;
+      });
+      const handler = new BehaviourHandler({
+        name: 'debounced-ready', conditionKind, runOnFormReady: true, debounceMs: 10,
+        condition: conditionKind === 'jsonpointer' ? '::form.definition.ready' : 'event.type = "form.definition.ready"',
+        actions: [{ type: 'runTemplate', config: { hasTemplate: true } }],
+      } as any, 0, { eventBus: bus, formComponent: form, logger, recordService: {} as any });
+      handler.activate();
+      bus.publish(ready);
+      bus.publish({ type: 'form.status.changed', status: 'VALID' } as any);
+      tick(9);
+      expect(action).not.toHaveBeenCalled();
+      tick(1);
+      expect(action).toHaveBeenCalledOnceWith(ready.type);
+      expect(logger.error).not.toHaveBeenCalled();
+      handler.destroy();
+      producers.forEach(producer => producer.destroy());
+    }));
+  }
+
+  it('ignores another form save before debounce and executes each owned save', fakeAsync(() => {
+    const logger = jasmine.createSpyObj('logger', ['debug', 'warn', 'error']);
+    TestBed.configureTestingModule({ providers: [FormComponentEventBus, { provide: LoggerService, useValue: logger }] });
+    const bus = TestBed.inject(FormComponentEventBus);
+    const action = jasmine.createSpy('action');
+    const form: any = {
+      eventScopeId: 'owner', form: { value: {} }, requestParams: () => ({}),
+      getQuerySource: () => ({ jsonPointerSource: {}, querySource: [], queryOrigSource: [] }),
+      getRecordCompiledItems: async () => ({ evaluate: async (_key: any, ctx: any) => action(ctx.event.formScopeId) }),
+    };
+    const handler = new BehaviourHandler({
+      name: 'saved', condition: '::form.save.success', debounceMs: 10,
+      actions: [{ type: 'runTemplate', config: { hasTemplate: true } }],
+    } as any, 0, { eventBus: bus, formComponent: form, logger, recordService: {} as any });
+    handler.activate();
+    bus.publish({ ...saved, formScopeId: 'other' });
+    tick(10);
+    expect(action).not.toHaveBeenCalled();
+    action.calls.reset();
+    for (let i = 0; i < 2; i++) {
+      bus.publish({ ...saved, formScopeId: 'owner' });
+      bus.publish({ ...saved, formScopeId: 'other' });
+      tick(10);
+    }
+    expect(action.calls.allArgs()).toEqual([['owner'], ['owner']]);
+    handler.destroy();
+  }));
+
+
+  for (const fails of [false, true]) {
+    it(`reserves native initialization before an asynchronous lookup (fails: ${fails})`, async () => {
+      const logger = jasmine.createSpyObj('logger', ['debug', 'warn', 'error']);
+      TestBed.configureTestingModule({ providers: [FormComponentEventBus, { provide: LoggerService, useValue: logger }] });
+      const bus = TestBed.inject(FormComponentEventBus);
+      let resolve!: (value: unknown) => void;
+      let reject!: (error: Error) => void;
+      const lookup = new Promise((res, rej) => { resolve = res; reject = rej; });
+      const recordService = jasmine.createSpyObj('recordService', ['getRecordMeta']);
+      recordService.getRecordMeta.and.returnValue(lookup);
+      const actions: string[] = [];
+      const form: any = {
+        form: { value: {} }, requestParams: () => ({ rdmpOid: 'source-oid' }),
+        getQuerySource: () => ({ jsonPointerSource: {}, querySource: [], queryOrigSource: [] }),
+        getRecordCompiledItems: async () => ({ evaluate: async (key: any, ctx: any) => {
+          if (key[2] === 'condition') return true;
+          if (key[2] === 'processors') return ctx.requestParams.rdmpOid;
+          actions.push(key[2]);
+          return true;
+        } }),
+      };
+      const handler = new BehaviourHandler({
+        name: 'lookup-once', conditionKind: 'jsonata_query', condition: 'true', runOnFormReady: true,
+        processors: [{ type: 'jsonataTransform', config: { hasTemplate: true } }, { type: 'fetchMetadata' }],
+        actions: [{ type: 'runTemplate', config: { hasTemplate: true } }],
+        onError: [{ type: 'runTemplate', config: { hasTemplate: true } }],
+      } as any, 0, { eventBus: bus, formComponent: form, logger, recordService });
+      handler.activate();
+      bus.publish(ready);
+      for (let i = 0; i < 87; i++) bus.publish(field(`/main/field-${i}`, 'form.definition.ready'));
+      await settle();
+      expect(recordService.getRecordMeta).toHaveBeenCalledOnceWith('source-oid');
+      if (fails) reject(new Error('lookup failed'));
+      else resolve({ title: 'loaded' });
+      await settle();
+      bus.publish(ready);
+      bus.publish(field('/main/source', 'form.definition.ready'));
+      await settle();
+      expect(actions).toEqual([fails ? 'onError' : 'actions']);
+      expect(recordService.getRecordMeta.calls.count()).toBe(1);
+      expect(logger.error.calls.count()).toBe(fails ? 1 : 0);
+      handler.destroy();
+    });
+  }
+
+  it('starts a fresh initializer on rebind and cancels an old awaited action', async () => {
+    const logger = jasmine.createSpyObj('logger', ['debug', 'warn', 'error']);
+    TestBed.configureTestingModule({ providers: [FormComponentEventBus, { provide: LoggerService, useValue: logger }] });
+    const bus = TestBed.inject(FormComponentEventBus);
+    const manager = new FormBehaviourManager(bus, logger, {} as any);
+    let release!: (value: string) => void;
+    const pending = new Promise<string>(resolve => release = resolve);
+    const oldControl = new FormControl('old');
+    const newControl = new FormControl('new');
+    const form = (control: FormControl, value: Promise<string>) => ({
+      form: { value: {} }, requestParams: () => ({}), broadcastFormStatus: () => {},
+      formDefMap: { formConfig: { behaviours: [{
+        name: 'on-load', condition: '::form.definition.ready', runOnFormReady: true,
+        actions: [{ type: 'setValue', config: { fieldPath: '/target', hasValueTemplate: true } }],
+      }] } },
+      getQuerySource: () => ({
+        jsonPointerSource: { target: { metadata: { formFieldEntry: { model: { formControl: control } } } } },
+        querySource: [], queryOrigSource: [],
+      }),
+      getRecordCompiledItems: async () => ({ evaluate: async () => value }),
+    } as any);
+    manager.bind(form(oldControl, pending));
+    bus.publish(ready);
+    await settle();
+    manager.bind(form(newControl, Promise.resolve('initialized')));
+    bus.publish(ready);
+    await settle();
+    release('stale');
+    await settle();
+    expect(oldControl.value).toBe('old');
+    expect(newControl.value).toBe('initialized');
+    expect(logger.error).not.toHaveBeenCalled();
+    manager.destroy();
+  });
+
 });
