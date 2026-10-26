@@ -5,6 +5,7 @@ import { apiErrorResponseSchema, responseField } from './schemas/common';
 import { ApiResponseDefinition, ApiRouteDefinition } from './types';
 import {
   ensureUniqueApiRoutes,
+  allowsAdditionalObjectProperties,
   getFileConstraintDescription,
   getFileConstraintOpenApiExtension,
   getObjectSchemaShape,
@@ -225,6 +226,20 @@ function buildParameters(
         parameter.explode = true;
       }
       params.push(parameter);
+    }
+    if (location === 'query' && schema && allowsAdditionalObjectProperties(schema)) {
+      // Form-style exploded objects serialize each configured name directly in
+      // the query string, alongside the explicitly documented parameters.
+      const querySchema = toOpenApiSchema(schema);
+      params.push({
+        name: 'additionalQueryParams',
+        in: 'query',
+        required: false,
+        style: 'form',
+        explode: true,
+        description: 'Additional query parameters sent as top-level name=value pairs.',
+        schema: { type: 'object', additionalProperties: querySchema.additionalProperties },
+      });
     }
   };
   addParameters('path', route.request?.params);
