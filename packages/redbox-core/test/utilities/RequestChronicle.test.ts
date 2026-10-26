@@ -1,3 +1,5 @@
+import type { Request } from 'express';
+import { merge } from 'lodash';
 import { RBValidationError } from '../../src';
 
 let expect: Chai.ExpectStatic;
@@ -22,24 +24,22 @@ describe('RequestChronicleHelper', () => {
 
   beforeEach(() => {
     logger = createSinonStubLogger(sinon);
-    (globalThis as any).sails = { config: {}, log: logger };
     clockMs = 1000;
   });
 
   afterEach(() => {
     sinon.restore();
-    delete (globalThis as any).sails;
   });
 
   function createHelper(options: RequestChronicleOptions = {}, req: Record<string, unknown> = {}) {
     const request = { method: 'GET', path: '/default/rdmp/home', hostname: 'localhost', headers: {}, ...req };
-    const rc = RequestChronicleHelper.fromReq(logger, request as unknown as Sails.Req, {
+    const rc = RequestChronicleHelper.fromReq(logger, request as unknown as Request, {
       now: () => clockMs,
       random: () => 0.99,
       generateRequestId: () => 'request-1',
       ...options,
     });
-    return { rc, req: request as unknown as Sails.Req };
+    return { rc, req: request as unknown as Request };
   }
 
   function startedHelper(options: RequestChronicleOptions = {}, req: Record<string, unknown> = {}) {
@@ -61,12 +61,11 @@ describe('RequestChronicleHelper', () => {
   }
 
   describe('lifecycle', () => {
-    it('stores one helper instance on the request, which survives the sails route options merge', () => {
-      const sailsLodash = require('@sailshq/lodash');
+    it('stores one helper instance on the request, which survives middleware route options merging', () => {
       const { rc, req } = createHelper();
 
       expect(RequestChronicleHelper.fromReq(logger, req)).to.equal(rc);
-      req.options = sailsLodash.merge({}, { action: 'user/info' }, req.options);
+      req.options = merge({}, { action: 'user/info' }, req.options);
       expect(RequestChronicleHelper.existing(req)).to.equal(rc);
     });
 
@@ -87,7 +86,7 @@ describe('RequestChronicleHelper', () => {
     });
 
     it('does not create a helper when looking up an existing helper', () => {
-      const req = {} as Sails.Req;
+      const req = {} as Request;
       expect(RequestChronicleHelper.existing(req)).to.equal(undefined);
       expect(req.options).to.equal(undefined);
     });
@@ -254,11 +253,12 @@ describe('RequestChronicleHelper', () => {
       expect(discarded.data.result?.classification).to.equal('discard');
     });
 
-    it('uses the default retention settings, and reads the sails config', () => {
+    it('uses default retention settings and explicit application settings', () => {
       expect(createHelper().rc.settings).to.include({ successSampleRate: 0.1, slowThresholdMs: 2000 });
 
-      (globalThis as any).sails.config.log = { requestChronicle: { successSampleRate: '1', slowThresholdMs: 'oops' } };
-      const settings = RequestChronicleHelper.fromReq(logger, {} as Sails.Req).settings;
+      const settings = RequestChronicleHelper.fromReq(logger, {} as Request, {
+        settings: { successSampleRate: '1', slowThresholdMs: 'oops' },
+      }).settings;
       expect(settings.successSampleRate).to.equal(1);
       expect(settings.slowThresholdMs).to.equal(2000);
     });

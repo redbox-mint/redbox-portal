@@ -1,0 +1,100 @@
+import { agendaQueueDefaultJobs } from '../config/agendaQueueJobs';
+import { agendaQueueDefaultOptions } from '../config/agendaQueueDefaults';
+import type { StorageIndexPreparation } from '../persistence/maintenance';
+import { loadInstalledExtensionProviders, resolveExtensions } from '../extensions/resolution';
+import {
+  loadStartupConfiguration,
+  deploymentSchema,
+  deploymentDefaults,
+  deploymentEnvironmentInputs,
+  convertLegacyEnvironment,
+} from '../configuration';
+import { assertPersistenceConfiguration } from '../persistence/selection';
+import { prepareSelectedPersistenceIndexes } from '../persistence/maintenance';
+import { cleanupPersistence, persistenceStatus } from '../persistence/runtime';
+import type { PersistenceOwner } from '../persistence/owner';
+import { selectedAgendaMongoOptions } from '../queues/indexes';
+
+export interface IndexMaintenanceOptions {
+  readonly appPath: string;
+  readonly mode: 'inspect' | 'ensure';
+  readonly environment?: string;
+  /** Explicit shared operational files, never Sails configuration directories. */
+  readonly files?: { readonly application?: string; readonly environment?: string; readonly local?: string };
+  readonly env?: Readonly<Record<string, string | undefined>>;
+}
+
+/** Standalone selected persistence. Never constructs ApplicationRuntime or business factories. */
+export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
+  const installed = await loadInstalledExtensionProviders(options.appPath);
+  // Only these startup sections are consumed by maintenance. Forms, provider auth,
+  // views, domain configuration and executable work remain offline declarations.
+  const sections = new Set(['datastores', 'agendaQueue', 'storage', 'redboxSession']);
+  const providers = installed.providers.map(provider => {
+    assertPersistenceConfiguration(provider.declaration.config ?? {});
+    return {
+      ...provider,
+      declaration: {
+        apiVersion: provider.declaration.apiVersion,
+        jobs: provider.declaration.jobs,
+        // Select storage ownership without composing offline portal factories.
+        // Their core prerequisites and named core replacements belong to startup.
+        modules: provider.declaration.modules
+          ?.filter(module => module.name === 'storage')
+          .map(module => ({ name: module.name, replaces: module.replaces, create: module.create })),
+        config: Object.fromEntries(
+          Object.entries(provider.declaration.config ?? {}).filter(([name]) => sections.has(name))
+        ),
+      },
+    };
+  });
+  const resolved = resolveExtensions(providers, installed.hookLoadPriority);
+  const storage = resolved.modules.find(item => item.declaration.name === 'storage');
+  if (storage?.provider !== '@researchdatabox/sails-hook-redbox-storage-mongo')
+    throw new Error(
+      'Index maintenance requires the selected bundled Mongo storage provider; custom replacements need their own explicit preflight.'
+    );
+  const config = await loadStartupConfiguration({
+    schema: deploymentSchema,
+    core: {
+      source: 'core',
+      values: {
+        ...deploymentDefaults(options.environment).values,
+        // Match the portal's offline job catalog, including jobs explicitly
+        // bound to Mongo when the deployment's default backend is SQS.
+        agendaQueue: { options: agendaQueueDefaultOptions, jobs: agendaQueueDefaultJobs },
+      },
+    },
+    extensions: resolved,
+    files: options.files,
+    env: convertLegacyEnvironment(options.env ?? process.env),
+    environmentInputs: deploymentEnvironmentInputs,
+  });
+  if (config.storage.serviceName !== 'mongostorageservice')
+    throw new Error('Index maintenance requires the selected Mongo storage configuration.');
+  const hook = installed.entrypoints.get(storage.provider)!;
+  if (!storagePreflight(hook)) throw new Error('Selected Mongo storage preflight exports are unavailable.');
+  const owner: PersistenceOwner = { config, log: { warn() {} } };
+  let report;
+  try {
+    report = await prepareSelectedPersistenceIndexes(owner, options.mode, {
+      storage: hook,
+      session: config.redboxSession,
+      agenda: selectedAgendaMongoOptions(config.agendaQueue),
+    });
+  } finally {
+    await cleanupPersistence(owner);
+  }
+  return {
+    ...report,
+    providers: resolved.providers.map(provider => provider.name),
+    persistence: persistenceStatus(owner),
+  };
+}
+
+function storagePreflight(value: Record<string, unknown>): value is Record<string, unknown> & StorageIndexPreparation {
+  return (
+    typeof value.inspectPrismaStagedStorage === 'function' &&
+    typeof value.ensurePrismaStagedStorageIndexes === 'function'
+  );
+}

@@ -1,0 +1,14 @@
+{
+  "name": "sr-maintenance-probe",
+  "version": "1.0.0",
+  "type": "module",
+  "files": [
+    "extension.mjs"
+  ],
+  "exports": {
+    "./extension": "./extension.mjs"
+  },
+  "redbox": {
+    "extension": "./extension"
+  }
+}

@@ -108,8 +108,13 @@ export interface RequestChronicle {
   [key: string]: unknown;
 }
 
+export interface ChronicleRequestOptions {
+  requestChronicleHelper?: RequestChronicleHelper;
+  [key: string]: unknown;
+}
+
 export interface RequestChronicleOptions {
-  /** Retention settings. Defaults to `sails.config.log.requestChronicle`. */
+  /** Retention settings supplied by the application; omitted values use the documented defaults. */
   settings?: Partial<Record<keyof RequestChronicleSettings, unknown>>;
   /** Random number source between 0 and 1, used for sampling. */
   random?: () => number;
@@ -536,8 +541,7 @@ export class RequestChronicleHelper {
     private logger: ILogger,
     options: RequestChronicleOptions = {}
   ) {
-    const configured = typeof sails !== 'undefined' ? sails?.config?.log?.requestChronicle : undefined;
-    this.#settings = resolveRequestChronicleSettings(options.settings ?? configured);
+    this.#settings = resolveRequestChronicleSettings(options.settings);
     this.#random = options.random ?? Math.random;
     this.#now = options.now ?? (() => performance.now());
     this.#generateRequestId = options.generateRequestId ?? randomUUID;
@@ -554,12 +558,8 @@ export class RequestChronicleHelper {
    * Get the request chronicle helper for a request, creating it if needed.
    * The logger and options are only used when the helper is created.
    */
-  public static fromReq(
-    logger: ILogger,
-    req: Sails.Req | Request,
-    options?: RequestChronicleOptions
-  ): RequestChronicleHelper {
-    const request = req as { options?: Sails.ReqOptions };
+  public static fromReq(logger: ILogger, req: Request, options?: RequestChronicleOptions): RequestChronicleHelper {
+    const request = req as { options?: ChronicleRequestOptions };
     if (request.options === undefined || request.options === null) {
       request.options = {};
     }
@@ -576,9 +576,9 @@ export class RequestChronicleHelper {
    * Get the request chronicle helper for a request, without creating it.
    * Requests that did not pass through the HTTP middleware (e.g. socket and virtual requests) have no helper.
    */
-  public static existing(req: Sails.Req | Request | undefined | null): RequestChronicleHelper | undefined {
+  public static existing(req: Request | undefined | null): RequestChronicleHelper | undefined {
     try {
-      const helper = (req as { options?: Sails.ReqOptions } | undefined | null)?.options?.requestChronicleHelper;
+      const helper = (req as { options?: ChronicleRequestOptions } | undefined | null)?.options?.requestChronicleHelper;
       return helper?.[helperBrand] === true ? helper : undefined;
     } catch {
       return undefined;
@@ -628,7 +628,7 @@ export class RequestChronicleHelper {
     });
   }
 
-  updateReq(req: Sails.Req | Request): void {
+  updateReq(req: Request): void {
     this.#safely('updateReq', () => {
       if (!this.isRunning || this.#data.req !== undefined) {
         this.logger.warn(

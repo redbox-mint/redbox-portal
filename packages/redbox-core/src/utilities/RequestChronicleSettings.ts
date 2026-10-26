@@ -1,6 +1,6 @@
 /**
  * Retention settings for request chronicle events.
- * Configured in `sails.config.log.requestChronicle`.
+ * Configured in `configuration.log.requestChronicle`.
  */
 export interface RequestChronicleSettings {
   /**

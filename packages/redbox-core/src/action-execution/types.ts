@@ -98,6 +98,8 @@ export type RetryScheduleConfig =
     };
 
 export interface ActionExecutionDependencies {
+  /** Fork an explicitly owned legacy hook lifetime before invoking its body. */
+  runLegacyWork?<T>(operation: () => Promise<T>): Promise<T>;
   now?: () => Date;
   random?: () => number;
   /** Injectable backoff sleep. Defaults to Effect's live Clock service. */
@@ -119,6 +121,8 @@ export interface ActionExecutionLogger {
 export interface ActionExecutionSupervisor {
   register?: (fiber: Fiber<unknown, unknown>) => void;
   interruptAll?: () => void;
+  track?: (work: Promise<unknown>) => void;
+  drain?: () => Promise<void>;
 }
 
 export interface ActionExecutionAction<A = unknown> {
@@ -127,7 +131,7 @@ export interface ActionExecutionAction<A = unknown> {
   phase: ActionExecutionPhase;
   index: number;
   policy?: ActionExecutionPolicy;
-  /** Legacy Promise work is not cancellable even when the wait is timed out. */
+  /** Legacy asynchronous containers may hide non-cancellable work after their outer wait times out. */
   cooperativeCancellation?: () => boolean;
   invoke: () => Effect.Effect<A, unknown, never>;
 }
