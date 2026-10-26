@@ -16,6 +16,8 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcome,
   isQuestionTreeQuestionActivated,
+  FormValidatorConfig,
+  QuestionTreeQuestion,
 } from "@researchdatabox/sails-ng-common";
 import { Component, DestroyRef, inject, ViewChild, ViewContainerRef } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -85,6 +87,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
 
   private eventBus = inject(FormComponentEventBus);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly configuredQuestionValidators = new Map<string, FormValidatorConfig[]>();
 
   protected get getFormComponent(): FormComponent {
     return this.formComponent;
@@ -176,6 +179,12 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       // TODO: is this needed? See how other components with nested components do this?
       if (elemFieldEntry) {
         elemFieldEntry.componentRef = wrapperRef;
+        const question = componentConfigFormConfig.questions.find(question => question.id === key);
+        if (question && elemFieldEntry.model) {
+          this.configuredQuestionValidators.set(key, [...elemFieldEntry.model.validators]);
+          this.updateQuestionValidators(elemFieldEntry, question,
+            isQuestionTreeQuestionActivated(key, componentConfigFormConfig.questions, elemVals));
+        }
       }
     }
 
@@ -206,6 +215,26 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => this.moveTowardsConsistentModelDataAndComponents());
+    // Calculate the outcome from loaded native answers even when no outcome was saved.
+    this.moveTowardsConsistentModelDataAndComponents();
+  }
+
+  private updateQuestionValidators(entry: FormFieldCompMapEntry, question: QuestionTreeQuestion, active: boolean, emitEvent = false) {
+    const model = entry.model;
+    if (!model) return;
+    const validators = [...(this.configuredQuestionValidators.get(question.id) ?? [])];
+    if (active) {
+      validators.push({class: 'required'});
+      if (question.answersMax > 1) {
+        validators.push({class: 'minLength', config: {minLength: question.answersMin}},
+          {class: 'maxLength', config: {maxLength: question.answersMax}});
+      }
+    }
+    model.initConfig.config ??= {};
+    model.initConfig.config.validators = validators;
+    this.formService.setValidators(model.formControl, validators,
+      this.getFormComponent.enabledValidationGroups, this.getFormComponent.validationGroups,
+      {emitEvent}, entry);
   }
 
   /**
@@ -223,12 +252,16 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     // For each event, see if the model data and the visibility of each component match.
     for (const formFieldCompMapEntry of this.formFieldCompMapEntries) {
       const questionId = formFieldCompMapEntry?.compConfigJson?.name;
+      const question = questions.find(question => question.id === questionId);
+      // Outcome metadata is a control too, but is not a question to activate or clear.
+      if (!question) continue;
       const shouldBeActivated = isQuestionTreeQuestionActivated(questionId, questions, currentModelData);
 
       const isLayoutVisible = formFieldCompMapEntry?.layout?.isVisible;
-      const isLayoutChanged = shouldBeActivated !== isLayoutVisible;
+      const isLayoutChanged = !!formFieldCompMapEntry.layout && shouldBeActivated !== isLayoutVisible;
       const isComponentVisible = formFieldCompMapEntry?.component?.isVisible;
-      const isComponentChanged = shouldBeActivated !== isComponentVisible;
+      const isComponentChanged = !!formFieldCompMapEntry.component && shouldBeActivated !== isComponentVisible;
+      const hasInactiveAnswer = !shouldBeActivated && formFieldCompMapEntry.model?.getValue() != null;
 
       // If the visibility does not match, update this component and stop.
       if (isLayoutChanged && formFieldCompMapEntry?.layout) {
@@ -240,14 +273,19 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         formFieldCompMapEntry.component.setProperty('visible', shouldBeActivated);
       }
 
-      // If the component was visible and is now hidden, set the value to null.
-      if ((isLayoutChanged || isComponentChanged) && !shouldBeActivated) {
+      if (isLayoutChanged || isComponentChanged) {
+        // Notify control and ancestor subscribers after refreshing the branch requirements.
+        this.updateQuestionValidators(formFieldCompMapEntry, question, shouldBeActivated, true);
+      }
+
+      // Clear inactive answers even when the saved branch was already hidden on load.
+      if ((isLayoutChanged || isComponentChanged || hasInactiveAnswer) && !shouldBeActivated) {
         // Emit the event so this question tree component can process nested components again.
         formFieldCompMapEntry?.model?.setValue( null);
       }
 
       // Change only one component at a time.
-      if (isLayoutChanged || isComponentChanged) {
+      if (isLayoutChanged || isComponentChanged || hasInactiveAnswer) {
 
         // for debugging
         this.loggerService.debug(`${this.logName}: Updated component ${questionId}`, {
