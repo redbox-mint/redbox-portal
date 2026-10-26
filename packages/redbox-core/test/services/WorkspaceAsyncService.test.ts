@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { firstValueFrom, Observable } from 'rxjs';
+import { ApplicationRuntime } from '../../src/application';
+import { createSinonStubLogger } from '../logger.test';
 import { Services } from '../../src/services/WorkspaceAsyncService';
 import * as runtime from '../../src/persistence/runtime';
 import type { ProgressRepositories } from '../../src/persistence/progress/ProgressRepositories';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+
 
 describe('WorkspaceAsyncService', () => {
   const workspaces = {
@@ -14,8 +16,10 @@ describe('WorkspaceAsyncService', () => {
     removeWork: sinon.stub(),
   };
   let service: Services.WorkspaceAsyncService;
+  let operations: any;
+  const log = createSinonStubLogger(sinon);
   beforeEach(() => {
-    setupServiceTestGlobals(createMockSails());
+    operations = {};
     for (const method of Object.values(workspaces)) method.reset();
     const repositories: ProgressRepositories = {
       workspaces,
@@ -27,10 +31,9 @@ describe('WorkspaceAsyncService', () => {
       },
     };
     sinon.stub(require('../../src/persistence/progress/runtime'), 'getProgressRepositories').returns(repositories);
-    service = new Services.WorkspaceAsyncService();
+    service = new Services.WorkspaceAsyncService({ repository: workspaces, log, resolveOperation: name => { const [owner, method] = name.split('.'); return operations[owner][method]; }, runWork: work => work() });
   });
   afterEach(() => {
-    cleanupServiceTestGlobals();
     sinon.restore();
   });
   it('registers started work lazily through the existing Observable interface', async () => {
@@ -66,11 +69,9 @@ describe('WorkspaceAsyncService', () => {
   it('drains jobs and completion writes before invoking the persistence shutdown hook', async () => {
     let finish!: () => void;
     let closed = false;
-    sails.config.beforeShutdown = callback => {
-      closed = true;
-      callback();
-    };
-    sails.services.test = {
+    const application = new ApplicationRuntime({ config: {}, log }, [{ name: 'workspace', create: () => ({ initialize: async () => {}, close: async () => { await service.close(); closed = true; } }) }]);
+    await application.initialize();
+    operations.test = {
       run: () =>
         new Observable(sub => {
           finish = () => {
@@ -84,7 +85,7 @@ describe('WorkspaceAsyncService', () => {
     await service.init();
     service.loop();
     await new Promise<void>(ok => setImmediate(ok));
-    const shutdown = new Promise<void>((ok, fail) => sails.config.beforeShutdown!(e => (e ? fail(e) : ok())));
+    const shutdown = application.stop();
     assert.equal(closed, false);
     finish();
     await shutdown;
@@ -97,7 +98,7 @@ describe('WorkspaceAsyncService', () => {
     const failure = new Error('job failed');
     workspaces.listStatus.resolves([{ id: 'work', service: 'test', method: 'run', args: [] }]);
     workspaces.reviseStatus.resolves([]);
-    sails.services.test = {
+    operations.test = {
       run: () =>
         new Observable(sub => {
           sub.error(failure);
@@ -111,11 +112,9 @@ describe('WorkspaceAsyncService', () => {
     let finishJob!: () => void;
     let finishWrite!: () => void;
     let closed = false;
-    sails.config.beforeShutdown = callback => {
-      closed = true;
-      callback();
-    };
-    sails.services.test = {
+    const application = new ApplicationRuntime({ config: {}, log }, [{ name: 'workspace', create: () => ({ initialize: async () => {}, close: async () => { await service.close(); closed = true; } }) }]);
+    await application.initialize();
+    operations.test = {
       immediate: () =>
         new Observable(sub => {
           sub.next('private payload');
@@ -142,7 +141,7 @@ describe('WorkspaceAsyncService', () => {
     await service.init();
     service.loop();
     await new Promise<void>(ok => setImmediate(ok));
-    const shutdown = new Promise<void>((ok, fail) => sails.config.beforeShutdown!(e => (e ? fail(e) : ok())));
+    const shutdown = application.stop();
     await new Promise<void>(ok => setImmediate(ok));
     assert.equal(closed, false, 'a failed sibling must not release the batch');
     finishJob();
@@ -151,12 +150,12 @@ describe('WorkspaceAsyncService', () => {
     finishWrite();
     await shutdown;
     assert.equal(closed, true);
-    assert(!JSON.stringify((sails.log.error as sinon.SinonStub).args).includes('private payload'));
+    assert(!JSON.stringify((log.error as sinon.SinonStub).args).includes('private payload'));
   });
   it('owns early rejected writes and waits for later writes from the same job', async () => {
     let finishJob!: () => void;
     let finishWrite!: () => void;
-    sails.services.test = {
+    operations.test = {
       run: () =>
         new Observable(sub => {
           sub.next('first');
@@ -187,6 +186,6 @@ describe('WorkspaceAsyncService', () => {
   });
   it('exports status and worker drain entry points', () => {
     for (const name of ['start', 'update', 'pending', 'status', 'loop', 'init', 'drain'])
-      assert.equal(typeof Reflect.get(service.exports(), name), 'function');
+      assert.equal(typeof Reflect.get(service, name), 'function');
   });
 });

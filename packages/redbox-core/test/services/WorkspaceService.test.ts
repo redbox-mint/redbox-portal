@@ -1,3 +1,5 @@
+import { getIdentityRepositories as identityRepositories } from '../../src/persistence/identity/runtime';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import { createSinonStubLogger } from '../logger.test';
@@ -6,10 +8,10 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture, createQueryObject } from './testHelper';
 
 describe('WorkspaceService', function () {
-  let mockSails: any;
+  let fixture: any;
   let WorkspaceService: any;
   let mockUser: any;
   let mockWorkspaceApp: any;
@@ -17,7 +19,7 @@ describe('WorkspaceService', function () {
 
   beforeEach(function () {
     installIdentityRepositoryMock();
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
       },
@@ -36,17 +38,16 @@ describe('WorkspaceService', function () {
       destroy: sinon.stub().returns(createQueryObject([])),
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.User = mockUser;
     repositoryFixtures.WorkspaceApp = mockWorkspaceApp;
     repositoryFixtures.Form = { findOne: sinon.stub() };
-    (global as any).Institution = { findOne: sinon.stub() };
-    (global as any).RecordsService = {
+    collaborators.RecordsService = {
       getMeta: sinon.stub().resolves({}),
       appendToRecord: sinon.stub().resolves({}),
       removeFromRecord: sinon.stub().resolves({}),
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
 
@@ -56,17 +57,16 @@ describe('WorkspaceService', function () {
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/WorkspaceService');
-    WorkspaceService = new Services.WorkspaceService();
+    WorkspaceService = new Services.WorkspaceService({ identities: identityRepositories(), records: collaborators.RecordsService, log: fixture.log });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.User;
     delete repositoryFixtures.WorkspaceApp;
     delete repositoryFixtures.Form;
-    delete (global as any).Institution;
-    delete (global as any).RecordsService;
-    delete (global as any).BrandingService;
+    delete collaborators.RecordsService;
+    delete collaborators.BrandingService;
     axiosStub.restore();
     sinon.restore();
   });
@@ -115,8 +115,8 @@ describe('WorkspaceService', function () {
 
       await WorkspaceService.addWorkspaceToRecord(targetRecordOid, workspaceOid, workspaceData, undefined, user);
 
-      expect((global as any).RecordsService.appendToRecord.calledOnce).to.be.true;
-      const args = (global as any).RecordsService.appendToRecord.firstCall.args;
+      expect(collaborators.RecordsService.appendToRecord.calledOnce).to.be.true;
+      const args = collaborators.RecordsService.appendToRecord.firstCall.args;
       expect(args[0]).to.equal(targetRecordOid);
       expect(args[1].id).to.equal(workspaceOid);
       expect(args[2]).to.equal('metadata.workspaces');
@@ -130,7 +130,7 @@ describe('WorkspaceService', function () {
 
       await WorkspaceService.addWorkspaceToRecord(targetRecordOid, workspaceOid);
 
-      const args = (global as any).RecordsService.appendToRecord.firstCall.args;
+      const args = collaborators.RecordsService.appendToRecord.firstCall.args;
       expect(args[1].id).to.equal(workspaceOid);
     });
   });
@@ -143,8 +143,8 @@ describe('WorkspaceService', function () {
 
       await WorkspaceService.removeWorkspaceFromRecord(targetRecordOid, workspaceOid, {}, undefined, user);
 
-      expect((global as any).RecordsService.removeFromRecord.calledOnce).to.be.true;
-      const args = (global as any).RecordsService.removeFromRecord.firstCall.args;
+      expect(collaborators.RecordsService.removeFromRecord.calledOnce).to.be.true;
+      const args = collaborators.RecordsService.removeFromRecord.firstCall.args;
       expect(args[0]).to.equal(targetRecordOid);
       expect(args[1].id).to.equal(workspaceOid);
       expect(args[4]).to.equal(user);
@@ -167,13 +167,13 @@ describe('WorkspaceService', function () {
 
     it('should retrieve record if not provided', async function () {
       const targetRecordOid = 'record-123';
-      (global as any).RecordsService.getMeta.resolves({
+      collaborators.RecordsService.getMeta.resolves({
         metadata: { workspaces: [] },
       });
 
       const result = await WorkspaceService.getWorkspaces(targetRecordOid);
 
-      expect((global as any).RecordsService.getMeta.calledWith(targetRecordOid)).to.be.true;
+      expect(collaborators.RecordsService.getMeta.calledWith(targetRecordOid)).to.be.true;
     });
   });
 
@@ -278,7 +278,7 @@ describe('WorkspaceService', function () {
 
   describe('exports', function () {
     it('should export all public methods', function () {
-      const exported = WorkspaceService.exports();
+      const exported = WorkspaceService;
 
       expect(exported).to.have.property('createWorkspaceRecord');
       expect(exported).to.have.property('getRecordMeta');

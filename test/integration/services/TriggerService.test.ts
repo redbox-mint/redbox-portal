@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 describe('The TriggerService', function () {
     before(function (done) {
         done();
@@ -17,7 +18,7 @@ describe('The TriggerService', function () {
                 caseSensitive: false,
                 allowNulls: true,
             };
-            const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
+            const result = await fixture.services.TriggerService.validateFieldUsingRegex(oid, record, options);
             expect(result).to.eql({'testing-field': [{'row-item': 'field-value'}]});
         });
         it('value with different case fails when case sensitive', async function () {
@@ -34,7 +35,7 @@ describe('The TriggerService', function () {
                 caseSensitive: true,
                 allowNulls: true,
             };
-            const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
+            const result = await fixture.services.TriggerService.validateFieldUsingRegex(oid, record, options);
             expect(result).to.eql({'testing-field': [{'row-item': 'field-value'}]});
         });
         it('value with spaces fails when not trimmed', async function () {
@@ -52,7 +53,7 @@ describe('The TriggerService', function () {
                 forceRun: true
             };
             try {
-                await TriggerService.validateFieldUsingRegex(oid, record, options);
+                await fixture.services.TriggerService.validateFieldUsingRegex(oid, record, options);
                 expect.fail("Should have thrown error");
             } catch (err) {
                 expect(err).to.be.an('error');
@@ -82,7 +83,7 @@ describe('The TriggerService', function () {
             };
 
             try {
-                await TriggerService.validateFieldUsingRegex(oid, record, options);
+                await fixture.services.TriggerService.validateFieldUsingRegex(oid, record, options);
                 expect.fail("Should have thrown error");
             } catch (err) {
                 expect(err).to.be.an('error');
@@ -107,7 +108,7 @@ describe('The TriggerService', function () {
                 allowNulls: true,
                 forceRun: true
             };
-            const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
+            const result = await fixture.services.TriggerService.validateFieldUsingRegex(oid, record, options);
             expect(result).to.eql(record);
         });
         it('empty value fails for allowNulls false field with RBValidationError', async function () {
@@ -124,7 +125,7 @@ describe('The TriggerService', function () {
                 forceRun: true
             };
             try {
-                await TriggerService.validateFieldUsingRegex(oid, record, options);
+                await fixture.services.TriggerService.validateFieldUsingRegex(oid, record, options);
                 expect.fail("Should have thrown error");
             } catch (err) {
                 expect(err).to.be.an('error');
@@ -153,7 +154,7 @@ describe('The TriggerService', function () {
             };
 
             try {
-                const result = await TriggerService.validateFieldsUsingTemplate(oid, record, options);
+                const result = await fixture.services.TriggerService.validateFieldsUsingTemplate(oid, record, options);
                 expect(result).to.eql({'testing-field': 'valid-value'});
             } catch (err) {
                 expect.fail("Should not have thrown error");
@@ -173,7 +174,7 @@ describe('The TriggerService', function () {
                 forceRun: true
             };
             try {
-                await TriggerService.validateFieldsUsingTemplate(oid, record, options);
+                await fixture.services.TriggerService.validateFieldsUsingTemplate(oid, record, options);
                 expect.fail("Should have thrown error");
             } catch (err) {
                 expect(err).to.be.an('error');

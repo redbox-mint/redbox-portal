@@ -1,18 +1,19 @@
+import { referenceFixtures } from '../helpers/serviceRepositories';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/WorkflowStepsService';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 import { of } from 'rxjs';
 
 describe('WorkflowStepsService', function() {
   let service: Services.WorkflowSteps;
-  let mockSails: any;
+  let fixture: any;
 
   beforeEach(function() {
-    mockSails = createMockSails();
-    mockSails.config.workflow = {
+    fixture = createDomainFixture();
+    fixture.config.workflow = {
       'dataset': {
         'draft': {
           config: { form: 'form1' },
@@ -21,9 +22,9 @@ describe('WorkflowStepsService', function() {
         }
       }
     };
-    mockSails.config.appmode = { bootstrapAlways: false };
+    fixture.config.appmode = { bootstrapAlways: false };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
 
     const mockDeferred = (result: unknown) => ({
       exec: sinon.stub().yields(null, result)
@@ -36,11 +37,11 @@ describe('WorkflowStepsService', function() {
       findOne: sinon.stub().returns(mockDeferred({}))
     };
 
-    service = new Services.WorkflowSteps();
+    service = new Services.WorkflowSteps({ references: referenceFixtures(), config: fixture.config, log: fixture.log });
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.WorkflowStep;
     sinon.restore();
   });
@@ -86,7 +87,7 @@ describe('WorkflowStepsService', function() {
           },
         },
       };
-      mockSails.config.workflow.dataset.draft.config.recordValidation = recordValidation;
+      fixture.config.workflow.dataset.draft.config.recordValidation = recordValidation;
       repositoryFixtures.WorkflowStep.find = sinon.stub().resolves([]);
       repositoryFixtures.WorkflowStep.create.callsFake((data: unknown) => ({
         exec: sinon.stub().yields(null, data)
@@ -192,7 +193,7 @@ describe('WorkflowStepsService', function() {
 
   describe('exports', function() {
     it('should export all public methods', function() {
-      const exported = service.exports();
+      const exported = service;
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('create');
       expect(exported).to.have.property('get');

@@ -1,42 +1,44 @@
+const collaborators: any = {};
+const hooks = new Map<string, unknown>();
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { of, from } from 'rxjs';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('TriggerService', function () {
-  let mockSails: any;
+  let fixture: any;
   let TriggerService: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
 
-    (global as any).RecordsService = {
+    collaborators.RecordsService = {
       getMeta: sinon.stub(),
       updateMetaInternal: sinon.stub().resolves({ wasPersisted: () => true, isComplete: () => true }),
     };
-    (global as any).TranslationService = {
+    collaborators.TranslationService = {
       t: sinon.stub().callsFake(key => key),
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrandById: sinon.stub().returns({}),
     };
 
     const { Services } = require('../../src/services/TriggerService');
-    TriggerService = new Services.Trigger();
+    TriggerService = new Services.Trigger({ log: fixture.log, get records() { return collaborators.RecordsService; }, get translation() { return collaborators.TranslationService; }, brand: id => collaborators.BrandingService.getBrandById(id), resolveHook: name => hooks.get(name) });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).RecordsService;
-    delete (global as any).TranslationService;
-    delete (global as any).BrandingService;
+    restoreRepositoryFixtures();
+    delete collaborators.RecordsService;
+    delete collaborators.TranslationService;
+    delete collaborators.BrandingService;
     sinon.restore();
   });
 
@@ -247,8 +249,8 @@ describe('TriggerService', function () {
       };
 
       sinon.stub(TriggerService, 'metTriggerCondition').returns('true');
-      (global as any).RecordsService.getMeta.resolves(relatedMeta);
-      (global as any).RecordsService.updateMetaInternal.resolves({
+      collaborators.RecordsService.getMeta.resolves(relatedMeta);
+      collaborators.RecordsService.updateMetaInternal.resolves({
         outcome: 'saved-with-warnings',
         wasPersisted: () => true,
         isComplete: () => false,
@@ -256,8 +258,8 @@ describe('TriggerService', function () {
 
       await TriggerService.runTemplatesOnRelatedRecord('oid', relatedRecord, options, {});
 
-      expect((global as any).RecordsService.updateMetaInternal.called).to.be.true;
-      const updateOptions = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+      expect(collaborators.RecordsService.updateMetaInternal.called).to.be.true;
+      const updateOptions = collaborators.RecordsService.updateMetaInternal.firstCall.args[0];
       expect(updateOptions.oid).to.equal('related-oid');
       expect(updateOptions.record.metadata.updated).to.equal('true');
       expect(updateOptions.metadataMode).to.equal('pre-applied');
