@@ -1,103 +1,96 @@
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-import { authorizeCompanionRequest } from '../../src/config/http.config';
+import { expect } from 'chai';
+import express from 'express';
+import supertest from 'supertest';
+import { createHttpPolicies } from '../../src/http/express/policies';
+import { mountCompanionRoutes } from '../../src/http/express/companion';
+import type { CompanionUploads } from '../../src/http/express/companion';
+import type { AuthenticatedActor } from '../../src/http/express/identity';
 
-type MockRequestOptions = {
-    authenticated?: boolean;
-    branding?: string;
-    roles?: unknown[];
-};
-
-function createMockRequest(options: MockRequestOptions = {}): Record<string, unknown> {
-    const {
-        authenticated = false,
-        branding,
-        roles = []
-    } = options;
-
-    return {
-        session: {
-            branding
-        },
-        user: {
-            roles
-        },
-        isAuthenticated: () => authenticated
-    };
-}
-
-describe('authorizeCompanionRequest', function () {
-    beforeEach(function () {
-        (global as any).BrandingService = {
-            getBrand: (name: string) => ({ id: `brand-${name}`, name })
-        };
-        (global as any).PathRulesService = {
-            getRulesFromPath: () => null,
-            canRead: () => true
-        };
+// Exercise the real provider mount and selected HTTP policies. Only remote
+// transfer delivery is stubbed; authentication, brand membership and path rules run.
+describe('owned Companion authorization', () => {
+  let authenticated: boolean;
+  let branding: string | undefined;
+  let matchingRule: boolean;
+  let allowed: boolean;
+  let roles: AuthenticatedActor['roles'];
+  const brand = { id: 'brand-default', name: 'default' };
+  beforeEach(() => {
+    authenticated = false;
+    branding = 'default';
+    matchingRule = false;
+    allowed = true;
+    roles = [{ id: 'researcher', brandId: brand.id, name: 'Researcher' }];
+  });
+  function request() {
+    const app = express();
+    const policies = createHttpPolicies({
+      branding: { getBrand: async () => brand },
+      portals: ['rdmp'],
+      pathRules: {
+        getRulesFromPath: () => (matchingRule ? ([{}] as never) : null),
+        canRead: () => allowed,
+      },
+      defaultUnauthenticatedRole: () => undefined,
+      emitRequestFailure: async () => {},
+      authenticate: async () => (authenticated ? { id: 'user', username: 'researcher', roles } : false),
     });
-
-    afterEach(function () {
-        delete (global as any).BrandingService;
-        delete (global as any).PathRulesService;
+    mountCompanionRoutes(app, {
+      path: '/companion',
+      appUrl: 'https://portal.example.edu/default/rdmp',
+      context: () => (branding ? { branding, portal: 'rdmp' } : undefined),
+      uploads: { handle: (_req, res) => res.json({ delivered: true }) } as CompanionUploads,
+      policies,
+      policyConfiguration: { '*': true },
+      csrf: { apiProtect: (_req, _res, next) => next() },
+      audit: async () => {},
     });
-
-    it('should allow non-companion requests without applying auth checks', function () {
-        const req = createMockRequest({ authenticated: false });
-        const decision = authorizeCompanionRequest(req as any, '/companion', '/record/view/123');
-        expect(decision).to.deep.equal({
-            isCompanionRequest: false,
-            allowed: true
-        });
-    });
-
-    it('should reject unauthenticated companion requests with 401', function () {
-        const req = createMockRequest({ authenticated: false });
-        const decision = authorizeCompanionRequest(req as any, '/companion', '/companion/drive/list/root');
-        expect(decision.isCompanionRequest).to.equal(true);
-        expect(decision.allowed).to.equal(false);
-        expect(decision.statusCode).to.equal(401);
-        expect(decision.body).to.deep.equal({ message: 'Authentication required' });
-    });
-
-    it('should reject authenticated companion requests with missing branding context', function () {
-        const req = createMockRequest({ authenticated: true, branding: '' });
-        const decision = authorizeCompanionRequest(req as any, '/companion', '/companion/drive/list/root');
-        expect(decision.isCompanionRequest).to.equal(true);
-        expect(decision.allowed).to.equal(false);
-        expect(decision.statusCode).to.equal(403);
-        expect(decision.body).to.deep.equal({ message: 'Access Denied' });
-    });
-
-    it('should allow authenticated companion requests when no companion path rules match', function () {
-        const req = createMockRequest({ authenticated: true, branding: 'default' });
-        (global as any).PathRulesService.getRulesFromPath = () => null;
-        const decision = authorizeCompanionRequest(req as any, '/companion', '/companion/drive/list/root');
-        expect(decision).to.deep.equal({
-            isCompanionRequest: true,
-            allowed: true
-        });
-    });
-
-    it('should reject authenticated companion requests when matching companion path rule denies access', function () {
-        const req = createMockRequest({ authenticated: true, branding: 'default', roles: [{ id: 'researcher' }] });
-        (global as any).PathRulesService.getRulesFromPath = () => [{ path: '/companion/*' }];
-        (global as any).PathRulesService.canRead = () => false;
-        const decision = authorizeCompanionRequest(req as any, '/companion', '/companion/drive/list/root');
-        expect(decision.isCompanionRequest).to.equal(true);
-        expect(decision.allowed).to.equal(false);
-        expect(decision.statusCode).to.equal(403);
-        expect(decision.body).to.deep.equal({ message: 'Access Denied' });
-    });
-
-    it('should allow authenticated companion requests when matching companion path rule grants access', function () {
-        const req = createMockRequest({ authenticated: true, branding: 'default', roles: [{ id: 'researcher' }] });
-        (global as any).PathRulesService.getRulesFromPath = () => [{ path: '/companion/*' }];
-        (global as any).PathRulesService.canRead = () => true;
-        const decision = authorizeCompanionRequest(req as any, '/companion', '/companion/drive/list/root');
-        expect(decision).to.deep.equal({
-            isCompanionRequest: true,
-            allowed: true
-        });
-    });
+    app.get('/record/view/123', (_req, res) => res.json({ publicPage: true }));
+    return supertest(app);
+  }
+  it('allows non-companion requests without applying provider authentication', async () => {
+    expect((await request().get('/record/view/123').expect(200)).body).to.deep.equal({ publicPage: true });
+  });
+  it('rejects unauthenticated companion requests with 401', async () => {
+    const response = await request().get('/companion/drive/list/root').expect(401);
+    expect(response.body).to.deep.equal({ message: 'Authentication required', details: '' });
+    expect(response.headers['www-authenticate']).to.equal('Bearer');
+  });
+  it('rejects authenticated companion requests with missing branding context', async () => {
+    authenticated = true;
+    branding = undefined;
+    await request().get('/companion/drive/list/root').expect(403);
+  });
+  it('allows authenticated brand members when no companion path rule matches', async () => {
+    authenticated = true;
+    expect((await request().get('/companion/drive/list/root').expect(200)).body).to.deep.equal({ delivered: true });
+  });
+  it('rejects authenticated companion requests when the matching rule denies access', async () => {
+    authenticated = true;
+    matchingRule = true;
+    allowed = false;
+    await request().get('/companion/drive/list/root').expect(403);
+  });
+  it('allows authenticated companion requests when the matching rule grants access', async () => {
+    authenticated = true;
+    matchingRule = true;
+    expect((await request().get('/companion/drive/list/root').expect(200)).body).to.deep.equal({ delivered: true });
+  });
+  it('delivers the popup callback only after actor and brand authorization', async () => {
+    await request().get('/companion/drive/send-token').expect(401);
+    authenticated = true;
+    const response = await request().get('/companion/drive/send-token').expect(200);
+    expect(response.headers['content-type']).to.include('text/html');
+    expect(response.headers['cache-control']).to.equal('no-cache, no-store, must-revalidate');
+    expect(response.headers['content-security-policy']).to.include("default-src 'none'");
+    expect(response.text).to.include('companion-send-token-config').and.include('https://portal.example.edu');
+    expect(response.text).to.include("config.secureCookie?'; Secure':''");
+    roles = [];
+    await request().get('/companion/drive/send-token').expect(403);
+  });
+  it('requires brand membership even when path rules allow access', async () => {
+    authenticated = true;
+    roles = [{ id: 'other-brand', brandId: 'other-brand', name: 'Admin' }];
+    await request().get('/companion/drive/list/root').expect(403);
+  });
 });

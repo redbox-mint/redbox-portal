@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("./portalFixture.cjs");
 import { escapeRegExp } from 'lodash';
 import {
   prismaDatabase,
@@ -15,7 +16,7 @@ const collection = (name: string) => aliases[name] ?? name.toLowerCase();
 async function model(name: string): Promise<any> {
   return (
     await prismaDatabase(
-      sails,
+      fixture.owner,
       [
         'IntegrationAudit',
         'BrandingConfigHistory',
@@ -76,7 +77,7 @@ function order(value: any): any {
 }
 export async function fixtureRows(name: string, where: any = {}, options: any = {}): Promise<any[]> {
   if (options.populate && ['User', 'Role'].includes(name))
-    return getIdentityRepositories().list(collection(name) as any, where, { populate: [options.populate] });
+    return getIdentityRepositories(fixture.owner).list(collection(name) as any, where, { populate: [options.populate] });
   let query = (await model(name)).where(prismaModelFilter(predicate(where)));
   if (options.sort ?? where.sort) query = query.orderBy(order(options.sort ?? where.sort));
   if (options.skip) query = query.offset(options.skip);
@@ -90,12 +91,12 @@ export async function fixtureCount(name: string, where: any = {}): Promise<numbe
   return (await fixtureRows(name, where)).length;
 }
 export async function fixtureCreate(name: string, values: any): Promise<any> {
-  if (name === 'User') return getIdentityRepositories().create('user', values);
-  if (name === 'BrandingConfig') return getBrandingRepository().createBrand(values);
-  if (name === 'BrandingConfigHistory') return getBrandingRepository().insertHistory(values);
-  if (name === 'Vocabulary') return getVocabularyRepositories().createVocabulary(values);
-  if (name === 'VocabularyEntry') return getVocabularyRepositories().createEntry(values);
-  if (name === 'I18nTranslation') return getConfigurationRepositories().translations.createEntry(values);
+  if (name === 'User') return getIdentityRepositories(fixture.owner).create('user', values);
+  if (name === 'BrandingConfig') return getBrandingRepository(fixture.owner).createBrand(values);
+  if (name === 'BrandingConfigHistory') return getBrandingRepository(fixture.owner).insertHistory(values);
+  if (name === 'Vocabulary') return getVocabularyRepositories(fixture.owner).createVocabulary(values);
+  if (name === 'VocabularyEntry') return getVocabularyRepositories(fixture.owner).createEntry(values);
+  if (name === 'I18nTranslation') return getConfigurationRepositories(fixture.owner).translations.createEntry(values);
   const { id, ...data } = values;
   return snapshot(
     await (
@@ -111,7 +112,7 @@ export async function fixtureCreate(name: string, values: any): Promise<any> {
 export async function fixturePatch(name: string, where: any, values: any): Promise<any[]> {
   const rows = await fixtureRows(name, where);
   if (name === 'BrandingConfig')
-    return Promise.all(rows.map(row => getBrandingRepository().reviseBrand(row.id, values)));
+    return Promise.all(rows.map(row => getBrandingRepository(fixture.owner).reviseBrand(row.id, values)));
   const entity = await model(name),
     result = [];
   for (const row of rows) result.push(snapshot(await entity.where(prismaModelFilter({ _id: row.id })).update(values)));
