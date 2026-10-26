@@ -41,7 +41,9 @@ module.exports = function (config) {
     junitReporter: {
       outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-form')
     },
-    reporters: ['progress', 'kjhtml', 'junit'],
+    // The interactive HTML reporter runs before Karma sends completion and coverage.
+    // Headless CI only needs terminal and JUnit results alongside code coverage.
+    reporters: isCI ? ['progress', 'junit'] : ['progress', 'kjhtml', 'junit'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
