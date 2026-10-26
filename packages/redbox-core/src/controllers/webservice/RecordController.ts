@@ -1185,10 +1185,10 @@ export namespace Controllers {
         // ignores the request context, so this is the only view-access check.
         const record = await this.requireRecordInBrand(oid, brand);
         if (!record) {
-          return this.sendResp(req, res, { status: 404 });
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
         }
         if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
-          return this.sendResp(req, res, { status: 403 });
+          return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'edit-error-no-permissions' }] });
         }
         let found: globalThis.Record<string, unknown> | null = null;
         const attachments = await this.RecordsService.getAttachments(oid, undefined, {
@@ -1201,7 +1201,7 @@ export namespace Controllers {
         }
 
         if (!found) {
-          return this.sendResp(req, res, { status: 404 });
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'attachment-not-found' }] });
         }
         let mimeType = found.mimeType;
         if (_.isEmpty(mimeType)) {

@@ -26,6 +26,10 @@ export class SaveButtonFieldComponentConfig extends FieldComponentConfig impleme
     closeOnSave?: boolean;
     redirectLocation?: string;
     redirectDelaySeconds?: number;
+    confirmationMessage?: string;
+    confirmationTitle?: string;
+    cancelButtonMessage?: string;
+    confirmButtonMessage?: string;
 
     constructor() {
         super();

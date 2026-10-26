@@ -84,7 +84,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
@@ -113,7 +113,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
 
     const nativeEl: HTMLElement = fixture.nativeElement;
     const el = nativeEl.querySelector('div.alert-info');
@@ -153,7 +153,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
 
     // assert
     const nativeEl: HTMLElement = fixture.nativeElement;
@@ -216,7 +216,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
 
     const link = (fixture.nativeElement as HTMLElement).querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]');
     expect(link?.textContent).toContain('Translated Text Field');
@@ -272,7 +272,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -329,7 +329,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
     const initialSummaryErrors = await validationSummary.allValidationErrorsDisplay();
     expect(initialSummaryErrors.map((summary) => summary.id)).toContain('form-item-id-text-1-event');
@@ -394,7 +394,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const validationSummary = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
     const summaryErrors = await validationSummary.allValidationErrorsDisplay();
 
@@ -442,7 +442,7 @@ describe('ValidationSummaryFieldComponent', () => {
 
     const eventBus = TestBed.inject(FormComponentEventBus);
     const publishSpy = spyOn(eventBus, 'publish').and.callThrough();
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]') as HTMLAnchorElement | null;
 
@@ -542,7 +542,7 @@ describe('ValidationSummaryFieldComponent', () => {
     };
 
     // act
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const nativeEl: HTMLElement = fixture.nativeElement;
     const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(mainTab.activeTabId).toBe('tab1');
@@ -657,7 +657,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const nativeEl: HTMLElement = fixture.nativeElement;
     const mainTab = fixture.componentInstance.componentDefArr[0].component as TabComponent;
     expect(mainTab.activeTabId).toBe('tab1');
@@ -732,7 +732,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -807,7 +807,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -885,8 +885,8 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture: fixtureWithoutTabLabel } = await createFormAndWaitForReady(formConfigWithoutTabLabel);
-    const { fixture: fixtureWithTabLabel } = await createFormAndWaitForReady(formConfigWithTabLabel);
+    const { fixture: fixtureWithoutTabLabel } = await createFormAndWaitForReady(formConfigWithoutTabLabel, { editMode: true });
+    const { fixture: fixtureWithTabLabel } = await createFormAndWaitForReady(formConfigWithTabLabel, { editMode: true });
 
     const linkWithoutTabLabel = (fixtureWithoutTabLabel.nativeElement as HTMLElement).querySelector('.validation-summary-item a');
     expect(linkWithoutTabLabel?.textContent?.trim()).toBe('Project name');
@@ -955,7 +955,7 @@ describe('ValidationSummaryFieldComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true });
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('.validation-summary-item a');
     expect(link).toBeTruthy();
@@ -1005,7 +1005,7 @@ describe('ValidationSummaryFieldComponent', () => {
         },
       ]
     };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
 
     // Trigger 'queueValidationErrorsRefresh' by making a change to the form.
     const control = fixture.componentInstance.componentDefArr[0].model?.formControl;

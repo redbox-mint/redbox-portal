@@ -863,12 +863,16 @@ export namespace Controllers {
       if (hasExistingRecord) {
         try {
           existingRecord = await this.recordsService.getMeta(oid);
+          if (_.isEmpty(existingRecord)) {
+            return res.notFound();
+          }
+          const canEdit = await firstValueFrom(this.hasEditAccess(brand, req.user, existingRecord));
+          if (!canEdit) {
+            return res.forbidden();
+          }
         } catch (error) {
           sails.log.error(error);
           return res.serverError();
-        }
-        if (_.isEmpty(existingRecord)) {
-          return res.notFound();
         }
       }
       const buildEditViewLocals = (pageTitle?: string) => ({
@@ -982,6 +986,7 @@ export namespace Controllers {
       try {
         let form: FormAttributes | null = null;
         let currentRec: RecordModel | null = null;
+        let recordHasEditAccess = false;
         if (!oid) {
           //find form to create a record
           form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
@@ -1007,7 +1012,8 @@ export namespace Controllers {
           let hasAccess: boolean;
           if (editMode) {
             //find form to edit a record
-            hasAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+            recordHasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+            hasAccess = recordHasEditAccess;
           } else {
             //find form to view a record
             hasAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
@@ -1016,10 +1022,13 @@ export namespace Controllers {
           // Check user's record access
           if (!hasAccess) {
             return this.sendResp(req, res, {
-              status: 500,
+              status: this.getApiVersion(req) === '1.0' ? 500 : 403,
               displayErrors: [{ code: 'view-error-no-permissions' }],
               v1: { message: TranslationService.t('view-error-no-permissions') },
             });
+          }
+          if (!editMode) {
+            recordHasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
           }
 
           const authoritativeFormName = String(currentRec.metaMetadata?.form ?? '').trim();
@@ -1106,6 +1115,7 @@ export namespace Controllers {
 
         const formFingerprint = await this.generatedFormFingerprint(brand, currentRec, recordType, form);
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
+        const authoritativeRecordType = String(currentRec?.metaMetadata?.type ?? formConfig.type ?? '');
 
         // return the form config
         if (!_.isEmpty(mergedForm)) {
@@ -1113,10 +1123,14 @@ export namespace Controllers {
             data: mergedForm,
             meta: {
               formName: String(form.name ?? currentRec?.metaMetadata?.form ?? formParam ?? ''),
-              recordType: recordType,
+              recordType: authoritativeRecordType,
               oid: oid,
               workflow: recordData?.workflow,
               contextVariables: contextVariablesMap,
+              runtimeContext: {
+                user: { roles: userRoles },
+                record: { type: authoritativeRecordType, hasEditAccess: recordHasEditAccess },
+              },
               validationOperations,
               formFingerprint,
               ...(representation?.metadata ?? {}),
