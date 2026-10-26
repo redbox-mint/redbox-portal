@@ -121,102 +121,134 @@ describe('The RecordsService', function () {
 
   for (const operation of ['create', 'update'] as const) {
     for (const phase of ['save', 'transition'] as const) {
-      it(`adopts a self-persisting ${operation} ${phase} postSync snapshot through Mongo`, async function () {
-        sails.config.recordSchema = { ...sails.config.recordSchema, enabled: false };
-        sails.config.recordValidation = { ...sails.config.recordValidation, mode: 'shadow' };
-        const brand = BrandingService.getDefault();
-        const user = { username: 'admin', roles: [{ name: 'Admin' }] };
-        const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
-        const draft = await firstValueFrom(WorkflowStepsService.getFirst(recordType));
-        const events: string[] = [];
-        let hookRevision: number | undefined;
-        const mode = operation === 'create' ? 'onCreate' : 'onUpdate';
-        const selfPersist = { function: '(oid, record) => globalThis.__integrationPostSyncCommit(oid, record)' };
-        const hooks = {
-          [mode]: {
-            postSync: phase === 'save' ? [selfPersist] : [],
-            post: [{ function: '() => globalThis.__integrationPostSyncEvents.push("save-post")' }],
-          },
-          onTransitionWorkflow: {
-            postSync: [selfPersist],
-            post: [{ function: '() => globalThis.__integrationPostSyncEvents.push("transition-post")' }],
-          },
-        };
-        const configuredType = { ...recordType, hooks, searchable: false };
-        // Configure real stored hooks so nested internal updates resolve the
-        // same type without replacing any service or storage implementation.
-        await sails.models.recordtype.updateOne({ id: recordType.id }).set({ hooks, searchable: false });
-        Object.assign(globalThis, {
-          __integrationPostSyncEvents: events,
-          __integrationPostSyncCommit: async (oid, record) => {
-            events.push('self-save');
-            const saved = await recordsService.mutateMetaInternal({
-              actor: { kind: 'service', id: 'RecordsServiceIntegration.postSync' },
-              authorization: { kind: 'service' },
-              oid,
-              brand,
-              user,
-              triggerPreSaveTriggers: false,
-              triggerPostSaveTriggers: false,
-              mutate: snapshot => ({ ...snapshot, metadata: { ...snapshot.metadata, selfPersisted: true } }),
-            });
-            expect(saved.outcome, JSON.stringify(saved)).to.equal('saved');
-            const committed = await recordsService.getMeta(oid);
-            hookRevision = committed.revision;
-            return { ...record, ...committed };
-          },
-        });
-        try {
-          const initial = {
-            metadata: { title: 'Self-persisting postSync integration', text_2_component_event: 'Required value' },
-            metaMetadata: { type: 'rdmp', brandId: brand.id, form: draft.config.form, attachmentFields: [] },
+      for (const replacement of ['full', 'partial', 'committed-partial'] as const) {
+        const partial = replacement === 'partial';
+        const partialCommit = replacement === 'committed-partial';
+        it(`adopts a self-persisting ${operation} ${phase} postSync snapshot through Mongo${partialCommit ? ' returning only metadata and revision' : partial ? ' before a partial replacement' : ''}`, async function () {
+          sails.config.recordSchema = { ...sails.config.recordSchema, enabled: false };
+          sails.config.recordValidation = { ...sails.config.recordValidation, mode: 'shadow' };
+          const brand = BrandingService.getDefault();
+          const user = { username: 'admin', roles: [{ name: 'Admin' }] };
+          const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
+          const draft = await firstValueFrom(WorkflowStepsService.getFirst(recordType));
+          const events: string[] = [];
+          let hookRevision: number | undefined;
+          const mode = operation === 'create' ? 'onCreate' : 'onUpdate';
+          const selfPersist = { function: '(oid, record) => globalThis.__integrationPostSyncCommit(oid, record)' };
+          const chain = [
+            selfPersist,
+            ...(partial
+              ? [
+                  {
+                    function: '(_oid, record) => ({ metadata: { ...record.metadata, laterHook: true } })',
+                  },
+                ]
+              : []),
+          ];
+          const hooks = {
+            [mode]: {
+              postSync: phase === 'save' ? chain : [],
+              post: [{ function: '() => globalThis.__integrationPostSyncEvents.push("save-post")' }],
+            },
+            onTransitionWorkflow: {
+              postSync: chain,
+              post: [{ function: '() => globalThis.__integrationPostSyncEvents.push("transition-post")' }],
+            },
           };
-          let result;
-          if (operation === 'create') {
-            result = await recordsService.create(
-              brand,
-              initial,
-              configuredType,
-              user,
-              false,
-              true,
-              phase === 'transition' ? draft.name : null
-            );
-            if (result.oid) createdOids.push(String(result.oid));
-          } else {
-            const created = await recordsService.create(brand, initial, configuredType, user, false, false);
-            expect(created.outcome, JSON.stringify(created)).to.equal('saved');
-            const oid = String(created.oid);
-            createdOids.push(oid);
-            result = await recordsService.updateMeta(
-              brand,
-              oid,
-              await recordsService.getMeta(oid),
-              user,
-              false,
-              true,
-              phase === 'transition' ? draft : {}
-            );
-          }
-          await new Promise(resolve => setImmediate(resolve));
-          expect(result.outcome, JSON.stringify(result)).to.equal('saved');
-          expect(result.problems).to.deep.equal([]);
-          const stored = await recordsService.getMeta(String(result.oid));
-          expect(stored.metadata.selfPersisted).to.equal(true);
-          expect(stored.revision).to.equal(hookRevision! + 1);
-          expect(result.concurrency.revision).to.equal(stored.revision);
-          expect(events).to.deep.equal(
-            phase === 'transition' ? ['self-save', 'save-post', 'transition-post'] : ['self-save', 'save-post']
-          );
-        } finally {
-          await sails.models.recordtype.updateOne({ id: recordType.id }).set({
-            hooks: recordType.hooks,
-            searchable: recordType.searchable,
+          const configuredType = { ...recordType, hooks, searchable: false };
+          // Configure real stored hooks so nested internal updates resolve the
+          // same type without replacing any service or storage implementation.
+          await sails.models.recordtype.updateOne({ id: recordType.id }).set({ hooks, searchable: false });
+          Object.assign(globalThis, {
+            __integrationPostSyncEvents: events,
+            __integrationPostSyncCommit: async (oid, record) => {
+              events.push('self-save');
+              const saved = await recordsService.mutateMetaInternal({
+                actor: { kind: 'service', id: 'RecordsServiceIntegration.postSync' },
+                authorization: { kind: 'service' },
+                oid,
+                brand,
+                user,
+                triggerPreSaveTriggers: false,
+                triggerPostSaveTriggers: false,
+                mutate: snapshot => ({
+                  ...snapshot,
+                  metadata: { ...snapshot.metadata, selfPersisted: true },
+                  authorization: {
+                    ...snapshot.authorization,
+                    edit: [],
+                    editRoles: [],
+                    view: ['private-viewer'],
+                    viewRoles: [],
+                  },
+                  metaMetadata: { ...snapshot.metaMetadata, hookCommittedMarker: true },
+                }),
+              });
+              expect(saved.outcome, JSON.stringify(saved)).to.equal('saved');
+              const committed = await recordsService.getMeta(oid);
+              hookRevision = committed.revision;
+              if (partialCommit) {
+                return { metadata: { ...committed.metadata, laterHook: true }, revision: committed.revision };
+              }
+              return { ...record, ...committed };
+            },
           });
-          Reflect.deleteProperty(globalThis, '__integrationPostSyncCommit');
-          Reflect.deleteProperty(globalThis, '__integrationPostSyncEvents');
-        }
-      });
+          try {
+            const initial = {
+              metadata: { title: 'Self-persisting postSync integration', text_2_component_event: 'Required value' },
+              metaMetadata: { type: 'rdmp', brandId: brand.id, form: draft.config.form, attachmentFields: [] },
+            };
+            let result;
+            if (operation === 'create') {
+              result = await recordsService.create(
+                brand,
+                initial,
+                configuredType,
+                user,
+                false,
+                true,
+                phase === 'transition' ? draft.name : null
+              );
+              if (result.oid) createdOids.push(String(result.oid));
+            } else {
+              const created = await recordsService.create(brand, initial, configuredType, user, false, false);
+              expect(created.outcome, JSON.stringify(created)).to.equal('saved');
+              const oid = String(created.oid);
+              createdOids.push(oid);
+              result = await recordsService.updateMeta(
+                brand,
+                oid,
+                await recordsService.getMeta(oid),
+                user,
+                false,
+                true,
+                phase === 'transition' ? draft : {}
+              );
+            }
+            await new Promise(resolve => setImmediate(resolve));
+            expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+            expect(result.problems).to.deep.equal([]);
+            const stored = await recordsService.getMeta(String(result.oid));
+            expect(stored.metadata.selfPersisted).to.equal(true);
+            expect(stored.authorization.edit).to.deep.equal([]);
+            expect(stored.authorization.view).to.deep.equal(['private-viewer']);
+            expect(stored.metaMetadata.hookCommittedMarker).to.equal(true);
+            if (partial || partialCommit) expect(stored.metadata.laterHook).to.equal(true);
+            expect(stored.revision).to.equal(hookRevision! + 1);
+            expect(result.concurrency.revision).to.equal(stored.revision);
+            expect(events).to.deep.equal(
+              phase === 'transition' ? ['self-save', 'save-post', 'transition-post'] : ['self-save', 'save-post']
+            );
+          } finally {
+            await sails.models.recordtype.updateOne({ id: recordType.id }).set({
+              hooks: recordType.hooks,
+              searchable: recordType.searchable,
+            });
+            Reflect.deleteProperty(globalThis, '__integrationPostSyncCommit');
+            Reflect.deleteProperty(globalThis, '__integrationPostSyncEvents');
+          }
+        });
+      }
     }
   }
 

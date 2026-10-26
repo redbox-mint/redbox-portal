@@ -447,6 +447,7 @@ export namespace Services {
     readonly beforeCandidate: AnyRecord;
     readonly candidate: AnyRecord;
     readonly expectedRevision: number;
+    readonly revisionVerificationFailed?: boolean;
   };
   type PostSyncPersistenceResult =
     | {
@@ -1328,24 +1329,68 @@ export namespace Services {
 
     /**
      * A postSync hook may persist the record itself and return the committed
-     * snapshot. Adopt its revision so the chained write targets what storage holds.
+     * snapshot. Retain the highest revision across the phase even when a later
+     * hook returns a partial replacement, so the chained write targets that save.
      * Only a strictly newer, valid revision is adopted; the storage CAS still
      * rejects the write if anything else committed after the hook.
      */
-    private adoptHookCommittedRevision(candidate: AnyRecord | undefined, currentRevision: number): number;
     private adoptHookCommittedRevision(
       candidate: AnyRecord | undefined,
-      currentRevision: number | undefined
+      currentRevision: number,
+      committedRevision?: number
+    ): number;
+    private adoptHookCommittedRevision(
+      candidate: AnyRecord | undefined,
+      currentRevision: number | undefined,
+      committedRevision?: number
     ): number | undefined;
     private adoptHookCommittedRevision(
       candidate: AnyRecord | undefined,
-      currentRevision: number | undefined
+      currentRevision: number | undefined,
+      committedRevision?: number
     ): number | undefined {
-      return isRecordRevision(candidate?.revision) &&
-        currentRevision !== undefined &&
-        candidate.revision > currentRevision
-        ? candidate.revision
-        : currentRevision;
+      if (currentRevision === undefined) return currentRevision;
+      for (const revision of [candidate?.revision, committedRevision]) {
+        if (isRecordRevision(revision) && revision > currentRevision) {
+          currentRevision = revision;
+        }
+      }
+      return currentRevision;
+    }
+
+    /** Verify phase revision adoption against storage before applying the hook overlay. */
+    private async resolvePostSyncCandidate(
+      oid: string,
+      beforeCandidate: AnyRecord,
+      outcome: RecordHookPostSyncResult,
+      currentRevision: number | undefined
+    ): Promise<{
+      candidate: RecordWithMeta;
+      adoptedRevision?: number;
+      revisionVerificationFailed?: boolean;
+    }> {
+      const candidate = this.mergeValidationCandidate(beforeCandidate, outcome.record);
+      const adoptedRevision = this.adoptHookCommittedRevision(candidate, currentRevision, outcome.committedRevision);
+      if (currentRevision === undefined || adoptedRevision === undefined || adoptedRevision <= currentRevision) {
+        return { candidate };
+      }
+      if (adoptedRevision !== outcome.committedRevision) return { candidate, adoptedRevision };
+
+      try {
+        const stored = await this.getMeta(oid);
+        if (this.isUsableRecordSnapshot(stored) && stored.revision === outcome.committedRevision) {
+          // The committing return can itself be partial. Only storage supplies
+          // the committed base; the coordinator retains the returned keys.
+          const base = this.mergeValidationCandidate(beforeCandidate, stored);
+          const overlaid = this.mergeValidationCandidate(base, outcome.committedRecord ?? {});
+          return { candidate: this.mergeValidationCandidate(overlaid, outcome.record), adoptedRevision };
+        }
+      } catch {
+        // An unverifiable revision cannot authorize a chained write.
+      }
+      // Keep the original candidate and revision. A bogus claimed revision can
+      // leave storage at currentRevision, so ordinary fallback CAS could succeed.
+      return { candidate, revisionVerificationFailed: true };
     }
 
     private recordMutationOptions(
@@ -3475,6 +3520,9 @@ export namespace Services {
     private async persistPostSyncCandidate(
       options: PersistPostSyncCandidateOptions
     ): Promise<PostSyncPersistenceResult> {
+      if (options.revisionVerificationFailed) {
+        return { status: 'validation-failed', problem: this.concurrencyProblem('post-save', 'record-revision-stale') };
+      }
       const {
         brand,
         oid,
@@ -4614,7 +4662,11 @@ export namespace Services {
               response: createResponse as unknown as AnyRecord,
               operation: hookOperation,
             });
-            const postSyncCandidate = this.mergeValidationCandidate(beforePostSync, hookOutcome.record);
+            const {
+              candidate: postSyncCandidate,
+              adoptedRevision,
+              revisionVerificationFailed,
+            } = await this.resolvePostSyncCandidate(oid, beforePostSync, hookOutcome, currentRevision);
             recordObj = postSyncCandidate;
             const hookResponse = hookOutcome.response as unknown as StorageServiceResponse;
             tracker.mergeLegacyHookFields(hookResponse);
@@ -4638,12 +4690,13 @@ export namespace Services {
             // The awaited post-sync phase succeeded; later work is detached.
             hookOperation.completedThrough = 'postSync';
             if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
-              currentRevision = this.adoptHookCommittedRevision(postSyncCandidate, currentRevision);
+              currentRevision = adoptedRevision ?? currentRevision;
               const hookMutationState = await this.persistPostSyncCandidate({
                 brand: brandObj,
                 oid,
                 beforeCandidate: beforePostSync,
                 candidate: postSyncCandidate,
+                revisionVerificationFailed,
                 user: userObj,
                 context: tracker.context,
                 expectedRevision: currentRevision,
@@ -4723,21 +4776,28 @@ export namespace Services {
                 response: createResponse as unknown as AnyRecord,
                 operation: hookOperation,
               });
-              const transitionCandidate = this.mergeValidationCandidate(
+              const {
+                candidate: transitionCandidate,
+                adoptedRevision,
+                revisionVerificationFailed,
+              } = await this.resolvePostSyncCandidate(
+                oid,
                 beforeTransitionPostSync,
-                transitionOutcome.record
+                transitionOutcome,
+                currentRevision
               );
               recordObj = transitionCandidate;
               const transitionResponse = transitionOutcome.response as unknown as StorageServiceResponse;
               let transitionProblem: RecordSaveProblem | undefined;
               if (!this.hookResponseFailed(transitionResponse)) {
                 if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow')) {
-                  currentRevision = this.adoptHookCommittedRevision(transitionCandidate, currentRevision);
+                  currentRevision = adoptedRevision ?? currentRevision;
                   const transitionMutationState = await this.persistPostSyncCandidate({
                     brand: brandObj,
                     oid,
                     beforeCandidate: beforeTransitionPostSync,
                     candidate: transitionCandidate,
+                    revisionVerificationFailed,
                     user: userObj,
                     context: tracker.context,
                     expectedRevision: currentRevision,
@@ -5900,14 +5960,19 @@ export namespace Services {
             // The awaited post-sync phase succeeded; later work is detached.
             hookOperation.completedThrough = 'postSync';
             if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
-              const postSyncCandidate = this.mergeValidationCandidate(beforePostSyncCandidate, recordObj);
+              const {
+                candidate: postSyncCandidate,
+                adoptedRevision,
+                revisionVerificationFailed,
+              } = await this.resolvePostSyncCandidate(oid, beforePostSyncCandidate, hookOutcome, currentRevision);
               recordObj = postSyncCandidate;
-              currentRevision = this.adoptHookCommittedRevision(postSyncCandidate, currentRevision);
+              currentRevision = adoptedRevision ?? currentRevision;
               const hookMutationState = await this.persistPostSyncCandidate({
                 brand: brandObj,
                 oid,
                 beforeCandidate: beforePostSyncCandidate,
                 candidate: postSyncCandidate,
+                revisionVerificationFailed,
                 // All chained writes belong to the save authorized against
                 // this detached storage snapshot. Hooks may legitimately
                 // remove the actor's edit access; each write still uses the
@@ -6001,14 +6066,24 @@ export namespace Services {
 
               if (!this.hookResponseFailed(transitionResponse)) {
                 if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
-                  const transitionCandidate = this.mergeValidationCandidate(beforeTransitionCandidate, recordObj);
+                  const {
+                    candidate: transitionCandidate,
+                    adoptedRevision,
+                    revisionVerificationFailed,
+                  } = await this.resolvePostSyncCandidate(
+                    oid,
+                    beforeTransitionCandidate,
+                    transitionOutcome,
+                    currentRevision
+                  );
                   recordObj = transitionCandidate;
-                  currentRevision = this.adoptHookCommittedRevision(transitionCandidate, currentRevision);
+                  currentRevision = adoptedRevision ?? currentRevision;
                   const transitionMutationState = await this.persistPostSyncCandidate({
                     brand: brandObj,
                     oid,
                     beforeCandidate: beforeTransitionCandidate,
                     candidate: transitionCandidate,
+                    revisionVerificationFailed,
                     editAuthorizationRecord: originalRecord,
                     user: userObj,
                     context: tracker.context,

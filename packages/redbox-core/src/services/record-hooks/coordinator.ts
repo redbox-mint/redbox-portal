@@ -1,3 +1,4 @@
+import { isRecordRevision } from '@researchdatabox/sails-ng-common';
 import * as Effect from 'effect/Effect';
 import { cloneDeep, get } from 'lodash';
 import {
@@ -43,6 +44,13 @@ export interface RecordHookPreContext {
 
 export interface RecordHookPostSyncResult {
   record: AnyRecord;
+  /** Highest valid revision from applied record-returning hooks in this phase. */
+  committedRevision?: number;
+  /**
+   * Isolated overlay of the committing result and subsequent applied record
+   * results. May be partial; callers must obtain the committed base from storage.
+   */
+  committedRecord?: AnyRecord;
   response: AnyRecord;
   report: ActionExecutionReport;
   terminalCause?: unknown;
@@ -298,6 +306,8 @@ export class RecordHookCoordinator {
   ): Promise<RecordHookPostSyncResult> {
     let currentRecord = this.normalizeRecord(record);
     let response = initialResponse;
+    let committedRevision: number | undefined;
+    let committedRecord: AnyRecord | undefined;
     // Each hook is handed its own clone of the response so far, and keeps that
     // same clone across retries. Hooks are allowed to mutate it in place.
     const hookInputs = new Map<number, AnyRecord>();
@@ -319,6 +329,22 @@ export class RecordHookCoordinator {
       const returnType = options.returnType === undefined ? 'record' : options.returnType;
       if (returnType === 'record') {
         currentRecord = this.normalizeRecord(value, true);
+        // Keep this separate from currentRecord: a later hook may return a
+        // partial replacement or an older snapshot. Only applied results count.
+        if (
+          isRecordRevision(currentRecord.revision) &&
+          (committedRevision === undefined || currentRecord.revision > committedRevision)
+        ) {
+          committedRevision = currentRecord.revision;
+          committedRecord = cloneDeep(currentRecord);
+        } else if (committedRecord) {
+          // Match the save boundary's top-level replacement semantics without
+          // changing currentRecord or the input passed to the next hook.
+          for (const [key, value] of Object.entries(currentRecord)) {
+            committedRecord[key] = cloneDeep(value);
+          }
+        }
+        if (committedRecord) committedRecord.revision = committedRevision;
       } else if (value && typeof value === 'object') {
         response = mergeLegacyHookResponse(response, value as AnyRecord);
       }
@@ -328,7 +354,14 @@ export class RecordHookCoordinator {
     const context = this.phaseContext(mode, 'postSync');
     const outcome = await Effect.runPromise(runSequentialActionPlan(actions, context, this.dependencies, applyResult));
     this.append(outcome.report);
-    return { record: currentRecord, response, report: outcome.report, terminalCause: outcome.terminalCause };
+    return {
+      record: currentRecord,
+      committedRevision,
+      committedRecord,
+      response,
+      report: outcome.report,
+      terminalCause: outcome.terminalCause,
+    };
   }
 
   dispatchPost(
