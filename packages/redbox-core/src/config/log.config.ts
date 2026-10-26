@@ -1,6 +1,6 @@
 /**
  * Built-in Log Configuration
- * (sails.config.log)
+ * (configuration.log)
  *
  * Configure the log level for your app, as well as the transport.
  *
@@ -17,14 +17,12 @@ import { cachePersistenceFailureForLog } from '../persistence/cache/errors';
 
 export { isPinoLogger } from '../utilities/PinoLoggerUtils';
 
-// Declare global sails type for namespace logger
-declare const sails: Sails.Application;
 
 /**
- * The sails log levels.
+ * The application log levels.
  * Retained for compatibility; equivalent to {@link AvailableLogLevels}.
  */
-export type SailsLogLevel = AvailableLogLevels;
+export type ApplicationLogLevel = AvailableLogLevels;
 
 const initialLogLevel = 'verbose' as const;
 
@@ -44,7 +42,7 @@ const customLevelMap: Record<'blank' | 'crit' | 'log' | 'verbose' | 'silly', num
 export interface LogConfig {
   custom: ILogger; // Use ILogger instead of custom interface
   inspect: boolean;
-  level: SailsLogLevel;
+  level: ApplicationLogLevel;
   customLogger: ILogger;
   createNamespaceLogger: typeof createNamespaceLogger;
   createPinoLogger: typeof createPinoLogger;
@@ -75,7 +73,7 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
     customLevels: customLevelMap,
     level: level ?? initialLogLevel,
     serializers: {
-      // Sails logs the original bootstrap error again after our failure wrapper.
+      // Keep retained cache-persistence failures safe in all logger paths.
       err: error => cachePersistenceFailureForLog(error) ?? pino.stdSerializers.err(error),
     },
     hooks: {
@@ -134,10 +132,7 @@ function createNamespaceLogger(
     );
   }
 
-  let calcLevel: string | null = level ?? null;
-  if (!calcLevel && typeof sails !== 'undefined') {
-    calcLevel = sails.config?.lognamespace?.[name] ?? calcLevel;
-  }
+  const calcLevel: string | null = level ?? null;
 
   const bindings = { name: name };
   const options: Record<string, unknown> = {};

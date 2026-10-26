@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRows, fixtureRemove } from '../../helpers/persistenceFixtures';
 const { APP_CONFIG_SECRET_MASK } = require('../../../packages/redbox-core/dist/services/AppConfigService');
 
@@ -8,8 +9,8 @@ describe('appConfigService', function () {
   let ConfigModels;
 
   beforeEach(() => {
-    appConfigService = sails.services.appconfigservice;
-    ConfigModels = sails.config.configmodels || require('@researchdatabox/redbox-core').ConfigModels;
+    appConfigService = fixture.services.AppConfigService;
+    ConfigModels = appConfigService.input.models;
     // Save original state
     originalBrandingAppConfigMap = appConfigService.brandingAppConfigMap;
     // Generate unique suffix for test models to avoid conflicts
@@ -64,11 +65,11 @@ describe('appConfigService', function () {
     const sinon = require('sinon');
     const arn = 'arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:integration';
     const reference = { $appConfigSecret: { provider: 'aws-secrets-manager', arn } };
-    const originalSecretsConfig = sails.config.appConfigSecrets;
-    const brand = BrandingService.getBrand('default');
+    const originalSecretsConfig = fixture.config.appConfigSecrets;
+    const brand = fixture.services.BrandingService.getBrand('default');
     const key = `appConfigSecretRegression${testStartTime}`;
     appConfigService.registerConfigModel({ key, modelName: key, class: class {}, schema: {}, secretFields: ['sites.*.ingestion.adminToken'] });
-    sails.config.appConfigSecrets = { provider: 'aws-secrets-manager', region: 'ap-southeast-2', namePrefix: 'integration/appconfig' };
+    fixture.config.appConfigSecrets = { provider: 'aws-secrets-manager', region: 'ap-southeast-2', namePrefix: 'integration/appconfig' };
     const send = sinon.stub(SecretsManagerClient.prototype, 'send').callsFake(async command => {
       if (command instanceof CreateSecretCommand) return { ARN: arn };
       if (command instanceof GetSecretValueCommand) return { SecretString: 'integration-token' };
@@ -94,7 +95,7 @@ describe('appConfigService', function () {
         .to.deep.equal({ adminToken: 'integration-token', endpoint: 'unchanged' });
     } finally {
       send.restore();
-      sails.config.appConfigSecrets = originalSecretsConfig;
+      fixture.config.appConfigSecrets = originalSecretsConfig;
       await fixtureRemove("AppConfig", { branding: brand.id, configKey: key });
     }
   });
@@ -107,7 +108,7 @@ describe('appConfigService', function () {
 
   it('should get the app configuration by brand and key from database', async () => {
     const brandName = 'default';
-    const branding = BrandingService.getBrand(brandName);
+    const branding = fixture.services.BrandingService.getBrand(brandName);
     const configKey = 'systemMessage';
     const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
     expect(configData.message ?? '').to.eq('');
@@ -115,7 +116,7 @@ describe('appConfigService', function () {
 
   it('should create or update a configuration', async () => {
     const brandName = 'default';
-    const branding = BrandingService.getBrand(brandName);
+    const branding = fixture.services.BrandingService.getBrand(brandName);
     const configKey = 'systemMessage';
     const message = 'test message';
     const enabled = true;
@@ -123,8 +124,8 @@ describe('appConfigService', function () {
     let configData: any = {};
     configData.message = message;
     configData.enabled = enabled;
-    sails.log.error('branding:');
-    sails.log.error(branding);
+    fixture.log.error('branding:');
+    fixture.log.error(branding);
     const updatedConfigData = await appConfigService.createOrUpdateConfig(branding, configKey, configData);
     const updatedConfig = appConfigService.getAppConfigurationForBrand(brandName);
 
@@ -134,7 +135,7 @@ describe('appConfigService', function () {
 
   it('should get all configurations for a brand from the database', async () => {
     const brandName = 'default';
-    const branding = BrandingService.getBrand(brandName);
+    const branding = fixture.services.BrandingService.getBrand(brandName);
     const configurations = await appConfigService.getAllConfigurationForBrand(branding.id);
     expect(configurations).to.not.be.null;
     expect(configurations.length).to.be.greaterThan(0);
@@ -142,7 +143,7 @@ describe('appConfigService', function () {
 
   it('should get the app configuration by brand and key from database', async () => {
     const brandName = 'default';
-    const branding = BrandingService.getBrand(brandName);
+    const branding = fixture.services.BrandingService.getBrand(brandName);
     const configKey = 'systemMessage';
     const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
     expect(configData.message).to.eq('test message');
@@ -150,7 +151,7 @@ describe('appConfigService', function () {
 
   it('should throw an error when key does not exist', async () => {
     const brandName = 'default';
-    const branding = BrandingService.getBrand(brandName);
+    const branding = fixture.services.BrandingService.getBrand(brandName);
     const configKey = 'fakeConfigKey';
     try {
       const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
@@ -162,7 +163,7 @@ describe('appConfigService', function () {
 
   it('should create a configuration', async () => {
     const brandName = 'default';
-    const branding = BrandingService.getBrand(brandName);
+    const branding = fixture.services.BrandingService.getBrand(brandName);
     const configKey = 'exampleConfigKey';
     const configData = { example: 'data' };
     const createdConfigData = await appConfigService.createConfig(brandName, configKey, configData);
@@ -173,7 +174,7 @@ describe('appConfigService', function () {
   });
 
   it('should get the app config form', async () => {
-    const branding = BrandingService.getBrand('default');
+    const branding = fixture.services.BrandingService.getBrand('default');
     const configForm = 'systemMessage';
     const appConfigForm = await appConfigService.getAppConfigForm(branding, configForm);
     expect(appConfigForm).to.not.be.null;
@@ -182,7 +183,7 @@ describe('appConfigService', function () {
   });
 
   it('should get the authorized domains and emails app config form', async () => {
-    const branding = BrandingService.getBrand('default');
+    const branding = fixture.services.BrandingService.getBrand('default');
     const configForm = 'authorizedDomainsEmails';
     const appConfigForm = await appConfigService.getAppConfigForm(branding, configForm);
     expect(appConfigForm).to.not.be.null;
@@ -269,9 +270,9 @@ describe('appConfigService', function () {
 
   it('should handle config model registration with class instantiation error', () => {
     // Test the error handling by mocking the instantiation process
-    const originalWarn = sails.log.warn;
+    const originalWarn = fixture.log.warn;
     let warnMessage = '';
-    sails.log.warn = msg => {
+    fixture.log.warn = msg => {
       warnMessage = msg;
     };
 
@@ -302,7 +303,7 @@ describe('appConfigService', function () {
     expect(() => appConfigService.registerConfigModel(configInfo)).to.not.throw();
 
     // Restore original warn function
-    sails.log.warn = originalWarn;
+    fixture.log.warn = originalWarn;
   });
 
   it('should not override existing branding config when registering new model', () => {
@@ -435,7 +436,7 @@ describe('appConfigService', function () {
       schema: formSchema,
     });
 
-    const branding = BrandingService.getBrand('default');
+    const branding = fixture.services.BrandingService.getBrand('default');
     const appConfigForm = await appConfigService.getAppConfigForm(branding, 'testFormWithSchema');
 
     expect(appConfigForm).to.not.be.null;
@@ -497,7 +498,7 @@ describe('appConfigService', function () {
 
   it('should preserve masked secret fields when updating figsharePublishing config', async () => {
     const brandName = 'default';
-    const branding = BrandingService.getBrand(brandName);
+    const branding = fixture.services.BrandingService.getBrand(brandName);
     const configKey = 'figsharePublishing';
 
     await appConfigService.createOrUpdateConfig(branding, configKey, {
@@ -544,7 +545,7 @@ describe('appConfigService', function () {
 
   it('should leave empty secret fields visible as empty', async () => {
     const brandName = 'default';
-    const branding = BrandingService.getBrand(brandName);
+    const branding = fixture.services.BrandingService.getBrand(brandName);
     const configKey = 'figsharePublishing';
 
     const updated = await appConfigService.createOrUpdateConfig(branding, configKey, {

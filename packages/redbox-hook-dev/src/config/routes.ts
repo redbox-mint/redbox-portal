@@ -4,8 +4,6 @@
  * Sets the root redirect to the demo rdmp portal home.
  */
 
-import type { RoutesConfig } from '@researchdatabox/redbox-core';
-
 export const routes = {
   '/': '/default/rdmp/home',
-} as unknown as Partial<RoutesConfig>;
+};

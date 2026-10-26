@@ -1,18 +1,24 @@
+import _ from 'lodash';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { CreateSecretCommand, GetSecretValueCommand, PutSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
-import { APP_CONFIG_SECRET_CLEAR, APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
-import { ConfigModels } from '../../src/configmodels/ConfigModels';
-import { AppConfigSecrets } from '../../src/services/AppConfigSecrets';
-import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals, createBundleLockCollection } from './testHelper';
+import { APP_CONFIG_SECRET_CLEAR, APP_CONFIG_SECRET_MASK, AppConfigs } from '../../src/services/AppConfigService';
+import { ConfigModelRegistry } from '../../src/configuration/ConfigModelRegistry';
+import { configurationFixtures } from '../helpers/serviceRepositories';
+import { AppConfigSecrets } from '../../src/configuration/AppConfigSecrets';
+import { createDomainFixture, createBundleLockCollection } from './testHelper';
 
 describe('AppConfig per-brand JSON bundles', function () {
   const brand = { id: 'brand1', name: 'default' };
   type Row = { branding: string; configKey: string; configData: Record<string, unknown> };
-  let service: Services.AppConfigs;
+  let fixture: any;
+  let models: ConfigModelRegistry;
+  const input = () => ({ repository: configurationFixtures(), models, config: fixture.config,
+    log: fixture.log, availableBrands: () => [brand.name], getBrand: () => brand });
+  let service: AppConfigs;
   let rows: Row[];
   let secrets: Map<string, { arn: string; name?: string; value: string }>;
   let send: sinon.SinonStub;
@@ -21,9 +27,9 @@ describe('AppConfig per-brand JSON bundles', function () {
   let locks: ReturnType<typeof createBundleLockCollection>;
 
   beforeEach(function () {
-    const mockSails = createMockSails();
-    mockSails.config.appConfigSecrets = { provider: 'aws-secrets-manager', layout: 'brand-json', region: 'ap-southeast-2', namePrefix: 'test/appconfig' };
-    setupServiceTestGlobals(mockSails);
+    fixture = createDomainFixture();
+    models = new ConfigModelRegistry();
+    fixture.config.appConfigSecrets = { provider: 'aws-secrets-manager', layout: 'brand-json', region: 'ap-southeast-2', namePrefix: 'test/appconfig' };
     rows = [];
     secrets = new Map();
     persist = sinon.stub().callsFake(async (criteria, data) => {
@@ -31,18 +37,16 @@ describe('AppConfig per-brand JSON bundles', function () {
       Object.assign(row, data);
       return row;
     });
-    const globals = globalThis as unknown as Record<string, unknown>;
     locks = createBundleLockCollection();
     repositoryFixtures.secretLocks = locks;
-    globals.BrandingService = { getBrand: () => brand };
     repositoryFixtures.AppConfig = {
       find: async (criteria: { configKey?: string }) => rows.filter(row => !criteria.configKey || row.configKey === criteria.configKey),
       create: async (data: Row) => { rows.push(data); return data; },
       updateOne: (criteria: object) => ({ set: (data: object) => persist(criteria, data) }),
 
     };
-    sinon.stub(ConfigModels, 'getConfigKeys').returns([]);
-    modelInfo = sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'BundleModel', class: class {}, schema: {}, secretFields: ['connection.token', 'connection.password', 'sites.*.ingestion.adminToken'] });
+    sinon.stub(models, 'getConfigKeys').returns([]);
+    modelInfo = sinon.stub(models, 'getModelInfo').returns({ modelName: 'BundleModel', class: class {}, schema: {}, secretFields: ['connection.token', 'connection.password', 'sites.*.ingestion.adminToken'] });
     send = sinon.stub(SecretsManagerClient.prototype, 'send').callsFake(async command => {
       if (command instanceof CreateSecretCommand) {
         const name = command.input.Name!;
@@ -56,15 +60,12 @@ describe('AppConfig per-brand JSON bundles', function () {
       if (command instanceof PutSecretValueCommand) secret.value = command.input.SecretString!;
       return { ARN: secret.arn, Name: secret.name, SecretString: secret.value };
     });
-    service = new Services.AppConfigs();
+    service = new AppConfigs(input());
   });
 
   afterEach(function () {
     sinon.restore();
-    cleanupServiceTestGlobals();
-    const globals = globalThis as unknown as Record<string, unknown>;
     delete repositoryFixtures.AppConfig;
-    delete globals.BrandingService;
   });
 
   function calls(type: typeof CreateSecretCommand | typeof GetSecretValueCommand | typeof PutSecretValueCommand): number {
@@ -119,7 +120,7 @@ describe('AppConfig per-brand JSON bundles', function () {
 
   it('refreshes stale bundled passwords on masked saves after another node changes them', async function () {
     await service.createConfig('default', 'first', { connection: { token: 'one' } });
-    const otherProcess = new Services.AppConfigs();
+    const otherProcess = new AppConfigs(input());
     await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: 'two' } });
     send.resetHistory();
     await service.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK }, label: 'edited' });
@@ -133,7 +134,7 @@ describe('AppConfig per-brand JSON bundles', function () {
 
   it('resubmits an older plaintext value after another node changes the password', async function () {
     await service.createConfig('default', 'first', { connection: { token: 'one' } });
-    const otherProcess = new Services.AppConfigs();
+    const otherProcess = new AppConfigs(input());
     await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: 'two' } });
     send.resetHistory();
     await service.createOrUpdateConfig(brand, 'first', { connection: { token: 'one' } });
@@ -146,7 +147,7 @@ describe('AppConfig per-brand JSON bundles', function () {
   it('clears a password added by another node after this node loaded the brand', async function () {
     await service.createConfig('default', 'first', { connection: { token: 'one' } });
     const arn = stored('first').arn;
-    const otherProcess = new Services.AppConfigs();
+    const otherProcess = new AppConfigs(input());
     await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK, password: 'two' } });
     send.resetHistory();
     await service.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK, password: APP_CONFIG_SECRET_CLEAR } });
@@ -157,7 +158,7 @@ describe('AppConfig per-brand JSON bundles', function () {
 
   it('keeps unchanged saves free of AWS calls after an explicit reload', async function () {
     await service.createConfig('default', 'first', { connection: { token: 'one' } });
-    const otherProcess = new Services.AppConfigs();
+    const otherProcess = new AppConfigs(input());
     otherProcess.brandingAppConfigMap.default = await otherProcess.loadAppConfigurationModel('brand1');
     send.resetHistory();
     await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: 'one' } });
@@ -170,7 +171,7 @@ describe('AppConfig per-brand JSON bundles', function () {
     const arn = stored('first').arn;
     const lock = [...locks.documents.values()][0];
     Object.assign(lock, { owner: 'foreign-writer', expiresAt: new Date(Date.now() + 120_000), cacheToken: 'write-already-dispatched' });
-    const startingProcess = new Services.AppConfigs();
+    const startingProcess = new AppConfigs(input());
     send.resetHistory();
     startingProcess.brandingAppConfigMap.default = await startingProcess.loadAppConfigurationModel('brand1');
     expect(_.get(startingProcess.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('one');
@@ -197,7 +198,7 @@ describe('AppConfig per-brand JSON bundles', function () {
     Object.assign([...locks.documents.values()][0], { owner: 'foreign-writer', expiresAt: new Date(Date.now() + 120_000) });
     modelInfo.withArgs('ordinary').returns({ modelName: 'Ordinary', class: class {}, schema: {}, secretFields: [] });
     const lockRead = sinon.spy(locks, 'findOne');
-    sails.config.appConfigSecrets.namePrefix = 'invalid prefix';
+    fixture.config.appConfigSecrets.namePrefix = 'invalid prefix';
     send.resetHistory();
     await service.createConfig('default', 'ordinary', { label: 'created' });
     await service.createOrUpdateConfig(brand, 'ordinary', { label: 'updated' });
@@ -256,7 +257,7 @@ describe('AppConfig per-brand JSON bundles', function () {
     // A send() stub would bypass the timeout and response-body handling.
     if (scenario.creatingField) {
       await service.createConfig('default', 'first', { connection: { token: 'one' } });
-      sails.config.appConfigSecrets.layout = 'per-field';
+      fixture.config.appConfigSecrets.layout = 'per-field';
       persist.resetHistory();
     }
     send.restore();
@@ -274,7 +275,7 @@ describe('AppConfig per-brand JSON bundles', function () {
     process.env.AWS_MAX_ATTEMPTS = '1';
     const store = scenario.creatingField
       ? (service as unknown as { secretStore: AppConfigSecrets }).secretStore
-      : new AppConfigSecrets(sails.config.appConfigSecrets);
+      : new AppConfigSecrets(fixture.config.appConfigSecrets, { leases: () => configurationFixtures().secretLeases, log: fixture.log });
     const client = (store as unknown as { client: SecretsManagerClient }).client;
     client.config.endpointProvider = () => ({ url: new URL(`http://127.0.0.1:${(server.address() as AddressInfo).port}`) });
     client.config.credentials = async () => ({ accessKeyId: 'test', secretAccessKey: 'test' });
@@ -341,7 +342,7 @@ describe('AppConfig per-brand JSON bundles', function () {
     const first = service.createOrUpdateConfig(brand, 'first', { connection: { token: 'two' } });
     await pending;
     await clock.tickAsync(180_000);
-    const otherNode = new Services.AppConfigs();
+    const otherNode = new AppConfigs(input());
     const reads = sinon.spy(repositoryFixtures.AppConfig, 'find');
     send.resetHistory();
     try {
@@ -374,7 +375,7 @@ describe('AppConfig per-brand JSON bundles', function () {
     });
     const first = service.createConfig('default', 'first', { connection: { token: 'one' } });
     await pending;
-    const otherNode = new Services.AppConfigs();
+    const otherNode = new AppConfigs(input());
     send.resetHistory();
     try {
       try {
@@ -413,7 +414,7 @@ describe('AppConfig per-brand JSON bundles', function () {
       await service.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_CLEAR, password: APP_CONFIG_SECRET_MASK } });
       expect.fail('Expected rejection');
     } catch (error) { expect(String(error)).to.contain('Database failed'); }
-    const startingNode = new Services.AppConfigs();
+    const startingNode = new AppConfigs(input());
     const loaded = await startingNode.loadAppConfigurationModel('brand1');
     expect(_.get(loaded, 'first.connection.token')).to.equal('');
     expect(_.get(loaded, 'first.connection.password')).to.equal('keep');
@@ -426,11 +427,11 @@ describe('AppConfig per-brand JSON bundles', function () {
   for (const provider of ['database', 'aws-secrets-manager'] as const) {
     it(`coordinates existing bundled references after switching to ${provider} per-field mode`, async function () {
       await service.createConfig('default', 'first', { connection: { token: 'one' } });
-      sails.config.appConfigSecrets.provider = provider;
-      sails.config.appConfigSecrets.layout = 'per-field';
+      fixture.config.appConfigSecrets.provider = provider;
+      fixture.config.appConfigSecrets.layout = 'per-field';
       const lock = [...locks.documents.values()][0];
       Object.assign(lock, { owner: 'foreign-writer', expiresAt: new Date(Date.now() + 120_000) });
-      const otherNode = new Services.AppConfigs();
+      const otherNode = new AppConfigs(input());
       send.resetHistory();
       try {
         await otherNode.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } });

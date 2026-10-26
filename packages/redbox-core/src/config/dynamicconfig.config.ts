@@ -1,15 +1,15 @@
 /**
  * Dynamic Config Interface
- * (sails.config.dynamicconfig)
- * 
+ * (configuration.dynamicconfig)
+ *
  * Dynamic configuration settings.
  */
 
 export interface DynamicConfigConfig {
-    /** Active dynamic config modules */
-    active: string[];
+  /** Active dynamic config modules */
+  active: string[];
 }
 
 export const dynamicconfig: DynamicConfigConfig = {
-    active: ['auth']
+  active: ['auth'],
 };

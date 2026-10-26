@@ -1,9 +1,12 @@
-import { ConfigModels } from '../src/configmodels/ConfigModels';
+import { ConfigModelRegistry } from '../src/configuration/ConfigModelRegistry';
+let ConfigModels: ConfigModelRegistry;
+beforeEach(() => {
+  ConfigModels = new ConfigModelRegistry();
+});
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 
 describe('ConfigModels', function () {
-
   it('should get existing config keys', () => {
     const keys = ConfigModels.getConfigKeys();
     expect(keys).to.be.an('array');
@@ -57,7 +60,7 @@ describe('ConfigModels', function () {
     const modelInfo = {
       modelName: 'TestConfigModel',
       title: 'Test Config Model',
-      class: mockClass
+      class: mockClass,
     };
 
     ConfigModels.register('testConfig', modelInfo);
@@ -80,14 +83,14 @@ describe('ConfigModels', function () {
     const mockSchema = {
       type: 'object',
       properties: {
-        schemaProperty: { type: 'string' }
-      }
+        schemaProperty: { type: 'string' },
+      },
     };
 
     const modelInfo = {
       modelName: 'TestConfigWithSchema',
       class: mockClass,
-      schema: mockSchema
+      schema: mockSchema,
     };
 
     ConfigModels.register('testConfigWithSchema', modelInfo);
@@ -107,7 +110,7 @@ describe('ConfigModels', function () {
     const modelInfo = {
       modelName: 'TestConfigWithGlob',
       class: mockClass,
-      tsGlob: '/some/path/*.ts'
+      tsGlob: '/some/path/*.ts',
     };
 
     ConfigModels.register('testConfigWithGlob', modelInfo);
@@ -128,7 +131,7 @@ describe('ConfigModels', function () {
     const modelInfo = {
       modelName: 'TestConfigWithMultipleGlobs',
       class: mockClass,
-      tsGlob: tsGlobs
+      tsGlob: tsGlobs,
     };
 
     ConfigModels.register('testConfigWithMultipleGlobs', modelInfo);
@@ -156,12 +159,12 @@ describe('ConfigModels', function () {
     // Register original
     ConfigModels.register('overwriteTest', {
       modelName: 'OriginalModel',
-      class: originalClass
+      class: originalClass,
     });
 
     ConfigModels.register('overwriteTest', {
       modelName: 'NewModel',
-      class: newClass
+      class: newClass,
     });
 
     const retrievedInfo = ConfigModels.getModelInfo('overwriteTest');
@@ -185,17 +188,19 @@ describe('ConfigModels', function () {
       }
     };
 
-
     ConfigModels.register('preventOverrideTest', {
       modelName: 'OriginalPreventModel',
-      class: originalClass
+      class: originalClass,
     });
 
-
-    ConfigModels.register('preventOverrideTest', {
-      modelName: 'NewPreventModel',
-      class: newClass
-    }, { preventOverride: true });
+    ConfigModels.register(
+      'preventOverrideTest',
+      {
+        modelName: 'NewPreventModel',
+        class: newClass,
+      },
+      { preventOverride: true }
+    );
 
     const retrievedInfo = ConfigModels.getModelInfo('preventOverrideTest');
     expect(retrievedInfo!.modelName).to.equal('OriginalPreventModel');
@@ -217,19 +222,27 @@ describe('ConfigModels', function () {
       }
     };
 
-    ConfigModels.register('preventNewTest', {
-      modelName: 'PreventNewModel',
-      class: mockClass
-    }, { preventOverride: true });
+    ConfigModels.register(
+      'preventNewTest',
+      {
+        modelName: 'PreventNewModel',
+        class: mockClass,
+      },
+      { preventOverride: true }
+    );
 
     const retrievedInfo = ConfigModels.getModelInfo('preventNewTest');
     expect(retrievedInfo!.modelName).to.equal('PreventNewModel');
     expect(retrievedInfo!.class).to.equal(mockClass);
 
-    ConfigModels.register('preventNewTest', {
-      modelName: 'PreventNewModelDuplicate',
-      class: mockClassDifferent
-    }, { preventOverride: true });
+    ConfigModels.register(
+      'preventNewTest',
+      {
+        modelName: 'PreventNewModelDuplicate',
+        class: mockClassDifferent,
+      },
+      { preventOverride: true }
+    );
 
     const duplicateRetrievedInfo = ConfigModels.getModelInfo('preventNewTest');
     expect(duplicateRetrievedInfo!.modelName).to.equal('PreventNewModel');
@@ -254,18 +267,20 @@ describe('ConfigModels', function () {
 
     ConfigModels.register('explicitOverrideTest', {
       modelName: 'OriginalExplicitModel',
-      class: originalClass
+      class: originalClass,
     });
 
-
-    ConfigModels.register('explicitOverrideTest', {
-      modelName: 'NewExplicitModel',
-      class: newClass
-    }, { preventOverride: false });
+    ConfigModels.register(
+      'explicitOverrideTest',
+      {
+        modelName: 'NewExplicitModel',
+        class: newClass,
+      },
+      { preventOverride: false }
+    );
 
     const retrievedInfo = ConfigModels.getModelInfo('explicitOverrideTest');
     expect(retrievedInfo!.modelName).to.equal('NewExplicitModel');
     expect(retrievedInfo!.class).to.equal(newClass);
   });
-
 });

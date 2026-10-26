@@ -51,13 +51,14 @@ export const recordtype: RecordTypeConfig = {
       onUpdate: {
         pre: [
           {
-            function: 'sails.services.rdmpservice.runTemplates',
+            function: 'record.runTemplates',
             options: {
               parseObject: false,
               templates: [
                 {
                   field: 'metadata.date',
-                  template: "<%= record.metadata.date ? new Date(record.metadata.date).toISOString().replace('Z', '+00:00') : '' %>",
+                  template:
+                    "<%= record.metadata.date ? new Date(record.metadata.date).toISOString().replace('Z', '+00:00') : '' %>",
                 },
               ],
             },
@@ -125,7 +126,7 @@ export const recordtype: RecordTypeConfig = {
       onCreate: {
         pre: [
           {
-            function: 'sails.services.rdmpservice.runTemplates',
+            function: 'record.runTemplates',
             options: {
               parseObject: false,
               templates: [
@@ -137,7 +138,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.rdmpservice.assignPermissions',
+            function: 'record.assignPermissions',
             options: {
               emailProperty: 'email',
               editContributorProperties: [
@@ -160,7 +161,7 @@ export const recordtype: RecordTypeConfig = {
       onUpdate: {
         pre: [
           {
-            function: 'sails.services.rdmpservice.runTemplates',
+            function: 'record.runTemplates',
             options: {
               parseObject: false,
               templates: [
@@ -172,7 +173,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.rdmpservice.assignPermissions',
+            function: 'record.assignPermissions',
             options: {
               emailProperty: 'email',
               editContributorProperties: [
@@ -190,7 +191,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
+            function: 'record.checkTotalSizeOfFilesInRecord',
             options: {
               triggerCondition:
                 '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
@@ -349,7 +350,7 @@ export const recordtype: RecordTypeConfig = {
       onCreate: {
         pre: [
           {
-            function: 'sails.services.rdmpservice.assignPermissions',
+            function: 'record.assignPermissions',
             options: {
               emailProperty: 'email',
               editContributorProperties: [
@@ -371,7 +372,7 @@ export const recordtype: RecordTypeConfig = {
       onUpdate: {
         pre: [
           {
-            function: 'sails.services.rdmpservice.assignPermissions',
+            function: 'record.assignPermissions',
             options: {
               emailProperty: 'email',
               editContributorProperties: [
@@ -437,7 +438,7 @@ export const recordtype: RecordTypeConfig = {
       onCreate: {
         pre: [
           {
-            function: 'sails.services.triggerservice.transitionWorkflow',
+            function: 'workflow.transition',
             options: {
               triggerCondition:
                 "<%= _.isEqual(workflow.stage, 'queued') && metadata.embargoByDate?.toString() === 'true' %>",
@@ -447,7 +448,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.recordsservice.updateNotificationLog',
+            function: 'record.updateNotificationLog',
             options: {
               name: 'Set Notification to Draft',
               triggerCondition: "<%= typeof record.notification == 'undefined'%>",
@@ -457,7 +458,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.rdmpservice.assignPermissions',
+            function: 'record.assignPermissions',
             options: {
               emailProperty: 'email',
               editContributorProperties: ['metadata.creators'],
@@ -467,14 +468,14 @@ export const recordtype: RecordTypeConfig = {
           },
 
           {
-            function: 'sails.services.rdmpservice.stripUserBasedPermissions',
+            function: 'record.stripUserBasedPermissions',
             options: {
               triggerCondition:
                 "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>",
             },
           },
           {
-            function: 'sails.services.rdmpservice.restoreUserBasedPermissions',
+            function: 'record.restoreUserBasedPermissions',
             options: {
               triggerCondition: "<%= record.workflow.stage=='draft' %>",
             },
@@ -482,7 +483,7 @@ export const recordtype: RecordTypeConfig = {
         ],
         post: [
           {
-            function: 'sails.services.emailservice.sendRecordNotification',
+            function: 'email.sendRecordNotification',
             options: {
               triggerCondition:
                 "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'queued' %>",
@@ -491,7 +492,7 @@ export const recordtype: RecordTypeConfig = {
               template: 'publicationStaged',
               onNotifySuccess: [
                 {
-                  function: 'sails.services.emailservice.sendRecordNotification',
+                  function: 'email.sendRecordNotification',
                   options: {
                     forceRun: true,
                     to: 'notifications-reviewer@dev.local',
@@ -500,7 +501,7 @@ export const recordtype: RecordTypeConfig = {
                   },
                 },
                 {
-                  function: 'sails.services.recordsservice.updateNotificationLog',
+                  function: 'record.updateNotificationLog',
                   options: {
                     name: 'Set Notification to Emailed-Reviewing',
                     forceRun: true,
@@ -514,7 +515,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.emailservice.sendRecordNotification',
+            function: 'email.sendRecordNotification',
             options: {
               triggerCondition:
                 "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
@@ -523,7 +524,7 @@ export const recordtype: RecordTypeConfig = {
               template: 'publicationPublished',
               onNotifySuccess: [
                 {
-                  function: 'sails.services.recordsservice.updateNotificationLog',
+                  function: 'record.updateNotificationLog',
                   options: {
                     name: 'Set Notification to Emailed-Published',
                     forceRun: true,
@@ -537,7 +538,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.doiservice.publishDoiTrigger',
+            function: 'doi.publish',
             options: {
               forceRun: true,
               triggerCondition: "<%= record.workflow.stage=='draft' %>",
@@ -549,7 +550,7 @@ export const recordtype: RecordTypeConfig = {
       onUpdate: {
         pre: [
           {
-            function: 'sails.services.triggerservice.transitionWorkflow',
+            function: 'workflow.transition',
             options: {
               triggerCondition:
                 "<%= _.isEqual(workflow.stage, 'published') && metadata.embargoByDate?.toString() === 'true' %>",
@@ -559,7 +560,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.recordsservice.updateNotificationLog',
+            function: 'record.updateNotificationLog',
             options: {
               name: 'Set Notification to Draft',
               triggerCondition: "<%= typeof record.notification == 'undefined'%>",
@@ -569,7 +570,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.rdmpservice.assignPermissions',
+            function: 'record.assignPermissions',
             options: {
               emailProperty: 'email',
               editContributorProperties: ['metadata.creators'],
@@ -579,14 +580,14 @@ export const recordtype: RecordTypeConfig = {
           },
 
           {
-            function: 'sails.services.rdmpservice.stripUserBasedPermissions',
+            function: 'record.stripUserBasedPermissions',
             options: {
               triggerCondition:
                 "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>",
             },
           },
           {
-            function: 'sails.services.rdmpservice.restoreUserBasedPermissions',
+            function: 'record.restoreUserBasedPermissions',
             options: {
               triggerCondition: "<%= record.workflow.stage=='draft' %>",
             },
@@ -594,7 +595,7 @@ export const recordtype: RecordTypeConfig = {
         ],
         post: [
           {
-            function: 'sails.services.emailservice.sendRecordNotification',
+            function: 'email.sendRecordNotification',
             options: {
               triggerCondition:
                 "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'queued' %>",
@@ -603,7 +604,7 @@ export const recordtype: RecordTypeConfig = {
               template: 'publicationStaged',
               onNotifySuccess: [
                 {
-                  function: 'sails.services.emailservice.sendRecordNotification',
+                  function: 'email.sendRecordNotification',
                   options: {
                     forceRun: true,
                     to: 'notifications-reviewer@dev.local',
@@ -612,7 +613,7 @@ export const recordtype: RecordTypeConfig = {
                   },
                 },
                 {
-                  function: 'sails.services.recordsservice.updateNotificationLog',
+                  function: 'record.updateNotificationLog',
                   options: {
                     name: 'Set Notification to Emailed-Reviewing',
                     forceRun: true,
@@ -627,7 +628,7 @@ export const recordtype: RecordTypeConfig = {
           },
 
           {
-            function: 'sails.services.emailservice.sendRecordNotification',
+            function: 'email.sendRecordNotification',
             options: {
               triggerCondition:
                 "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
@@ -636,7 +637,7 @@ export const recordtype: RecordTypeConfig = {
               template: 'publicationPublished',
               onNotifySuccess: [
                 {
-                  function: 'sails.services.recordsservice.updateNotificationLog',
+                  function: 'record.updateNotificationLog',
                   options: {
                     name: 'Set Notification to Emailed-Published',
                     forceRun: true,
@@ -650,7 +651,7 @@ export const recordtype: RecordTypeConfig = {
             },
           },
           {
-            function: 'sails.services.doiservice.updateDoiTriggerSync',
+            function: 'doi.updateSync',
             options: {
               forceRun: true,
               triggerCondition: "<%= record.workflow.stage=='draft' %>",
@@ -684,7 +685,7 @@ export const recordtype: RecordTypeConfig = {
         pre: [],
         postSync: [
           {
-            function: 'sails.services.rdmpservice.addWorkspaceToRecord',
+            function: 'record.addWorkspaceToRecord',
             options: {},
           },
         ],
@@ -705,7 +706,7 @@ export const recordtype: RecordTypeConfig = {
       onCreate: {
         pre: [
           {
-            function: 'sails.services.rdmpservice.runTemplates',
+            function: 'record.runTemplates',
             options: {
               parseObject: false,
               templates: [
@@ -726,7 +727,7 @@ export const recordtype: RecordTypeConfig = {
       onUpdate: {
         pre: [
           {
-            function: 'sails.services.rdmpservice.runTemplates',
+            function: 'record.runTemplates',
             options: {
               parseObject: false,
               templates: [

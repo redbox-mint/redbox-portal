@@ -1,79 +1,21 @@
-/* eslint-disable no-unused-expressions */
-import {consoleLogger} from "@researchdatabox/sails-ng-common";
-
+const { portalFixture: portal } = require('../../helpers/portalFixture.cjs');
+import { expect } from 'chai';
+import { resolveBrandConfiguration, resolveStartupConfiguration, loadStartupConfiguration } from '@researchdatabox/redbox-core/configuration';
+import { resolveExtensions, discoverInstalledExtensions } from '@researchdatabox/redbox-core/extensions';
+import { z } from 'zod';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 const _ = require('lodash');
-const path = require('path');
-const fs = require('fs-extra');
 
-describe('The ConfigService', function () {
-    let configService;
-    let originalSailsConfig;
-    let expect;
-
-    before(async function () {
-        // Standalone setup: if global.expect is missing, we are likely running in isolation
-        if (typeof (global as any).expect === 'undefined') {
-            const chai = await import('chai');
-            expect = chai.expect;
-
-            // Mock Sails if missing
-            if (typeof (global as any).sails === 'undefined') {
-                (global as any).sails = {
-                    config: {
-                        appPath: process.cwd(),
-                        auth: { defaultBrand: 'default' },
-                        brandingConfigurationDefaults: {},
-                        brandingAware: () => ({}),
-                        controllers: { moduleDefinitions: {} },
-                        services: {}
-                    },
-                    log: consoleLogger,
-                    services: {}
-                };
-            }
-
-            // Mock globals
-            if (typeof (global as any)._ === 'undefined') {
-                (global as any)._ = require('lodash');
-            }
-            if (typeof (global as any).AppConfigService === 'undefined') {
-                (global as any).AppConfigService = {
-                    createConfig: async () => ({}),
-                    createOrUpdateConfig: async () => ({})
-                };
-            }
-            if (typeof (global as any).BrandingService === 'undefined') {
-                (global as any).BrandingService = {
-                    getBrand: () => ({})
-                };
-            }
-
-            // Load the ConfigService
-            try {
-                // Adjust path for standalone run from project root
-                const configServicePath = path.resolve(__dirname, '../../../api/services/ConfigService');
-                const ConfigServiceExport = require(configServicePath);
-                (global as any).sails.services.configservice = ConfigServiceExport;
-            } catch (e) {
-                console.error("Failed to load ConfigService:", e);
-                throw e;
-            }
-        } else {
-            expect = (global as any).expect;
-        }
-
-        configService = (global as any).sails.services.configservice;
-        // Store original config
-        originalSailsConfig = _.cloneDeep((global as any).sails.config);
-    });
-
-    afterEach(function () {
-        // Restore original config after each test
-        sails.config.auth = originalSailsConfig.auth;
-        sails.config.brandingAware = originalSailsConfig.brandingAware;
-        sails.config.brandingConfigurationDefaults = originalSailsConfig.brandingConfigurationDefaults;
-    });
-
+describe('Explicit configuration and extension resolution', () => {
+    const fixture: { config: any; owner: { config: any } } = { config: {}, owner: { config: {} } };
+    const configService = { getBrand: (brand: string, block: string) => resolveBrandConfiguration(brand, block, {
+        defaultBrand: fixture.config.auth.defaultBrand,
+        readBrand: typeof fixture.config.brandingAware === 'function' ? name => fixture.config.brandingAware(name) : () => undefined,
+        defaults: fixture.config.brandingConfigurationDefaults, legacy: fixture.config,
+    }) };
+    beforeEach(() => { fixture.config = _.cloneDeep(portal.config); fixture.owner.config = fixture.config; });
     describe('getBrand', function () {
         // -------------------------------------------------------------------------
         // Test: Basic resolution from brandingAware with specified brand
@@ -81,7 +23,7 @@ describe('The ConfigService', function () {
         it('should resolve config from brandingAware for specified brand', function (done) {
             // Setup: Make brandingAware return config for test brand
             const testConfigValue = { testKey: 'testValue' };
-            sails.config.brandingAware = (brandName) => {
+            fixture.config.brandingAware = (brandName) => {
                 if (brandName === 'testBrand') {
                     return { testBlock: testConfigValue };
                 }
@@ -98,9 +40,9 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should fallback to default brand when specified brand has no config', function (done) {
             const defaultConfigValue = { defaultKey: 'defaultValue' };
-            const defaultBrand = _.get(sails, 'config.auth.defaultBrand', 'default');
+            const defaultBrand = _.get(fixture.owner, 'config.auth.defaultBrand', 'default');
 
-            sails.config.brandingAware = (brandName) => {
+            fixture.config.brandingAware = (brandName) => {
                 if (brandName === defaultBrand) {
                     return { fallbackBlock: defaultConfigValue };
                 }
@@ -117,8 +59,8 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should fallback to brandingConfigurationDefaults when brandingAware returns undefined', function (done) {
             const defaultsValue = { defaultsKey: 'defaultsValue' };
-            sails.config.brandingAware = () => ({});
-            sails.config.brandingConfigurationDefaults = {
+            fixture.config.brandingAware = () => ({});
+            fixture.config.brandingConfigurationDefaults = {
                 configDefaultsBlock: defaultsValue
             };
 
@@ -132,9 +74,9 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should fallback to legacy config format with brand name', function (done) {
             const legacyValue = { legacyKey: 'legacyValue' };
-            sails.config.brandingAware = () => ({});
-            sails.config.brandingConfigurationDefaults = {};
-            sails.config.legacyBlock = {
+            fixture.config.brandingAware = () => ({});
+            fixture.config.brandingConfigurationDefaults = {};
+            fixture.config.legacyBlock = {
                 myBrand: legacyValue
             };
 
@@ -148,12 +90,12 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should fallback to legacy config format with default brand', function (done) {
             const legacyDefaultValue = { legacyDefaultKey: 'legacyDefaultValue' };
-            const defaultBrand = _.get(sails, 'config.auth.defaultBrand', 'default');
+            const defaultBrand = _.get(fixture.owner, 'config.auth.defaultBrand', 'default');
 
-            sails.config.brandingAware = () => ({});
-            sails.config.brandingConfigurationDefaults = {};
-            sails.config.anotherLegacyBlock = {};
-            sails.config.anotherLegacyBlock[defaultBrand] = legacyDefaultValue;
+            fixture.config.brandingAware = () => ({});
+            fixture.config.brandingConfigurationDefaults = {};
+            fixture.config.anotherLegacyBlock = {};
+            fixture.config.anotherLegacyBlock[defaultBrand] = legacyDefaultValue;
 
             const result = configService.getBrand('unknownBrand', 'anotherLegacyBlock');
             expect(result).to.deep.equal(legacyDefaultValue);
@@ -164,8 +106,8 @@ describe('The ConfigService', function () {
         // Test: Return undefined when no config exists anywhere
         // -------------------------------------------------------------------------
         it('should return undefined when no config exists anywhere', function (done) {
-            sails.config.brandingAware = () => ({});
-            sails.config.brandingConfigurationDefaults = {};
+            fixture.config.brandingAware = () => ({});
+            fixture.config.brandingConfigurationDefaults = {};
 
             const result = configService.getBrand('anyBrand', 'nonExistentBlock');
             expect(result).to.be.undefined;
@@ -177,9 +119,9 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should handle empty brand name by falling back to defaults', function (done) {
             const defaultConfigValue = { emptyBrandKey: 'emptyBrandValue' };
-            const defaultBrand = _.get(sails, 'config.auth.defaultBrand', 'default');
+            const defaultBrand = _.get(fixture.owner, 'config.auth.defaultBrand', 'default');
 
-            sails.config.brandingAware = (brandName) => {
+            fixture.config.brandingAware = (brandName) => {
                 if (brandName === defaultBrand) {
                     return { emptyBrandBlock: defaultConfigValue };
                 }
@@ -196,9 +138,9 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should handle undefined brand name by falling back to defaults', function (done) {
             const defaultConfigValue = { undefinedBrandKey: 'undefinedBrandValue' };
-            const defaultBrand = _.get(sails, 'config.auth.defaultBrand', 'default');
+            const defaultBrand = _.get(fixture.owner, 'config.auth.defaultBrand', 'default');
 
-            sails.config.brandingAware = (brandName) => {
+            fixture.config.brandingAware = (brandName) => {
                 if (brandName === defaultBrand) {
                     return { undefinedBrandBlock: defaultConfigValue };
                 }
@@ -215,8 +157,8 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should handle brandingAware as non-function by falling back', function (done) {
             const defaultsValue = { nonFunctionKey: 'nonFunctionValue' };
-            sails.config.brandingAware = 'not a function';
-            sails.config.brandingConfigurationDefaults = {
+            fixture.config.brandingAware = 'not a function';
+            fixture.config.brandingConfigurationDefaults = {
                 nonFunctionBlock: defaultsValue
             };
 
@@ -230,7 +172,7 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should resolve deeply nested config blocks', function (done) {
             const nestedValue = 'deepNestedValue';
-            sails.config.brandingAware = (brandName) => {
+            fixture.config.brandingAware = (brandName) => {
                 if (brandName === 'nestedBrand') {
                     return {
                         level1: {
@@ -253,11 +195,11 @@ describe('The ConfigService', function () {
         // -------------------------------------------------------------------------
         it('should continue fallback chain when brandingAware config value is undefined', function (done) {
             const defaultsValue = { fallbackAfterUndefined: 'value' };
-            sails.config.brandingAware = (brandName) => {
+            fixture.config.brandingAware = (brandName) => {
                 // Returns object but without the requested config block
                 return { otherBlock: 'something' };
             };
-            sails.config.brandingConfigurationDefaults = {
+            fixture.config.brandingConfigurationDefaults = {
                 requestedBlock: defaultsValue
             };
 
@@ -267,783 +209,134 @@ describe('The ConfigService', function () {
         });
     });
 
-    describe('mergeHookConfig', function () {
-        let testHookDir;
-        let fs;
 
-        before(function () {
-            fs = require('fs-extra');
-            // Use a temp directory for hook tests
-            testHookDir = path.join(sails.config.appPath, 'node_modules', 'test-hook-for-config-tests');
-        });
-
-        afterEach(function () {
-            // Cleanup test directories
-            try {
-                if (fs.pathExistsSync(testHookDir)) {
-                    fs.removeSync(testHookDir);
-                }
-                // Clear require cache for the test hook directory
-                Object.keys(require.cache).forEach(function (key) {
-                    if (key.indexOf('test-hook-for-config-tests') !== -1) {
-                        delete require.cache[key];
-                    }
-                });
-            } catch (e) {
-                // Ignore cleanup errors
-            }
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Hook directory doesn't exist - should not throw
-        // -------------------------------------------------------------------------
-        it('should handle non-existent hook directory gracefully', function (done) {
-            // Call with a hook that doesn't exist
-            expect(() => {
-                configService.mergeHookConfig('non-existent-hook-12345');
-            }).to.not.throw();
-            done();
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Process config directory with files
-        // -------------------------------------------------------------------------
-        it('should merge configuration files from hook config directory', function (done) {
-            // Create test hook directory structure
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(configDir);
-
-            // Create a config file
-            const testConfig = {
-                testMergeConfig: {
-                    key1: 'value1',
-                    key2: 'value2'
-                }
-            };
-            fs.writeFileSync(
-                path.join(configDir, 'test-config.js'),
-                `module.exports = ${JSON.stringify(testConfig)};`
-            );
-
-            const configMap: any = {};
-            configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-
-            expect(configMap.testMergeConfig).to.deep.equal(testConfig.testMergeConfig);
-            done();
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Handle _dontMerge directive
-        // -------------------------------------------------------------------------
-        it('should handle _dontMerge directive by replacing instead of merging', function (done) {
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(configDir);
-
-            // Create config with _dontMerge
-            const hookConfig = {
-                dontMergeTestBlock: {
-                    replaceMe: ['new1', 'new2'],
-                    _dontMerge: ['replaceMe']
-                }
-            };
-            fs.writeFileSync(
-                path.join(configDir, 'dontmerge-config.js'),
-                `module.exports = ${JSON.stringify(hookConfig)};`
-            );
-
-            const configMap = {
-                dontMergeTestBlock: {
-                    replaceMe: ['old1', 'old2', 'old3']
-                }
-            };
-
-            configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-
-            // Should replace, not merge
-            expect(configMap.dontMergeTestBlock.replaceMe).to.deep.equal(['new1', 'new2']);
-            done();
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Handle _delete directive
-        // -------------------------------------------------------------------------
-        it('should handle _delete directive by removing specified keys', function (done) {
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(configDir);
-
-            // Create config with _delete
-            const hookConfig = {
-                deleteTestBlock: {
-                    keepMe: 'kept',
-                    _delete: ['removeMe']
-                }
-            };
-            fs.writeFileSync(
-                path.join(configDir, 'delete-config.js'),
-                `module.exports = ${JSON.stringify(hookConfig)};`
-            );
-
-            const configMap = {
-                deleteTestBlock: {
-                    removeMe: 'should be removed',
-                    keepMe: 'original'
-                }
-            };
-
-            configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-
-            expect(configMap.deleteTestBlock.removeMe).to.be.undefined;
-            expect(configMap.deleteTestBlock.keepMe).to.equal('kept');
-            done();
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Process nested config directories
-        // -------------------------------------------------------------------------
-        it('should process nested configuration directories recursively', function (done) {
-            const configDir = path.join(testHookDir, 'config');
-            const nestedDir = path.join(configDir, 'nested');
-            fs.ensureDirSync(nestedDir);
-
-            const nestedConfig = {
-                nestedTestConfig: {
-                    nested: true
-                }
-            };
-            fs.writeFileSync(
-                path.join(nestedDir, 'nested-config.js'),
-                `module.exports = ${JSON.stringify(nestedConfig)};`
-            );
-
-            const configMap: any = {};
-            configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-
-            expect(configMap.nestedTestConfig).to.deep.equal({ nested: true });
-            done();
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Process form-config directory
-        // -------------------------------------------------------------------------
-        it('should process form-config directory', function (done) {
-            const formConfigDir = path.join(testHookDir, 'form-config');
-            fs.ensureDirSync(formConfigDir);
-
-            const formConfig = {
-                testFormConfig: {
-                    form: 'data'
-                }
-            };
-            fs.writeFileSync(
-                path.join(formConfigDir, 'form.js'),
-                `module.exports = ${JSON.stringify(formConfig)};`
-            );
-
-            const configMap: any = {};
-            configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-
-            expect(configMap.testFormConfig).to.deep.equal({ form: 'data' });
-            done();
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Copy assets directory
-        // -------------------------------------------------------------------------
-        it('should copy assets from hook to application', function (done) {
-            const assetsDir = path.join(testHookDir, 'assets');
-            const testAssetDir = path.join(assetsDir, 'test-assets-config-test');
-            fs.ensureDirSync(testAssetDir);
-            fs.writeFileSync(path.join(testAssetDir, 'test-asset.txt'), 'test content');
-
-            configService.mergeHookConfig('test-hook-for-config-tests');
-
-            // Verify asset was copied
-            const copiedAsset = path.join(sails.config.appPath, 'assets', 'test-assets-config-test', 'test-asset.txt');
-            expect(fs.pathExistsSync(copiedAsset)).to.be.true;
-
-            // Cleanup
-            fs.removeSync(path.join(sails.config.appPath, 'assets', 'test-assets-config-test'));
-            fs.removeSync(path.join(sails.config.appPath, '.tmp', 'public', 'test-assets-config-test'));
-            done();
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Copy views directory
-        // -------------------------------------------------------------------------
-        it('should copy views from hook to application', function (done) {
-            const viewsDir = path.join(testHookDir, 'views');
-            const testViewDir = path.join(viewsDir, 'test-views-config-test');
-            fs.ensureDirSync(testViewDir);
-            fs.writeFileSync(path.join(testViewDir, 'test-view.ejs'), '<h1>Test</h1>');
-
-            configService.mergeHookConfig('test-hook-for-config-tests');
-
-            // Verify view was copied
-            const copiedView = path.join(sails.config.appPath, 'views', 'test-views-config-test', 'test-view.ejs');
-            expect(fs.pathExistsSync(copiedView)).to.be.true;
-
-            // Cleanup
-            fs.removeSync(path.join(sails.config.appPath, 'views', 'test-views-config-test'));
-            done();
-        });
-
-        // -------------------------------------------------------------------------
-        // Test: Register services from hook
-        // -------------------------------------------------------------------------
-        it('should register services from hook api/services directory', function (done) {
-            const servicesDir = path.join(testHookDir, 'api', 'services');
-            fs.ensureDirSync(servicesDir);
-
-            const serviceCode = `
-        module.exports = {
-          testMethod: function() { return 'test'; }
+    // V6 replacements for the retired directory-scanning/imperative merger cases.
+    // Each case checks the corresponding supported declaration or explicit rejection.
+    describe('offline v6 declarations and application files', () => {
+        let root: string;
+        const schema = z.object({ feature: z.object({ enabled: z.boolean(), nested: z.record(z.string(), z.unknown()).optional() }).strict(), fields: z.array(z.string()), transform: z.custom<(...args: never[]) => unknown>(v => typeof v === 'function').optional() }).strict();
+        const core = { source: 'core', values: { feature: { enabled: false }, fields: ['one', 'two'] } };
+        const resolve = (values: Record<string, unknown>, extra = {}) => resolveStartupConfiguration({ schema, core, application: { source: 'application', values }, ...extra });
+        const write = async (name: string, source: string) => {
+            const file = path.join(root, name); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, source); return file;
         };
-      `;
-            fs.writeFileSync(path.join(servicesDir, 'TestConfigRegisteredService.js'), serviceCode);
-
-            // Ensure services object exists
-            if (!sails.services) {
-                sails.services = {};
-            }
-
-            configService.mergeHookConfig('test-hook-for-config-tests');
-
-            // Verify service was registered
-            expect(sails.services.testconfigregisteredservice).to.exist;
-            expect(global.TestConfigRegisteredService).to.exist;
-
-            // Cleanup
-            delete sails.services.testconfigregisteredservice;
-            delete global.TestConfigRegisteredService;
-            done();
+        beforeEach(async () => { root = await mkdtemp(path.join(tmpdir(), 'redbox-v6-config-')); });
+        afterEach(async () => { await rm(root, { recursive: true, force: true }); });
+        it('does not discover undeclared hook directories', async () => {
+            await write('package.json', JSON.stringify({ name: 'application', dependencies: {} }));
+            await write('hooks/undeclared/config/custom.cjs', 'throw Error("must not execute")');
+            expect((await discoverInstalledExtensions(root)).extensions).to.deep.equal([]);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Register controllers from hook
-        // -------------------------------------------------------------------------
-        it('should register controllers from hook api/controllers directory', function (done) {
-            const controllersDir = path.join(testHookDir, 'api', 'controllers');
-            fs.ensureDirSync(controllersDir);
-
-            const controllerCode = `
-        module.exports = {
-          testAction: function(req, res) { return res.ok(); },
-          _privateMethod: function() { return 'private'; }
-        };
-      `;
-            fs.writeFileSync(path.join(controllersDir, 'TestConfigController.js'), controllerCode);
-
-            // Ensure config.controllers exists
-            if (!sails.config.controllers) {
-                sails.config.controllers = {};
-            }
-            if (!sails.config.controllers.moduleDefinitions) {
-                sails.config.controllers.moduleDefinitions = {};
-            }
-
-            configService.mergeHookConfig('test-hook-for-config-tests');
-
-            // Verify controller method was registered (public methods only)
-            expect(sails.config.controllers.moduleDefinitions['TestConfig/testAction']).to.be.a('function');
-            // Private methods should not be registered
-            expect(sails.config.controllers.moduleDefinitions['TestConfig/_privateMethod']).to.be.undefined;
-
-            // Cleanup
-            delete sails.config.controllers.moduleDefinitions['TestConfig/testAction'];
-            done();
+        it('loads the explicitly selected configuration data module', async () => {
+            const file = await write('hook/config.cjs', 'module.exports = { feature: { enabled: true } };');
+            expect((await loadStartupConfiguration({ schema, core, files: { application: file } })).feature.enabled).to.equal(true);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Copy responses from hook
-        // -------------------------------------------------------------------------
-        it('should copy responses from hook api/responses directory', function (done) {
-            const responsesDir = path.join(testHookDir, 'api', 'responses');
-            fs.ensureDirSync(responsesDir);
-
-            const responseCode = `
-        module.exports = function() { return this.res.status(200).json({ success: true }); };
-      `;
-            fs.writeFileSync(path.join(responsesDir, 'testConfigResponse.js'), responseCode);
-
-            configService.mergeHookConfig('test-hook-for-config-tests');
-
-            // Verify response was copied
-            const copiedResponse = path.join(sails.config.appPath, 'api', 'responses', 'testConfigResponse.js');
-            expect(fs.pathExistsSync(copiedResponse)).to.be.true;
-
-            // Cleanup
-            fs.removeSync(copiedResponse);
-            done();
+        it('rejects the removed _dontMerge directive with its source path', () => {
+            expect(() => resolve({ feature: { enabled: true, _dontMerge: true } })).to.throw(/application.*feature/);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Handle hook launched from hook directory (appPath ends with hookName)
-        // -------------------------------------------------------------------------
-        it('should handle hook launched from hook directory', function (done) {
-            // This tests the scenario where sails.config.appPath ends with the hook name
-            // We can't easily simulate this, but we can verify the function doesn't throw
-            const originalAppPath = sails.config.appPath;
-
-            // Create a hook directory at a path that would match
-            const specialHookName = 'test-special-hook';
-            const specialHookDir = path.join(sails.config.appPath, 'node_modules', specialHookName);
-            fs.ensureDirSync(path.join(specialHookDir, 'config'));
-
-            const testConfig = { specialConfig: { value: 'special' } };
-            fs.writeFileSync(
-                path.join(specialHookDir, 'config', 'special.js'),
-                `module.exports = ${JSON.stringify(testConfig)};`
-            );
-
-            const configMap: any = {};
-            expect(() => {
-                configService.mergeHookConfig(specialHookName, configMap);
-            }).to.not.throw();
-
-            expect(configMap.specialConfig).to.deep.equal({ value: 'special' });
-
-            // Cleanup
-            fs.removeSync(specialHookDir);
-            done();
+        it('rejects the removed _delete directive instead of deleting keys implicitly', () => {
+            expect(() => resolve({ feature: { _delete: ['enabled'] } })).to.throw(/application.*feature/);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Default dontMergeFields includes 'fields'
-        // -------------------------------------------------------------------------
-        it('should not merge fields array by default', function (done) {
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(configDir);
-
-            const hookConfig = {
-                fieldsTestBlock: {
-                    fields: ['newField1', 'newField2']
-                }
-            };
-            fs.writeFileSync(
-                path.join(configDir, 'fields-config.js'),
-                `module.exports = ${JSON.stringify(hookConfig)};`
-            );
-
-            const configMap = {
-                fieldsTestBlock: {
-                    fields: ['oldField1', 'oldField2', 'oldField3']
-                }
-            };
-
-            configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-
-            // 'fields' is in default dontMergeFields, so it should be replaced
-            expect(configMap.fieldsTestBlock.fields).to.deep.equal(['newField1', 'newField2']);
-            done();
+        it('loads nested configuration only through an explicit module', async () => {
+            await write('nested/deep/feature.cjs', 'module.exports = { enabled: true };');
+            const file = await write('application.cjs', 'module.exports = { feature: require("./nested/deep/feature.cjs") };');
+            expect((await loadStartupConfiguration({ schema, core, files: { application: file } })).feature.enabled).to.equal(true);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Custom dontMergeFields parameter
-        // -------------------------------------------------------------------------
-        it('should respect custom dontMergeFields parameter', function (done) {
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(configDir);
-
-            const hookConfig = {
-                customDontMergeBlock: {
-                    customArray: ['new1', 'new2'],
-                    normalArray: ['hookValue']
-                }
-            };
-            fs.writeFileSync(
-                path.join(configDir, 'custom-dontmerge-config.js'),
-                `module.exports = ${JSON.stringify(hookConfig)};`
-            );
-
-            const configMap = {
-                customDontMergeBlock: {
-                    customArray: ['old1', 'old2'],
-                    normalArray: ['existingValue']
-                }
-            };
-
-            // Pass custom dontMergeFields with 'customArray'
-            configService.mergeHookConfig(
-                'test-hook-for-config-tests',
-                configMap,
-                ['config'],
-                ['branded-config'],
-                ['customArray']
-            );
-
-            // customArray should be replaced (in dontMergeFields)
-            expect(configMap.customDontMergeBlock.customArray).to.deep.equal(['new1', 'new2']);
-            done();
+        it('keeps declared forms in the extension without a form-config registry', () => {
+            const form = { name: 'explicit-form' };
+            const selected = resolveExtensions([{ name: 'hook', root, declaration: { apiVersion: 1, forms: { demo: form } } }]);
+            expect(selected.providers[0].declaration.forms?.demo).to.equal(form);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Multiple config directories
-        // -------------------------------------------------------------------------
-        it('should process multiple config directories', function (done) {
-            const formConfigDir = path.join(testHookDir, 'form-config');
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(formConfigDir);
-            fs.ensureDirSync(configDir);
-
-            const formConfig = { formData: { type: 'form' } };
-            const regularConfig = { regularData: { type: 'regular' } };
-
-            fs.writeFileSync(
-                path.join(formConfigDir, 'form.js'),
-                `module.exports = ${JSON.stringify(formConfig)};`
-            );
-            fs.writeFileSync(
-                path.join(configDir, 'regular.js'),
-                `module.exports = ${JSON.stringify(regularConfig)};`
-            );
-
-            const configMap: any = {};
-            configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-
-            expect(configMap.formData).to.deep.equal({ type: 'form' });
-            expect(configMap.regularData).to.deep.equal({ type: 'regular' });
-            done();
+        it('retains installed asset roots without copying into the application', async () => {
+            await write('hook/assets/custom.css', 'body { color: red }');
+            const selected = resolveExtensions([{ name: 'hook', root: path.join(root, 'hook'), declaration: { apiVersion: 1, assets: ['assets'] } }]);
+            expect(selected.assets).to.deep.equal([path.join(root, 'hook', 'assets')]);
+            expect(await readdir(root)).to.deep.equal(['hook']);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Handle directory read error in walkDirSync
-        // -------------------------------------------------------------------------
-        it('should handle errors when walking directories', function (done) {
-            // Create a directory but make the nested walk fail by having a symlink to non-existent
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(configDir);
-
-            // Create a valid config file
-            const validConfig = { validConfigKey: 'validValue' };
-            fs.writeFileSync(
-                path.join(configDir, 'valid.js'),
-                `module.exports = ${JSON.stringify(validConfig)};`
-            );
-
-            const configMap: any = {};
-            expect(() => {
-                configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-            }).to.not.throw();
-
-            expect(configMap.validConfigKey).to.equal('validValue');
-            done();
+        it('retains installed view roots without copying into the application', async () => {
+            await write('hook/views/home.ejs', 'explicit view');
+            const selected = resolveExtensions([{ name: 'hook', root: path.join(root, 'hook'), declaration: { apiVersion: 1, views: ['views'] } }]);
+            expect(selected.views).to.deep.equal([path.join(root, 'hook', 'views')]);
+            expect(await readdir(root)).to.deep.equal(['hook']);
         });
-    });
-
-    describe('Translation file merging', function () {
-        let testHookDir;
-        let fs;
-
-        before(function () {
-            fs = require('fs-extra');
-            testHookDir = path.join(sails.config.appPath, 'node_modules', 'test-translation-hook');
+        it('selects named service factories without constructing them during resolution', () => {
+            let calls = 0;
+            const create = () => { calls++; return { initialize: async () => {}, close: async () => {} }; };
+            const selected = resolveExtensions([{ name: 'hook', root, declaration: { apiVersion: 1, modules: [{ name: 'service', create }] } }]);
+            expect(selected.modules.find(item => item.declaration.name === 'service')?.declaration.create).to.equal(create);
+            expect(calls).to.equal(0);
         });
-
-        afterEach(function () {
-            try {
-                if (fs.pathExistsSync(testHookDir)) {
-                    fs.removeSync(testHookDir);
-                }
-                // Cleanup test locale files
-                const testLocalePath = path.join(sails.config.appPath, 'assets', 'locales', 'test-locale-config');
-                if (fs.pathExistsSync(testLocalePath)) {
-                    fs.removeSync(testLocalePath);
-                }
-            } catch (e) {
-                // Ignore cleanup errors
-            }
+        it('selects named request handlers without a controller registry', () => {
+            const create = () => (_req: unknown, _res: unknown) => {};
+            const selected = resolveExtensions([{ name: 'hook', root, declaration: { apiVersion: 1, handlers: [{ name: 'show', create }] } }]);
+            expect(selected.handlers.find(item => item.declaration.name === 'show')?.declaration.create).to.equal(create);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Merge translation JSON files
-        // -------------------------------------------------------------------------
-        it('should merge translation JSON files from hook locales', function (done) {
-            // Create locale directories in hook and app
-            const hookLocaleDir = path.join(testHookDir, 'locales', 'en');
-            const appLocaleDir = path.join(sails.config.appPath, 'assets', 'locales', 'en');
-
-            fs.ensureDirSync(hookLocaleDir);
-            fs.ensureDirSync(appLocaleDir);
-
-            // Create app translation file
-            const appTranslation = {
-                existingKey: 'existing value',
-                sharedKey: 'app value'
-            };
-            fs.writeFileSync(
-                path.join(appLocaleDir, 'translation.json'),
-                JSON.stringify(appTranslation)
-            );
-
-            // Create hook translation file
-            const hookTranslation = {
-                newKey: 'new value',
-                sharedKey: 'hook value'
-            };
-            fs.writeFileSync(
-                path.join(hookLocaleDir, 'translation.json'),
-                JSON.stringify(hookTranslation)
-            );
-
-            // We need a config dir to trigger the merge
-            fs.ensureDirSync(path.join(testHookDir, 'config'));
-
-            configService.mergeHookConfig('test-translation-hook');
-
-            // Read merged translation
-            const mergedTranslation = require(path.join(appLocaleDir, 'translation.json'));
-
-            expect(mergedTranslation.existingKey).to.equal('existing value');
-            expect(mergedTranslation.newKey).to.equal('new value');
-            expect(mergedTranslation.sharedKey).to.equal('hook value'); // Hook overrides
-
-            done();
+        it('rejects legacy response configuration instead of copying response shims', () => {
+            expect(() => resolve({ responses: { ok: 'custom' } })).to.throw(/Configuration application at responses/);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Handle non-existent locales directory
-        // -------------------------------------------------------------------------
-        it('should handle non-existent locales directory gracefully', function (done) {
-            // Create hook with config but no locales
-            fs.ensureDirSync(path.join(testHookDir, 'config'));
-
-            const testConfig = { noLocalesConfig: { value: 'test' } };
-            fs.writeFileSync(
-                path.join(testHookDir, 'config', 'test.js'),
-                `module.exports = ${JSON.stringify(testConfig)};`
-            );
-
-            const configMap: any = {};
-            expect(() => {
-                configService.mergeHookConfig('test-translation-hook', configMap);
-            }).to.not.throw();
-
-            expect(configMap.noLocalesConfig).to.deep.equal({ value: 'test' });
-            done();
+        it('resolves the installed package root independently of the working directory', async () => {
+            await write('package.json', JSON.stringify({ name: 'application', dependencies: { 'example-hook': '1.0.0' } }));
+            await write('node_modules/example-hook/package.json', JSON.stringify({ name: 'example-hook', version: '1.0.0', redbox: { extension: './extension' } }));
+            expect((await discoverInstalledExtensions(root)).extensions[0].root).to.equal(path.join(root, 'node_modules/example-hook'));
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Create core language backup when merging
-        // -------------------------------------------------------------------------
-        it('should create core language backup when merging translations', function (done) {
-            const hookLocaleDir = path.join(testHookDir, 'locales', 'en');
-            const appLocaleDir = path.join(sails.config.appPath, 'assets', 'locales', 'en');
-
-            fs.ensureDirSync(hookLocaleDir);
-            fs.ensureDirSync(appLocaleDir);
-
-            // Remove any existing core backup
-            const coreBackupPath = path.join(appLocaleDir, 'translation-core.json');
-            if (fs.pathExistsSync(coreBackupPath)) {
-                fs.removeSync(coreBackupPath);
-            }
-
-            // Create app translation
-            const appTranslation = { originalKey: 'original value' };
-            fs.writeFileSync(
-                path.join(appLocaleDir, 'translation.json'),
-                JSON.stringify(appTranslation)
-            );
-
-            // Create hook translation
-            const hookTranslation = { hookKey: 'hook value' };
-            fs.writeFileSync(
-                path.join(hookLocaleDir, 'translation.json'),
-                JSON.stringify(hookTranslation)
-            );
-
-            fs.ensureDirSync(path.join(testHookDir, 'config'));
-
-            // Ensure dontBackupCoreLanguageFilesWhenMerging is false
-            const originalBackupSetting = sails.config.dontBackupCoreLanguageFilesWhenMerging;
-            sails.config.dontBackupCoreLanguageFilesWhenMerging = false;
-
-            configService.mergeHookConfig('test-translation-hook');
-
-            // Core backup should be created
-            expect(fs.pathExistsSync(coreBackupPath)).to.be.true;
-
-            // Cleanup
-            sails.config.dontBackupCoreLanguageFilesWhenMerging = originalBackupSetting;
-            done();
+        it('replaces fields arrays by default', () => {
+            expect(resolve({ fields: ['replacement'] }).fields).to.deep.equal(['replacement']);
+            expect(core.values.fields).to.deep.equal(['one', 'two']);
         });
-    });
-
-    describe('Branded config processing', function () {
-        let testHookDir;
-        let fs;
-
-        before(function () {
-            fs = require('fs-extra');
-            testHookDir = path.join(sails.config.appPath, 'node_modules', 'test-hook-for-config-tests');
+        it('uses declared array replacement instead of a custom dontMergeFields argument', () => {
+            expect(resolve({ fields: [] }).fields).to.deep.equal([]);
+            expect(() => resolve({ dontMergeFields: ['fields'] })).to.throw(/application/);
         });
-
-        afterEach(function () {
-            try {
-                if (fs.pathExistsSync(testHookDir)) {
-                    fs.removeSync(testHookDir);
-                }
-            } catch (e) {
-                // Ignore cleanup errors
-            }
+        it('resolves multiple explicit file layers in documented order', async () => {
+            const application = await write('application.cjs', 'module.exports = { feature: { enabled: true } };');
+            const local = await write('local.cjs', 'module.exports = { feature: { enabled: false } };');
+            expect((await loadStartupConfiguration({ schema, core, files: { application, local } })).feature.enabled).to.equal(false);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Handle non-existent branded-config directory
-        // -------------------------------------------------------------------------
-        it('should handle non-existent branded-config directory gracefully', function (done) {
-            fs.ensureDirSync(path.join(testHookDir, 'config'));
-
-            const testConfig = { noBrandedConfig: { value: 'test' } };
-            fs.writeFileSync(
-                path.join(testHookDir, 'config', 'test.js'),
-                `module.exports = ${JSON.stringify(testConfig)};`
-            );
-
-            const configMap: any = {};
-            expect(() => {
-                configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-            }).to.not.throw();
-
-            expect(configMap.noBrandedConfig).to.deep.equal({ value: 'test' });
-            done();
+        it('reports an inaccessible selected module without scanning a fallback directory', async () => {
+            let failure: unknown;
+            try { await loadStartupConfiguration({ schema, core, files: { application: path.join(root, 'missing.cjs') } }); } catch (error) { failure = error; }
+            expect(String(failure)).to.match(/application file.*cannot asynchronously load/);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Skip files in branded-config (expects directories only)
-        // -------------------------------------------------------------------------
-        it('should skip files in branded-config directory (expects directories)', function (done) {
-            const brandedConfigDir = path.join(testHookDir, 'branded-config');
-            fs.ensureDirSync(brandedConfigDir);
-
-            // Create a file directly in branded-config (should be skipped)
-            fs.writeFileSync(
-                path.join(brandedConfigDir, 'should-skip.txt'),
-                'this file should be skipped'
-            );
-
-            // Also add a config dir so merge runs
-            fs.ensureDirSync(path.join(testHookDir, 'config'));
-            const testConfig = { brandedSkipTest: { ran: true } };
-            fs.writeFileSync(
-                path.join(testHookDir, 'config', 'skip-test.js'),
-                `module.exports = ${JSON.stringify(testConfig)};`
-            );
-
-            const configMap: any = {};
-            expect(() => {
-                configService.mergeHookConfig('test-hook-for-config-tests', configMap);
-            }).to.not.throw();
-
-            expect(configMap.brandedSkipTest).to.deep.equal({ ran: true });
-            done();
+        it('merges explicit translation data without rewriting locale JSON', async () => {
+            const file = await write('locales/en.json', '{"original":"retained"}');
+            const localeSchema = z.object({ translations: z.record(z.string(), z.string()) }).strict();
+            const result = resolveStartupConfiguration({ schema: localeSchema, core: { source: 'core', values: { translations: { original: 'retained' } } }, application: { source: 'hook', values: { translations: { added: 'translation' } } } });
+            expect(result.translations).to.deep.equal({ original: 'retained', added: 'translation' });
+            expect(await readFile(file, 'utf8')).to.equal('{"original":"retained"}');
         });
-    });
-
-    describe('Edge cases', function () {
-        let fs;
-
-        before(function () {
-            fs = require('fs-extra');
+        it('does not require a locales directory for a data-only extension', () => {
+            expect(resolve({}).feature).to.deep.equal({ enabled: false });
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Empty arrays for config_dirs
-        // -------------------------------------------------------------------------
-        it('should handle empty config_dirs array', function (done) {
-            const testHookDir = path.join(sails.config.appPath, 'node_modules', 'test-empty-dirs-hook');
-            fs.ensureDirSync(testHookDir);
-
-            const configMap = { existing: 'value' };
-            expect(() => {
-                configService.mergeHookConfig('test-empty-dirs-hook', configMap, [], []);
-            }).to.not.throw();
-
-            expect(configMap.existing).to.equal('value');
-
-            // Cleanup
-            fs.removeSync(testHookDir);
-            done();
+        it('preserves locale input files without creating mutable backup files', async () => {
+            await write('locales/en.json', '{"title":"original"}');
+            resolve({ feature: { enabled: true } });
+            expect(await readdir(path.join(root, 'locales'))).to.deep.equal(['en.json']);
+            expect(await readFile(path.join(root, 'locales/en.json'), 'utf8')).to.equal('{"title":"original"}');
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Merging with existing complex config
-        // -------------------------------------------------------------------------
-        it('should deeply merge complex nested configurations', function (done) {
-            const testHookDir = path.join(sails.config.appPath, 'node_modules', 'test-deep-merge-hook');
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(configDir);
-
-            const hookConfig = {
-                deepMergeTest: {
-                    level1: {
-                        level2: {
-                            newKey: 'new value',
-                            sharedKey: 'hook value'
-                        }
-                    }
-                }
-            };
-            fs.writeFileSync(
-                path.join(configDir, 'deep.js'),
-                `module.exports = ${JSON.stringify(hookConfig)};`
-            );
-
-            const configMap: any = {
-                deepMergeTest: {
-                    level1: {
-                        level2: {
-                            existingKey: 'existing value',
-                            sharedKey: 'original value'
-                        },
-                        anotherLevel: {
-                            untouched: true
-                        }
-                    }
-                }
-            };
-
-            configService.mergeHookConfig('test-deep-merge-hook', configMap);
-
-            expect(configMap.deepMergeTest.level1.level2.existingKey).to.equal('existing value');
-            expect(configMap.deepMergeTest.level1.level2.newKey).to.equal('new value');
-            expect(configMap.deepMergeTest.level1.level2.sharedKey).to.equal('hook value');
-            expect(configMap.deepMergeTest.level1.anotherLevel.untouched).to.be.true;
-
-            // Cleanup
-            fs.removeSync(testHookDir);
-            done();
+        it('needs no implicit branded-config directory for brand defaults', () => {
+            expect(configService.getBrand('default', 'nonexistent')).to.equal(undefined);
+            expect(resolve({}).feature.enabled).to.equal(false);
         });
-
-        // -------------------------------------------------------------------------
-        // Test: Config file that exports function
-        // -------------------------------------------------------------------------
-        it('should handle config files that export functions', function (done) {
-            const testHookDir = path.join(sails.config.appPath, 'node_modules', 'test-function-config-hook');
-            const configDir = path.join(testHookDir, 'config');
-            fs.ensureDirSync(configDir);
-
-            const configCode = `
-        module.exports = {
-          functionConfigTest: {
-            myFunction: function() { return 'hello'; },
-            myValue: 'static'
-          }
-        };
-      `;
-            fs.writeFileSync(path.join(configDir, 'function-config.js'), configCode);
-
-            const configMap: any = {};
-            expect(() => {
-                configService.mergeHookConfig('test-function-config-hook', configMap);
-            }).to.not.throw();
-
-            expect(configMap.functionConfigTest.myValue).to.equal('static');
-            expect(typeof configMap.functionConfigTest.myFunction).to.equal('function');
-
-            // Cleanup
-            fs.removeSync(testHookDir);
-            done();
+        it('does not execute stray files from a branded-config directory', async () => {
+            await write('branded-config/stray.cjs', 'throw Error("must not run")');
+            expect(resolve({ feature: { enabled: true } }).feature.enabled).to.equal(true);
+            expect(await readFile(path.join(root, 'branded-config/stray.cjs'), 'utf8')).to.include('must not run');
+        });
+        it('resolves an empty extension list without scanning config_dirs', () => {
+            expect(resolve({}, { extensions: resolveExtensions([]) }).feature.enabled).to.equal(false);
+            expect(() => resolve({ config_dirs: [] })).to.throw(/application/);
+        });
+        it('deeply merges nested data without mutating either input', () => {
+            const base = { source: 'core', values: { feature: { enabled: false, nested: { one: { a: 1 }, retained: true } }, fields: ['base'] } };
+            const result = resolve({ feature: { nested: { one: { b: 2 } } } }, { core: base });
+            expect(result.feature.nested).to.deep.equal({ one: { a: 1, b: 2 }, retained: true });
+            expect(base.values.feature.nested.one).to.deep.equal({ a: 1 });
+            expect(Object.isFrozen(result.feature.nested)).to.equal(true);
+        });
+        it('retains functions only at explicitly typed executable positions', () => {
+            const transform = () => 'retained';
+            expect(() => resolve({ transform })).to.throw(/transform.*executable value/);
+            expect(resolve({ transform }, { executablePaths: ['transform'] }).transform).to.equal(transform);
         });
     });
 });

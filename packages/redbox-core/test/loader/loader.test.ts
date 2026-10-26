@@ -1,1062 +1,211 @@
-let expect: Chai.ExpectStatic;
-import * as path from 'path';
-import * as fs from 'fs';
-import * as vm from 'vm';
-const fsPromises = fs.promises;
-import * as os from 'os';
-import * as sinon from 'sinon';
+import assert from 'node:assert/strict';
+import { promises as fs } from 'node:fs';
+import { createHash } from 'node:crypto';
+import os from 'node:os';
+import path from 'node:path';
+import { z } from 'zod';
+import { loadExtensions, resolveExtensions, type ExtensionProvider, type RedboxExtension } from '../../src/extensions';
+import { loadStartupConfiguration, resolveStartupConfiguration } from '../../src/configuration';
+import { FormConfigExports } from '../../src/form-config';
+const { reconcile } = require('../../../../support/migrations/retire-v5-shims.cjs');
 
-import * as redboxLoader from '../../src/loader';
+// This suite follows the retired loader's contracts to their v6 owners: explicit
+// installed declarations, pure configuration and opt-in offline reconciliation.
+describe('extension loading without shim generation', () => {
+  let directory: string;
+  let dependencies: Record<string, string>;
+  async function manifest(priority: string[] = []) {
+    await fs.writeFile(path.join(directory, 'package.json'), JSON.stringify({ dependencies, hookLoadPriority: priority }));
+  }
+  async function write(file: string, source: string) {
+    const target = path.join(directory, file);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, source);
+  }
+  async function extension(name: string, source = 'exports.registerRedboxExtension = () => ({apiVersion: 1});') {
+    await write(`node_modules/${name}/package.json`, JSON.stringify({ name, version: '1.0.0', main: 'index.js', redbox: { extension: '.' } }));
+    await write(`node_modules/${name}/index.js`, source);
+    dependencies[name] = '1.0.0';
+    await manifest();
+  }
+  function provider(name: string, declaration: Partial<RedboxExtension>): ExtensionProvider {
+    return { name, root: directory, declaration: { apiVersion: 1, ...declaration } };
+  }
+  beforeEach(async () => {
+    directory = await fs.mkdtemp(path.join(os.tmpdir(), 'redbox-retired-loader-'));
+    dependencies = {};
+    await manifest();
+  });
+  afterEach(async () => fs.rm(directory, { recursive: true, force: true }));
 
-async function createHookModule(sandboxDir: string, packageName: string, packageJson: Record<string, unknown>, indexJs: string): Promise<void> {
-    const moduleDir = path.join(sandboxDir, 'node_modules', packageName);
-    await fsPromises.mkdir(moduleDir, { recursive: true });
-    await fsPromises.writeFile(path.join(moduleDir, 'package.json'), JSON.stringify(packageJson, null, 2));
-    await fsPromises.writeFile(path.join(moduleDir, 'index.js'), indexJs);
-    for (const request of [`${packageName}/package.json`, packageName]) {
-        try {
-            delete require.cache[require.resolve(request, { paths: [sandboxDir] })];
-        } catch {
-            // Ignore unresolved cache entries for freshly created test modules.
-        }
+  describe('conservative generated-file reconciliation', () => {
+    const file = 'api/services/ExampleService.js';
+    const source = '// trusted generated output\n';
+    function inventory() { return { files: [{ file, generatedHeader: true, tracked: false, sha256: createHash('sha256').update(source).digest('hex') }] }; }
+    it('does not create a missing generated file', async () => {
+      assert.deepEqual(await reconcile(directory, inventory(), true), [{ file, state: 'missing' }]);
+      await assert.rejects(fs.access(path.join(directory, file)), { code: 'ENOENT' });
+    });
+    it('preserves differing content for manual migration', async () => {
+      await write(file, source + '// authored change\n');
+      assert.deepEqual(await reconcile(directory, inventory(), true), [{ file, state: 'preserved' }]);
+      assert.equal(await fs.readFile(path.join(directory, file), 'utf8'), source + '// authored change\n');
+    });
+    it('leaves identical file contents and timestamps unchanged during inspection', async () => {
+      await write(file, source);
+      const time = new Date('2020-01-01T00:00:00Z');
+      await fs.utimes(path.join(directory, file), time, time);
+      assert.deepEqual(await reconcile(directory, inventory()), [{ file, state: 'exact' }]);
+      assert.equal((await fs.stat(path.join(directory, file))).mtimeMs, time.getTime());
+    });
+  });
+
+  describe('pure configuration contributions', () => {
+    function resolve(core: Record<string, unknown>, extension: Record<string, unknown>) {
+      return resolveStartupConfiguration({ schema: z.record(z.string(), z.unknown()), core: { source: 'core', values: core }, extensions: { providers: [provider('institution', { config: extension })] } });
     }
-}
-
-describe('redbox-loader', function () {
-    this.timeout(10000);
-
-    // Create a unique temp directory for each test run
-    const sandboxDir = path.join(os.tmpdir(), 'redbox-loader-test-' + Date.now());
-    let originalEnv: NodeJS.ProcessEnv;
-
-    before(async function () {
-        ({ expect } = await import('chai'));
-        // Ensure we can load the module and it doesn't crash
-        expect(redboxLoader).to.be.an('object');
+    it('replaces branding menu/panel arrays without retaining displaced privileges', () => {
+      const result = resolve({ brandingConfigurationDefaults: { menu: { items: [{ id: 'home' }, { id: 'admin', requiredRoles: ['Admin'] }] }, homePanels: { panels: [] } } }, { brandingConfigurationDefaults: { menu: { items: [{ id: 'home' }, { id: 'plan' }] }, homePanels: { panels: [{ id: 'plan' }] } } });
+      assert.deepEqual(result.brandingConfigurationDefaults, { menu: { items: [{ id: 'home' }, { id: 'plan' }] }, homePanels: { panels: [{ id: 'plan' }] } });
     });
-
-    beforeEach(async function () {
-        originalEnv = { ...process.env };
-        await fsPromises.mkdir(sandboxDir, { recursive: true });
-        // Create basic api structure
-        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'models'), { recursive: true });
-        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'policies'), { recursive: true });
-        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'middleware'), { recursive: true });
-        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'responses'), { recursive: true });
-        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'services'), { recursive: true });
-        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'controllers'), { recursive: true });
-        await fsPromises.mkdir(path.join(sandboxDir, 'api', 'form-config'), { recursive: true });
-        // Create config directory for config shims and bootstrap
-        await fsPromises.mkdir(path.join(sandboxDir, 'config'), { recursive: true });
-
-        // Mock package.json
-        await fsPromises.writeFile(path.join(sandboxDir, 'package.json'), JSON.stringify({
-            name: 'test-app',
-            dependencies: {},
-            devDependencies: {}
-        }));
+    it('merges Agenda jobs by name and preserves options without inventing a schedule', () => {
+      const result = resolve({ agendaQueue: { jobs: { audit: { fnName: 'audit.store', options: { lockLifetime: 30000 } }, history: { fnName: 'history.move', schedule: { method: 'every', intervalOrSchedule: '5 minutes' } } } } }, { agendaQueue: { jobs: { audit: { fnName: 'audit.store', options: { concurrency: 1 } }, figshare: { fnName: 'figshare.sync', schedule: { method: 'every', intervalOrSchedule: '50 minutes' } } } } }) as any;
+      assert.deepEqual(Object.keys(result.agendaQueue.jobs).sort(), ['audit', 'figshare', 'history']);
+      assert.deepEqual(result.agendaQueue.jobs.audit, { fnName: 'audit.store', options: { lockLifetime: 30000, concurrency: 1 } });
+      assert.deepEqual(result.agendaQueue.jobs.history.schedule, { method: 'every', intervalOrSchedule: '5 minutes' });
     });
-
-    afterEach(async function () {
-        process.env = originalEnv;
-        try {
-            await fsPromises.rm(sandboxDir, { recursive: true, force: true });
-        } catch (e: any) {
-            console.warn('Could not cleanup sandbox:', e.message);
-        }
+    it('loads dotted scoped package names without generated JavaScript identifiers', async () => {
+      await extension('@org/test.hook', 'exports.registerRedboxExtension = () => ({apiVersion: 1, config: { appmode: { value: "institution" } }});');
+      const result = await loadExtensions(directory);
+      assert.equal(result.providers[0].name, '@org/test.hook');
+      assert.deepEqual(result.providers[0].declaration.config, { appmode: { value: 'institution' } });
+      await assert.rejects(fs.access(path.join(directory, 'config')), { code: 'ENOENT' });
     });
+  });
 
-    describe('writeFileIfChanged', function () {
-        it('should write file if it does not exist', async function () {
-            const file = path.join(sandboxDir, 'test.txt');
-            const written = await redboxLoader.writeFileIfChanged(file, 'hello');
-            expect(written).to.be.true;
-            const content = await fsPromises.readFile(file, 'utf8');
-            expect(content).to.equal('hello');
-        });
-
-        it('should write file if content is different', async function () {
-            const file = path.join(sandboxDir, 'test.txt');
-            await fsPromises.writeFile(file, 'hello');
-
-            const written = await redboxLoader.writeFileIfChanged(file, 'world');
-            expect(written).to.be.true;
-            const content = await fsPromises.readFile(file, 'utf8');
-            expect(content).to.equal('world');
-        });
-
-        it('should NOT write file if content is identical', async function () {
-            const file = path.join(sandboxDir, 'test.txt');
-            await fsPromises.writeFile(file, 'hello');
-
-            // Ensure file mtime is older
-            const oldTime = new Date('2020-01-01');
-            await fsPromises.utimes(file, oldTime, oldTime);
-
-            const written = await redboxLoader.writeFileIfChanged(file, 'hello');
-            expect(written).to.be.false;
-
-            const stat = await fsPromises.stat(file);
-            expect(stat.mtime.getTime()).to.equal(oldTime.getTime());
-        });
+  describe('retired generation triggers', () => {
+    for (const [description, environment, marker] of [
+      ['development', 'development', false], ['production', 'production', false], ['a regeneration marker', 'production', true], ['empty output directories', 'production', false],
+    ] as const) it(`does not generate shims for ${description}`, async () => {
+      const previous = process.env.NODE_ENV;
+      try {
+        process.env.NODE_ENV = environment;
+        if (marker) await write('.regenerate-shims', '');
+        await fs.mkdir(path.join(directory, 'api/services'), { recursive: true });
+        const result = await loadExtensions(directory);
+        assert.equal(result.modules.length, 0);
+        assert.deepEqual(await fs.readdir(path.join(directory, 'api/services')), []);
+        await assert.rejects(fs.access(path.join(directory, 'config/bootstrap.js')), { code: 'ENOENT' });
+        if (marker) assert.equal(await fs.readFile(path.join(directory, '.regenerate-shims'), 'utf8'), '');
+      } finally { if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous; }
     });
-
-    describe('mergeRedboxConfig', function () {
-        it('replaces brandingConfigurationDefaults arrays from hook config', function () {
-            const merged = redboxLoader.mergeRedboxConfig(
-                'brandingConfigurationDefaults',
-                {
-                    menu: {
-                        items: [
-                            { id: 'home-auth', labelKey: 'menu-home', href: '/researcher/home' },
-                            {
-                                id: 'admin',
-                                labelKey: 'menu-admin',
-                                href: '/admin',
-                                requiredRoles: ['Admin'],
-                            },
-                        ],
-                    },
-                    homePanels: { panels: [] },
-                },
-                {
-                    menu: {
-                        items: [
-                            { id: 'home-auth', labelKey: 'menu-home', href: '/researcher/home' },
-                            {
-                                id: 'plan',
-                                labelKey: 'menu-plan-nav',
-                                href: '#',
-                                children: [
-                                    { id: 'plan-create', labelKey: 'create-rdmp', href: '/record/rdmp/edit' },
-                                ],
-                            },
-                        ],
-                    },
-                    homePanels: {
-                        panels: [
-                            {
-                                id: 'plan',
-                                titleKey: 'menu-plan',
-                                iconClass: 'icon-checklist icon-3x',
-                                columnClass: 'col-md-3 homepanel',
-                                items: [],
-                            },
-                        ],
-                    },
-                }
-            );
-
-            const brandingDefaults = merged as {
-                menu: { items: Array<{ id: string; requiredRoles?: string[] }> };
-                homePanels: { panels: Array<{ id: string }> };
-            };
-
-            expect(brandingDefaults.menu.items.map(item => item.id)).to.deep.equal(['home-auth', 'plan']);
-            expect(brandingDefaults.menu.items[1]).to.not.have.property('requiredRoles');
-            expect(brandingDefaults.homePanels.panels.map(panel => panel.id)).to.deep.equal(['plan']);
-        });
+    it('does not modify pre-existing authored output', async () => {
+      await write('api/services/Institution.js', 'throw new Error("authored file must not load");');
+      await loadExtensions(directory);
+      assert.equal(await fs.readFile(path.join(directory, 'api/services/Institution.js'), 'utf8'), 'throw new Error("authored file must not load");');
     });
-
-    describe('shouldRegenerateShims', function () {
-        it('should return true if NODE_ENV is not production', async function () {
-            process.env.NODE_ENV = 'development';
-            const result = await redboxLoader.shouldRegenerateShims(sandboxDir, false);
-            expect(result.shouldRegenerate).to.be.true;
-            expect(result.reason).to.include('NODE_ENV');
-        });
-
-        it('should return true if .regenerate-shims exists', async function () {
-            process.env.NODE_ENV = 'production';
-            await fsPromises.writeFile(path.join(sandboxDir, '.regenerate-shims'), '');
-
-            const result = await redboxLoader.shouldRegenerateShims(sandboxDir, false);
-            expect(result.shouldRegenerate).to.be.true;
-            expect(result.reason).to.include('marker file exists');
-            expect(result.deleteMarker).to.be.true;
-        });
-
-        it('should return true if forceRegenerate is true', async function () {
-            process.env.NODE_ENV = 'production';
-            const result = await redboxLoader.shouldRegenerateShims(sandboxDir, true);
-            expect(result.shouldRegenerate).to.be.true;
-            expect(result.reason).to.include('REGENERATE_SHIMS');
-        });
-
-        it('should return true if any directory is empty', async function () {
-            process.env.NODE_ENV = 'production';
-            // api/models is empty by default in setup
-            const result = await redboxLoader.shouldRegenerateShims(sandboxDir, false);
-            expect(result.shouldRegenerate).to.be.true;
-            expect(result.reason).to.include('is empty');
-        });
-
-        it('should return false via existing files and production env', async function () {
-            process.env.NODE_ENV = 'production';
-            // Populate dirs
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/services/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/controllers/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/form-config/index.js'), 'x');
-
-            const result = await redboxLoader.shouldRegenerateShims(sandboxDir, false);
-            expect(result.shouldRegenerate).to.be.false;
-        });
+    it('returns bootstrap declarations without writing bootstrap.js', async () => {
+      await extension('hook', 'exports.registerRedboxExtension = () => ({apiVersion: 1, bootstrap: [{name: "seed", run: async () => { throw new Error("offline"); }}]});');
+      assert.equal((await loadExtensions(directory)).bootstrap[0].declaration.name, 'seed');
+      await assert.rejects(fs.access(path.join(directory, 'config/bootstrap.js')), { code: 'ENOENT' });
     });
-
-    describe('generateAllShims', function () {
-        it('should skip generation if not needed', async function () {
-            process.env.NODE_ENV = 'production';
-            // Populate dirs
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/services/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/controllers/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/form-config/index.js'), 'x');
-
-            const result = await redboxLoader.generateAllShims(sandboxDir);
-            expect(result.skipped).to.be.true;
-            expect(result.recordContractContributorState.registrations).not.to.have.length(0);
-        });
-
-        it('should generate shims when forced', async function () {
-            process.env.NODE_ENV = 'production';
-            // Even if populated, force it
-
-            const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
-            expect(result.skipped).to.be.false;
-            if (result.skipped) {
-                throw new Error('Expected shim generation to run');
-            }
-            expect(result.stats).to.exist;
-            expect(result.recordContractContributorState.registrationIssues).to.deep.equal([]);
-        });
-
-        it('should delete marker file after regeneration', async function () {
-            process.env.NODE_ENV = 'production';
-            await fsPromises.writeFile(path.join(sandboxDir, '.regenerate-shims'), '');
-            // Populate dirs to avoid "is empty" reason taking precedence?
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/services/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/controllers/test.js'), 'x');
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/form-config/index.js'), 'x');
-
-            const result = await redboxLoader.generateAllShims(sandboxDir);
-            expect(result.skipped).to.be.false;
-
-            try {
-                await fsPromises.access(path.join(sandboxDir, '.regenerate-shims'));
-                expect.fail('Marker file should be deleted');
-            } catch (e: any) {
-                expect(e.code).to.equal('ENOENT');
-            }
-        });
-
-        it('should include bootstrapStats in result', async function () {
-            const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
-            expect(result.skipped).to.be.false;
-            if (result.skipped) {
-                throw new Error('Expected shim generation to run');
-            }
-            expect(result.stats.bootstrapStats).to.exist;
-            expect(result.stats.bootstrapStats.total).to.equal(1);
-            expect(result.stats.bootstrapStats.hookCount).to.be.a('number');
-        });
-
-        it('should include migrationStats in result', async function () {
-            const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
-            expect(result.skipped).to.be.false;
-            if (result.skipped) {
-                throw new Error('Expected shim generation to run');
-            }
-            expect(result.stats.migrationStats).to.exist;
-            expect(result.stats.migrationStats.total).to.equal(1);
-        });
+    it('returns migration declarations without writing migrations.js', async () => {
+      await extension('hook', 'exports.registerRedboxExtension = () => ({apiVersion: 1, migrations: [{name: "2026-migrate", run: async () => { throw new Error("offline"); }}]});');
+      assert.equal((await loadExtensions(directory)).migrations[0].declaration.name, '2026-migrate');
+      await assert.rejects(fs.access(path.join(directory, 'config/migrations.js')), { code: 'ENOENT' });
     });
+  });
 
-    describe('generateFormConfigShims', function () {
-        let formConfigDir: string;
-
-        beforeEach(async function () {
-            formConfigDir = path.join(sandboxDir, 'api', 'form-config');
-            await fsPromises.mkdir(formConfigDir, { recursive: true });
-        });
-
-        it('should include core forms when LOAD_DEFAULT_FORMS=true', async function () {
-            process.env.LOAD_DEFAULT_FORMS = 'true';
-            await redboxLoader.generateFormConfigShims(formConfigDir, {});
-
-            const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
-            expect(content).to.include("generated-view-only");
-        });
-
-        it('should use hook-only registry when LOAD_DEFAULT_FORMS=false', async function () {
-            process.env.LOAD_DEFAULT_FORMS = 'false';
-            const hookFormConfigs = {
-                'hook-form': { module: 'hook-module' }
-            };
-            await redboxLoader.generateFormConfigShims(formConfigDir, hookFormConfigs);
-
-            const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
-            expect(content).to.include("'hook-form'");
-            expect(content).to.not.include("default-1.0-draft");
-            expect(content).to.not.include('{{{');
-            expect(() => new vm.Script(content)).to.not.throw();
-        });
-
-        it('should treat missing LOAD_DEFAULT_FORMS as hook-only', async function () {
-            delete process.env.LOAD_DEFAULT_FORMS;
-            const hookFormConfigs = {
-                'hook-form': { module: 'hook-module' }
-            };
-            await redboxLoader.generateFormConfigShims(formConfigDir, hookFormConfigs);
-
-            const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
-            expect(content).to.include("'hook-form'");
-            expect(content).to.not.include("default-1.0-draft");
-        });
-
-        it('should treat invalid LOAD_DEFAULT_FORMS as hook-only', async function () {
-            process.env.LOAD_DEFAULT_FORMS = 'maybe';
-            const hookFormConfigs = {
-                'hook-form': { module: 'hook-module' }
-            };
-            await redboxLoader.generateFormConfigShims(formConfigDir, hookFormConfigs);
-
-            const content = await fsPromises.readFile(path.join(formConfigDir, 'index.js'), 'utf8');
-            expect(content).to.include("'hook-form'");
-            expect(content).to.not.include("default-1.0-draft");
-        });
+  describe('explicit forms and offline registration', () => {
+    // Core's generated read-only form is always available. Demo forms require an
+    // installed extension; LOAD_DEFAULT_FORMS no longer drives generated output.
+    for (const value of ['true', 'false', undefined, 'maybe']) it(`resolves explicit forms independently of retired LOAD_DEFAULT_FORMS=${String(value)}`, async () => {
+      const previous = process.env.LOAD_DEFAULT_FORMS;
+      try {
+        if (value === undefined) delete process.env.LOAD_DEFAULT_FORMS; else process.env.LOAD_DEFAULT_FORMS = value;
+        await extension('hook', 'exports.registerRedboxExtension = () => ({apiVersion: 1, forms: {"hook-form": {type: "rdmp", fields: []}}});');
+        const resolved = await loadExtensions(directory);
+        const forms = { ...FormConfigExports, ...resolved.providers[0].declaration.forms };
+        assert.ok(forms['generated-view-only']);
+        assert.ok(forms['hook-form']);
+        assert.equal(forms['default-1.0-draft'], undefined);
+        await assert.rejects(fs.access(path.join(directory, 'api/form-config/index.js')), { code: 'ENOENT' });
+      } finally { if (previous === undefined) delete process.env.LOAD_DEFAULT_FORMS; else process.env.LOAD_DEFAULT_FORMS = previous; }
     });
-
-
-
-    describe('generateConfigShims', function () {
-        let configDir: string;
-
-        beforeEach(async function () {
-            configDir = path.join(sandboxDir, 'config');
-            await fsPromises.mkdir(configDir, { recursive: true });
-        });
-
-        it('should sanitize package names with dots when generating config shims', async function () {
-            const hookConfigs = [
-                { name: '@org/test.hook', module: '@org/test.hook' }
-            ];
-
-            await redboxLoader.generateConfigShims(configDir, hookConfigs);
-
-            const generatedFiles = await fsPromises.readdir(configDir);
-            const shimContents = await Promise.all(
-                generatedFiles
-                    .filter(name => name.endsWith('.js') && name !== 'datastores.js')
-                    .map(name => fsPromises.readFile(path.join(configDir, name), 'utf8'))
-            );
-
-            expect(shimContents.some(content =>
-                content.includes("const _org_test_hook_config = require('@org/test.hook').registerRedboxConfig();")
-            )).to.be.true;
-            expect(shimContents.some(content => content.includes('test.hook_config'))).to.be.false;
-        });
-
-        it('should merge agenda queue jobs as a map keyed by name', function () {
-            const merged = redboxLoader.mergeRedboxConfig('agendaQueue', {
-                jobs: {
-                    'IntegrationAuditService-StoreIntegrationAudit': {
-                        fnName: 'integrationauditservice.storeIntegrationAudit',
-                        options: { lockLifetime: 30000 }
-                    },
-                    'MoveCompletedJobsToHistory': {
-                        fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
-                        schedule: {
-                            method: 'every',
-                            intervalOrSchedule: '5 minutes'
-                        }
-                    }
-                }
-            }, {
-                jobs: {
-                    'MoveCompletedJobsToHistory': {
-                        fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
-                        schedule: {
-                            method: 'every',
-                            intervalOrSchedule: '5 minutes'
-                        }
-                    },
-                    'Figshare-TransitionRecordWorkflowFromFigshareArticleProperties': {
-                        fnName: 'figshareservice.transitionRecordWorkflowFromFigshareArticlePropertiesJob',
-                        schedule: {
-                            method: 'every',
-                            intervalOrSchedule: '50 minutes'
-                        }
-                    },
-                    'IntegrationAuditService-StoreIntegrationAudit': {
-                        fnName: 'integrationauditservice.storeIntegrationAudit',
-                        options: { concurrency: 1 }
-                    }
-                }
-            }) as { jobs: Record<string, Record<string, unknown>> };
-
-            const auditJob = merged.jobs['IntegrationAuditService-StoreIntegrationAudit'];
-            const moveHistoryJob = merged.jobs['MoveCompletedJobsToHistory'];
-            expect(Object.keys(merged.jobs)).to.include.members([
-                'IntegrationAuditService-StoreIntegrationAudit',
-                'MoveCompletedJobsToHistory',
-                'Figshare-TransitionRecordWorkflowFromFigshareArticleProperties'
-            ]);
-            expect(auditJob).to.not.have.property('schedule');
-            expect(auditJob?.fnName).to.equal('integrationauditservice.storeIntegrationAudit');
-            expect(auditJob?.options).to.deep.equal({
-                lockLifetime: 30000,
-                concurrency: 1
-            });
-            expect(moveHistoryJob?.schedule).to.deep.equal({
-                method: 'every',
-                intervalOrSchedule: '5 minutes'
-            });
-        });
+    it('returns empty registrations when no dependencies are declared', async () => {
+      const result = await loadExtensions(directory);
+      for (const field of ['providers', 'modules', 'handlers', 'routes', 'bootstrap', 'migrations'] as const) assert.deepEqual(result[field], []);
     });
-
-    describe('generateBootstrapShim', function () {
-        let configDir: string;
-
-        beforeEach(async function () {
-            configDir = path.join(sandboxDir, 'config');
-            await fsPromises.mkdir(configDir, { recursive: true });
-        });
-
-        it('should generate bootstrap.js with no hook bootstraps', async function () {
-            const result = await redboxLoader.generateBootstrapShim(configDir, []);
-            expect(result.generated).to.equal(1);
-            expect(result.total).to.equal(1);
-            expect(result.hookCount).to.equal(0);
-
-            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
-            expect(content).to.include('Auto-generated by @researchdatabox/redbox-core loader');
-            expect(content).to.include('coreBootstrap');
-            expect(content).to.include('preLiftSetup');
-            expect(content).to.include('createGeneratedBootstrap');
-            expect(content).to.include("require('./migrations').migrations");
-            expect(content).to.include('module.exports.bootstrap');
-            expect(content).to.not.include('{{{');
-            expect(() => new vm.Script(content)).to.not.throw();
-        });
-
-        it('should generate bootstrap.js with hook bootstraps', async function () {
-            const hookBootstraps = [
-                { name: 'test-hook', module: 'test-hook' },
-                { name: '@org/another-hook', module: '@org/another-hook' },
-                { name: '@org/dotted.hook', module: '@org/dotted.hook' }
-            ];
-
-            const result = await redboxLoader.generateBootstrapShim(configDir, hookBootstraps);
-            expect(result.hookCount).to.equal(3);
-
-            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
-            expect(content).to.include('test_hook_bootstrap');
-            expect(content).to.include('_org_another_hook_bootstrap');
-            expect(content).to.include('_org_dotted_hook_bootstrap');
-            expect(content).to.include("require('test-hook')");
-            expect(content).to.include("require('@org/another-hook')");
-            expect(content).to.include("require('@org/dotted.hook')");
-            expect(content).to.include("{ name: \"test-hook\", bootstrap: test_hook_bootstrap }");
-            expect(content).to.not.include('{{{');
-            expect(() => new vm.Script(content)).to.not.throw();
-        });
-
-        it('should not rewrite if content unchanged', async function () {
-            // Generate once
-            await redboxLoader.generateBootstrapShim(configDir, []);
-
-            // Mark file with old mtime
-            const file = path.join(configDir, 'bootstrap.js');
-            const oldTime = new Date('2020-01-01');
-            await fsPromises.utimes(file, oldTime, oldTime);
-
-            // Generate again with same input
-            const result = await redboxLoader.generateBootstrapShim(configDir, []);
-            expect(result.generated).to.equal(0);
-
-            const stat = await fsPromises.stat(file);
-            expect(stat.mtime.getTime()).to.equal(oldTime.getTime());
-        });
-
-        function runBootstrapShim(content: string, migrationsRequire: () => unknown): { exports: Record<string, unknown>; capturedMigrations: unknown } {
-            let capturedMigrations: unknown;
-            const fakeCore = {
-                coreBootstrap: async () => undefined,
-                preLiftSetup: () => undefined,
-                createGeneratedBootstrap: (
-                    _preLift: unknown,
-                    _core: unknown,
-                    _hooks: unknown,
-                    migrations: unknown
-                ) => {
-                    capturedMigrations = migrations;
-                    return () => undefined;
-                },
-            };
-            const fakeRequire = (id: string) => {
-                if (id === '@researchdatabox/redbox-core') {
-                    return fakeCore;
-                }
-                if (id === './migrations') {
-                    return migrationsRequire();
-                }
-                throw new Error(`Unexpected require: ${id}`);
-            };
-            const moduleStub = { exports: {} as Record<string, unknown> };
-            vm.runInNewContext(content, {
-                require: fakeRequire,
-                module: moduleStub,
-                exports: moduleStub.exports,
-                console: { warn: () => undefined },
-            });
-            return { exports: moduleStub.exports, capturedMigrations };
-        }
-
-        it('should tolerate a missing config/migrations.js and default to no migrations', async function () {
-            await redboxLoader.generateBootstrapShim(configDir, []);
-            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
-
-            const missingShim = () => {
-                const error = new Error("Cannot find module './migrations'") as NodeJS.ErrnoException;
-                error.code = 'MODULE_NOT_FOUND';
-                throw error;
-            };
-
-            const { exports: shimExports, capturedMigrations } = runBootstrapShim(content, missingShim);
-            expect(shimExports.bootstrap).to.be.a('function');
-            expect(capturedMigrations).to.deep.equal([]);
-        });
-
-        it('should rethrow MODULE_NOT_FOUND raised inside config/migrations.js', async function () {
-            await redboxLoader.generateBootstrapShim(configDir, []);
-            const content = await fsPromises.readFile(path.join(configDir, 'bootstrap.js'), 'utf8');
-
-            const missingHookInsideShim = () => {
-                const error = new Error("Cannot find module 'some-uninstalled-hook'") as NodeJS.ErrnoException;
-                error.code = 'MODULE_NOT_FOUND';
-                throw error;
-            };
-
-            expect(() => runBootstrapShim(content, missingHookInsideShim)).to.throw("Cannot find module 'some-uninstalled-hook'");
-        });
+    it('rejects a declared dependency that is not installed', async () => {
+      dependencies.missing = '1.0.0';
+      await manifest();
+      await assert.rejects(loadExtensions(directory), /Extension missing: declared dependency is not installed/);
     });
-
-    describe('findAndRegisterHooks', function () {
-        it('should return empty arrays for hooks when no dependencies have sails config', async function () {
-            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
-            expect(result.hookPolicies).to.deep.equal({});
-            expect(result.hookBootstraps).to.deep.equal([]);
-            expect(result.hookApiRoutes).to.deep.equal([]);
-            expect(result.hookMigrations).to.deep.equal([]);
-        });
-
-        // Note: Testing actual hook discovery requires real modules in node_modules
-        // which require.resolve can find.
-        // Here we just verify the function handles dependencies without crashing.
-        it('should handle dependencies that do not have sails config gracefully', async function () {
-            // Update sandbox package.json to include a fake dependency
-            // that won't be found (simulates require.resolve failure)
-            await fsPromises.writeFile(path.join(sandboxDir, 'package.json'), JSON.stringify({
-                name: 'test-app',
-                dependencies: {
-                    'nonexistent-module': '1.0.0'
-                }
-            }));
-
-            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
-            // Should not crash, just return empty
-            expect(result.hookBootstraps).to.be.an('array');
-            expect(result.hookMigrations).to.be.an('array');
-        });
-
-        it('should discover hook migrations exported by a hook dependency', async function () {
-            const packageName = 'redbox-hook-migrations';
-            await createHookModule(
-                sandboxDir,
-                packageName,
-                {
-                    name: packageName,
-                    version: '1.0.0',
-                    sails: { hasMigrations: true },
-                },
-                `module.exports.registerRedboxMigrations = function() {
-                    return [{
-                        name: '2026.06.08T10.00.00-hook',
-                        up: async function() {}
-                    }];
-                };`
-            );
-
-            await fsPromises.writeFile(
-                path.join(sandboxDir, 'package.json'),
-                JSON.stringify({
-                    name: 'test-app',
-                    dependencies: {
-                        [packageName]: '1.0.0',
-                    },
-                    devDependencies: {},
-                })
-            );
-
-            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
-
-            expect(result.hookMigrations).to.deep.equal([{ name: packageName, module: packageName }]);
-        });
-
-        it('should discover hook API routes exported by a hook dependency', async function () {
-            const packageName = 'redbox-hook-api-routes';
-            await createHookModule(
-                sandboxDir,
-                packageName,
-                {
-                    name: packageName,
-                    version: '1.0.0',
-                    sails: { hasApiRoutes: true },
-                },
-                `module.exports.registerHookApiRoutes = function() {
-                    return [{
-                        method: 'get',
-                        path: '/:branding/:portal/api/hooks/example',
-                        controller: 'hook/ExampleController',
-                        action: 'show'
-                    }];
-                };`
-            );
-
-            await fsPromises.writeFile(
-                path.join(sandboxDir, 'package.json'),
-                JSON.stringify({
-                    name: 'test-app',
-                    dependencies: {
-                        [packageName]: '1.0.0',
-                    },
-                    devDependencies: {},
-                })
-            );
-
-            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
-
-            expect(result.hookApiRoutes).to.deep.equal([{ name: packageName, module: packageName }]);
-        });
-
-        it('should resolve hook registry collisions using root hookLoadPriority', async function () {
-            await createHookModule(
-                sandboxDir,
-                'redbox-hook-alpha',
-                {
-                    name: 'redbox-hook-alpha',
-                    version: '1.0.0',
-                    sails: {
-                        hasServices: true,
-                        hasControllers: true,
-                        hasFormConfigs: true,
-                    },
-                },
-                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
-                 module.exports.registerRedboxControllers = function() { return { SharedController: {} }; };
-                 module.exports.registerRedboxFormConfigs = function() { return { sharedForm: {} }; };`
-            );
-            await createHookModule(
-                sandboxDir,
-                'redbox-hook-zeta',
-                {
-                    name: 'redbox-hook-zeta',
-                    version: '1.0.0',
-                    sails: {
-                        hasServices: true,
-                        hasControllers: true,
-                        hasFormConfigs: true,
-                    },
-                },
-                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
-                 module.exports.registerRedboxControllers = function() { return { SharedController: {} }; };
-                 module.exports.registerRedboxFormConfigs = function() { return { sharedForm: {} }; };`
-            );
-
-            await fsPromises.writeFile(
-                path.join(sandboxDir, 'package.json'),
-                JSON.stringify({
-                    name: 'test-app',
-                    hookLoadPriority: ['redbox-hook-alpha'],
-                    dependencies: {
-                        'redbox-hook-alpha': '1.0.0',
-                        'redbox-hook-zeta': '1.0.0',
-                    },
-                    devDependencies: {},
-                })
-            );
-
-            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
-
-            expect(result.hookServices.SharedService.module).to.equal('redbox-hook-alpha');
-            expect(result.hookControllers.SharedController.module).to.equal('redbox-hook-alpha');
-            expect(result.hookFormConfigs.sharedForm.module).to.equal('redbox-hook-alpha');
-        });
-
-        it('should preserve alphabetically-later-wins registry behavior without hookLoadPriority', async function () {
-            await createHookModule(
-                sandboxDir,
-                'redbox-hook-alpha',
-                {
-                    name: 'redbox-hook-alpha',
-                    version: '1.0.0',
-                    sails: { hasServices: true },
-                },
-                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };`
-            );
-            await createHookModule(
-                sandboxDir,
-                'redbox-hook-zeta',
-                {
-                    name: 'redbox-hook-zeta',
-                    version: '1.0.0',
-                    sails: { hasServices: true },
-                },
-                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };`
-            );
-
-            await fsPromises.writeFile(
-                path.join(sandboxDir, 'package.json'),
-                JSON.stringify({
-                    name: 'test-app',
-                    dependencies: {
-                        'redbox-hook-alpha': '1.0.0',
-                        'redbox-hook-zeta': '1.0.0',
-                    },
-                    devDependencies: {},
-                })
-            );
-
-            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
-
-            expect(result.hookServices.SharedService.module).to.equal('redbox-hook-zeta');
-        });
-
-        it('should return hook config registrations in processing order', async function () {
-            await createHookModule(
-                sandboxDir,
-                'redbox-hook-alpha',
-                {
-                    name: 'redbox-hook-alpha',
-                    version: '1.0.0',
-                    sails: { hasConfig: true },
-                },
-                `module.exports.registerRedboxConfig = function() { return { appmode: { value: 'alpha' } }; };`
-            );
-            await createHookModule(
-                sandboxDir,
-                'redbox-hook-zeta',
-                {
-                    name: 'redbox-hook-zeta',
-                    version: '1.0.0',
-                    sails: { hasConfig: true },
-                },
-                `module.exports.registerRedboxConfig = function() { return { appmode: { value: 'zeta' } }; };`
-            );
-
-            await fsPromises.writeFile(
-                path.join(sandboxDir, 'package.json'),
-                JSON.stringify({
-                    name: 'test-app',
-                    hookLoadPriority: ['redbox-hook-alpha'],
-                    dependencies: {
-                        'redbox-hook-alpha': '1.0.0',
-                        'redbox-hook-zeta': '1.0.0',
-                    },
-                    devDependencies: {},
-                })
-            );
-
-            const result = await redboxLoader.findAndRegisterHookConfigs(sandboxDir);
-
-            expect(result.hookConfigs.map(hook => hook.name)).to.deep.equal([
-                'redbox-hook-zeta',
-                'redbox-hook-alpha',
-            ]);
-        });
-
-        it('should return bootstrap, api route, and migration registrations in processing order', async function () {
-            const indexJs = `module.exports.registerRedboxBootstrap = function() { return async function() {}; };
-                module.exports.registerHookApiRoutes = function() { return []; };
-                module.exports.registerRedboxMigrations = function() { return []; };`;
-            await createHookModule(
-                sandboxDir,
-                'redbox-hook-alpha',
-                {
-                    name: 'redbox-hook-alpha',
-                    version: '1.0.0',
-                    sails: { hasBootstrap: true, hasApiRoutes: true, hasMigrations: true },
-                },
-                indexJs
-            );
-            await createHookModule(
-                sandboxDir,
-                'redbox-hook-zeta',
-                {
-                    name: 'redbox-hook-zeta',
-                    version: '1.0.0',
-                    sails: { hasBootstrap: true, hasApiRoutes: true, hasMigrations: true },
-                },
-                indexJs
-            );
-
-            await fsPromises.writeFile(
-                path.join(sandboxDir, 'package.json'),
-                JSON.stringify({
-                    name: 'test-app',
-                    hookLoadPriority: ['redbox-hook-alpha'],
-                    dependencies: {
-                        'redbox-hook-alpha': '1.0.0',
-                        'redbox-hook-zeta': '1.0.0',
-                    },
-                    devDependencies: {},
-                })
-            );
-
-            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
-
-            expect(result.hookBootstraps.map(hook => hook.name)).to.deep.equal([
-                'redbox-hook-zeta',
-                'redbox-hook-alpha',
-            ]);
-            expect(result.hookApiRoutes.map(hook => hook.name)).to.deep.equal([
-                'redbox-hook-zeta',
-                'redbox-hook-alpha',
-            ]);
-            expect(result.hookMigrations.map(hook => hook.name)).to.deep.equal([
-                'redbox-hook-zeta',
-                'redbox-hook-alpha',
-            ]);
-        });
+    it('discovers installed migration declarations without executing them', async () => {
+      await extension('hook', 'exports.registerRedboxExtension = async () => ({apiVersion: 1, migrations: [{name: "2026-hook", run: async () => { throw new Error("offline"); }}]});');
+      const result = await loadExtensions(directory);
+      assert.deepEqual(result.migrations.map(item => [item.provider, item.declaration.name]), [['hook', '2026-hook']]);
     });
-
-    describe('generateApiRouteHookConfig', function () {
-        let configDir: string;
-
-        beforeEach(async function () {
-            configDir = path.join(sandboxDir, 'config');
-            await fsPromises.mkdir(configDir, { recursive: true });
-        });
-
-        it('should generate apiRoutesHooks.js from discovered hook api routes', async function () {
-            const packageName = 'redbox-hook-api-routes';
-            const hookApiRoutes = [{ name: packageName, module: packageName }];
-
-            const result = await redboxLoader.generateApiRouteHookConfig(configDir, hookApiRoutes);
-
-            expect(result.generated).to.equal(1);
-            expect(result.total).to.equal(1);
-
-            const content = await fsPromises.readFile(path.join(configDir, 'apiRoutesHooks.js'), 'utf8');
-            expect(content).to.include("registerHookApiRoutes");
-            expect(content).to.include("module.exports.apiRoutesHooks = [");
-            expect(content).to.include("require('redbox-hook-api-routes').registerHookApiRoutes");
-            expect(() => new vm.Script(content)).to.not.throw();
-        });
+    it('discovers explicit API routes and mandatory access declarations', async () => {
+      await extension('hook', 'exports.registerRedboxExtension = () => ({apiVersion: 1, handlers: [{name: "show", create() { throw new Error("offline"); }}], routes: [{name: "example", method: "get", path: "/:branding/:portal/api/hooks/example", handler: "show", access: ["isAdmin"]}]});');
+      const result = await loadExtensions(directory);
+      assert.deepEqual(result.routes[0].declaration, { name: 'example', method: 'get', path: '/:branding/:portal/api/hooks/example', handler: 'show', access: ['isAdmin'] });
     });
-
-    describe('discoverLocalMigrationFiles', function () {
-        it('should list local migration JavaScript files in sorted order', async function () {
-            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
-            await fsPromises.mkdir(migrationsDir, { recursive: true });
-            await fsPromises.writeFile(path.join(migrationsDir, '002-second.js'), 'module.exports = {};');
-            await fsPromises.writeFile(path.join(migrationsDir, '001-first.js'), 'module.exports = {};');
-            await fsPromises.writeFile(path.join(migrationsDir, 'notes.txt'), '');
-
-            const files = await redboxLoader.discoverLocalMigrationFiles(sandboxDir);
-
-            expect(files).to.deep.equal(['001-first.js', '002-second.js']);
-        });
-
-        it('should return an empty list when api/migrations does not exist', async function () {
-            const files = await redboxLoader.discoverLocalMigrationFiles(sandboxDir);
-            expect(files).to.deep.equal([]);
-        });
+    for (const priority of [[], ['alpha']]) it(`resolves intentional registry replacements with priority ${JSON.stringify(priority)}`, () => {
+      const module = (replaces?: true) => ({ name: 'shared', ...(replaces ? { replaces } : {}), create() { throw new Error('offline'); } });
+      const result = resolveExtensions(priority.length ? [provider('zeta', { modules: [module()] }), provider('alpha', { modules: [module(true)] })] : [provider('alpha', { modules: [module()] }), provider('zeta', { modules: [module(true)] })], priority);
+      assert.equal(result.modules[0].provider, priority.length ? 'alpha' : 'zeta');
     });
-
-    describe('generateMigrationConfigShim', function () {
-        let configDir: string;
-        let originalNodeEnv: string | undefined;
-
-        beforeEach(async function () {
-            originalNodeEnv = process.env.NODE_ENV;
-            configDir = path.join(sandboxDir, 'config');
-            await fsPromises.mkdir(configDir, { recursive: true });
-        });
-
-        afterEach(function () {
-            process.env.NODE_ENV = originalNodeEnv;
-        });
-
-        it('should generate a migrations.js shim aggregating hook and app-local migrations in name order', async function () {
-            const packageName = 'redbox-hook-migrations';
-            await createHookModule(
-                sandboxDir,
-                packageName,
-                {
-                    name: packageName,
-                    version: '1.0.0',
-                    sails: { hasMigrations: true },
-                },
-                `module.exports.registerRedboxMigrations = function() {
-                    return [{
-                        name: '2026.06.08T10.00.00-hook',
-                        up: async function() {}
-                    }];
-                };`
-            );
-
-            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
-            await fsPromises.mkdir(migrationsDir, { recursive: true });
-            await fsPromises.writeFile(
-                path.join(migrationsDir, '001-local.js'),
-                `module.exports = {
-                    name: '2026.06.08T09.00.00-local',
-                    source: 'app',
-                    up: async function() {}
-                };`
-            );
-
-            const result = await redboxLoader.generateMigrationConfigShim(
-                configDir,
-                sandboxDir,
-                [{ name: packageName, module: packageName }]
-            );
-
-            expect(result.generated).to.equal(1);
-            const content = await fsPromises.readFile(path.join(configDir, 'migrations.js'), 'utf8');
-            expect(content).to.include("require('redbox-hook-migrations').registerRedboxMigrations()");
-            expect(content).to.include("require('../api/migrations/001-local.js')");
-            expect(() => new vm.Script(content)).to.not.throw();
-
-            const shimPath = path.join(configDir, 'migrations.js');
-            delete require.cache[require.resolve(shimPath)];
-            const loaded = require(shimPath) as { migrations: Array<{ name: string; source?: string }> };
-            expect(loaded.migrations.map(migration => migration.name)).to.deep.equal([
-                '2026.06.08T09.00.00-local',
-                '2026.06.08T10.00.00-hook'
-            ]);
-            // source must be stamped onto each migration so MigrationRunner.logMigration
-            // can persist it: auto-derived for the hook, explicit value preserved for the local one.
-            expect(loaded.migrations.map(migration => migration.source)).to.deep.equal([
-                'app',
-                'hook:redbox-hook-migrations'
-            ]);
-        });
-
-        it('should warn about duplicate migration names in development', async function () {
-            process.env.NODE_ENV = 'development';
-            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
-            await fsPromises.mkdir(migrationsDir, { recursive: true });
-            await fsPromises.writeFile(
-                path.join(migrationsDir, '003-duplicate-a.js'),
-                `module.exports = { name: 'duplicate', up: async function() {} };`
-            );
-            await fsPromises.writeFile(
-                path.join(migrationsDir, '004-duplicate-b.js'),
-                `module.exports = { name: 'duplicate', up: async function() {} };`
-            );
-            const warn = sinon.stub(console, 'warn');
-
-            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
-
-            const shimPath = path.join(configDir, 'migrations.js');
-            delete require.cache[require.resolve(shimPath)];
-            const loaded = require(shimPath) as { migrations: Array<{ name: string }> };
-            expect(loaded.migrations.map(migration => migration.name)).to.deep.equal(['duplicate']);
-            expect(warn.calledWithMatch('[redbox-loader:warn]', 'Duplicate Redbox migration name: duplicate')).to.be.true;
-            warn.restore();
-        });
-
-        it('should throw on duplicate migration names in production', async function () {
-            process.env.NODE_ENV = 'production';
-            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
-            await fsPromises.mkdir(migrationsDir, { recursive: true });
-            await fsPromises.writeFile(
-                path.join(migrationsDir, '005-duplicate-a.js'),
-                `module.exports = { name: 'duplicate', up: async function() {} };`
-            );
-            await fsPromises.writeFile(
-                path.join(migrationsDir, '006-duplicate-b.js'),
-                `module.exports = { name: 'duplicate', up: async function() {} };`
-            );
-
-            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
-
-            const shimPath = path.join(configDir, 'migrations.js');
-            delete require.cache[require.resolve(shimPath)];
-            expect(() => require(shimPath)).to.throw('Duplicate Redbox migration name: duplicate');
-        });
-
-        it('should name the offending source when a migration export is invalid', async function () {
-            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
-            await fsPromises.mkdir(migrationsDir, { recursive: true });
-            await fsPromises.writeFile(
-                path.join(migrationsDir, '007-bad.js'),
-                `module.exports = { name: 'bad-migration' };`
-            );
-
-            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
-
-            const shimPath = path.join(configDir, 'migrations.js');
-            delete require.cache[require.resolve(shimPath)];
-            expect(() => require(shimPath)).to.throw('Invalid Redbox migration export from api/migrations/007-bad.js');
-        });
-
-        it('should reject a hook whose registerRedboxMigrations is async', async function () {
-            const packageName = 'redbox-hook-async-migrations';
-            await createHookModule(
-                sandboxDir,
-                packageName,
-                {
-                    name: packageName,
-                    version: '1.0.0',
-                    sails: { hasMigrations: true },
-                },
-                `module.exports.registerRedboxMigrations = async function() {
-                    return [];
-                };`
-            );
-
-            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, [
-                { name: packageName, module: packageName }
-            ]);
-
-            const shimPath = path.join(configDir, 'migrations.js');
-            delete require.cache[require.resolve(shimPath)];
-            expect(() => require(shimPath)).to.throw(
-                `Invalid Redbox migration export from hook:${packageName}. Expected an array of migrations (registerRedboxMigrations() must be synchronous).`
-            );
-        });
-
-        it('should name both sources for duplicate migration names', async function () {
-            process.env.NODE_ENV = 'production';
-            const migrationsDir = path.join(sandboxDir, 'api', 'migrations');
-            await fsPromises.mkdir(migrationsDir, { recursive: true });
-            await fsPromises.writeFile(
-                path.join(migrationsDir, '008-duplicate-a.js'),
-                `module.exports = { name: 'duplicate', up: async function() {} };`
-            );
-            await fsPromises.writeFile(
-                path.join(migrationsDir, '009-duplicate-b.js'),
-                `module.exports = { name: 'duplicate', up: async function() {} };`
-            );
-
-            await redboxLoader.generateMigrationConfigShim(configDir, sandboxDir, []);
-
-            const shimPath = path.join(configDir, 'migrations.js');
-            delete require.cache[require.resolve(shimPath)];
-            expect(() => require(shimPath)).to.throw(
-                'Duplicate Redbox migration name: duplicate (from api/migrations/009-duplicate-b.js, first defined in api/migrations/008-duplicate-a.js)'
-            );
-        });
+    it('returns configuration contributions low to high', async () => {
+      for (const name of ['alpha', 'zeta']) await extension(name, `exports.registerRedboxExtension = () => ({apiVersion: 1, config: {appmode: {value: "${name}"}}});`);
+      await manifest(['alpha']);
+      const result = await loadExtensions(directory);
+      assert.deepEqual(result.providers.map(item => item.name), ['zeta', 'alpha']);
+      assert.equal(resolveStartupConfiguration({ schema: z.object({ appmode: z.object({ value: z.string() }) }), core: { source: 'core', values: { appmode: { value: 'core' } } }, extensions: result }).appmode.value, 'alpha');
     });
+    it('orders bootstrap/routes by precedence and migrations independently by name', () => {
+      const declarations = (name: string): Partial<RedboxExtension> => ({ bootstrap: [{ name, run: async () => {} }], migrations: [{ name, run: async () => {} }], handlers: [{ name, create: () => (_req, res) => { res.end(); } }], routes: [{ name, path: '/' + name, method: 'get', handler: name, access: 'public' }] });
+      const result = resolveExtensions([provider('alpha', declarations('a')), provider('zeta', declarations('z'))], ['alpha']);
+      assert.deepEqual(result.bootstrap.map(item => item.provider), ['zeta', 'alpha']);
+      assert.deepEqual(result.routes.map(item => item.provider), ['zeta', 'alpha']);
+      assert.deepEqual(result.migrations.map(item => item.declaration.name), ['a', 'z']);
+    });
+    it('does not scan local migration JavaScript files', async () => {
+      await write('api/migrations/001-local.js', 'throw new Error("must not discover implicit scripts");');
+      await write('api/migrations/002-local.js', 'throw new Error("must not discover implicit scripts");');
+      assert.deepEqual((await loadExtensions(directory)).migrations, []);
+    });
+    it('accepts a missing local migration directory', async () => {
+      assert.deepEqual((await loadExtensions(directory)).migrations, []);
+    });
+  });
+
+  describe('explicit configuration files and migration validation', () => {
+    const options = () => ({ schema: z.object({ value: z.string() }), core: { source: 'core', values: { value: 'default' } } });
+    it('does not require an implicit config/migrations.js', async () => {
+      assert.deepEqual(await loadStartupConfiguration(options()), { value: 'default' });
+    });
+    it('rejects internal import failure in an explicitly selected module without exposing its data', async () => {
+      await write('application.cjs', 'require("not-installed-private-secret");');
+      await assert.rejects(loadStartupConfiguration({ ...options(), files: { application: path.join(directory, 'application.cjs') } }), error => /application file.*cannot asynchronously load/.test(String(error)) && !String(error).includes('private-secret'));
+    });
+    it('collects explicitly registered app/hook migrations in lexical name order with attribution', () => {
+      const result = resolveExtensions([provider('hook', { migrations: [{ name: '2026-02-hook', run: async () => {} }] }), provider('app', { migrations: [{ name: '2026-01-local', run: async () => {} }] })]);
+      assert.deepEqual(result.migrations.map(item => [item.declaration.name, item.provider]), [['2026-01-local', 'app'], ['2026-02-hook', 'hook']]);
+    });
+    for (const environment of ['development', 'production']) it(`rejects duplicate migration names before acquisition in ${environment}`, () => {
+      assert.throws(() => resolveExtensions([provider(environment, { migrations: [{ name: 'duplicate', run: async () => {} }, { name: 'duplicate', run: async () => {} }] })]), /require unique bounded names/);
+    });
+    it('identifies the provider of an invalid migration declaration', () => {
+      assert.throws(() => resolveExtensions([provider('invalid-hook', { migrations: [{ name: 'bad' } as never] })]), /Extension invalid-hook: migrations require run/);
+    });
+    it('awaits asynchronous extension registration', async () => {
+      await extension('async-hook', 'exports.registerRedboxExtension = async () => { await new Promise(resolve => setImmediate(resolve)); return {apiVersion: 1, migrations: [{name: "ready", run: async () => {}}]}; };');
+      assert.equal((await loadExtensions(directory)).migrations[0].declaration.name, 'ready');
+    });
+    it('rejects ambiguous cross-provider migration collisions without an implicit winner', () => {
+      const work = { name: 'duplicate', run: async () => {} };
+      assert.throws(() => resolveExtensions([provider('first', { migrations: [work] }), provider('second', { migrations: [work] })]), /Extension second: migrations duplicate requires replaces/);
+    });
+  });
 });

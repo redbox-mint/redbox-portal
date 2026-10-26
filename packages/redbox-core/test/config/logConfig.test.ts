@@ -7,13 +7,13 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as sinon from 'sinon';
 import { ILogger, isLogger, logAtLevel, nothingLogger } from '@researchdatabox/sails-ng-common';
-import { CoreBase } from '../../src/CoreBase';
+import { bindExtensionFactory } from '../../src/extensions/composition';
 import { isPinoLogger, log, logfmtTransportOptions } from '../../src/config/log.config';
 import { createSinonStubLogger } from '../logger.test';
 import assert from 'node:assert/strict';
 import { InvalidCacheEntryError } from '../../src/persistence/cache/validation';
 import { DuplicateCacheEntryError } from '../../src/persistence/cache/errors';
-import { createGeneratedBootstrap } from '../../src/loader/bootstrapShimRuntime';
+import { ApplicationRuntime } from '../../src/application';
 
 type LogLine = { level: string; name?: string; msg?: string; [key: string]: unknown };
 
@@ -28,31 +28,8 @@ function createSink() {
   return { lines, stream };
 }
 
-class Probe extends CoreBase {
-  protected _loggerNamespaceSuffix = 'Service';
-  public get publicLogger(): ILogger {
-    return this.logger;
-  }
-}
-
-class Other extends CoreBase {
-  protected _loggerNamespaceSuffix = 'Service';
-  public get publicLogger(): ILogger {
-    return this.logger;
-  }
-}
-
 describe('log config', function () {
-  let priorSails: unknown;
-
-  beforeEach(function () {
-    priorSails = (global as any).sails;
-  });
-
-  afterEach(function () {
-    (global as any).sails = priorSails;
-    sinon.restore();
-  });
+  afterEach(() => sinon.restore());
 
   it('only accepts a parent logger that can create child loggers', function () {
     const { stream } = createSink();
@@ -68,24 +45,16 @@ describe('log config', function () {
     const { lines, stream } = createSink();
     const parent = log.createPinoLogger('info', stream);
     const fallback = createSinonStubLogger(sinon);
-    (global as any).sails = {
-      config: {
-        log: { ...log, customLogger: parent },
-        lognamespace: { ProbeService: 'warn' },
-      },
-      log: fallback,
-    };
-
-    const probe = new Probe();
-    const other = new Other();
-    probe.publicLogger.info('probe info');
-    probe.publicLogger.warn({ structured: { value: 1 } }, 'probe warn');
-    other.publicLogger.verbose('other verbose');
+    const probe = log.createNamespaceLogger('ProbeService', parent, undefined, 'warn');
+    const other = log.createNamespaceLogger('OtherService', parent);
+    probe.info('probe info');
+    probe.warn({ structured: { value: 1 } }, 'probe warn');
+    other.verbose('other verbose');
     // Namespace loggers without a configured level follow later changes to the parent level.
     parent.level = 'verbose';
-    other.publicLogger.verbose('other verbose after');
+    other.verbose('other verbose after');
 
-    expect(probe.publicLogger).to.not.equal(fallback);
+    expect(probe).to.not.equal(fallback);
     expect(fallback.warn.called).to.equal(false);
     expect(lines.map(line => [line.level, line.name, line.msg])).to.deep.equal([
       ['warn', 'ProbeService', 'probe warn'],
@@ -94,20 +63,19 @@ describe('log config', function () {
     expect(lines[0].structured).to.deep.equal({ value: 1 });
   });
 
-  it('falls back to the sails logger when the namespace logger cannot be created', function () {
-    const { stream } = createSink();
+  it('binds the explicitly supplied logger without invoking a namespace factory', function () {
     const fallback = createSinonStubLogger(sinon);
-    const factory = sinon.stub().throws(new Error('broken factory'));
-    (global as any).sails = {
-      config: { log: { createNamespaceLogger: factory, customLogger: log.createPinoLogger('info', stream) } },
-      log: fallback,
-    };
-
-    const probe = new Probe();
-    expect(probe.publicLogger).to.equal(fallback);
-    expect(probe.publicLogger).to.equal(fallback);
-    expect(factory.callCount).to.equal(1);
-    expect(fallback.warn.callCount).to.equal(1);
+    const factory = sinon.stub(log, 'createNamespaceLogger').throws(new Error('broken factory'));
+    const create = bindExtensionFactory(
+      {
+        name: 'probe',
+        create: (input: { log: ILogger }) => ({ write: () => input.log.warn('fallback remains usable') }),
+      },
+      { log: fallback }
+    );
+    create().write();
+    expect(factory.callCount).to.equal(0);
+    expect(fallback.warn.calledOnceWithExactly('fallback remains usable')).to.equal(true);
   });
 
   it('keeps the established logger contract for hook implementations', function () {
@@ -137,16 +105,15 @@ describe('log config', function () {
     expect(logger.warn.calledOnce).to.equal(true);
   });
 
-  it('keeps blank calls silent for parent, namespace, and sails loggers', function () {
+  it('keeps blank calls silent for parent, namespace, and injected service loggers', function () {
     const { lines, stream } = createSink();
     const parent = log.createPinoLogger('info', stream);
     const child = log.createNamespaceLogger('Example', parent);
-    const captainsLog = require('captains-log');
-    const sailsLog = captainsLog({ custom: parent, inspect: false, level: 'info' });
+    const service = child;
 
     parent.blank();
     child.blank('ignored payload');
-    sailsLog.blank();
+    service.blank();
     parent.info('still logs messages');
 
     expect(lines.map(line => [line.level, line.msg])).to.deep.equal([['info', 'still logs messages']]);
@@ -183,18 +150,10 @@ describe('log config', function () {
     }
   });
 
-  it('keeps structured objects when logging through the sails logger', function () {
-    let captainsLog: (config: unknown) => ILogger;
-    try {
-      captainsLog = require('captains-log');
-    } catch {
-      this.skip();
-      return;
-    }
+  it('keeps structured objects through the injected application logger', function () {
     const { lines, stream } = createSink();
-    const sailsLog = captainsLog({ custom: log.createPinoLogger('info', stream), inspect: false, level: 'info' });
-    sailsLog.error({ errors: [{ message: 'failed' }], res: { statusCode: 500 } }, 'Request chronicle');
-
+    const service = log.createPinoLogger('info', stream);
+    service.error({ errors: [{ message: 'failed' }], res: { statusCode: 500 } }, 'Request chronicle');
     expect(lines).to.have.length(1);
     expect(lines[0]).to.deep.include({
       level: 'error',
@@ -204,7 +163,7 @@ describe('log config', function () {
     });
   });
 
-  it('redacts cache causes in both bootstrap and the Sails default lift failure log', async function () {
+  it('redacts cache causes in initialization diagnostics and safe lifecycle status logs', async function () {
     const native = new Error('synthetic-private-cache-payload');
     for (const cacheError of [
       new InvalidCacheEntryError('Stored cache entry does not match the cache persistence contract', { cause: native }),
@@ -213,38 +172,31 @@ describe('log config', function () {
       for (const failure of [cacheError, new Error('Migration failed', { cause: cacheError })]) {
         const { lines, stream } = createSink();
         const logger = log.createPinoLogger('error', stream);
-        const bootstrap = createGeneratedBootstrap(
-          async () => {},
-          async () => {
-            throw failure;
-          },
-          []
-        );
+        const app = new ApplicationRuntime({ config: {}, log: logger }, [], {
+          coreBootstrap: [
+            {
+              name: 'failing-bootstrap',
+              run: async () => {
+                throw failure;
+              },
+            },
+          ],
+        });
         let returned: unknown;
-        const app = {
-          config: {},
-          log: require('captains-log')({ custom: logger, inspect: false, level: 'error' }),
-          load(_config: unknown, cb: () => void) {
-            cb();
-          },
-          lower(cb: () => void) {
-            cb();
-          },
-          initialize(cb: (error?: unknown) => void) {
-            bootstrap(error => {
-              returned = error;
-              cb(error);
-            });
-          },
-        };
-        Object.assign(globalThis, { sails: app });
-        // Exercise Sails' real callback-less entrypoint, including its second log.
-        require('sails/lib/app/lift').call(app, {});
-        await new Promise<void>(resolve => setImmediate(resolve));
+        try {
+          await app.initialize();
+        } catch (error) {
+          returned = error;
+          logger.error(error, 'Initialization failed');
+          logger.error({ name: error instanceof Error ? error.name : 'Error', status: app.status() }, 'Startup failed');
+        } finally {
+          await app.stop();
+        }
         assert.equal(returned, failure);
         assert.equal(cacheError.cause, native);
         assert.equal(lines.length, 2);
-        assert.equal(lines[1].msg, 'Failed to lift app:');
+        assert.equal(lines[1].msg, 'Startup failed');
+        assert.equal(lines[1].status && Reflect.get(lines[1].status as object, 'ready'), false);
         assert.doesNotMatch(JSON.stringify(lines), /synthetic-private-cache-payload/);
         assert.match(JSON.stringify(lines), new RegExp(cacheError.name));
       }

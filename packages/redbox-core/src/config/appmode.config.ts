@@ -4,13 +4,15 @@
  */
 
 export interface AppModeConfig {
-    bootstrapAlways: boolean;
-    hidePlaceholderPages: boolean;
-    features?: Record<string, unknown>;
-    flags?: Record<string, unknown>;
+  /** Navigation featureFlag paths can name institution-defined flags. */
+  [feature: string]: unknown;
+  bootstrapAlways: boolean;
+  hidePlaceholderPages: boolean;
+  features?: Record<string, unknown>;
+  flags?: Record<string, unknown>;
 }
 
 export const appmode: AppModeConfig = {
-    bootstrapAlways: true,
-    hidePlaceholderPages: true
+  bootstrapAlways: true,
+  hidePlaceholderPages: true,
 };

@@ -1,0 +1,11 @@
+{
+  "name": "sr-esm-only",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "import": "./index.mjs"
+  },
+  "files": [
+    "index.mjs"
+  ]
+}
