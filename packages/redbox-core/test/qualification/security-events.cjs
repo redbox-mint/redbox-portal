@@ -11,7 +11,7 @@ const { agendaQueueDefaultJobs } = require('../../dist/config/agendaQueueJobs');
 const runtime = require('../../dist/persistence/runtime');
 
 test('owned security capture and delivery persist, redact and drain real queued work', { timeout: 45000 }, async () => {
-  assert.equal(process.version, 'v26.11.1');
+  assert.equal(process.version, 'v26.12.1');
   assert.equal(global.sails, undefined);
   const url = process.env.SR_SECURITY_EVENTS_MONGO_URL;
   assert(url, 'SR_SECURITY_EVENTS_MONGO_URL is required; this qualification cannot skip');
