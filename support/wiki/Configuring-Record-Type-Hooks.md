@@ -37,7 +37,7 @@ The default policy is one attempt with no timeout. Policy values are validated b
 ```json
 {
   "id": "mint-after-save",
-  "function": "sails.services.mintservice.afterSave",
+  "function": "institution.afterSave",
   "options": { "returnType": "response" },
   "execution": {
     "timeoutMs": 30000,
@@ -243,9 +243,9 @@ execution, logging, supervision, and audit integration itself.
   "onCreate": {
     "post": [
   {
-    "function": "sails.services.rdmpservice.queueTriggerCall",
+    "function": "record.queueTriggerCall",
     "options": {
-      "hookName": "sails.services.backgroundService.processTask",
+      "hookName": "institution.processTask",
       "hookOptions": {
         // Task-specific options
       }

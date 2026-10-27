@@ -1,5 +1,11 @@
 # Operating Record Schema Contracts
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
+
 ReDBox can compile the authoritative form selected for a create or update into
 an immutable JSON Schema artifact, validate the submitted metadata against that
 artifact, and retain the artifact while a grant, successful save, or configured
@@ -35,11 +41,11 @@ recordSchema: {
 }
 ```
 
-Override `recordSchema` through the normal Sails configuration layers described
+Override `recordSchema` through the explicit v6 configuration layers described
 in the [Configuration Guide](Configuration-Guide). All numeric values must be
-positive integers. Environment-backed string values `"true"` and `"false"` are
-normalized for `recordSchema.enabled`; do not rely on string coercion for other
-values.
+positive integers. `recordSchema.enabled` must be a JavaScript boolean. If an
+institution-owned environment variable supplies it, convert the string in the
+selected data module before returning configuration; startup does not coerce it.
 
 | Key | Default | Meaning |
 |---|---:|---|
@@ -57,7 +63,7 @@ values.
 A record type may override only the unknown-property policy:
 
 ```javascript
-// Within one config/recordtype.js definition
+// Within one recordtype section definition
 recordSchema: {
   unknownProperties: 'declared'
 }
@@ -180,7 +186,7 @@ For example, leave the deployment and record type in shadow while enabling one
 reviewed operation:
 
 ```javascript
-// Within one config/recordtype.js definition
+// Within one recordtype section definition
 recordValidation: {
   mode: 'shadow',
   operations: {
@@ -317,7 +323,7 @@ age/reference recheck.
 
 When disabled, `RecordSchemaService` reports the lifecycle as `disabled` and
 does not inspect storage or contributors. When enabled, the complete gate runs
-after the configured storage provider is ready and before Sails reports
+after the configured storage provider is ready and before the host reports
 application readiness. It aggregates deterministic findings, compiles every
 configured form, then materializes pins.
 

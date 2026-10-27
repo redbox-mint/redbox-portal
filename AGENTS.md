@@ -2,7 +2,7 @@
 
 This file is a guide for AI agents and automation tools to locate relevant documentation in this repository.
 
-All project documentation is maintained in the `support/wiki/` submodule. Agents should prefer these wiki pages over legacy `support/docs` content.
+All project documentation is maintained in the tracked `support/wiki/` snapshot. Agents should prefer these wiki pages over legacy `support/docs` content.
 
 ## Documentation Index
 
@@ -15,11 +15,11 @@ All project documentation is maintained in the `support/wiki/` submodule. Agents
 - **Services Architecture**: [support/wiki/Services-Architecture.md](support/wiki/Services-Architecture.md)
   - Consult for: Business logic services, service patterns, and how to extend/override services in hooks.
 
-- **Redbox Core Types**: [support/wiki/redbox-core.md](support/wiki/redbox-core.md)
-  - Consult for: Core package documentation, services list, models, policies, and config defaults.
+- **Redbox Core Types**: [support/wiki/Redbox-Core-Types.md](support/wiki/Redbox-Core-Types.md)
+  - Consult for: Core package exports, domains, persistence, and configuration defaults.
 
 - **Redbox Loader**: [support/wiki/Redbox-Loader.md](support/wiki/Redbox-Loader.md)
-  - Consult for: Pre-lift shim generation, service/model/policy shims, hook discovery.
+  - Consult for: Retired loader migration, generated-file reconciliation, and neutral extension registration.
 
 - **Coding Standards**: [support/wiki/Coding-Standards-and-Conventions.md](support/wiki/Coding-Standards-and-Conventions.md)
   - Consult for: Linter rules, naming conventions, TypeScript configuration.
@@ -28,7 +28,7 @@ All project documentation is maintained in the `support/wiki/` submodule. Agents
   - Consult for: How to run tests (`npm run test:*`), where tests are located, and CI pipelines.
 
 - **Configuration Guide**: [support/wiki/Configuration-Guide.md](support/wiki/Configuration-Guide.md)
-  - Consult for: Sails config layout, environment overrides, and portal-specific config files.
+  - Consult for: v6 configuration inputs, precedence, environment overrides, and validation.
 
 - **Record Forms**: [support/wiki/Configuring-Record-Forms.md](support/wiki/Configuring-Record-Forms.md)
   - Consult for: Form configuration structure, workflow/form linkage, and dynamic form patterns.

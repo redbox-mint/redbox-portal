@@ -1,5 +1,13 @@
 In ReDBox, the `relatedTo` configuration allows for the establishment of relationships between different types of records. This feature is critical for linking associated data, ensuring coherence and navigability within the platform, and facilitating richer data management workflows.
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
+Place each relationship array at `recordtype.<type>.relatedTo`; it is not a
+top-level deployment setting.
+
 For details on recent runtime changes to related-record traversal, access filtering, and supported relationship semantics, see [Improved Related Record Handling](Improved-Related-Record-Handling.md).
 
 ## Overview of `relatedTo`

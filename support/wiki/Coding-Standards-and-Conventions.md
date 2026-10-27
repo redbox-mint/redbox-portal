@@ -3,7 +3,7 @@
 ## Language
 
 - **TypeScript**: The primary language for both backend and frontend.
-  - **Config**: Root `tsconfig.json` extends `@tsconfig/node24/tsconfig.json`.
+  - **Config**: Root `tsconfig.json` extends `packages/redbox-dev-tools/config/tsconfig.base.json`, which retains the conservative `@tsconfig/node24` base and ES2024 output with TypeScript `5.9.3`. This compiler target does not select the executing Node version; development/CI/runtime use Node `26.12.1` and npm `11.20.0`.
   - **Strictness**: `strict: false` is currently set, suggesting a gradual migration or legacy support.
   - **Decorators**: `experimentalDecorators: true` is enabled.
 
@@ -18,7 +18,7 @@
 ## Directory Conventions
 
 - **Frontend**: Located in `angular/`.
-- **Backend Types Source**: Located in `typescript/`.
+- **Backend Types Source**: Located in `packages/redbox-core/src/`.
 - **Local Packages**: Shared code should be placed in `packages/` (e.g., `redbox-core`).
 
 ## Best Practices

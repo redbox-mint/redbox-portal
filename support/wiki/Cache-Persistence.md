@@ -19,9 +19,10 @@ no upserts, retries, transactions or bulk rewrites. Existing documents remain re
 
 ## Ownership and lifecycle
 
-Imports and shim generation open no connections. `preLiftSetup` initializes
-persistence after configuration loads, verifies readiness, then initializes
-services/migrations. The app persistence runtime creates one lazy Prisma client
+Imports and extension registration open no connections. The owned application's
+awaited `initialize` prepares persistence after explicit configuration loading,
+verifies readiness, then initializes modules and runs migrations/bootstrap before
+activation. The app persistence runtime creates one lazy Prisma client
 per logical datastore, borrowing its existing pool. Compatible connection
 policies may share a pool; the core and storage Prisma clients remain distinct.
 
@@ -50,7 +51,7 @@ artifacts. CI/Docker check before building. Build emits offline, compiles, and
 copies both contracts into dist; prepack checks freshness before rebuilding.
 Production needs the generated contracts and `@prisma/orm-mongo`, with no CLI or
 TypeScript schema source. Pins: CLI **8.0.0-rc.24**, Mongo runtime **8.0.0-rc.19**;
-Node **24.16.0**, lock maintenance **npm 11.20.0**. See
+Node **26.12.1**, npm **11.20.0**. See
 [phase-1 evidence](../specs/waterline-retirement/evidence/prisma-phase1.md) for
 RC API gaps, exact overrides and ARM64 generation measurements.
 

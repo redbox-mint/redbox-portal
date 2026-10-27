@@ -98,9 +98,21 @@ The archive contains **29** review rounds reporting **178** fixed findings or
 finding groups across portal, tooling, documentation and converted-institution
 scope. Group sizes vary; this is a report-accounting total, not a count of
 independent security properties. R17 and R29 are the two zero-new-class-A P1/P2
-confirmation rounds; R29 closes the recorded **55/55** local task scope. Twenty
+confirmation rounds; R29 closes the recorded **55/55** local task scope. Nineteen
 inherited defect groups remain separately recorded, including B-20's question-tree
-case. They are not silently counted as retirement regressions or passing inputs.
+case. B-08 (configured native MongoDB TTL/hidden index options) is fixed in Prisma
+storage-identity PR #4981 (`9ccfbeab9`) and merged upward through this stack. Its
+allowlist was introduced by the Prisma migration, rather than released v5.
+Descriptor conversion now preserves TTL, hidden, collation and existing
+partial/unique/sparse options; inspection and ensure refuse drift. Follow-up
+queue/session inspection fixes also reject hidden indexes and conflicting
+same-key alternatives. Node 26.12.1 qualification at the owning Prisma layer
+passed 321 storage-mongo tests with real MongoDB, 80 core persistence unit tests
+and 35 core MongoDB regression tests, plus persistence typechecking. A disposable
+MongoDB 9.0.4 check confirmed a hidden TTL index expires past documents while
+retaining a future document; the rewritten common/queue/session paths passed 20
+focused unit tests. The remaining groups are not silently counted as retirement
+regressions or passing inputs.
 
 Three subsequent simplification rounds reported **47** findings: **41** applied,
 **4** adjusted and **2** skipped, removing **1,302** shipped-source lines. The

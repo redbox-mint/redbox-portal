@@ -8,11 +8,11 @@ ReDBox supports configuring Solr for indexing and search. The Solr configuration
 - The Solr schema used by the target core
 - How ReDBox metadata is transformed into Solr documents before indexing
 
-Within the ReDBox configuration model, Solr settings are available under `sails.config.solr`. The default configuration is defined in `config/solr.js`.
+Supply Solr settings under `solr` in the selected v6 configuration module. Supply the `solr` slice in the selected v6 application configuration module.
 
 ## Solr Server Configuration
 
-Connection settings for Solr are stored in `sails.config.solr.options`.
+Connection settings for Solr are stored in `configuration.solr.options`.
 
 ### Example
 
@@ -28,9 +28,9 @@ The available options match those supported by the [solr-client-js library](http
 
 ## Solr Schema Configuration
 
-The Solr schema configuration is stored in `sails.config.solr.schema`.
+The Solr schema configuration is stored in `configuration.solr.schema`.
 
-Schema initialisation only runs when there is no document present in the index containing the value configured in `sails.config.solr.initSchemaFlag`.
+Schema initialisation only runs when there is no document present in the index containing the value configured in `configuration.solr.initSchemaFlag`.
 
 ReDBox uses the [Solr Schema API](https://solr.apache.org/guide/solr/latest/indexing-guide/schema-api.html) to apply schema changes. The supported schema operations align with the options documented in Solr's [Modify the Schema](https://solr.apache.org/guide/solr/latest/indexing-guide/schema-api.html#modify-the-schema) section.
 
@@ -90,11 +90,11 @@ schema: {
 
 ## Mapping ReDBox Metadata to Solr Documents
 
-Whenever a record is created or updated, ReDBox transforms the metadata document into a Solr document and submits it to Solr for indexing. These transformation rules are configured in `sails.config.solr.preIndex`.
+Whenever a record is created or updated, ReDBox transforms the metadata document into a Solr document and submits it to Solr for indexing. These transformation rules are configured in `configuration.solr.preIndex`.
 
 ### Moving Properties
 
-The directives in `sails.config.solr.preIndex.move` move a value from one location in the document to another.
+The directives in `configuration.solr.preIndex.move` move a value from one location in the document to another.
 
 | Property name | Required | Description |
 |---|---|---|
@@ -112,7 +112,7 @@ move: [
 
 ### Copying Properties
 
-The directives in `sails.config.solr.preIndex.copy` copy a value from one location to another while leaving the original value unchanged.
+The directives in `configuration.solr.preIndex.copy` copy a value from one location to another while leaving the original value unchanged.
 
 | Property name | Required | Description |
 |---|---|---|
@@ -130,7 +130,7 @@ copy: [
 
 ### Stringifying JSON
 
-If you need to preserve structured objects as strings in the Solr index, `sails.config.solr.preIndex.jsonString` can be used to apply [`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify) to a property before indexing.
+If you need to preserve structured objects as strings in the Solr index, `configuration.solr.preIndex.jsonString` can be used to apply [`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify) to a property before indexing.
 
 This can be useful when integrating with downstream tools such as [Project Blacklight](https://projectblacklight.org/), where the full object may need to be re-parsed later.
 
@@ -181,9 +181,9 @@ template: [
 
 Solr does not support nested objects, so documents must be flattened to top-level fields before being indexed.
 
-ReDBox performs this step automatically at the end of the pre-index pipeline using the JavaScript [flat](https://www.npmjs.com/package/flat) library. Global options for this step can be configured in `sails.config.solr.preIndex.flatten.options`.
+ReDBox performs this step automatically at the end of the pre-index pipeline using the JavaScript [flat](https://www.npmjs.com/package/flat) library. Global options for this step can be configured in `configuration.solr.preIndex.flatten.options`.
 
-In addition to the standard full-document flattening, ReDBox supports selectively flattening specific attributes with their own options. These rules are defined in `sails.config.solr.preIndex.flatten.special`.
+In addition to the standard full-document flattening, ReDBox supports selectively flattening specific attributes with their own options. These rules are defined in `configuration.solr.preIndex.flatten.special`.
 
 ### Example
 

@@ -1,7 +1,7 @@
 # Preparing persistence indexes
 
 Fresh default dev/test stacks mount `support/resources/mongodb-persistence-indexes.js`
-into MongoDB's official init directory. Hook archetypes ship the same script.
+into MongoDB's official init directory. Use the same qualified script when provisioning fresh deployment databases.
 It creates the cache/M name indexes, R key indexes, Q dashboard/UID indexes and
 J2 lineage/query, J3/J4 and V lookup indexes, plus full S attachment/Counter indexes in `redbox-portal`
 and record/deletedrecord/recordidentity/schema/reference/audit indexes in `redbox-storage`, with the qualified uniqueness flags
@@ -14,17 +14,16 @@ Existing volumes do not rerun init scripts. Keep the qualified engine/FCV and
 volume, stop application writers and migration runners, and take the deployment's
 backup/checkpoint. Run the following **single application-aware command** from
 the application directory, with the same `NODE_ENV`, configuration, hooks and
-protected datastore credentials as the application. Remove all backend selectors before running this stopped maintenance process:
+protected datastore credentials as the application. The standalone command accepts an explicit operational-only file (`--config deployment.mjs`); portal configuration files and portal-only `REDBOX_*` variables belong to the executable maintenance mode shown below. Remove all backend selectors before running this stopped maintenance process:
 
 ```bash
 npm run persistence:indexes -- --inspect
 ```
 
 Inspection is the default mode and performs no datastore writes. The command
-loads the effective Sails config and hooks with `hooks.orm=false`; it does not lift HTTP, run pre-lift setup, initialize domain
-services, start workers or execute migration bodies/business bootstrap. Normal
-loader generation may create missing shim files; existing overrides are retained.
-An app in another directory can be selected with `--app /path/to/application`.
+loads explicit v6 configuration and selected extension declarations. It does not
+listen, activate workers, initialize business domains or run migrations/bootstrap.
+It creates no shim files. An app in another directory can be selected with `--app /path/to/application`.
 
 The report contains only group/backend/collection (and index name for multi-index J2 scopes), index readiness and duplicate
 counts. It does not print document names, payloads, connection URLs or credentials.
@@ -88,6 +87,8 @@ docker compose --profile mount -f support/development/docker-compose.yml run \
 docker compose --profile mount -f support/development/docker-compose.yml run \
   --rm --no-deps --entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:ensure
 ```
+
+This executable mode consumes the service's portal configuration selectors and admin environment while keeping factories, listeners, migrations and workers offline.
 
 Use the institution's actual Compose project/service and current installed core
 artifact. Existing hook apps can add the same npm script shipped by the archetype:

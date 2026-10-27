@@ -176,7 +176,27 @@ For each brand it saves an immutable recovery snapshot (AppConfig key `dashboard
 Recommended procedure for each production deployment:
 
 1. Restore a recent database copy with the exact hooks and assets into staging, and record representative dashboards (headings, cells, actions, filters, search, grouping) for representative roles, including workspace and custom views.
-2. Deploy this version to staging with `REDBOX_SKIP_MIGRATIONS=true`, sign in as an administrator and call `GET /default/rdmp/api/dashboard-config/migration/preflight` for each brand, changing `default` in the URL as needed. The report for that brand contains the input fingerprint, proposed settings, per-target outcome (`preserved`, `needs-resolution`, `inactive`) and findings, plus a readable `summary`.
+2. Capture the source dashboards before upgrading, while the source runtime can
+   still read them. V6 has no migration-skip startup mode: initialization must
+   finish before HTTP is admitted. For a read-only preview with the qualified v6
+   package, pass a captured `LegacyCaptureInput` to the pure converter:
+
+   ```ts
+   import { convertLegacyDashboardConfiguration, type LegacyCaptureInput }
+     from '@researchdatabox/redbox-core/dashboards';
+
+   export function previewDashboardMigration(input: LegacyCaptureInput) {
+     return convertLegacyDashboardConfiguration(input);
+   }
+   ```
+
+   Capture all record-type workflow steps and their raw tables, dashboard type
+   definitions, the old `dashboardTableConfig` override and custom views from the
+   same stopped-writer checkpoint. The input fields are `recordTypes`,
+   `dashboardTypes`, `overrides` and `views`. The converter performs no writes or
+   application initialization. Review each brand's `inputFingerprint`, targets
+   and findings. The authenticated HTTP preflight endpoint is available only
+   after successful startup; it cannot unblock a failed startup migration.
 3. Review every `resolution` finding. Accept it, or supply replacement settings, in a resolutions file:
 
    ```json
@@ -189,8 +209,10 @@ Recommended procedure for each production deployment:
 
    A brand fingerprint is required whenever that brand has accepted findings or replacement settings. Acceptances are scoped by brand; the old unscoped `acceptedFindingIds` array is rejected because identical findings can occur in more than one brand. A fingerprint for a brand with no applicable decisions is ignored.
 
-   Point `REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS` at the file. The migration refuses to run if the deployed configuration no longer matches the fingerprint.
-4. Restart without `REDBOX_SKIP_MIGRATIONS`, using a single instance. Compare the dashboards with step 1, then check that the editor can save and copy.
+   Load that reviewed object as `dashboardMigrationResolutions` in the explicit
+   deployment module selected with `REDBOX_APPLICATION_CONFIG`. A filename is not
+   a resolution object. The migration refuses to run if the deployed configuration no longer matches the fingerprint.
+4. Run initialization with the reviewed configuration and a single migration runner. Compare the dashboards with step 1, then check that the editor can save and copy.
 5. Record the approved report and fingerprint, take the normal production backup, and repeat steps 4–5 in production.
 
 The recovery snapshot is evidence, not an automatic rollback. To roll back, restore the matching previous application, hooks, assets and the database backup; settings edited after the upgrade cannot be translated back to profiles and overrides.

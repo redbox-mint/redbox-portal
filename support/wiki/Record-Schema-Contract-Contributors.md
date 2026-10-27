@@ -208,5 +208,5 @@ persisted core component is a fatal coverage defect.
 
 - [Operating Record Schema Contracts](Record-Schema-Contract-Operations)
 - [Record Schema Contract API](Record-Schema-Contract-API)
-- [Using a Sails hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox)
+- [Customising ReDBox with a v6 extension](Using-a-Sails-Hook-to-customise-ReDBox)
 - [Redbox Loader](Redbox-Loader)

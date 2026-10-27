@@ -1,5 +1,12 @@
 # Configuring Record Forms
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Record-type and workflow section fragments below are merged into that object;
+files are never discovered by their name or directory. Form definitions use the
+extension's `forms` declaration, as shown below.
+
 ## Introduction
 
 ReDBox has a flexible and configurable framework that allows you to capture metadata for a variety of purposes such as data management plans, provisioned workspaces and data collections. Metadata is stored in the [JSON-LD](https://json-ld.org/) format and has a very loose schema to support this flexibility.
@@ -10,11 +17,11 @@ There is also a configurable form system that allows you to design a form to mee
 
 ## Record Type Configuration
 
-Record Types are configured in the `config/recordtype.js` file.
+Record Types are configured in the `recordtype` section.
 
 The record type configuration defines the record type (e.g. a research data management plan record) and what fields in the record should be displayed on the search interface for the purposes of filtering and faceting.
 
-Records are configured via the `config/workflow.js` file and specify the workflow stages a record can transition through and the roles that are permitted to view and edit a record for each workflow stage.
+Records are configured via the `workflow` section and specify the workflow stages a record can transition through and the roles that are permitted to view and edit a record for each workflow stage.
 
 ```
 <record-type>
@@ -110,7 +117,7 @@ Where <> are property labels that are variables.
 | next             | The stage to transition to.                                                                                                                                                | No       | review         |
 | viewRoles        | An array of roles that are allowed to view this record type at this stage                                                                                                                | Yes      | ['Admin']      |
 | editRoles        | An array of roles that are allowed to edit this record type at this stage                                                                                                                | Yes      | ['Admin']      |
-| form             | The form code. This should match an entry in the form.js configuration file                                                                                                              | Yes      | rdmp-1.0-draft |
+| form             | The form code. This should match an entry in the `form` section                                                                                                              | Yes      | rdmp-1.0-draft |
 | starting         | Is this the stage that new records should commence in?                                                                                                                                   | No       | true           |
 
 ### Example
@@ -135,14 +142,33 @@ Where <> are property labels that are variables.
 
 ## Form/view configuration
 
-The form and view layout is configured via the `config/form.js` file.
+Declare form layouts by logical name in `registerRedboxExtension().forms`.
+The startup `form` section contains prehydration settings only; it does not
+accept the v5 `forms`, `formConfigRegistry` or `defaultForm` registry.
 
-The structure of the configuration file is as follows:
+```ts
+import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
+
+export function registerRedboxExtension(): RedboxExtension {
+  return {
+    apiVersion: 1,
+    forms: {
+      'institution-1.0-draft': {
+        name: 'institution-1.0-draft', type: 'rdmp', fields: [],
+      },
+    },
+  };
+}
+```
+
+Add the field declarations below to that form's `fields` array and select its
+logical name from the workflow step's `config.form`. Build and validate the
+installed extension before startup. See the [complete migration guide](../specs/sails-retirement/hook-migration-v6.md#configuration-forms-contributors-views-and-assets).
+
+The structure of the form declaration is as follows:
 
 ```
-defaultForm
-|
-|- forms
+forms
     |
     |- <form-name>
         |
@@ -172,7 +198,7 @@ The settings in this section control the behaviour of the entire form.
 
 | Field                   | Description                                                                                                                                                                                                                      | Required                 | Example                              |
 |-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|--------------------------------------|
-| < form-name >           | The label name of the form, should match a "form" value in workflow.js for it to be used                                                                                                                                         | Yes                      | rdmp-1.0-draft                       |
+| < form-name >           | The label name of the form, should match a "form" value in workflow section for it to be used                                                                                                                                         | Yes                      | rdmp-1.0-draft                       |
 | name                    | The label name of the form. This should match the < form-name > value.                                                                                                                                                           | Yes                      | rdmp-1.0-draft                       |
 | type                    | The type of form (e.g. `rdmp`, `project`, `survey`).                                                                                                                                                                              | Yes                      | rdmp                                 |
 | enabledValidationGroups | The validation groups to enable. This property is particularly useful in early stages of a workflow where you want the user to be able to save and come back to the record later without having to fill in all mandatory fields. | No (defaults to ["all"]) | ["minimumCreate"]                    |

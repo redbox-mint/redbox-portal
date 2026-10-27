@@ -1,5 +1,11 @@
 # Operating Authoritative Server-Side Form Validation
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
+
 ReDBox executes the validators declared by the exact form on every in-scope
 metadata-changing save. The browser still provides immediate feedback, but the
 server independently resolves the form, operation, validation groups, and
@@ -37,7 +43,7 @@ global -> global operation -> record type -> record-type operation
 For example:
 
 ```javascript
-// config/recordValidation.js or an environment/hook override
+// recordValidation section or an environment/hook override
 module.exports.recordValidation = {
   mode: 'shadow',
   timeoutMs: 5000,
@@ -46,7 +52,7 @@ module.exports.recordValidation = {
   }
 };
 
-// config/recordtype.js
+// recordtype section
 recordValidation: {
   mode: 'shadow',
   operations: {

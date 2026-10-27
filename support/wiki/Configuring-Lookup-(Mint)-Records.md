@@ -1,7 +1,13 @@
 <p>This guide outlines how to configure your ReDBox deployment to ingest, index, search, and display lookup records (formerly held in Mint) using the new internal lookup functionality. It is intended for technical administrators or developers maintaining ReDBox configuration.</p>
+
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
 <hr>
 <h2>1. Configure the Record Type</h2>
-<p>Update <code inline="">config/recordtype.js</code> to define the record type(s) for your lookup records. These records are able to utilise all the features existing record types are able to, including onCreate and onUpdate triggers.</p>
+<p>Update <code inline="">recordtype section</code> to define the record type(s) for your lookup records. These records are able to utilise all the features existing record types are able to, including onCreate and onUpdate triggers.</p>
 <h3>Example:</h3>
 <pre><code class="language-js">module.exports.recordtype = {
   party: {
@@ -23,7 +29,7 @@
 </ul>
 <hr>
 <h2>2. Define the Workflow for the Record Type</h2>
-<p>Update <code inline="">config/workflow.js</code> to configure how records behave in the system. A custom form can be configured for a record if desired (see [Configuring Record Forms](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms)), however a default view only form that will display all the fields based on the record's schema has been provided. To use the generated form, set form to the value "generated-view-only"</p>
+<p>Update <code inline="">workflow section</code> to configure how records behave in the system. A custom form can be configured for a record if desired (see [Configuring Record Forms](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms)), however a default view only form that will display all the fields based on the record's schema has been provided. To use the generated form, set form to the value "generated-view-only"</p>
 <h3>Minimal View-Only Example:</h3>
 <pre><code class="language-js">"party": {
   "draft": {
@@ -44,7 +50,7 @@
 </code></pre>
 <hr>
 <h2>3. Configure Solr for the Record Type</h2>
-<p>Update <code inline="">config/solr.js</code> to define a separate Solr core if needed.</p>
+<p>Update <code inline="">solr section</code> to define a separate Solr core if needed.</p>
 <h3>Example:</h3>
 <pre><code class="language-js">module.exports.solr = {
   cores: {
@@ -72,7 +78,7 @@
   }
 };
 </code></pre>
-<p>Make sure the <code inline="">searchCore</code> value defined in <code inline="">recordtype.js</code> matches one of the keys under <code inline="">cores</code>.</p>
+<p>Make sure the <code inline="">searchCore</code> value defined in <code inline="">recordtype section</code> matches one of the keys under <code inline="">cores</code>.</p>
 <hr>
 <h2>4. Configure Vocab Queries for Lookups</h2>
 <p>ReDBox supports dynamically populated vocab fields in forms using <strong>query-based lookups</strong>. These can be backed by:</p>
@@ -84,7 +90,7 @@
 <p>A <strong>named database query</strong>, for data that resides in the database.</p>
 </li>
 </ul>
-<p>You define these in <code inline="">config/vocab.js</code> under the <code inline="">queries</code> section.</p>
+<p>You define these in <code inline="">vocab section</code> under the <code inline="">queries</code> section.</p>
 <hr>
 <h3>4.1 Solr-Based Query Example</h3>
 <pre><code class="language-js">module.exports.vocab = {
@@ -143,7 +149,7 @@
 </code></pre>
 <ul>
 <li>
-<p><code inline="">databaseQuery.queryName</code>: Named query defined in your <code inline="">namedquery.js/code>. See [Configuring Named Queries](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Named-Queries) for more information</p>
+<p><code inline="">databaseQuery.queryName</code>: Named query defined in your <code>namedQuery</code> section. See <a href="Configuring-Named-Queries.md">Configuring Named Queries</a> for more information.</p>
 </li>
 <li>
 <p><code inline="">queryField.property</code>: The field that will be matched</p>
@@ -167,7 +173,7 @@
    }
 }
 </code></pre>
-<p>The vocabQueryId (<code inline="">activity</code>) must match the key in your <code inline="">vocab.js</code> config.</p>
+<p>The vocabQueryId (<code inline="">activity</code>) must match the key in your <code inline="">vocab section</code> config.</p>
 <hr>
 <h2>5. Enable Dashboard Table View (Optional)</h2>
 <p>To allow administrators to browse Mint records in a table view:</p>
@@ -175,7 +181,7 @@
 <p>Example URL to link from the admin homepage:</p>
 <pre><code>#/dashboard/party
 </code></pre>
-<h3>b. Configure filters in <code inline="">config/dashboardtype.js</code></h3>
+<h3>b. Configure filters in <code inline="">dashboardtype section</code></h3>
 <pre><code class="language-js">module.exports.dashboardtype = {
   standard: {
     formatRules: {

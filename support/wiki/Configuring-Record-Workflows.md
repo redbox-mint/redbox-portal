@@ -1,12 +1,18 @@
 ReDBox workflows manage the lifecycle of different record types, from creation to archiving. This guide details configuring workflow stages, customizing the researcher dashboard, and utilizing template imports for dynamic data presentation.
 
+V6 configuration is explicit: put these section values in a deployment-owned data
+module, select its absolute filename with `REDBOX_APPLICATION_CONFIG`, or return
+them in a neutral extension declaration's `config`. See the [Configuration Guide](Configuration-Guide.md).
+Section fragments below are merged into that object; files are never discovered
+by their name or directory.
+
 ## Workflow Configuration Overview
 
 Define the lifecycle stages for records, specifying settings for access control and associated forms to guide users through their data management processes.
 
 ### Configuring Workflows
 
-Workflows are specified within the `sails.config.workflow` object, mapping stages to each record type:
+Workflows are specified within the `configuration.workflow` object, mapping stages to each record type:
 
 ```javascript
 module.exports.workflow = {
