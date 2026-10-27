@@ -52,6 +52,8 @@ x-rbportal-env: &rbportal-env
   - UPPY_ONEDRIVE_KEY=integrationtest-onedrive-key
   - UPPY_ONEDRIVE_SECRET=integrationtest-onedrive-secret
   - LOAD_DEFAULT_FORMS=true
+  # Keep the real DOI adapter on the owned Bruno fixture.
+  - BRUNO_DATACITE_BASE_URL=http://bruno-stubs:8787
   - 'BRUNO_POST_SLEEP_SECONDS=${BRUNO_POST_SLEEP_SECONDS:-30}'
 
 x-rbportal-depends: &rbportal-depends
