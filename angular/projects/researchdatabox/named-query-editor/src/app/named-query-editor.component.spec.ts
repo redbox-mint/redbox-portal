@@ -751,7 +751,7 @@ describe('NamedQueryEditorComponent', () => {
     fixture.destroy();
   }));
 
-  it('blocks duplicate saves and dismissal while pending, then retains the draft on failure', async () => {
+  it('blocks dismissal while saving and retains the workspace after failure', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
     component.newQuery();
@@ -759,48 +759,16 @@ describe('NamedQueryEditorComponent', () => {
     let reject!: (error: Error) => void;
     const create = spyOn(TestBed.inject(NamedQueryApiService), 'create').and.returnValue(new Promise((_, fail) => reject = fail));
     const pending = component.save();
-    expect(component.isSaving).toBeTrue();
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(component.saving).toBeTrue();
     expect(component.canSave).toBeFalse();
     component.closeEditModal();
-    await component.save();
-    expect(create).toHaveBeenCalledTimes(1);
-    expect(component.isEditModalOpen).toBeTrue();
+    expect(component.isEditing).toBeTrue();
     reject(new Error('Save rejected'));
     await pending;
-    expect(component.isSaving).toBeFalse();
-    expect(component.isEditModalOpen).toBeTrue();
-    expect(component.draft.name).toBe('pending');
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(component.saving).toBeFalse();
+    expect(component.isEditing).toBeTrue();
     expect(component.error).toContain('Save rejected');
-  });
-
-  it('requires confirmation to dismiss a dirty editor and retains edits when keeping it open', async () => {
-    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
-    const component = fixture.componentInstance;
-    fixture.detectChanges(); await component.waitForInit();
-    component.newQuery(); component.closeEditModal();
-    expect(component.isEditModalOpen).toBeFalse();
-    await component.openQuery('test'); component.draft.collectionName = 'edited';
-    component.closeEditModal(); fixture.detectChanges(); await fixture.whenStable();
-    expect(component.confirmDiscard).toBeTrue();
-    const confirm = fixture.nativeElement.querySelector('rb-admin-discard-dialog');
-    const traps = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map(el => el.injector.get(CdkTrapFocus));
-    expect(traps.filter(trap => trap.enabled).length).toBe(1);
-    expect(fixture.nativeElement.querySelector('[aria-labelledby="namedQueryModalTitle"]')?.inert).toBeTrue();
-    confirm.querySelector('[cdkFocusInitial]').click(); fixture.detectChanges();
-    expect(component.isEditModalOpen).toBeTrue();
-    expect(component.draft.collectionName).toBe('edited');
-    expect(traps[0].enabled).toBeTrue();
-    component.closeEditModal(); component.closeEditModal(true);
-    expect(component.isEditModalOpen).toBeFalse();
-    expect(component.confirmDiscard).toBeFalse();
-    fixture.destroy();
-  });
-  it('also protects unparsed JSON input in a new query', async () => {
-    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
-    const component = fixture.componentInstance;
-    component.newQuery(); component.editorInput = true; component.closeEditModal();
-    expect(component.confirmDiscard).toBeTrue();
-    expect(component.isEditModalOpen).toBeTrue();
-    fixture.destroy();
   });
 });

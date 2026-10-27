@@ -39,6 +39,7 @@ export interface EmailDefaults {
 export interface EmailTemplate {
     subject: string;
     template: string;
+    format?: 'html' | 'text';
 }
 
 export interface EmailNotificationConfig {
@@ -76,6 +77,8 @@ export const emailnotification: EmailNotificationConfig = {
         format: 'html',
     },
     templates: {
+        integrationFailure: { subject: '{{title}}', template: 'integrationFailure' },
+        integrationRecovery: { subject: '{{title}}', template: 'integrationRecovery' },
         transferOwnerTo: { subject: 'Ownership of DMP record/s has been transferred to you', template: 'transferOwnerTo' },
         test: { subject: 'Test Email Message', template: 'test' },
     },

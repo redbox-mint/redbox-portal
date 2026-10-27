@@ -129,13 +129,13 @@ describe('EmailService', function() {
       let settled = false;
       void delivery.then(() => { settled = true; });
 
-      expect(buildStub.calledOnceWithExactly('greeting', data)).to.be.true;
-      build.next({ status: 200, body: 'Hello World' });
+      expect(buildStub.calledOnceWithExactly('greeting', data, { subject: 'Subject' })).to.be.true;
+      build.next({ status: 200, body: 'Hello World', subject: 'Subject', format: 'text' });
       await Promise.resolve();
       expect(sendStub.called).to.be.false;
       build.complete();
       await Promise.resolve();
-      expect(sendStub.calledOnceWithExactly('to@example.com', 'Hello World', 'Subject')).to.be.true;
+      expect(sendStub.calledOnceWithExactly('to@example.com', 'Hello World', 'Subject', undefined, 'text')).to.be.true;
       send.next(result);
       await Promise.resolve();
       expect(settled).to.be.false;
@@ -147,13 +147,13 @@ describe('EmailService', function() {
     });
 
     it('delivers once even when a legacy caller ignores the return', async function() {
-      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body', subject: 'Subject', format: 'text' }));
       const send = sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
 
       EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {});
       await new Promise<void>(resolve => setImmediate(resolve));
 
-      expect(send.calledOnceWithExactly('to@example.com', 'Body', 'Subject')).to.be.true;
+      expect(send.calledOnceWithExactly('to@example.com', 'Body', 'Subject', undefined, 'text')).to.be.true;
     });
 
     it('rejects a build Observable error without delivering', async function() {
@@ -184,14 +184,14 @@ describe('EmailService', function() {
 
     it('rejects a delivery Observable error', async function() {
       const error = new Error('delivery failed');
-      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body', subject: 'Subject', format: 'text' }));
       sinon.stub(EmailService, 'sendMessage').returns(throwError(() => error));
 
       await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), e => e === error);
     });
 
     it('rejects unsuccessful sendMessage results', async function() {
-      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body', subject: 'Subject', format: 'text' }));
       sinon.stub(EmailService, 'sendMessage').returns(of({ success: false, msg: 'SMTP unavailable' }));
 
       await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), /SMTP unavailable/);
@@ -201,7 +201,7 @@ describe('EmailService', function() {
       it(`rejects synchronous ${stage} errors`, async function() {
         const error = new Error('synchronous failure');
         if (stage === 'sendMessage') {
-          sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+          sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body', subject: 'Subject', format: 'text' }));
         }
         sinon.stub(EmailService, stage).throws(error);
 
@@ -211,7 +211,7 @@ describe('EmailService', function() {
 
     it('logs ignored failures without unhandled rejections', async function() {
       const error = new Error('ignored failure');
-      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body', subject: 'Subject', format: 'text' }));
       sinon.stub(EmailService, 'sendMessage').returns(throwError(() => error));
       const unhandled = sinon.spy();
       process.on('unhandledRejection', unhandled);
@@ -227,7 +227,7 @@ describe('EmailService', function() {
 
     it('preserves the disabled-email success result', async function() {
       mockSails.config.emailnotification.settings.enabled = false;
-      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body', subject: 'Subject', format: 'text' }));
 
       expect(await EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}))
         .to.deep.equal({ success: true, msg: 'Email services disabled.' });
@@ -235,7 +235,7 @@ describe('EmailService', function() {
 
     it('rejects SMTP failures converted to unsuccessful results by sendMessage', async function() {
       transportStub.sendMail.rejects(new Error('SMTP failure'));
-      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body', subject: 'Subject', format: 'text' }));
 
       await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), /Email unable to be submitted/);
     });
@@ -272,13 +272,13 @@ describe('EmailService', function() {
       const result = await EmailService.sendTemplate('to@example.com', 'Subject', 'delivery', { name: 'World' });
 
       expect(result.success).to.be.true;
-      expect(send.calledOnceWithExactly('to@example.com', '<p>Hello World</p>', 'Subject')).to.be.true;
+      expect(send.calledOnceWithExactly('to@example.com', '<p>Hello World</p>', 'Subject', undefined, 'text')).to.be.true;
     });
 
     it('rejects a real missing template without attempting delivery', async function() {
       const send = sinon.spy(EmailService, 'sendMessage');
 
-      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'missing', {}), /ENOENT/);
+      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'missing', {}), /Unknown email template 'missing'/);
       expect(send.called).to.be.false;
     });
 
@@ -383,7 +383,7 @@ describe('EmailService', function() {
         second: () => { order.push('second'); return of(record); },
       };
       sinon.stub(EmailService, 'metTriggerCondition').returns('true');
-      sinon.stub(EmailService, 'buildFromTemplateAsync').resolves({ status: 200, body: 'Body' });
+      sinon.stub(EmailService, 'buildFromTemplateAsync').resolves({ status: 200, body: 'Body', subject: 'Subject', format: 'text' });
       sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
       let completed = false;
       const sending = EmailService.sendRecordNotification('oid-1', record, {
