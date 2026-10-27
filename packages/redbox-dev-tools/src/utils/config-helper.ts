@@ -30,7 +30,18 @@ export async function updateControllerIndex(params: {
 }): Promise<void> {
   const indexPath = path.join(params.paths.coreTypes, 'src', 'controllers', 'index.ts');
   const importPath = params.webservice ? `./webservice/${params.controllerName}` : `./${params.controllerName}`;
-  await addPublicExport(params.project, indexPath, importPath, params.dryRun);
+  if (!params.webservice) {
+    await addPublicExport(params.project, indexPath, importPath, params.dryRun);
+    return;
+  }
+  const sourceFile =
+    params.project.addSourceFileAtPathIfExists(indexPath) ?? params.project.createSourceFile(indexPath, '');
+  const declaration = sourceFile.getExportDeclaration(d => d.getModuleSpecifierValue() === importPath);
+  const namespaceExport = `Webservice${params.controllerName}`;
+  if (declaration) declaration.setNamespaceExport(namespaceExport);
+  else sourceFile.addExportDeclaration({ moduleSpecifier: importPath, namespaceExport });
+  sourceFile.formatText();
+  if (!params.dryRun) await sourceFile.save();
 }
 
 async function addPublicExport(
