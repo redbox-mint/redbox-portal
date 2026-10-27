@@ -23,7 +23,13 @@ describe('production security completion ownership', () => {
         },
         queue: { get: () => ({ now }) },
       } as any,
-      { env: {}, resolveEmailHook: () => { throw new Error('Unexpected email hook resolution'); }, retainFollowup: work => work }
+      {
+        env: {},
+        resolveEmailHook: () => {
+          throw new Error('Unexpected email hook resolution');
+        },
+        retainFollowup: work => work,
+      }
     );
     const module = plan.security.bind({ provider: 'core', declaration: plan.security.declaration })();
     await module.initialize();
