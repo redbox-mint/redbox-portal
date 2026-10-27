@@ -194,16 +194,34 @@ describe('Effect action execution', function () {
     const observable = new Observable(subscriber => {
       activeSubscriptions += 1;
       finish = () => subscriber.next(undefined);
-      return () => { activeSubscriptions -= 1; };
+      return () => {
+        activeSubscriptions -= 1;
+      };
     });
     const cancellation = { value: true };
     const retained: Promise<unknown>[] = [];
     const operation = createActionExecutionOperation('onCreate');
-    const outcome = await Effect.runPromise(runSequentialActionPlan([{
-      actionId: 'observable-timeout', mode: 'onCreate', phase: 'pre', index: 0,
-      policy: { timeoutMs: 5 }, cooperativeCancellation: () => cancellation.value,
-      invoke: () => legacyHookToEffect(() => observable, cancellation, { retain: work => { retained.push(work); } }),
-    }], createPhaseContext(operation, 'pre')));
+    const outcome = await Effect.runPromise(
+      runSequentialActionPlan(
+        [
+          {
+            actionId: 'observable-timeout',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 0,
+            policy: { timeoutMs: 5 },
+            cooperativeCancellation: () => cancellation.value,
+            invoke: () =>
+              legacyHookToEffect(() => observable, cancellation, {
+                retain: work => {
+                  retained.push(work);
+                },
+              }),
+          },
+        ],
+        createPhaseContext(operation, 'pre')
+      )
+    );
     expect(activeSubscriptions).to.equal(1);
     expect(outcome.report.actions[0].status).to.equal('timed_out');
     expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(false);
@@ -211,6 +229,58 @@ describe('Effect action execution', function () {
     await Promise.all(retained);
     expect(activeSubscriptions).to.equal(0);
   });
+
+  for (const kind of ['promise', 'observable', 'effect'] as const) {
+    it(`drains coordinator-owned ${kind} work after the action wait times out`, async function () {
+      let finish!: (value: Record<string, unknown>) => void;
+      const pending = new Promise<Record<string, unknown>>(resolve => {
+        finish = resolve;
+      });
+      const supervisor = createActionExecutionSupervisor()!;
+      let admitted = 0;
+      const coordinator = new RecordHookCoordinator({
+        operation: createActionExecutionOperation('onCreate'),
+        dependencies: {
+          supervisor,
+          runLegacyWork: operation => {
+            admitted++;
+            return operation();
+          },
+        },
+        resolveHook: () => () =>
+          kind === 'promise'
+            ? pending
+            : kind === 'effect'
+              ? Effect.promise(() => pending)
+              : new Observable(subscriber => {
+                  void pending.then(value => subscriber.next(value));
+                }),
+      });
+      const outcome = await coordinator.runPre(
+        null,
+        {},
+        {
+          hooks: { onCreate: { pre: [{ function: 'owned', execution: { timeoutMs: 5 } }] } },
+        },
+        'onCreate',
+        {}
+      );
+      let drained = false;
+      const drain = supervisor.drain!().then(() => {
+        drained = true;
+      });
+      try {
+        expect(outcome.report.actions[0].status).to.equal('timed_out');
+        await new Promise<void>(resolve => setImmediate(resolve));
+        expect(drained).to.equal(false);
+        expect(admitted).to.equal(1);
+      } finally {
+        finish({ completed: true });
+        await drain;
+      }
+      expect(drained).to.equal(true);
+    });
+  }
 
   it('does not retry a non-cooperative timeout into an overlapping invocation', async function () {
     let invocations = 0;
