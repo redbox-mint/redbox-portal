@@ -8,7 +8,7 @@ module.exports = {
     timeout: "30s",
     ui: "bdd",
     exit: true,
-    global: ["sails", "luxon", "moment", "_"],
+    global: ["luxon", "moment", "_"],
 };
 
 if (process.env.CI === "true") {

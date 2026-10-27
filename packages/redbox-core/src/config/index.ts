@@ -1,22 +1,20 @@
-/**
- * Config Types Index
- *
- * Exports all config interfaces and default values for sails.config typing.
- * These are used by the redbox-core loader to generate shim files in config/.
- */
-
+export * from './branding.config';
+export * from './brandingConfigurationDefaults.config';
+export * from './raid.config';
+export * from './report.config';
+export * from './recordtype.config';
+export * from './workflow.config';
+export * from './dashboardview.config';
+export * from './agendaQueue.config';
+export * from './bootstrap.config';
+export * from './policies.config';
+// Pure domain defaults. Deployment configuration is resolved by configuration/portal.
 export * from './appConfigSecrets.config';
-import { appConfigSecrets, AppConfigSecretsConfig } from './appConfigSecrets.config';
-
-// Export individual config interfaces and values
 export * from './api.config';
 export * from './appmode.config';
 export * from './record.config';
 export * from './vocab.config';
-export * from './datastores.config';
-export * from './sockets.config';
 export * from './static_assets.config';
-export * from './http.config';
 export * from './i18n.config';
 export * from './search.config';
 export * from './namedQuery.config';
@@ -26,283 +24,80 @@ export * from './peopleSearch.config';
 export * from './reusableFormDefinitions.config';
 export * from './log.config';
 export * from './ng2.config';
-// Auth config
-export * from './auth.config';
-// Sails core configs
-export * from './blueprints.config';
-export * from './cors.config';
-export * from './security.config';
-export * from './globals.config';
-export * from './policies.config';
-export * from './session.config';
-export * from './views.config';
-export * from './routes.config';
-export * from './bootstrap.config';
-// Feature configs
+export * from './datastores.config';
+export * from './redboxSession.config';
 export * from './queue.config';
 export * from './storage.config';
 export * from './orcid.config';
 export * from './mint.config';
 export * from './jsonld.config';
 export * from './emailnotification.config';
-export * from './agendaQueue.config';
-export * from './crontab.config';
 export * from './figshareDev.config';
 export * from './solr.config';
-export * from './form.config';
 export * from './webpack.config';
-// Security configs
 export * from './csp.config';
 export * from './dompurify.config';
-export * from './redboxSession.config';
 export * from './companion.config';
-// Complex/Large configs (interface-only)
-export * from './branding.config';
-export * from './brandingConfigurationDefaults.config';
-export * from './raid.config';
-export * from './report.config';
-export * from './recordtype.config';
-export * from './workflow.config';
-export * from './dashboardview.config';
-// Miscellaneous configs
-export * from './autoreload.config';
+export * from './auth.config';
 export * from './custom.config';
 export * from './dynamicconfig.config';
 export * from './dashboardtype.config';
 export * from './workspacetype.config';
 export * from './lognamespace.config';
 export * from './redboxToCkan.config';
-export * from './typescript.config';
 export * from './custom_cache.config';
 export * from './validators.config';
 export * from './recordValidation.config';
 export * from './recordSchema.config';
 export * from './harvestRuns.config';
-
-import type { ApiRouteProvider } from '../api-routes';
-import type { RecordContractContributorDiscoveryState } from '../record-contract/contributor-registry';
-
-// Import config values for the Config namespace
-import { api, ReDBoxAPIConfig } from './api.config';
-import { appmode, AppModeConfig } from './appmode.config';
-import { record, RecordConfig } from './record.config';
-import { vocab, VocabConfig } from './vocab.config';
-import { sockets, SocketsConfig } from './sockets.config';
-import { static_assets, StaticAssetsConfig } from './static_assets.config';
-import { http, HttpConfig } from './http.config';
-import { i18n, I18nConfig } from './i18n.config';
-import { search, SearchConfig } from './search.config';
-import { namedQuery, NamedQueryConfig } from './namedQuery.config';
-import { action, ActionConfig } from './action.config';
-import { dynamicasset, DynamicAssetConfig } from './dynamicasset.config';
-import { peopleSearch, PeopleSearchConfig } from './peopleSearch.config';
-import { reusableFormDefinitions, ReusableFormDefinitions } from './reusableFormDefinitions.config';
-import { log, LogConfig } from './log.config';
-import { ng2, Ng2Config } from './ng2.config';
-// Sails core config imports
-import { blueprints, BlueprintsConfig } from './blueprints.config';
-import { datastores, DatastoresConfig } from './datastores.config';
-import { cors, CorsConfig } from './cors.config';
-import { redboxSession, RedboxSessionConfig } from './redboxSession.config';
-import { security, SecurityConfig } from './security.config';
-import { globals, GlobalsConfig } from './globals.config';
-import { policies, PoliciesConfig } from './policies.config';
-import { session, SessionConfigOrDisabled } from './session.config';
-import { views, ViewsConfig } from './views.config';
-import { routes, RoutesConfig } from './routes.config';
-import { BootstrapConfig } from './bootstrap.config';
-// Feature config imports
-import { queue, QueueConfig } from './queue.config';
-import { storage, StorageConfig } from './storage.config';
-import { orcid, OrcidConfig } from './orcid.config';
-import { mint, MintConfig } from './mint.config';
-import { jsonld, JsonLdConfig } from './jsonld.config';
-import { emailnotification, EmailNotificationConfig } from './emailnotification.config';
-import { agendaQueue, AgendaQueueConfig } from './agendaQueue.config';
-import { crontab, CrontabConfig } from './crontab.config';
-import { figshareDev, FigshareDevConfig } from './figshareDev.config';
-import { solr, SolrSearchConfig } from './solr.config';
-import { FormConfig } from './form.config';
-import { webpack, WebpackConfig } from './webpack.config';
-// Security config imports
-import { csp, ContentSecurityPolicyConfig } from './csp.config';
-import { dompurify, DomPurifyConfig } from './dompurify.config';
-import { companion, CompanionConfig } from './companion.config';
-
-// Auth config import
+import { appConfigSecrets } from './appConfigSecrets.config';
+import { api } from './api.config';
+import { appmode } from './appmode.config';
+import { record } from './record.config';
+import { vocab } from './vocab.config';
+import { static_assets } from './static_assets.config';
+import { i18n } from './i18n.config';
+import { search } from './search.config';
+import { namedQuery } from './namedQuery.config';
+import { action } from './action.config';
+import { dynamicasset } from './dynamicasset.config';
+import { peopleSearch } from './peopleSearch.config';
+import { reusableFormDefinitions } from './reusableFormDefinitions.config';
+import { log } from './log.config';
+import { ng2 } from './ng2.config';
+import { datastores } from './datastores.config';
+import { redboxSession } from './redboxSession.config';
+import { queue } from './queue.config';
+import { storage } from './storage.config';
+import { orcid } from './orcid.config';
+import { mint } from './mint.config';
+import { jsonld } from './jsonld.config';
+import { emailnotification } from './emailnotification.config';
+import { figshareDev } from './figshareDev.config';
+import { solr } from './solr.config';
+import { webpack } from './webpack.config';
+import { csp } from './csp.config';
+import { dompurify } from './dompurify.config';
+import { companion } from './companion.config';
 import { auth } from './auth.config';
-import type { NextFunction, Request, Response } from 'express';
-// Complex/Large config imports (interface-only)
-import { BrandingConfig, branding } from './branding.config';
-import {
-  BrandingConfigurationDefaultsConfig,
-  brandingConfigurationDefaults,
-  BrandAuthConfig,
-  AuthBootstrapConfig,
-} from './brandingConfigurationDefaults.config';
-import { RaidConfig, raid } from './raid.config';
-
-import { RecordTypeConfig, recordtype } from './recordtype.config';
-import { WorkflowConfig, workflow } from './workflow.config';
-import { DashboardViewConfig, dashboardview } from './dashboardview.config';
-// Miscellaneous config imports
-import { autoreload, AutoreloadConfig } from './autoreload.config';
-import { custom, CustomConfig } from './custom.config';
-import { dynamicconfig, DynamicConfigConfig } from './dynamicconfig.config';
-import { dashboardtype, DashboardTypeConfig } from './dashboardtype.config';
-import { workspacetype, WorkspaceTypeConfig } from './workspacetype.config';
-import { lognamespace, LogNamespaceConfig } from './lognamespace.config';
-import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
-import { typescript, TypeScriptHookConfig } from './typescript.config';
-import { custom_cache, CustomCacheConfig } from './custom_cache.config';
-import { validators, ValidatorsConfig } from './validators.config';
-import { recordValidation, RecordValidationConfig } from './recordValidation.config';
-import { recordSchema, RecordSchemaConfig } from './recordSchema.config';
-import { harvestRuns, HarvestRunsConfig } from './harvestRuns.config';
-import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
-import { WebAnalytics } from '../configmodels/WebAnalytics';
-
-/**
- * Branding-aware config function type
- * Returns branding-specific configuration based on brand name
- */
-export type BrandingAwareFunction = (brandName?: string) => BrandingConfigurationDefaultsConfig & {
-  authorizedDomainsEmails?: AuthorizedDomainsEmails;
-  webAnalytics?: WebAnalytics;
-};
-
-/**
- * Auth config for authentication settings
- */
-export type AuthConfig = AuthBootstrapConfig & BrandAuthConfig;
-
-/**
- * Passport strategy config with authenticate method
- */
-export interface PassportConfig {
-  authenticate: (
-    strategy: string,
-    options?: Record<string, unknown>
-  ) => (req: Request, res: Response, next?: NextFunction) => void;
-  [strategyName: string]: unknown;
-}
-
-/**
- * Aggregate interface for sails.config
- * Provides type-safe access to all configuration values
- */
-export interface SailsConfig {
-  beforeShutdown?: (cb: (error?: unknown) => void) => void;
-  appConfigSecrets?: AppConfigSecretsConfig;
-  // Core config keys (migrated)
-  api: ReDBoxAPIConfig;
-  appmode: AppModeConfig;
-  record: RecordConfig;
-  vocab: VocabConfig;
-  datastores: DatastoresConfig;
-  sockets: SocketsConfig;
-  static_assets: StaticAssetsConfig;
-  http: HttpConfig;
-  i18n: I18nConfig;
-  search: SearchConfig;
-  namedQuery: NamedQueryConfig;
-  action: ActionConfig;
-  dynamicasset: DynamicAssetConfig;
-  peopleSearch: PeopleSearchConfig;
-  reusableFormDefinitions: ReusableFormDefinitions;
-  log: LogConfig;
-  ng2: Ng2Config;
-
-  // Sails core configs
-  blueprints: BlueprintsConfig;
-  cors: CorsConfig;
-  redboxSession: RedboxSessionConfig;
-  companion: CompanionConfig;
-  security: SecurityConfig;
-  globals: GlobalsConfig;
-  policies: PoliciesConfig;
-  session: SessionConfigOrDisabled;
-  views: ViewsConfig;
-  routes: RoutesConfig;
-  bootstrap: BootstrapConfig;
-  apiRoutesHooks?: ApiRouteProvider[];
-
-  // Feature configs
-  queue: QueueConfig;
-  storage: StorageConfig;
-  orcid: OrcidConfig;
-  mint: MintConfig;
-  jsonld: JsonLdConfig;
-  emailnotification: EmailNotificationConfig;
-  agendaQueue: AgendaQueueConfig;
-  crontab: CrontabConfig;
-  figshareDev: FigshareDevConfig;
-  solr: SolrSearchConfig;
-  form: FormConfig;
-  webpack: WebpackConfig;
-
-  // Security configs
-  csp: ContentSecurityPolicyConfig;
-  dompurify: DomPurifyConfig;
-
-  // Complex/Large configs
-  branding: BrandingConfig;
-  brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
-  raid: RaidConfig;
-  recordtype: RecordTypeConfig;
-  workflow: WorkflowConfig;
-  dashboardview: DashboardViewConfig;
-
-  // Miscellaneous configs
-  autoreload: AutoreloadConfig;
-  custom: CustomConfig;
-  dynamicconfig: DynamicConfigConfig;
-  dashboardtype: DashboardTypeConfig;
-  workspacetype: WorkspaceTypeConfig;
-  lognamespace: LogNamespaceConfig;
-  redboxToCkan: RedboxToCkanConfig;
-  typescript: TypeScriptHookConfig;
-  custom_cache: CustomCacheConfig;
-  validators: ValidatorsConfig;
-  recordValidation: RecordValidationConfig;
-  recordSchema: RecordSchemaConfig;
-  harvestRuns: HarvestRunsConfig;
-
-  // Auth-related configs
-  auth: AuthConfig;
-  passport: PassportConfig;
-
-  // Runtime/function configs
-  brandingAware: BrandingAwareFunction;
-
-  // Legacy/runtime flags
-  angularDev?: string | boolean;
-  workspacetype_services?: string[];
-
-  // Sails built-in configs
-  appPath: string;
-  appUrl: string;
-  environment: string;
-  port: number;
-
-  // Runtime state (can be set at runtime)
-  startupMinute?: number;
-  recordContractContributorState?: RecordContractContributorDiscoveryState;
-}
-
-/**
- * Config namespace containing all default config values
- * Used by the redbox-core loader for shim generation
- */
+import { custom } from './custom.config';
+import { dynamicconfig } from './dynamicconfig.config';
+import { dashboardtype } from './dashboardtype.config';
+import { workspacetype } from './workspacetype.config';
+import { lognamespace } from './lognamespace.config';
+import { redboxToCkan } from './redboxToCkan.config';
+import { custom_cache } from './custom_cache.config';
+import { validators } from './validators.config';
+import { recordValidation } from './recordValidation.config';
+import { recordSchema } from './recordSchema.config';
+import { harvestRuns } from './harvestRuns.config';
 export const Config = {
   appConfigSecrets,
   api,
   appmode,
   record,
   vocab,
-  sockets,
   static_assets,
-  http,
   i18n,
   search,
   namedQuery,
@@ -312,56 +107,36 @@ export const Config = {
   reusableFormDefinitions,
   log,
   ng2,
-  webpack,
-  // Auth config
-  auth,
-  // Sails core configs with default values
-  blueprints,
-  cors,
-  security,
-  globals,
   datastores,
-  session,
-  views,
-  routes,
-  policies,
-  // Feature configs with default values
+  redboxSession,
   queue,
   storage,
   orcid,
   mint,
   jsonld,
   emailnotification,
-  agendaQueue,
-  crontab,
   figshareDev,
   solr,
-  // Security configs with default values
+  webpack,
   csp,
   dompurify,
-  // Miscellaneous configs with default values
-  autoreload,
+  companion,
+  auth,
   custom,
   dynamicconfig,
   dashboardtype,
   workspacetype,
   lognamespace,
   redboxToCkan,
-  typescript,
   custom_cache,
-  redboxSession,
-  companion,
-  brandingConfigurationDefaults,
-  branding,
-  raid,
-  recordtype,
-  workflow,
-  dashboardview,
   validators,
   recordValidation,
   recordSchema,
   harvestRuns,
 } as const;
-
-// Type for the Config object
 export type ConfigType = typeof Config;
+export type AuthConfig = import('./brandingConfigurationDefaults.config').AuthBootstrapConfig &
+  import('./brandingConfigurationDefaults.config').BrandAuthConfig;
+export type BrandingAwareFunction = (
+  brandName?: string
+) => import('./brandingConfigurationDefaults.config').BrandingConfigurationDefaultsConfig;

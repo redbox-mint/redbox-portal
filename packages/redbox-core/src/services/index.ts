@@ -1,408 +1,46 @@
-/**
- * Services index - exports all service classes and creates ServiceExports object
- * for consumption by the redbox-core loader shim generation
- */
-
-// Import all service modules and re-export
-import * as AgendaQueueServiceModule from './AgendaQueueService';
-import * as AttachmentMetadataServiceModule from './AttachmentMetadataService';
-import * as AppConfigServiceModule from './AppConfigService';
-import * as AsynchsServiceModule from './AsynchsService';
-import * as BrandingLogoServiceModule from './BrandingLogoService';
-import * as BrandingServiceModule from './BrandingService';
-import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
-import * as BrandingTypefaceServiceModule from './BrandingTypefaceService';
-import * as CacheServiceModule from './CacheService';
-import * as ConfigServiceModule from './ConfigService';
-import * as ContrastServiceModule from './ContrastService';
-import * as DashboardConfigServiceModule from './DashboardConfigService';
-import * as DashboardTypesServiceModule from './DashboardTypesService';
-import * as DoiServiceModule from './DoiService';
-import * as EmailServiceModule from './EmailService';
-import * as FigshareServiceModule from './FigshareService';
-import * as FigshareVocabularyServiceModule from './FigshareVocabularyService';
-import * as FormVocabularyServiceModule from './FormVocabularyService';
-import * as FormRecordConsistencyServiceModule from './FormRecordConsistencyService';
-import * as FormPayloadPrehydrateServiceModule from './FormPayloadPrehydrateService';
-import * as FormsServiceModule from './FormsService';
-import * as HarvestRunServiceModule from './HarvestRunService';
-import * as IntegrationAuditServiceModule from './IntegrationAuditService';
-import * as IntegrationNotificationServiceModule from './IntegrationNotificationService';
-import * as I18nEntriesServiceModule from './I18nEntriesService';
-import * as NamedQueryServiceModule from './NamedQueryService';
-import * as NavigationServiceModule from './NavigationService';
-import * as OniServiceModule from './OniService';
-import * as OrcidServiceModule from './OrcidService';
-import * as PathRulesServiceModule from './PathRulesService';
-import * as RaidServiceModule from './RaidService';
-import * as RDMPServiceModule from './RDMPService';
-import * as RecordsServiceModule from './RecordsService';
-import * as RecordTypesServiceModule from './RecordTypesService';
-import * as RecordSchemaServiceModule from './RecordSchemaService';
-import * as RecordValidationServiceModule from './RecordValidationService';
-import * as ReportsServiceModule from './ReportsService';
-import * as RolesServiceModule from './RolesService';
-import * as SassCompilerServiceModule from './SassCompilerService';
-import * as SolrSearchServiceModule from './SolrSearchService';
-import * as DomSanitizerServiceModule from './DomSanitizerService';
-import * as TemplateServiceModule from './TemplateService';
-import * as TranslationServiceModule from './TranslationService';
-import * as TriggerServiceModule from './TriggerService';
-import * as UsersServiceModule from './UsersService';
-import * as ViewUtilsServiceModule from './ViewUtilsService';
-import * as VocabularyServiceModule from './VocabularyService';
-import * as WorkflowStepsServiceModule from './WorkflowStepsService';
-import * as WorkspaceAsyncServiceModule from './WorkspaceAsyncService';
-import * as WorkspaceServiceModule from './WorkspaceService';
-import * as WorkspaceTypesServiceModule from './WorkspaceTypesService';
-import * as RvaImportServiceModule from './RvaImportService';
-import * as StorageManagerServiceModule from './StorageManagerService';
-import * as StandardDatastreamServiceModule from './StandardDatastreamService';
-import { RecordContractContributorRegistry, type RecordContractContributorDiscoveryState } from '../record-contract';
-import * as SecurityEventServiceModule from './SecurityEventService';
-import * as SiemForwardingServiceModule from './SiemForwardingService';
-
-// Re-export all service namespaces
-export { AgendaQueueServiceModule as AgendaQueueService };
-export { AttachmentMetadataServiceModule as AttachmentMetadataService };
-export { AppConfigServiceModule as AppConfigService };
-export { AsynchsServiceModule as AsynchsService };
-export { BrandingLogoServiceModule as BrandingLogoService };
-export { BrandingServiceModule as BrandingService };
-export { BrandingThemeCssServiceModule as BrandingThemeCssService };
-export { BrandingTypefaceServiceModule as BrandingTypefaceService };
-export { CacheServiceModule as CacheService };
-export { ConfigServiceModule as ConfigService };
-export { ContrastServiceModule as ContrastService };
-export { DashboardConfigServiceModule as DashboardConfigService };
-export { DashboardTypesServiceModule as DashboardTypesService };
-export { DoiServiceModule as DoiService };
-export { EmailServiceModule as EmailService };
-export { FigshareServiceModule as FigshareService };
-export { FigshareVocabularyServiceModule as FigshareVocabularyService };
-export { FormVocabularyServiceModule as FormVocabularyService };
-export { FormRecordConsistencyServiceModule as FormRecordConsistencyService };
-export { FormPayloadPrehydrateServiceModule as FormPayloadPrehydrateService };
-export { FormsServiceModule as FormsService };
-export { HarvestRunServiceModule as HarvestRunService };
-export { IntegrationAuditServiceModule as IntegrationAuditService };
-export { IntegrationNotificationServiceModule as IntegrationNotificationService };
-export { I18nEntriesServiceModule as I18nEntriesService };
-export { NamedQueryServiceModule as NamedQueryService };
-export { NavigationServiceModule as NavigationService };
-export { OniServiceModule as OniService };
-export { OrcidServiceModule as OrcidService };
-export { PathRulesServiceModule as PathRulesService };
-export { RaidServiceModule as RaidService };
-export { RDMPServiceModule as RDMPService };
-export { RecordsServiceModule as RecordsService };
-export { RecordTypesServiceModule as RecordTypesService };
-export { RecordSchemaServiceModule as RecordSchemaService };
-export { RecordValidationServiceModule as RecordValidationService };
-export { ReportsServiceModule as ReportsService };
-export { RolesServiceModule as RolesService };
-export { SassCompilerServiceModule as SassCompilerService };
-export { SolrSearchServiceModule as SolrSearchService };
-export { DomSanitizerServiceModule as DomSanitizerService };
-export { TemplateServiceModule as TemplateService };
-export { TranslationServiceModule as TranslationService };
-export { TriggerServiceModule as TriggerService };
-export { UsersServiceModule as UsersService };
-export { ViewUtilsServiceModule as ViewUtilsService };
-export { VocabularyServiceModule as VocabularyService };
-export { WorkflowStepsServiceModule as WorkflowStepsService };
-export { WorkspaceAsyncServiceModule as WorkspaceAsyncService };
-export { WorkspaceServiceModule as WorkspaceService };
-export { WorkspaceTypesServiceModule as WorkspaceTypesService };
-export { RvaImportServiceModule as RvaImportService };
-export { StorageManagerServiceModule as StorageManagerService };
-export { StandardDatastreamServiceModule as StandardDatastreamService };
-export { SecurityEventServiceModule as SecurityEventService };
-export { SiemForwardingServiceModule as SiemForwardingService };
-
-/**
- * ServiceExports - Object containing lazy-instantiated service exports for use by the redbox-core loader
- * This follows the same registration pattern as Policies and Controllers.
- *
- * Each service is instantiated via `new ServiceClass().exports()` which provides
- * the method binding and exported method filtering that Sails services expect.
- *
- * Using getters for lazy instantiation to avoid issues during testing and before
- * sails globals are available.
- */
-const serviceCache: Record<string, unknown> = {};
-
-const UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE: RecordContractContributorDiscoveryState = Object.freeze({
-  registrations: Object.freeze([]),
-  registrationIssues: Object.freeze([]),
-  componentTypes: Object.freeze([]),
-});
-let resolvedRecordSchemaContributorState: RecordContractContributorDiscoveryState | undefined;
-let resolvedRecordSchemaContributorRegistry: RecordContractContributorRegistry | undefined;
-
-function configuredRecordSchemaContributorState(): RecordContractContributorDiscoveryState {
-  return sails.config.recordContractContributorState ?? UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE;
-}
-
-function configuredRecordSchemaContributorRegistry(): RecordContractContributorRegistry | undefined {
-  const state = configuredRecordSchemaContributorState();
-  if (state !== resolvedRecordSchemaContributorState) {
-    resolvedRecordSchemaContributorState = state;
-    resolvedRecordSchemaContributorRegistry =
-      state.registrationIssues.length === 0 && state.registrations.length > 0
-        ? new RecordContractContributorRegistry(state.registrations)
-        : undefined;
-  }
-  return resolvedRecordSchemaContributorRegistry;
-}
-
-const recordSchemaContributorDependencies: Pick<
-  RecordSchemaServiceModule.RecordSchemaServiceDependencies,
-  'getContributorRegistry' | 'getContributorRegistrationIssues' | 'getContributorComponentTypes'
-> = {
-  getContributorRegistry: configuredRecordSchemaContributorRegistry,
-  getContributorRegistrationIssues: () => configuredRecordSchemaContributorState().registrationIssues,
-  getContributorComponentTypes: () => configuredRecordSchemaContributorState().componentTypes,
-};
-
-function getOrCreateService(name: string, factory: () => unknown): unknown {
-  if (!serviceCache[name]) {
-    serviceCache[name] = factory();
-  }
-  return serviceCache[name];
-}
-
-export const ServiceExports = {
-  get AgendaQueueService() {
-    return getOrCreateService('AgendaQueueService', () =>
-      new AgendaQueueServiceModule.Services.AgendaQueue().exports()
-    );
-  },
-  get AttachmentMetadataService() {
-    return getOrCreateService('AttachmentMetadataService', () =>
-      new AttachmentMetadataServiceModule.Services.AttachmentMetadataService().exports()
-    );
-  },
-  get AppConfigService() {
-    return getOrCreateService('AppConfigService', () => new AppConfigServiceModule.Services.AppConfigs().exports());
-  },
-  get AsynchsService() {
-    return getOrCreateService('AsynchsService', () => new AsynchsServiceModule.Services.Asynchs().exports());
-  },
-  get BrandingLogoService() {
-    return getOrCreateService('BrandingLogoService', () =>
-      new BrandingLogoServiceModule.Services.BrandingLogo().exports()
-    );
-  },
-  get BrandingService() {
-    return getOrCreateService('BrandingService', () => new BrandingServiceModule.Services.Branding().exports());
-  },
-  get BrandingThemeCssService() {
-    return getOrCreateService('BrandingThemeCssService', () =>
-      new BrandingThemeCssServiceModule.Services.BrandingThemeCss().exports()
-    );
-  },
-  get BrandingTypefaceService() {
-    return getOrCreateService('BrandingTypefaceService', () =>
-      new BrandingTypefaceServiceModule.Services.BrandingTypeface().exports()
-    );
-  },
-  get CacheService() {
-    return getOrCreateService('CacheService', () => new CacheServiceModule.Services.Cache().exports());
-  },
-  get ConfigService() {
-    return getOrCreateService('ConfigService', () => new ConfigServiceModule.Services.Config().exports());
-  },
-  get ContrastService() {
-    return getOrCreateService('ContrastService', () => new ContrastServiceModule.Services.Contrast().exports());
-  },
-  get DashboardConfigService() {
-    return getOrCreateService('DashboardConfigService', () =>
-      new DashboardConfigServiceModule.Services.DashboardConfig().exports()
-    );
-  },
-  get DashboardTypesService() {
-    return getOrCreateService('DashboardTypesService', () =>
-      new DashboardTypesServiceModule.Services.DashboardTypes().exports()
-    );
-  },
-  get DoiService() {
-    return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
-  },
-  get EmailService() {
-    return getOrCreateService('EmailService', () => new EmailServiceModule.Services.Email().exports());
-  },
-  get FigshareService() {
-    return getOrCreateService('FigshareService', () => new FigshareServiceModule.Services.FigshareService().exports());
-  },
-  get FigshareVocabularyService() {
-    return getOrCreateService('FigshareVocabularyService', () =>
-      new FigshareVocabularyServiceModule.Services.FigshareVocabularyService().exports()
-    );
-  },
-  get FormVocabularyService() {
-    return getOrCreateService('FormVocabularyService', () =>
-      new FormVocabularyServiceModule.Services.FormVocabulary().exports()
-    );
-  },
-  get IntegrationAuditService() {
-    return getOrCreateService('IntegrationAuditService', () =>
-      new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports()
-    );
-  },
-  get IntegrationNotificationService() {
-    return getOrCreateService('IntegrationNotificationService', () =>
-      new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports()
-    );
-  },
-  get FormRecordConsistencyService() {
-    return getOrCreateService('FormRecordConsistencyService', () =>
-      new FormRecordConsistencyServiceModule.Services.FormRecordConsistency().exports()
-    );
-  },
-  get FormPayloadPrehydrateService() {
-    return getOrCreateService('FormPayloadPrehydrateService', () =>
-      new FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService().exports()
-    );
-  },
-  get FormsService() {
-    return getOrCreateService('FormsService', () => new FormsServiceModule.Services.Forms().exports());
-  },
-  get HarvestRunService() {
-    return getOrCreateService('HarvestRunService', () =>
-      new HarvestRunServiceModule.Services.HarvestRunService().exports()
-    );
-  },
-  get I18nEntriesService() {
-    return getOrCreateService('I18nEntriesService', () =>
-      new I18nEntriesServiceModule.Services.I18nEntries().exports()
-    );
-  },
-  get NamedQueryService() {
-    return getOrCreateService('NamedQueryService', () =>
-      new NamedQueryServiceModule.Services.NamedQueryService().exports()
-    );
-  },
-  get NavigationService() {
-    return getOrCreateService('NavigationService', () => new NavigationServiceModule.Services.Navigation().exports());
-  },
-  get OniService() {
-    return getOrCreateService('OniService', () => new OniServiceModule.Services.OniService().exports());
-  },
-  get OrcidService() {
-    return getOrCreateService('OrcidService', () => new OrcidServiceModule.Services.Orcids().exports());
-  },
-  get PathRulesService() {
-    return getOrCreateService('PathRulesService', () => new PathRulesServiceModule.Services.PathRules().exports());
-  },
-  get RaidService() {
-    return getOrCreateService('RaidService', () => new RaidServiceModule.Services.Raid().exports());
-  },
-  get RDMPService() {
-    return getOrCreateService('RDMPService', () => new RDMPServiceModule.Services.RDMPS().exports());
-  },
-  get RecordsService() {
-    return getOrCreateService('RecordsService', () => new RecordsServiceModule.Services.Records().exports());
-  },
-  get RecordTypesService() {
-    return getOrCreateService('RecordTypesService', () =>
-      new RecordTypesServiceModule.Services.RecordTypes().exports()
-    );
-  },
-  get RecordSchemaService() {
-    return getOrCreateService('RecordSchemaService', () =>
-      new RecordSchemaServiceModule.Services.RecordSchema(recordSchemaContributorDependencies).exports()
-    );
-  },
-  get RecordValidationService() {
-    return getOrCreateService('RecordValidationService', () =>
-      new RecordValidationServiceModule.Services.RecordValidation().exports()
-    );
-  },
-  get ReportsService() {
-    return getOrCreateService('ReportsService', () => new ReportsServiceModule.Services.Reports().exports());
-  },
-  get RolesService() {
-    return getOrCreateService('RolesService', () => new RolesServiceModule.Services.Roles().exports());
-  },
-  get SassCompilerService() {
-    return getOrCreateService('SassCompilerService', () =>
-      new SassCompilerServiceModule.Services.SassCompiler().exports()
-    );
-  },
-  get SolrSearchService() {
-    return getOrCreateService('SolrSearchService', () =>
-      new SolrSearchServiceModule.Services.SolrSearchService().exports()
-    );
-  },
-  get DomSanitizerService() {
-    return getOrCreateService('DomSanitizerService', () =>
-      new DomSanitizerServiceModule.Services.DomSanitizer().exports()
-    );
-  },
-  get TemplateService() {
-    return getOrCreateService('TemplateService', () => new TemplateServiceModule.Services.Template().exports());
-  },
-  get TranslationService() {
-    return getOrCreateService('TranslationService', () =>
-      new TranslationServiceModule.Services.Translation().exports()
-    );
-  },
-  get TriggerService() {
-    return getOrCreateService('TriggerService', () => new TriggerServiceModule.Services.Trigger().exports());
-  },
-  get UsersService() {
-    return getOrCreateService('UsersService', () => new UsersServiceModule.Services.Users().exports());
-  },
-  get ViewUtilsService() {
-    return getOrCreateService('ViewUtilsService', () => new ViewUtilsServiceModule.Services.ViewUtils().exports());
-  },
-  get VocabularyService() {
-    return getOrCreateService('VocabularyService', () =>
-      new VocabularyServiceModule.Services.VocabularyService().exports()
-    );
-  },
-  get RvaImportService() {
-    return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
-  },
-  get WorkflowStepsService() {
-    return getOrCreateService('WorkflowStepsService', () =>
-      new WorkflowStepsServiceModule.Services.WorkflowSteps().exports()
-    );
-  },
-  get WorkspaceAsyncService() {
-    return getOrCreateService('WorkspaceAsyncService', () =>
-      new WorkspaceAsyncServiceModule.Services.WorkspaceAsyncService().exports()
-    );
-  },
-  get WorkspaceService() {
-    return getOrCreateService('WorkspaceService', () =>
-      new WorkspaceServiceModule.Services.WorkspaceService().exports()
-    );
-  },
-  get WorkspaceTypesService() {
-    return getOrCreateService('WorkspaceTypesService', () =>
-      new WorkspaceTypesServiceModule.Services.WorkspaceTypes().exports()
-    );
-  },
-  get StorageManagerService() {
-    return getOrCreateService('StorageManagerService', () =>
-      new StorageManagerServiceModule.Services.StorageManager().exports()
-    );
-  },
-  get StandardDatastreamService() {
-    return getOrCreateService('StandardDatastreamService', () =>
-      new StandardDatastreamServiceModule.Services.StandardDatastream().exports()
-    );
-  },
-  get SecurityEventService() {
-    return getOrCreateService('SecurityEventService', () =>
-      new SecurityEventServiceModule.Services.SecurityEventService().exports()
-    );
-  },
-  get SiemForwardingService() {
-    return getOrCreateService('SiemForwardingService', () =>
-      new SiemForwardingServiceModule.Services.SiemForwardingService().exports()
-    );
-  },
-};
+// Domain construction belongs to application composition; no singleton registry.
+export * as AgendaQueueService from './AgendaQueueService';
+export * as AppConfigService from './AppConfigService';
+export * as AsynchsService from './AsynchsService';
+export * as BrandingService from './BrandingService';
+export * as BrandingThemeCssService from './BrandingThemeCssService';
+export * as BrandingTypefaceService from './BrandingTypefaceService';
+export * as DashboardConfigService from './DashboardConfigService';
+export * as DashboardTypesService from './DashboardTypesService';
+export * as DoiService from './DoiService';
+export * as DomSanitizerService from './DomSanitizerService';
+export * as EmailService from './EmailService';
+export * as FigshareService from './FigshareService';
+export * as FigshareVocabularyService from './FigshareVocabularyService';
+export * as FormPayloadPrehydrateService from './FormPayloadPrehydrateService';
+export * as FormVocabularyService from './FormVocabularyService';
+export * as FormsService from './FormsService';
+export * as HarvestRunService from './HarvestRunService';
+export * as I18nEntriesService from './I18nEntriesService';
+export * as IntegrationAuditService from './IntegrationAuditService';
+export * as IntegrationNotificationService from './IntegrationNotificationService';
+export * as NamedQueryService from './NamedQueryService';
+export * as OniService from './OniService';
+export * as OrcidService from './OrcidService';
+export * as RDMPService from './RDMPService';
+export * as RaidService from './RaidService';
+export * as RecordSchemaService from './RecordSchemaService';
+export * as RecordTypesService from './RecordTypesService';
+export * as RecordValidationService from './RecordValidationService';
+export * as RecordsService from './RecordsService';
+export * as ReportsService from './ReportsService';
+export * as RolesService from './RolesService';
+export * as RvaImportService from './RvaImportService';
+export * as SecurityEventService from './SecurityEventService';
+export * as SiemForwardingService from './SiemForwardingService';
+export * as SolrSearchService from './SolrSearchService';
+export * as StandardDatastreamService from './StandardDatastreamService';
+export * as StorageManagerService from './StorageManagerService';
+export * as TranslationService from './TranslationService';
+export * as TriggerService from './TriggerService';
+export * as UsersService from './UsersService';
+export * as VocabularyService from './VocabularyService';
+export * as WorkflowStepsService from './WorkflowStepsService';
+export * as WorkspaceAsyncService from './WorkspaceAsyncService';
+export * as WorkspaceService from './WorkspaceService';
+export * as WorkspaceTypesService from './WorkspaceTypesService';
