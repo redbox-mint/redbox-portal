@@ -27,3 +27,30 @@ export async function saveForm(page: Page): Promise<void> {
   await save.click();
   await expect(page.locator('redbox-form-save-status [role="status"]')).toContainText(/saved|success/i);
 }
+
+/** Legacy component values may intentionally disagree with the inferred schema.
+ * Keep those warnings explicit while requiring a completed, persisted save. */
+export async function saveFormWithSchemaWarnings(
+  page: Page,
+  issues: { code: string; pointer: string; expected?: { type: string } }[],
+): Promise<void> {
+  const response = page.waitForResponse(response =>
+    response.request().method() === 'PUT' && /\/recordmeta\/[^/]+$/.test(new URL(response.url()).pathname)
+  );
+  const save = page.getByRole('button', { name: /save/i }).first();
+  await expect(save).toBeEnabled();
+  await save.click();
+  const saved = await response;
+  expect(saved.ok()).toBeTruthy();
+  const { meta } = await saved.json();
+  expect(meta.success).toBe(true);
+  expect(meta.outcome).toBe('saved-with-warnings');
+  expect(meta.schemaOutcome.enforcement).toBe('shadow');
+  expect(meta.problems).toEqual([{
+    kind: 'validation', source: 'schema', phase: 'schema',
+    issues: issues.map(issue => expect.objectContaining(issue)),
+  }]);
+  expect(meta.completion.attachments).toEqual({ status: 'not-required', items: [] });
+  await expect(page.locator('redbox-form-save-status [role="alert"]'))
+    .toContainText('Saved, but the record schema check reported a problem.');
+}
