@@ -1,3 +1,4 @@
+import { hasActiveHttpRequest, drainHttpRequests } from '../../middleware/requestLifetime';
 import { firstValueFrom } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { PortalConfiguration } from '../../configuration/portal';
@@ -8,6 +9,8 @@ import {
   getFigshareSyncRepository,
   getSiemRepository,
   runAcceptedPersistenceWork,
+  hasActivePersistenceWork,
+  drainAcceptedPersistenceWork,
 } from '../../persistence/runtime';
 import { Services as Email } from '../../integrations/Email';
 import { Services as Notifications } from '../../integrations/IntegrationNotifications';
@@ -122,6 +125,11 @@ export function portalProviderPlan(
       brand: value => ref.branding.get().getBrandById(value) ?? ref.branding.get().getBrand(value),
       configuration: name => Reflect.get(appConfig(name), 'siem'),
       enqueue: (name, entry) => data.queue.get().now(name, entry),
+      hasAcceptedWork: () => hasActivePersistenceWork(owner) || hasActiveHttpRequest(owner),
+      drainAcceptedWork: async () => {
+        await drainHttpRequests(owner);
+        await drainAcceptedPersistenceWork(owner);
+      },
       record: oid => data.records.get().getMeta(oid),
     })
   );
