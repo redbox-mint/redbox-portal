@@ -2,7 +2,7 @@
 # Qualifies installed assets, persistence and the actual production executable.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-node --eval 'require("node:assert/strict").equal(process.version, "v26.11.1")'
+node --eval 'require("node:assert/strict").equal(process.version, "v26.12.1")'
 task_image=${SR_P7_IMAGE:?Set the immutable local image ID to qualify}
 [[ "$task_image" =~ ^sha256:[a-f0-9]{64}$ ]]
 task_logs="${SR_P7_ARTIFACT_LOGS:-$PWD/.tmp/sails-retirement/p7/artifact-$(date -u +%Y%m%dT%H%M%SZ)}"

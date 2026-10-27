@@ -16,7 +16,7 @@ test(
   'separate servers: maintenance, ledger, HTTP, failover, GridFS, drain and restart',
   { timeout: 180000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     assert.equal(global.sails, undefined);
     const coreUrl = process.env.SR_MATRIX_CORE_URL;
     const storageUrl = process.env.SR_MATRIX_STORAGE_URL;

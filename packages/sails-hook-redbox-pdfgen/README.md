@@ -27,7 +27,7 @@ It is typically wired into a record type's `onCreate`/`onUpdate` post-save trigg
 
 | Requirement | Version / notes |
 | --- | --- |
-| Node.js | `26.11.1` (see `.nvmrc`) |
+| Node.js | `26.12.1` (see `.nvmrc`) |
 | ReDBox portal | v6 owned runtime; `@researchdatabox/redbox-core` is a peer dependency and runtime compatibility anchor |
 | Chromium | Provided by the runtime image, or bundled by Puppeteer `25.0.4` |
 | Docker | Only needed for the dev stack and Bruno API tests |
@@ -252,7 +252,7 @@ or implicit fallback for a missing production binding.
 ## Development
 
 ```bash
-nvm use          # Node 26.11.1
+nvm use          # Node 26.12.1
 npm install
 npm run compile
 npm run test:unit
@@ -301,7 +301,7 @@ The dev stack sets `NODE_TLS_REJECT_UNAUTHORIZED=0` and seeds a fixed `pdfgen.to
 
 ### CI
 
-CircleCI (`.circleci/config.yml`) runs compile, unit tests and the Bruno suite on Node 26.11.1. Beta/next/alpha releases to npm are published through the `npm_publish_mode` pipeline parameters.
+CircleCI (`.circleci/config.yml`) runs compile, unit tests and the Bruno suite on Node 26.12.1. Beta/next/alpha releases to npm are published through the `npm_publish_mode` pipeline parameters.
 
 ## Project structure
 
