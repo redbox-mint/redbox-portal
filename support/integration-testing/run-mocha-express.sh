@@ -6,7 +6,14 @@ cd "$(dirname "$0")/../.."
 export NODE_ENV=integrationtest TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=true
 export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs","moduleResolution":"node","esModuleInterop":true}'
 node app.express.cjs --maintenance=indexes:ensure
-if [[ $# == 0 ]]; then set -- 'test/integration/**/*.test.ts'; fi
+if [[ $# == 0 ]]; then
+  if [[ -n ${RBPORTAL_MOCHA_TEST_PATHS:-} ]]; then
+    read -r -a selected_test_paths <<< "${RBPORTAL_MOCHA_TEST_PATHS//$'\n'/ }"
+    set -- "${selected_test_paths[@]}"
+  else
+    set -- 'test/integration/**/*.test.ts'
+  fi
+fi
 coverage_dir="${RBPORTAL_COVERAGE_DIR:-/tmp/coverage/mocha}"
 nyc_output="${NYC_OUTPUT:-/tmp/nyc_output_mocha}"
 mkdir -p "$coverage_dir" "$nyc_output"
