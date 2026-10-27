@@ -45,6 +45,11 @@ jobs:
               --tag redbox-portal:test \
               .
       - run:
+          name: Verify PDF hook unit tests in the built test image
+          command: |
+            docker run --rm --entrypoint bash redbox-portal:test -lc \
+              'cd /opt/redbox-portal/packages/sails-hook-redbox-pdfgen && npm run test:unit'
+      - run:
           name: Save Docker image
           command: |
             mkdir -p /tmp/docker-images
