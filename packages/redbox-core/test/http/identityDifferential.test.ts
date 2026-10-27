@@ -94,7 +94,7 @@ describe('Identity route target precedence', () => {
   for (const alias of ['find', 'get']) {
     for (const version of ['1.0', '2.0']) {
       it(`REST ${alias} returns a disabled account in API ${version}`, async () => {
-        f.users.getUsersForBrand.returns(
+        f.users.findUsersWithQuery.returns(
           of([{ id: selected, username: 'disabled-user', loginDisabled: true, roles: [] }])
         );
         const response = await f.request(
@@ -105,6 +105,31 @@ describe('Identity route target precedence', () => {
       });
     }
   }
+
+  it('filters account lookup before enrichment and checks membership of each matching candidate', async () => {
+    f.users.findUsersWithQuery.returns(of([{ id: other }, { id: selected }]));
+    f.users.getUserWithId.callsFake((id: string) =>
+      of({
+        id,
+        username: 'shared',
+        roles: [{ name: 'Researcher', branding: id === selected ? 'brand-1' : 'other-brand' }],
+      })
+    );
+    const response = await f.request('/default/portal/api/users/get?searchBy=username&query=shared');
+    assert.equal(response.status, 200);
+    assert.equal(response.body.id, selected);
+    assert.deepEqual(f.users.findUsersWithQuery.firstCall.args, [{ username: 'shared' }, null]);
+    assert.equal(f.users.getUsersForBrand.callCount, 0);
+    assert.deepEqual(f.users.getUserWithId.args, [[other], [selected]]);
+  });
+
+  it('returns 404 when the filtered account has no membership in the requested brand', async () => {
+    f.users.findUsersWithQuery.returns(of([{ id: other }]));
+    f.users.getUserWithId.returns(of({ id: other, roles: [{ name: 'Researcher', branding: 'other-brand' }] }));
+    const response = await f.request('/default/portal/api/users/get?searchBy=id&query=' + other);
+    assert.equal(response.status, 404);
+    assert.equal(f.users.getUsersForBrand.callCount, 0);
+  });
   it('REST list still excludes disabled accounts by default', async () => {
     f.users.getUsersForBrand.returns(of([{ id: selected, username: 'disabled-user', loginDisabled: true, roles: [] }]));
     const response = await f.request('/default/portal/api/users');
@@ -124,6 +149,8 @@ describe('Identity route target precedence', () => {
           hiddenUsers: ['Hidden'],
           users: {
             getUsersForBrand: () => of([user]),
+            findUsersWithQuery: () => of([user]),
+            requireUserInBrand: async () => user,
             enrichUsersWithLinkMetadata: async (value: unknown[]) => value,
             enrichUsersWithEffectiveDisabledState: async (value: unknown[]) => value,
           } as never,

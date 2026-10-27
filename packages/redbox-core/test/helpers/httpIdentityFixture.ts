@@ -21,6 +21,7 @@ export async function httpIdentityFixture() {
   const users: Record<string, any> = Object.fromEntries(
     [
       'getUsersForBrand',
+      'findUsersWithQuery',
       'getUserWithId',
       'getUserAudit',
       'searchLinkCandidates',
@@ -37,6 +38,7 @@ export async function httpIdentityFixture() {
       'addUserAuditEvent',
     ].map(name => [name, sinon.stub()])
   );
+  users.findUsersWithQuery.returns(of([]));
   users.getUserWithId.returns(
     of({
       id: '111111111111111111111111',
