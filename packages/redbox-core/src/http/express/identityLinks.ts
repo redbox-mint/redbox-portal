@@ -40,6 +40,7 @@ export interface IdentityLinksHttpInput {
   readonly users: Pick<
     Users.Users,
     | 'getUsersForBrand'
+    | 'findUsersWithQuery'
     | 'enrichUsersWithLinkMetadata'
     | 'enrichUsersWithEffectiveDisabledState'
     | 'requireUserInBrand'
@@ -152,9 +153,20 @@ export function mountIdentityLinkRoutes(router: Router, input: IdentityLinksHttp
               const field = text(query.searchBy, route.action === 'getUser');
               const search = text(query.query, route.action === 'getUser');
               if (field && !allowedFields.has(field)) throw new IdentityLinkError(400, 'Invalid user search field');
-              const all = await singleHttpResult(
-                input.users.getUsersForBrand(Object.assign(new BrandingModel(), brand))
-              );
+              let all: UserAttributes[];
+              if (route.action === 'getUser') {
+                const candidates = await singleHttpResult(input.users.findUsersWithQuery({ [field]: search }, null));
+                all = [];
+                for (const candidate of candidates) {
+                  const user = await input.users.requireUserInBrand(String(candidate.id), brand.id);
+                  if (user) {
+                    all.push(user);
+                    break;
+                  }
+                }
+              } else {
+                all = await singleHttpResult(input.users.getUsersForBrand(Object.assign(new BrandingModel(), brand)));
+              }
               const enriched = await input.users.enrichUsersWithEffectiveDisabledState(
                 await input.users.enrichUsersWithLinkMetadata(all, brand.id)
               );
