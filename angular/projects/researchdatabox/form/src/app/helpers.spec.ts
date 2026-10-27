@@ -110,7 +110,7 @@ export function ensureApplicationRefFormComponent(componentRef: ComponentRef<For
 
 export async function createFormAndWaitForReady(
   formConfig: FormConfigFrame,
-  formComponentProps?: FormComponentProps,
+  formComponentProps?: Partial<FormComponentProps>,
   formDebugUrlOptions?: FormDebugUrlOptions,
   dynamicAssetOptions?: DynamicAssetOptions
 ) {
@@ -130,27 +130,24 @@ export async function createFormAndWaitForReady(
 
   // set the attributes on the nativeElement
   // this is necessary to properly initialise the form component
-  formComponentProps = Object.assign(
-    {},
-    {
-      oid: `oid-generated-${Date.now()}`,
-      recordType: 'rdmp',
-      editMode: false,
-      formName: 'default-1.0-draft',
-      downloadAndCreateOnInit: false,
-    },
-    formComponentProps
-  );
+  const props: FormComponentProps = {
+    oid: `oid-generated-${Date.now()}`,
+    recordType: 'rdmp',
+    editMode: false,
+    formName: 'default-1.0-draft',
+    downloadAndCreateOnInit: false,
+    ...formComponentProps,
+  };
 
   // Set the form component to not download the form config on init.
   // Each test will provide a form config.
-  formComponent.downloadAndCreateOnInit.set(formComponentProps['downloadAndCreateOnInit']);
+  formComponent.downloadAndCreateOnInit.set(props['downloadAndCreateOnInit']);
 
   // Set the form component properties needed for initialisation.
-  formComponent.oid.set(formComponentProps['oid']);
-  formComponent.recordType.set(formComponentProps['recordType']);
-  formComponent.editMode.set(formComponentProps['editMode']);
-  formComponent.formName.set(formComponentProps['formName']);
+  formComponent.oid.set(props['oid']);
+  formComponent.recordType.set(props['recordType']);
+  formComponent.editMode.set(props['editMode']);
+  formComponent.formName.set(props['formName']);
 
   // Turn on angular's automatic change detection.
   // This reduces the need to call fixture.detectChanges,

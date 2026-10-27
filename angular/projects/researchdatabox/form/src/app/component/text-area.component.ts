@@ -12,7 +12,7 @@ export class TextAreaModel extends FormFieldModel<string> {
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <textarea [formControl]="formControl"
+      <textarea [formControl]="formControl" [attr.id]="labelableControlId"
         class="form-control"
         [class.is-valid]="showValidState"
         [class.is-invalid]="!isValid"

@@ -153,13 +153,15 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   protected buildTemplateContext(config: ContentFieldComponentConfig, formData: Record<string, unknown>): Record<string, unknown> {
     const runtimeContext = this.getRuntimeTemplateContext();
     return {
-      content: config?.content ?? '',
-      formData,
+      content: structuredClone(config?.content ?? ''),
+      formData: structuredClone(formData),
       translationService: this.translationService,
       branding: runtimeContext.branding,
       portal: runtimeContext.portal,
       oid: runtimeContext.oid,
-      workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
+      runtimeContext: this.getFormComponent.getExpressionRuntimeContext(),
+      requestParams: structuredClone(this.getFormComponent.requestParams()),
+      workflow: structuredClone(this.formComponent.formConfigMeta['workflow'] ?? {}),
       outputFormat: config?.outputFormat,
     };
   }

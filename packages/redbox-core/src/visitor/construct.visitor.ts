@@ -1272,6 +1272,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('operation', item.config, config);
     this.sharedProps.setPropOverride('targetStep', item.config, config);
     this.sharedProps.setPropOverride('forceSave', item.config, config);
+    this.sharedProps.setPropOverride('confirmationMessage', item.config, config);
+    this.sharedProps.setPropOverride('confirmationTitle', item.config, config);
+    this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
+    this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);

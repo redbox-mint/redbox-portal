@@ -2390,6 +2390,38 @@ describe('MongoStorageService', function () {
     ]);
   });
 
+  for (const field of ['title', 'deletedRecordMetadata.metadata.title']) {
+    for (const mode of ['equal', 'regex']) {
+      it(`filters deleted records by ${field} using ${mode} without losing query restrictions`, async function () {
+        const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+        await service.getDeletedRecords('draft', ['rdmp'], 0, 20, 'user',
+          [{ name: 'Admin', branding: 'brand-1' }], { id: 'brand-1' },
+          undefined, ['package-a'], undefined, [field], 'Title.[x]', mode);
+
+        const query = runStub.firstCall.args[1];
+        expect(query['deletedRecordMetadata.metaMetadata.brandId']).to.equal('brand-1');
+        expect(query['deletedRecordMetadata.workflow.stage']).to.equal('draft');
+        expect(query.$and).to.have.length(4);
+        expect(query.$and[0].$or).to.deep.equal([
+          { 'deletedRecordMetadata.authorization.view': 'user' },
+          { 'deletedRecordMetadata.authorization.edit': 'user' },
+          { 'deletedRecordMetadata.authorization.editRoles': { $in: ['Admin'] } },
+          { 'deletedRecordMetadata.authorization.viewRoles': { $in: ['Admin'] } },
+        ]);
+        expect(query.$and[1]).to.deep.equal({ $or: [{ 'deletedRecordMetadata.metaMetadata.type': 'rdmp' }] });
+        expect(query.$and[2]).to.deep.equal({ $or: [{ 'deletedRecordMetadata.metaMetadata.packageType': 'package-a' }] });
+        const filter = query.$and[3];
+        expect(Object.keys(filter)).to.deep.equal(['deletedRecordMetadata.metadata.title']);
+        const value = filter['deletedRecordMetadata.metadata.title'];
+        if (mode === 'equal') expect(value).to.equal('Title.[x]');
+        else {
+          expect(value.test('prefix Title.[x] suffix')).to.be.true;
+          expect(value.test('Titleax')).to.be.false;
+        }
+      });
+    }
+  }
+
   it('builds deleted-record queries for equal filters and sort fallbacks', async function () {
     const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
 

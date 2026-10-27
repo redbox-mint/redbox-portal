@@ -100,7 +100,7 @@ describe('RepeatableComponent', () => {
       } } } },
       { name: 'errors', component: { class: 'ValidationSummaryComponent' } },
     ] };
-    const { fixture, formComponent } = await createFormAndWaitForReady(config);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode: true });
     const root: HTMLElement = fixture.nativeElement;
     const focusSummary = async () => {
       const link = root.querySelector<HTMLAnchorElement>('a[data-validation-summary-id]')!;

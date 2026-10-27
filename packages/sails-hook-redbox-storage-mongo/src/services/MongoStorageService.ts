@@ -2935,11 +2935,12 @@ export namespace Services {
         const escapedFilterString = this.escapeRegExp(filterString);
         sails.log.verbose('escapedFilterString ' + escapedFilterString);
         for (const filterField of filterFields) {
+          const storedField = filterField === 'title' ? 'deletedRecordMetadata.metadata.title' : filterField;
           const filterQuery = {};
           if (filterMode == 'equal') {
-            filterQuery[filterField] = filterString;
+            filterQuery[storedField] = filterString;
           } else if (filterMode == 'regex') {
-            filterQuery[filterField] = new RegExp(`.*${escapedFilterString}.*`);
+            filterQuery[storedField] = new RegExp(`.*${escapedFilterString}.*`);
             sails.log.verbose(filterQuery);
           }
           andArray.push(filterQuery);

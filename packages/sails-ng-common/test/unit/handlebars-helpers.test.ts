@@ -7,6 +7,7 @@ import {
   handlebarsTemplate,
   loadMarkdownParser
 } from '../../src';
+import { Settings } from 'luxon';
 
 describe('Shared Handlebars Helpers', async function () {
     let expect: Chai.ExpectStatic;
@@ -61,6 +62,70 @@ describe('Shared Handlebars Helpers', async function () {
         it('should return original string for invalid date', function () {
             const result = handlebarsHelperDefinitions.formatDate('not-a-date');
             expect(result).to.equal('not-a-date');
+        });
+
+        describe('explicit timezone', function () {
+            const template = '{{formatDate when "yyyy-MM-dd HH:mm" "Australia/Sydney"}}';
+            const cases = [
+                ['January AEDT', '2028-01-01T00:01:00.000Z', '2028-01-01 11:01'],
+                ['July AEST', '2028-07-01T00:01:00.000Z', '2028-07-01 10:01'],
+                ['equivalent offset instant', '2028-01-01T10:01:00+10:00', '2028-01-01 11:01'],
+                ['Sydney next day', '2028-01-01T13:30:00.000Z', '2028-01-02 00:30'],
+                ['before autumn DST transition', '2028-04-01T15:59:00.000Z', '2028-04-02 02:59'],
+                ['after autumn DST transition', '2028-04-01T16:00:00.000Z', '2028-04-02 02:00'],
+                ['before spring DST transition', '2028-09-30T15:59:00.000Z', '2028-10-01 01:59'],
+                ['after spring DST transition', '2028-09-30T16:00:00.000Z', '2028-10-01 03:00'],
+            ];
+
+            for (const [name, input, expected] of cases) {
+                it(`renders ${name} identically in different host zones`, function () {
+                    const priorZone = Settings.defaultZone;
+                    try {
+                        for (const hostZone of ['UTC', 'Australia/Adelaide', 'America/New_York']) {
+                            Settings.defaultZone = hostZone;
+                            const when = new Date(input);
+                            const instant = when.getTime();
+                            expect(handlebarsCompile(template)({ when: input })).to.equal(expected);
+                            expect(handlebarsCompile(template)({ when })).to.equal(expected);
+                            expect(when.getTime()).to.equal(instant);
+                        }
+                    } finally {
+                        Settings.defaultZone = priorZone;
+                    }
+                });
+            }
+
+            it('keeps no-zone Handlebars calls in their existing host zone', function () {
+                const priorZone = Settings.defaultZone;
+                try {
+                    Settings.defaultZone = 'Australia/Adelaide';
+                    expect(handlebarsCompile('{{formatDate when "yyyy-MM-dd HH:mm"}}')({
+                        when: '2028-01-01T00:01:00.000Z'
+                    })).to.equal('2028-01-01 10:31');
+                    Settings.defaultZone = 'UTC';
+                    expect(handlebarsCompile('{{formatDate when}}')({
+                        when: '2028-01-01T00:01:00.000Z'
+                    })).to.equal('01/01/2028 12:01 AM');
+                } finally {
+                    Settings.defaultZone = priorZone;
+                }
+            });
+
+            it('returns the original input for an invalid explicit zone', function () {
+                const when = '2028-01-01T00:01:00.000Z';
+                expect(handlebarsCompile('{{formatDate when "yyyy-MM-dd HH:mm" "Not/AZone"}}')({ when })).to.equal(when);
+            });
+
+            it('preserves empty and invalid input handling with an explicit zone', function () {
+                expect(handlebarsCompile(template)({ when: '' })).to.equal('');
+                expect(handlebarsCompile(template)({ when: 'not-a-date' })).to.equal('not-a-date');
+            });
+
+            it('combines an explicit zone with legacy Moment format tokens', function () {
+                expect(handlebarsCompile('{{formatDate when "DD/MM/YYYY HH:mm" "Australia/Sydney"}}')({
+                    when: '2028-01-01T13:30:00.000Z'
+                })).to.equal('02/01/2028 00:30');
+            });
         });
     });
 

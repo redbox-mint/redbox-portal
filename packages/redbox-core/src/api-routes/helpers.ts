@@ -497,8 +497,10 @@ export function isZodObjectSchema(schema: ApiSchemaField | undefined): schema is
   return schema instanceof ZodObject;
 }
 
-export function isPassthroughObjectSchema(schema: ZodType): schema is ZodObject<ZodRawShape> {
-  return schema instanceof ZodObject && 'catchall' in schema._zod.def && (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'unknown';
+export function allowsAdditionalObjectProperties(schema: ZodType): schema is ZodObject<ZodRawShape> {
+  if (!(schema instanceof ZodObject)) return false;
+  const catchall = schema._zod.def.catchall;
+  return catchall != null && catchall._zod.def.type !== 'never';
 }
 
 export function isOptionalSchema(schema: ZodType): boolean {
@@ -555,10 +557,11 @@ export function coerceValueForSchema(value: unknown, schema: ZodType): unknown {
         result[key] = coerceValueForSchema(value[key], childSchema as unknown as ZodType);
       }
     }
-    if (isPassthroughObjectSchema(schema)) {
+    if (allowsAdditionalObjectProperties(schema)) {
+      const catchall = schema._zod.def.catchall;
       for (const [key, childValue] of Object.entries(value)) {
         if (!Object.prototype.hasOwnProperty.call(shape, key)) {
-          result[key] = childValue;
+          result[key] = catchall instanceof ZodType ? coerceValueForSchema(childValue, catchall) : childValue;
         }
       }
     }

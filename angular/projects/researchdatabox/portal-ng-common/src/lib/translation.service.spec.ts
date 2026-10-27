@@ -80,6 +80,10 @@ describe('TranslationService testing', () => {
     configService.getConfig = function () { return mockConfigData};
     await translationService.waitForInit();
     expect(translationService.t('key1')).toEqual("value1");
+    expect(translationService.t('missing-default-key', 'Fallback')).toEqual('Fallback');
+    expect(translationService.t('missing-default-key', 'Fallback', undefined)).toEqual('Fallback');
+    expect(translationService.t('missing-interpolated-key', 'Hello {{name}}', { name: 'Ada' })).toEqual('Hello Ada');
+    expect(translationService.t('missing-interpolated-key', 'Hello {{name}}', { name: 'Grace' })).toEqual('Hello Grace');
   });
 
   it('should cache translations separately for different interpolation option objects', async function () {

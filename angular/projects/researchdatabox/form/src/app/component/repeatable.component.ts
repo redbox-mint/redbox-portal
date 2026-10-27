@@ -9,6 +9,7 @@ import {
 } from '@researchdatabox/portal-ng-common';
 import {
   ContentComponentName,
+  LineagePaths,
   FormConfigFrame,
   GroupFieldComponentName,
   isTypeFieldDefinitionName,
@@ -639,12 +640,26 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         dataModel: [indexStr],
         formConfig: ['component', 'config', 'elementTemplate'],
       });
-      const entry = this.compDefMapEntries[index].defEntry;
-      const previous = entry.lineagePaths;
-      entry.lineagePaths = lineagePath;
-      if (previous) this.rebaseDescendantLineage(entry.component?.formFieldCompMapEntries ?? [], previous, lineagePath);
+      this.rebuildElementLineagePaths(this.compDefMapEntries[index].defEntry, lineagePath);
     }
     this.publishDefinitionChange(options);
+  }
+
+  private rebuildElementLineagePaths(entry: FormFieldCompMapEntry, paths: LineagePaths): void {
+    const previous = entry.lineagePaths;
+    entry.lineagePaths = paths;
+    // Existing nested fields survive row removal/reordering. Move their paths
+    // with the row so newly appended rows cannot share their sibling scope.
+    for (const child of entry.component?.formFieldCompMapEntries ?? []) {
+      if (!child.lineagePaths || !previous) continue;
+      const childPaths = this.formService.buildLineagePaths(paths, {
+        angularComponents: child.lineagePaths.angularComponents.slice(previous.angularComponents.length),
+        layout: child.lineagePaths.layout.slice(previous.layout.length),
+        dataModel: child.lineagePaths.dataModel.slice(previous.dataModel.length),
+        formConfig: child.lineagePaths.formConfig.slice(previous.formConfig.length),
+      });
+      this.rebuildElementLineagePaths(child, childPaths);
+    }
   }
 
   protected publishDefinitionChange(options?: RepeatableSetValueOptions) {
@@ -657,26 +672,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         sourceId: this.formFieldConfigName() || undefined,
       })
     );
-  }
-
-  private rebaseDescendantLineage(
-    entries: FormFieldCompMapEntry[],
-    previous: NonNullable<FormFieldCompMapEntry['lineagePaths']>,
-    current: NonNullable<FormFieldCompMapEntry['lineagePaths']>
-  ): void {
-    for (const entry of entries) {
-      if (entry.lineagePaths) {
-        const paths = { ...entry.lineagePaths };
-        for (const key of ['angularComponents', 'layout', 'dataModel'] as const) {
-          const prefix = previous[key];
-          if (prefix.every((part, index) => String(paths[key][index]) === String(part))) {
-            paths[key] = [...current[key], ...paths[key].slice(prefix.length)];
-          }
-        }
-        entry.lineagePaths = this.formService.buildLineagePaths(undefined, paths);
-      }
-      this.rebaseDescendantLineage(entry.component?.formFieldCompMapEntries ?? [], previous, current);
-    }
   }
 
   protected createFieldNewMapEntry(

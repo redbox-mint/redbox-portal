@@ -111,6 +111,51 @@ describeMongo('Record pagination with MongoDB', function () {
     });
   }
 
+  describe('deleted title filtering', function () {
+    const filterPackage = 'deleted-title-filter-test';
+    const titleFixtures = [
+      { suffix: 'match', title: 'Title.[x]' },
+      { suffix: 'regex-decoy', title: 'Titleax' },
+      { suffix: 'brand-denied', title: 'Title.[x]', brandId: 'other-brand' },
+      { suffix: 'access-denied', title: 'Title.[x]', viewer: 'other-user' },
+      { suffix: 'type-denied', title: 'Title.[x]', type: 'publication' },
+      { suffix: 'workflow-denied', title: 'Title.[x]', stage: 'submitted' },
+      { suffix: 'package-denied', title: 'Title.[x]', packageType: 'other-package' },
+    ].map(fixture => ({
+      _id: new ObjectId(),
+      redboxOid: `title-filter-${fixture.suffix}`,
+      deletedRecordMetadata: {
+        metadata: { title: fixture.title },
+        metaMetadata: {
+          brandId: fixture.brandId ?? brand.id,
+          type: fixture.type ?? 'rdmp',
+          packageType: fixture.packageType ?? filterPackage,
+        },
+        workflow: { stage: fixture.stage ?? 'draft' },
+        authorization: { view: [fixture.viewer ?? username] },
+      },
+    }));
+
+    before(async function () {
+      await service.deletedRecordCol.insertMany(titleFixtures);
+    });
+
+    after(async function () {
+      await service.deletedRecordCol.deleteMany({ _id: { $in: titleFixtures.map(fixture => fixture._id) } });
+    });
+
+    for (const field of ['title', 'deletedRecordMetadata.metadata.title']) {
+      for (const mode of ['equal', 'regex']) {
+        it(`finds only the authorized matching title using ${field} and ${mode}`, async function () {
+          const result = await service.getDeletedRecords('draft', ['rdmp'], 0, 20, username, [], brand,
+            undefined, [filterPackage], undefined, [field], 'Title.[x]', mode);
+          expect(result.totalItems).to.equal(1);
+          expect(result.items.map(record => record.redboxOid)).to.deep.equal(['title-filter-match']);
+        });
+      }
+    }
+  });
+
   for (const format of ['csv', 'json']) {
     it(`exports every record once as ${format} when timestamps tie`, async function () {
       let output = '';

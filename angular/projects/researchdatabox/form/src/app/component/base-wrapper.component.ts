@@ -1,4 +1,4 @@
-import { Component, Type, Input, ViewChild, OnDestroy, inject, Injector, Signal, HostBinding, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Type, Input, ViewChild, OnDestroy, inject, Injector, Signal, HostBinding, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
@@ -53,6 +53,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
   private readonly eventBus = inject(FormComponentEventBus);
   private readonly injector = inject(Injector);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly valueChangeEventProducer = new FormComponentValueChangeEventProducer(this.eventBus);
   private readonly valueChangeEventConsumer = new FormComponentValueChangeEventConsumer(this.eventBus);
   private readonly syncSourceEventConsumer = new FormComponentSyncSourceEventConsumer(this.eventBus);
@@ -76,6 +77,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
     formFieldCompMapEntry?: FormFieldCompMapEntry,
     omitLayout: boolean = false
   ): Promise<FormFieldBaseComponent<ValueType> | null> {
+    if (this.destroyRef.destroyed) return null;
     this.loggerService.debug(
       `${this.logName}: Starting initWrapperComponent for '${this.formFieldConfigName()}'.`,
       this.formFieldCompMapEntry
@@ -106,6 +108,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Wait until after the view has been initialized and formFieldDirective is available.
     await this.untilViewIsInitialised();
+    if (this.destroyRef.destroyed) return null;
 
     // Obtain the reference to the view container.
     const viewContainerRef = this.formFieldDirective.viewContainerRef;
@@ -140,6 +143,8 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Initialise the component.
     await compRef.instance.initComponent(this.formFieldCompMapEntry);
+    // Reloads can destroy this wrapper while a field is still initializing.
+    if (this.destroyRef.destroyed) return null;
 
     // Bind the change event producer if applicable.
     if (this.shouldAttachValueChangeProducer(this.formFieldCompMapEntry, compRef.instance)) {

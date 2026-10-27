@@ -175,6 +175,8 @@
   "manage-users-update-password": "Enter new password to change",
   "manage-users-edit-linked-notice": "This account is linked to {{primaryUsername}}. Roles and record access are managed by the primary account.",
   "welcome-title": "Welcome to ReDBox",
+  "researcher-home-above-panels": "",
+  "researcher-home-below-panels": "",
   "welcome-homepage-text": "This is the homepage of the DMP Tool. Some content needs to go here as well as a link to the researcher dashboard (still to be implemented).",
   "welcome-dashboard-link-text": "Proceed to the dashboard",
   "default-title": "ReDBox",

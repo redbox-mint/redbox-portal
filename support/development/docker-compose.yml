@@ -82,7 +82,7 @@ services:
     volumes: *rbportal-volumes
   mongodb:
     #image: mvertes/alpine-mongo:latest
-    image: mongo:latest@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc
+    image: mongo:latest@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
     volumes:
       - './devdata:/devdata:delegated'
       - './.dev/mongo/data/db:/data/db:delegated'
@@ -94,7 +94,7 @@ services:
     ports:
       - '27017:27017'
   solr:
-    image: solr:latest@sha256:4316295f16175f676ac6798769f7a21729131ab555f1ba8663839dd7abd92e13
+    image: solr:latest@sha256:1a712cae556d96883e032622692d2acfba7917d3b16c800deb4f8d2fbf0b77ea
     expose:
       - '8983'
     ports:
