@@ -98,7 +98,7 @@ export namespace Controllers {
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    errors: [error],
+                    errors: [new Error(error instanceof EmailTemplateError ? `Email failure: ${error.code}` : 'Email rendering failed.')],
                     headers: this.getNoCacheHeaders(),
                     chronicle: {emailProcessStepFailed: 'evaluate properties'},
                 });
@@ -163,13 +163,19 @@ export namespace Controllers {
                                 chronicle: {emailSent: true},
                             });
                         }
-                    });
+                    }, (error: unknown) => this.sendResp(req, res, {
+                        status: 500,
+                        displayErrors: [{ title: "An error has occurred", detail: "Failed to send email notification." }],
+                        headers: this.getNoCacheHeaders(),
+                        chronicle: { emailProcessStepFailed: 'send',
+                            emailErrorCode: error instanceof EmailTemplateError ? error.code : 'RENDER_FAILED' },
+                    }));
                 }
             }, (error: unknown) => {
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    errors: [error],
+                    errors: [new Error(error instanceof EmailTemplateError ? `Email failure: ${error.code}` : 'Email rendering failed.')],
                     headers: this.getNoCacheHeaders(),
                     chronicle: {emailProcessStepFailed: 'render template'},
                 });

@@ -9,6 +9,7 @@ import { Buffer } from 'buffer';
 //TODO: Move to a shared place when we want to reuse dompurify 
 type DomPurifyInstance = {
   sanitize: (input: string, config?: Record<string, unknown>) => string;
+  removed?: unknown[];
   addHook: (hook: string, cb: (...args: unknown[]) => void) => void;
   removeHook: (hook: string) => void;
 };
@@ -249,6 +250,7 @@ export namespace Services {
    * Available profiles:
    * - 'svg': Strict SVG sanitization for user-uploaded SVG files
    * - 'html': General HTML content sanitization for rich text
+   * - 'email': Email formatting with remote images and restricted URLs
    * - 'minimal': Light sanitization for trusted content
    * 
    * Usage:
@@ -291,6 +293,39 @@ export namespace Services {
       } catch (error) {
         sails.log.error(`DomSanitizerService: Error sanitizing content with profile '${profileName}':`, error);
         throw error;
+      }
+    }
+
+    /** Strict email profile with attribute-specific URL checks (DOMPurify permits data images by default). */
+    sanitizeEmail(content: string): { sanitized: string; removed: boolean } {
+      if (typeof content !== 'string') throw new Error('Content must be a string');
+      if (!sails.config.dompurify?.profiles?.email) throw new Error('DOMPurify email profile is required');
+      const instance = createDOMPurifyForCall();
+      let removed = false;
+      instance.addHook('uponSanitizeAttribute', (node: unknown, event: unknown) => {
+        const attribute = event as { attrName: string; attrValue: string; keepAttr: boolean };
+        const name = attribute.attrName.toLowerCase();
+        const value = attribute.attrValue.trim();
+        const tag = (node as { tagName?: string }).tagName?.toLowerCase();
+        const unsafe = name.startsWith('on') ||
+          (name === 'href' && (tag !== 'a' || !/^(?:https?:\/\/|mailto:)/i.test(value))) ||
+          (name === 'src' && (tag !== 'img' || !/^https?:\/\//i.test(value))) ||
+          // Keep inline presentation, but no CSS execution, escapes or resource loading.
+          (name === 'style' && /url\s*\(|(?:image-set|image|src|expression)\s*\(|(?:javascript|vbscript|data)\s*:|@|\\|\/\*|behavior\s*:|-moz-binding/i.test(value));
+        if (unsafe) { attribute.keepAttr = false; removed = true; }
+      });
+      try {
+        const sanitized = String(instance.sanitize(content, this.getDOMPurifyConfig('email')));
+        // DOMPurify records its parser-created BODY wrapper as removed when
+        // BODY is absent from ALLOWED_TAGS. Attribute removals on that wrapper
+        // still count; serialization/HTML normalization alone does not.
+        const removedContent = instance.removed?.some(entry => {
+          const removal = entry as { element?: { tagName?: string }; attribute?: unknown };
+          return removal.attribute || removal.element?.tagName !== 'BODY';
+        });
+        return { sanitized, removed: removed || Boolean(removedContent) };
+      } finally {
+        instance.removeHook('uponSanitizeAttribute');
       }
     }
 
