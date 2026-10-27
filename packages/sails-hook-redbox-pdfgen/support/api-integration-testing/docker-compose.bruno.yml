@@ -23,7 +23,7 @@ x-rbportal-depends: &rbportal-depends
 
 services:
   bruno:
-    image: node:24.14.1-bookworm
+    image: node:24.22.1-bookworm
     pull_policy: "missing"
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
