@@ -151,7 +151,6 @@ export async function recordWriteFixture(
         await search.initialize();
         const audit = new RecordAuditReader({
           storage,
-          createAudit: data => storage.createRecordAudit!(data),
           log: nothingLogger,
           resolveUser: username => f.identities.one('user', { username }),
         });
