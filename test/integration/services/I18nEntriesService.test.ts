@@ -1,5 +1,6 @@
 const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove, fixtureCreate } from '../../helpers/persistenceFixtures';
+import { I18nEntries } from '@researchdatabox/redbox-core/translations';
 /*
  Integration tests for I18nEntriesService covering its public API.
  Follows the style of existing tests in test/integration/services.
@@ -237,20 +238,23 @@ describe('I18nEntriesService', function () {
     const path = await import('node:path');
     const testLocale = `zz-i18n-${Date.now()}`;
     const testNamespace = 'translation';
-    const localesDir = path.join(fixture.config.appPath, 'language-defaults');
+    const os = await import('node:os');
+    const localesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-i18n-defaults-'));
     const localeDir = path.join(localesDir, testLocale);
     const defaults = { section: { title: 'Default Title', extra: 'Added' } };
     const filePath = path.join(localeDir, `${testNamespace}.json`);
-    const originalGetBrand = fixture.services.BrandingService.getBrand;
-
-    fs.mkdirSync(localeDir, { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(defaults));
+    const input = Reflect.get(fixture.services.I18nEntriesService, 'input');
+    const entries = new I18nEntries({
+      ...input,
+      localesDirectory: localesDir,
+      getBrand: name => name === 'default' ? branding : input.getBrand(name),
+    });
 
     try {
-      // Point bootstrap at the test branding so we can assert against the same DB rows.
-      fixture.services.BrandingService.getBrand = (name) => (name === 'default' ? branding : originalGetBrand?.call(fixture.services.BrandingService, name));
+      fs.mkdirSync(localeDir, { recursive: true });
+      fs.writeFileSync(filePath, JSON.stringify(defaults));
 
-      await fixture.services.I18nEntriesService.setBundle(
+      await entries.setBundle(
         branding,
         testLocale,
         testNamespace,
@@ -259,15 +263,14 @@ describe('I18nEntriesService', function () {
         { overwriteEntries: true }
       );
 
-      await fixture.services.I18nEntriesService.bootstrap([testLocale]);
+      await entries.bootstrap([testLocale]);
 
-      const merged = await fixture.services.I18nEntriesService.getBundle(branding, testLocale, testNamespace);
+      const merged = await entries.getBundle(branding, testLocale, testNamespace);
       expect(merged).to.be.ok;
       expect(merged?.data?.section?.title).to.equal('Existing Title');
       expect(merged?.data?.section?.extra).to.equal('Added');
     } finally {
-      fixture.services.BrandingService.getBrand = originalGetBrand;
-      try { fs.rmSync(localeDir, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
+      fs.rmSync(localesDir, { recursive: true, force: true });
     }
   });
 
