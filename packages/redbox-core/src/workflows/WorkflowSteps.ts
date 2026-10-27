@@ -88,15 +88,16 @@ export namespace Services {
             const workflowConf = this.input.config.workflow[recordTypeName][
               workflowStep['workflow']
             ] as WorkflowStageDefinition & { hidden?: boolean };
-            const form = _.get(workflowConf, 'config.form', '');
+            const stageConfig = _.cloneDeep(workflowConf.config);
+            const form = _.get(stageConfig, 'form', '');
             if (form == '') {
-              _.set(workflowConf.config, 'form', 'generated-view-only');
+              _.set(stageConfig, 'form', 'generated-view-only');
             }
             const obs = await firstValueFrom(
               this.create(
                 workflowStep['recordType'],
                 workflowStep['workflow'],
-                workflowConf.config,
+                stageConfig,
                 workflowConf.starting == true,
                 workflowConf.hidden
               )
