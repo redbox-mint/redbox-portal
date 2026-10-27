@@ -6,7 +6,7 @@ task_logs="${SR_P7_DATABASE_LOGS:-$task_root/.tmp/sails-retirement/p7/database-$
 mkdir -p "$task_logs"
 task_run="${SR_P7_DATABASE_RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 [[ "$task_run" =~ ^[a-zA-Z0-9-]+$ ]]
-node --eval 'require("node:assert/strict").equal(process.version, "v26.11.1")'
+node --eval 'require("node:assert/strict").equal(process.version, "v26.12.1")'
 task_containers=()
 cleanup() {
   task_status=$?

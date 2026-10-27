@@ -11,7 +11,7 @@ const {nothingLogger:log}=appRequire('@researchdatabox/sails-ng-common');
 const {REDBOX_APPLICATION_CONFIG,REDBOX_ENVIRONMENT_CONFIG,REDBOX_LOCAL_CONFIG,...env}=process.env;
 const options={appPath:process.cwd(),files:{application:REDBOX_APPLICATION_CONFIG},env,log};
 (async()=>{
-  assert.equal(process.env.SR_WSU_DISPOSABLE,'true');assert.equal(process.version,'v26.11.1');
+  assert.equal(process.env.SR_WSU_DISPOSABLE,'true');assert.equal(process.version,'v26.12.1');
   let portal=await createWsuPortal(options,false),releaseWork;
   const config=portal.config;
   for(const url of [config.datastores.mongodb.url,config.datastores.redboxStorage.url,config.agendaQueue.options.db,config.redboxSession.mongoUrl]){

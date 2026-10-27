@@ -3,7 +3,7 @@
 # exporting the builder's large development dependency tree as a Docker image.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-node --eval 'require("node:assert/strict").equal(process.version, "v26.11.1")'
+node --eval 'require("node:assert/strict").equal(process.version, "v26.12.1")'
 task_context=${SR_P7_CLEAN_CONTEXT:?Set the clean git-archive build context}
 task_output=${SR_P7_PACKED_OUTPUT:?Set a new output directory for packed qualification}
 [[ -f "$task_context/Dockerfile" && -f "$task_context/package-lock.json" ]]
