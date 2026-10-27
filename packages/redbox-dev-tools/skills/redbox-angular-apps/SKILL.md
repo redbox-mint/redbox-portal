@@ -22,8 +22,14 @@ Use the `redbox-dev-tools` CLI generator `generate_angular_app`:
 ## Patterns
 - Apps are scaffolded using `@angular-devkit/build-angular:application`.
 - EJS views include the Angular component tag and the hashed JS/CSS bundles.
-- Use `CacheService.getNgAppFileHash(appName, type, prefix)` for hashed asset names.
-- Apps are usually served via `RenderViewController.render` with the view specified in `locals`.
+- Use the request-scoped `page` context supplied by the Express page composition.
+  Declare package-relative view/asset roots in the extension and bind any custom
+  page handler explicitly. Read `support/wiki/Controllers-Architecture.md` and
+  `support/specs/sails-retirement/hook-migration-v6.md` for installed packaging.
+
+```ejs
+<script src="<%= page.root %>/angular/my-app/browser/main<%= page.bundleHash('my-app', 'main', '-') %>.js" type="module"></script>
+```
 
 ## angular.json
 New projects must be added to `angular.json` with appropriate `outputPath` and `baseHref`.

@@ -11,7 +11,7 @@ Use this skill whenever new business logic or routes are merged so the functiona
 
 ## Analyze first
 
-- Inspect the new/updated code in `packages/redbox-core/src/services` (for services) or `packages/redbox-core/src/controllers` plus `config/routes` (for routes) to understand the happy path, dependencies, and any edge cases the feature must cover.
+- Inspect the new/updated code in `packages/redbox-core/src/services` (for services) or `packages/redbox-core/src/http/express` plus `src/api-routes` (for routes) to understand the happy path, dependencies, and any edge cases the feature must cover.
 - Take notes on expected inputs, persisted entities, authorization requirements, and downstream effects; those points become the assertions in the new test.
 
 ## Mocha service integration coverage
@@ -26,7 +26,7 @@ Use this skill whenever new business logic or routes are merged so the functiona
 - When a new controller or route is introduced (or an existing route grows new behavior), add a Bruno scenario under `test/bruno` that hits the HTTP endpoint through the normal request pipeline.
 - Reuse existing Bruno test patterns for authentication, parameter passing, and response validation; the new suite should cover the new route name/path plus potential role restrictions.
 - Keep suites grouped under the relevant Bruno folder (e.g., `test/bruno/general`) and ensure the new file is wired into the `test/bruno/run` scripts if needed.
-- Do not toggle CSRF headers/flags in route configs; the Bruno environments already disable CSRF globally in Sails config, so follow the default route definitions.
+- Keep production CSRF policies. Browser tests obtain a session token; API tests use the configured independently verified bearer identity. Cover unauthorized, wrong-brand and missing-token requests.
 
 ## Verify by running the suites
 

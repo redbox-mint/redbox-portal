@@ -3,10 +3,12 @@
 ## Context
 ReDBox uses a JSON-based DSL for configuring record forms, workflows, and record types.
 
-## Locations
-- Form configurations: `config/form.js`
-- Workflow configurations: `config/workflow.js`
-- Record type configurations: `config/recordtype.js`
+## Configuration ownership
+Read `support/wiki/Configuration-Guide.md`. Put `recordtype`, `workflow` and form
+section values in explicitly selected deployment data or neutral extension
+contributions. Core defaults live under `packages/redbox-core/src/config`;
+institution form declarations belong to the extension's `forms` contributions.
+Build the hook and validate its installed declarations before startup.
 
 ## Key Concepts
 - **Record Type**: Defines the entity (e.g., `rdmp`) and its search filters.

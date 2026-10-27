@@ -1,6 +1,6 @@
 <div class="default-page">
   <div class="header">
-    <h1 id="main-title" class="container"><%- TranslationService.t('welcome-title') %></h1>
+    <h1 id="main-title" class="container"><%- page.t('welcome-title') %></h1>
   </div>
 <div class="row equal">
 <% if (typeof homePanels !== 'undefined' && homePanels && homePanels.panels && homePanels.panels.length > 0) { %>
@@ -28,17 +28,17 @@
          <div class="panel-heading text-center">
              <span class="panel-title">
                <div><i class="icon-checklist icon-3x" ></i></div>
-               <%= TranslationService.t('menu-plan')%>
+               <%= page.t('menu-plan')%>
              </span>
          </div>
          <div class="panel-body">
-           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></div>
-           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></div>
-             <% if (TranslationService.t('get-advice-link') != "get-advice-link") {
+           <div><a href="<%= page.base %>/record/rdmp/edit"><%= page.t('create-rdmp')%></a></div>
+           <div><a href="<%= page.base %>/dashboard/rdmp"><%= page.t('edit-dashboard-rdmp')%></a></div>
+             <% if (page.t('get-advice-link') != "get-advice-link") {
              %>
-                 <div><a rel="noopener noreferrer" target="_blank" href="<%= TranslationService.t('get-advice-link') %>"><%= TranslationService.t('get-advice') %></a></div>
-             <% } else if (sails.config.appmode.hidePlaceholderPages == false) { %>
-                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/getAdvice"><%= TranslationService.t('get-advice') %></a></div>
+                 <div><a rel="noopener noreferrer" target="_blank" href="<%= page.t('get-advice-link') %>"><%= page.t('get-advice') %></a></div>
+             <% } else if (page.config.appmode.hidePlaceholderPages == false) { %>
+                 <div><a href="<%= page.base %>/getAdvice"><%= page.t('get-advice') %></a></div>
              <% } %>
          </div>
       </div>
@@ -47,15 +47,15 @@
       <div class="panel panel-default">
         <div class="panel-heading text-center">
           <div><i class="fa fa-sitemap fa-3x"></i></div>
-          <span class="panel-title"><%= TranslationService.t('menu-organise-worspace')%></span>
+          <span class="panel-title"><%= page.t('menu-organise-worspace')%></span>
         </div>
         <div class="panel-body">
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('workspaces-dashboard')%></a></div>
-            <% if (TranslationService.t('workspace-services-list-link') != "workspace-services-list-link") {
+          <div><a href="<%= page.base %>/workspaces/list"><%= page.t('workspaces-dashboard')%></a></div>
+            <% if (page.t('workspace-services-list-link') != "workspace-services-list-link") {
             %>
-                <div><a rel="noopener noreferrer" target="_blank" href="<%= TranslationService.t('workspace-services-list-link') %>"><%= TranslationService.t('workspace-services-list') %></a></div>
-            <%  } else if (sails.config.appmode.hidePlaceholderPages == false) { %>
-                <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/availableServicesList"><%= TranslationService.t('workspace-services-list') %></a></div>
+                <div><a rel="noopener noreferrer" target="_blank" href="<%= page.t('workspace-services-list-link') %>"><%= page.t('workspace-services-list') %></a></div>
+            <%  } else if (page.config.appmode.hidePlaceholderPages == false) { %>
+                <div><a href="<%= page.base %>/availableServicesList"><%= page.t('workspace-services-list') %></a></div>
             <% } %>
         </div>
       </div>
@@ -64,11 +64,11 @@
       <div class="panel panel-default">
         <div class="panel-heading text-center">
             <div><i class="fa fa-laptop fa-3x"></i></div>
-            <span class="panel-title"><%= TranslationService.t('menu-manage')%></span>
+            <span class="panel-title"><%= page.t('menu-manage')%></span>
         </div>
         <div class="panel-body">
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></div>
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></div>
+          <div><a href="<%= page.base %>/record/dataRecord/edit"><%= page.t('create-datarecord')%></a></div>
+          <div><a href="<%= page.base %>/dashboard/dataRecord"><%= page.t('edit-dashboard-datarecord')%></a></div>
         </div>
        </div>
     </div>
@@ -76,11 +76,11 @@
       <div class="panel panel-default">
         <div class="panel-heading text-center">
             <div><i class="fa fa-rocket fa-3x"></i></div>
-            <span class="panel-title"><%= TranslationService.t('menu-publish')%></span>
+            <span class="panel-title"><%= page.t('menu-publish')%></span>
         </div>
         <div class="panel-body">
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></div>
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></div>
+          <div><a href="<%= page.base %>/record/dataPublication/edit"><%= page.t('create-data-publication')%></a></div>
+          <div><a href="<%= page.base %>/dashboard/dataPublication"><%= page.t('edit-dashboard-publication')%></a></div>
         </div>
        </div>
     </div>

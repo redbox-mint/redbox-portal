@@ -1,56 +1,17 @@
-# Skill: Redbox Controllers
+---
+name: 'Redbox Controllers'
+description: 'Implement ReDBox HTTP routes with explicit transport inputs, policies and owned domains.'
+---
 
-## Context
+# ReDBox HTTP routes
 
-ReDBox controllers live in `@researchdatabox/redbox-core` and are surfaced to Sails.js through generated shims.
+Read `support/wiki/Controllers-Architecture.md` for route/policy composition and
+`support/wiki/V6-Client-Compatibility.md` for public behavior changes.
+Core transports live in `packages/redbox-core/src/http/express`; API contracts
+live in `src/api-routes`. Call domains through explicit inputs. Keep actor, brand,
+CSRF and object authorization at their declared admission boundaries. Return the
+versioned owned response contract and record safe operation failures.
 
-## Locations
-
-- API controllers: `packages/redbox-core/src/controllers/`
-- Webservice controllers: `packages/redbox-core/src/controllers/webservice/`
-
-## Patterns
-
-- Extend `Controllers.Core.Controller`.
-- Implement `init()` for sails-dependent setup (avoid using `sails` in constructors).
-- Use `_exportedMethods` to define which methods are exposed.
-- Actions are usually `async index(req, res)`.
-- **Response Handling:** Use `this.sendResp(data, req, res)` instead of direct `res.json()` or `res.send()`. This ensures consistent response formatting.
-
-## Generating Controllers
-
-Use the `redbox-dev-tools` CLI generator `generate controller`:
-
-- `name`: Controller name (e.g., `MyRecord`) as an argument.
-- `--actions <list>`: Comma-separated actions (e.g., `index,get,save`).
-- `--webservice`: If it's a webservice controller.
-- `--routes <routes>`: Action-to-route mappings: `action:verb:path[:role1:role2],...` (e.g., `list:get:/api/items:Admin:Researcher`).
-- `--auth <roles>`: Default roles for auth rules (can be overridden per-route).
-
-## Adding Methods
-
-Use `redbox-dev-tools generate method` to add actions to an existing controller:
-
-- `--file <path>`: Path to the controller file.
-- `--method <name>`: Method name.
-- `--route <route>`: Route path (e.g., `/api/new-path`).
-- `--http <verb>`: HTTP verb (GET, POST, etc.).
-- `--auth <roles>`: Auth roles.
-
-## Index Updates
-
-When adding a controller, you must update `packages/redbox-core/src/controllers/index.ts`:
-
-- Import the controller module.
-- Add to `ControllerExports` (or `WebserviceControllerExports`) with a lazy getter.
-- Add to `ControllerNames` (or `WebserviceControllerNames`) array.
-
-## Route Configuration
-
-Routes are defined in `packages/redbox-core/src/config/routes.config.ts`.
-Pattern: `'get /api/my-path': { controller: 'MyController', action: 'index' }`
-
-## Auth Rules
-
-Auth rules are defined in `packages/redbox-core/src/config/auth.config.ts`.
-Pattern: `{ path: '/api/my-path', role: 'admin', can_read: true }`
+For extension routes, export a `RedboxExtension` declaration with named routes,
+actions and access, and bind the selected factory explicitly. Use the v6 CLI
+scaffold and validate the emitted declaration and actual HTTP behavior.

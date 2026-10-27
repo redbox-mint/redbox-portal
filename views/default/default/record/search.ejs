@@ -3,14 +3,14 @@
   <div class="col-xs-1">
   </div>
   <div class="col-xs-10">
-    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
   </div>
   <div class="col-xs-1">
   </div>
 </div>
 <record-search search_url="record/search" record_type="<%= req.query.type ? req.query.type : 'rdmp'%>" search_str="<%= req.query.q ? req.query.q : '' %>" full_url="<%= req.url %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>></record-search>
 
-<script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/main<%= CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+<script src="<%= page.root %>/angular/<%= appName %>/browser/main<%= page.bundleHash(appName, 'main', '-') %>.js"
     type="module"></script>
 <link rel="stylesheet"
-  href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '-') %>.css">
+  href="<%= page.root %>/angular/<%= appName %>/browser/styles<%= page.bundleHash(appName, 'styles', '-') %>.css">
