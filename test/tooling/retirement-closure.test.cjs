@@ -8,6 +8,30 @@ const { test } = require('node:test');
 const auditor = path.resolve(__dirname, '../../support/tooling/sails-retirement/retirement-closure.cjs');
 
 for (const [label, source, count] of [
+  ['complete comment', '<!-- sails.lift(); -->', 0],
+  ['overlapping delimiters', '<!<!-- ignored -->-- sails.lift(); -->', 0],
+  ['unterminated trailing comment', '<!-- sails.lift();', 0],
+  ['overlap creating an unterminated comment', '<!<!-- ignored -->-- sails.lift();', 0],
+  ['live code after overlapping comments', '<!<!-- ignored -->-- sails.lift(); -->\nsails.lower();', 1],
+  ['live code before an unterminated comment', 'sails.lift(); <!-- unfinished', 1],
+  ['first close ends a nested HTML comment', '<!-- outer <!-- nested --> sails.lift(); -->', 1],
+]) {
+  test(`retirement audit strips HTML ${label}`, () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-html-'));
+    try {
+      fs.writeFileSync(path.join(directory, 'fixture.ejs'), source);
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
+      assert.equal(result.error, undefined);
+      const audit = JSON.parse(result.stdout);
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}
+
+for (const [label, source, count] of [
   ['exact rejected EJS fixture', "fs.writeFileSync(file, '<%= sails.config.appUrl %>');", 0],
   ['evaluated legacy path', "eval('sails.config.appUrl');", 1],
   ['live access beside the fixture', "fs.writeFileSync(file, '<%= sails.config.appUrl %>'); sails.lift();", 1],
