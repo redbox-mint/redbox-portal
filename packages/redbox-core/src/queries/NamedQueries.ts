@@ -1,3 +1,4 @@
+import { bootstrapFailureDetails } from './bootstrapDiagnostics';
 import _ from 'lodash';
 import { defer } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
@@ -164,7 +165,10 @@ export namespace Services {
           this.input.log.verbose(`Named query bootstrap data path not found: ${bootstrapPath}`);
           return;
         }
-        this.input.log.error(`Failed to read named query bootstrap data path: ${bootstrapPath}`);
+        this.input.log.error(
+          `Failed to read named query bootstrap data path: ${bootstrapPath}`,
+          bootstrapFailureDetails(error)
+        );
         return;
       }
 
@@ -192,8 +196,11 @@ export namespace Services {
 
           await this.create(defBrand, name, definition);
           this.input.log.verbose(`Bootstrapped named query: ${name}`);
-        } catch (_error) {
-          this.input.log.error(`Failed to bootstrap named query from file: ${fileName}`);
+        } catch (error) {
+          this.input.log.error(
+            `Failed to bootstrap named query from file: ${fileName}`,
+            bootstrapFailureDetails(error)
+          );
         }
       }
     }
@@ -211,8 +218,11 @@ export namespace Services {
       try {
         const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
         return JSON.parse(content) as T;
-      } catch (_error) {
-        this.input.log.error(`Failed to read named query bootstrap file: ${path.basename(filePath)}`);
+      } catch (error) {
+        this.input.log.error(
+          `Failed to read named query bootstrap file: ${path.basename(filePath)}`,
+          bootstrapFailureDetails(error)
+        );
         return null;
       }
     }
