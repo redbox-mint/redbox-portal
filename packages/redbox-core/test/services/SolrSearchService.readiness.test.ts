@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { createServer } from 'node:http';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
 import { Services } from '../../src/services/SolrSearchService';
 const axios = require('axios');
 
@@ -21,7 +21,7 @@ describe('SolrSearchService bootstrap readiness', function () {
       },
       preIndex: { move: [{ source: 'metadata', dest: '' }], flatten: { options: { delimiter: '_' } } },
     });
-    sailsMock = createMockSails({
+    sailsMock = createDomainFixture({
       config: {
         solr: {
           cores: { default: core('redbox'), secondary: core('other') },
@@ -31,9 +31,8 @@ describe('SolrSearchService bootstrap readiness', function () {
         },
         queue: { serviceName: 'agendaqueueservice' },
       },
-      services: { agendaqueueservice: { now: sinon.stub().resolves() } },
+      collaborators: { agendaqueueservice: { now: sinon.stub().resolves() } },
     });
-    setupServiceTestGlobals(sailsMock);
     writes = sinon.stub().resolves({});
     sinon.stub(axios, 'create').returns({ post: writes });
     gets = sinon.stub(axios, 'get').callsFake(async (url: string) => ({
@@ -42,12 +41,11 @@ describe('SolrSearchService bootstrap readiness', function () {
         : { schema: { fields: [], dynamicFields: [], copyFields: [] } },
     }));
     schemaPosts = sinon.stub(axios, 'post').resolves({ data: {} });
-    service = new Services.SolrSearchService();
+    service = new Services.SolrSearchService({ config: sailsMock.config.solr, log: sailsMock.log, retainFollowup: work => work });
     await (service as any).processDynamicImports();
   });
   afterEach(function () {
     sinon.restore();
-    cleanupServiceTestGlobals();
   });
   const record = (core = 'default') =>
     ({ metadata: { title: 'Cold bootstrap' }, metaMetadata: { searchCore: core } }) as any;
@@ -61,7 +59,7 @@ describe('SolrSearchService bootstrap readiness', function () {
       })
     );
     let initialized = false;
-    const init = Promise.resolve(service.init()).then(() => {
+    const init = Promise.resolve(service.initialize()).then(() => {
       initialized = true;
     });
     const first = service.index('bootstrap-one', record());
@@ -79,10 +77,10 @@ describe('SolrSearchService bootstrap readiness', function () {
       'bootstrap-two',
     ]);
     expect(schemaPosts.callCount).to.equal(2);
-    await sailsMock.on.firstCall.args[1]();
+    service['queueService'] = sailsMock.collaborators.agendaqueueservice;
     expect(schemaPosts.callCount).to.equal(2);
     await service.index('queued-after-ready', record());
-    expect(sailsMock.services.agendaqueueservice.now.calledOnce).to.equal(true);
+    expect(sailsMock.collaborators.agendaqueueservice.now.calledOnce).to.equal(true);
   });
   it('initializes an inline worker safely before init or ready', async function () {
     expect(await service.index('early-record', record('secondary'))).to.equal(true);
@@ -93,7 +91,7 @@ describe('SolrSearchService bootstrap readiness', function () {
     const failure = new Error('schema POST denied');
     schemaPosts.rejects(failure);
     expect(
-      await Promise.resolve(service.init()).then(
+      await Promise.resolve(service.initialize()).then(
         () => undefined,
         err => err
       )
@@ -106,7 +104,7 @@ describe('SolrSearchService bootstrap readiness', function () {
   it('rejects exhausted core checks without writing or sleeping after the last attempt', async function () {
     gets.rejects(new Error('Solr offline'));
     const sleep = sinon.stub(service as any, 'sleep').resolves();
-    const error = await Promise.resolve(service.init()).then(
+    const error = await Promise.resolve(service.initialize()).then(
       () => undefined,
       err => err
     );
@@ -118,7 +116,7 @@ describe('SolrSearchService bootstrap readiness', function () {
     expect(schemaPosts.called).to.equal(false);
   });
   it('reports failed inline writes and rejects queued worker failures', async function () {
-    await service.init();
+    await service.initialize();
     const failure = new Error('Solr write rejected');
     writes.rejects(failure);
     expect(await service.index('failed', record())).to.equal(false);
@@ -139,7 +137,7 @@ describe('SolrSearchService bootstrap readiness', function () {
     expect(writes.called).to.equal(false);
   });
   it('does not acknowledge failed commits', async function () {
-    await service.init();
+    await service.initialize();
     writes.onSecondCall().rejects(new Error('commit rejected'));
     expect(await service.index('commit-failed', record())).to.equal(false);
   });
@@ -183,7 +181,7 @@ describe('SolrSearchService bootstrap readiness', function () {
         sailsMock.config.solr.maxWaitTries = 1;
         const notBounded = Symbol('setup did not settle');
         const result = await Promise.race([
-          service.init().then(() => undefined, err => err),
+          service.initialize().then(() => undefined, err => err),
           new Promise(resolve => { deadline = setTimeout(() => resolve(notBounded), 1000); }),
         ]);
         expect(result).not.to.equal(notBounded);
@@ -198,22 +196,23 @@ describe('SolrSearchService bootstrap readiness', function () {
     });
   }
 
-  it('does not require Solr at startup when another search service is configured', async function () {
-    sailsMock.config.search = { serviceName: 'customsearchservice' };
-    gets.rejects(new Error('unused Solr offline'));
-    await service.init();
+  it('does not initialize an unselected default search factory', async function () {
+    const { portalDomain } = require('../../src/application/portal/domain');
+    const constructed = sinon.spy(() => service);
+    const plan = portalDomain('search', [], constructed, value => ({ initialize: () => value.initialize(), close: async () => {} }), (_value): _value is Services.SolrSearchService => true, () => undefined);
+    const custom = { initialize: sinon.stub().resolves(), close: sinon.stub().resolves(), value: service };
+    const selected = plan.bind({ declaration: { name: 'search', create: () => custom } } as any)();
+    gets.rejects(new Error('unused default Solr offline'));
+    await selected.initialize();
+    expect(constructed.called).to.equal(false);
     expect(gets.called).to.equal(false);
-    expect(schemaPosts.called).to.equal(false);
-    // Explicit use of this service still runs the readiness gate.
-    sinon.stub(service as any, 'sleep').resolves();
-    expect(await service.index('explicit-solr-use', record())).to.equal(false);
-    expect(gets.called).to.equal(true);
+    expect(custom.initialize.calledOnce).to.equal(true);
   });
 
   for (const retries of [0, -1, NaN]) {
     it(`checks Solr at least once for retry setting ${retries}`, async function () {
       sailsMock.config.solr.maxWaitTries = retries;
-      await service.init();
+      await service.initialize();
       expect(gets.args.filter(args => args[0].includes('action=STATUS'))).to.have.length(2);
     });
   }
@@ -221,7 +220,7 @@ describe('SolrSearchService bootstrap readiness', function () {
   it('fails bounded checks when status does not include the configured core', async function () {
     gets.resolves({ data: { status: {} } });
     const sleep = sinon.stub(service as any, 'sleep').resolves();
-    const error = await service.init().then(() => undefined, err => err);
+    const error = await service.initialize().then(() => undefined, err => err);
     expect(error.message).to.contain('unavailable after 2 attempts');
     expect(gets.callCount).to.equal(2);
     expect(sleep.calledOnce).to.equal(true);
@@ -232,7 +231,7 @@ describe('SolrSearchService bootstrap readiness', function () {
     const failure = new Error('shared schema failure');
     let reject!: (error: Error) => void;
     schemaPosts.onFirstCall().returns(new Promise((_resolve, fail) => { reject = fail; }));
-    const initialized = service.init().then(() => undefined, err => err);
+    const initialized = service.initialize().then(() => undefined, err => err);
     const first = service.index('first', record());
     const second = service.index('second', record('secondary'));
     await tick();

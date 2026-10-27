@@ -1,6 +1,6 @@
 /**
  * Workflow Config Interface
- * (sails.config.workflow)
+ * (configuration.workflow)
  *
  * Workflow stage definitions for record types.
  */
@@ -8,91 +8,96 @@
 import type { ValidationOperationPolicyOverride } from '@researchdatabox/sails-ng-common';
 
 export interface WorkflowStageAuthorization {
-    viewRoles: string[];
-    editRoles: string[];
+  viewRoles: string[];
+  editRoles: string[];
 }
 
 export interface DashboardRowConfig {
-    title: string;
-    variable: string;
-    template: string;
-    initialSort?: 'asc' | 'desc';
-    defaultSort?: boolean;
+  title: string;
+  variable: string;
+  template: string;
+  initialSort?: 'asc' | 'desc';
+  defaultSort?: boolean;
 }
 
 export interface DashboardFormatRules {
-    filterBy?: Record<string, unknown>;
-    sortBy?: string;
-    groupBy?: string;
-    sortGroupBy?: Array<{ rowLevel: number; compareFieldValue: string }>;
+  filterBy?: Record<string, unknown>;
+  sortBy?: string;
+  groupBy?: string;
+  sortGroupBy?: Array<{ rowLevel: number; compareFieldValue: string }>;
 }
 
 export interface DashboardRowRule {
-    name: string;
-    action: 'show' | 'hide';
-    mode?: 'all' | 'alo';
-    renderItemTemplate: string;
-    evaluateRulesTemplate?: string;
+  name: string;
+  action: 'show' | 'hide';
+  mode?: 'all' | 'alo';
+  renderItemTemplate: string;
+  evaluateRulesTemplate?: string;
 }
 
 export interface DashboardRulesConfig {
-    ruleSetName: string;
-    applyRuleSet: boolean;
-    type?: string;
-    separator?: string;
-    rules: DashboardRowRule[];
-    mode?: 'all' | 'alo';
+  ruleSetName: string;
+  applyRuleSet: boolean;
+  type?: string;
+  separator?: string;
+  rules: DashboardRowRule[];
+  mode?: 'all' | 'alo';
 }
 
 export interface DashboardTableConfig {
-    rowConfig: DashboardRowConfig[];
-    formatRules?: DashboardFormatRules;
-    rowRulesConfig?: DashboardRulesConfig[];
-    groupRowConfig?: DashboardRowConfig[];
-    groupRowRulesConfig?: DashboardRulesConfig[];
+  rowConfig: DashboardRowConfig[];
+  formatRules?: DashboardFormatRules;
+  rowRulesConfig?: DashboardRulesConfig[];
+  groupRowConfig?: DashboardRowConfig[];
+  groupRowRulesConfig?: DashboardRulesConfig[];
 }
 
+/** One-time startup seed; omitted columns use the existing built-in column seed. */
+export type DashboardTableSeedConfig = Omit<DashboardTableConfig, 'rowConfig'> & {
+  rowConfig?: DashboardRowConfig[];
+};
+
 export interface DashboardConfig {
-    table?: DashboardTableConfig;
-    showAdminSideBar?: boolean;
+  table?: DashboardTableSeedConfig;
+  showAdminSideBar?: boolean;
 }
 
 export interface WorkflowStageConfig {
-    workflow: {
-        stage: string;
-        stageLabel: string;
-    };
-    authorization: WorkflowStageAuthorization;
-    form: string;
-    displayIndex?: number;
-    baseRecordType?: string;
-    dashboard?: DashboardConfig;
-    /** Workflow-stage overrides and restrictions layered over record-type operations. */
-    recordValidation?: WorkflowStageValidationConfig;
+  workflow: {
+    stage: string;
+    stageLabel: string;
+  };
+  authorization: WorkflowStageAuthorization;
+  form: string;
+  displayIndex?: number;
+  baseRecordType?: string;
+  dashboard?: DashboardConfig;
+  /** Workflow-stage overrides and restrictions layered over record-type operations. */
+  recordValidation?: WorkflowStageValidationConfig;
 }
 
 export interface WorkflowStageValidationConfig {
-    operations?: Record<string, ValidationOperationPolicyOverride>;
+  operations?: Record<string, ValidationOperationPolicyOverride>;
 }
 
 export interface WorkflowStageDefinition {
-    config: WorkflowStageConfig;
-    starting?: boolean;
+  config: WorkflowStageConfig;
+  starting?: boolean;
 }
 
 export interface WorkflowRecordType {
-    [stageName: string]: WorkflowStageDefinition;
+  [stageName: string]: WorkflowStageDefinition;
 }
 
 export interface WorkflowConfig {
-    [recordTypeName: string]: WorkflowRecordType;
+  [recordTypeName: string]: WorkflowRecordType;
 }
 
 /**
  * Default workflows are no longer shipped in core.
  *
  * The demo workflow stage definitions now live in the redbox-hook-dev package
- * and are merged into sails.config.workflow by the loader when that hook is
+ * and are merged into configuration.workflow by extension composition when that hook is
  * installed. Core ships pristine.
  */
 export const workflow: WorkflowConfig = {};

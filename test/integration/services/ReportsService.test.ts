@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove, fixtureRow, fixtureCreate } from '../../helpers/persistenceFixtures';
 describe('ReportsService report configuration integration', function () {
   const mutableReportName = 'report-config-integration';
@@ -47,7 +48,7 @@ describe('ReportsService report configuration integration', function () {
   });
 
   before(async function () {
-    brand = BrandingService.getBrand('default');
+    brand = fixture.services.BrandingService.getBrand('default');
     await cleanupReports();
   });
 
@@ -56,7 +57,7 @@ describe('ReportsService report configuration integration', function () {
   });
 
   it('creates, reads, lists, updates, and deletes mutable database report configs in RBReport', async function () {
-    const created = await ReportsService.createConfig(brand, createConfig());
+    const created = await fixture.services.ReportsService.createConfig(brand, createConfig());
 
     expect(created).to.include({
       name: mutableReportName,
@@ -82,13 +83,13 @@ describe('ReportsService report configuration integration', function () {
       { label: 'Date Modified', property: 'dateModified', hide: false, exportTemplate: '', template: '', multivalue: false },
     ]);
 
-    const fetched = await ReportsService.getConfig(brand, mutableReportName);
+    const fetched = await fixture.services.ReportsService.getConfig(brand, mutableReportName);
     expect(fetched).to.include({ name: mutableReportName, title: 'Integration report config' });
 
-    const listed = await ReportsService.listConfigs(brand);
+    const listed = await fixture.services.ReportsService.listConfigs(brand);
     expect(listed.map((report: any) => report.name)).to.include(mutableReportName);
 
-    const updated = await ReportsService.updateConfig(brand, mutableReportName, createConfig({
+    const updated = await fixture.services.ReportsService.updateConfig(brand, mutableReportName, createConfig({
       title: 'Updated integration report config',
       columns: [{ label: 'Record OID', property: 'oid' }],
     }));
@@ -103,7 +104,7 @@ describe('ReportsService report configuration integration', function () {
       { label: 'Record OID', property: 'oid', hide: false, exportTemplate: '', template: '', multivalue: false },
     ]);
 
-    const deleted = await ReportsService.deleteConfig(brand, mutableReportName);
+    const deleted = await fixture.services.ReportsService.deleteConfig(brand, mutableReportName);
     expect(deleted).to.deep.equal({ deleted: true });
     expect(await fixtureRow("RBReport", { key: `${brand.id}_${mutableReportName}` })).to.not.exist;
   });
@@ -120,7 +121,7 @@ describe('ReportsService report configuration integration', function () {
       },
     };
 
-    const result = await ReportsService.previewConfig(brand, createConfig(), req);
+    const result = await fixture.services.ReportsService.previewConfig(brand, createConfig(), req);
 
     expect(result).to.include({ success: true });
     expect(result.total).to.be.a('number');
@@ -129,14 +130,14 @@ describe('ReportsService report configuration integration', function () {
 
   it('rejects invalid configs before writing to RBReport', async function () {
     try {
-      await ReportsService.createConfig(brand, createConfig({ name: 'not url safe' }));
+      await fixture.services.ReportsService.createConfig(brand, createConfig({ name: 'not url safe' }));
       expect.fail('Expected invalid name to throw');
     } catch (error: any) {
       expect(error.status).to.equal(400);
     }
 
     try {
-      await ReportsService.createConfig(brand, createConfig({ databaseQuery: { queryName: 'does-not-exist' } }));
+      await fixture.services.ReportsService.createConfig(brand, createConfig({ databaseQuery: { queryName: 'does-not-exist' } }));
       expect.fail('Expected missing named query to throw');
     } catch (error: any) {
       expect(error.status).to.equal(400);
@@ -159,7 +160,7 @@ describe('ReportsService report configuration integration', function () {
       columns: [{ label: 'Title', property: 'title' }],
     });
 
-    const report = await ReportsService.getConfig(brand, solrReportName);
+    const report = await fixture.services.ReportsService.getConfig(brand, solrReportName);
     expect(report).to.include({
       name: solrReportName,
       readOnly: true,
@@ -169,14 +170,14 @@ describe('ReportsService report configuration integration', function () {
     });
 
     try {
-      await ReportsService.updateConfig(brand, solrReportName, createConfig({ name: solrReportName }));
+      await fixture.services.ReportsService.updateConfig(brand, solrReportName, createConfig({ name: solrReportName }));
       expect.fail('Expected solr update to throw');
     } catch (error: any) {
       expect(error.status).to.equal(403);
     }
 
     try {
-      await ReportsService.deleteConfig(brand, solrReportName);
+      await fixture.services.ReportsService.deleteConfig(brand, solrReportName);
       expect.fail('Expected solr delete to throw');
     } catch (error: any) {
       expect(error.status).to.equal(403);

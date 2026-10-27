@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 describe('The Named Query Service', function () {
   before(function (done) {
     done()
@@ -64,7 +65,7 @@ describe('The Named Query Service', function () {
     const numberParamValue = 1;
     let paramMap = {numberParam: numberParamValue};
 
-    NamedQueryService.setParamsInQuery(namedQueryConfig.mongoQuery, namedQueryConfig.queryParams, paramMap);
+    fixture.services.NamedQueryService.setParamsInQuery(namedQueryConfig.mongoQuery, namedQueryConfig.queryParams, paramMap);
     expect(namedQueryConfig.mongoQuery.numberPath).to.equal(numberParamValue);
     expect(namedQueryConfig.mongoQuery.isoDatePath).to.deep.equal({ "=>": '2024-12-17T00:00:00.000Z'});
     expect(namedQueryConfig.mongoQuery.defaultIsoDatePath).to.deep.equal({ "=>": '2024-12-18T00:00:00.000Z'});
@@ -143,7 +144,7 @@ describe('The Named Query Service', function () {
     const numberParamValue = 2;
     let paramMap = {numberParam: numberParamValue, isoDateParam: isoDateParamValue, stringParam: stringParamValue, daysDateParam: daysDateParamValue, defaultIsoDateParamValue: defaultIsoDateParamValue};
 
-    NamedQueryService.setParamsInQuery(namedQueryConfig.mongoQuery, namedQueryConfig.queryParams, paramMap);
+    fixture.services.NamedQueryService.setParamsInQuery(namedQueryConfig.mongoQuery, namedQueryConfig.queryParams, paramMap);
     expect(namedQueryConfig.mongoQuery.numberPath).to.equal(numberParamValue);
     expect(namedQueryConfig.mongoQuery.isoDatePath).to.deep.equal({ "=>": isoDateParamValue});
     expect(namedQueryConfig.mongoQuery.defaultIsoDatePath).to.deep.equal({ "=>": defaultIsoDateParamValue});
