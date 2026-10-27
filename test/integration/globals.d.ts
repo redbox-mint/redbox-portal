@@ -20,6 +20,8 @@ declare const ConfigService: any;
 declare const DOIService: any;
 
 declare const EmailService: any;
+declare const EmailTemplateService: any;
+declare const EmailTemplate: any;
 
 declare const FormRecordConsistencyService: any;
 declare const FormsService: any;

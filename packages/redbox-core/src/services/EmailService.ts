@@ -24,9 +24,22 @@ import { Services as services } from '../CoreService';
 // removed deprecated rxjs/add/operator imports; use firstValueFrom instead
 import { type TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
 import * as fs from 'graceful-fs';
+import { join } from 'node:path';
+import { EmailTemplateError, readEmailTemplateDefault, safeEmailTemplateError, validateEmailTemplate } from './EmailTemplateService';
 import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+
+
+/** Trusted delivery context; never inferred from template data or request bodies. */
+export interface EmailRenderContext {
+  brandId?: string;
+  /** Explicit caller overrides take precedence over the resolved template. */
+  subject?: string;
+  /** Runtime default for integration notifications; DB subjects still take priority. */
+  defaultSubject?: string;
+  format?: string;
+}
 
 export namespace Services {
   /**
@@ -39,11 +52,16 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'sendMessage',
       'buildFromTemplate',
+      'buildFromTemplateAsync',
       'sendTemplate',
       'sendRecordNotification',
       'evaluateProperties',
       'runTemplate',
     ];
+
+    // Keep the three-argument async hook seam intact. Hooks (including SCU) pass
+    // the response object to super after adding display values to data.
+    private renderContexts = new WeakMap<Record<string, unknown>, EmailRenderContext>();
 
     private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
 
@@ -55,7 +73,7 @@ export namespace Services {
      */
     private getCompiledTemplate(templateName: string): HandlebarsTemplateDelegate {
       if (!this.compiledTemplates.has(templateName)) {
-        const filePath = sails.config.emailnotification.settings.templateDir + templateName + '.hbs';
+        const filePath = join(sails.config.emailnotification.settings.templateDir, templateName + '.hbs');
         const source = fs.readFileSync(filePath, 'utf-8') || '';
         this.compiledTemplates.set(templateName, handlebarsCompile(source, { strict: true }));
       }
@@ -182,16 +200,38 @@ export namespace Services {
      */
     public async buildFromTemplateAsync(templateName: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
-        const renderedTemplate = this.getCompiledTemplate(templateName)(data);
+        const context = this.renderContexts.get(res);
+        const template = context?.brandId !== undefined
+          ? await EmailTemplateService.resolve(templateName, context.brandId)
+          : readEmailTemplateDefault(templateName);
+        const selected = {
+          ...template,
+          subject: context?.subject ?? (template.source === 'default' ? context?.defaultSubject : undefined) ?? template.subject,
+          format: context?.format ?? template.format,
+        };
+        validateEmailTemplate(selected as Parameters<typeof validateEmailTemplate>[0]);
+        // DB compilation is deliberately uncached. Every send queries storage;
+        // revision updates and delete/recreate cycles are visible on all workers.
+        const body = template.source === 'override'
+          ? handlebarsCompile(template.body, { strict: true })(data)
+          : this.getCompiledTemplate(template.fileName ?? templateName)(data);
 
         res['status'] = 200;
-        res['body'] = renderedTemplate;
+        res['body'] = body;
+        // Direct legacy body-only calls need not supply subject display values.
+        if (context) res['subject'] = this.runTemplate(selected.subject, data);
+        res['format'] = selected.format;
+        res['source'] = template.source;
+        res['revision'] = template.revision;
         return res;
       } catch (err) {
-        this.updateChronicle({ emailTemplate: templateName, emailTemplateOutcome: 'failed' }, [err]);
+        // Record and propagate one safe typed instance; render errors may quote template text.
+        const failure = err instanceof EmailTemplateError ? err
+          : safeEmailTemplateError('RENDER_FAILED', `Unable to render email template '${templateName}'.`, err);
+        this.updateChronicle({ emailTemplate: templateName, emailTemplateOutcome: 'failed' }, [failure]);
         res['status'] = 500;
         res['body'] = 'Templating error.';
-        res['ex'] = err;
+        res['ex'] = failure;
         return res;
       }
     }
@@ -204,8 +244,12 @@ export namespace Services {
      * @param data The variables to use when rendering the template.
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
-    public buildFromTemplate(template: string, data: Record<string, unknown> = {}): Observable<Record<string, unknown>> {
-  return from(this.buildFromTemplateAsync(template, data));
+    public buildFromTemplate(template: string, data: Record<string, unknown> = {}, context?: EmailRenderContext): Observable<Record<string, unknown>> {
+      const response: Record<string, unknown> = {};
+      // Legacy two-argument callers get body-only rendering (defaults only), as
+      // before; supplying a context opts into coherent subject/body/format output.
+      if (context !== undefined) this.renderContexts.set(response, { ...context });
+      return from(this.buildFromTemplateAsync(template, data, response));
     }
 
     /**
@@ -219,21 +263,12 @@ export namespace Services {
      * @param template The file name without extension.
      * @param data The variables to use when rendering the template.
      */
-    public sendTemplate(to: string, subject: string, template: string, data: Record<string, unknown>) {
+    public async sendTemplate(to: string, subject: string | undefined, template: string, data: Record<string, unknown>, context: EmailRenderContext = {}) {
       this.updateChronicle({ emailTemplate: template });
-      const buildResponse = this.buildFromTemplate(template, data);
-
-      buildResponse.subscribe((buildResult: Record<string, unknown>) => {
-        if (buildResult['status'] != 200) {
-          return;
-        } else {
-          const sendResponse = this.sendMessage(to, buildResult['body'] as string, subject);
-
-          sendResponse.subscribe(sendResult => {
-            return sendResult;
-          });
-        }
-      });
+      const buildResult = await firstValueFrom(this.buildFromTemplate(template, data, { ...context, subject: subject ?? context.subject }));
+      if (buildResult['status'] !== 200) throw buildResult['ex'] ?? new EmailTemplateError('RENDER_FAILED', 'Invalid email body.');
+      return firstValueFrom(this.sendMessage(to, buildResult['body'] as string, buildResult['subject'] as string,
+        undefined, buildResult['format'] as string));
     }
 
     /**
@@ -282,7 +317,9 @@ export namespace Services {
         };
         this.updateChronicle({ emailNotificationOutcome: 'processing' });
         // send record notification
-        const optionsEvaluated = this.evaluateProperties(options, {}, variables);
+        const optionsEvaluated = this.evaluateProperties(options, {}, variables, {
+          brandId: _.get(record, 'metaMetadata.brandId') as string | undefined,
+        });
 
         if (!optionsEvaluated.toRendered) {
           const error = new Error('Invalid email address.');
@@ -294,16 +331,16 @@ export namespace Services {
         const buildResult: Record<string, unknown> = await firstValueFrom(templateRendered);
 
         if (buildResult['status'] != 200) {
-          const error = new Error('Invalid email body.');
+          const error = (buildResult['ex'] as Error | undefined) ?? new EmailTemplateError('RENDER_FAILED', 'Invalid email body.');
           this.updateChronicle({ emailNotificationOutcome: 'invalid-body' }, [error]);
           throw error;
         }
         const sendResult = await firstValueFrom(this.sendMessage(
           optionsEvaluated.toRendered,
           buildResult['body'] as string,
-          optionsEvaluated.subjectRendered,
+          (buildResult['subject'] as string | undefined) ?? optionsEvaluated.subjectRendered,
           optionsEvaluated.fromRendered,
-          optionsEvaluated.formatRendered,
+          (buildResult['format'] as string | undefined) ?? optionsEvaluated.formatRendered,
           optionsEvaluated.ccRendered,
           optionsEvaluated.bccRendered,
           _.get(options, 'otherSendOptions', {}) as Record<string, unknown>,
@@ -361,7 +398,7 @@ export namespace Services {
      * @param config
      * @param templateData
      */
-    public evaluateProperties(options: Record<string, unknown>, config: Record<string, unknown> = {}, templateData: Record<string, unknown> = {}): {
+    public evaluateProperties(options: Record<string, unknown>, config: Record<string, unknown> = {}, templateData: Record<string, unknown> = {}, context: EmailRenderContext = {}): {
       format: string, formatRendered: string,
       from: string, fromRendered: string,
       to: string, toRendered: string,
@@ -389,6 +426,7 @@ export namespace Services {
         format: {
           names: ["msgFormat", "format",],
           defaultKey: "format",
+          templatesKey: "format",
         },
         from: {
           names: ["msgFrom", "from"],
@@ -417,7 +455,11 @@ export namespace Services {
         },
         template: {
           names: ["template"],
-          templateFunc: this.buildFromTemplate,
+          templateFunc: (name: string, data: Record<string, unknown>) => this.buildFromTemplate(name, data, {
+            ...context,
+            subject: options.subject as string | undefined,
+            format: (options.msgFormat ?? options.format) as string | undefined,
+          }),
         }
       }, config) as Record<string, Record<string, unknown>>;
 
@@ -431,7 +473,10 @@ export namespace Services {
 
       // Evaluate each property.
       for (const prop in mergedConfig) {
-        const propConfig = mergedConfig[prop] as Record<string, unknown>;
+        const propConfig = { ...mergedConfig[prop] } as Record<string, unknown>;
+        // A default subject may require data absent from an override. Render the
+        // selected subject inside the async hook seam, after source resolution.
+        if (prop === 'subject' && context.brandId !== undefined) delete propConfig.templateFunc;
 
         result = _.merge(
           result,
