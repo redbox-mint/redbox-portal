@@ -17,7 +17,9 @@ import * as persistence from '../../src/persistence/branding/runtime';
 import { createHttpPolicies } from '../../src/http/express/policies';
 
 describe('production page artifact precedence', () => {
-  it('asserts the complete asset order across sources, specificity, generated routes and bundle selection', async () => {
+  it('asserts the complete asset order across sources, specificity, generated routes and bundle selection', async function () {
+    // The serial HTTP/filesystem precedence matrix exceeds the unit suite's five-second budget.
+    this.timeout(30_000);
     const directory = await mkdtemp(join(tmpdir(), 'sr-portal-assets-'));
     const sandbox = sinon.createSandbox();
     sandbox.stub(persistence, 'getBrandingRepository').returns({} as never);
