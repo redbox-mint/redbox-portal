@@ -94,9 +94,14 @@ describe('Identity route target precedence', () => {
   for (const alias of ['find', 'get']) {
     for (const version of ['1.0', '2.0']) {
       it(`REST ${alias} returns a disabled account in API ${version}`, async () => {
-        f.users.findUsersWithQuery.returns(
-          of([{ id: selected, username: 'disabled-user', loginDisabled: true, roles: [] }])
-        );
+        const user = {
+          id: selected,
+          username: 'disabled-user',
+          loginDisabled: true,
+          roles: [{ name: 'Researcher', branding: 'brand-1' }],
+        };
+        f.users.findUsersWithQuery.returns(of([user]));
+        f.users.getUserWithId.returns(of(user));
         const response = await f.request(
           `/default/portal/api/users/${alias}?searchBy=username&query=disabled-user&apiVersion=${version}`
         );
