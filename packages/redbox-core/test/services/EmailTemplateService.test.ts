@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { inspect } from 'node:util';
 import { firstValueFrom, of } from 'rxjs';
 import * as sinon from 'sinon';
 import { ObjectId } from 'mongodb';
@@ -283,7 +284,7 @@ describe('Email template overrides', () => {
         return true;
       }
     );
-    await service.create('a', 'notice', { ...content('A'), subject: 'MAILMARK {{missingValue}}' });
+    await service.create('a', 'notice', { ...content('A'), subject: 'MAILMARK {{record.metadata.missingValue}}' });
     const result = await render('a');
     const failure = result.ex as EmailTemplateError;
     assert.equal(failure.code, 'RENDER_FAILED');
@@ -335,7 +336,7 @@ describe('Email template overrides', () => {
     const created = await service.create('a', 'notice', content('A'));
     let result = await render('a', {});
     assert.equal((result.ex as EmailTemplateError).code, 'RENDER_FAILED');
-    await service.update('a', 'notice', { ...content('A'), body: 'Present', subject: '{{missing}}' }, version(created));
+    await service.update('a', 'notice', { ...content('A'), body: 'Present', subject: '{{record.metadata.missing}}' }, version(created));
     result = await render('a');
     assert.equal((result.ex as EmailTemplateError).code, 'RENDER_FAILED');
     await assert.rejects(email.sendTemplate('recipient@example.com', undefined, 'notice', {}, { brandId: 'a' }), {
@@ -377,6 +378,7 @@ describe('Email template overrides', () => {
   });
 
   it('preserves the SCU three-argument override and display data for both sources', async () => {
+    mockSails.config.emailnotification.settings.additionalContextRoots = ['scuEmail'];
     class HookEmail extends EmailServices.Email {
       override async buildFromTemplateAsync(
         name: string,
@@ -407,6 +409,145 @@ describe('Email template overrides', () => {
     const leaked = await render('b');
     assert.equal(leaked.status, 500);
     assert.ok(!String(leaked.body).includes('HOOK-REINJECTED-SECRET'));
+  });
+
+  it('rejects invalid ASTs on create/update and reports all invalid stored rows for just the requested brand', async () => {
+    await assert.rejects(service.create('a', 'notice', { ...content('A'), body: '{{unknown}}' }), { code: 'INVALID_TEMPLATE' });
+    const a = await service.create('a', 'notice', content('A'));
+    const b = await service.create('b', 'notice', content('B'));
+    await assert.rejects(service.update('a', 'notice', { ...content('A'), subject: '{{unknown oid}}' }, version(a)), { code: 'INVALID_TEMPLATE' });
+    rows.set(key('a', 'notice'), { ...a, body: 'line one\n{{unknown}}' });
+    rows.set(key('b', 'notice'), { ...b, body: '{{> partial}}' });
+    const report = await service.reportInvalidOverrides('a');
+    assert.equal(report.length, 1);
+    assert.deepEqual(report[0], { brandId: 'a', templateId: 'notice', ...version(a), code: 'INVALID_TEMPLATE',
+      message: 'Email body: UNKNOWN_CONTEXT_ROOT at line 2, column 3.',
+      diagnostic: { field: 'body', reason: 'UNKNOWN_CONTEXT_ROOT', line: 2, column: 3 } });
+    assert.equal((await render('a')).status, 500);
+    await assert.rejects(service.reportInvalidOverrides('unknown'), { code: 'UNKNOWN_BRAND' });
+    rows.set(key('a', 'notice'), a);
+    assert.deepEqual(await service.reportInvalidOverrides('a'), []);
+    mockSails.config.emailnotification.settings.additionalContextRoots = ['hookDisplay'];
+    rows.set(key('a', 'notice'), { ...a, body: '{{hookDisplay}}' });
+    assert.deepEqual(await service.reportInvalidOverrides('a'), []);
+    mockSails.config.emailnotification.settings.additionalContextRoots = [];
+    assert.equal((await service.reportInvalidOverrides('a')).length, 1);
+    assert.equal(((await render('a')).ex as EmailTemplateError).code, 'INVALID_TEMPLATE');
+  });
+
+  it('saves uncertain-context roots and defers missing data to strict rendering', async () => {
+    const data = { name: 'Reader', oid: 'OID', record: { metadata: { title: 'Title', enabled: true, groups: [[{ name: 'Reader' }]] } } };
+    const body = '{{#record.metadata.enabled}}{{this.unknown}}{{/record.metadata.enabled}}';
+    let saved = await service.create('a', 'notice', { ...content('A'), body });
+    assert.equal((await service.get('a', 'notice'))!.body, body);
+    assert.deepEqual(await service.reportInvalidOverrides('a'), []);
+    const failed = await render('a', data);
+    assert.equal(failed.status, 500);
+    assert.equal((failed.ex as EmailTemplateError).code, 'RENDER_FAILED');
+    for (const [body, output] of [
+      ['{{#record.metadata.groups}}{{#this}}{{../../oid}}{{/this}}{{/record.metadata.groups}}', 'OID'],
+      ['{{#each this}}{{#if (eq @key "record")}}{{metadata.title}}{{/if}}{{/each}}', 'Title'],
+      ['{{#each @root as |value key|}}{{#if (eq key "record")}}{{value.metadata.title}}{{/if}}{{/each}}', 'Title'],
+    ]) {
+      saved = await service.update('a', 'notice', { ...content('A'), body }, version(saved));
+      assert.deepEqual(await service.reportInvalidOverrides('a'), []);
+      const result = await render('a', data);
+      assert.equal(result.status, 200);
+      assert.equal(result.body, output);
+    }
+  });
+
+  it('keeps bracketed source and quoted helper text out of audit reports, chronicles and logs', async () => {
+    const created = await service.create('a', 'notice', content('A'));
+    const emailChronicle = sinon.spy(email as any, 'updateChronicle');
+    const templateChronicle = sinon.spy(service as any, 'updateChronicle');
+    for (const field of ['subject', 'body']) {
+      for (const source of ['{{[PRIVATE BODY: contact Alice about case 123]}}', '{{"PRIVATE SUBJECT" record}}',
+        '{{get ("PRIVATE BODY" record) "title"}}', 'PRIVATE BODY {{#if oid}}']) {
+        rows.set(key('a', 'notice'), { ...created, [field]: source });
+        const report = await service.reportInvalidOverrides('a');
+        assert.equal(report.length, 1);
+        assert.equal(report[0].code, 'INVALID_TEMPLATE');
+        assert.equal(report[0].diagnostic!.field, field);
+        assert.deepEqual(Object.keys(report[0].diagnostic!).sort(), ['column', 'field', 'line', 'reason']);
+        const result = await render('a');
+        assert.equal(result.status, 500);
+        assert.ok(result.ex instanceof EmailTemplateError);
+        assert.ok(emailChronicle.calledWithMatch({ emailTemplateOutcome: 'failed' }, [result.ex]));
+        assert.ok(!inspect([report, result.ex, emailChronicle.args, templateChronicle.args,
+          mockSails.log.error.args, mockSails.log.warn.args], { depth: null }).includes('PRIVATE'));
+      }
+    }
+  });
+
+  it('curates record bodies and subjects on every path and both sources while addresses retain full records', async () => {
+    const privateValue = 'PRIVATE-AUTH-AND-INTERNALS';
+    const record = {
+      redboxOid: 'oid', metadata: { title: 'Title', people: [{ name: 'Person' }] },
+      dateCreated: '2026-01-01', lastSaveDate: '2026-01-02',
+      workflow: { stage: 'review', stageLabel: 'Review', private: privateValue },
+      metaMetadata: { type: 'rdmp', brandId: 'a', createdBy: 'Reader', createdOn: '2026-01-01',
+        lastSaveDate: '2026-01-02', searchCore: privateValue, form: privateValue, attachmentFields: [privateValue] },
+      authorization: { view: ['recipient@example.com'], edit: [privateValue], stored: { viewRoles: [privateValue] } },
+      revision: privateValue, incarnationId: privateValue, harvestId: privateValue,
+    };
+    const data = { record, oid: 'oid', imports: { record, oid: 'oid', private: privateValue } };
+    const body = '{{{json record}}}|{{{json imports}}}';
+    const subject = '{{{json record}}}';
+    const expectedRecord = { oid: 'oid', metadata: record.metadata, lastSaveDate: record.lastSaveDate,
+      dateCreated: record.dateCreated, workflow: { stage: 'review', stageLabel: 'Review' },
+      metaMetadata: _.pick(record.metaMetadata, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']) };
+    const expectedSubject = JSON.stringify(expectedRecord);
+    const expectedBody = expectedSubject + '|' + JSON.stringify({ record: expectedRecord, oid: 'oid' });
+    writeFileSync(join(directory, 'hook-body.hbs'), body);
+    mockSails.config.emailnotification.templates.notice.subject = subject;
+    const send = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+    sinon.stub(email as any, 'metTriggerCondition').returns('true');
+    const original = _.cloneDeep(data);
+    const check = (result: any) => {
+      assert.equal(result.status, 200, String(result.ex));
+      assert.equal(result.body, expectedBody);
+      if (result.subject !== undefined) assert.equal(result.subject, expectedSubject);
+      assert.ok(!result.body.includes(privateValue));
+    };
+    for (const override of [false, true]) {
+      if (override) await service.create('a', 'notice', { body, subject, format: 'text' });
+      check(await render('a', data));
+      if (!override) {
+        check(await firstValueFrom(email.buildFromTemplate('notice', data)));
+        check(await email.buildFromTemplateAsync('notice', data));
+        assert.equal(email.runTemplate(body, data), expectedBody);
+      }
+      await email.sendTemplate('recipient@example.com', undefined, 'notice', data, { brandId: 'a' });
+      assert.equal(send.lastCall.args[1], expectedBody);
+      assert.equal(send.lastCall.args[2], expectedSubject);
+      const address = '{{get record "authorization.view[0]"}}';
+      const options = { template: 'notice', to: address, cc: address, bcc: address,
+        from: '{{get imports.record "authorization.view[0]"}}' };
+      await email.sendRecordNotification('oid', record, options, {}, {});
+      assert.deepEqual(send.lastCall.args.slice(0, 7), ['recipient@example.com', expectedBody, expectedSubject,
+        'recipient@example.com', 'text', 'recipient@example.com', 'recipient@example.com']);
+      const properties = email.evaluateProperties({ ...options, subject }, {}, data);
+      check(await firstValueFrom(properties.templateRendered!));
+      const controller = new EmailControllers.Email();
+      (controller as any).emailService = email;
+      (global as any).BrandingService = { getBrand: () => ({ id: 'a' }) };
+      const respond = sinon.stub(controller as any, 'sendResp');
+      await new Promise<void>(resolve => {
+        respond.callsFake(() => resolve());
+        controller.sendNotification({ options: { locals: { branding: 'a' } },
+          apiRequest: { body: { ...options, data, subject } } } as any, {} as Sails.Res);
+      });
+      assert.equal(respond.lastCall.args[2].status, 200);
+      assert.equal(send.lastCall.args[1], expectedBody);
+      assert.equal(send.lastCall.args[2], expectedSubject);
+      const channel = new EmailChannel();
+      assert.equal(await channel.send({ ...data, kind: 'failure', brandId: 'a', title: expectedSubject } as any,
+        { recipients: ['recipient@example.com'], channelConfig: { template: 'notice' } }), true);
+      assert.equal(send.lastCall.args[1], expectedBody);
+      assert.equal(send.lastCall.args[2], expectedSubject);
+    }
+    assert.deepEqual(data, original);
   });
 
   it('takes record tenant context from metaMetadata, preserving recipients and post-send actions', async () => {
@@ -683,12 +824,13 @@ describe('Email template overrides', () => {
     });
 
     it('omits missing paths and warns only once per service instance and path', () => {
+      const warnings = sinon.spy(email as any, 'updateChronicle');
       mockSails.config.emailnotification.settings.exposedConfigPaths = ['missing.value', 'missing.other'];
       assert.equal(email.runTemplate('{{{json sailsConfig}}}', {}), '{"appUrl":"https://portal.example"}');
       email.runTemplate('{{sailsConfig.appUrl}}', {});
-      assert.equal(mockSails.log.warn.callCount, 2);
+      assert.equal(warnings.callCount, 2);
       assert.throws(() => email.runTemplate('{{sailsConfig.missing.value}}', {}));
-      assert.equal(mockSails.log.warn.callCount, 2);
+      assert.equal(warnings.callCount, 2);
     });
 
     it('rejects malformed allowlists and prototype segments before reading config', () => {

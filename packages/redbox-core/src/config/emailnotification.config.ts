@@ -29,6 +29,11 @@ export interface EmailSettings {
     templateDir: string;
     /** Dotted config paths exposed to email templates. Non-secret values only. */
     exposedConfigPaths: string[];
+    /** Extra hook-supplied display roots accepted in persisted templates. */
+    additionalContextRoots?: string[];
+    /** Maximum UTF-8 bytes for source and rendered subjects/bodies. */
+    maxSubjectBytes?: number;
+    maxBodyBytes?: number;
     serverOptions: EmailServerOptions;
 }
 
@@ -65,6 +70,9 @@ export const emailnotification: EmailNotificationConfig = {
         // Email body templates are Handlebars files (.hbs) resolved by name from this directory.
         templateDir: 'views/emailTemplates/',
         exposedConfigPaths: ['appUrl'],
+        additionalContextRoots: [],
+        maxSubjectBytes: 998,
+        maxBodyBytes: 1048576,
         serverOptions: {
             host: 'integration-testing-email-1',
             port: 1025,
