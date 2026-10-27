@@ -9,7 +9,7 @@ import {
   getRecordField,
   setRecordField,
 } from './types';
-import { setSyncState } from './config';
+import { setSyncState } from '../../integrations/figshare/config';
 
 export function getWriteBackUrls(config: FigsharePublishingConfigData, articleId: string): string[] {
   const frontEndUrl = config.connection.frontEndUrl.replace(/\/+$/, '');

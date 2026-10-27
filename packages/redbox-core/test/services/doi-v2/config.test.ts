@@ -2,10 +2,12 @@ let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { brandingConfigurationDefaults } from '../../../src/config/brandingConfigurationDefaults.config';
 import { DoiPublishing } from '../../../src/configmodels/DoiPublishing';
-import { resolveDoiPublishingConfig, resolveDoiPublishingConfigAsync, resolveDoiPublishingConfigForBrand } from '../../../src/services/doi-v2/config';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from '../testHelper';
+import { resolveDoiPublishingConfig, resolveDoiPublishingConfigAsync, resolveDoiPublishingConfigForBrand } from '../../../src/integrations/doi/config';
+import type { DoiConfigurationInput } from '../../../src/integrations/doi/config';
 
 describe('doi-v2 config', function () {
+  let input: DoiConfigurationInput;
+  let configuration: sinon.SinonStub;
   let originalEnv: NodeJS.ProcessEnv;
 
   before(async function () {
@@ -14,30 +16,21 @@ describe('doi-v2 config', function () {
 
   beforeEach(function () {
     originalEnv = { ...process.env };
-    const mockSails = createMockSails({
-      config: {
-        appPath: '/app',
-        environment: 'development',
-        brandingAware: sinon.stub().returns({ doiPublishing: null }),
-      }
-    });
-    setupServiceTestGlobals(mockSails);
-    (global as any).BrandingService = {
-      getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' })
-    };
+    configuration = sinon.stub().returns({ doiPublishing: null });
+    input = { configuration: name => configuration(name).doiPublishing,
+      brandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }), env: process.env };
+
   });
 
   afterEach(function () {
     process.env = originalEnv;
-    cleanupServiceTestGlobals();
-    delete (global as any).BrandingService;
     sinon.restore();
   });
 
   it('returns null when doiPublishing is disabled', function () {
-    ((global as any).sails.config.brandingAware as sinon.SinonStub).returns({ doiPublishing: new DoiPublishing() });
+    configuration.returns({ doiPublishing: new DoiPublishing() });
 
-    const config = resolveDoiPublishingConfig({ metaMetadata: { brandId: 'default' }, metadata: {} });
+    const config = resolveDoiPublishingConfig(input, { metaMetadata: { brandId: 'default' }, metadata: {} });
 
     expect(config).to.equal(null);
   });
@@ -50,12 +43,9 @@ describe('doi-v2 config', function () {
         password: 'pwd'
       }
     };
-    (global as any).sails.config.brandingConfigurationDefaults = {
-      doiPublishing
-    };
-    ((global as any).sails.config.brandingAware as sinon.SinonStub).withArgs('default').returns({ doiPublishing });
+    configuration.withArgs('default').returns({ doiPublishing });
 
-    const config = resolveDoiPublishingConfig({ metaMetadata: { brandId: 'default' }, metadata: {} });
+    const config = resolveDoiPublishingConfig(input, { metaMetadata: { brandId: 'default' }, metadata: {} });
 
     expect(config).to.not.equal(null);
     expect(config?.enabled).to.equal(true);
@@ -72,9 +62,9 @@ describe('doi-v2 config', function () {
         password: 'runtime-password'
       }
     };
-    ((global as any).sails.config.brandingAware as sinon.SinonStub).withArgs('default').returns({ doiPublishing });
+    configuration.withArgs('default').returns({ doiPublishing });
 
-    const config = await resolveDoiPublishingConfigAsync({ metaMetadata: { brandId: 'default' }, metadata: {} });
+    const config = await resolveDoiPublishingConfigAsync(input, { metaMetadata: { brandId: 'default' }, metadata: {} });
 
     expect(config).to.not.equal(null);
     expect(config?.connection.username).to.equal('runtime-user');
@@ -90,9 +80,9 @@ describe('doi-v2 config', function () {
       }
     };
     process.env.DOI_CONNECTION_PASSWORD = 'env-password';
-    ((global as any).sails.config.brandingAware as sinon.SinonStub).withArgs('default').returns({ doiPublishing });
+    configuration.withArgs('default').returns({ doiPublishing });
 
-    const config = resolveDoiPublishingConfig({ metaMetadata: { brandId: 'default' }, metadata: {} });
+    const config = resolveDoiPublishingConfig(input, { metaMetadata: { brandId: 'default' }, metadata: {} });
 
     expect(config?.connection.password).to.equal('env-password');
   });
@@ -106,9 +96,9 @@ describe('doi-v2 config', function () {
         password: 'brand-password'
       }
     };
-    ((global as any).sails.config.brandingAware as sinon.SinonStub).withArgs('default').returns({ doiPublishing });
+    configuration.withArgs('default').returns({ doiPublishing });
 
-    const config = resolveDoiPublishingConfigForBrand({ id: 'brand-1', name: 'default' } as any);
+    const config = resolveDoiPublishingConfigForBrand(input, { id: 'brand-1', name: 'default' } as any);
 
     expect(config).to.not.equal(null);
     expect(config?.connection.username).to.equal('brand-user');

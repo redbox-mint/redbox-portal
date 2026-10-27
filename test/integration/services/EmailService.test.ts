@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 describe('The EmailService', function () {
 
     before(function (done) {
@@ -21,7 +22,7 @@ describe('The EmailService', function () {
                 }
             }
         };
-        const renderer = EmailService.buildFromTemplate("transferOwnerTo", data);
+        const renderer = fixture.services.EmailService.buildFromTemplate("transferOwnerTo", data);
         renderer.subscribe(buildResult => {
             const rendered = buildResult['body'];
             expect(rendered).to.contain(`Dear ${data.name},`);
@@ -41,7 +42,7 @@ describe('The EmailService', function () {
         };
         const template = "Testing a template {{oid}}";
 
-        const rendered = EmailService.runTemplate(template, data);
+        const rendered = fixture.services.EmailService.runTemplate(template, data);
 
         expect(rendered).to.eql(`Testing a template ${data.oid}`);
 
@@ -58,7 +59,7 @@ describe('The EmailService', function () {
         const bcc =  'support@redboxresearchdata.com.au';
         const replyTo =  'replyTo@redboxresearchdata.com.au';
 
-        const sendResponse = EmailService.sendMessage(to, body, subject, from, format, cc, bcc, {replyTo: replyTo});
+        const sendResponse = fixture.services.EmailService.sendMessage(to, body, subject, from, format, cc, bcc, {replyTo: replyTo});
 
         sendResponse.subscribe(sendResult => {
             expect(sendResult['success']).to.eql(true);
@@ -71,7 +72,7 @@ describe('The EmailService', function () {
     describe('evaluating email properties', function () {
         it('should deal with nil arguments', function (done) {
             const options = null;
-            const result = EmailService.evaluateProperties(options);
+            const result = fixture.services.EmailService.evaluateProperties(options);
 
             expect(result).to.eql({
                 format: "", formatRendered: "",
@@ -115,7 +116,7 @@ describe('The EmailService', function () {
                 },
                 data: "the test data",
             };
-            const result = EmailService.evaluateProperties(options, config, templateData);
+            const result = fixture.services.EmailService.evaluateProperties(options, config, templateData);
 
 
             result.templateRendered.subscribe(buildResult => {
@@ -166,7 +167,7 @@ describe('The EmailService', function () {
                 },
                 data: "the test data",
             };
-            const result = EmailService.evaluateProperties(options, config, templateData);
+            const result = fixture.services.EmailService.evaluateProperties(options, config, templateData);
 
 
             result.templateRendered.subscribe(buildResult => {
@@ -196,22 +197,22 @@ describe('The EmailService', function () {
     describe('send record notification', function () {
         let originalEmailDisabledValue;
         beforeEach(function (done) {
-            originalEmailDisabledValue = _.get(sails.config , 'services.email.disabled');
+            originalEmailDisabledValue = _.get(fixture.config , 'services.email.disabled');
             done();
         });
         afterEach(function (done) {
-            _.set(sails.config , 'services.email.disabled', originalEmailDisabledValue);
+            _.set(fixture.config , 'services.email.disabled', originalEmailDisabledValue);
             done();
         });
         it('should respect disabled setting', async function () {
-            _.set(sails.config, 'services.email.disabled', "true");
+            _.set(fixture.config, 'services.email.disabled', "true");
             const oid = "test-oid";
             const record = "";
             const options = {triggerCondition: ""};
             const user = "";
             const response = "";
 
-            const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
+            const result = await fixture.services.EmailService.sendRecordNotification(oid, record, options, user, response);
             expect(result).to.not.be.equal(null);
 
         });
@@ -223,14 +224,14 @@ describe('The EmailService', function () {
             const user = "";
             const response = {};
             try {
-                const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
+                const result = await fixture.services.EmailService.sendRecordNotification(oid, record, options, user, response);
             } catch (error) {
                 expect(error.message).to.equal("Invalid email address.");
             }
         });
 
         it('should send email when trigger condition matches and execute onNotifySuccess', async function () {
-            _.set(sails.config, 'services.email.disabled', "false");
+            _.set(fixture.config, 'services.email.disabled', "false");
             const oid = "test-oid";
             const record: any = {
                 metadata: {
@@ -249,7 +250,7 @@ describe('The EmailService', function () {
                 },
                 onNotifySuccess: [
                     {
-                        function: "sails.services.recordsservice.updateNotificationLog",
+                        function: "record.updateNotificationLog",
                         options: {
                             name: `Add notification log`,
                             logName: "notification.log.testing",
@@ -261,7 +262,7 @@ describe('The EmailService', function () {
             };
             const user = "";
             const response = {content: "response content"};
-            const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
+            const result = await fixture.services.EmailService.sendRecordNotification(oid, record, options, user, response);
             expect(result).to.equal(response);
             expect(options.returnType).to.equal("response");
             expect(record.notification.log.testing).to.have.length(1);
@@ -269,7 +270,7 @@ describe('The EmailService', function () {
         });
 
         it('should not send email when trigger condition does not match user', async function () {
-            _.set(sails.config, 'services.email.disabled', "false");
+            _.set(fixture.config, 'services.email.disabled', "false");
             const oid = "test-oid";
             const record: any = {
                 metadata: {
@@ -288,7 +289,7 @@ describe('The EmailService', function () {
                 },
                 onNotifySuccess: [
                     {
-                        function: "sails.services.recordsservice.updateNotificationLog",
+                        function: "record.updateNotificationLog",
                         options: {
                             name: `Add notification log`,
                             logName: "notification.log.testing",
@@ -300,7 +301,7 @@ describe('The EmailService', function () {
             };
             const user = {username: 'testing-user-does-not-match'};
             const response = {content: "response content"};
-            const result = await EmailService.sendRecordNotification(oid, record, options, user, response);
+            const result = await fixture.services.EmailService.sendRecordNotification(oid, record, options, user, response);
             expect(result).to.equal(response);
             expect(options.returnType).to.equal("response");
             expect(record.notification).to.eql(undefined);

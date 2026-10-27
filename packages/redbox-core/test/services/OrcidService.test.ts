@@ -1,16 +1,17 @@
+
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('OrcidService', function() {
-  let mockSails: any;
+  let fixture: any;
   let OrcidService: any;
 
   beforeEach(function() {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         orcid: {
           url: 'https://pub.orcid.org'
@@ -24,14 +25,14 @@ describe('OrcidService', function() {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
 
     const { Services } = require('../../src/services/OrcidService');
-    OrcidService = new Services.Orcids();
+    OrcidService = new Services.Orcids({ url: fixture.config.orcid.url, method: fixture.config.record.api.search.method });
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     sinon.restore();
   });
 
@@ -154,7 +155,7 @@ describe('OrcidService', function() {
 
   describe('exports', function() {
     it('should export searchOrcid method', function() {
-      const exported = OrcidService.exports();
+      const exported = OrcidService;
       expect(exported).to.have.property('searchOrcid');
     });
   });
