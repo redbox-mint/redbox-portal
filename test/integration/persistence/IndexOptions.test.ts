@@ -3,7 +3,7 @@ import type { PersistenceOwner } from '@researchdatabox/redbox-core';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { ensurePersistenceIndex, inspectPersistenceIndex, mongoDatabase } from '@researchdatabox/redbox-core';
-import { storageIndexes } from '@researchdatabox/sails-hook-redbox-storage-mongo/dist/persistence/preflight';
+import { storageIndexes } from '@researchdatabox/sails-hook-redbox-storage-mongo/dist/persistence/preflight.js';
 
 describe('Configured native indexes in the loaded portal', () => {
   it('creates TTL and hidden options through maintenance and reports existing-index drift', async () => {
