@@ -6120,7 +6120,6 @@ export namespace Services {
       return new RecordAuditReader({
         storage: this.storageService,
         log: this.logger,
-        createAudit: record => this.createRecordAudit(record),
         resolveUser: username => firstValueFrom(this.input.users.getUserWithUsername(username)),
       });
     }

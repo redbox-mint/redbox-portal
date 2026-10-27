@@ -1,55 +1,17 @@
 import _ from 'lodash';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { StorageService } from '../StorageService';
-import type { StorageServiceResponse } from '../StorageServiceResponse';
-import { RecordAuditModel, RecordAuditActionType } from '../model/storage/RecordAuditModel';
 import type { RecordAuditParams } from '../RecordAuditParams';
-import { recordServiceChronicle } from '../utilities/serviceChronicle';
 type AnyRecord = Record<string, unknown>;
 export interface RecordAuditReaderInput {
-  readonly storage: Pick<StorageService, 'getMeta' | 'getRecordAudit' | 'createRecordAudit'>;
+  readonly storage: Pick<StorageService, 'getMeta' | 'getRecordAudit'>;
   readonly log: ILogger;
-  createAudit(record: RecordAuditModel | AnyRecord): Promise<StorageServiceResponse>;
   resolveUser(username: string): Promise<unknown>;
 }
 export class RecordAuditReader {
   public constructor(private readonly input: RecordAuditReaderInput) {}
-  private updateChronicle(info: AnyRecord, errors: unknown[] = []) {
-    recordServiceChronicle(this.input.log, info, errors);
-  }
   public async getRecordAudit(params: RecordAuditParams): Promise<Record<string, unknown>[]> {
     const audit = (await this.input.storage.getRecordAudit(params)) as Record<string, unknown>[];
-    if (Array.isArray(audit) && audit.length === 0) {
-      const storageServiceAny = this.input.storage as unknown as AnyRecord;
-      if (typeof storageServiceAny.createRecordAudit === 'function') {
-        try {
-          const data = new RecordAuditModel(params.oid, {}, {}, RecordAuditActionType.created);
-          await this.input.createAudit({ ...data });
-          const refreshed = (await this.input.storage.getRecordAudit(params)) as Record<string, unknown>[];
-          if (Array.isArray(refreshed) && refreshed.length > 0) {
-            return refreshed;
-          }
-        } catch (err) {
-          this.updateChronicle({ recordsOperation: 'getRecordAudit', recordsOperationOutcome: 'failed' }, [err]);
-        }
-      }
-      const fallbackDate = new Date();
-      const dateFrom = params.dateFrom instanceof Date ? params.dateFrom : null;
-      const dateTo = params.dateTo instanceof Date ? params.dateTo : null;
-      const inRange = (!dateFrom || fallbackDate >= dateFrom) && (!dateTo || fallbackDate <= dateTo);
-      if (!inRange) {
-        return [] as Record<string, unknown>[];
-      }
-      return [
-        {
-          redboxOid: params.oid,
-          action: RecordAuditActionType.created,
-          user: {},
-          record: {},
-          dateCreated: fallbackDate.toISOString(),
-        },
-      ] as Record<string, unknown>[];
-    }
     const actionFilter = _.isString(params.action) ? params.action.trim().toLowerCase() : '';
     const workflowStateFilter = _.isString(params.workflowState) ? params.workflowState.trim().toLowerCase() : '';
 
