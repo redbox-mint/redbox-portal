@@ -108,6 +108,7 @@ const agendaQueue = z
         processEvery: z.string().min(1).optional(),
         historyRetentionHours: z.number().nonnegative().optional(),
         drainTimeoutMs: positive.max(2_147_483_647).optional(),
+        connectionTimeoutMs: positive.max(2_147_483_647).optional(),
         sqs: z
           .object({
             queueUrl: z.string().min(1),
