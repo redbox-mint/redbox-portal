@@ -162,4 +162,43 @@ describe('EmailTemplateService persistence', function () {
     assert.equal(result.status, 500);
     assert.equal(result.ex.code, 'RENDER_FAILED');
   });
+
+  it('restricts config exposure through the lifted renderer and persisted body/subject overrides', async function () {
+    const settings = sails.config.emailnotification.settings;
+    const probe = 'emailRenderContextProbe';
+    const config = sails.config as any;
+    const previousProbe = config[probe];
+    const restrictedId = 'stage2RestrictedContext';
+    const attack = '{{sailsConfig.emailRenderContextProbe.secret}}';
+    try {
+      config[probe] = { secret: 'INTEGRATION-EMAIL-CONFIG-SECRET', label: 'Public label' };
+      sails.config.emailnotification.settings = { ...settings, exposedConfigPaths: [`${probe}.label`] };
+      writeFileSync(join(directory, `${restrictedId}.hbs`), '{{{json sailsConfig}}}|{{portal.appUrl}}');
+      sails.config.emailnotification.templates[restrictedId] = { subject: '{{portal.appUrl}}', template: restrictedId };
+      const data = { sailsConfig: sails.config };
+      const context = { brandId: brands[0].id };
+      const supplied = await firstValueFrom(EmailService.buildFromTemplate(restrictedId, data, context)) as any;
+      assert.equal(supplied.status, 200);
+      assert.equal(supplied.body, `${JSON.stringify({ appUrl: sails.config.appUrl, [probe]: { label: 'Public label' } })}|${sails.config.appUrl}`);
+      assert.equal(supplied.subject, sails.config.appUrl);
+      for (const field of ['to', 'cc', 'bcc', 'from']) {
+        assert.throws(() => EmailService.evaluateProperties({ [field]: attack }, {}, data, context));
+      }
+      const renderRestricted = () => firstValueFrom(EmailService.buildFromTemplate(restrictedId, data, context)) as Promise<any>;
+      const created = await EmailTemplateService.create(brands[0].id, restrictedId,
+        { subject: 'Safe subject', body: attack, format: 'text' });
+      assert.equal((await renderRestricted()).status, 500);
+      await EmailTemplateService.update(brands[0].id, restrictedId,
+        { subject: attack, body: 'Safe body', format: 'text' }, version(created));
+      assert.equal((await renderRestricted()).status, 500);
+      const callerSubject = await firstValueFrom(EmailService.buildFromTemplate(restrictedId, data,
+        { ...context, subject: attack })) as any;
+      assert.equal(callerSubject.status, 500);
+    } finally {
+      sails.config.emailnotification.settings = settings;
+      delete sails.config.emailnotification.templates[restrictedId];
+      if (previousProbe === undefined) delete config[probe];
+      else config[probe] = previousProbe;
+    }
+  });
 });

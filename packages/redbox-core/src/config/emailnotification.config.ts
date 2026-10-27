@@ -27,6 +27,8 @@ export interface EmailSettings {
     enabled: boolean;
     from: string;
     templateDir: string;
+    /** Dotted config paths exposed to email templates. Non-secret values only. */
+    exposedConfigPaths: string[];
     serverOptions: EmailServerOptions;
 }
 
@@ -62,6 +64,7 @@ export const emailnotification: EmailNotificationConfig = {
         from: 'noreply@redbox',
         // Email body templates are Handlebars files (.hbs) resolved by name from this directory.
         templateDir: 'views/emailTemplates/',
+        exposedConfigPaths: ['appUrl'],
         serverOptions: {
             host: 'integration-testing-email-1',
             port: 1025,
