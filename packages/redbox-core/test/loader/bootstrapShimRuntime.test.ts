@@ -1,239 +1,88 @@
-import { createSinonStubLogger } from '../logger.test';
-let expect: Chai.ExpectStatic;
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import * as sinon from 'sinon';
-import type { SinonStub } from 'sinon';
+import assert from 'node:assert/strict';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { ApplicationRuntime } from '../../src/application';
+import type { ApplicationInitialization } from '../../src/application';
 
-import { createGeneratedBootstrap } from '../../src/loader/bootstrapShimRuntime';
-
-import * as persistence from '../../src/persistence/runtime';
-
-const fsPromises = fs.promises;
-
-interface BootstrapRuntimeSails {
-  config: unknown;
-  log: unknown;
+function application(initialization: ApplicationInitialization) {
+  return new ApplicationRuntime({ config: {}, log: { warn() {}, error() {} } }, [], initialization);
 }
 
-interface BootstrapRuntimeLog {
-  verbose: SinonStub;
-  info: SinonStub;
-  warn: SinonStub;
-  error: SinonStub;
-}
-
-const runtimeGlobal = global as unknown as { sails?: BootstrapRuntimeSails };
-
-function runtimeSails(): BootstrapRuntimeSails {
-  if (!runtimeGlobal.sails) throw new Error('Test Sails runtime is not configured.');
-  return runtimeGlobal.sails;
-}
-
-function runtimeLog(): BootstrapRuntimeLog {
-  return runtimeSails().log as BootstrapRuntimeLog;
-}
-
-describe('bootstrapShimRuntime', function () {
-  const sandboxDir = path.join(os.tmpdir(), 'redbox-bootstrap-runtime-test-' + Date.now());
-  let originalEnv: NodeJS.ProcessEnv;
-  let originalCwd: string;
-  let hadOriginalSails: boolean;
-  let originalSailsConfig: unknown;
-  let originalSailsLog: unknown;
-
-  before(async function () {
-    ({ expect } = await import('chai'));
+describe('owned bootstrap stages without generated shims', () => {
+  it('awaits preparation, migrations, core and ordered extension bootstrap', async () => {
+    const order: string[] = [];
+    const app = application({
+      preparePersistence: async () => { order.push('prepare'); },
+      migrations: async () => { order.push('migration'); },
+      coreBootstrap: [{ name: 'core', run: async () => { order.push('core'); } }],
+      extensionBootstrap: ['one', 'two'].map(name => ({ name, run: async () => { order.push(name); } })),
+    });
+    await app.initialize();
+    assert.deepEqual(order, ['prepare', 'migration', 'core', 'one', 'two']);
+    assert.equal(app.status().state, 'initialized');
+    await app.stop();
   });
-
-  beforeEach(async function () {
-    originalEnv = { ...process.env };
-    originalCwd = process.cwd();
-    hadOriginalSails = Object.prototype.hasOwnProperty.call(runtimeGlobal, 'sails');
-
-    if (!runtimeGlobal.sails) {
-      runtimeGlobal.sails = { config: undefined, log: undefined };
+  it('does not export secret-bearing config snapshots through retired environment flags', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'redbox-bootstrap-retired-'));
+    const cwd = process.cwd();
+    const previous = process.env.EXPORT_BOOTSTRAP_CONFIG_JSON;
+    try {
+      process.chdir(directory);
+      process.env.EXPORT_BOOTSTRAP_CONFIG_JSON = 'true';
+      const app = application({});
+      await app.initialize();
+      assert.deepEqual(await readdir(directory), []);
+      await app.stop();
+    } finally {
+      process.chdir(cwd);
+      if (previous === undefined) delete process.env.EXPORT_BOOTSTRAP_CONFIG_JSON;
+      else process.env.EXPORT_BOOTSTRAP_CONFIG_JSON = previous;
+      await rm(directory, { recursive: true, force: true });
     }
-
-    originalSailsConfig = runtimeSails().config;
-    originalSailsLog = runtimeSails().log;
-
-    await fsPromises.mkdir(sandboxDir, { recursive: true });
-    process.chdir(sandboxDir);
-
-    runtimeSails().config = {
-      example: 'value',
-      nested: { flag: true },
-    };
-    runtimeSails().log = createSinonStubLogger(sinon);
   });
-
-  afterEach(async function () {
-    sinon.restore();
-    process.env = originalEnv;
-    process.chdir(originalCwd);
-
-    if (hadOriginalSails) {
-      if (!runtimeGlobal.sails) {
-        runtimeGlobal.sails = { config: undefined, log: undefined };
-      }
-      runtimeSails().config = originalSailsConfig;
-      runtimeSails().log = originalSailsLog;
-    } else {
-      delete runtimeGlobal.sails;
-    }
-
-    await fsPromises.rm(sandboxDir, { recursive: true, force: true });
+  it('keeps post-bootstrap work owned and reports failure instead of suppressing it', async () => {
+    const failure = new Error('disk full');
+    const app = application({ postBootstrap: [{ name: 'explicit-export', run: async () => { throw failure; } }] });
+    await assert.rejects(app.initialize(), error => error === failure);
+    assert.equal(app.status().failure?.stage, 'postBootstrap:explicit-export');
+    assert.equal(app.status().state, 'failed');
+    assert.equal(app.status().cleanupPending, false);
   });
-
-  function runBootstrap(bootstrap: (cb: (error?: unknown) => void) => void): Promise<void> {
-    return new Promise((resolve, reject) => {
-      bootstrap((error?: unknown) => {
-        if (error != null) {
-          reject(error);
-          return;
-        }
-        resolve();
-      });
-    });
-  }
-
-  it('should run preLift, migrations, core bootstrap, and hook bootstraps in order', async function () {
-    const callOrder: string[] = [];
-    const preLiftSetup = sinon.stub().callsFake(async () => {
-      callOrder.push('preLift');
-      sinon.stub(require('../../src/persistence/migration/runtime'), 'getMigrationLedgerRepository').returns({ executedNames: async () => [], recordExecution: async () => {}, removeExecution: async () => {}, isExecuted: async () => false });
-    });
-    const migration = {
-      name: '2026.06.08T10.00.00-test',
-      up: sinon.stub().callsFake(async () => {
-        callOrder.push('migration');
-      }),
-    };
-    const coreBootstrap = sinon.stub().callsFake(async () => {
-      callOrder.push('core');
-    });
-    const hookOne = sinon.stub().callsFake(async () => {
-      callOrder.push('hook-one');
-    });
-    const hookTwo = sinon.stub().callsFake(async () => {
-      callOrder.push('hook-two');
-    });
-
-    const bootstrap = createGeneratedBootstrap(
-      preLiftSetup,
-      coreBootstrap,
-      [
-        { name: 'hook-one', bootstrap: hookOne },
-        { name: 'hook-two', bootstrap: hookTwo },
-      ],
-      [migration]
-    );
-
-    await runBootstrap(bootstrap);
-
-    expect(callOrder).to.deep.equal(['preLift', 'migration', 'core', 'hook-one', 'hook-two']);
-    expect(runtimeLog().verbose.calledWith('Data migrations complete.')).to.be.true;
-    expect(runtimeLog().verbose.calledWith('Core bootstrap complete.')).to.be.true;
-    expect(runtimeLog().verbose.calledWith('Hook bootstrap complete: hook-one')).to.be.true;
-    expect(runtimeLog().verbose.calledWith('Hook bootstrap complete: hook-two')).to.be.true;
-  });
-
-  it('should export a post-bootstrap snapshot when enabled', async function () {
-    process.env.EXPORT_BOOTSTRAP_CONFIG_JSON = 'true';
-    const circular: Record<string, unknown> = { name: 'root' };
-    circular.self = circular;
-
-    runtimeSails().config = {
-      fn: function namedFn() {
-        return 'ok';
-      },
-      circular,
-      list: [1, { nested: true }],
-    };
-
-    const bootstrap = createGeneratedBootstrap(sinon.stub(), sinon.stub().resolves(), []);
-
-    await runBootstrap(bootstrap);
-
-    const snapshotPath = path.join(sandboxDir, 'support', 'debug-config', 'post-bootstrap-config.json');
-    const snapshot = JSON.parse(await fsPromises.readFile(snapshotPath, 'utf8'));
-
-    expect(snapshot._meta.stage).to.equal('post-bootstrap');
-    expect(snapshot._meta.environment).to.equal(process.env.NODE_ENV || 'development');
-    expect(snapshot.fn).to.equal('[Function: namedFn]');
-    expect(snapshot.circular.self).to.equal('[Circular]');
-    expect(snapshot.list).to.deep.equal([1, { nested: true }]);
-    expect(runtimeLog().info.calledWithMatch('Exported config snapshot to ')).to.be.true;
-  });
-
-  it('should warn and continue when exporting a post-bootstrap snapshot fails', async function () {
-    process.env.EXPORT_BOOTSTRAP_CONFIG_JSON = 'true';
-    const writeFailure = new Error('disk full');
-    sinon.stub(fsPromises, 'writeFile').rejects(writeFailure);
-
-    const bootstrap = createGeneratedBootstrap(sinon.stub(), sinon.stub().resolves(), []);
-
-    await runBootstrap(bootstrap);
-
-    const snapshotPath = path.join(sandboxDir, 'support', 'debug-config', 'post-bootstrap-config.json');
-    expect(runtimeLog().warn.calledWithMatch(snapshotPath)).to.be.true;
-    expect(runtimeLog().warn.calledWithMatch(writeFailure.message)).to.be.true;
-  });
-
-  it('should pass errors to the callback and log bootstrap failure', async function () {
+  it('propagates extension failure and prevents later bootstrap work', async () => {
     const failure = new Error('hook exploded');
-    const bootstrap = createGeneratedBootstrap(sinon.stub(), sinon.stub().resolves(), [
-      { name: 'broken-hook', bootstrap: sinon.stub().rejects(failure) },
-    ]);
-
-    let caughtError: unknown;
-    try {
-      await runBootstrap(bootstrap);
-    } catch (error) {
-      caughtError = error;
-    }
-
-    expect(caughtError).to.equal(failure);
-    expect(runtimeLog().verbose.calledWith('Bootstrap failed!!!')).to.be.true;
-    expect(runtimeLog().error.calledWith(failure)).to.be.true;
+    let later = false;
+    const app = application({ extensionBootstrap: [
+      { name: 'broken-hook', run: async () => { throw failure; } },
+      { name: 'later', run: async () => { later = true; } },
+    ] });
+    await assert.rejects(app.initialize(), error => error === failure);
+    assert.equal(later, false);
+    assert.equal(app.status().failure?.stage, 'extensionBootstrap:broken-hook');
   });
-
-  it('should pass synchronous preLift errors to the callback', async function () {
-    const failure = new Error('preLift exploded');
-    const coreBootstrap = sinon.stub().resolves();
-    const bootstrap = createGeneratedBootstrap(sinon.stub().throws(failure), coreBootstrap, []);
-
-    let caughtError: unknown;
-    try {
-      await runBootstrap(bootstrap);
-    } catch (error) {
-      caughtError = error;
-    }
-
-    expect(caughtError).to.equal(failure);
-    expect(coreBootstrap.called).to.be.false;
+  it('propagates synchronous preparation errors before core bootstrap', async () => {
+    const failure = new Error('prepare exploded');
+    let core = false;
+    const app = application({ preparePersistence() { throw failure; }, coreBootstrap: [
+      { name: 'core', run: async () => { core = true; } },
+    ] });
+    await assert.rejects(app.initialize(), error => error === failure);
+    assert.equal(core, false);
   });
-
-  it('should await preLift setup and propagate its asynchronous failure before migrations', async function () {
+  it('awaits preparation and prevents migrations after asynchronous failure', async () => {
     const failure = new Error('service initialization failed');
-    const coreBootstrap = sinon.stub().resolves();
-    const migration = {
-      name: '2026.08.26T00.00.00-must-not-run',
-      up: sinon.stub().resolves(),
-    };
-    const bootstrap = createGeneratedBootstrap(sinon.stub().rejects(failure), coreBootstrap, [], [migration]);
-
-    let caughtError: unknown;
-    try {
-      await runBootstrap(bootstrap);
-    } catch (error) {
-      caughtError = error;
-    }
-
-    expect(caughtError).to.equal(failure);
-    expect(migration.up.called).to.be.false;
-    expect(coreBootstrap.called).to.be.false;
+    let reject!: (error: Error) => void;
+    let migrated = false;
+    const app = application({
+      preparePersistence: () => new Promise<void>((_resolve, fail) => { reject = fail; }),
+      migrations: async () => { migrated = true; },
+    });
+    const work = app.initialize();
+    while (!reject) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(migrated, false);
+    assert.equal(app.status().state, 'initializing');
+    reject(failure);
+    await assert.rejects(work, error => error === failure);
+    assert.equal(migrated, false);
   });
 });

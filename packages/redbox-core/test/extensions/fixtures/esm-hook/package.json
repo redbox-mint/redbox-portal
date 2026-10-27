@@ -1,0 +1,17 @@
+{
+  "name": "sr-esm-hook",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "import": "./index.mjs"
+  },
+  "files": [
+    "index.mjs"
+  ],
+  "redbox": {
+    "extension": "."
+  },
+  "dependencies": {
+    "sr-esm-only": "1.0.0"
+  }
+}

@@ -3,13 +3,16 @@ import {createSinonStubLogger} from "../logger.test";
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
+import { resolveBrandConfiguration } from '../../src/configuration/brand';
+const createFixture = createDomainFixture;
+function configuration(config: any) { return { getBrand: (brand: string, block: string) => resolveBrandConfiguration(brand, block, { defaultBrand: config.auth.defaultBrand, readBrand: name => config.brandingAware(name), defaults: config.brandingConfigurationDefaults, legacy: config }) }; }
 
 describe('ConfigService', function() {
-  let mockSails: any;
+  let domainFixture: any;
 
   beforeEach(function() {
-    mockSails = createMockSails({
+    domainFixture = createFixture({
       config: {
         appPath: '/app',
         auth: {
@@ -25,48 +28,36 @@ describe('ConfigService', function() {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
-    (global as any).AppConfigService = {
-      createConfig: sinon.stub().resolves({}),
-      createOrUpdateConfig: sinon.stub().resolves({})
-    };
-    (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({ id: '1', name: 'default' })
-    };
+
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
-    delete (global as any).AppConfigService;
-    delete (global as any).BrandingService;
     sinon.restore();
   });
 
   describe('getBrand', function() {
     it('should return config from brandingAware function when available', function() {
-      mockSails.config.brandingAware = sinon.stub().returns({
+      domainFixture.config.brandingAware = sinon.stub().returns({
         feature: { customValue: true }
       });
 
-      const { Services } = require('../../src/services/ConfigService');
-      const configService = new Services.Config();
+      const configService = configuration(domainFixture.config);
 
       const result = configService.getBrand('mybrand', 'feature');
 
       expect(result).to.deep.equal({ customValue: true });
-      expect(mockSails.config.brandingAware.calledWith('mybrand')).to.be.true;
+      expect(domainFixture.config.brandingAware.calledWith('mybrand')).to.be.true;
     });
 
     it('should fallback to default brand when specific brand config not found', function() {
-      mockSails.config.brandingAware = sinon.stub().callsFake((brandName: string) => {
+      domainFixture.config.brandingAware = sinon.stub().callsFake((brandName: string) => {
         if (brandName === 'default') {
           return { feature: { defaultValue: true } };
         }
         return {};
       });
 
-      const { Services } = require('../../src/services/ConfigService');
-      const configService = new Services.Config();
+      const configService = configuration(domainFixture.config);
 
       const result = configService.getBrand('mybrand', 'feature');
 
@@ -74,10 +65,9 @@ describe('ConfigService', function() {
     });
 
     it('should fallback to brandingConfigurationDefaults when no brand-specific config', function() {
-      mockSails.config.brandingAware = sinon.stub().returns({});
+      domainFixture.config.brandingAware = sinon.stub().returns({});
 
-      const { Services } = require('../../src/services/ConfigService');
-      const configService = new Services.Config();
+      const configService = configuration(domainFixture.config);
 
       const result = configService.getBrand('mybrand', 'feature');
 
@@ -85,11 +75,10 @@ describe('ConfigService', function() {
     });
 
     it('should return undefined when no config found anywhere', function() {
-      mockSails.config.brandingAware = sinon.stub().returns({});
-      mockSails.config.brandingConfigurationDefaults = {};
+      domainFixture.config.brandingAware = sinon.stub().returns({});
+      domainFixture.config.brandingConfigurationDefaults = {};
 
-      const { Services } = require('../../src/services/ConfigService');
-      const configService = new Services.Config();
+      const configService = configuration(domainFixture.config);
 
       const result = configService.getBrand('mybrand', 'nonexistent');
 
@@ -97,15 +86,14 @@ describe('ConfigService', function() {
     });
 
     it('should handle legacy config structure', function() {
-      mockSails.config.brandingAware = sinon.stub().returns({});
-      mockSails.config.brandingConfigurationDefaults = {};
-      mockSails.config.feature = {
+      domainFixture.config.brandingAware = sinon.stub().returns({});
+      domainFixture.config.brandingConfigurationDefaults = {};
+      domainFixture.config.feature = {
         mybrand: { legacyValue: true },
         default: { defaultLegacy: true }
       };
 
-      const { Services } = require('../../src/services/ConfigService');
-      const configService = new Services.Config();
+      const configService = configuration(domainFixture.config);
 
       const result = configService.getBrand('mybrand', 'feature');
 
@@ -113,14 +101,13 @@ describe('ConfigService', function() {
     });
 
     it('should fallback to default brand in legacy config', function() {
-      mockSails.config.brandingAware = sinon.stub().returns({});
-      mockSails.config.brandingConfigurationDefaults = {};
-      mockSails.config.feature = {
+      domainFixture.config.brandingAware = sinon.stub().returns({});
+      domainFixture.config.brandingConfigurationDefaults = {};
+      domainFixture.config.feature = {
         default: { defaultLegacy: true }
       };
 
-      const { Services } = require('../../src/services/ConfigService');
-      const configService = new Services.Config();
+      const configService = configuration(domainFixture.config);
 
       const result = configService.getBrand('mybrand', 'feature');
 
@@ -128,16 +115,12 @@ describe('ConfigService', function() {
     });
   });
 
-  describe('exports', function() {
-    it('should export getBrand and mergeHookConfig methods', function() {
-      const { Services } = require('../../src/services/ConfigService');
-      const configService = new Services.Config();
-      const exported = configService.exports();
-
-      expect(exported).to.have.property('getBrand');
-      expect(exported).to.have.property('mergeHookConfig');
-      expect(exported.getBrand).to.be.a('function');
-      expect(exported.mergeHookConfig).to.be.a('function');
+  describe('public configuration boundary', function() {
+    it('exports the pure resolver and omits the retired imperative hook merger', function() {
+      expect(resolveBrandConfiguration).to.be.a('function');
+      const publicApi = require('../../src/configuration');
+      expect(publicApi).not.to.have.property('mergeHookConfig');
+      expect(publicApi).not.to.have.property('ServiceExports');
     });
   });
 });

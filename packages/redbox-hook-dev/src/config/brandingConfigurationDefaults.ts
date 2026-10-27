@@ -11,7 +11,7 @@ import type {
     BrandingHomePanelsConfig,
     BrandingConfigurationDefaultsConfig,
 } from '@researchdatabox/redbox-core';
-import { createDefaultBinding, type DoiPublishingConfigData } from '@researchdatabox/redbox-core';
+import { createDefaultBinding, type DoiPublishingConfigData } from '@researchdatabox/redbox-core/extensions/config';
 
 const demoMenuConfig: BrandingMenuConfig = {
     items: [

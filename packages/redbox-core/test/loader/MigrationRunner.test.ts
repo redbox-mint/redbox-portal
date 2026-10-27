@@ -6,17 +6,17 @@ import * as os from 'os';
 import * as path from 'path';
 import * as sinon from 'sinon';
 
-import { runPendingMigrations, toRunnableMigrations, type RedboxMigration } from '../../src/loader/MigrationRunner';
+import { runApplicationMigrations, toRunnableMigrations, type ApplicationMigration as RedboxMigration } from '../../src/application/migrations';
 
-import * as persistence from '../../src/persistence/runtime';
 
 const fsPromises = fs.promises;
 
 describe('MigrationRunner', function () {
     const sandboxDir = path.join(os.tmpdir(), 'redbox-migration-runner-test-' + Date.now());
     let originalCwd: string;
-    let hadOriginalSails: boolean;
-    let originalSails: unknown;
+    let environment: any;
+    let ledger: any;
+    const runPendingMigrations = (migrations: RedboxMigration[]) => runApplicationMigrations(migrations, { ledger, context: {}, appVersion: '1.2.3', log: environment.log });
 
     before(async function () {
         ({ expect } = await import('chai'));
@@ -24,14 +24,12 @@ describe('MigrationRunner', function () {
 
     beforeEach(async function () {
         originalCwd = process.cwd();
-        hadOriginalSails = Object.prototype.hasOwnProperty.call(global as any, 'sails');
-        originalSails = (global as any).sails;
 
         await fsPromises.mkdir(sandboxDir, { recursive: true });
         await fsPromises.writeFile(path.join(sandboxDir, 'package.json'), JSON.stringify({ version: '1.2.3' }));
         process.chdir(sandboxDir);
 
-        (global as any).sails = {
+        environment = {
             config: {},
             log: createSinonStubLogger(sinon)
         };
@@ -40,29 +38,23 @@ describe('MigrationRunner', function () {
     afterEach(async function () {
         sinon.restore();
         process.chdir(originalCwd);
-        if (hadOriginalSails) {
-            (global as any).sails = originalSails;
-        } else {
-            delete (global as any).sails;
-        }
         await fsPromises.rm(sandboxDir, { recursive: true, force: true });
     });
 
     async function setMigrationModel(executedNames: string[] = []) {
         const created: Array<Record<string, unknown>> = [];
-        const ledger = {
+        ledger = {
             executedNames: sinon.stub().resolves(executedNames),
             isExecuted: sinon.stub().callsFake(async name => executedNames.includes(name)),
             recordExecution: sinon.stub().callsFake(async values => { created.push(values); }),
             removeExecution: sinon.stub().resolves(),
         };
-        sinon.stub(require('../../src/persistence/migration/runtime'), 'getMigrationLedgerRepository').returns(ledger);
         return { created };
     }
 
     it('should no-op for an empty migration list', async function () {
         await runPendingMigrations([]);
-        expect((global as any).sails.log.info.called).to.equal(false);
+        expect(environment.log.info.called).to.equal(false);
     });
 
     it('should execute pending migrations in lexical name order and log each success', async function () {
@@ -95,7 +87,7 @@ describe('MigrationRunner', function () {
         expect(created[0].executedBy).to.be.a('string').and.to.not.be.empty;
     });
 
-    it('should send Umzug progress logs to the configured sails logger', async function () {
+    it('should send Umzug progress logs to the supplied application logger', async function () {
         await setMigrationModel();
         const consoleInfo = sinon.stub(console, 'info');
         try {
@@ -104,7 +96,7 @@ describe('MigrationRunner', function () {
             consoleInfo.restore();
         }
 
-        const info = (global as any).sails.log.info as sinon.SinonStub;
+        const info = environment.log.info as sinon.SinonStub;
         expect(info.args.some(args => (args[0] as { event?: string })?.event === 'migrated')).to.equal(true);
         expect(consoleInfo.called).to.equal(false);
     });
@@ -117,11 +109,11 @@ describe('MigrationRunner', function () {
             { name: '2026.06.08T10.00.00-second', up: sinon.stub().resolves() }
         ]);
 
-        const info = (global as any).sails.log.info as sinon.SinonStub;
+        const info = environment.log.info as sinon.SinonStub;
         expect(info.calledWithMatch('Data migrations: 1 pending: 2026.06.08T10.00.00-second')).to.be.true;
     });
 
-    it('should skip all migrations when REDBOX_SKIP_MIGRATIONS=true', async function () {
+    it('does not let the obsolete skip variable bypass mandatory migrations', async function () {
         const originalValue = process.env.REDBOX_SKIP_MIGRATIONS;
         process.env.REDBOX_SKIP_MIGRATIONS = 'true';
         try {
@@ -130,10 +122,10 @@ describe('MigrationRunner', function () {
 
             await runPendingMigrations([{ name: '2026.06.08T09.00.00-first', up }]);
 
-            expect(up.called).to.be.false;
-            expect(created).to.deep.equal([]);
-            const warn = (global as any).sails.log.warn as sinon.SinonStub;
-            expect(warn.calledWithMatch('REDBOX_SKIP_MIGRATIONS=true')).to.be.true;
+            expect(up.calledOnce).to.be.true;
+            expect(created.map(row => row.name)).to.deep.equal(['2026.06.08T09.00.00-first']);
+            const warn = environment.log.warn as sinon.SinonStub;
+            expect(warn.called).to.be.false;
         } finally {
             if (originalValue === undefined) {
                 delete process.env.REDBOX_SKIP_MIGRATIONS;
@@ -188,7 +180,7 @@ describe('MigrationRunner', function () {
         expect(runnable.name).to.equal('2026.06.08T09.00.00-first');
         expect(runnable.down).to.equal(down);
 
-        await runnable.down!({ name: runnable.name, path: undefined, context: (global as any).sails });
+        await runnable.down!({ name: runnable.name, path: undefined, context: environment });
         expect(down.calledOnce).to.be.true;
     });
 
