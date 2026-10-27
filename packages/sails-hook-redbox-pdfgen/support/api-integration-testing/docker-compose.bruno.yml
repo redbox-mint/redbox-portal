@@ -4,14 +4,10 @@ networks:
   main:
 
 x-rbportal-env: &rbportal-env
-  - NODE_ENV=integrationtest
-  - NODE_PATH=/opt/redbox-portal/node_modules:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core/node_modules
-  - PORT=1500
-  - sails_redbox__mochaTesting=true
-  - sails_security__csrf=false
-  - LOAD_DEFAULT_FORMS=true
-  - sails_brandingConfigurationDefaults__auth__local__default__token=6b088b4d-d54c-470c-8568-2f2695fcdab9
-  - sails_brandingConfigurationDefaults__pdfgen__token=6b088b4d-d54c-470c-8568-2f2695fcdab9
+  - NODE_ENV=production
+  - REDBOX_PORT=1500
+  - REDBOX_APPLICATION_CONFIG=/pdf-fixtures/deployment.cjs
+  - REDBOX_SESSION_SECRET=pdf-fixture-only-session-secret-at-least-32
   - CI=${CI:-false}
   - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
 
@@ -23,7 +19,7 @@ x-rbportal-depends: &rbportal-depends
 
 services:
   bruno:
-    image: node:24.22.1-bookworm
+    image: node:26.12.1-bookworm@sha256:5c4012d11d9857c42713ba511fbc19645cac1706bb710d51d42b0d301dff7f88
     pull_policy: "missing"
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
@@ -49,12 +45,12 @@ services:
     build:
       context: ../../../..
       dockerfile: Dockerfile
-      target: runtime_pdfgen
+      target: rehearsal
     ports:
       - "1500:1500"
     volumes:
-      - "../../:/opt/redbox-portal/node_modules/@researchdatabox/sails-hook-redbox-pdfgen:delegated"
-      - "./recordtype.config.js:/opt/redbox-portal/node_modules/@researchdatabox/redbox-core/dist/config/recordtype.config.js:delegated"
+      - "./:/pdf-fixtures:ro"
+      - "pdf-attachments:/attachments"
     depends_on: *rbportal-depends
     expose:
       - "1500"
@@ -72,13 +68,16 @@ services:
           - rbportal
     init: true
     entrypoint: >-
-      /bin/bash -c "set -x;
+      /bin/bash -c "set -eu;
       cd /opt/redbox-portal &&
-      node --enable-source-maps app.js;"
+      node app.express.cjs --maintenance=indexes:ensure &&
+      exec node --enable-source-maps app.express.cjs;"
 
   mongodb:
     volumes:
       - "../../../../support/resources/mongodb-persistence-indexes.js:/docker-entrypoint-initdb.d/20-persistence-indexes.js:ro"
+    ulimits:
+      nofile: { soft: 64000, hard: 64000 }
     image: mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
     networks:
       main:
@@ -94,7 +93,7 @@ services:
       start_period: "30s"
 
   solr:
-    image: solr:8.11.1
+    image: solr:10.0.0@sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b
     expose:
       - "8983"
     ports:
@@ -113,3 +112,6 @@ services:
       - docker-entrypoint.sh
       - solr-precreate
       - redbox
+
+volumes:
+  pdf-attachments:

@@ -1,27 +1,21 @@
 const { expect } = require('chai');
 
-describe('storage-mongo hook exports', function () {
-  this.timeout(10000);
-
-  it('registers services and config from the package entrypoint', function () {
-    const hook = require('../src');
-
-    expect(hook.registerRedboxModels).to.equal(undefined);
-    expect(hook.registerRedboxServices()).to.have.property('MongoStorageService');
-    expect(hook.ServiceExports).to.have.property('MongoStorageService');
-    expect(hook.registerRedboxMigrations()).to.have.length(1);
-    expect(hook.registerRedboxConfig()).to.deep.equal({
-      storage: require('../src/config/storage').storage,
+describe('storage-mongo extension exports', function () {
+  it('registers the storage module, migration and configuration from the package entrypoint', () => {
+    const extension = require('../src').registerRedboxExtension();
+    expect(extension.apiVersion).to.equal(1);
+    expect(extension.modules.map((module: any) => module.name)).to.deep.equal(['storage']);
+    expect(extension.migrations).to.have.length(1);
+    expect(extension.config).to.deep.equal({
+      storage: { serviceName: require('../src/config/storage').storage.serviceName },
       record: require('../src/config/record').record,
     });
   });
-
-  it('returns a no-op hook definition without mergeHookConfig side effects', function () {
-    const hookFactory = require('../src');
-    const hook = hookFactory({ services: { configservice: { mergeHookConfig: () => undefined } } });
-
-    expect(hook).to.have.property('initialize');
-    expect(hook).to.have.nested.property('routes.before');
-    expect(hook).to.have.nested.property('routes.after');
+  it('constructs an offline declaration without installing process handlers or merging configuration', () => {
+    const before = process.listeners('SIGTERM');
+    const hook = require('../src');
+    expect(hook.registerRedboxExtension().modules[0].create).to.be.a('function');
+    expect(hook.registerRedboxServices).to.equal(undefined);
+    expect(process.listeners('SIGTERM')).to.deep.equal(before);
   });
 });

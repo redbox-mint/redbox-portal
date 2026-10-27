@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import { createHash } from 'node:crypto';
 import { Project, SyntaxKind, ObjectLiteralExpression, ArrayLiteralExpression } from 'ts-morph';
 import { RedboxPaths } from './paths';
 
@@ -23,130 +24,56 @@ export interface LanguageDefaultEntry {
 export async function updateControllerIndex(params: {
   project: Project;
   paths: RedboxPaths;
-  root: string;
   controllerName: string;
-  className: string;
   webservice: boolean;
   dryRun: boolean;
 }): Promise<void> {
   const indexPath = path.join(params.paths.coreTypes, 'src', 'controllers', 'index.ts');
-  if (!fs.existsSync(indexPath)) return;
-
-  const sourceFile = params.project.addSourceFileAtPath(indexPath);
-
-  const moduleName = params.webservice
-    ? `WS${params.className}ControllerModule`
-    : `${params.className}ControllerModule`;
-  const importPath = params.webservice
-    ? `./webservice/${params.className}Controller`
-    : `./${params.className}Controller`;
-
-  // 1. Add import if not exists
-  if (!sourceFile.getImportDeclaration(d => d.getModuleSpecifierValue() === importPath)) {
-    sourceFile.addImportDeclaration({
-      namespaceImport: moduleName,
-      moduleSpecifier: importPath,
-    });
+  const importPath = params.webservice ? `./webservice/${params.controllerName}` : `./${params.controllerName}`;
+  if (!params.webservice) {
+    await addPublicExport(params.project, indexPath, importPath, params.dryRun);
+    return;
   }
-
-  // 2. Add to ControllerExports or WebserviceControllerExports
-  const exportVarName = params.webservice ? 'WebserviceControllerExports' : 'ControllerExports';
-  const exportVar = sourceFile.getVariableDeclaration(exportVarName);
-  if (exportVar) {
-    const initializer = exportVar.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
-    if (initializer && !initializer.getProperty(params.controllerName)) {
-      const cachePrefix = params.webservice ? 'WS_' : '';
-      initializer.addGetAccessor({
-        name: params.controllerName,
-        returnType: 'any',
-        statements: `return getOrCreate('${cachePrefix}${params.controllerName}', () => new ${moduleName}.Controllers.${params.className}().exports());`,
-      });
-    }
-  }
-
-  // 3. Add to ControllerNames or WebserviceControllerNames
-  const namesVarName = params.webservice ? 'WebserviceControllerNames' : 'ControllerNames';
-  const namesVar = sourceFile.getVariableDeclaration(namesVarName);
-  if (namesVar) {
-    const initializer = namesVar.getInitializerIfKind(SyntaxKind.ArrayLiteralExpression);
-    if (initializer && !initializer.getElements().some((e: any) => e.getText() === `'${params.controllerName}'`)) {
-      initializer.addElement(`'${params.controllerName}'`);
-
-      // Sort elements
-      const elements = initializer.getElements().map((e: any) => e.getText());
-      elements.sort();
-
-      // Re-add all elements sorted
-      while (initializer.getElements().length > 0) {
-        initializer.removeElement(0);
-      }
-      elements.forEach(el => initializer.addElement(el));
-    }
-  }
-
+  const sourceFile =
+    params.project.addSourceFileAtPathIfExists(indexPath) ?? params.project.createSourceFile(indexPath, '');
+  const declaration = sourceFile.getExportDeclaration(d => d.getModuleSpecifierValue() === importPath);
+  const namespaceExport = `Webservice${params.controllerName}`;
+  if (declaration) declaration.setNamespaceExport(namespaceExport);
+  else sourceFile.addExportDeclaration({ moduleSpecifier: importPath, namespaceExport });
   sourceFile.formatText();
-  if (!params.dryRun) {
-    await sourceFile.save();
-    console.log(`  [UPDATE] ${path.relative(params.root, indexPath)}`);
-  }
+  if (!params.dryRun) await sourceFile.save();
+}
+
+async function addPublicExport(
+  project: Project,
+  indexPath: string,
+  importPath: string,
+  dryRun: boolean
+): Promise<void> {
+  const sourceFile = project.addSourceFileAtPathIfExists(indexPath) ?? project.createSourceFile(indexPath, '');
+  if (!sourceFile.getExportDeclaration(d => d.getModuleSpecifierValue() === importPath))
+    sourceFile.addExportDeclaration({ moduleSpecifier: importPath });
+  sourceFile.formatText();
+  if (!dryRun) await sourceFile.save();
 }
 
 export async function updateServiceIndex(params: {
   project: Project;
   paths: RedboxPaths;
-  root: string;
   serviceName: string;
-  className: string;
   dryRun: boolean;
 }): Promise<void> {
-  const indexPath = path.join(params.paths.coreTypes, 'src', 'services', 'index.ts');
-  if (!fs.existsSync(indexPath)) return;
-
-  const sourceFile = params.project.addSourceFileAtPath(indexPath);
-
-  const moduleName = `${params.className}ServiceModule`;
-  const importPath = `./${params.serviceName}`;
-
-  // 1. Add import if not exists
-  if (!sourceFile.getImportDeclaration(d => d.getModuleSpecifierValue() === importPath)) {
-    sourceFile.addImportDeclaration({
-      namespaceImport: moduleName,
-      moduleSpecifier: importPath,
-    });
-  }
-
-  // 2. Add re-export if not exists
-  const exportDeclaration = sourceFile.getExportDeclaration(d => d.getModuleSpecifierValue() === importPath);
-  if (!exportDeclaration) {
-    sourceFile.addExportDeclaration({
-      namedExports: [{ name: moduleName, alias: params.serviceName }],
-      moduleSpecifier: importPath,
-    });
-  }
-
-  // 3. Add to ServiceExports
-  const exportVar = sourceFile.getVariableDeclaration('ServiceExports');
-  if (exportVar) {
-    const initializer = exportVar.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
-    if (initializer && !initializer.getProperty(params.serviceName)) {
-      initializer.addGetAccessor({
-        name: params.serviceName,
-        statements: `return getOrCreateService('${params.serviceName}', () => new ${moduleName}.Services.${params.className}().exports());`,
-      });
-    }
-  }
-
-  sourceFile.formatText();
-  if (!params.dryRun) {
-    await sourceFile.save();
-    console.log(`  [UPDATE] ${path.relative(params.root, indexPath)}`);
-  }
+  await addPublicExport(
+    params.project,
+    path.join(params.paths.coreTypes, 'src', 'services', 'index.ts'),
+    `./${params.serviceName}`,
+    params.dryRun
+  );
 }
 
 export async function updateRoutes(params: {
   project: Project;
   paths: RedboxPaths;
-  root: string;
   route: string;
   controllerName: string;
   action: string;
@@ -154,47 +81,48 @@ export async function updateRoutes(params: {
   csrf?: boolean;
   dryRun: boolean;
 }): Promise<void> {
-  const routesPath = path.join(params.paths.coreTypes, 'src', 'config', 'routes.config.ts');
-  if (!fs.existsSync(routesPath)) return;
-
-  const sourceFile = params.project.addSourceFileAtPath(routesPath);
-  const routesVar = sourceFile.getVariableDeclaration('routes');
-  if (!routesVar) return;
-
-  const initializer = routesVar.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
-  if (!initializer) return;
-
-  let routeKey = params.route;
-  if (!routeKey.includes(' ')) {
-    routeKey = `get ${routeKey}`;
-  }
-
-  if (!initializer.getProperty(`'${routeKey}'`) && !initializer.getProperty(`"${routeKey}"`)) {
-    const target = params.webservice ? `webservice/${params.controllerName}` : params.controllerName;
-    const csrf = typeof params.csrf === 'boolean' ? params.csrf : params.webservice ? false : undefined;
-    if (params.webservice || typeof csrf === 'boolean') {
-      const props = [
-        `controller: '${target}'`,
-        `action: '${params.action}'`,
-        ...(typeof csrf === 'boolean' ? [`csrf: ${csrf}`] : []),
-      ];
-      initializer.addPropertyAssignment({
-        name: `'${routeKey}'`,
-        initializer: `{ ${props.join(', ')} }`,
-      });
-    } else {
-      initializer.addPropertyAssignment({
-        name: `'${routeKey}'`,
-        initializer: `'${target}.${params.action}'`,
-      });
-    }
-  }
-
+  if (params.csrf === false)
+    throw new Error('Generated extension routes cannot disable CSRF. Bind the selected host policy explicitly.');
+  const [method, ...parts] = params.route.includes(' ') ? params.route.trim().split(/\s+/) : ['get', params.route];
+  const routePath = parts.join(' ');
+  if (
+    !['get', 'post', 'put', 'patch', 'delete', 'head', 'options'].includes(method.toLowerCase()) ||
+    !routePath.startsWith('/')
+  )
+    throw new Error('An extension route requires an explicit supported HTTP method and absolute path.');
+  const routesPath = path.join(params.paths.coreTypes, 'src', 'config', 'extensionRoutes.ts');
+  const sourceFile =
+    params.project.addSourceFileAtPathIfExists(routesPath) ??
+    params.project.createSourceFile(
+      routesPath,
+      `import type { ExtensionRoute } from '@researchdatabox/redbox-core/extensions';\n// Include these declarations in registerRedboxExtension().routes and bind each named handler/policy.\nexport const routes: ExtensionRoute[] = [];\n`
+    );
+  const routes = sourceFile
+    .getVariableDeclarationOrThrow('routes')
+    .getInitializerIfKindOrThrow(SyntaxKind.ArrayLiteralExpression);
+  const handler = `${params.webservice ? 'api-' : ''}${params.controllerName}-${params.action}`;
+  if (!/^[A-Za-z][A-Za-z0-9_-]{0,99}$/.test(handler))
+    throw new Error('Generated route names must be bounded extension identifiers; provide a shorter named handler.');
+  const verb = method.toLowerCase();
+  const suffix = `-${verb}-${createHash('sha256').update(routePath).digest('hex').slice(0, 16)}`;
+  const name = handler.slice(0, 100 - suffix.length) + suffix;
+  const duplicate = routes
+    .getElements()
+    .some(
+      el =>
+        el.isKind(SyntaxKind.ObjectLiteralExpression) &&
+        getStringProp(el, 'method') === verb &&
+        getStringProp(el, 'path') === routePath &&
+        getStringProp(el, 'handler') === handler
+    );
+  const access = ['noCache', 'brandingAndPortal', 'isWebServiceAuthenticated', 'brandActor', 'checkAuth'];
+  if (!['get', 'head', 'options'].includes(method.toLowerCase())) access.push('csrf');
+  if (!duplicate)
+    routes.addElement(
+      `{ name: ${JSON.stringify(name)}, method: ${JSON.stringify(verb)}, path: ${JSON.stringify(routePath)}, handler: ${JSON.stringify(handler)}, access: ${JSON.stringify(access)} }`
+    );
   sourceFile.formatText();
-  if (!params.dryRun) {
-    await sourceFile.save();
-    console.log(`  [UPDATE] ${path.relative(params.root, routesPath)}`);
-  }
+  if (!params.dryRun) await sourceFile.save();
 }
 
 export async function updateAuth(params: {
@@ -340,7 +268,7 @@ function getStringProp(obj: ObjectLiteralExpression, name: string): string | und
   const prop = obj.getProperty(name);
   if (!prop || !prop.asKind(SyntaxKind.PropertyAssignment)) return undefined;
   const initializer = prop.asKind(SyntaxKind.PropertyAssignment)!.getInitializer();
-  return initializer ? initializer.getText().replace(/['"]/g, '') : undefined;
+  return initializer?.asKind(SyntaxKind.StringLiteral)?.getLiteralValue();
 }
 
 function getArrayProp(obj: ObjectLiteralExpression, name: string): ArrayLiteralExpression | undefined {

@@ -44,41 +44,6 @@ function namedDeclaration(file: ts.SourceFile, name: string): ts.Declaration | u
   )[0];
 }
 
-function stringLiterals(node: ts.Node): string[] {
-  return descendants(node, (child): child is ts.StringLiteral => ts.isStringLiteral(child)).map(
-    literal => literal.text
-  );
-}
-
-function registryNames(file: ts.SourceFile, variableName: string): string[] {
-  const declaration = descendants(
-    file,
-    (node): node is ts.VariableDeclaration =>
-      ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === variableName
-  )[0];
-  if (!declaration?.initializer || !ts.isObjectLiteralExpression(declaration.initializer)) return [];
-  return declaration.initializer.properties
-    .map(property => {
-      if (ts.isGetAccessorDeclaration(property) || ts.isPropertyAssignment(property)) {
-        return property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
-          ? property.name.text
-          : undefined;
-      }
-      return undefined;
-    })
-    .filter((name): name is string => Boolean(name))
-    .sort();
-}
-
-function findImplementationClass(file: ts.SourceFile): ts.ClassDeclaration | undefined {
-  const classes = descendants(file, (node): node is ts.ClassDeclaration => ts.isClassDeclaration(node));
-  return (
-    classes.find(candidate =>
-      candidate.members.some(member => ts.isPropertyDeclaration(member) && nodeName(member) === '_exportedMethods')
-    ) ?? classes.find(candidate => candidate.name)
-  );
-}
-
 function parameterContracts(checker: ts.TypeChecker, method: ts.MethodDeclaration): MemberContract['parameters'] {
   return method.parameters.map(parameter => {
     const symbol = checker.getSymbolAtLocation(parameter.name);
@@ -123,13 +88,6 @@ function normalizeType(value: string): string {
     .replace(/import\("\/packages\//g, 'import("packages/');
 }
 
-function exportedMethodNames(container: ts.ClassDeclaration): string[] {
-  const member = container.members.find(
-    candidate => ts.isPropertyDeclaration(candidate) && nodeName(candidate) === '_exportedMethods'
-  ) as ts.PropertyDeclaration | undefined;
-  return member?.initializer ? stringLiterals(member.initializer) : [];
-}
-
 function surfaceFromClass(
   checker: ts.TypeChecker,
   declaration: ts.ClassDeclaration,
@@ -139,7 +97,6 @@ function surfaceFromClass(
   routes?: RouteContract[]
 ): SurfaceContract {
   const docs = parseDocumentation(declaration);
-  const exported = new Set(exportedMethodNames(declaration));
   const methods = declaration.members.filter(
     (member): member is ts.MethodDeclaration => ts.isMethodDeclaration(member) && Boolean(nodeName(member))
   );
@@ -148,7 +105,15 @@ function surfaceFromClass(
       ? methods.filter(method =>
           ['exports', 'init', 'sendResp', 'getObservable', 'convertToType'].includes(nodeName(method) ?? '')
         )
-      : methods.filter(method => exported.has(nodeName(method) ?? ''));
+      : methods.filter(
+          method =>
+            !ts
+              .getModifiers(method)
+              ?.some(
+                modifier =>
+                  modifier.kind === ts.SyntaxKind.PrivateKeyword || modifier.kind === ts.SyntaxKind.ProtectedKeyword
+              )
+        );
   return {
     id,
     name,
@@ -164,85 +129,6 @@ function surfaceFromClass(
     members: selected.map(method => methodContract(checker, id, method, docs.lifecycle)),
     routes,
   };
-}
-
-function propertyString(object: ts.ObjectLiteralExpression, name: string): string | undefined {
-  const property = object.properties.find(
-    (candidate): candidate is ts.PropertyAssignment =>
-      ts.isPropertyAssignment(candidate) && candidate.name.getText().replaceAll(/["']/g, '') === name
-  );
-  if (!property) return undefined;
-  return ts.isStringLiteral(property.initializer) ? property.initializer.text : property.initializer.getText();
-}
-
-function extractRoutes(program: ts.Program): RouteContract[] {
-  const routeFile = sourceFile(program, 'packages/redbox-core/src/config/routes.config.ts');
-  const authFile = sourceFile(program, 'packages/redbox-core/src/config/auth.config.ts');
-  const authorizations = descendants(authFile, (node): node is ts.ObjectLiteralExpression =>
-    ts.isObjectLiteralExpression(node)
-  )
-    .map(object => ({
-      path: propertyString(object, 'path'),
-      role: propertyString(object, 'role'),
-      grants: object.properties
-        .filter((property): property is ts.PropertyAssignment => ts.isPropertyAssignment(property))
-        .map(property => property.name.getText())
-        .filter(property => property.startsWith('can_')),
-    }))
-    .filter(rule => rule.path && rule.role);
-
-  const routes: RouteContract[] = [];
-  for (const property of descendants(routeFile, (node): node is ts.PropertyAssignment =>
-    ts.isPropertyAssignment(node)
-  )) {
-    if (!ts.isStringLiteral(property.name)) continue;
-    const match = /^(get|post|put|patch|delete|options|head)\s+(.+)$/i.exec(property.name.text);
-    if (!match) continue;
-    let target: string | undefined;
-    if (ts.isStringLiteral(property.initializer)) target = property.initializer.text;
-    else if (ts.isObjectLiteralExpression(property.initializer)) {
-      const controller = propertyString(property.initializer, 'controller');
-      const action = propertyString(property.initializer, 'action');
-      if (controller && action) target = `${controller}.${action}`;
-    }
-    if (!target?.includes('.')) continue;
-    const [controller, action] = target.split('.', 2);
-    const pathValue = match[2];
-    const authorization = authorizations
-      .filter(rule => rule.path === pathValue)
-      .map(rule => `${rule.role}: ${rule.grants.join(', ')}`);
-    routes.push({ method: match[1].toUpperCase(), path: pathValue, action: `${controller}.${action}`, authorization });
-  }
-  return routes;
-}
-
-function extractRegisteredClasses(
-  program: ts.Program,
-  checker: ts.TypeChecker,
-  routes: RouteContract[],
-  registryPath: string,
-  registryName: string,
-  directory: string,
-  kind: SurfaceKind,
-  idPrefix: string
-): SurfaceContract[] {
-  const registry = sourceFile(program, registryPath);
-  return registryNames(registry, registryName).flatMap(name => {
-    const relativePath = `${directory}/${name}.ts`;
-    const absolutePath = path.join(repositoryRoot, relativePath);
-    if (!fs.existsSync(absolutePath)) return [];
-    const file = sourceFile(program, relativePath);
-    const declaration = findImplementationClass(file);
-    if (!declaration) return [];
-    const controllerRoutes = kind.includes('controller')
-      ? routes.filter(
-          route =>
-            route.action.startsWith(`${name}.`) &&
-            (kind === 'webservice-controller' ? route.path.includes('/api/') : !route.path.includes('/api/'))
-        )
-      : undefined;
-    return [surfaceFromClass(checker, declaration, `${idPrefix}:${name}`, name, kind, controllerRoutes)];
-  });
 }
 
 function constantValue(file: ts.SourceFile, constantName: string): string | undefined {
@@ -569,69 +455,24 @@ function diagnosticsFor(surfaces: SurfaceContract[]): DocumentationDiagnostic[] 
 
 export function extractCatalogue(program: ts.Program): ExtractionResult {
   const checker = program.getTypeChecker();
-  const routes = extractRoutes(program);
   const surfaces: SurfaceContract[] = [];
-  const hook = basicSurface(
-    checker,
-    program,
-    'packages/redbox-core/src/hooks/defineRedboxHook.ts',
-    'DefineRedboxHookOptions',
-    'hook-protocol:defineRedboxHook',
-    'hook-protocol',
-    'defineRedboxHook'
-  );
-  const baseService = basicSurface(
-    checker,
-    program,
-    'packages/redbox-core/src/CoreService.ts',
-    'Service',
-    'base-service:Service',
-    'base-service'
-  );
-  const baseController = basicSurface(
-    checker,
-    program,
-    'packages/redbox-core/src/CoreController.ts',
-    'Controller',
-    'base-controller:Controller',
-    'base-controller'
-  );
-  if (hook) surfaces.push(hook);
-  if (baseService) surfaces.push(baseService);
-  if (baseController) surfaces.push(baseController);
-  surfaces.push(
-    ...extractRegisteredClasses(
-      program,
-      checker,
-      routes,
-      'packages/redbox-core/src/services/index.ts',
-      'ServiceExports',
-      'packages/redbox-core/src/services',
-      'service',
-      'service'
-    ),
-    ...extractRegisteredClasses(
-      program,
-      checker,
-      routes,
-      'packages/redbox-core/src/controllers/index.ts',
-      'ControllerExports',
-      'packages/redbox-core/src/controllers',
-      'ajax-controller',
-      'ajax-controller'
-    ),
-    ...extractRegisteredClasses(
-      program,
-      checker,
-      routes,
-      'packages/redbox-core/src/controllers/index.ts',
-      'WebserviceControllerExports',
-      'packages/redbox-core/src/controllers/webservice',
-      'webservice-controller',
-      'webservice-controller'
-    ),
-    ...extractForms(program, checker)
-  );
+  // v6 publishes classified declarations, not removed singleton/shim registries.
+  const contracts = [
+    ['extensions/contract.ts', 'RedboxExtension', 'hook-protocol', 'hook-protocol:RedboxExtension'],
+    ['extensions/contract.ts', 'ExtensionFactory', 'hook-protocol', 'hook-protocol:ExtensionFactory'],
+    ['extensions/contract.ts', 'ExtensionRoute', 'hook-protocol', 'hook-protocol:ExtensionRoute'],
+    ['extensions/contract.ts', 'ExtensionWork', 'hook-protocol', 'hook-protocol:ExtensionWork'],
+    ['extensions/contract.ts', 'ExtensionHostIntegration', 'hook-protocol', 'hook-protocol:ExtensionHostIntegration'],
+    ['application/Application.ts', 'ApplicationModule', 'hook-protocol', 'hook-protocol:ApplicationModule'],
+    ['CoreService.ts', 'Service', 'base-service', 'base-service:Service'],
+    ['records/Records.ts', 'Records', 'service', 'service:RecordsService'],
+    ['forms/RecordValidation.ts', 'RecordValidation', 'service', 'service:RecordValidationService'],
+  ] as const;
+  for (const [file, name, kind, id] of contracts) {
+    const surface = basicSurface(checker, program, `packages/redbox-core/src/${file}`, name, id, kind);
+    if (surface) surfaces.push(surface);
+  }
+  surfaces.push(...extractForms(program, checker));
   surfaces.sort((left, right) => left.id.localeCompare(right.id));
   return { surfaces, diagnostics: diagnosticsFor(surfaces) };
 }

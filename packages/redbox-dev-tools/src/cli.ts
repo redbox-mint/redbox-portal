@@ -1,4 +1,5 @@
 import { spawnSync } from 'child_process';
+import { isPublicExtensionEntry } from '@researchdatabox/redbox-core/extensions';
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,6 +15,7 @@ import {
 import { generateCompletionScript } from './completion';
 import { parseLanguageDefaults, parseNavMappings, parseRoutes } from './cli-parsers';
 import { registerSyncTranslationCommand } from './commands/sync-translation';
+import { findRetiredFrameworkDependencies, findRetiredViewApis, hasRuntimeExtensionExport } from './utils/v6-checks';
 
 const program = new Command();
 const packageJson = readPackageJson(path.resolve(__dirname, '..', 'package.json')) as { version?: string };
@@ -57,16 +59,26 @@ function migrateHookDependencyContract(pkg: any): any {
 
   for (const depName of forbiddenHookDeps) {
     delete nextPkg.dependencies[depName];
-    delete nextPkg.devDependencies[depName];
+    // The v6 scaffold builds with its explicitly pinned local compiler.
+    if (depName !== 'typescript') delete nextPkg.devDependencies[depName];
     delete nextPkg.peerDependencies[depName];
   }
 
+  const exactOrInstalled = (version: unknown, installed: string): string =>
+    typeof version === 'string' && /^(?:\d+\.\d+\.\d+(?:-[\w.-]+)?$|file:|workspace:)/.test(version)
+      ? version : installed;
+  const coreVersion = readPackageJson(require.resolve('@researchdatabox/redbox-core/package.json')).version;
+  if (nextPkg.devDependencies.typescript != null)
+    nextPkg.devDependencies.typescript = exactOrInstalled(
+      nextPkg.devDependencies.typescript,
+      readPackageJson(require.resolve('typescript/package.json')).version
+    );
   nextPkg.peerDependencies['@researchdatabox/redbox-core'] =
-    nextPkg.peerDependencies['@researchdatabox/redbox-core'] ?? '*';
+    exactOrInstalled(nextPkg.peerDependencies['@researchdatabox/redbox-core'], coreVersion);
   nextPkg.devDependencies['@researchdatabox/redbox-core'] =
-    nextPkg.devDependencies['@researchdatabox/redbox-core'] ?? nextPkg.peerDependencies['@researchdatabox/redbox-core'];
+    exactOrInstalled(nextPkg.devDependencies['@researchdatabox/redbox-core'], coreVersion);
   nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] =
-    nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] ?? '*';
+    exactOrInstalled(nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'], packageJson.version!);
 
   return nextPkg;
 }
@@ -79,12 +91,15 @@ function findForbiddenHookDeps(pkg: any): string[] {
     const deps = pkg[section] ?? {};
 
     for (const depName of Object.keys(deps)) {
+      if (!/^(?:\d+\.\d+\.\d+(?:-[\w.-]+)?$|file:|workspace:)/.test(deps[depName]))
+        findings.push(`${section}.${depName}: exact version required`);
       if (isForbiddenSharedHookDep(section, depName)) {
         findings.push(`${section}.${depName}`);
       }
     }
 
     for (const depName of forbiddenHookDeps) {
+      if (section === 'devDependencies' && depName === 'typescript') continue;
       if (deps[depName] != null) {
         findings.push(`${section}.${depName}`);
       }
@@ -130,13 +145,13 @@ registerSyncTranslationCommand(program);
 
 program
   .command('init [name]')
-  .description('Initialize a new ReDBox hook project from the standard archetype')
-  .option('--template <template>', 'Archetype template name', 'standard')
+  .description('Initialize a ReDBox v6 extension project')
+  .option('--template <template>', 'Archetype template: v6', 'v6')
   .option('--description <description>', 'Project description')
   .option('--force', 'Overwrite existing archetype files', false)
   .action((name: string | undefined, options: { template: string; description?: string; force?: boolean }) => {
-    if (options.template !== 'standard') {
-      console.error(`❌ Unsupported template: ${options.template}. Supported templates: standard`);
+    if (options.template !== 'v6') {
+      console.error(`❌ Unsupported template: ${options.template}. Supported template: v6`);
       process.exit(1);
     }
 
@@ -163,16 +178,16 @@ program
 
     console.log('\n✨ Archetype ready!\n');
     console.log('Next steps:');
-    console.log('  1. Install dependencies: npm install');
-    console.log('  2. Compile TypeScript: npm run compile');
-    console.log('  3. Run unit tests: npm run test:unit');
-    console.log('  4. Start tailoring the hook in src/, test/, and support/\n');
+    console.log('  1. Install dependencies with the matching v6 core; follow README.md');
+    console.log('  2. Compile TypeScript: npm run build');
+    console.log('  3. Bind concrete factory inputs in your application; see README.md\n');
   });
 
 program
   .command('check')
   .description('Validate that a hook uses the shared Redbox dependency contract')
-  .action(() => {
+  .option('--v6', 'Also check neutral v6 metadata, runtime exports and retired APIs in views/')
+  .action((options: { v6?: boolean }) => {
     const packageJsonPath = path.join(process.cwd(), 'package.json');
     if (!fs.existsSync(packageJsonPath)) {
       console.error('❌ package.json not found in the current directory.');
@@ -181,6 +196,16 @@ program
 
     const pkg = readPackageJson(packageJsonPath);
     const findings = findForbiddenHookDeps(pkg);
+    if (options.v6 || pkg.redbox?.extension != null) {
+      findings.push(...findRetiredFrameworkDependencies(pkg));
+      if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata');
+      const entry = pkg.redbox?.extension;
+      if (!isPublicExtensionEntry(entry))
+        findings.push('redbox.extension: declare a public v6 extension subpath');
+      else if (!hasRuntimeExtensionExport(pkg.exports, entry))
+        findings.push('exports: expose the declared redbox.extension subpath with a runtime target');
+      findings.push(...findRetiredViewApis(process.cwd()));
+    }
 
     if (findings.length === 0) {
       console.log('✅ Hook dependency contract looks good.');

@@ -17,7 +17,7 @@ The `@researchdatabox/redbox-dev-tools` package provides shared configuration, g
 ## Installation
 
 ```bash
-npm install --save-dev @researchdatabox/redbox-dev-tools
+npm install --save-dev /approved-artifacts/researchdatabox-redbox-dev-tools-4.5.1.tgz
 ```
 
 ## Quick Start
@@ -25,140 +25,75 @@ npm install --save-dev @researchdatabox/redbox-dev-tools
 Initialize a new hook project:
 
 ```bash
-npx @researchdatabox/redbox-dev-tools init redbox-hook-my-client
+npx --no-install redbox-dev-tools init redbox-hook-my-client
 ```
 
-This will:
+The only supported scaffold is **v6**, also the default. `--template standard`
+is rejected. Install the qualified v6 dev-tools and matching core artifacts before
+running these commands; an older published package with the same historical
+version label is not proof of v6 compatibility.
 
-- Generate the standard hook archetype in the current directory
-- Create `src/`, `test/`, `support/`, `assets/`, `views/`, `language-defaults/`, and `support/bootstrap-data/`
-- Create a `package.json` with the shared Redbox dependency contract
-- Generate starter controller, service, form-config, config, migration registry, Docker, development, and test files
+The generated project contains `src/`, `assets/`, `views/`, a standalone TypeScript
+configuration and an exact-pinned package manifest. It declares a neutral
+`registerRedboxExtension()` export, a concrete module with an owned audit file,
+a public handler/route, startup configuration under `custom.<hook-name>`, and
+migration/bootstrap operations. Registration and factory binding remain offline.
 
-The standard archetype is based on the current hook structure used for migrated client hooks such as `redbox-hook-jcu` and `redbox-hook-cqu`, but stripped back to generic placeholders so a new client hook can start from the same shape without inheriting client-specific logic.
-
-The archetype is now backed by file-based Handlebars templates under [templates/hook-archetype](templates/hook-archetype), which gives us a clean path for future variants such as branding-heavy hooks, lighter hooks, or alternate TypeScript setups.
-
-## TypeScript Configuration
-
-Your hook project's `tsconfig.json` should extend the shared configuration:
-
-```json
-{
-  "extends": "@researchdatabox/redbox-dev-tools/config/tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "typeRoots": ["node_modules/@types"]
-  },
-  "include": ["src/**/*.ts", "src/**/*.d.ts"]
-}
+```sh
+npm run build
+npm pack --ignore-scripts
 ```
 
-**Note:** Shared runtime path injection for packages such as `rxjs`, `axios`, `lodash`, and `@researchdatabox/sails-ng-common` is handled by the `run-hook-tsc` and `run-hook-mocha` entrypoints, not by hard-coded hook-local `paths` blocks.
+The package is a portal extension. Install its pack in the deployment and bind
+its concrete module, handler and `ensureNamedQuery` repository inputs through
+`createPortalHost`'s `bindings` option. Supply a writable audit path and the
+finalized `config.custom[hookName].greeting`. The production application owns
+initialization, activation, migration ledger, HTTP admission, drain and close;
+the hook does not create another listener or signal owner. Protected routes need
+ordered policies; the sample status route is deliberately public.
 
-## Compiling TypeScript
+Controller, add-method and Angular-page routes use the host's ordered
+`noCache`, `brandingAndPortal`, `isWebServiceAuthenticated`, `brandActor` and
+`checkAuth` policies. Supply a path with `/:branding/:portal` parameters and
+include the generated declarations in the extension's `routes`; bind its named
+handlers. Write methods also select `csrf`: browser callers send a session token,
+and independently verified API bearer credentials receive the host's exemption.
 
-Compile your TypeScript code using the toolchain provided by dev tools:
+See [v6 conversion and deployment bindings](../../support/specs/sails-retirement/hook-migration-v6.md)
+and [the generated-app qualification](../redbox-core/test/qualification/generated-institution.cjs).
+The latter compiles and packs a fresh hook, supplies concrete persisted operations,
+then exercises production HTTP startup, restart and cleanup with real MongoDB.
 
-```bash
-node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json
-```
+Use exact dependency versions. The scaffold explicitly pins TypeScript and Node
+declarations for standalone compilation and declares core as a matching peer/dev
+dependency. Runtime libraries owned by a hook need explicit direct dependencies.
+The development-only `runtime-resolver`, `testing`, `run-hook-tsc` and
+`run-hook-mocha` helpers support existing converted hooks; they do not register
+runtime services or install globals.
 
-Or add it to your `package.json` scripts:
-
-```json
-{
-  "scripts": {
-    "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json"
-  }
-}
-```
-
-Then run:
-
-```bash
-npm run compile
-```
-
-## Archetype Starter Files
-
-```typescript
-import { defineRedboxHook } from '@researchdatabox/redbox-core';
-
-const hook = defineRedboxHook({
-  registerRedboxControllers() {
-    return require('./api/controllers').ControllerExports;
-  },
-  registerRedboxServices() {
-    return require('./api/services').ServiceExports;
-  }
-});
-
-module.exports = hook;
-```
-
-## Shared Dependency Contract
-
-Hooks should declare only:
-
-- `peerDependencies.@researchdatabox/redbox-core`
-- `devDependencies.@researchdatabox/redbox-core`
-- `devDependencies.@researchdatabox/redbox-dev-tools`
-- direct `dependencies` for hook-owned runtime libraries only
-
-Do not directly declare shared Redbox runtime or toolchain packages in a hook if they are already supplied by the core or dev-tools contract. That includes `axios`, `rxjs`, `lodash`, `mocha`, `chai`, `ts-node`, and `typescript`.
-
-`redbox-dev-tools` directly provides the shared hook authoring toolchain:
-
-- `typescript`
-- `ts-node`
-- `mocha`
-- `chai`
-- `@types/node`
-- `@types/mocha`
-- `@types/chai`
-- `@types/lodash`
-
-For hook tests and authoring utilities, `redbox-dev-tools` also exposes shared resolution helpers via `@researchdatabox/redbox-dev-tools/testing` and `@researchdatabox/redbox-dev-tools/runtime-resolver`. These are for development-time use only. Hook runtime code should continue to import normal runtime packages such as `axios` and `rxjs` directly and rely on the Redbox host contract to provide them. The shared TypeScript config prefers resolving those runtime modules from the installed `@researchdatabox/redbox-core` dependency tree, and only falls back to the `redbox-dev-tools` install when package manager flattening hoists them there.
-
-`@researchdatabox/redbox-core` is the runtime compatibility contract for hooks. It supplies the approved shared runtime dependency surface that hook authors may rely on implicitly, including `axios`, `rxjs`, and `lodash`.
-
-## Versioning
-
-This package is versioned to match the ReDBox core release it supports. For example, version `4.5.1` is compatible with ReDBox Portal version `4.5.1`.
+Package names retain historical version labels. Qualify core/dev-tools together;
+matching numeric labels alone do not establish runtime compatibility.
 
 ## CLI Commands
 
 ### `init`
 
-Initialize a new ReDBox hook project from the standard archetype.
+Initialize a new ReDBox hook project from the v6 archetype:
 
-```bash
-npx @researchdatabox/redbox-dev-tools init redbox-hook-my-client
+```sh
+npx --no-install redbox-dev-tools init redbox-hook-my-client
+# Explicit equivalent:
+npx --no-install redbox-dev-tools init redbox-hook-my-client --template v6
 ```
 
-Template variants are selected with `--template`:
-
-```bash
-npx @researchdatabox/redbox-dev-tools init redbox-hook-my-client --template standard
-```
-
-The generated project includes a typed migration registry under `src/migrations`, client customisation slots under `support/bootstrap-data`, `assets`, `views`, and `language-defaults`, and Docker-backed local development scripts:
-
-```bash
-npm run dev:run:build
-npm run dev:run
-```
-
-To mount a local `redbox-portal` checkout while migrating a client hook, set `REDBOX_PORTAL_PATH` in `support/development/core-mount.env` and run:
-
-```bash
-npm run dev:run:core
-```
+Build and pack the generated extension, then install it in the configured portal
+application with its explicit bindings as described above. Existing institution
+customizations require source conversion; regeneration is not a migration.
 
 ### `check`
 
-Validate that the current hook package does not directly pin shared Redbox runtime or toolchain dependencies.
+Validate the current hook package's exact dependency contract, including the
+explicit v6 scaffold compiler/declaration pins and direct hook-owned libraries.
 
 ```bash
 npx @researchdatabox/redbox-dev-tools check
@@ -278,3 +213,10 @@ See the main [ReDBox Portal repository](https://github.com/redbox-mint/redbox-po
 ## License
 
 ISC
+
+## V6 migration
+
+The legacy scaffold, shim metadata and framework/global registration examples are
+retired. Port the institution's code using the
+[v6 migration guide](../../support/specs/sails-retirement/hook-migration-v6.md)
+and run the deployment's supported checks against its exact qualified artifacts.

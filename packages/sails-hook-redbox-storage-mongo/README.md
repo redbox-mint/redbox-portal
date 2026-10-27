@@ -16,13 +16,13 @@ This package provides the MongoDB-backed Prisma storage service and config regis
 ## Runtime integration
 
 - The package builds from `src/` to `dist/`
-- The `@researchdatabox/redbox-core` loader consumes `registerRedboxServices()` and `registerRedboxConfig()` from the built entrypoint
+- The public `/extension` entry exports `registerRedboxExtension()`. The host selects its named storage module and binds its explicit dependencies before initialization.
 - `MongoStorageService` uses the declared core storage Prisma contract; model globals and registration are removed.
 
 ## Configuration
 
 - Storage uses the logical datastore named `redboxStorage`
-- Datastore connection details still live in the host portal’s Sails config
+- Set `datastores.redboxStorage` in the host's explicit v6 configuration module; select it with `REDBOX_APPLICATION_CONFIG`.
 
 ## Prisma persistence
 
@@ -53,10 +53,10 @@ the revision plus `deleted` lifecycle state on legacy tombstones. It does not
 touch record metadata, workflow, authorization, `lastSaveDate`, or search
 documents.
 
-Run an upgrade with exactly one lifting portal instance, let migrations finish,
+Run an upgrade with exactly one initializing portal instance, let migrations finish,
 and only then start the remaining instances. The repository migration runner
 has no distributed migration lock. Back up the database first; do not use
-`REDBOX_SKIP_MIGRATIONS=true` for a strict-concurrency rollout.
+any migration-skip override; v6 has no such startup mode.
 
 ## Storage concurrency capability
 

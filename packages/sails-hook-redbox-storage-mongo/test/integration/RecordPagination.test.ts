@@ -17,7 +17,6 @@ describeMongo('Record pagination with MongoDB', function () {
   const databaseName = `redbox_pagination_test_${randomUUID().replace(/-/g, '')}`;
   let client: MongoClient;
   let service: Awaited<ReturnType<typeof prismaStorage>>;
-  let originalExportPageSize: number;
 
   // Large groups of equal timestamps cross page boundaries. OIDs deliberately
   // run opposite to _id order so the tie-breaker is observable.
@@ -34,26 +33,25 @@ describeMongo('Record pagination with MongoDB', function () {
   const expectedOids = [...fixtureOids.slice(recordCount / 2), ...fixtureOids.slice(0, recordCount / 2)];
 
   before(async function () {
-    originalExportPageSize = sails.config.record.export.maxRecords;
-    sails.config.record.export.maxRecords = pageSize;
     client = new MongoClient(mongoUrl!, { serverSelectionTimeoutMS: 5000 });
     await client.connect();
     const database = client.db(databaseName);
-    service = await prismaStorage(client, databaseName);
+    service = await prismaStorage(client, databaseName, pageSize);
     await database.collection('record').insertMany(fixtures);
-    await database.collection('deletedrecord').insertMany(fixtures.map((record, index) => ({
-      _id: record._id,
-      redboxOid: record.redboxOid,
-      dateDeleted: index < recordCount / 2 ? '2026-09-04T00:00:00Z' : '2026-09-03T00:00:00Z',
-      // Match RecordsService.lifecycleSnapshot: physical IDs are not embedded
-      // in the Json record snapshot.
-      deletedRecordMetadata: Object.fromEntries(Object.entries(record).filter(([key]) => key !== '_id')),
-    })));
+    await database.collection('deletedrecord').insertMany(
+      fixtures.map((record, index) => ({
+        _id: record._id,
+        redboxOid: record.redboxOid,
+        dateDeleted: index < recordCount / 2 ? '2026-09-04T00:00:00Z' : '2026-09-03T00:00:00Z',
+        // Match RecordsService.lifecycleSnapshot: physical IDs are not embedded
+        // in the Json record snapshot.
+        deletedRecordMetadata: Object.fromEntries(Object.entries(record).filter(([key]) => key !== '_id')),
+      }))
+    );
   });
 
   after(async function () {
     await service?.testClose?.();
-    sails.config.record.export.maxRecords = originalExportPageSize;
     if (client) {
       // Drop only the uniquely named database created by this test run.
       await client.db(databaseName).dropDatabase();
@@ -68,8 +66,16 @@ describeMongo('Record pagination with MongoDB', function () {
         // Read the partial final page and the empty page after it.
         for (let start = 0; start < recordCount + pageSize; start += pageSize) {
           const result = await service[method](
-            undefined, undefined, start, pageSize, username, [], brand,
-            undefined, undefined, sort
+            undefined,
+            undefined,
+            start,
+            pageSize,
+            username,
+            [],
+            brand,
+            undefined,
+            undefined,
+            sort
           );
           expect(result.totalItems).to.equal(recordCount);
           oids.push(...result.items.map(record => record.redboxOid));
@@ -100,7 +106,16 @@ describeMongo('Record pagination with MongoDB', function () {
       const oids: unknown[] = [];
       for (let start = 0; start < recordCount; start += pageSize) {
         const result = await service.getDeletedRecords(
-          undefined, undefined, start, pageSize, username, [], brand, undefined, undefined, sort
+          undefined,
+          undefined,
+          start,
+          pageSize,
+          username,
+          [],
+          brand,
+          undefined,
+          undefined,
+          sort
         );
         oids.push(...result.items.map(record => record.redboxOid));
       }

@@ -56,15 +56,15 @@ export class MigrationGenerator extends Generator {
 /**
  * Data migration: ${slug}
  *
- * Runs once during application lift, before coreBootstrap().
+ * Bind this operation in registerRedboxExtension().migrations after persistence initialization.
  * Migrations MUST be idempotent: if the process crashes after up() completes
- * but before the run is logged, the migration runs again on the next lift.
+ * but before the run is logged, the migration runs again on the next initialization.
  * See the Data Migrations wiki page for the full contract.
  */
 module.exports = {
   name: '${this.migrationName}',
 
-  up: async ({ context: sails } = {}) => {
+  up: async ({ context: owner } = {}) => {
     // TODO: implement the forward data transformation.
     // Example:
     // Use core repository operations after persistence initialization.
@@ -72,9 +72,9 @@ module.exports = {
   },
 
   // Optional manual rollback - only ever invoked by operator-driven Umzug
-  // usage, never by a normal lift. Omit it entirely if a safe reverse is
+  // usage, never by a normal initialization. Omit it entirely if a safe reverse is
   // not possible.
-  // down: async ({ context: sails } = {}) => {
+  // down: async ({ context: owner } = {}) => {
   // },
 };
 `;

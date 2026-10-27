@@ -1,5 +1,5 @@
-import { prismaModelFilter } from '@researchdatabox/redbox-core';
-import type { StoragePrismaClient } from '@researchdatabox/redbox-core';
+import { prismaModelFilter } from '@researchdatabox/redbox-core/extensions/storage';
+import type { StoragePrismaClient } from '@researchdatabox/redbox-core/extensions/storage';
 import type { Document } from 'mongodb';
 import type { SchemaDocumentRepository } from './StorageProtocol';
 

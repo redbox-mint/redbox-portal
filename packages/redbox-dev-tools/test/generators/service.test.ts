@@ -19,21 +19,7 @@ describe('ServiceGenerator', () => {
     // Create mock index.ts
     fs.writeFileSync(
       path.join(coreTypesRoot, 'src', 'services', 'index.ts'),
-      `
-import * as ConfigServiceModule from './ConfigService';
-
-export { ConfigServiceModule as ConfigService };
-
-const serviceCache: Record<string, any> = {};
-function getOrCreateService(name: string, factory: () => any): any {
-    if (!serviceCache[name]) serviceCache[name] = factory();
-    return serviceCache[name];
-}
-
-export const ServiceExports = {
-    get ConfigService() { return getOrCreateService('ConfigService', () => new ConfigServiceModule.Services.Config().exports()); },
-};
-`
+      `export const existingDeclaration = true;`
     );
 
     // Create a mock package.json so resolvePaths is happy
@@ -59,16 +45,15 @@ export const ServiceExports = {
     expect(fs.existsSync(servicePath)).to.be.true;
 
     const content = fs.readFileSync(servicePath, 'utf-8');
-    expect(content).to.contain('class TestService extends services.Core.Service');
+    expect(content).to.contain('class TestService');
     expect(content).to.contain('public async doSomething');
     expect(content).to.contain('public async processData');
-    expect(content).to.contain("'doSomething'");
-    expect(content).to.contain("'processData'");
+    expect(content).to.contain('constructor(private readonly log: ILogger)');
+    expect(content).not.to.contain('declare global');
 
     const indexContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'services', 'index.ts'), 'utf-8');
-    expect(indexContent).to.contain("import * as TestServiceModule from './TestService'");
-    expect(indexContent).to.contain('export { TestServiceModule as TestService }');
-    expect(indexContent).to.contain('get TestService()');
-    expect(indexContent).to.contain("getOrCreateService('TestService'");
+    expect(indexContent).to.contain("export * from './TestService'");
+    expect(indexContent).not.to.contain('getOrCreateService');
+    expect(indexContent).not.to.contain('ServiceExports');
   });
 });

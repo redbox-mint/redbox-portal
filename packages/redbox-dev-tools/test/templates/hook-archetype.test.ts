@@ -24,10 +24,10 @@ describe('generateHookArchetype version resolution', () => {
     siblingCoreRoot = path.join(path.dirname(tempRoot), 'redbox-core');
 
     fs.mkdirSync(path.dirname(modulePath), { recursive: true });
-    fs.mkdirSync(path.join(tempRoot, 'templates', 'hook-archetype', 'standard'), { recursive: true });
+    fs.mkdirSync(path.join(tempRoot, 'templates', 'hook-archetype', 'v6'), { recursive: true });
     fs.copyFileSync(path.join(packageRoot, 'src', 'templates', 'hook-archetype.ts'), modulePath);
     fs.writeFileSync(
-      path.join(tempRoot, 'templates', 'hook-archetype', 'standard', 'package.json.hbs'),
+      path.join(tempRoot, 'templates', 'hook-archetype', 'v6', 'package.json.hbs'),
       '{\n  "redboxCoreVersion": {{json redboxCoreVersion}},\n  "redboxDevToolsVersion": {{json redboxDevToolsVersion}}\n}\n'
     );
   });
@@ -101,88 +101,39 @@ describe('generateHookArchetype version resolution', () => {
   });
 });
 
-describe('generateHookArchetype standard template', () => {
+describe('generateHookArchetype v6-only template', () => {
   let tempRoot: string;
-  let hookArchetypeModule: any;
-
+  let generator: any;
   beforeEach(() => {
-    const tempParent = path.join(testRoot, '.tmp');
-    fs.mkdirSync(tempParent, { recursive: true });
-    tempRoot = fs.mkdtempSync(path.join(tempParent, 'rich-hook-archetype-'));
-    hookArchetypeModule = loadTs(module, '../../src/templates/hook-archetype');
+    const parent = path.join(testRoot, '.tmp');
+    fs.mkdirSync(parent, { recursive: true });
+    tempRoot = fs.mkdtempSync(path.join(parent, 'v6-default-'));
+    generator = loadTs(module, '../../src/templates/hook-archetype');
   });
-
-  afterEach(() => {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
+  afterEach(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+  it('defaults to the v6 registration and exact dependencies', () => {
+    generator.generateHookArchetype({ cwd: tempRoot, packageName: 'demo-client' });
+    const pkg = JSON.parse(fs.readFileSync(path.join(tempRoot, 'package.json'), 'utf8'));
+    expect(pkg.redbox.extension).to.equal('.');
+    expect(pkg.sails).to.equal(undefined);
+    expect(fs.readFileSync(path.join(tempRoot, 'src/index.ts'), 'utf8')).to.contain('registerRedboxExtension');
+    expect(fs.existsSync(path.join(tempRoot, 'api'))).to.equal(false);
+    for (const version of Object.values({ ...pkg.devDependencies, ...pkg.peerDependencies }))
+      expect(version).to.match(/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
   });
-
-  function readGenerated(relativePath: string): string {
-    return fs.readFileSync(path.join(tempRoot, relativePath), 'utf8');
-  }
-
-  for (const [relativePath, service] of [
-    ['support/development/docker-compose.yml', 'rbportal'],
-    ['support/integration-testing/docker-compose.mocha.yml', 'redboxportal'],
-  ]) {
-    it(`generates ${relativePath} with an environment accepted by the persistence guard`, () => {
-      hookArchetypeModule.generateHookArchetype({ cwd: tempRoot, packageName: 'redbox-hook-demo-client' });
-      const corePackage = require.resolve('@researchdatabox/redbox-core/package.json');
-      const coreRequire = require('module').createRequire(corePackage);
-      const compose = coreRequire('yaml').parse(readGenerated(relativePath));
-      const { assertPersistenceConfiguration } = loadTs(
-        module,
-        path.join(path.dirname(corePackage), 'src/persistence/selection.ts')
-      );
-      const previous = process.env;
-      try {
-        // Start with only the rendered service environment, as in a fresh hook.
-        process.env = Object.fromEntries(
-          compose.services[service].environment.map((entry: string) => {
-            const separator = entry.indexOf('=');
-            return separator < 0 ? [entry, ''] : [entry.slice(0, separator), entry.slice(separator + 1)];
-          })
-        );
-        expect(() => assertPersistenceConfiguration({})).not.to.throw();
-      } finally {
-        process.env = previous;
-      }
-    });
-  }
-
-  it('generates the richer client hook scaffold by default', () => {
-    hookArchetypeModule.generateHookArchetype({
-      cwd: tempRoot,
-      packageName: 'redbox-hook-demo-client',
-    });
-
-    const pkg = JSON.parse(readGenerated('package.json'));
-    expect(pkg.sails).to.include({
-      isHook: true,
-      hookName: 'redbox-hook-demo-client',
-      hasConfig: true,
-      hasFormConfigs: true,
-      hasMigrations: true,
-    });
-    expect(pkg.scripts).to.have.property('dev:run:core');
-    expect(pkg.devDependencies).to.have.property('@researchdatabox/redbox-core');
-    expect(pkg.devDependencies).to.have.property('@researchdatabox/redbox-dev-tools');
-
-    expect(readGenerated('src/index.ts')).to.contain('registerRedboxMigrations');
-    expect(readGenerated('src/migrations/index.ts')).to.contain('export function registerRedboxMigrations()');
-    expect(readGenerated('Dockerfile')).to.contain('npm pack --pack-destination /tmp --silent');
-    expect(readGenerated('support/development/docker-compose.yml')).to.contain('minio:');
-    expect(readGenerated('support/development/docker-compose.core-mount.yml')).to.contain(
-      '@researchdatabox/redbox-core'
-    );
-    expect(readGenerated('support/integration-testing/run-mocha-hook.sh')).to.contain('RBPORTAL_MOCHA_TEST_PATHS');
-    expect(readGenerated('support/integration-testing/run-mocha-redbox.sh')).to.contain('generateAllShims');
-    expect(readGenerated('language-defaults/en/translation.json')).to.contain('DemoClient hook ready');
-    expect(fs.existsSync(path.join(tempRoot, 'support', 'bootstrap-data', 'namedqueries'))).to.equal(true);
-    expect(fs.existsSync(path.join(tempRoot, 'assets', 'images'))).to.equal(true);
-
-    const prepareMinioMode = fs.statSync(path.join(tempRoot, 'support', 'prepare-minio.sh')).mode;
-    const prepareCoreMode = fs.statSync(path.join(tempRoot, 'support', 'development', 'prepare-core-mount.sh')).mode;
-    expect((prepareMinioMode & 0o111) > 0).to.equal(true);
-    expect((prepareCoreMode & 0o111) > 0).to.equal(true);
+  it('rejects the retired scaffold before writing output', () => {
+    expect(() => generator.generateHookArchetype({ cwd: tempRoot, packageName: 'demo', templateName: 'standard' }))
+      .to.throw('only supported hook template is v6');
+    expect(fs.readdirSync(tempRoot)).to.deep.equal([]);
+  });
+  it('preserves existing customizations unless force is explicit', () => {
+    generator.generateHookArchetype({ cwd: tempRoot, packageName: 'demo' });
+    const file = path.join(tempRoot, 'src/index.ts');
+    fs.writeFileSync(file, '// customized\n');
+    const preserved = generator.generateHookArchetype({ cwd: tempRoot, packageName: 'demo' });
+    expect(preserved.skipped).to.include('src/index.ts');
+    expect(fs.readFileSync(file, 'utf8')).to.equal('// customized\n');
+    generator.generateHookArchetype({ cwd: tempRoot, packageName: 'demo', force: true });
+    expect(fs.readFileSync(file, 'utf8')).to.contain('registerRedboxExtension');
   });
 });

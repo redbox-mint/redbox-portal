@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '@researchdatabox/redbox-core/extensions/storage';
 import assert from 'node:assert/strict';
 import { storageIndexes } from '../../src/persistence/preflight';
 
@@ -14,7 +15,7 @@ describe('configured storage index descriptors', () => {
           unique: true,
           collation: { locale: 'en', strength: 2, numericOrdering: true },
         };
-        const app = { config: { storage: { mongodb: { [field]: [native] } } } } as unknown as Sails.Application;
+        const app = { config: { storage: { mongodb: { [field]: [native] } } } } as unknown as PersistenceOwner;
         const descriptor = storageIndexes(app).find(index => index.name === native.name);
         assert.deepEqual(descriptor, {
           datastore: 'redboxStorage',
@@ -43,7 +44,7 @@ describe('configured storage index descriptors', () => {
       sparse: false,
       partialFilterExpression: { active: true },
     };
-    const app = { config: { storage: { mongodb: { indices: [native] } } } } as unknown as Sails.Application;
+    const app = { config: { storage: { mongodb: { indices: [native] } } } } as unknown as PersistenceOwner;
     assert.deepEqual(
       storageIndexes(app).find(index => index.name === native.name),
       {

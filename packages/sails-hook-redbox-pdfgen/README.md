@@ -1,6 +1,6 @@
 # @researchdatabox/sails-hook-redbox-pdfgen
 
-A ReDBox (Sails.js) hook that renders record view pages to PDF with headless Chromium (Puppeteer) and attaches the result to the record as a datastream.
+A ReDBox v6 extension that renders record view pages to PDF with headless Chromium (Puppeteer) and attaches the result to the record as a datastream.
 
 It is typically wired into a record type's `onCreate`/`onUpdate` post-save triggers so that every save produces an up-to-date PDF snapshot of the record, without blocking the workflow if rendering fails.
 
@@ -27,8 +27,8 @@ It is typically wired into a record type's `onCreate`/`onUpdate` post-save trigg
 
 | Requirement | Version / notes |
 | --- | --- |
-| Node.js | `24.22.1` (see `.nvmrc`) |
-| ReDBox portal | v5 architecture; `@researchdatabox/redbox-core` is a peer dependency and runtime compatibility anchor |
+| Node.js | `26.12.1` (see `.nvmrc`) |
+| ReDBox portal | v6 owned runtime; `@researchdatabox/redbox-core` is a peer dependency and runtime compatibility anchor |
 | Chromium | Provided by the runtime image, or bundled by Puppeteer `25.0.4` |
 | Docker | Only needed for the dev stack and Bruno API tests |
 
@@ -47,25 +47,43 @@ Chromium is launched headless with `--no-sandbox` and a throwaway `--user-data-d
 Install into a ReDBox portal deployment:
 
 ```bash
-npm install @researchdatabox/sails-hook-redbox-pdfgen
+npm install --save-exact ./qualified-pdf-hook.tgz
 ```
 
-Sails loads it automatically as a hook (`sails.isHook` is set in `package.json`). The hook:
+The historical package name is retained. The public `redbox.extension` entry
+exports an offline `RedboxExtension` declaration. Application composition selects
+the PDF factory and supplies configuration, logger, datastreams, brand lookup,
+staging, audit and accepted-work lifetime. The declaration supplies:
 
-- merges its defaults into `sails.config.pdfgen`
-- registers the `PDFService-CreatePDF` Agenda job into `sails.config.agendaQueue.jobs` (existing jobs are preserved)
-- exposes `sails.services.pdfservice`
-- registers the `pdfgen` config model with `AppConfigService` so it is editable from the portal admin UI
+- `pdfgen` defaults and the secret-aware admin configuration model;
+- `PDFService-CreatePDF` under declared Agenda jobs (merged by name);
+- the `pdf` module, requiring `storage`, with initialize/activate/quiesce/drain/close.
+
+Use the qualified v6 hook artifact with its matching core artifact. Importing or
+registering it starts no browser or producer. Application drain awaits accepted
+PDF work and retries before closing resources.
 
 Local installs intentionally allow lifecycle scripts so Puppeteer and other native postinstall steps can run. Use `npm install --ignore-scripts` only in controlled CI or container contexts where a Chromium binary is provided separately.
 
 ## Configuration
 
-Configuration lives under `sails.config.pdfgen` and is branding aware, so each brand can override it. Values are resolved with this precedence:
+Configuration lives under `configuration.pdfgen` and is branding aware, so each brand can override it. Values are resolved with this precedence:
 
 ```
-per-trigger options  >  branding-aware sails.config.pdfgen  >  built-in default
+per-trigger options  >  branding-aware configuration.pdfgen  >  built-in default
 ```
+
+For v6 deployment modules, supply brand defaults under
+`brandingConfigurationDefaults.pdfgen`. Hydrated brand configuration includes the
+PDF model defaults; a top-level extension `pdfgen.token` does not replace its
+empty brand token. The credential must authenticate an actor allowed to view the
+record in that brand. Stored brand settings and per-trigger options retain their
+precedence.
+
+For the current Angular record form, selector readiness can wait for
+`redbox-form .rb-form-components:not([aria-hidden="true"])`. The form removes
+`aria-hidden` after its components and form group initialize. The legacy
+`div#loading.hidden` marker is no longer emitted.
 
 The same settings are editable in the portal admin UI under **PDF Generation Config** (config key `pdfgen`); `token` is registered as a secret field so it is masked there.
 
@@ -74,7 +92,7 @@ The same settings are editable in the portal admin UI under **PDF Generation Con
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
 | `token` | string | `''` | API bearer token used to authenticate Chromium against the portal. **Required** — generation is skipped with a warning if unset. |
-| `appUrlOverride` | string | `''` | Base URL to render from. Falls back to `sails.config.appUrl`. Useful when the portal's public URL is not reachable from inside the container. |
+| `appUrlOverride` | string | `''` | Base URL to render from. Falls back to `configuration.appUrl`. Useful when the portal's public URL is not reachable from inside the container. |
 | `sourceUrlBase` | string | `/${brand.name}/rdmp/record/view` | Optional path prefix for the page to render. The final URL is `` `${baseUrl}${sourceUrlBase}/${oid}` ``. The default follows the current brand. |
 | `pdfPrefix` | string | `pdf` | Prefix for the generated filename. |
 | `readinessStrategy` | enum | `networkIdle` | How to decide the page has finished rendering. See below. |
@@ -82,7 +100,7 @@ The same settings are editable in the portal admin UI under **PDF Generation Con
 | `networkIdleTime` | number (ms) | `2000` | Idle window for the `networkIdle` strategies. |
 | `waitForSelector` | string | `''` | CSS selector to wait for. Required by the `selector` strategies. |
 | `waitForFunction` | string | `''` | JS expression polled every 500ms. Required by the `jsFlag` strategy. |
-| `enableChromeLogging` | boolean | `false` | Pipe Chromium console, page errors, responses and failed requests into the Sails log. |
+| `enableChromeLogging` | boolean | `false` | Pipe Chromium console, page errors, responses and failed requests into the application log. |
 | `maxRetries` | number | `2` | Background retry attempts after the initial attempt. `0` disables retries. |
 | `retryDelayMs` | number (ms) | `5000` | Base delay before the first retry. |
 | `retryBackoffMultiplier` | number | `2` | Exponential multiplier: delay is `retryDelayMs * multiplier ^ retryIndex`. |
@@ -116,7 +134,7 @@ Angular-rendered record views generally need `selector` or `networkIdle+selector
 ### Example
 
 ```js
-// config/pdfgen.js
+// deployment.cjs, selected with REDBOX_APPLICATION_CONFIG
 module.exports.pdfgen = {
   token: process.env.PDFGEN_API_TOKEN,
   pdfPrefix: 'rdmp-pdf',
@@ -132,22 +150,22 @@ module.exports.pdfgen = {
 };
 ```
 
-Environment-variable form (as used by the bundled Docker stacks):
-
-```
-sails_brandingConfigurationDefaults__pdfgen__token=6b088b4d-d54c-470c-8568-2f2695fcdab9
-```
+Put brand defaults in `brandingConfigurationDefaults.pdfgen` in the explicitly
+selected deployment data module, or edit the brand's `pdfgen` AppConfig. The
+example reads an institution-owned `PDFGEN_API_TOKEN`; that variable is converted
+by the data module, not an implicit core environment alias. See the
+[configuration guide](../../support/wiki/Configuration-Guide.md).
 
 ## Wiring the hook into a record type
 
 ### Inline trigger (simplest)
 
-Call the service directly from a record type post-save trigger in `recordtype.config.js`:
+Call the service directly from a record type post-save trigger in the selected deployment module's `recordtype` section or extension configuration:
 
 ```js
 onUpdate: {
   post: [{
-    function: 'sails.services.pdfservice.createPDF',
+    function: 'pdf.create',
     options: {
       waitForSelector: 'div#loading.hidden',
       pdfPrefix: 'rdmp-pdf'
@@ -164,11 +182,11 @@ The hook registers the `PDFService-CreatePDF` Agenda job (`lockLifetime` 120s, `
 
 ```js
 {
-  function: 'sails.services.rdmpservice.queueTriggerCall',
+  function: 'record.queueTriggerCall',
   options: {
     jobName: 'PDFService-CreatePDF',
     triggerConfiguration: {
-      function: 'sails.services.pdfservice.createPDF',
+      function: 'pdf.create',
       options: {
         readinessStrategy: 'networkIdle',
         pdfPrefix: 'rdmp-pdf'
@@ -178,14 +196,14 @@ The hook registers the `PDFService-CreatePDF` Agenda job (`lockLifetime` 120s, `
 }
 ```
 
-> Do **not** put `PDFService-CreatePDF` in a record hook's `function` field. ReDBox evaluates `function` as JavaScript, whereas `PDFService-CreatePDF` is the Agenda job name.
+> Do **not** put `PDFService-CreatePDF` in a record hook's `function` field. V6 resolves `function` as a named, explicitly bound operation; `PDFService-CreatePDF` is the Agenda job name.
 
 ## How generation works
 
 For each `createPDF(oid, record, options, user)` call:
 
 1. Resolve the brand from `record.metaMetadata.brandId` and merge configuration.
-2. Build the target URL: `` `${appUrlOverride || sails.config.appUrl}${sourceUrlBase}/${oid}` ``.
+2. Build the target URL: `` `${appUrlOverride || configuration.appUrl}${sourceUrlBase}/${oid}` ``.
 3. Skip if a render for that exact URL is already in flight (duplicate suppression).
 4. Launch headless Chromium in a temporary user-data directory.
 5. Set `Authorization: Bearer <token>` and navigate, waiting for `domcontentloaded`.
@@ -216,7 +234,7 @@ Retry behaviour:
 - The initial attempt runs on a background Effect fiber, and retries run on a background daemon fiber, so the initial call returns straight away.
 - Delay for retry *n* (0-indexed) is `retryDelayMs * retryBackoffMultiplier ^ n` — with defaults, 5s then 10s.
 - A pending retry is cancelled if a newer request for the same URL succeeds first.
-- On Sails `lower`, in-flight initial and retry fibers are interrupted and their audit spans are closed as failed.
+- The owned module's `quiesce` closes admission; `drain` joins accepted rendering and retry work, and `close` releases the browser. A deadline failure retains ownership for cleanup retry.
 
 ## Integration audit
 
@@ -225,14 +243,16 @@ Every pipeline emits records to ReDBox's `IntegrationAuditService`, surfaced via
 - **`generatePdfTrigger`** — one parent span per `createPDF` call. Captures `triggeredBy` (defaults to `'createPDF'`; override with `options.triggerSource`), `requestSummary.maxRetries`/`baseDelayMs`/`multiplier`, and on completion `responseSummary.finalStatus` (`success` / `failed` / `skipped`) plus `attemptsRun`.
 - **`generatePdf`** — one child span per attempt (initial and every background retry). Each child shares the parent's `traceId` and links via `parentSpanId`. `requestSummary` carries `attempt`, `url`, `sourceUrlBase`, `readinessStrategy` and `pdfPrefix`. On success `responseSummary` includes `fileId` and `pdfBufferSize`; on failure it includes `errorTag` and the underlying `cause` message.
 
-The hook owns its audit identifiers in `src/api/services/PDFAudit.ts` rather than registering with `redbox-core`. The relevant core types (`IntegrationAuditNameLike`, `IntegrationAuditActionLike`) are widened so hooks can ship new audit categories without a core release.
+The hook owns its audit identifiers in `src/api/services/audit.ts` rather than registering with `redbox-core`. The relevant core types (`IntegrationAuditNameLike`, `IntegrationAuditActionLike`) are widened so hooks can ship new audit categories without a core release.
 
-Audit calls degrade gracefully: when the global `IntegrationAuditService` is unavailable (for example in unit tests), `startPdfAudit`/`completePdfAudit`/`failPdfAudit` no-op and PDF generation is unaffected.
+Audit operations are explicit inputs bound by the host. Test compositions may
+supply a deliberate no-op audit implementation; there is no global service lookup
+or implicit fallback for a missing production binding.
 
 ## Development
 
 ```bash
-nvm use          # Node 24.22.1
+nvm use          # Node 26.12.1
 npm install
 npm run compile
 npm run test:unit
@@ -281,18 +301,18 @@ The dev stack sets `NODE_TLS_REJECT_UNAUTHORIZED=0` and seeds a fixed `pdfgen.to
 
 ### CI
 
-CircleCI (`.circleci/config.yml`) runs compile, unit tests and the Bruno suite on Node 24.22.1. Beta/next/alpha releases to npm are published through the `npm_publish_mode` pipeline parameters.
+CircleCI (`.circleci/config.yml`) runs compile, unit tests and the Bruno suite on Node 26.12.1. Beta/next/alpha releases to npm are published through the `npm_publish_mode` pipeline parameters.
 
 ## Project structure
 
 ```
 src/
-  index.ts                        hook entrypoint (defineRedboxHook)
-  config/pdfgen.ts                sails.config.pdfgen defaults and types
+  index.ts                        neutral extension entrypoint
+  config/pdfgen.ts                configuration.pdfgen defaults and types
   config/agendaQueue.ts           PDFService-CreatePDF job registration
-  api/services/PDFService.ts      generation pipeline, retries, duplicate suppression
+  api/services/PDF.ts             generation pipeline, retries, duplicate suppression
   api/services/PDFErrors.ts       tagged error types
-  api/services/PDFAudit.ts        IntegrationAuditService helpers
+  api/services/audit.ts           explicit integration audit helpers
   api/configmodels/PDFGenConfig.ts  admin UI config model and JSON schema
 test/
   unit/                           fast hook-local TypeScript tests
@@ -321,12 +341,21 @@ The Docker compose files set `NODE_PATH` so a mounted hook resolves host-provide
 | `API token for PDF generation is not set. Skipping generation` | `pdfgen.token` is empty for that brand. |
 | PDF is blank or half-rendered | Readiness strategy returns too early — switch to `selector` / `networkIdle+selector`, or raise `readinessTimeout`. |
 | `BrowserError` on every attempt | No Chromium at the resolved path — set `PUPPETEER_EXECUTABLE_PATH`. |
-| Renders a login page instead of the record | Token invalid, or `appUrlOverride`/`sails.config.appUrl` unreachable from inside the container. |
+| Renders a login page instead of the record | Token invalid, or `appUrlOverride`/the selected public URL unreachable from inside the container. |
 | `MissingBrandError` | The record has no resolvable `metaMetadata.brandId`. |
 | Nothing happens on save, no logs | The trigger isn't wired, or `PDFService-CreatePDF` was used in the `function` field instead of via `queueTriggerCall`. |
 
-Set `enableChromeLogging: true` and raise the Sails log level to `verbose` to see Chromium console output, responses and failed requests.
+Set `enableChromeLogging: true` and the application log level to `verbose` for
+bounded Chromium activity, response-status and failure diagnostics. Page content,
+provider errors and configured navigation URLs are excluded from these logs.
 
 ## License
 
 GPL-3.0
+
+The development and Bruno Compose profiles now build the portal's `rehearsal`
+target (the bundled forms plus this PDF extension). They load
+`support/api-integration-testing/deployment.cjs` and prepare disposable indexes
+before starting `app.express.cjs`. Customize the explicit fixture module for local
+work; do not overwrite emitted core configuration. The synthetic fixture bearer
+authenticates the actor; it does not disable CSRF for browser sessions.

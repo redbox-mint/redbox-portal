@@ -1,7 +1,9 @@
+const { portalFixture: fixture } = require('../../helpers/portalFixture.cjs');
+import type { PersistenceOwner } from '@researchdatabox/redbox-core';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { ensurePersistenceIndex, inspectPersistenceIndex, mongoDatabase } from '@researchdatabox/redbox-core';
-import { storageIndexes } from '@researchdatabox/sails-hook-redbox-storage-mongo/dist/persistence/preflight';
+import { storageIndexes } from '@researchdatabox/sails-hook-redbox-storage-mongo/dist/persistence/preflight.js';
 
 describe('Configured native indexes in the loaded portal', () => {
   it('creates TTL and hidden options through maintenance and reports existing-index drift', async () => {
@@ -22,19 +24,19 @@ describe('Configured native indexes in the loaded portal', () => {
           },
         },
       },
-    } as unknown as Sails.Application).find(index => index.name === 'institution-expiry')!;
+    } as unknown as PersistenceOwner).find(index => index.name === 'institution-expiry')!;
     const descriptor = { ...configured, collection };
-    const database = await mongoDatabase(sails, 'redboxStorage');
+    const database = await mongoDatabase(fixture.owner, 'redboxStorage');
     try {
-      assert.equal((await ensurePersistenceIndex(sails, descriptor)).index, 'ready');
+      assert.equal((await ensurePersistenceIndex(fixture.owner, descriptor)).index, 'ready');
       const actual = (await database.collection(collection).listIndexes().toArray()).find(
         index => index.name === descriptor.name
       )!;
       assert.equal(actual.expireAfterSeconds, 60);
       assert.equal(actual.hidden, true);
       const changed = { ...descriptor, expireAfterSeconds: 120 };
-      assert.equal((await inspectPersistenceIndex(sails, changed)).index, 'conflicting');
-      await assert.rejects(ensurePersistenceIndex(sails, changed), /Required persistence index/);
+      assert.equal((await inspectPersistenceIndex(fixture.owner, changed)).index, 'conflicting');
+      await assert.rejects(ensurePersistenceIndex(fixture.owner, changed), /Required persistence index/);
     } finally {
       await database.collection(collection).drop();
     }

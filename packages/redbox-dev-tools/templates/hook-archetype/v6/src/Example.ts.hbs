@@ -1,0 +1,49 @@
+import { open, type FileHandle } from 'node:fs/promises';
+import type { ApplicationModule } from '@researchdatabox/redbox-core/application';
+
+export interface ExampleInput {
+  /** An application-owned path in an existing writable directory. */
+  auditPath: string;
+  greeting: string;
+}
+
+/** One service/native-resource instance per application; construction is offline. */
+export class Example implements ApplicationModule {
+  private file?: FileHandle;
+  private active = false;
+  private readonly pending = new Set<Promise<void>>();
+
+  public constructor(private readonly input: ExampleInput) {}
+
+  public async initialize(): Promise<void> {
+    this.file = await open(this.input.auditPath, 'a');
+  }
+
+  public async activate(): Promise<void> {
+    this.active = true;
+  }
+
+  public async greet(): Promise<string> {
+    if (!this.active || !this.file) throw new Error('Example is not accepting work');
+    const work = this.file.appendFile(this.input.greeting + '\n');
+    this.pending.add(work);
+    try {
+      await work;
+      return this.input.greeting;
+    } finally {
+      this.pending.delete(work);
+    }
+  }
+
+  public async drain(): Promise<void> {
+    this.active = false;
+    await Promise.all([...this.pending]);
+  }
+
+  public async close(): Promise<void> {
+    await this.drain();
+    await this.file?.close();
+    // A failed close retains the handle for the application's observable stop retry.
+    this.file = undefined;
+  }
+}
