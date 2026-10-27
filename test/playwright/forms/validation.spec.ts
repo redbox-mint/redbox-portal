@@ -1,3 +1,4 @@
+import { scenarioSeedData } from '../../../packages/redbox-hook-dev/src/playwright/seed-data';
 import { expect, test } from '../fixtures/test';
 import { field, saveForm } from '../helpers/forms';
 
@@ -53,7 +54,7 @@ test('F12 validation groups switch all, none, selected and conditional membershi
 });
 
 test('F13 validation summaries reveal hidden fields while advisory errors permit a complete save', async ({ adminPage, records }) => {
-  const record = await records.create('e2e-validation-summaries', { title: 'Summaries', requiredValue: 'Valid', tabValue: 'Valid', panelValue: 'Valid', advisoryValue: '' });
+  const record = await records.create('e2e-validation-summaries', { ...scenarioSeedData('validation-summaries'), title: 'Summaries' });
   await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
   await adminPage.getByRole('tab', { name: 'Details', exact: true }).click();
   await field(adminPage, 'Hidden tab value').clear();
