@@ -46,6 +46,7 @@ export async function coreBootstrap(): Promise<void> {
   const schedule = require('node-schedule');
 
   await sails.services.emailtemplateservice.bootstrap();
+  sails.services.emailservice.validateExposedConfig();
 
   const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
   sails.log.verbose('Branding service, bootstrapped.');
