@@ -19,7 +19,7 @@ test(
   'generated institution hook starts, persists work, serves HTTP, restarts and drains in the production host',
   { timeout: 120000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     const url = process.env.SR_GENERATED_APP_MONGO_URL;
     assert(url, 'SR_GENERATED_APP_MONGO_URL is required');
     assert.equal(new URL(url).pathname, '/sr_p8_generated_institution');

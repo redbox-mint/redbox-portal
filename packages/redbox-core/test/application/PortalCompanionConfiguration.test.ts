@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import sinon from 'sinon';
-import { resolve } from 'node:path';
+import { join } from 'node:path';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { PortalHttp } from '../../src/application/portal/http';
-import { PageArtifacts } from '../../src/pages/Artifacts';
 import { resolveCompanionConfiguration } from '../../src/config/companionDefaults';
 import * as persistence from '../../src/persistence/branding/runtime';
 
@@ -12,7 +13,8 @@ describe('production Companion configuration binding', () => {
     it(`preserves deferred upload lengths (${setting ?? 'default'}) in native provider options`, async () => {
       const sandbox = sinon.createSandbox();
       sandbox.stub(persistence, 'getBrandingRepository').returns({} as never);
-      sandbox.stub(PageArtifacts.prototype, 'initialize').resolves();
+      const root = mkdtempSync(join(tmpdir(), 'redbox-companion-config-'));
+      for (const directory of ['views', 'assets']) mkdirSync(join(root, directory));
       const companion = resolveCompanionConfiguration({
         UPPY_COMPANION_ENABLED: 'true',
         UPPY_GOOGLE_KEY: 'test-key',
@@ -37,15 +39,19 @@ describe('production Companion configuration binding', () => {
           progress: { get: () => ({}) },
         },
       };
-      const http = new PortalHttp(portal as never, { appPath: resolve('../..') });
+      const http = new PortalHttp(portal as never, { appPath: root, assetRoots: [join(root, 'assets')] });
       try {
         await http.initialize();
         const provider = Reflect.get(http, 'companion');
         const options = Reflect.get(provider, 'input').options;
         assert.equal(options.tusDeferredUploadLength, setting !== 'false');
       } finally {
-        await http.close();
-        sandbox.restore();
+        try {
+          await http.close();
+        } finally {
+          sandbox.restore();
+          rmSync(root, { recursive: true, force: true });
+        }
       }
     });
   }

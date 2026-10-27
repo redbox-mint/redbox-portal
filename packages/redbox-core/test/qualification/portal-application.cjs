@@ -14,7 +14,7 @@ test(
   'production application selects bundled domains, bootstraps, activates jobs, drains and restarts',
   { timeout: 120000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     const url = process.env.SR_PORTAL_MONGO_URL;
     assert(url, 'SR_PORTAL_MONGO_URL is required');
     assert.equal(new URL(url).pathname, '/sr_p7_portal');
