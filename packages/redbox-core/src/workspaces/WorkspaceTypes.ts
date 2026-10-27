@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { zip, of, Observable } from 'rxjs';
+import { zip, of, from, Observable } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import _ from 'lodash';
 import { defer } from 'rxjs';
@@ -78,7 +78,7 @@ export namespace Services {
     };
 
     public create(brand: BrandingLike, workspaceType: WorkspaceTypeConfig): Observable<Record<string, unknown>> {
-      return defer(() =>
+      return from(
         this.input.references.workspaceTypes.createDefinition({
           name: workspaceType['name'],
           label: workspaceType['label'],
