@@ -56,6 +56,7 @@ describe('accepted HTTP session loading during shutdown', () => {
     const result = Promise.withResolvers<{ status: number; body: string }>();
     const sending = request(
       {
+        agent: false,
         hostname: '127.0.0.1',
         port: host.address()!.port,
         path: '/submit',
