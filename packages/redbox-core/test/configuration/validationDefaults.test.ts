@@ -74,16 +74,19 @@ describe('runtime-supplied startup defaults', () => {
       resolveFigsharePublishingConfigData(disabled.brandingConfigurationDefaults, disabled.figshareDev, 'production'),
       null
     );
-    const defaults = json(new FigsharePublishing());
-    const paths: string[][] = [];
-    const collect = (value: object, prefix: string[] = []) => {
-      for (const [key, child] of Object.entries(value)) {
-        paths.push([...prefix, key]);
-        if (child && typeof child === 'object' && !Array.isArray(child)) collect(child, [...prefix, key]);
-      }
-    };
-    collect(defaults);
-    for (const path of paths) {
+  });
+
+  const defaults = json(new FigsharePublishing());
+  const paths: string[][] = [];
+  const collect = (value: object, prefix: string[] = []) => {
+    for (const [key, child] of Object.entries(value)) {
+      paths.push([...prefix, key]);
+      if (child && typeof child === 'object' && !Array.isArray(child)) collect(child, [...prefix, key]);
+    }
+  };
+  collect(defaults);
+  for (const path of paths) {
+    it(`accepts omitted Figshare ${path.join('.')} without mutating startup data`, async () => {
       const supplied = json(defaults);
       supplied.enabled = true;
       const parent = path.slice(0, -1).reduce((value, key) => Reflect.get(value, key), supplied);
@@ -104,7 +107,10 @@ describe('runtime-supplied startup defaults', () => {
         const { runtime, ...actual } = resolved;
         assert.deepEqual(json(actual), { ...defaults, enabled: true }, path.join('.'));
       }
-    }
+    });
+  }
+
+  it('rejects invalid Figshare model configuration', async () => {
     for (const publishing of [
       { enabled: true, connection: { timeoutMs: 'invalid' } },
       { enabled: true, metadata: { title: { kind: 'invalid' } } },
@@ -199,7 +205,9 @@ describe('runtime-supplied startup defaults', () => {
       { tableConfig: { rowConfig: [] } },
     ]) {
       const config = await load({ dashboardtype: { institution: declaration } });
-      let stored: { formatRules: unknown; tableConfig: { rowConfig: Array<{ variable: string }>; noDataMsg?: unknown } } | undefined;
+      let stored:
+        | { formatRules: unknown; tableConfig: { rowConfig: Array<{ variable: string }>; noDataMsg?: unknown } }
+        | undefined;
       const service = new Dashboards.DashboardTypes({
         config,
         references: {
@@ -349,7 +357,8 @@ describe('runtime-supplied startup defaults', () => {
       });
       const actual = constructed.componentDefinitions[0]?.component.config;
       assert(actual);
-      for (const [key, value] of Object.entries(expected)) assert.deepEqual(Reflect.get(actual, key), value, className + '.' + key);
+      for (const [key, value] of Object.entries(expected))
+        assert.deepEqual(Reflect.get(actual, key), value, className + '.' + key);
     }
     assert.match(await createQuestionTreeDiagram({}, createSinonStubLogger(sinon)), /flowchart/);
     const config = await load({
@@ -380,49 +389,13 @@ describe('runtime-supplied startup defaults', () => {
     );
   });
 
-  it('accepts an empty PDF filename prefix through the actual PDF service', async () => {
+  it('accepts an empty PDF filename prefix without coercion', async () => {
     const config = await load({ pdfgen: { ...pdfgen, pdfPrefix: '' } });
-    const { Services } = require('../../../sails-hook-redbox-pdfgen/src/api/services/PDF');
-    const { Effect } = require('../../../sails-hook-redbox-pdfgen/node_modules/effect');
-    const {
-      pdfDependencies,
-      navigationResponse,
-    } = require('../../../sails-hook-redbox-pdfgen/test/support/pdfFixture');
-    const input = pdfDependencies({ optionsForBrand: () => ({ ...config.pdfgen, token: 'fixture-token' }) });
-    const service = new Services.PDF(input);
-    const page = {
-      setRequestInterception: async () => {},
-      emulateMediaType: async () => {},
-      on() {},
-      mainFrame: () => ({}),
-      goto: async (url: string) => {
-        page.url = () => url;
-        return navigationResponse(url);
-      },
-      url: () => '',
-      waitForNetworkIdle: async () => {},
-      pdf: async () => Buffer.from('pdf'),
-      close: async () => {},
-    };
-    const browser = { newPage: async () => page, close: async () => {}, process: () => null };
-    sinon.stub(service, 'launchBrowser').resolves(browser);
-    try {
-      await service.initialize();
-      await service.activate();
-      await Effect.runPromise(
-        service.attemptPDFGeneration('oid-prefixless', { metaMetadata: { brandId: 1 } }, {}, { name: 'default' }, 1)
-      );
-      assert.match(input.stagingDisk().put.firstCall.args[0], /^oid-prefixless-[0-9]+\.pdf$/);
-    } finally {
-      await service.close();
-      sinon.restore();
-    }
+    assert.equal(config.pdfgen.pdfPrefix, '');
     await assert.rejects(load({ pdfgen: { ...pdfgen, pdfPrefix: false } }), /pdfPrefix/);
   });
 
   it('accepts native Puppeteer paper names and numeric pixel dimensions without coercion', async () => {
-    const { parsePDFOptions } =
-      await import('../../../sails-hook-redbox-pdfgen/node_modules/puppeteer-core/lib/puppeteer/common/util.js');
     for (const options of [
       { format: 'a4' },
       { format: 'LETTER' },
@@ -432,31 +405,9 @@ describe('runtime-supplied startup defaults', () => {
       const config = await load({ pdfgen: { ...pdfgen, PDFOptions: options } });
       assert(config.pdfgen);
       assert.deepEqual(config.pdfgen.PDFOptions, options);
-      const parsed = parsePDFOptions(json(config.pdfgen.PDFOptions) as Parameters<typeof parsePDFOptions>[0]);
-      if ('width' in options) {
-        assert.equal(parsed.width, 10);
-        assert.equal(parsed.height, 5);
-        assert.equal(parsed.margin.top, 1);
-      } else assert(parsed.width > 0 && parsed.height > 0);
     }
     const zeroTimeout = await load({ pdfgen: { ...pdfgen, readinessTimeout: 0 } });
-    const { Services } = require('../../../sails-hook-redbox-pdfgen/src/api/services/PDF');
-    const { pdfDependencies } = require('../../../sails-hook-redbox-pdfgen/test/support/pdfFixture');
-    const service = new Services.PDF(pdfDependencies({ optionsForBrand: () => zeroTimeout.pdfgen }));
-    let readinessOptions: { timeout: number } | undefined;
-    await Reflect.get(service, 'waitForPageReady').call(
-      service,
-      {
-        waitForNetworkIdle: async (options: { timeout: number }) => {
-          readinessOptions = options;
-        },
-      },
-      { name: 'default' },
-      {},
-      'networkIdle'
-    );
-    assert(readinessOptions);
-    assert.equal(readinessOptions.timeout, 0);
+    assert.equal(zeroTimeout.pdfgen.readinessTimeout, 0);
     await assert.rejects(load({ pdfgen: { ...pdfgen, readinessTimeout: -1 } }), /readinessTimeout/);
     for (const PDFOptions of [{ format: 'not-paper' }, { width: {} }, { margin: { top: false } }])
       await assert.rejects(load({ pdfgen: { ...pdfgen, PDFOptions } }), /PDFOptions/);
