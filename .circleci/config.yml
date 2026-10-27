@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: large
     steps:
       - checkout
@@ -55,7 +55,7 @@ jobs:
             - docker-images/redbox-portal-test.tar
   generate-api-docs:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: large
     steps:
       - checkout
@@ -100,7 +100,7 @@ jobs:
             - ~/.npm
   refresh-dependabot-package-locks:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     steps:
       - add_ssh_keys:
           fingerprints:
@@ -138,7 +138,7 @@ jobs:
             git push origin "HEAD:${CIRCLE_BRANCH}"
   build-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: large
     steps:
       - checkout
@@ -484,7 +484,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:host
       - run:
           name: Setup test directories
           command: |
@@ -675,7 +675,7 @@ jobs:
           path: packages/redbox-core/support/junit
   test-agenda-sqs-backend:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: medium
     steps:
       - checkout
@@ -713,7 +713,7 @@ jobs:
             - ~/.npm
   test-rva-registry:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: medium
     steps:
       - checkout
@@ -880,7 +880,7 @@ jobs:
             - ~/.npm
   lint-redbox-core:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: medium
     steps:
       - checkout
@@ -970,7 +970,7 @@ jobs:
         type: string
         default: 'latest'
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: medium
     steps:
       - checkout
@@ -1000,7 +1000,7 @@ jobs:
             bash support/build/npm-publish-backend-packages.sh
   deploy:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     steps:
       - checkout
       - setup_remote_docker
@@ -1028,7 +1028,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
   publish-runtime-amd64:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: large
     steps:
       - checkout
@@ -1051,7 +1051,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
   publish-runtime-pdfgen-amd64:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     resource_class: large
     steps:
       - checkout
@@ -1074,7 +1074,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
   deploy-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     steps:
       - checkout
       - setup_remote_docker
@@ -1115,7 +1115,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
   publish-manifest:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     steps:
       - checkout
       - setup_remote_docker
@@ -1124,7 +1124,7 @@ jobs:
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh
   publish-runtime-pdfgen-manifest:
     docker:
-      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     steps:
       - checkout
       - setup_remote_docker
@@ -1180,7 +1180,7 @@ jobs:
             - ~/.npm
   publish-wiki:
     docker:
-      - image: 'cimg/node:24.22.1'
+      - image: 'cimg/node:26.12.1@sha256:8b451a3ecf9eb810f23612be560c17731d2766f0ad104fff9f5ae7d26d3f061a'
     steps:
       - add_ssh_keys:
           fingerprints:

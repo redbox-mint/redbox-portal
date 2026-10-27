@@ -7,7 +7,6 @@
   "files": [
     "dist",
     "logfmt-transport.cjs",
-    "redbox-loader-templates",
     "bin"
   ],
   "scripts": {
@@ -19,7 +18,7 @@
     "test:record-schema-rollout:disabled": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 5000 test/services/RecordsService.test.ts --grep \"leaves the non-schema create chain unchanged while record schemas are disabled|preserves baseline update outputs and legacy structural validation while record schemas are disabled|preserves baseline transition outputs and workflow semantics while record schemas are disabled|preserves baseline browser merge and array replacement while record schemas are disabled\"",
     "test:record-schema-rollout:runtime": "npm --prefix ../.. run test:record-schema-rollout:runtime",
     "test:record-schema-rollout:evidence": "TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-schema-rollout.ts",
-    "build": "rm -rf dist && npm run generate:prisma && tsc && node scripts/prisma-contract.cjs copy",
+    "build": "rm -rf dist && npm run generate:prisma && npm run check:portal-config && tsc && node scripts/prisma-contract.cjs copy",
     "lint": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts",
     "lint:fix": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -32,12 +31,28 @@
     "doc:api": "npm run generate-openapi --",
     "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080",
     "typecheck:persistence": "tsc --noEmit -p test/tsconfig.persistence.json",
+    "typecheck:application": "tsc --noEmit -p test/tsconfig.application.json",
+    "test:application": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 5000 test/application/Application.test.ts",
+    "test:application:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/application/ApplicationMongo.test.ts",
     "persistence:indexes": "node bin/persistence-indexes.cjs",
     "generate:prisma": "node scripts/prisma-contract.cjs generate",
     "check:prisma": "node scripts/prisma-contract.cjs check",
     "prepack": "npm run check:prisma && npm run build",
     "test:persistence": "bash test/persistence/run.sh",
-    "test:persistence-indexes": "npm run test:persistence"
+    "test:persistence-indexes": "npm run test:persistence",
+    "test:record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/recordTypes/RecordTypesMongo.test.ts",
+    "test:http-host": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 10000 test/http/ExpressHost.test.ts",
+    "test:lifecycle:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/application/InitializationMongo.test.ts test/queues/QueueMongo.test.ts",
+    "test:http-pilot:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/http/IdentityMongo.test.ts test/http/MiddlewareMongo.test.ts test/http/RecordTypesMongo.test.ts test/http/PilotFailuresMongo.test.ts test/http/CompiledPilotMongo.test.ts",
+    "test:http-bruno:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/BrunoPilotMongo.test.ts",
+    "test:http-configuration:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/ConfigurationMongo.test.ts",
+    "test:http-auth:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/AuthenticationMongo.test.ts test/http/OidcMongo.test.ts",
+    "test:http-csrf:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/CsrfMongo.test.ts",
+    "test:http-notifications:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/NotificationHooksMongo.test.ts",
+    "test:http-pages:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/PagesMongo.test.ts",
+    "generate:portal-config": "node scripts/portal-configuration-schema.cjs",
+    "check:portal-config": "node scripts/portal-configuration-schema.cjs --check",
+    "test:compiled-record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/recordTypes/CompiledRecordTypesMongo.test.ts"
   },
   "author": "",
   "license": "ISC",
@@ -47,9 +62,11 @@
     "@asteasolutions/zod-to-openapi": "9.1.0",
     "@aws-sdk/client-secrets-manager": "3.1151.0",
     "@aws-sdk/s3-request-presigner": "3.1150.0",
+    "@fastify/busboy": "3.2.4",
     "@jsonjoy.com/json-pointer": "18.24.0",
     "@ocfl/ocfl": "0.4.0",
     "@opentelemetry/api": "1.9.1",
+    "@prisma/orm-mongo": "8.0.0-rc.19",
     "@researchdatabox/agenda-sqs-backend": "file:../agenda-sqs-backend",
     "@researchdatabox/raido-openapi-generated-node": "file:../raido",
     "@researchdatabox/rva-registry-openapi-generated-node": "file:../rva-registry",
@@ -72,6 +89,7 @@
     "compression": "1.8.2",
     "connect-mongo": "6.0.0",
     "copy-webpack-plugin": "14.0.0",
+    "csrf-sync": "4.2.1",
     "css-loader": "7.1.5",
     "css-minimizer-webpack-plugin": "8.0.0",
     "csv-parser": "3.2.1",
@@ -89,6 +107,7 @@
     "graceful-fs": "4.2.11",
     "handlebars": "4.7.10",
     "i18next": "26.4.4",
+    "import-meta-resolve": "4.2.0",
     "js-yaml": "5.4.3",
     "jsdom": "30.1.2",
     "jsonata": "2.2.2",
@@ -110,17 +129,16 @@
     "passport-http-bearer": "1.0.1",
     "passport-jwt": "4.0.1",
     "passport-local": "1.0.0",
+    "path-to-regexp": "8.4.2",
     "pino": "10.4.0",
     "pino-abstract-transport": "3.0.0",
     "reflect-metadata": "0.2.2",
     "resolve-url-loader": "5.0.0",
     "ro-crate": "3.7.2",
     "rxjs": "7.8.2",
-    "sails": "1.5.18",
     "sass": "1.105.1",
     "sass-loader": "17.0.1",
-    "skipper": "0.9.8",
-    "skipper-gridfs": "1.0.2",
+    "socket.io": "4.8.4",
     "typescript": "5.9.3",
     "typescript-json-schema": "0.68.0",
     "umzug": "3.8.3",
@@ -130,8 +148,7 @@
     "webpack": "5.111.1",
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.1",
-    "zod": "4.6.7",
-    "@prisma/orm-mongo": "8.0.0-rc.19"
+    "zod": "4.6.7"
   },
   "overrides": {
     "axios": "1.20.0",
@@ -177,16 +194,19 @@
     "@types/passport-jwt": "4.0.1",
     "@types/passport-local": "1.0.38",
     "@types/sinon": "22.0.0",
+    "@types/ws": "8.18.2",
     "chai": "6.2.2",
     "mocha": "11.7.6",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
     "oxlint": "1.87.0",
     "prettier": "3.9.9",
+    "prisma": "8.0.0-rc.24",
     "serialize-javascript": "7.0.5",
     "sinon": "22.1.0",
+    "socket.io-client": "4.8.4",
     "ts-node": "10.9.2",
-    "prisma": "8.0.0-rc.24"
+    "ws": "8.21.1"
   },
   "nyc": {
     "all": true,
@@ -198,5 +218,168 @@
       "text"
     ]
   },
-  "packageManager": "npm@11.20.0"
+  "packageManager": "npm@11.20.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "default": "./dist/extensions/index.js"
+    },
+    "./extensions/storage": {
+      "types": "./dist/extensions/storage.d.ts",
+      "default": "./dist/extensions/storage.js"
+    },
+    "./extensions/config": {
+      "types": "./dist/extensions/config.d.ts",
+      "default": "./dist/extensions/config.js"
+    },
+    "./application": {
+      "types": "./dist/application/index.d.ts",
+      "default": "./dist/application/index.js"
+    },
+    "./record-types": {
+      "types": "./dist/recordTypes/index.d.ts",
+      "default": "./dist/recordTypes/index.js"
+    },
+    "./http/express": {
+      "types": "./dist/http/express/index.d.ts",
+      "default": "./dist/http/express/index.js"
+    },
+    "./dist": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./dist/action-execution": {
+      "types": "./dist/action-execution/index.d.ts",
+      "default": "./dist/action-execution/index.js"
+    },
+    "./dist/api-routes": {
+      "types": "./dist/api-routes/index.d.ts",
+      "default": "./dist/api-routes/index.js"
+    },
+    "./dist/application": {
+      "types": "./dist/application/index.d.ts",
+      "default": "./dist/application/index.js"
+    },
+    "./dist/config": {
+      "types": "./dist/config/index.d.ts",
+      "default": "./dist/config/index.js"
+    },
+    "./dist/decorator": {
+      "types": "./dist/decorator/index.d.ts",
+      "default": "./dist/decorator/index.js"
+    },
+    "./dist/extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "default": "./dist/extensions/index.js"
+    },
+    "./dist/form-config": {
+      "types": "./dist/form-config/index.d.ts",
+      "default": "./dist/form-config/index.js"
+    },
+    "./dist/http/express": {
+      "types": "./dist/http/express/index.d.ts",
+      "default": "./dist/http/express/index.js"
+    },
+    "./dist/model/api": {
+      "types": "./dist/model/api/index.d.ts",
+      "default": "./dist/model/api/index.js"
+    },
+    "./dist/model/config": {
+      "types": "./dist/model/config/index.d.ts",
+      "default": "./dist/model/config/index.js"
+    },
+    "./dist/model": {
+      "types": "./dist/model/index.d.ts",
+      "default": "./dist/model/index.js"
+    },
+    "./dist/model/storage": {
+      "types": "./dist/model/storage/index.d.ts",
+      "default": "./dist/model/storage/index.js"
+    },
+    "./dist/persistence/rows": {
+      "types": "./dist/persistence/rows/index.d.ts",
+      "default": "./dist/persistence/rows/index.js"
+    },
+    "./dist/record-contract": {
+      "types": "./dist/record-contract/index.d.ts",
+      "default": "./dist/record-contract/index.js"
+    },
+    "./dist/recordTypes": {
+      "types": "./dist/recordTypes/index.d.ts",
+      "default": "./dist/recordTypes/index.js"
+    },
+    "./dist/services": {
+      "types": "./dist/services/index.d.ts",
+      "default": "./dist/services/index.js"
+    },
+    "./dist/*.js": "./dist/*.js",
+    "./dist/*.json": "./dist/*.json",
+    "./dist/*.d.ts": "./dist/*.d.ts",
+    "./dist/*.map": "./dist/*.map",
+    "./dist/*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    },
+    "./*": "./*",
+    "./maintenance": {
+      "types": "./dist/maintenance/indexes.d.ts",
+      "default": "./dist/maintenance/indexes.js"
+    },
+    "./queues": {
+      "types": "./dist/queues/index.d.ts",
+      "default": "./dist/queues/index.js"
+    },
+    "./configuration": {
+      "types": "./dist/configuration/index.d.ts",
+      "default": "./dist/configuration/index.js"
+    },
+    "./forms": {
+      "types": "./dist/forms/index.d.ts",
+      "default": "./dist/forms/index.js"
+    },
+    "./translations": {
+      "types": "./dist/translations/index.d.ts",
+      "default": "./dist/translations/index.js"
+    },
+    "./dashboards": {
+      "types": "./dist/dashboards/index.d.ts",
+      "default": "./dist/dashboards/index.js"
+    },
+    "./workflows": {
+      "types": "./dist/workflows/index.d.ts",
+      "default": "./dist/workflows/index.js"
+    },
+    "./workspaces": {
+      "types": "./dist/workspaces/index.d.ts",
+      "default": "./dist/workspaces/index.js"
+    },
+    "./record-schema": {
+      "types": "./dist/recordSchema/index.d.ts",
+      "default": "./dist/recordSchema/index.js"
+    },
+    "./vocabulary": {
+      "types": "./dist/vocabulary/index.d.ts",
+      "default": "./dist/vocabulary/index.js"
+    },
+    "./identity": {
+      "types": "./dist/identity/index.d.ts",
+      "default": "./dist/identity/index.js"
+    },
+    "./record-triggers": {
+      "types": "./dist/records/RecordTriggers.d.ts",
+      "default": "./dist/records/RecordTriggers.js"
+    },
+    "./authentication": {
+      "types": "./dist/authentication/index.d.ts",
+      "default": "./dist/authentication/index.js"
+    },
+    "./portal": {
+      "types": "./dist/application/portal/index.d.ts",
+      "default": "./dist/application/portal/index.js"
+    }
+  }
 }
