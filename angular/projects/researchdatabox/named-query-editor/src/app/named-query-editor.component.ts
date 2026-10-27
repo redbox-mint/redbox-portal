@@ -18,7 +18,6 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   selectedQuery: NamedQueryDefinition | null = null;
   draft: NamedQueryDefinition = this.emptyDraft();
   isNew = false;
-  isSaving = false;
 
   message = '';
   error = '';
@@ -166,7 +165,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   async save(): Promise<void> {
-    if (this.isSaving) return;
+    if (this.saving) return;
     if (!this.canSave) {
       if (this.isNew) {
         const trimmed = this.draft.name?.trim();

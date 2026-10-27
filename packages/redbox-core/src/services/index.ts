@@ -21,6 +21,7 @@ import * as DashboardConfigServiceModule from './DashboardConfigService';
 import * as DashboardTypesServiceModule from './DashboardTypesService';
 import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
+import * as EmailTemplateServiceModule from './EmailTemplateService';
 import * as FigshareServiceModule from './FigshareService';
 import * as FigshareVocabularyServiceModule from './FigshareVocabularyService';
 import * as FormVocabularyServiceModule from './FormVocabularyService';
@@ -79,6 +80,7 @@ export { DashboardConfigServiceModule as DashboardConfigService };
 export { DashboardTypesServiceModule as DashboardTypesService };
 export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
+export { EmailTemplateServiceModule as EmailTemplateService };
 export { FigshareServiceModule as FigshareService };
 export { FigshareVocabularyServiceModule as FigshareVocabularyService };
 export { FormVocabularyServiceModule as FormVocabularyService };
@@ -230,6 +232,9 @@ export const ServiceExports = {
   },
   get DoiService() {
     return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
+  },
+  get EmailTemplateService() {
+    return getOrCreateService('EmailTemplateService', () => new EmailTemplateServiceModule.Services.EmailTemplates().exports());
   },
   get EmailService() {
     return getOrCreateService('EmailService', () => new EmailServiceModule.Services.Email().exports());

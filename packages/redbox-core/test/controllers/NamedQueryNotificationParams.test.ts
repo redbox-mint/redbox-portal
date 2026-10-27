@@ -82,7 +82,9 @@ describe('Named query and notification request parameters', function () {
       }),
       sendMessage,
     };
-    const req = { body } as unknown as Sails.Req;
+    // Email templates resolve the tenant from the route-resolved brand, never the body.
+    Reflect.set(globalThis, 'BrandingService', { getBrand: () => ({ id: 'brand-1' }) });
+    const req = { body, options: { locals: { branding: 'default' } } } as unknown as Sails.Req;
     const validated = validateApiRouteRequest(req, sendNotificationRoute);
     expect(validated.valid).to.equal(true);
     if (!validated.valid) throw new Error('Invalid notification');

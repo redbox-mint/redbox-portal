@@ -100,3 +100,13 @@
     <ng-template #notUsed><span class="text-muted nq-not-used">{{ 'named-query-not-used' | i18next }}</span></ng-template>
   </div>
 </section>
+
+<section *ngIf="!isNew" class="rb-admin-form-section mt-3" aria-labelledby="nq-used-by-title">
+  <div class="rb-admin-form-section-header"><h2 id="nq-used-by-title">{{ 'named-query-used-by' | i18next }}</h2></div>
+  <div class="rb-admin-form-section-body">
+    <ul *ngIf="draft.usedBy?.length; else notUsed" class="mb-0">
+      <li *ngFor="let consumer of draft.usedBy"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li>
+    </ul>
+    <ng-template #notUsed><span class="text-muted nq-not-used">{{ 'named-query-not-used' | i18next }}</span></ng-template>
+  </div>
+</section>
