@@ -15,7 +15,7 @@ test(
   'owned RAiD uses isolated OAuth caches, actual HTTP and durable retry scheduling',
   { timeout: 30000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     assert.equal(global.sails, undefined);
     const url = process.env.SR_RAID_MONGO_URL;
     assert(url, 'SR_RAID_MONGO_URL is required; qualification cannot skip');
