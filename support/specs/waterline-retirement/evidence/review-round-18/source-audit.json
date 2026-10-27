@@ -1,0 +1,16 @@
+{
+  "source": "790e92ca5",
+  "path": "packages/redbox-core/src/services/AgendaQueueService.ts",
+  "sha256": "63e96ea1202e3a06a234d7dba708c7a762d44df1a29f6e874ef000e5b2ab8fe7",
+  "sourceChecks": {
+    "oneClaimMap": true,
+    "noFenceCandidates": true,
+    "oneReleaseFunction": true,
+    "allReleaseEntrypoints": true,
+    "uniqueMongoOwner": true,
+    "payloadOmitted": true,
+    "retryPreserved": true,
+    "default30s": true
+  },
+  "interpretation": "Mechanical corroboration of the independent source audit; behavior is qualified by retained executable controls."
+}

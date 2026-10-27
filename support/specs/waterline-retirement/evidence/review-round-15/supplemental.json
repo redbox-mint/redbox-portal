@@ -1,0 +1,118 @@
+{
+  "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+  "focused": [
+    {
+      "name": "strict-focused-final",
+      "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-15/tsconfig.focused.json",
+      "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+      "exitCode": 0,
+      "durationMs": 45798,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "focused-final-committed",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/AuditFollowupDrain.test.ts test/middleware/requestLifetime.test.ts",
+      "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+      "exitCode": 0,
+      "durationMs": 30315,
+      "sha256": "f5bacbfd077cc8659bf291e831ca7b7be3789c2285e991ef0fc7128a12891430",
+      "counts": {
+        "passing": [
+          110
+        ],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-unlock-green",
+      "command": "node .tmp/review-round-15/sqs-receipt-identity.cjs unlock",
+      "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+      "exitCode": 0,
+      "durationMs": 898,
+      "sha256": "d20fe40a0a64add37a8c0505b9fbb6493e6610452883583aa9ec2ff8762d86fd",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-complete-green",
+      "command": "node .tmp/review-round-15/sqs-receipt-identity.cjs complete",
+      "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+      "exitCode": 0,
+      "durationMs": 1105,
+      "sha256": "e542d9a2ba2ae4921204835d441f13b7ee64cc353e5a0b23043d07e069a0144a",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    }
+  ],
+  "defaultDeadlineProbes": [
+    {
+      "name": "default-drain",
+      "command": "node .tmp/review-round-15/default-drain.cjs",
+      "exitCode": 0,
+      "durationMs": 30631,
+      "sha256": "3d136035848ef156f0f247653d1387108ba50e4e63d0024ee84c0303fa09e4db",
+      "summary": [
+        {
+          "passing": 1,
+          "failures": 0,
+          "defaultDrainTimeoutMs": 30000,
+          "elapsedMs": 30006,
+          "retainedUntilWorkerSettled": true,
+          "retryCompleted": true,
+          "callbacks": 2
+        }
+      ]
+    },
+    {
+      "name": "http-default-drain",
+      "command": "node .tmp/review-round-15/http-default-drain.cjs",
+      "exitCode": 0,
+      "durationMs": 35294,
+      "sha256": "0e9e29075c02e7225353c09ad3a7951c00047c2e6c51b6313c13ca6737bc974a",
+      "summary": [
+        {
+          "passing": 1,
+          "failures": 0,
+          "defaultDrainTimeoutMs": 30000,
+          "elapsedMs": 30001,
+          "httpStatus": 200,
+          "responseBeforeFollowup": true,
+          "lateEnqueueRefused": true,
+          "failureLogged": true,
+          "retryCompleted": true,
+          "callbacks": 2
+        }
+      ]
+    }
+  ],
+  "scopeProbe": {
+    "command": "node .tmp/review-round-15/http-followup-scopes.cjs",
+    "exitCode": 0,
+    "sha256": "9a51becbb7ab8f6c9f6389c6c02cfe64395fd359e437db4c4b11552d0db12c08",
+    "summary": {
+      "passing": 1,
+      "failures": 0,
+      "sameAppRequestsIndependent": true,
+      "otherAppNotRetained": true,
+      "completedRequestRefusesDetachedOwnership": true
+    }
+  },
+  "probeScriptSha256": {
+    "http-followup-scopes.cjs": "2f37876b79b7220dc530628a55bb932557aabbf66d075c7c45f8e99d3a609bb4",
+    "http-default-drain.cjs": "33a177747973d6e416fa7a598f57752cb23242ba5a110d9004e088c9a7d38b9c",
+    "default-drain.cjs": "0e1e0a1afdcc47a82a087947bc530619306cb368e3560eafbf5df9c2a13da984",
+    "sqs-receipt-identity.cjs": "f31664575e10b82d6eb3d6d750cfcfe1370a944e138822fef64156b1c688b983"
+  }
+}

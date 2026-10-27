@@ -1,0 +1,72 @@
+{
+  "initialWholeCore": {
+    "passing": 4241,
+    "pending": 116,
+    "failing": 1,
+    "reason": "Unchanged 12-second source-import deadline under concurrent old-image startup; accepted sequential core has 4253 passing /116 pending.",
+    "sha256": "8b74eb0f64c924d222f4f8e12a1af678e52dae7f23dea98b610f912ca1f31947"
+  },
+  "initialMatrix": {
+    "commands": 71,
+    "exitCode": 1,
+    "failed": ["cache-mongodb", "create-budget", "existing-volume-upgrade"],
+    "reasons": {
+      "cache-mongodb": "Retained client-close assertion expected native message; replaced with stronger controlled class/code/message/no-cause check; backend no-fallback checks retained.",
+      "create-budget": "New fixture emitted an undefined sparse index option as BSON null; omit absent optional options, before any workload measurement.",
+      "existing-volume-upgrade": "New final root probe expected direct 200 instead of normal 302; corrected to require 200 after following home redirect. Interrupted waiting fixture; own resources cleaned."
+    },
+    "rejectedRecords": [
+      {
+        "name": "cache-mongodb",
+        "stage": "retained",
+        "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-mongodb",
+        "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+        "exitCode": 1,
+        "durationMs": 13604,
+        "sha256": "deaff01ad80084e4fc156eac11cdebc6ff84df00bedddbf2d8ca7a142abc049e",
+        "counts": {
+          "passing": [16],
+          "pending": [],
+          "failing": [1]
+        },
+        "checks": []
+      },
+      {
+        "name": "create-budget",
+        "stage": "retained",
+        "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh create-budget",
+        "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+        "exitCode": 1,
+        "durationMs": 1820,
+        "sha256": "acf35a6abd3ec46be9eaab6d8bf43f0ba950ac770ee8b5cef0710aae871d2a44",
+        "counts": {
+          "passing": [],
+          "pending": [],
+          "failing": []
+        },
+        "checks": []
+      },
+      {
+        "name": "existing-volume-upgrade",
+        "stage": "stock",
+        "command": "python3 packages/redbox-core/test/fixtures/waterline-retirement/run-existing-volume-upgrade.py",
+        "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+        "exitCode": -2,
+        "durationMs": 232406,
+        "sha256": "9463e5704ae2d23f8f62707e49c7ba9776cf879853db63b520e7c70e72d33923",
+        "counts": {
+          "passing": [],
+          "pending": [],
+          "failing": []
+        },
+        "checks": []
+      }
+    ]
+  },
+  "targetedRerun": {
+    "commands": 3,
+    "exitCode": 0,
+    "names": ["cache-mongodb", "create-budget", "existing-volume-upgrade"]
+  },
+  "earlierSetup": "Upgrade helper port-exit race and root-404 legacy-image probing were corrected. One discarded upgrade attempt overlapped a dist rebuild and failed module loading; not acceptance evidence. Cache test typing string-index error corrected before the cache fix commit. No production revert, assertion weakening, timeout/healthcheck/budget change or extra skip."
+}

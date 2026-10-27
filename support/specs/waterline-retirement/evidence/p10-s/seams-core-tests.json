@@ -1,0 +1,18 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 5000 test/services/AttachmentMetadataService.test.ts test/services/RDMPService.test.ts test/bootstrap.test.ts"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 18.795,
+  "sha256": "998632c3bb8d8a50b4d861e33e945a71cbfe3f9bec44defabd1e12c9270683f4",
+  "logBytes": 9336,
+  "counts": [
+    [
+      "96",
+      "passing",
+      ""
+    ]
+  ]
+}

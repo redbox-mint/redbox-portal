@@ -1,0 +1,15 @@
+{
+  "name": "http-final",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts test/middleware/redboxSession.test.ts",
+  "sourceCommit": "6fa69abc5597dbfbf59330eeb272477c4dbff204",
+  "exitCode": 0,
+  "durationMs": 3234,
+  "sha256": "66e28318d4499cc67cef484a0b350a8b4acbc2a9ba53b77b0d6fced599813601",
+  "counts": {
+    "passing": [
+      27
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

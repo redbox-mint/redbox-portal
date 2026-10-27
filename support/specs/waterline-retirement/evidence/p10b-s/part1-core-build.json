@@ -1,0 +1,8 @@
+{
+  "command": "npm --prefix packages/redbox-core run build",
+  "exitCode": 0,
+  "sha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e",
+  "rawBytes": 100,
+  "durationMs": null,
+  "durationNote": "Initial build duration was not captured; final-build-pinned.json contains the timed accepted tip build."
+}

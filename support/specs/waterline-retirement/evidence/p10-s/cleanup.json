@@ -1,0 +1,56 @@
+{
+  "commands": [
+    [
+      "docker",
+      "ps",
+      "-a",
+      "--format",
+      "{{.Names}}"
+    ],
+    [
+      "docker",
+      "ps",
+      "-a",
+      "--filter",
+      "label=redbox.task=p10-s",
+      "--format",
+      "{{.ID}}"
+    ],
+    [
+      "docker",
+      "volume",
+      "ls",
+      "--format",
+      "{{.Name}}"
+    ],
+    [
+      "docker",
+      "network",
+      "ls",
+      "--format",
+      "{{.Name}}"
+    ],
+    [
+      "git",
+      "show",
+      "004c91054:<lockfile>"
+    ]
+  ],
+  "exitCode": 0,
+  "durationSeconds": 1.445,
+  "sha256": "0b92451f30b5a4d9cf94b75dcb55dcec68e3e9f1990a129faa0f334ebbbfb743",
+  "logBytes": 584,
+  "results": {
+    "ownedContainersRemaining": 0,
+    "ownedComposeVolumesRemaining": 0,
+    "ownedComposeNetworksRemaining": 0,
+    "originalLockSha256": {
+      "package-lock.json": "1227d2a84d3848c9b48d9608be2f0436fc5282df61842efe38b881f0962453c8",
+      "packages/redbox-core/package-lock.json": "9ce4e54e01c2d9777e385190ab8e0e25835814d2fb1831e2f548452a49ad061a",
+      "packages/sails-hook-redbox-storage-mongo/package-lock.json": "9a904db058edc02097b9aba9d9581d627339c433f939e7b14a318b1767d84718"
+    },
+    "dependencySectionsUnchanged": true,
+    "privateTemporaryNpmConfigRemoved": true,
+    "pushed": false
+  }
+}

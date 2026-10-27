@@ -1,0 +1,13 @@
+{
+  "name": "recordtype-selection-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh recordtype-selection",
+  "sourceCommit": "d9f2a5cc8a0d0136dff0d11a53e7aaac5b0088e9",
+  "exitCode": 0,
+  "durationMs": 46133,
+  "sha256": "7f803ff10dfc33e1407a4795efdef4f40de3e4577024fdf2fb592c25c3a8a55e",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":12,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "note": "Includes the test-only adversarial extension and completing native upload fake committed with the evidence after final runs. Production runtime stays at 84f7c6ce6.",
+  "hashes": {
+    "packages/redbox-core/test/fixtures/waterline-retirement/durable-review-scalars.cjs": "8d7ca2cd13fc0395a0ed478445cd06e24fe0ab4a9558c6fc57ba5d2f3f4956a6",
+    "packages/redbox-core/test/fixtures/waterline-retirement/reference-query-adversarial.cjs": "727ac79ac8af8d9b4a73f00de83bb7a2d5b68e7dae116e7a91348d55aeb80a52",
+    "packages/redbox-core/test/fixtures/waterline-retirement/reference-record-arrays.cjs": "afe9a6dc56278dabfc0347eb63c8f3ada5183d9032497fe40faf3dc71f17cbc7",
+    "packages/redbox-core/test/fixtures/waterline-retirement/reference-review-mappings.cjs": "53fcc1e0834b696965174f2af0ef7b1a77603a6d99a4c6e1433e78e5ef27661e",
+    "packages/redbox-core/test/fixtures/waterline-retirement/storage-gridfs-initializing.cjs": "b48fdb59b6732b4378980c205dd3efefd6fe845e15c5a0a276b7f7eec1ad48ab",
+    "packages/redbox-core/test/fixtures/waterline-retirement/storage-gridfs-streams.cjs": "cf3d56bd11a4f17a3c54cbc1368e45dbda3a9d5eb3c9e6f4ccba118a67a88b27",
+    "packages/redbox-core/test/services/GridFSDriver.test.ts": "26bdc54aca7b7a60e02bc3398047be365ac537fe751c0e6779940624ebd03a3c",
+    "packages/redbox-core/test/services/writeGridFSStream.test.ts": "27f2fb482cb6c8d0b2a0dad3d9fcac399b44d0c2105e6b77f2bf8e5120572bbe",
+    "packages/redbox-core/test/unit/harvest-persistence.test.ts": "59a246c8b57d0a2bbcd5edc6f53e6a5669f7326d462f2cc0db2e0874e3673b45",
+    "packages/redbox-core/test/unit/progress-persistence.test.ts": "8f0d64c08ad7cc53af4982c76a526be6af26c47e81def04b899128fc63bf8570",
+    "packages/redbox-core/test/unit/siem-persistence.test.ts": "3e6cbd95278446b1a840559c457077f4efc49eb4607f3477737720b25153ac58",
+    "packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts": "0a44af480aa043b2e224955bc449e9c073f6bba570fdee09156a655ec8a6deeb"
+  }
+}

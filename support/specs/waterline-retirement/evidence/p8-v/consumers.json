@@ -1,0 +1,342 @@
+{
+  "sourceInventoryCommit": "fb37b37d119a484c96818560cf8a853417c1ec99",
+  "entities": [
+    "FigshareVocabularyCategory",
+    "FigshareVocabularyCrosswalk",
+    "FigshareVocabularyCrosswalkMapping",
+    "FigshareVocabularySource",
+    "FigshareVocabularySyncRun",
+    "Vocabulary",
+    "VocabularyEntry"
+  ],
+  "baselineConsumers": {
+    "FigshareVocabularyCategory": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "find": [
+          485,
+          1034,
+          1251,
+          1390,
+          1492,
+          1795,
+          2189
+        ],
+        "destroy": [
+          865
+        ],
+        "create": [
+          1066
+        ],
+        "updateOne": [
+          1105,
+          1126
+        ],
+        "count": [
+          1429,
+          1430,
+          1688
+        ],
+        "findOne": [
+          1976
+        ]
+      }
+    },
+    "FigshareVocabularyCrosswalk": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "findOne": [
+          392,
+          532,
+          1230,
+          1701,
+          1949,
+          2032
+        ],
+        "destroyOne": [
+          862,
+          2113
+        ],
+        "create": [
+          971,
+          1543,
+          1705
+        ],
+        "updateOne": [
+          1335,
+          1879,
+          1944,
+          2022,
+          2106,
+          2455
+        ],
+        "count": [
+          1431,
+          1623
+        ],
+        "find": [
+          1624
+        ]
+      }
+    },
+    "FigshareVocabularyCrosswalkMapping": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "destroy": [
+          861,
+          1894,
+          2112
+        ],
+        "find": [
+          1310,
+          1680,
+          1733,
+          1787,
+          1856,
+          1994,
+          2174
+        ],
+        "create": [
+          1321,
+          1572,
+          1864,
+          1930
+        ],
+        "count": [
+          1645,
+          1650
+        ],
+        "findOne": [
+          1906
+        ],
+        "updateOne": [
+          1920,
+          2013
+        ]
+      }
+    },
+    "FigshareVocabularySource": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "findOne": [
+          381,
+          516,
+          1640,
+          2134,
+          2397
+        ],
+        "destroyOne": [
+          866
+        ],
+        "create": [
+          912
+        ],
+        "updateOne": [
+          1002
+        ],
+        "count": [
+          1357
+        ],
+        "find": [
+          1358
+        ]
+      },
+      "packages/redbox-core/src/services/VocabularyService.ts": {
+        "findOne": [
+          197
+        ]
+      }
+    },
+    "FigshareVocabularySyncRun": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "findOne": [
+          417,
+          2435
+        ],
+        "update": [
+          430
+        ],
+        "updateOne": [
+          448
+        ],
+        "create": [
+          654
+        ],
+        "count": [
+          1459
+        ],
+        "find": [
+          1460
+        ]
+      }
+    },
+    "Vocabulary": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "findOne": [
+          403,
+          960,
+          1433,
+          1639
+        ],
+        "destroyOne": [
+          870
+        ],
+        "create": [
+          897,
+          1180
+        ]
+      },
+      "packages/redbox-core/src/services/RvaImportService.ts": {
+        "findOne": [
+          132
+        ],
+        "getDatastore": [
+          151
+        ],
+        "updateOne": [
+          154
+        ]
+      },
+      "packages/redbox-core/src/services/VocabularyService.ts": {
+        "findOne": [
+          190,
+          286,
+          296,
+          300,
+          692,
+          759,
+          791,
+          801,
+          824,
+          1168,
+          1235,
+          1283,
+          1312
+        ],
+        "count": [
+          280
+        ],
+        "find": [
+          281
+        ],
+        "create": [
+          683
+        ],
+        "destroyOne": [
+          702,
+          869
+        ],
+        "updateOne": [
+          789
+        ]
+      }
+    },
+    "VocabularyEntry": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "find": [
+          496,
+          749,
+          1040,
+          1298,
+          1422,
+          1510,
+          1732,
+          1792,
+          2147,
+          2272
+        ],
+        "destroy": [
+          869
+        ],
+        "create": [
+          1054,
+          1196
+        ],
+        "updateOne": [
+          1097,
+          1130,
+          1146,
+          1217
+        ],
+        "findOne": [
+          1969
+        ]
+      },
+      "packages/redbox-core/src/services/VocabularyService.ts": {
+        "count": [
+          329
+        ],
+        "find": [
+          330,
+          372,
+          379,
+          515,
+          836,
+          913
+        ],
+        "findOne": [
+          358,
+          448,
+          466,
+          476,
+          591,
+          626,
+          889,
+          907,
+          955,
+          959
+        ],
+        "destroy": [
+          701,
+          868,
+          1026
+        ],
+        "updateOne": [
+          850,
+          987,
+          1001,
+          1116
+        ],
+        "create": [
+          964,
+          1074
+        ],
+        "createEach": [
+          1053
+        ]
+      },
+      "packages/redbox-core/src/waterline-models/VocabularyEntry.ts": {
+        "findOne": [
+          59,
+          66,
+          94,
+          103,
+          116
+        ]
+      }
+    }
+  },
+  "migrated": [
+    "VocabularyService",
+    "FigshareVocabularyService",
+    "RvaImportService",
+    "four V named-query targets",
+    "vocab-inline DTO visitor"
+  ],
+  "indirectConsumers": [
+    "VocabularyController",
+    "webservice/VocabularyController",
+    "webservice/FigshareVocabularyController",
+    "webservice/FigshareCrosswalkController",
+    "FormVocabularyController",
+    "FormVocabularyService",
+    "FormPayloadPrehydrateService",
+    "bootstrap vocabulary data",
+    "figshare-v2 publishing resolver"
+  ],
+  "remainingWaterline": [
+    "explicit Waterline V adapter and seven retained callback wrappers for rollback/P11",
+    "WaterlineVocabularyBrand: B-owned BrandingConfig name resolution"
+  ],
+  "sourceRecheck": {
+    "direct": "rg -n -i \"\\b(vocabulary|vocabularyentry|figsharevocabulary(source|category|crosswalk|crosswalkmapping|syncrun))\\.(find|count|create|update|destroy|getDatastore)|models\\[[^]]*(vocab|figshare)|models\\.(vocabulary|vocabularyentry|figsharevocabulary)\" api config packages --glob \"!**/dist/**\" --glob \"!**/node_modules/**\" --glob \"!**/test/**\" --glob \"!**/package-lock.json\" --glob \"!**/*.map\"",
+    "dynamic": "rg -n -i \"sails\\.models\\[|global\\[|getModel\\(\" packages/redbox-core/src/{services,controllers,policies,persistence}; closed catalogue V cases reviewed in NamedQueryExecution and WaterlineNamedQueryTargets",
+    "remainingMatches": "Only rollback model callbacks and WaterlineNamedQueryTargets V branches; named-query dispatch chooses the driver by the independent V selector. No additional V direct service/controller/policy/config/hook owner found in supplied source. Private institution hooks are unavailable."
+  }
+}

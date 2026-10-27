@@ -1,0 +1,13 @@
+{
+  "command": "node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=dev --include=peer --prefix packages/agenda-sqs-backend && npm run test:agenda-sqs",
+  "exitCode": 0,
+  "durationMs": 5130,
+  "rawBytes": 613,
+  "sha256": "8dcba0dac2c7d8e48886cb3a67625cb1614d84060595400e8a9cb822c6e85a64",
+  "counts": {
+    "testFilesPassed": 1,
+    "testFilesTotal": 1,
+    "testsPassed": 6,
+    "testsTotal": 6
+  }
+}

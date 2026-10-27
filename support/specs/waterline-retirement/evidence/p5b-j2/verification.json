@@ -1,0 +1,160 @@
+[
+  {
+    "command": "npm --prefix packages/redbox-core run build",
+    "result": "PASS",
+    "log": "/tmp/p5-final-build.log",
+    "sha256": "ae89cb404663a2089e9072cda69c9b144de8ac99770d763aeb82dc96ebbf175b"
+  },
+  {
+    "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+    "result": "PASS",
+    "log": "/tmp/p5b-typecheck.log",
+    "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+  },
+  {
+    "command": "npm run test:core",
+    "result": "4149 passing; 106 pending; unchanged startup 12000 ms guard passes",
+    "log": "/tmp/p5-core.log",
+    "sha256": "94a12f3010e3f54c1bff37c6fcecd5f7aeca424f519f1d52d2191b9063ed29d7"
+  },
+  {
+    "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+    "result": "13 passing",
+    "log": "/tmp/p5-indexes.log",
+    "sha256": "d4ec19d3a4d8a28aee754b1fb2d7281bacfaec58b08b0f1e19703763c0a201f5"
+  },
+  {
+    "command": "npm run check:cache-contract",
+    "result": "PASS",
+    "log": "/tmp/p5-cache-contract.log",
+    "sha256": "2d7383c1231fbfb570dccf8ceb8744517b2eaca7b46d35f661b42760394776b4"
+  },
+  {
+    "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build",
+    "result": "PASS",
+    "log": "/tmp/p5-storage-build.log",
+    "sha256": "f6fd0c274512c0c509bfa380cc1cb28919e4ecad6ea585ef74765907e6e75640"
+  },
+  {
+    "command": "npm --prefix packages/redbox-core run lint",
+    "result": "PASS",
+    "log": "/tmp/p5-lint.log",
+    "sha256": "c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183"
+  },
+  {
+    "command": "J1 service and boundary suites",
+    "result": "15 passing",
+    "log": "/tmp/p5a-focused.log",
+    "sha256": "8e28aa574b387646ebf8a09f552df2c95578b466b22f8892c0c7e87f3942486d"
+  },
+  {
+    "command": "J2 service and boundary suites; RecordsService preloaded to exclude TS compilation from per-test deadline",
+    "result": "32 passing",
+    "log": "/tmp/p5b-unit.log",
+    "sha256": "687af8e788286e261cd17b3b838e8c6f5bd105b4f6ec99012a6d60e6a540c7c7"
+  },
+  {
+    "command": "PROGRESS_SKIP_PREWARM=false bash packages/redbox-core/test/fixtures/waterline-retirement/run-progress-portal.sh",
+    "result": "2 passing per backend; stock command, new project and fresh volumes each",
+    "log": "/tmp/p5a-portal-prewarm.log",
+    "sha256": "a14e91db9e5e62e72ff7fbd29f2bf94b996360c2ac6f94725be631a57a193017"
+  },
+  {
+    "command": "test:persistence-foundation",
+    "result": "12 passing",
+    "log": "/tmp/p5-regressions/foundation.log",
+    "sha256": "182acd8ad5f7259758c6b7e7ea1aa01f499863c7093a52adb1de29290ef0b09d"
+  },
+  {
+    "command": "P3_SKIP_BUILD=true test:cache-prisma",
+    "result": "17 passing",
+    "log": "/tmp/p5-regressions/cache-prisma.log",
+    "sha256": "0e16c3c0dadd2b3b2d15ed2fdf810c9e2e76122b65165c3ef2cbe5b4d2e3d981"
+  },
+  {
+    "command": "P5_SKIP_BUILD=true test:cache-driver-transition",
+    "result": "15 passing",
+    "log": "/tmp/p5-regressions/cache-transition.log",
+    "sha256": "a21160500c1e664aa9be5125d6ff8bdebcbcb1cbcc6fd535f40b25fcf2e5f4fa"
+  },
+  {
+    "command": "test:migration-transition with designated prior image",
+    "result": "15 passing",
+    "log": "/tmp/p5-regressions/migration.log",
+    "sha256": "d7041d6c2e169d282b8b4f97748e5f056cdd9ff762001a3f1c18d011435e195b"
+  },
+  {
+    "command": "run-reference.sh contract",
+    "result": "PASS including prior-image rollback",
+    "log": "/tmp/p5-regressions/reference.log",
+    "sha256": "820341c0b1b89b317ccc7e6ae76aaac8e265a199f5606811f8c4530e2d3e1bad"
+  },
+  {
+    "command": "run-configuration.sh contract",
+    "result": "PASS including prior-image rollback",
+    "log": "/tmp/p5-regressions/configuration.log",
+    "sha256": "93a159217e862f05a0a167fb97f1a89505291b4649919bbd6158126d6ba5b100"
+  },
+  {
+    "command": "npm run test:storage-mongo",
+    "result": "288 passing, 38 pending",
+    "log": "/tmp/p5-regressions/storage.log",
+    "sha256": "d3d04d9f9fda4e450767739c1f935e38721a2ed9b0a1b3880a5f7dcf9c619141"
+  },
+  {
+    "command": "npm run lint",
+    "result": "0 warnings, 0 errors",
+    "log": "/tmp/p5-regressions/lint.log",
+    "sha256": "11febd796803eaff4fda08aa3b1925683f4db393a6289fafc9034cd350c43d73"
+  },
+  {
+    "command": "npm run test:bruno:general:mount via group fixture, dependency-only prewarm, fresh project/volumes",
+    "selectors": {
+      "progress": "waterline",
+      "harvest": "mongodb"
+    },
+    "result": "309/309 requests, 553/553 tests",
+    "log": "/tmp/p5-bruno-wm.log",
+    "sha256": "0375c5194596fb064c2b49ad9f18a396af17c319e81936edf157ca402b66f6e0"
+  },
+  {
+    "command": "npm run test:bruno:general:mount via group fixture, dependency-only prewarm, fresh project/volumes",
+    "selectors": {
+      "progress": "mongodb",
+      "harvest": "waterline"
+    },
+    "result": "309/309 requests, 553/553 tests",
+    "log": "/tmp/p5-bruno-mw.log",
+    "sha256": "af1090f02fd926de826e8a5b1aca8aa0179ad319932c8b59eabde79ac8193e82"
+  },
+  {
+    "command": "Harvest service/boundary suites (RecordsService preloaded)",
+    "result": "33 passing",
+    "log": "/tmp/p5-snapshot-unit.log",
+    "sha256": "6d4b0c37b230907eceaa23dc52a832c7943a6972d5756946555651a7273bd0a5"
+  },
+  {
+    "command": "npm --prefix packages/redbox-core run build",
+    "result": "PASS after snapshot producer correction",
+    "log": "/tmp/p5-snapshot-build.log",
+    "sha256": "63b95cae63a85eac6fa6d7a5ab01fe15a5046a2bbd219d0ef1552cdee72badb0"
+  },
+  {
+    "command": "HARVEST_SKIP_PREWARM=false bash packages/redbox-core/test/fixtures/waterline-retirement/run-harvest-portal.sh",
+    "result": "FAIL: Waterline 2 passed; MongoDB blocked before tests by test-only global migrate:drop discarding prepared indexes; excluded from gate",
+    "log": "/tmp/p5-harvest-portal.log",
+    "sha256": "d8cd807d24fbd39f463fb3ab28c6ae4bda2858b954bbe5f908a443df3799a748"
+  },
+  {
+    "command": "HARVEST_SKIP_PREWARM=false bash packages/redbox-core/test/fixtures/waterline-retirement/run-harvest-portal.sh",
+    "result": "Waterline 2 passed after safe bootstrap; MongoDB 1 passed/1 failed at snapshot producer; excluded from gate until producer fix",
+    "log": "/tmp/p5-harvest-portal-safe.log",
+    "sha256": "5f480bd8169a14d85c0014fea2f40b419bc98cabde1886cef6a3de00f52187fb"
+  },
+  {
+    "command": "HARVEST_SKIP_PREWARM=false bash packages/redbox-core/test/fixtures/waterline-retirement/run-harvest-portal.sh",
+    "result": "PASS: MongoDB 2 cases after snapshot producer correction on fresh volume; safe integration bootstrap, unchanged stock commands, no manual DDL",
+    "log": "/tmp/p5-harvest-portal-snapshot.log",
+    "sha256": "c827dcaac385f98dae8e6bf60c11944a75212ed429cf90d7695decd7fca28f08"
+  }
+]

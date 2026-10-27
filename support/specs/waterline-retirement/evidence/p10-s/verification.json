@@ -1,0 +1,79 @@
+{
+  "scope": [
+    "P10.1",
+    "P10.2",
+    "P10.3"
+  ],
+  "baseCommit": "004c91054fde400b9f1dfd7274a9e443999c4f93",
+  "implementationCommit": "27980c1ae94a67d6f2dee5fa5c44aece4bf1b5d0",
+  "defaultBackend": "waterline",
+  "stagedDriverEntities": [
+    "AttachmentMetadata (except OID rebind)",
+    "AttachmentAccessAudit",
+    "RecordSchemaArtifact",
+    "RecordSchemaReference (except authorization grant lookup)",
+    "RecordAudit",
+    "IntegrationAudit"
+  ],
+  "baselineOnly": [
+    "Counter",
+    "Record",
+    "DeletedRecord",
+    "recordidentity",
+    "record/U/lifecycle/binary operations",
+    "authorization grant lookup",
+    "attachment OID rebind"
+  ],
+  "acceptedLedgers": [
+    "spike.json",
+    "seams-core-build.json",
+    "seams-storage-build.json",
+    "seams-types.json",
+    "seams-lint.json",
+    "seams-core-tests.json",
+    "seams-storage-tests.json",
+    "core-build-boundary.json",
+    "persistence-types-boundary.json",
+    "root-types-boundary.json",
+    "lint-boundary.json",
+    "core-tests-final-isolated.json",
+    "final-storage-build.json",
+    "storage-tests-complete.json",
+    "contract-boundary.json",
+    "readiness-final.json",
+    "shared-indexes.json",
+    "counter-characterization.json",
+    "mocha-default-retry.json",
+    "mocha-mongodb-retry.json",
+    "bruno-default.json",
+    "bruno-mongodb.json"
+  ],
+  "runtimeLedger": "runtime-versions.json",
+  "artifactMode": "mounted stock application; not clean installed/image/rollback qualification",
+  "testStages": [
+    "Seam commit: both packages build, strict persistence types/lint, 96 focused core and 288 storage tests.",
+    "Retained original dependency pins/locks before all four passing fresh stock runners.",
+    "Stock Mocha and Bruno default/mongodb: fresh unique Compose volumes, no suite filters; Mocha asserts effective selector and owner routing.",
+    "Final codec/error/Counter refinements: full core 4159/113 pending and storage 288/38 pending; negative live contract and readiness.",
+    "Final rebind injection: core build, persistence/root types, lint and 37 live checks; no native rebind implementation remains."
+  ],
+  "openDecisions": [
+    "OPS-TX-01 undecided; G-TX CLOSED",
+    "Counter stronger allocation contract requires separate decision",
+    "Legacy borrowed-manager GridFS BSON ABI failure retained for P10.6"
+  ],
+  "deferred": [
+    "P10.4",
+    "P10.5",
+    "P10.6",
+    "P10.7",
+    "P10.8"
+  ],
+  "newDependencies": false,
+  "dependencyPinsAndLocksChanged": false,
+  "newSkippedTests": false,
+  "rawTranscriptsCommitted": false,
+  "rawSourcePatchesCommitted": false,
+  "cleanupLedger": "cleanup.json",
+  "evidenceBytes": 87692
+}

@@ -1,0 +1,58 @@
+{
+  "ownedProjects": [
+    "p10-s-mocha-default-21568-31076",
+    "p10-s-bruno-default-12271-10631",
+    "p10-s-bruno-default-npm1120-30858-5354"
+  ],
+  "remainingOwnedResources": {
+    "containers": [],
+    "networks": [],
+    "volumes": []
+  },
+  "allRunningOrStoppedContainers": [
+    "ab5b1d67b89f redbox-hook-uon-development-rbportal-1",
+    "d9da1e2a15ae redbox-hook-uon-development-mongodb-1",
+    "0357480748e0 development-rbportal-1",
+    "76446e9bd614 development-mongodb-1",
+    "a5eeea438ed7 development-solr-1",
+    "83ef9101680e development-seaweedfs-1",
+    "07767a9a6568 redbox-hook-scu-development-rbportal-1",
+    "6574a3751cde redbox-hook-scu-development-mongodb-1",
+    "cfb2eeae5a96 redbox-hook-scu-development-solr-1",
+    "7e131b990cbe redbox-hook-scu-development-seaweedfs-1",
+    "ed61170e2c7c redbox-hook-uon-development-seaweedfs-1",
+    "9d6a9b87d7f0 redbox-hook-uon-group-propagation-rbportal-1",
+    "a0115a3d5e59 redbox-hook-uon-group-propagation-mongodb-1",
+    "6ebb4b7785eb redbox-hook-uon-group-propagation-solr-1",
+    "a6237ad3b88f redbox-hook-uon-group-propagation-minio-1",
+    "7113ca21888b redbox-hook-uon-development-minio-1",
+    "5a5954b6fb6d redbox-hook-uon-development-solr-1",
+    "4f8ff851f118 redbox-playwright-redboxportal-mount-1",
+    "918d503778b7 redbox-playwright-playwright-stubs-1",
+    "a4cd4eb135c6 redbox-playwright-solr-1",
+    "b673c5e34cf4 redbox-playwright-mongodb-1",
+    "f2f93e7ed019 redbox-playwright-keycloak-1",
+    "1e6ad42256a2 redbox-playwright-email-1",
+    "6fd2e800451f development-rbportal-mount-1",
+    "ee2c2474e823 redbox-hook-wsu-development-rbportal-1",
+    "0ae5bd8d600e redbox-hook-wsu-development-mongodb-1",
+    "5694d2d579e0 redbox-hook-wsu-development-solr-1",
+    "ff69de542a75 redbox-hook-wsu-development-minio-1",
+    "8756a4e6f499 t13branding-rbportal-mount-1",
+    "858b37ea88fc t13branding-solr-1",
+    "0c2d8f500bd8 t13branding-mongodb-1"
+  ],
+  "rollbackImagesUnchanged": {
+    "redbox-p2:prior-11742e9": "sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be",
+    "redbox-p3-r:prior-cb874201": "sha256:2511de69363c6322f57a41f71023d46f34d90f1637dde354081a587cb4f800ba",
+    "redbox-p4-q:prior-f8c8cd7d": "sha256:4721b7009cfcd84aee975a5e8eca22a17f611b1c18f7f54507dcac391dcb9d20",
+    "redbox-p5a-j1:prior-0aa801ee6": "sha256:de7cb0885ac19d3386b534c165633b75354db8291f8ec7bea244749028a0cfd8",
+    "redbox-p5b-j2:prior-c2ceddb45": "sha256:df2088a9aa517b23f9b4ef1e51e1a837a52115be7ff7bda93bd0f85d6252d6ce",
+    "redbox-p5c-j3:prior-7c1906849": "sha256:409c2bebce607feedb5950c89bd39f05b1ea81f55886dbedf0301243f551c69e",
+    "redbox-p5d-j4:prior-32e2c2fca": "sha256:4815a80990de89a0bb0430e2023f9d9e77d9e5d41edf516a4573546eb1e037d5",
+    "redbox-p10-s:prior-12e566575": "sha256:c138489fc72f566815113599b699e13ad55486176f333c394238b361bca094d3"
+  },
+  "preProgrammeImageUnchanged": "sha256:ba6b99f1c669cff71db60c2e2a7396dc13cf0d99dd7f26e711df157a1c3186b8",
+  "noPush": true,
+  "quotaOrUsageLimitEncountered": false
+}

@@ -1,0 +1,60 @@
+{
+  "npm": "11.20.0",
+  "directPins": {
+    "root": "7.7.0",
+    "core": "7.7.0",
+    "storageDependency": "7.7.0",
+    "storageDevDependency": "7.7.0"
+  },
+  "storageMongoPeerDependency": false,
+  "reason": "Use one supported first-party driver version and avoid crossing nominal driver copies. This does not cure the borrowed Waterline BSON 6/7 bucket mismatch by itself; byte ownership changes separately.",
+  "locks": {
+    "package-lock.json": {
+      "added": [],
+      "removed": [
+        "packages/sails-hook-redbox-storage-mongo/node_modules/mongodb",
+        "packages/sails-hook-redbox-storage-mongo/node_modules/typescript"
+      ],
+      "versionChanges": [],
+      "note": "Only storage driver dependencies change version; root drops stale nested copies inconsistent with existing exact pins."
+    },
+    "packages/sails-hook-redbox-storage-mongo/package-lock.json": {
+      "added": [],
+      "removed": [],
+      "versionChanges": [
+        [
+          "node_modules/@mongodb-js/saslprep",
+          "1.4.4",
+          "1.6.1"
+        ],
+        [
+          "node_modules/bson",
+          "7.2.0",
+          "7.3.3"
+        ],
+        [
+          "node_modules/mongodb",
+          "7.2.0",
+          "7.7.0"
+        ],
+        [
+          "node_modules/mongodb-connection-string-url",
+          "7.0.1",
+          "7.0.2"
+        ]
+      ],
+      "note": "Only storage driver dependencies change version; root drops stale nested copies inconsistent with existing exact pins."
+    }
+  },
+  "acceptedLedger": "driver-locks-final-pinned.json",
+  "peerPolicy": "Root .npmrc explicitly disables legacy-peer-deps. Regeneration also passes --legacy-peer-deps=false --include=peer; original unrelated peer versions remain pinned.",
+  "staleLocalEntriesRemoved": {
+    "packages/sails-hook-redbox-storage-mongo/node_modules/mongodb": {
+      "version": "7.2.0"
+    },
+    "packages/sails-hook-redbox-storage-mongo/node_modules/typescript": {
+      "version": "6.0.2"
+    }
+  },
+  "runtimeGuard": "Stock pre/post install, in-process Mocha and fresh dev guards require root/core/storage mongodb 7.7.0, the declared storage compiler and this checkout package entrypoints."
+}

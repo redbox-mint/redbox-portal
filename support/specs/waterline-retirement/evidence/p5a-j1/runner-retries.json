@@ -1,0 +1,67 @@
+[
+  {
+    "step": "J1 physical spike",
+    "outcome": "fixture fixed and full runner repeated",
+    "reason": "Waterline mutates submitted values; clone repeated create inputs before reuse."
+  },
+  {
+    "step": "J1 contract",
+    "outcome": "corrected and full runner repeated PASS",
+    "reason": "Initial concurrent dist rebuild invalidated a child import; later a fixture-only missing services map and wrong admin database for configureFailPoint were corrected."
+  },
+  {
+    "step": "J1 stock Mocha",
+    "outcome": "test attachments ownership repaired without deleting data; repeated",
+    "reason": "Root-owned artifacts from prior tests prevented stock chmod prerequisite."
+  },
+  {
+    "step": "J1 cold stock Mocha",
+    "outcome": "application never started; dependency-only prewarm retry passed both backends",
+    "reason": "Keycloak initial augmentation/schema/realm import exceeded its stock health budget under concurrent build load."
+  },
+  {
+    "step": "first full core",
+    "outcome": "unit fixtures migrated to repository seam; complete quiet retry PASS",
+    "reason": "Eleven model-global-only J1 unit fixtures lacked repository initialization. Startup child hit unchanged deadline under concurrent builds; no deadline change."
+  },
+  {
+    "step": "J2 focused unit",
+    "outcome": "32 passing with existing 5000 ms deadline",
+    "reason": "Real RecordsService TS import consumed the first isolated test deadline; preloaded it before tests as the full core suite already does."
+  },
+  {
+    "step": "pre-J2 isolated build",
+    "outcome": "actual c2ceddb45 source built successfully",
+    "reason": "Isolated archive initially omitted inherited tsconfig and nested dependency search path; both exact pre-change inputs were supplied before successful build."
+  },
+  {
+    "step": "J2 contract",
+    "outcome": "corrected and complete root-runtime retry PASS",
+    "reason": "Sails-mongo retains a process-level model registry across app.load/lower. Reused one loaded parent app for readiness/failure probes; mixed applications remain separate processes. Pool assertion now compares before/after rather than counting Waterline lifecycles as driver pools."
+  },
+  {
+    "step": "first J1 operations observer",
+    "outcome": "not valid for gate; repeated both complete paired comparisons PASS",
+    "reason": "The observer opened its own delayed RTT monitoring connection (first baseline 2, after 3; remaining baselines/after all 3). Changed only the observer to polling monitoring. App policies and zero-leak/budget assertions remain unchanged. See operations-observer-retry.txt; its pre-assert ratio pass flag did not mean successful process exit."
+  },
+  {
+    "step": "reverse full API matrix interrupted",
+    "outcome": "discarded incomplete attempt, removed only its project, restored runner-mutated files, fresh retry PASS 309/553",
+    "reason": "Explicit turn interruption terminated the runner before tests completed. Prior completed proofs retained."
+  },
+  {
+    "step": "J2 stock Mocha after API matrix",
+    "outcome": "test attachment ownership normalized without deleting data; later fresh application run reached index readiness",
+    "reason": "Root-owned files created by stock mounted API tests blocked the stock host chmod prerequisite before application execution."
+  },
+  {
+    "step": "J2 stock Mocha, MongoDB backend",
+    "outcome": "safe integration bootstrap passes readiness; Waterline 2 passed; MongoDB then exposed a failed-snapshot producer incompatibility",
+    "reason": "The integration bootstrap forced global migrate:drop, which removes fresh-volume composite/query indexes. waterline-utils applies its global reset to every model even with per-model migrate:safe. Standard Compose runs already use fresh volumes; the bootstrap now preserves deployment-prepared indexes. Runner commands and inspect-only readiness remain unchanged."
+  },
+  {
+    "step": "J2 failed snapshot through real MongoDB service path",
+    "outcome": "snapshot producer corrected; fresh MongoDB retry PASS: 2 cases, no manual DDL. Earlier safe Waterline row also passed 2 cases; final default runners renew the complete source.",
+    "reason": "captureRecordSnapshot returned nested undefined properties even though it already serialized them for byte budgeting. Waterline omits those during JSON storage; the strict driver JSON seam correctly refused them. Return the already-budgeted serialized snapshot as plain JSON, preserving persisted omission and byte/truncation semantics. Do not relax the adapter boundary."
+  }
+]

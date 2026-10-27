@@ -1,0 +1,26 @@
+{
+  "input": "dcf7d7ad7f82051a2ca7702f0c209bbc38683d65",
+  "baseline": "ef23e07fe2933e62ea10620efa7db41f577213d0",
+  "findings": [
+    {
+      "id": "R15-1",
+      "priority": "P2",
+      "title": "SQS redelivery overwrites another receipt's shutdown ownership",
+      "locationAtInput": "packages/redbox-core/src/services/AgendaQueueService.ts:283",
+      "introducedBy": "3f50da154d",
+      "refinedBy": ["f48c69dadf", "e3d592bde3", "127595832c"],
+      "scenario": "Two receives of the same SQS message produce one envelope/job ID and different receipt handles. An older unlock consults the job-ID map and releases the newer receipt. Alternatively, an older real Job.run completes after redelivery; SQS acknowledges its old DeleteMessage without deleting the newer delivery, but the owner deletes the newer claim from its map, losing its shutdown release/retry.",
+      "reproduction": "Actual Agenda, actual SqsJobRepository and AWS SDK against a local AWS JSON protocol endpoint; two retained test cases fail at input runtime and pass with the fix. Newer-receipt AccessDenied refuses shutdown, then the unchanged receipt succeeds on retry.",
+      "fixCommit": "73f9afb7c",
+      "fix": "Use job ID plus SQS receipt as the private claim key; retain the existing job-ID default and fencing for Mongo. Match ID-only bulk releases against retained claims. Old saves/unlocks now affect only the old receipt.",
+      "sources": [
+        "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteMessage.html",
+        "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibility.html"
+      ],
+      "scope": "The ownership map was introduced by this branch; master passes receipt attributes straight to the SQS repository. Existing SQS delivery semantics, retry policy and expired-receipt error names remain unchanged."
+    }
+  ],
+  "p1": 0,
+  "p2": 1,
+  "unresolved": []
+}

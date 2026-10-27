@@ -1,0 +1,14 @@
+{
+  "name": "attachment-shared-final-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh attachment-values && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh contract",
+  "sourceCommit": "465a156749faf31f834318011d171eceb73bb790",
+  "exitCode": 0,
+  "durationMs": 79442,
+  "sha256": "c39b40417fa35602d0662dc8b00292fa5760cf874b372c9e7d95bbc6242b4026",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":700,\"failures\":0,\"firstFailures\":[]}",
+    "{\"passing\":211,\"failures\":0,\"stagedIndexScopes\":15,\"databases\":[\"p10_application\",\"p10_storage\"],\"baselineOnly\":[\"Record\",\"DeletedRecord\",\"recordidentity\",\"Counter\",\"authorization grant lookup\",\"attachment OID rebind\"]}"
+  ]
+}

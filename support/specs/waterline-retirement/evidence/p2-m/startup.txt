@@ -1,0 +1,7 @@
+{"label":"prior","repeat":0,"elapsedMs":10034.248905,"status":0}
+{"label":"current","repeat":0,"elapsedMs":9988.613819,"status":0}
+{"label":"prior","repeat":1,"elapsedMs":10114.693263000001,"status":0}
+{"label":"current","repeat":1,"elapsedMs":10389.945942000002,"status":0}
+{"label":"prior","repeat":2,"elapsedMs":10584.258937999999,"status":0}
+{"label":"current","repeat":2,"elapsedMs":10663.100479,"status":0}
+{"node":"v24.18.0","samples":{"prior":[10034.248905,10114.693263000001,10584.258937999999],"current":[9988.613819,10389.945942000002,10663.100479]},"overheadMs":102.81971133333354,"maxAllowedMs":1024.4400368666668,"provisionalBudgetPass":true}

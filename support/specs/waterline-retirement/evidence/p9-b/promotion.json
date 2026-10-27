@@ -1,0 +1,233 @@
+{
+  "qualificationCommit": "052f4b257",
+  "backend": "mongodb",
+  "explicitRollback": "waterline",
+  "selectorOmitted": true,
+  "transactionPolicy": "TX-PARITY-01/01a; B-01 atomic conditional single-document write; no transaction/relocation/rewrite/new uniqueness",
+  "packagedRunner": {
+    "passed": 96,
+    "failed": 0,
+    "layouts": [
+      "two logical databases on one standalone server",
+      "two logical databases on two standalone servers"
+    ],
+    "reports": [
+      {
+        "passed": 42,
+        "failed": 0,
+        "twoDatastores": {
+          "application": "wr_p9_branding",
+          "history": "wr_p9_history",
+          "separateServers": false
+        },
+        "results": [
+          "readiness inspects both namespaces without DDL",
+          "waterline pending typeface migration preserves published snapshot before pruning and reruns without writes",
+          "mongodb pending typeface migration preserves published snapshot before pruning and reruns without writes",
+          "waterline raw bidirectional CSS/hash/version/draft/font/logo mappings",
+          "waterline normal writes normalize one $ and reject unknown/double-$ variables",
+          "waterline missing historical fields remain absent and unknown fields survive patch",
+          "waterline B-01 intervening version/revision change is overwritten",
+          "waterline safe-mode duplicates remain permitted",
+          "mongodb raw bidirectional CSS/hash/version/draft/font/logo mappings",
+          "mongodb normal writes normalize one $ and reject unknown/double-$ variables",
+          "mongodb missing historical fields remain absent and unknown fields survive patch",
+          "mongodb B-01 intervening version/revision change rejects the stale write",
+          "mongodb safe-mode duplicates remain permitted",
+          "B-owned V brand lookup follows B selectors with no Waterline brand dependency",
+          "waterline B-01 publication race keeps history order and backend conflict compensation",
+          "waterline logo/favicon metadata and immutable asset bytes retain existing storage behavior",
+          "waterline logo overwrite and ambiguous favicon cleanup retain baseline partial outcomes",
+          "waterline publish/history/hash and unchanged publication idempotence",
+          "waterline stale draft and publication counters conflict",
+          "waterline both cache preview paths and consumption/expiry",
+          "waterline history-then-publish injected conflict",
+          "waterline history-then-publish injected certified",
+          "waterline history-then-publish injected unknown-before",
+          "waterline history-then-publish injected unknown-after",
+          "waterline retained restore allocates next version and regenerates CSS",
+          "waterline font missing/corrupt restore refuses mutation; matching bytes restore",
+          "mongodb B-01 publication race keeps history order and backend conflict compensation",
+          "mongodb logo/favicon metadata and immutable asset bytes retain existing storage behavior",
+          "mongodb logo overwrite and ambiguous favicon cleanup retain baseline partial outcomes",
+          "mongodb publish/history/hash and unchanged publication idempotence",
+          "mongodb stale draft and publication counters conflict",
+          "mongodb both cache preview paths and consumption/expiry",
+          "mongodb history-then-publish injected conflict",
+          "mongodb history-then-publish injected certified",
+          "mongodb history-then-publish injected unknown-before",
+          "mongodb history-then-publish injected unknown-after",
+          "mongodb retained restore allocates next version and regenerates CSS",
+          "mongodb font missing/corrupt restore refuses mutation; matching bytes restore",
+          "simultaneous Waterline/driver processes exchange writes on shared B data",
+          "simultaneous mixed adapters and close/restart/configuration rollback",
+          "migration names/order and narrow native sidebar bypass retain unrelated state",
+          "two-datastore BSON/index checkpoint and external font/logo/favicon bytes restore into isolated namespaces"
+        ]
+      },
+      {
+        "passed": 6,
+        "failed": 0,
+        "results": [
+          "omitted B selector resolves MongoDB and leaves U on Waterline",
+          "default reads both actual datastores while loaded B queries throw",
+          "default creates history and conditionally revises through the driver",
+          "closed default handles refuse new work",
+          "explicit Waterline rollback reads and writes driver brands and histories",
+          "fresh omitted-selector restart reads both rollback writes"
+        ],
+        "backend": "mongodb",
+        "selectorOmitted": true
+      },
+      {
+        "passed": 42,
+        "failed": 0,
+        "twoDatastores": {
+          "application": "wr_p9_split_branding",
+          "history": "wr_p9_split_history",
+          "separateServers": true
+        },
+        "results": [
+          "readiness inspects both namespaces without DDL",
+          "waterline pending typeface migration preserves published snapshot before pruning and reruns without writes",
+          "mongodb pending typeface migration preserves published snapshot before pruning and reruns without writes",
+          "waterline raw bidirectional CSS/hash/version/draft/font/logo mappings",
+          "waterline normal writes normalize one $ and reject unknown/double-$ variables",
+          "waterline missing historical fields remain absent and unknown fields survive patch",
+          "waterline B-01 intervening version/revision change is overwritten",
+          "waterline safe-mode duplicates remain permitted",
+          "mongodb raw bidirectional CSS/hash/version/draft/font/logo mappings",
+          "mongodb normal writes normalize one $ and reject unknown/double-$ variables",
+          "mongodb missing historical fields remain absent and unknown fields survive patch",
+          "mongodb B-01 intervening version/revision change rejects the stale write",
+          "mongodb safe-mode duplicates remain permitted",
+          "B-owned V brand lookup follows B selectors with no Waterline brand dependency",
+          "waterline B-01 publication race keeps history order and backend conflict compensation",
+          "waterline logo/favicon metadata and immutable asset bytes retain existing storage behavior",
+          "waterline logo overwrite and ambiguous favicon cleanup retain baseline partial outcomes",
+          "waterline publish/history/hash and unchanged publication idempotence",
+          "waterline stale draft and publication counters conflict",
+          "waterline both cache preview paths and consumption/expiry",
+          "waterline history-then-publish injected conflict",
+          "waterline history-then-publish injected certified",
+          "waterline history-then-publish injected unknown-before",
+          "waterline history-then-publish injected unknown-after",
+          "waterline retained restore allocates next version and regenerates CSS",
+          "waterline font missing/corrupt restore refuses mutation; matching bytes restore",
+          "mongodb B-01 publication race keeps history order and backend conflict compensation",
+          "mongodb logo/favicon metadata and immutable asset bytes retain existing storage behavior",
+          "mongodb logo overwrite and ambiguous favicon cleanup retain baseline partial outcomes",
+          "mongodb publish/history/hash and unchanged publication idempotence",
+          "mongodb stale draft and publication counters conflict",
+          "mongodb both cache preview paths and consumption/expiry",
+          "mongodb history-then-publish injected conflict",
+          "mongodb history-then-publish injected certified",
+          "mongodb history-then-publish injected unknown-before",
+          "mongodb history-then-publish injected unknown-after",
+          "mongodb retained restore allocates next version and regenerates CSS",
+          "mongodb font missing/corrupt restore refuses mutation; matching bytes restore",
+          "simultaneous Waterline/driver processes exchange writes on shared B data",
+          "simultaneous mixed adapters and close/restart/configuration rollback",
+          "migration names/order and narrow native sidebar bypass retain unrelated state",
+          "two-datastore BSON/index checkpoint and external font/logo/favicon bytes restore into isolated namespaces"
+        ]
+      },
+      {
+        "passed": 6,
+        "failed": 0,
+        "results": [
+          "omitted B selector resolves MongoDB and leaves U on Waterline",
+          "default reads both actual datastores while loaded B queries throw",
+          "default creates history and conditionally revises through the driver",
+          "closed default handles refuse new work",
+          "explicit Waterline rollback reads and writes driver brands and histories",
+          "fresh omitted-selector restart reads both rollback writes"
+        ],
+        "backend": "mongodb",
+        "selectorOmitted": true
+      }
+    ],
+    "log": {
+      "path": ".tmp/wrp9/promotion-transition.log",
+      "sha256": "2e64f34678830a87dd85b1dc87626f194c0df2491cc099b217b51e1b93498696"
+    }
+  },
+  "defaultCore": {
+    "passed": 4317,
+    "failed": 0,
+    "pending": 117,
+    "runs": [
+      {
+        "passed": 4316,
+        "pending": 117,
+        "failed": 0,
+        "log": {
+          "path": ".tmp/wrp9/promotion-core.log",
+          "sha256": "2777f56f80c0bdcf2f913c89f1f07e36f256461996da4ab305580e4387e047c1"
+        }
+      },
+      {
+        "passed": 1,
+        "pending": 0,
+        "failed": 0,
+        "log": {
+          "path": ".tmp/wrp9/promotion-startup.log",
+          "sha256": "a8c27dd58b22c9454e94add0c59beac025f3922c466ad7b87034f5ffc377eeab"
+        }
+      }
+    ]
+  },
+  "installedIndexCli": {
+    "passed": 18,
+    "failed": 0,
+    "omittedScopes": 72,
+    "collections": 29,
+    "log": {
+      "path": ".tmp/wrp9/index-promotion.log",
+      "sha256": "ac2f329389b058e582a69e70b38b7b4849a539f97a2c8afffc9038b04b75149c"
+    }
+  },
+  "defaultPortalMocha": {
+    "passed": 35,
+    "pending": 0,
+    "failed": 0,
+    "log": {
+      "path": ".tmp/wrp9/mocha-default.log",
+      "sha256": "05059c692092a10c3ba9ef86005812f66060422d493bed9e6da3ff4f24a5632f"
+    }
+  },
+  "composeTemplateDefaults": [
+    "packages/redbox-dev-tools/templates/hook-archetype/standard/support/development/docker-compose.yml.hbs",
+    "packages/redbox-dev-tools/templates/hook-archetype/standard/support/integration-testing/docker-compose.mocha.yml.hbs",
+    "support/development/docker-compose.yml",
+    "support/integration-testing/docker-compose.bruno.general.yml",
+    "support/integration-testing/docker-compose.bruno.oidc.yml",
+    "support/integration-testing/docker-compose.bruno.s3.yml",
+    "support/integration-testing/docker-compose.bruno.yml",
+    "support/integration-testing/docker-compose.mocha.yml",
+    "support/integration-testing/docker-compose.playwright.yml",
+    "support/integration-testing/docker-compose.yml"
+  ],
+  "checks": {
+    "build": {
+      "path": ".tmp/wrp9/promotion-build.log",
+      "sha256": "e652a9faf053767d6420cc35d5e310c24cd10fe87d128dbd9a27ae26f4776166"
+    },
+    "types": {
+      "path": ".tmp/wrp9/promotion-types.log",
+      "sha256": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f"
+    },
+    "root-types": {
+      "path": ".tmp/wrp9/promotion-root-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lint": {
+      "path": ".tmp/wrp9/promotion-lint.log",
+      "sha256": "9826306c7b321e44ae12606fbef8f2a79f179eacfb65b86b8c15cc0d095fb066"
+    }
+  },
+  "command": "timeout 2400 bash .tmp/wrp9/run-promotion.sh",
+  "bruno": "Both explicit selectors already passed 309 requests/553 tests/3 assertions with the atomic adapter; no redundant API repetition at promotion.",
+  "remainingOwners": "U remains Waterline; full records/Counter/rebind S and P11 remain separate. Both B models stay.",
+  "promotionCommit": "1efe5229d"
+}

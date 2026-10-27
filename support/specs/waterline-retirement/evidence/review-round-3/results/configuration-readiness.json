@@ -1,0 +1,11 @@
+{
+  "name": "configuration-readiness",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh readiness",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 18434,
+  "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+  "counts": {},
+  "passGroups": 1,
+  "checks": []
+}

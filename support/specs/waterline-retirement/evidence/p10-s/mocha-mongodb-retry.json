@@ -1,0 +1,19 @@
+{
+  "command": [
+    "bash",
+    "packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh",
+    "mocha",
+    "mongodb"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 270.047,
+  "sha256": "b54ca062f1521c531dd6fb51594be545ddc5918a94f4c94f73907c9ab83bc734",
+  "logBytes": 1017012,
+  "totals": {
+    "passing": 419,
+    "pending": 10,
+    "failing": 0
+  },
+  "selectorAssertion": "S backend=mongodb; attachment manager bypass=true; U/record owner=baseline",
+  "fixture": "unique Compose project and fresh volumes, unfiltered stock npm runner, original dependency pins"
+}

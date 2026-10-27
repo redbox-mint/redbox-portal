@@ -1,0 +1,29 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "test:core"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 110.328,
+  "sha256": "11e8519c9783f1ee364c7b687ae064f198697a94d951e8691a507dbab884c022",
+  "logBytes": 359729,
+  "counts": [
+    [
+      "4158",
+      "passing",
+      ""
+    ],
+    [
+      "113",
+      "pending",
+      ""
+    ],
+    [
+      "1",
+      "failing",
+      ""
+    ]
+  ],
+  "failureExcerpt": "    \u2714 retains selected historical checkbox tree nodes as disabled when historicalVocabMode is disable\n\n  createAgendaForBackend\n    \u2714 preserves explicit zero lock lifetime and processEvery values in agenda options\nDynamic imports imported\n\n\n  4158 passing (2m)\n  113 pending\n  1 failing\n\n  1) startup module loading\n       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:\n     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT\n\nnull !== 0\n\n      at Context.<anonymous> (test/unit/startup-module-loading.test.ts:44:12)\n      at processImmediate (node:internal/timers:504:21)\n\n\n"
+}

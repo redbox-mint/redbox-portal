@@ -1,0 +1,61 @@
+build: exit 0
+PASS default-candidate build before core/stack runners
+
+core: exit 0
+Error: Inline vocabulary 'status' was not found for branding 'default'
+  4158 passing (2m)
+  107 pending
+
+persistence-types: exit 0
+
+
+root-types: exit 0
+
+
+foundation: exit 0
+  12 passing (854ms)
+
+cache-contract: exit 0
+Cache contracts: check passed
+
+lint: exit 0
+Found 0 warnings and 0 errors.
+
+indexes: exit 0
+PASS 1: actual official fresh-volume init prepares cache + M + R + Q + J2 and satisfies J1/J2/J3/J4 driver readiness
+PASS 2: existing-volume inspect preserves raw documents and missing indexes; ignores migrate:drop; no business callbacks
+PASS 3: duplicate M history blocks all selected DDL, including a missing cache index, without cleanup
+PASS 4: explicit existing-volume ensure prepares both selected groups, preserves BSON and is idempotent
+PASS 5: backend selection scopes DDL: both Waterline, M-only driver, cache-only driver and R-only driver
+PASS 6: Q-only DDL prepares dashboard/UID indexes and preserves duplicate AppConfig rows without uniqueness
+PASS 7: conflicting index blocks all ensure writes without dropping the conflict
+PASS 8: configuration failure exits safely without exposing native credentials or changing data/indexes
+PASS 9: R duplicate keys block every selected group and startup without DDL, fallback or document cleanup
+PASS 10: the installed command prepares R key indexes idempotently, preserving raw data and satisfying driver startup
+PASS 11: missing and incompatible sparse R indexes stop startup/ensure without repair
+PASS 12: J2 duplicate dimensions block all 14 scopes before DDL; explicit ensure preserves lineage and prepares every run/chunk/event index
+PASS 13: installed J3 command reviews all eight scopes before DDL, preserves duplicate events on refusal and explicitly prepares both collections
+PASS 14: installed J4 command audits partial binding duplicates before all DDL and retains null/missing exclusions on explicit upgrade
+PASS 15: omitted group selectors prepare the promoted M, R, Q, J1, J2, J3 and J4 defaults plus the retained Prisma cache
+
+mocha-default: exit 0
+redboxportal-mount-1  | level=info time=2026-10-20T13:43:28+1000 pid=165 hostname=7cb4032fa899 msg="Data migrations: 4 pending: 20260904000000-branding-typeface-backfill, 20260925T000000-dashboard-stage-configuration, 20261014T000000-admin-sidebar-text-color, @researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+redboxportal-mount-1  | J4 selected backend=mongodb; loaded-manager bypass=true
+redboxportal-mount-1  | level=info time=2026-10-20T13:44:34+1000 pid=165 hostname=7cb4032fa899 msg="Data migrations: 2 pending: 20990101T000000-p2-portal-01, 20990101T000000-p2-portal-02"
+redboxportal-mount-1  | level=info time=2026-10-20T13:44:34+1000 pid=165 hostname=7cb4032fa899 msg="Data migrations: 0 pending."
+redboxportal-mount-1  | level=info time=2026-10-20T13:44:34+1000 pid=165 hostname=7cb4032fa899 msg="Data migrations: 1 pending: 20990101T000000-p2-portal-03"
+redboxportal-mount-1  | level=info time=2026-10-20T13:44:34+1000 pid=165 hostname=7cb4032fa899 msg="Data migrations: 1 pending: 20990101T000000-p2-portal-03"
+redboxportal-mount-1  | J3 selected backend=mongodb; loaded-manager bypass=true
+redboxportal-mount-1  |   98 passing (1m)
+redboxportal-mount-1  |   1 pending
+
+bruno-default: exit 0
+bruno-mount-1         | │ Requests      │ 309 (309 Passed) │
+bruno-mount-1         | │ Tests         │     553/553      │
+
+dev-default: exit 0
+PASS standard development app.js HTTP startup on fresh isolated volume
+{"mode":"inspect","ready":true,"groups":[{"group":"cache","backend":"prisma","collection":"cacheentry","index":"ready","duplicateKeyGroups":0},{"group":"migration","backend":"mongodb","collection":"migration","index":"ready","duplicateKeyGroups":0},{"group":"reference","backend":"mongodb","collection":"recordtype","index":"ready","duplicateKeyGroups":0},{"group":"reference","backend":"mongodb","collection":"dashboardtype","index":"ready","duplicateKeyGroups":0},{"group":"reference","backend":"mongodb","collection":"report","index":"ready","duplicateKeyGroups":0},{"group":"reference","backend":"mongodb","collection":"namedquery","index":"ready","duplicateKeyGroups":0},{"group":"configuration","backend":"mongodb","collection":"dashboardconfiguration","index":"ready","duplicateKeyGroups":0},{"group":"configuration","backend":"mongodb","collection":"i18nbundle","index":"ready","duplicateKeyGroups":0},{"group":"configuration","backend":"mongodb","collection":"i18ntranslation","index":"ready","duplicateKeyGroups":0},{"group":"harvest","backend":"mongodb","collection":"harvestrun","name":"brandId_1_recordType_1_sourceName_1_sourceRunId_1","index":"ready","duplicateKeyGroups":0},{"group":"harvest","backend":"mongodb","collection":"harvestrun","name":"brandId_1_startedAt_1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrun","name":"status_1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrun","name":"recordType_1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrunchunk","name":"runId_1_contentHash_1_attempt_1","index":"ready","duplicateKeyGroups":0},{"group":"harvest","backend":"mongodb","collection":"harvestrunchunk","name":"runId_1_contentHash_1_status_1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrunchunk","name":"runId_1_chunkIndex_1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrunchunk","name":"runId_1_submittedAt_1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrecordevent","name":"runId_1_brandId_1_createdAt_-1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrecordevent","name":"runId_1_brandId_1_outcome_1_createdAt_-1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrecordevent","name":"runId_1_brandId_1_operation_1_createdAt_-1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrecordevent","name":"runId_1_brandId_1_chunkId_1_createdAt_1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrecordevent","name":"harvestId_1_recordType_1_brandId_1","index":"ready"},{"group":"harvest","backend":"mongodb","collection":"harvestrecordevent","name":"oid_1","index":"ready"},{"group":"siem","backend":"mongodb","datastore":"mongodb","collection":"securityevent","name":"eventId_1","index":"ready","duplicateKeyGroups":0},{"group":"siem","backend":"mongodb","datastore":"mongodb","collection":"securityevent","name":"brandId_1_deliveryState_1_nextEligibleAt_1_occurredAt_1","index":"ready"},{"group":"siem","backend":"mongodb","datastore":"mongodb","collection":"securityevent","name":"brandId_1_occurredAt_-1","index":"ready"},{"group":"siem","backend":"mongodb","datastore":"mongodb","collection":"securityevent","name":"brandId_1_deliveryState_1_leaseExpiresAt_1","index":"ready"},{"group":"siem","backend":"mongodb","datastore":"mongodb","collection":"securityevent","name":"brandId_1_deliveryState_1_terminalAt_1","index":"ready"},{"group":"siem","backend":"mongodb","datastore":"mongodb","collection":"securityevent","name":"brandId_1_deliveryState_1_updatedAt_1","index":"ready"},{"group":"siem","backend":"mongodb","datastore":"mongodb","collection":"siemdeliveryattempt","name":"eventId_1_destinationId_1","index":"ready"},{"group":"siem","backend":"mongodb","datastore":"mongodb","collection":"siemdeliveryattempt","name":"brandId_1_startedAt_-1","index":"ready"},{"group":"figshare","backend":"mongodb","datastore":"mongodb","collection":"figsharesync","name":"oid_1","index":"ready","duplicateKeyGroups":0},{"group":"figshare","backend":"mongodb","datastore":"mongodb","collection":"figsharesync","name":"namespace_1_articleId_1","index":"ready","duplicateKeyGroups":0},{"group":"figshare","backend":"mongodb","datastore":"mongodb","collection":"figsharesync","name":"nextActionAt_1_dispatchUntil_1","index":"ready"}]}
+PASS default cache=prisma and M=mongodb readiness, shared indexes and durable migration history
+
+PASS (manifest written after all set-e type/offline/live checks on both Node versions; fixture cleanup completed)

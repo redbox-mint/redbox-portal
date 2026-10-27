@@ -1,0 +1,33 @@
+P1 final evidence audit
+UTC: 2026-10-19T16:27:59.034504+00:00
+Code source: f7050fff0c3056a9837ead2f9dc28546af2615a6
+
+PASS exit 0: bash -n packages/redbox-core/test/fixtures/waterline-retirement/run-foundation.sh packages/redbox-core/test/fixtures/cache-persistence/run-prisma.sh packages/redbox-core/test/fixtures/cache-persistence/run-transition.sh packages/redbox-core/test/fixtures/cache-persistence/run-package.sh
+PASS exit 0: node -e require('js-yaml').load(require('node:fs').readFileSync('.circleci/config.yml','utf8')); console.log('CircleCI YAML parses; actual remote CI run is not claimed.');
+CircleCI YAML parses; actual remote CI run is not claimed.
+PASS exit 0: node node_modules/prettier/bin/prettier.cjs --check support/specs/prisma-cache-persistence/design.md support/specs/prisma-cache-persistence/p7-status.md support/specs/waterline-retirement/design.md support/specs/waterline-retirement/evidence/README.md support/specs/waterline-retirement/evidence/environment-release-support.md support/specs/waterline-retirement/implementation_plan.md support/specs/waterline-retirement/p0r-validation.md support/specs/waterline-retirement/tasks.md support/specs/waterline-retirement/p1-validation.md support/specs/waterline-retirement/c2-validation.md support/specs/waterline-retirement/evidence/p1/README.md
+Checking formatting...
+All matched files use Prettier code style!
+PASS exit 0: node node_modules/prettier/bin/prettier.cjs --check packages/redbox-core/src/persistence/mongodb/configuration.ts packages/redbox-core/test/unit/persistence-foundation.test.ts
+Checking formatting...
+All matched files use Prettier code style!
+PASS relative file links in changed/new Markdown and P1 seam document; anchors not audited.
+PASS exact dependencies/devDependencies (local references exempt), unchanged dependency sections: package.json
+PASS exact dependencies/devDependencies (local references exempt), unchanged dependency sections: packages/redbox-core/package.json
+PASS exact dependencies/devDependencies (local references exempt), unchanged dependency sections: packages/sails-hook-redbox-storage-mongo/package.json
+PASS application lockfiles unchanged from pre-assignment checkpoint 843e62082.
+PASS P1 evidence task marks, bounded C2 marks, unchanged Prisma default; G0/G-TX/G-C2 holds retained.
+PASS dedicated live log: foundation.txt, 12 passing, no pending/failing cases.
+PASS dedicated live log: prisma.txt, 17 passing, no pending/failing cases.
+PASS dedicated live log: transition.txt, 8 passing, no pending/failing cases.
+PASS dedicated live log: driver-transition.txt, 15 passing, no pending/failing cases.
+PASS full core result excerpt: 4123 passing, 95 pending; unchanged 12000ms startup child passed at 11928ms (fragile, no performance-budget claim).
+PASS final-source packed Node 24.16.0: fixture image manifest list sha256:5bd29c4912c3ee095f8c576598e1645cbc478be533e3822a82f37fe3eea713b4; not a pre-change rollback artifact.
+PASS final-source packed Node 26.11.1: fixture image manifest list sha256:e42be93a70debe0786a10f0d7abc61f3a8f3149e1749ebae1e54123779829cd9; not a pre-change rollback artifact.
+PASS cleanup: no container, running or stopped, labelled redbox.task=waterline-p1.
+PASS cleanup: no container, running or stopped, labelled redbox.task=prisma-cache-p3.
+PASS cleanup: no container, running or stopped, labelled redbox.task=prisma-cache-p5.
+PASS cleanup: no container, running or stopped, labelled redbox.task=cache-package.
+PASS cleanup: no task package network or tagged package test image remains; existing containers/volumes not altered.
+PASS exit 0: git diff --check
+Negative overlapping-build run remains recorded separately (exit 3), excluded from qualification. No push; final evidence commit follows this audit.

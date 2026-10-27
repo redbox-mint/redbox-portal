@@ -1,0 +1,7 @@
+{
+  "command": "npx tsc --noEmit",
+  "exitCode": 0,
+  "durationMs": 2299,
+  "rawBytes": 69,
+  "sha256": "6dfec26efc2ccd17f5950704e4ca9e029ae9e4ed7af3e1eb0f9c13cd33bd9fb4"
+}

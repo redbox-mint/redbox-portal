@@ -1,0 +1,12 @@
+{
+  "source": "b83234da9a6e5ce31387c75f3873bd3100e83175",
+  "image": "redbox-c2:prior-b83234da9",
+  "imageId": "sha256:4f4f3570cae35fab61929d66fe79b8bf4d037359e35704d9af09b94def707e06",
+  "locks": {
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+  },
+  "baseImage": "sha256:4815a80990de89a0bb0430e2023f9d9e77d9e5d41edf516a4573546eb1e037d5",
+  "sourceArchiveSha256": "7b2fdc125921c79b0790c00bff4e592ae1595dc96ddf4033c5739f6182e2e58e",
+  "assembly": "Entire pre-C2 core built freshly from git archive b83234da9 with unchanged locked dependencies, copied over the installed pruned qualification dependency layer. Offline no-socket package/shim smoke passes. No current dist or node_modules is mounted into the image at execution. This is the group-scoped next rollback artifact; full portal/API/browser runs are independent current-driver qualification."
+}

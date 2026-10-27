@@ -1,0 +1,5 @@
+FROM node:24.16.0-bookworm
+LABEL org.opencontainers.image.revision="0ea5e9bc22396f02d184bc341194a3a579477320" redbox.task="wrp8-815a2a6e"
+WORKDIR /prior
+COPY . /prior
+CMD ["node", "-e", "console.log(require('./packages/redbox-core/package.json').version)"]

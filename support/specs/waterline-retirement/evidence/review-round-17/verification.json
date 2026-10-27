@@ -1,0 +1,959 @@
+{
+  "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+  "runner": {
+    "path": "packages/redbox-core/test/fixtures/waterline-retirement/run-review-regressions.py",
+    "introducedBy": "d73b89047",
+    "sha256": "fdbff07ad855829ef3f6dc2eed71249bdcad7d479957b8c756d34ccaf18d0756",
+    "exitCode": 0,
+    "failed": []
+  },
+  "inventory": {
+    "path": "packages/redbox-core/test/fixtures/waterline-retirement/review-regressions.json",
+    "sha256": "254e62bbed0a6ad8bf26401e6479357d23a146c093e6f091ad1ebf6f5fcd756c",
+    "commands": 77
+  },
+  "qualified": 77,
+  "failed": [],
+  "results": [
+    {
+      "name": "final-static",
+      "exitCode": 0,
+      "durationMs": 75675,
+      "sha256": "eed65d749a24318e15af41bdb71c666ee6b09d115d74322c766045a9da2fe72f",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "accepted-drain",
+      "exitCode": 0,
+      "durationMs": 5515,
+      "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 36,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "name": "accepted-staged-drain",
+      "exitCode": 0,
+      "durationMs": 7052,
+      "sha256": "d0e3225c2262d8007814c818d818ce5210f9858ba8f16554fb4cbe40254a49c4",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 36,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "name": "error-boundaries",
+      "exitCode": 0,
+      "durationMs": 254,
+      "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 138,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "batch-clocks",
+      "exitCode": 0,
+      "durationMs": 7662,
+      "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "cache-read-values",
+      "exitCode": 0,
+      "durationMs": 6333,
+      "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 60,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "operation-outcomes",
+      "exitCode": 0,
+      "durationMs": 8529,
+      "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 346,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "progress-writes",
+      "exitCode": 0,
+      "durationMs": 7538,
+      "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 172,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "fetch-mappings",
+      "exitCode": 0,
+      "durationMs": 5858,
+      "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 19,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "operation-boundaries",
+      "exitCode": 0,
+      "durationMs": 31293,
+      "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 34,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "core-tests",
+      "exitCode": 0,
+      "durationMs": 114103,
+      "sha256": "df165e726a7870794f4e6d582ac6eb4051cf53ccb284435f7bfe0a4ec0a752aa",
+      "counts": {
+        "passing": [
+          4304
+        ],
+        "pending": [
+          117
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "storage-tests",
+      "exitCode": 0,
+      "durationMs": 41450,
+      "sha256": "5fcaff14e6bceb71fe38b30bf1fd6ba371fd5441d6f298a0939ebf1542cb2e21",
+      "counts": {
+        "passing": [
+          291
+        ],
+        "pending": [
+          38
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "foundation",
+      "exitCode": 0,
+      "durationMs": 8987,
+      "sha256": "3c72716dc936fc18f3b8cba728594ec14537c7a09c7f5944a6ef844bf6bf61da",
+      "counts": {
+        "passing": [
+          14
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "migration",
+      "exitCode": 0,
+      "durationMs": 67098,
+      "sha256": "2064d04bf9e8e00299c95d477db6f741dabbf77f46e1fb15deb42f976a5e3b65",
+      "counts": {
+        "passing": [
+          15
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "cache-mongodb",
+      "exitCode": 0,
+      "durationMs": 11258,
+      "sha256": "3c2501bae9a8182f75b3e477f50b6ff6f41ec087f18c27df62fba6183385cd7e",
+      "counts": {
+        "passing": [
+          17
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "cache-transition",
+      "exitCode": 0,
+      "durationMs": 87468,
+      "sha256": "816d2fe4983ce1f9c715d33d2336f39ea9e1531debe636b208d2b8c8c3925b08",
+      "counts": {
+        "passing": [
+          17
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "reference",
+      "exitCode": 0,
+      "durationMs": 37469,
+      "sha256": "7a6bccb81849e42a0ba60849a43f02b21e74932356cbfa7a75ba1913825c5515",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "query-pages",
+      "exitCode": 0,
+      "durationMs": 79946,
+      "sha256": "a684a9a8befcc9f4c36c79645202b99ffec92dca8f481dd22b5ae259ed107582",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 12672
+        }
+      ]
+    },
+    {
+      "name": "query-adversarial",
+      "exitCode": 0,
+      "durationMs": 31159,
+      "sha256": "4db1ce8627a76eb4db5a8669a841eeafb881d52311aa1b2bea4cfe52662c5b54",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 6129,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "query-baseline",
+      "exitCode": 0,
+      "durationMs": 27794,
+      "sha256": "86d6ceb64fc7bd6908a4d140f50ccb34522029d7b59f4f58ab2e36885b4a29c7",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 3106,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "query-associations",
+      "exitCode": 0,
+      "durationMs": 5381,
+      "sha256": "8864c96519175f3031c3c5fbc0d41be4e4b464b4595a3104190939de8c33ec50",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 28,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "query-equality",
+      "exitCode": 0,
+      "durationMs": 4641,
+      "sha256": "f0a80a4df327d704d9e04daa6f2a689aa8f927ee2750b9b331e0e1d71bf86d86",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 2,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "query-producer-final",
+      "exitCode": 0,
+      "durationMs": 6251,
+      "sha256": "50e71d60a40bb347e15e8e6bf860f42397fa298642b4565e8a2cd2606217bd48",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 18,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "tenant-scope-final",
+      "exitCode": 0,
+      "durationMs": 6654,
+      "sha256": "485a6e4c9b63ac59ee814e0af9f51b49f77e20351679b8cbfcb2dedc5f321975",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 428,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "configuration",
+      "exitCode": 0,
+      "durationMs": 34932,
+      "sha256": "d77b72088629676aba72ad5680fd6d7cb093d780952d01ae0219837e4b2bf92f",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "configuration-readiness",
+      "exitCode": 0,
+      "durationMs": 17388,
+      "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "configuration-siem",
+      "exitCode": 0,
+      "durationMs": 12432,
+      "sha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "mixed-clocks",
+      "exitCode": 0,
+      "durationMs": 10674,
+      "sha256": "6a1027c10ef8592c001a10701aa80e248449c9d5deaf8cf0f97c3003c3e68d08",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 29,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "indexes",
+      "exitCode": 0,
+      "durationMs": 109580,
+      "sha256": "e86c95932fd3ad94ad566c6979ada879ee3956b7153d28dab691a48c6a80716c",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "progress",
+      "exitCode": 0,
+      "durationMs": 32740,
+      "sha256": "08dcfda42e16fa7b0b2526590753da8236c42e3b4ab84d70d69b956c224633bd",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "harvest",
+      "exitCode": 0,
+      "durationMs": 31728,
+      "sha256": "b2a128f3abe6a14f6859c8addebecc8b883d293227ecaae175ec0197e9533462",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "siem",
+      "exitCode": 0,
+      "durationMs": 36116,
+      "sha256": "3a2ed2d317611e39f151523dd3234eff0333c9ec7d7d43f65084a260496c446c",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "figshare",
+      "exitCode": 0,
+      "durationMs": 35506,
+      "sha256": "c4487ce3afe630ad3e3a4560cffb9e268fece57d0d94d1c0cfd05f79522d04a1",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "siem-readiness",
+      "exitCode": 0,
+      "durationMs": 4534,
+      "sha256": "5e889bf8ed6ab197f37ea9402c60cedd5aa77adec338305cb278357af966a827",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "figshare-readiness",
+      "exitCode": 0,
+      "durationMs": 5938,
+      "sha256": "2fda460809044a4325b95f92919b7292150bfcf88d25dd58595e597e196acb9d",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "siem-unit",
+      "exitCode": 0,
+      "durationMs": 16405,
+      "sha256": "cc7b5c3b4c873094da9cb91125cb78fedcacd1c8ab4237bcb2296113618d6e4c",
+      "counts": {
+        "passing": [
+          73
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "figshare-unit",
+      "exitCode": 0,
+      "durationMs": 21060,
+      "sha256": "c5c2796292949fb68920797d1a3debfcb54da79b19a7f49d8f37ea0201c71900",
+      "counts": {
+        "passing": [
+          57
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "figshare-unit-mongodb",
+      "exitCode": 0,
+      "durationMs": 20578,
+      "sha256": "d07bfc6fb38607a5b834d9f18886c9d4a84579d08aa255a91b1c62a0af8aa3d6",
+      "counts": {
+        "passing": [
+          57
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "review-mappings",
+      "exitCode": 0,
+      "durationMs": 4783,
+      "sha256": "d7776806dc633bfcda2a48ec3f00cebd53eefc361dfdf88e3f1c9b7907a06fa4",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 14,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "name": "record-arrays",
+      "exitCode": 0,
+      "durationMs": 6855,
+      "sha256": "8cb306d04b4d2e072b393368862498df295d07d5b1db0631764d87d3575aace6",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 10,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "review-scalars",
+      "exitCode": 0,
+      "durationMs": 5937,
+      "sha256": "dcee4690e3bfb27f9cc6dbab856b01489dacbbc9377435f04041a9725dd12ca3",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 315,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "gridfs-streams",
+      "exitCode": 0,
+      "durationMs": 7134,
+      "sha256": "8d0e940e8dac1e0ed00195820459c2f2c6d00bd7792424ac484ec22256a530a6",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "gridfs-initializing",
+      "exitCode": 0,
+      "durationMs": 5683,
+      "sha256": "4f8360e29190b6f71418003858e4bf920a93c4dfe09f5d86771c33dfec6cf634",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 2
+        }
+      ]
+    },
+    {
+      "name": "storage-contract",
+      "exitCode": 0,
+      "durationMs": 8865,
+      "sha256": "3f5f4791404a4cace158dc85fc7b5a98fdc5ab595bdb607b516ca540e202cd37",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 211,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "storage-qualification",
+      "exitCode": 0,
+      "durationMs": 33439,
+      "sha256": "86a770b1150b0cd3edd2c6b3ba2de0a9aeffdfdde2efcad4426661070409e829",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "storage-live",
+      "exitCode": 0,
+      "durationMs": 89805,
+      "sha256": "e1c9ee2334cc20df2f2291b5dcc07f54b95d5db7ff1b5767753980e773bdaa92",
+      "counts": {
+        "passing": [
+          329
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "storage-ownership",
+      "exitCode": 0,
+      "durationMs": 8798,
+      "sha256": "55204454d4e894cb57472e1e478eb43a66078a60182f586f7571a2c90d1891fc",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 25,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "storage-owner-failures",
+      "exitCode": 0,
+      "durationMs": 5810,
+      "sha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 5,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "storage-shutdown",
+      "exitCode": 0,
+      "durationMs": 16565,
+      "sha256": "bf518d18c71904a8378b1b02ccb2f82d752068e7755f45f1c11c99b65cfc2cc1",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 4,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "storage-backfill",
+      "exitCode": 0,
+      "durationMs": 7023,
+      "sha256": "a845ac1a940ad590ae940e1ff979f337e88c3f11ea2be40a5c5a3c76f0b2e78a",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 16,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "storage-readiness",
+      "exitCode": 0,
+      "durationMs": 8306,
+      "sha256": "526731691dd8d40fab965463bfcbe9511e527fff1d6dee5bf56f4f387aca24ae",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "storage-ownership-waterline",
+      "exitCode": 0,
+      "durationMs": 7063,
+      "sha256": "2300e8a855b57455db8bbf05aaef90f0437d41039afd8e29b86a07e1e7dd7453",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 25,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "cross-group-scalars",
+      "exitCode": 0,
+      "durationMs": 60411,
+      "sha256": "bf7cf5a82f613d7d1b609b9cbd9ebea6012270cab0d7a6dc3162a5f3b8555bc4",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 7280,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "cross-group-timestamps",
+      "exitCode": 0,
+      "durationMs": 17661,
+      "sha256": "01bc41f05a700855b563dcdceedbee8fe3f6e7c07d455cec4c9544b6eb3c3160",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 1520,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "cross-group-mappings",
+      "exitCode": 0,
+      "durationMs": 4901,
+      "sha256": "9e20bfe406373b18159be8d29f3b58546f7ac17ef8b86918356b69a84a602c98",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 600,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "id-values",
+      "exitCode": 0,
+      "durationMs": 7274,
+      "sha256": "1d3534b921237ee776ae98aa09e6a8beb2e2ac94406b31b321ce0fc9de2666b6",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 228,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "recordtype-selection",
+      "exitCode": 0,
+      "durationMs": 4767,
+      "sha256": "df9d4204112491e87251fe72adabd7940c503ed290b21662c12e5908d0bfe885",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 12,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "id-mappings",
+      "exitCode": 0,
+      "durationMs": 56735,
+      "sha256": "f905b8d6227609d10dbd24ec757df71695170693cd516682a1056f2ce6d42edf",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 18,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "migration-values",
+      "exitCode": 0,
+      "durationMs": 5735,
+      "sha256": "8bb3fec7e17bd99b127c1ae4c1d9f0f2d5b5127bb8b09cb2e965586f2b6f9943",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 106,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "domain-queries",
+      "exitCode": 0,
+      "durationMs": 7376,
+      "sha256": "29128c4cf39404cf1f4f611257c6a1c586728b4427161442873de9d23dd0b750",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 160,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "job-queries",
+      "exitCode": 0,
+      "durationMs": 8632,
+      "sha256": "0a433b2820b0c7ebc4645fdc6d4a33caf381e6a6049c0c901c6c8e0565b77c59",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 466,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "harvest-pages",
+      "exitCode": 0,
+      "durationMs": 8645,
+      "sha256": "e86fe16886a272adbc60aa5bfef6a679b3b72b2615f3276a71377fc2e92a781f",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 648,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "siem-native-pages",
+      "exitCode": 0,
+      "durationMs": 5435,
+      "sha256": "5af111b64668be0b8af9bc6536bac538a716bd7c4cfc0f949b3cca296192134d",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 10,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "siem-native-values",
+      "exitCode": 0,
+      "durationMs": 4888,
+      "sha256": "94766e5a7e40dd633a6b7334f4278fe3ac31d153fc4e4007ffb30e0ab4584822",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 6,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "dashboard-native-values",
+      "exitCode": 0,
+      "durationMs": 6040,
+      "sha256": "7ff3f3c7f8acb93c058d4acf7fb7b8622ee76ac445d34d23d9402cfbe210da83",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 5,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "cache-values",
+      "exitCode": 0,
+      "durationMs": 6528,
+      "sha256": "107b89f6af5919667c1ccb1d01fd6ae58e63ed718e5c4fca7fabddaf45def947",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 22,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "attachment-values",
+      "exitCode": 0,
+      "durationMs": 22237,
+      "sha256": "ca782e7f4c952c8a6c5ca263b69fa007c62e887d1fbbfecdcfe61e235b59c7e9",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 700,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "fresh-mocha",
+      "exitCode": 0,
+      "durationMs": 336111,
+      "sha256": "d1183978bb49b32682212dbf40985120157fa0db8a03100c513a893a2b776357",
+      "counts": {
+        "passing": [
+          419
+        ],
+        "pending": [
+          4,
+          2,
+          0,
+          1,
+          1,
+          10
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "fresh-bruno",
+      "exitCode": 0,
+      "durationMs": 300700,
+      "sha256": "3314e41164dab580f6953fa4f665027b3e4972676edef87e589f1b6a324f3b2e",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "dev-default",
+      "exitCode": 0,
+      "durationMs": 69824,
+      "sha256": "7ef2b957865a8ab2abfb84c5691a29f5b8f16dada760fc9b86ddb6c4f8ab9a7c",
+      "counts": {
+        "pending": [
+          4
+        ]
+      },
+      "checks": [
+        {
+          "ready": true
+        }
+      ]
+    },
+    {
+      "name": "dev-waterline",
+      "exitCode": 0,
+      "durationMs": 69292,
+      "sha256": "5036c207dade72319fb981b49d4f1ea6937e5b16114ca00a0113569b697c4858",
+      "counts": {
+        "pending": [
+          4
+        ]
+      },
+      "checks": [
+        {
+          "ready": true
+        }
+      ]
+    },
+    {
+      "name": "http-gridfs-regressions",
+      "exitCode": 0,
+      "durationMs": 3221,
+      "sha256": "85746164ce6c90d864cd15b87601d412e2575cf24482480e4ec36430b4f9663f",
+      "counts": {
+        "passing": [
+          70
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "index-upgrade",
+      "exitCode": 0,
+      "durationMs": 5049,
+      "sha256": "d496d240118cf980eea2023bb692cdd06a7834f90d138a33f03788a0fcdfeaa8",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 20,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "selector-edges",
+      "exitCode": 0,
+      "durationMs": 797,
+      "sha256": "9f8769220912c6f9e7c2e5c547294648c3f4386a0e2704410d864366bbd187fc",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 151,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "tls-srv",
+      "exitCode": 0,
+      "durationMs": 14078,
+      "sha256": "5e57ab9cec23cf75421eb3722b0ac8949ef0162ea857e8595185d49d35fc23fc",
+      "counts": {},
+      "checks": []
+    },
+    {
+      "name": "create-budget",
+      "exitCode": 0,
+      "durationMs": 176549,
+      "sha256": "aeb3dc098616f2a634cdecdb87379e60deaa6419d6f18ddfd5a55a3cd299f759",
+      "counts": {},
+      "checks": [
+        {
+          "passing": 16,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "name": "existing-volume-upgrade",
+      "exitCode": 0,
+      "durationMs": 115285,
+      "sha256": "5fc089cb7c99ec0c795ead8f3c50ae3b317ab50bae58c439264e14dc95c124aa",
+      "counts": {},
+      "checks": []
+    }
+  ],
+  "freshBruno": {
+    "requestsPassed": 309,
+    "requestsTotal": 309,
+    "testsPassed": 553,
+    "testsTotal": 553,
+    "assertionsPassed": 3,
+    "assertionsTotal": 3
+  }
+}

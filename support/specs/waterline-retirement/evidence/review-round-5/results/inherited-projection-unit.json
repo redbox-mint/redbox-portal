@@ -1,0 +1,15 @@
+{
+  "name": "inherited-projection-unit",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/reference-persistence.test.ts test/unit/progress-persistence.test.ts",
+  "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+  "exitCode": 0,
+  "durationMs": 2385,
+  "sha256": "d6f4d428a2614e4c93860e51dbee20179de411c1be864d4a697c90289c2deec3",
+  "counts": {
+    "passing": [
+      25
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

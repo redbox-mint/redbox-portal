@@ -1,0 +1,11 @@
+{
+  "name": "indexes",
+  "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 100897,
+  "sha256": "b6161bdc24cbd148127e9f075fc66d16538f311b52b2034fbd9d7933ac7c52d4",
+  "counts": {},
+  "passGroups": 15,
+  "checks": []
+}

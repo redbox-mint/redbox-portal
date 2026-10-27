@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "11742e911e860a5492b7cc388e6ae4ecbc52d4aa",
+  "image": "sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be",
+  "tag": "redbox-p2:prior-11742e9",
+  "node": "26.11.1",
+  "lockNpm": "11.20.0",
+  "fixture": "production-pruned installed core + storage; portal-owned sails-hook-orm 4.0.3",
+  "files": {
+    "researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz": "91cb54f64bd473508fa4cfbae6584b6e18a359d137ede4e7fb038d5716eccb7d",
+    "researchdatabox-raido-openapi-generated-node-0.0.3.tgz": "a50e5bc0fa7cbaff5a237f4372310f978c1d8dbc25a38055ebfebc02255ea892",
+    "researchdatabox-redbox-core-0.0.1-beta.9022.tgz": "b3c0e15f5c6ad6cfbb58aad1285738f814170f97126541ee546154bf49ad8d85",
+    "researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d",
+    "researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz": "0e31c976464a67ec7b85f2f5222878c9be6c57dc836697df5e8e379e27f1b7d9",
+    "researchdatabox-sails-ng-common-0.2.1.tgz": "432f8f73a47e35eee638554f356d60af32831d4b10293bdef3600b76b57343f1",
+    "Dockerfile": "b083e6734f31e36ca17b6344ea2fe199599b14828831c4e5453b101a81bf87a8",
+    "package.json": "29640bd1b855826ae7d6d2443701f17d1d52996d6244e6edfb70eee84767688c",
+    "package-lock.json": "680f6b1f00a515460dc1955388d6950d8b043027d09be8864118859a093ba35b"
+  },
+  "preP2MigrationRunnerSha256": "43d5f6ab2caf1b5b4af10dae017c84cf9da5353cd96bb67bfcb9f38f65d25e06",
+  "verifiedImageLabels": {
+    "org.opencontainers.image.revision": "11742e911e860a5492b7cc388e6ae4ecbc52d4aa"
+  }
+}

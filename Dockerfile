@@ -32,14 +32,14 @@ RUN npm ci --no-audit \
  && (cd packages/sails-ng-common && npm ci --no-audit) \
  && (cd packages/raido && npm ci --no-audit) \
  && (cd packages/rva-registry && npm ci --no-audit) \
- && (cd packages/redbox-core && npm install --no-save --no-audit) \
+ && (cd packages/redbox-core && npm ci --no-audit) \
  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)
 
 RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
-RUN cd packages/redbox-core && npx tsc -p tsconfig.json
+RUN --network=none cd packages/redbox-core && npm run check:prisma && npm run build
 RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
@@ -104,7 +104,8 @@ COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/config 
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages ./packages
-RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen
+RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen \
+    packages/redbox-core/scripts packages/redbox-core/prisma.config.ts packages/redbox-core/prisma.storage.config.ts
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 

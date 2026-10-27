@@ -1,0 +1,13 @@
+{
+  "name": "query-baseline",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-compatibility",
+  "sourceCommit": "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d",
+  "exitCode": 0,
+  "durationMs": 26001,
+  "sha256": "86d6ceb64fc7bd6908a4d140f50ccb34522029d7b59f4f58ab2e36885b4a29c7",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":3106,\"failures\":0,\"firstFailures\":[],\"baseline\":\"loaded Waterline find/count\",\"writers\":[\"waterline\",\"mongodb\"]}"
+  ]
+}

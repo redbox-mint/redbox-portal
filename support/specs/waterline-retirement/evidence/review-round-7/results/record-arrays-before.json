@@ -1,0 +1,11 @@
+{
+  "name": "record-arrays-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh record-arrays",
+  "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+  "exitCode": 1,
+  "durationMs": 5450,
+  "sha256": "584da98f603536045a04dbbecdad06f8c6694aac61ffebdbf536d672fafb227f",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

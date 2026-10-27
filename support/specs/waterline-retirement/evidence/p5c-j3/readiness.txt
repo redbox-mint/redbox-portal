@@ -1,0 +1,2 @@
+Dynamic imports imported
+PASS J3 missing startup is inspect-only; all eight upgrade scopes reviewed before DDL; duplicates/conflicts block without modifying data; explicit ensure; loaded-model-free driver; sanitized guidance

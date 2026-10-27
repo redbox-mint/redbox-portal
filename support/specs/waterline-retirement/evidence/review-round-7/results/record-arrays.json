@@ -1,0 +1,13 @@
+{
+  "name": "record-arrays",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh record-arrays",
+  "sourceCommit": "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d",
+  "exitCode": 0,
+  "durationMs": 4823,
+  "sha256": "8cb306d04b4d2e072b393368862498df295d07d5b1db0631764d87d3575aace6",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":10,\"failures\":0,\"readers\":[\"waterline\",\"mongodb\"],\"baseline\":\"native MongoDB record equality and explicit membership\"}"
+  ]
+}

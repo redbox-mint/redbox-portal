@@ -1,0 +1,12 @@
+{
+  "command": "npm run test:agenda-sqs",
+  "exitCode": 1,
+  "durationMs": 589,
+  "rawBytes": 1253,
+  "sha256": "849c3d7fe0fa26696afac9c84a0ef9394b3b7e84d4587a2f9d86ad30a84151c8",
+  "sourceCommit": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "counts": {},
+  "checks": [],
+  "passGroups": 0,
+  "failureExcerpt": "npm notice run @researchdatabox/agenda-sqs-backend@0.0.1-beta.9472 test\nnpm notice run vitest run\n\n\u23af\u23af\u23af\u23af\u23af\u23af\u23af Startup Error \u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\nError [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/agenda-sqs-backend/node_modules/vitest/dist/chunks/index.DpLw24bj.js\n    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)\n    at packageResolve (node:internal/modules/esm/resolve:768:81)\n    at moduleResolve (node:internal/modules/esm/resolve:859:18)\n    at defaultResolve (node:internal/modules/esm/resolve:992:11)\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)\n    at #resolve (node:internal/modules/esm/loader:683:17)\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {\n  code: 'ERR_MODULE_NOT_FOUND'\n}\n\n\n"
+}

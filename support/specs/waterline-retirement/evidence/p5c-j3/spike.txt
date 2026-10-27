@@ -1,0 +1,1719 @@
+Dynamic imports imported
+{
+  "name": "SecurityEvent",
+  "attributes": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "eventId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "portalId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "eventType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "category": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "severity": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "occurredAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "source": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "actor": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "subject": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "resource": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "requestContext": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "payload": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "correlationId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "traceId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "deliveryState": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "leaseToken": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "leaseExpiresAt": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "nextEligibleAt": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "terminalAt": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "destinationStates": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    }
+  },
+  "schema": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "createdAt"
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "updatedAt"
+    },
+    "id": {
+      "type": "string",
+      "columnName": "_id",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "eventId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "eventId"
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "brandId"
+    },
+    "portalId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "portalId"
+    },
+    "eventType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "eventType"
+    },
+    "category": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "category"
+    },
+    "severity": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "severity"
+    },
+    "occurredAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "occurredAt"
+    },
+    "source": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "source"
+    },
+    "actor": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "actor"
+    },
+    "subject": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "subject"
+    },
+    "resource": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "resource"
+    },
+    "requestContext": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "requestContext"
+    },
+    "payload": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "payload"
+    },
+    "correlationId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "correlationId"
+    },
+    "traceId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "traceId"
+    },
+    "deliveryState": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "deliveryState"
+    },
+    "leaseToken": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "leaseToken"
+    },
+    "leaseExpiresAt": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "leaseExpiresAt"
+    },
+    "nextEligibleAt": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "nextEligibleAt"
+    },
+    "terminalAt": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "terminalAt"
+    },
+    "destinationStates": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "destinationStates"
+    }
+  },
+  "callbacks": {
+    "beforeCreate": "undefined",
+    "beforeUpdate": "undefined",
+    "afterCreate": "undefined",
+    "afterUpdate": "undefined"
+  },
+  "raw": {
+    "_id": {
+      "$oid": "6ad6c4593a70c6b029928507"
+    },
+    "eventId": "spike",
+    "brandId": "brand",
+    "eventType": "test",
+    "category": "test",
+    "severity": "info",
+    "occurredAt": "2026-10-20T01:31:05.375Z",
+    "source": "test",
+    "deliveryState": "pending",
+    "createdAt": "2026-10-20T01:31:05.377Z",
+    "updatedAt": "2026-10-20T01:31:05.377Z",
+    "portalId": "",
+    "actor": null,
+    "subject": null,
+    "resource": null,
+    "requestContext": null,
+    "payload": null,
+    "correlationId": "",
+    "traceId": "",
+    "leaseToken": null,
+    "leaseExpiresAt": null,
+    "nextEligibleAt": null,
+    "terminalAt": null,
+    "destinationStates": null
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ],
+  "checks": {
+    "nullString": {
+      "status": null,
+      "createdAt": "2026-10-20T01:31:05.377Z",
+      "updatedAt": "2026-10-20T01:31:05.420Z",
+      "id": "6ad6c4593a70c6b029928507",
+      "eventId": "spike",
+      "brandId": "brand",
+      "portalId": "",
+      "eventType": "test",
+      "category": "test",
+      "severity": "info",
+      "occurredAt": "2026-10-20T01:31:05.375Z",
+      "source": "test",
+      "actor": null,
+      "subject": null,
+      "resource": null,
+      "requestContext": null,
+      "payload": null,
+      "correlationId": "",
+      "traceId": "",
+      "deliveryState": "pending",
+      "leaseToken": null,
+      "leaseExpiresAt": null,
+      "nextEligibleAt": null,
+      "terminalAt": null,
+      "destinationStates": null
+    },
+    "nullable": {
+      "status": null,
+      "createdAt": "2026-10-20T01:31:05.377Z",
+      "updatedAt": "2026-10-20T01:31:05.439Z",
+      "id": "6ad6c4593a70c6b029928507",
+      "eventId": "spike",
+      "brandId": "brand",
+      "portalId": "",
+      "eventType": "test",
+      "category": "test",
+      "severity": "info",
+      "occurredAt": "2026-10-20T01:31:05.375Z",
+      "source": "test",
+      "actor": null,
+      "subject": null,
+      "resource": null,
+      "requestContext": null,
+      "payload": null,
+      "correlationId": "",
+      "traceId": "",
+      "deliveryState": "pending",
+      "leaseToken": null,
+      "leaseExpiresAt": null,
+      "nextEligibleAt": null,
+      "terminalAt": null,
+      "destinationStates": null
+    },
+    "extension": {
+      "status": null,
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "createdAt": "2026-10-20T01:31:05.377Z",
+      "updatedAt": "2026-10-20T01:31:05.449Z",
+      "id": "6ad6c4593a70c6b029928507",
+      "eventId": "spike",
+      "brandId": "brand",
+      "portalId": "",
+      "eventType": "test",
+      "category": "test",
+      "severity": "info",
+      "occurredAt": "2026-10-20T01:31:05.375Z",
+      "source": "test",
+      "actor": null,
+      "subject": null,
+      "resource": null,
+      "requestContext": null,
+      "payload": null,
+      "correlationId": "",
+      "traceId": "",
+      "deliveryState": "pending",
+      "leaseToken": null,
+      "leaseExpiresAt": null,
+      "nextEligibleAt": null,
+      "terminalAt": null,
+      "destinationStates": null
+    },
+    "nullNumber": {
+      "status": null,
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "attemptNumber": null,
+      "createdAt": "2026-10-20T01:31:05.377Z",
+      "updatedAt": "2026-10-20T01:31:05.460Z",
+      "id": "6ad6c4593a70c6b029928507",
+      "eventId": "spike",
+      "brandId": "brand",
+      "portalId": "",
+      "eventType": "test",
+      "category": "test",
+      "severity": "info",
+      "occurredAt": "2026-10-20T01:31:05.375Z",
+      "source": "test",
+      "actor": null,
+      "subject": null,
+      "resource": null,
+      "requestContext": null,
+      "payload": null,
+      "correlationId": "",
+      "traceId": "",
+      "deliveryState": "pending",
+      "leaseToken": null,
+      "leaseExpiresAt": null,
+      "nextEligibleAt": null,
+      "terminalAt": null,
+      "destinationStates": null
+    },
+    "duplicate": "6ad6c4593a70c6b029928508"
+  }
+}
+{
+  "name": "SiemDeliveryAttempt",
+  "attributes": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "eventId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "destinationId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "adapterType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "attemptNumber": {
+      "type": "number",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      }
+    },
+    "leaseToken": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "status": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "startedAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "completedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "durationMs": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "httpStatusCode": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "responseSummary": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "errorSummary": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    }
+  },
+  "schema": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "createdAt"
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "updatedAt"
+    },
+    "id": {
+      "type": "string",
+      "columnName": "_id",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "eventId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "eventId"
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "brandId"
+    },
+    "destinationId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "destinationId"
+    },
+    "adapterType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "adapterType"
+    },
+    "attemptNumber": {
+      "type": "number",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "attemptNumber"
+    },
+    "leaseToken": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "leaseToken"
+    },
+    "status": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "status"
+    },
+    "startedAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "startedAt"
+    },
+    "completedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "completedAt"
+    },
+    "durationMs": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "durationMs"
+    },
+    "httpStatusCode": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "httpStatusCode"
+    },
+    "responseSummary": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "responseSummary"
+    },
+    "errorSummary": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "errorSummary"
+    }
+  },
+  "callbacks": {
+    "beforeCreate": "undefined",
+    "beforeUpdate": "undefined",
+    "afterCreate": "undefined",
+    "afterUpdate": "undefined"
+  },
+  "raw": {
+    "_id": {
+      "$oid": "6ad6c4593a70c6b029928509"
+    },
+    "eventId": "spike",
+    "brandId": "brand",
+    "destinationId": "one",
+    "adapterType": "genericHttp",
+    "attemptNumber": 1,
+    "status": "success",
+    "startedAt": "2026-10-20T01:31:05.376Z",
+    "createdAt": "2026-10-20T01:31:05.482Z",
+    "updatedAt": "2026-10-20T01:31:05.482Z",
+    "leaseToken": "",
+    "completedAt": "",
+    "durationMs": 0,
+    "httpStatusCode": 0,
+    "responseSummary": null,
+    "errorSummary": null
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ],
+  "checks": {
+    "nullString": "E_INVALID_VALUES_TO_SET",
+    "nullable": "E_INVALID_VALUES_TO_SET",
+    "extension": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "createdAt": "2026-10-20T01:31:05.482Z",
+      "updatedAt": "2026-10-20T01:31:05.500Z",
+      "id": "6ad6c4593a70c6b029928509",
+      "eventId": "spike",
+      "brandId": "brand",
+      "destinationId": "one",
+      "adapterType": "genericHttp",
+      "attemptNumber": 1,
+      "leaseToken": "",
+      "status": "success",
+      "startedAt": "2026-10-20T01:31:05.376Z",
+      "completedAt": "",
+      "durationMs": 0,
+      "httpStatusCode": 0,
+      "responseSummary": null,
+      "errorSummary": null
+    },
+    "nullNumber": "E_INVALID_VALUES_TO_SET",
+    "duplicate": "6ad6c4593a70c6b02992850a"
+  }
+}
+{
+  "name": "FigshareSync",
+  "attributes": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "oid": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "revision": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "importedGeneration": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "work": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "nextActionAt": {
+      "type": "number",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "dispatchUntil": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "leaseOwner": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "leaseUntil": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "binding": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "namespace": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "articleId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "create": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "createGeneration": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "createRequest": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "publish": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "receipts": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "checkpoints": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "status": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "waitingReason": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "publication": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "embargoed": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "required": false
+    },
+    "accessible": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "required": false
+    },
+    "observedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "publicationAuditKey": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "error": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "audit": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "auditClosed": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "required": false
+    },
+    "corrections": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    }
+  },
+  "schema": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "createdAt"
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "updatedAt"
+    },
+    "id": {
+      "type": "string",
+      "columnName": "_id",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "oid": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "oid"
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "brandId"
+    },
+    "revision": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "revision"
+    },
+    "importedGeneration": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "importedGeneration"
+    },
+    "work": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "work"
+    },
+    "nextActionAt": {
+      "type": "number",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "nextActionAt"
+    },
+    "dispatchUntil": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "dispatchUntil"
+    },
+    "leaseOwner": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "leaseOwner"
+    },
+    "leaseUntil": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "leaseUntil"
+    },
+    "binding": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "binding"
+    },
+    "namespace": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "namespace"
+    },
+    "articleId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "articleId"
+    },
+    "create": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "create"
+    },
+    "createGeneration": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "createGeneration"
+    },
+    "createRequest": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "createRequest"
+    },
+    "publish": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "publish"
+    },
+    "receipts": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "receipts"
+    },
+    "checkpoints": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "checkpoints"
+    },
+    "status": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "status"
+    },
+    "waitingReason": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "waitingReason"
+    },
+    "publication": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "publication"
+    },
+    "embargoed": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "columnName": "embargoed"
+    },
+    "accessible": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "columnName": "accessible"
+    },
+    "observedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "observedAt"
+    },
+    "publicationAuditKey": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "publicationAuditKey"
+    },
+    "error": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "error"
+    },
+    "audit": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "audit"
+    },
+    "auditClosed": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "columnName": "auditClosed"
+    },
+    "corrections": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "corrections"
+    }
+  },
+  "callbacks": {
+    "beforeCreate": "undefined",
+    "beforeUpdate": "undefined",
+    "afterCreate": "undefined",
+    "afterUpdate": "undefined"
+  },
+  "raw": {
+    "_id": {
+      "$oid": "6ad6c4593a70c6b02992850b"
+    },
+    "oid": "spike",
+    "brandId": "brand",
+    "createdAt": "2026-10-20T01:31:05.522Z",
+    "updatedAt": "2026-10-20T01:31:05.522Z",
+    "revision": 0,
+    "importedGeneration": 0,
+    "work": null,
+    "nextActionAt": null,
+    "dispatchUntil": 0,
+    "leaseOwner": null,
+    "leaseUntil": 0,
+    "binding": null,
+    "namespace": "",
+    "articleId": "",
+    "create": null,
+    "createGeneration": 0,
+    "createRequest": 0,
+    "publish": null,
+    "receipts": null,
+    "checkpoints": null,
+    "status": "",
+    "waitingReason": "",
+    "publication": "",
+    "embargoed": false,
+    "accessible": false,
+    "observedAt": "",
+    "publicationAuditKey": "",
+    "error": null,
+    "audit": null,
+    "auditClosed": false,
+    "corrections": null
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ],
+  "checks": {
+    "nullString": "E_INVALID_VALUES_TO_SET",
+    "nullable": {
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "createdAt": "2026-10-20T01:31:05.522Z",
+      "updatedAt": "2026-10-20T01:31:05.544Z",
+      "id": "6ad6c4593a70c6b02992850b",
+      "oid": "spike",
+      "brandId": "brand",
+      "revision": 0,
+      "importedGeneration": 0,
+      "work": null,
+      "nextActionAt": null,
+      "dispatchUntil": 0,
+      "leaseOwner": null,
+      "leaseUntil": 0,
+      "binding": null,
+      "namespace": "",
+      "articleId": "",
+      "create": null,
+      "createGeneration": 0,
+      "createRequest": 0,
+      "publish": null,
+      "receipts": null,
+      "checkpoints": null,
+      "status": "",
+      "waitingReason": "",
+      "publication": "",
+      "embargoed": false,
+      "accessible": false,
+      "observedAt": "",
+      "publicationAuditKey": "",
+      "error": null,
+      "audit": null,
+      "auditClosed": false,
+      "corrections": null
+    },
+    "extension": {
+      "leaseExpiresAt": null,
+      "leaseToken": null,
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "createdAt": "2026-10-20T01:31:05.522Z",
+      "updatedAt": "2026-10-20T01:31:05.556Z",
+      "id": "6ad6c4593a70c6b02992850b",
+      "oid": "spike",
+      "brandId": "brand",
+      "revision": 0,
+      "importedGeneration": 0,
+      "work": null,
+      "nextActionAt": null,
+      "dispatchUntil": 0,
+      "leaseOwner": null,
+      "leaseUntil": 0,
+      "binding": null,
+      "namespace": "",
+      "articleId": "",
+      "create": null,
+      "createGeneration": 0,
+      "createRequest": 0,
+      "publish": null,
+      "receipts": null,
+      "checkpoints": null,
+      "status": "",
+      "waitingReason": "",
+      "publication": "",
+      "embargoed": false,
+      "accessible": false,
+      "observedAt": "",
+      "publicationAuditKey": "",
+      "error": null,
+      "audit": null,
+      "auditClosed": false,
+      "corrections": null
+    },
+    "nullNumber": "E_INVALID_VALUES_TO_SET",
+    "duplicate": "6ad6c4593a70c6b02992850c"
+  }
+}
+loaded native findOneAndUpdate shape {"_id":"6ad6c4593a70c6b02992850b","oid":"spike","brandId":"brand","createdAt":"2026-10-20T01:31:05.522Z","updatedAt":"2026-10-20T01:31:05.556Z","revision":0,"importedGeneration":0,"work":null,"nextActionAt":null,"dispatchUntil":0,"leaseOwner":null,"leaseUntil":1792459875579,"binding":null,"namespace":"","articleId":"","create":null,"createGeneration":0,"createRequest":0,"publish":null,"receipts":null,"checkpoints":null,"status":"","waitingReason":"","publication":"","embargoed":false,"accessible":false,"observedAt":"","publicationAuditKey":"","error":null,"audit":null,"auditClosed":false,"corrections":null,"leaseExpiresAt":null,"leaseToken":null,"extension":{"falsy":false,"nil":null}}
+PASS loaded physical/callback/index/native-result spike

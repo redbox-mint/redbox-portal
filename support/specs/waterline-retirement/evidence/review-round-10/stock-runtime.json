@@ -1,0 +1,26 @@
+{
+  "mocha": {
+    "node": "v26.10.0",
+    "npm": "11.20.0",
+    "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+    "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+    "artifacts": {
+      "packages/redbox-core/dist/index.js": "5e9436b2fd42ac4d8c66868e50114b4ff3ca0dba6e30352b0c675fecf753e9d6",
+      "packages/redbox-core/dist/persistence/indexes.js": "20a0ce7d0f102be7a30489e27f27ed5a5fafa32ead233fc68fb49edb2df940a7",
+      "packages/redbox-core/dist/persistence/cache/MongoCacheEntryRepository.js": "ebc16b9981d1dc6b1ab71261e43b5f5a79ae1176c6ebd88ee41285c61dd75571",
+      "packages/sails-hook-redbox-storage-mongo/dist/index.js": "95adf87ff64d825c4aeaaf5b2e4421cc7e87228a3c92025879ef51dffee444d1"
+    }
+  },
+  "bruno": {
+    "node": "v26.10.0",
+    "npm": "11.20.0",
+    "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+    "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+    "artifacts": {
+      "packages/redbox-core/dist/index.js": "5e9436b2fd42ac4d8c66868e50114b4ff3ca0dba6e30352b0c675fecf753e9d6",
+      "packages/redbox-core/dist/persistence/indexes.js": "20a0ce7d0f102be7a30489e27f27ed5a5fafa32ead233fc68fb49edb2df940a7",
+      "packages/redbox-core/dist/persistence/cache/MongoCacheEntryRepository.js": "ebc16b9981d1dc6b1ab71261e43b5f5a79ae1176c6ebd88ee41285c61dd75571",
+      "packages/sails-hook-redbox-storage-mongo/dist/index.js": "95adf87ff64d825c4aeaaf5b2e4421cc7e87228a3c92025879ef51dffee444d1"
+    }
+  }
+}

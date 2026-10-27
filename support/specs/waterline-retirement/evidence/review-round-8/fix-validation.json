@@ -1,0 +1,206 @@
+{
+  "reviewedHead": "2ad8458edc2e13b2a5633342e9ef779341670186",
+  "runtimeCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "fixes": [
+    {
+      "number": 1,
+      "severity": "P2",
+      "issue": "M readiness admits a valid automatic field override whose behaviour the physical writer bypasses; cross-group flags used divergent checks",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/migration/preflight.ts:59"
+      ],
+      "commits": [
+        "6d8c726e0adea02f6351b2ab2dc553248f98ddd4"
+      ],
+      "before": [
+        "results/mappings-before.json"
+      ],
+      "accepted": [
+        "results/cross-group-mappings.json"
+      ],
+      "proof": "Loaded declaration Migration.source autoCreatedAt:true is valid. Waterline writes an ISO source value while the driver used an empty default. Mutation controls also harden the shared flag invariant; not every mutated shape is a valid model declaration."
+    },
+    {
+      "number": 2,
+      "severity": "P2",
+      "issue": "Model timestamp writes bypass coercion and empty/null validation, and createdAt patches are dropped",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/harvest/physical.ts:325",
+        "packages/redbox-core/src/persistence/siem/physical.ts:235"
+      ],
+      "commits": [
+        "3e6eed3d48d1365b17671ab6cc97c6913e663deb"
+      ],
+      "before": [
+        "results/timestamps-before.json",
+        "results/scalars-before.json"
+      ],
+      "accepted": [
+        "results/cross-group-timestamps.json",
+        "results/cross-group-scalars.json"
+      ],
+      "proof": "772 initial timestamp differences across 1520 cases; six ordinary HarvestRecordEvent createdAt differences in the 7280 field cases. Explicit null/empty timestamps must fail; scalar boolean/number values follow loaded Waterline string coercion."
+    },
+    {
+      "number": 3,
+      "severity": "P2",
+      "issue": "Ledger names, numeric epochs and scalar metadata diverge from loaded model write/query coercion",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/migration/MongoMigrationLedgerRepository.ts:34"
+      ],
+      "commits": [
+        "ee46fb57c946b4f2489c976aca223bb94b52db65"
+      ],
+      "before": [
+        "results/migration-values-before.json"
+      ],
+      "accepted": [
+        "results/migration-values.json"
+      ],
+      "proof": "42 differences in 102 inputs. Required/null/default rules now use the shared model codec. Stored malformed names remain a read error, rather than being silently repaired."
+    },
+    {
+      "number": 4,
+      "severity": "P2",
+      "issue": "Readiness accepts string physical IDs and incompatible referenced IDs while concrete encoders always use ObjectId",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/harvest/preflight.ts:172"
+      ],
+      "commits": [
+        "c35098ad26da63d9e8450291af791563302724d5"
+      ],
+      "before": [
+        "results/id-mappings-before-isolated.json"
+      ],
+      "accepted": [
+        "results/id-mappings.json"
+      ],
+      "proof": "17 genuinely loaded dontUseObjectIds owner/foreign declarations were admitted. Physical reifier proof preserves string _id while driver creates ObjectId. Public IDs would miss or acquire duplicate physical identity across writers."
+    },
+    {
+      "number": 5,
+      "severity": "P3",
+      "issue": "J2 zero model pages become unbounded Mongo reads; J3 native cursor paging is incorrectly treated as a model page",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/harvest/MongoHarvestRepositories.ts:52",
+        "packages/redbox-core/src/persistence/siem/MongoSiemRepository.ts:136"
+      ],
+      "commits": [
+        "5bc2356b9c174239cb9af3599e78df988285940c"
+      ],
+      "before": [
+        "results/harvest-pages-before.json",
+        "results/siem-native-pages-before.json"
+      ],
+      "accepted": [
+        "results/harvest-pages.json",
+        "results/siem-native-pages.json"
+      ],
+      "proof": "J2 zero returns an empty page before inspecting skip. Legacy unlimited forms remain supported. J3 native zero means unlimited and native signed/fraction behaviour is retained. HTTP positive-size clamping limits exposure of J2 zero; direct repository contract is clearly wrong."
+    },
+    {
+      "number": 6,
+      "severity": "P2",
+      "issue": "Ordinary scalar predicates, undefined optional filters and time bounds use incompatible per-group query logic",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/harvest/MongoHarvestRepositories.ts:16",
+        "packages/redbox-core/src/persistence/cache/MongoCacheEntryRepository.ts:13"
+      ],
+      "commits": [
+        "d637580da0dde3f79033e3649777c7533c31d418",
+        "676c953c69f97e76b6ccf201b25230b22f35b04c",
+        "9ecc9003acdc94b34cec8d5e9e394f72dc090698"
+      ],
+      "before": [
+        "results/job-queries-ranges-before.json",
+        "results/domain-queries-before.json",
+        "results/cache-values-before.json",
+        "results/migration-query-boundary-corrected-probe.json"
+      ],
+      "accepted": [
+        "results/job-queries.json",
+        "results/domain-queries.json",
+        "results/cache-values.json",
+        "results/migration-values.json"
+      ],
+      "proof": "232 job, 38 R/Q/J1,12cache and4ledger-query-boundary before differences. Undefined optional values must be omitted rather than serialized as null. Boolean/numeric string comparisons must use the same scalar checker. Invalid/empty range shapes fail before query dispatch."
+    },
+    {
+      "number": 7,
+      "severity": "P2",
+      "issue": "Native dashboard CAS and SIEM delivery patches incorrectly run through model coercion/default/clock logic",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/configuration/MongoConfigurationRepositories.ts:73",
+        "packages/redbox-core/src/persistence/siem/MongoSiemRepository.ts:122"
+      ],
+      "commits": [
+        "465a156749faf31f834318011d171eceb73bb790",
+        "2844ceeac2258adad379c3cbf8ec4b087937c0fe"
+      ],
+      "before": [
+        "results/dashboard-native-before.json",
+        "results/siem-native-values-before-isolated.json"
+      ],
+      "accepted": [
+        "results/dashboard-native-values.json",
+        "results/siem-native-values.json",
+        "results/configuration.json",
+        "results/siem.json"
+      ],
+      "proof": "Five dashboard and four SIEM mismatches. Dashboard native CAS must preserve the supplied patch without injecting updatedAt; SIEM completion must generate its own updatedAt. Both selections now share each native operation. Plain finite JSON guard applies at the driver boundary, without introducing a baseline model codec."
+    },
+    {
+      "number": 8,
+      "severity": "P2",
+      "issue": "Model patches silently discard a supplied primary ID and can write other fields where Waterline rejects the entire update",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/reference/physical.ts:354"
+      ],
+      "commits": [
+        "d9f2a5cc8a0d0136dff0d11a53e7aaac5b0088e9"
+      ],
+      "before": [
+        "results/id-values-official-driver-before.json"
+      ],
+      "accepted": [
+        "results/id-values.json"
+      ],
+      "proof": "76 differences across 228 actual loaded-model/official-driver create and patch cases, covering19models. Shared primary ID encoding now retains same-ID updates and immutable-ID refusal; invalid/null/empty primary IDs fail before writes."
+    },
+    {
+      "number": 9,
+      "severity": "P3",
+      "issue": "Record type exact wildcard field selection returns only id through both repository selections",
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/reference/WaterlineReferenceRepositories.ts:49",
+        "packages/redbox-core/src/persistence/reference/MongoReferenceRepositories.ts:126"
+      ],
+      "commits": [
+        "4103c6c48e1c761de7cec96bdfe7df56a8f381e9"
+      ],
+      "before": [
+        "results/recordtype-wildcard-before.json"
+      ],
+      "accepted": [
+        "results/recordtype-selection.json",
+        "results/reference.json"
+      ],
+      "proof": "RecordTypesService.get/getAll fields:[*] is a valid unrestricted Waterline selection, but replacements lost every configuration field. Shared DTO/physical selection interpretation now preserves complete rows;12loaded comparisons cover omitted/null/wildcard onboth methods/adapters. Existing custom DTO field-list extension remains qualified by reference-contract rather than claimed as a schema:false model select comparison."
+    }
+  ],
+  "consolidation": {
+    "commit": "8d97945a51a39939e36577abc5a10d07e16cbb34",
+    "purpose": "Share byte-identical S service normalization plus common field/default/timestamp primitives. Preserve native schema inheritance and every gated owner.",
+    "normalizerOriginalBytes": 5040,
+    "normalizerOriginalSha256": "3fe345464ddd9b403e65f53e97f2cc2e9f38407c33c13984b356070feb5625b4",
+    "accepted": [
+      "results/attachment-values.json",
+      "results/storage-contract.json"
+    ]
+  },
+  "notes": [
+    "Per-fix checks run before their commits; sourceCommit names the parent checkpoint. Final accepted matrix runs at runtimeCommit.",
+    "No production source was changed and reverted for a before proof.",
+    "Finite plain JSON and scalar types remain the qualified driver boundary. Arbitrary unsupported legacy BSON is not silently coerced."
+  ]
+}

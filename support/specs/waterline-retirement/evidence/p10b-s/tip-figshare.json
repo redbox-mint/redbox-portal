@@ -1,0 +1,8 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-contract",
+  "exitCode": 0,
+  "durationMs": 35962,
+  "rawBytes": 653,
+  "sha256": "30220a32b630294e6997bea26c7d9b33a6678904b837e87724869ef993a7cbd9",
+  "reportedPassGroups": 2
+}

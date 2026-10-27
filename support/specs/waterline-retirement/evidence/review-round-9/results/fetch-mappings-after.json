@@ -1,0 +1,17 @@
+{
+  "name": "fetch-mappings-after",
+  "command": "node packages/redbox-core/test/fixtures/waterline-retirement/reference-fetch-mappings.cjs",
+  "sourceCommit": "074bbc70656ae5cbd1e9ce090232b83e8589189c",
+  "exitCode": 0,
+  "durationMs": 4510,
+  "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 19,
+      "failures": 0,
+      "details": []
+    }
+  ]
+}

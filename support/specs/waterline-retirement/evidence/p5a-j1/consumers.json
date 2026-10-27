@@ -1,0 +1,17 @@
+{
+  "implementation": "79d776c93",
+  "models": [
+    "AsynchProgress",
+    "WorkspaceAsync"
+  ],
+  "consumers": [
+    "services/AsynchsService.ts",
+    "services/WorkspaceAsyncService.ts",
+    "controllers/AsynchController.ts",
+    "controllers/WorkspaceAsyncController.ts",
+    "persistence/reference/NamedQueryExecution.ts",
+    "persistence/reference/WaterlineNamedQueryTargets.ts"
+  ],
+  "remainingDirectCalls": [],
+  "scope": "Core/public checkout inventory only. Remaining calls are baseline adapter ownership; models/shims retained for Waterline/associations and P11/P12. Private institution hooks remain INST-01."
+}

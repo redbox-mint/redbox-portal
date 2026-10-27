@@ -1,0 +1,31 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-storage.sh readiness"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 23.854,
+  "sha256": "2fa8884bafe304b2a83267e8224e1852d640045c77ee05e517b052f5e6ad21bd",
+  "logBytes": 280,
+  "counts": [],
+  "results": [
+    {
+      "passing": 8,
+      "failures": 0,
+      "indexScopes": 15,
+      "checks": [
+        "inspect-only",
+        "all-scopes-before-DDL",
+        "duplicate-counts",
+        "conflict-retention",
+        "explicit-ensure",
+        "idempotence",
+        "logical-database-routing",
+        "sanitized-inspection-failure",
+        "native-schema-hidden-options"
+      ]
+    }
+  ],
+  "totals": {}
+}

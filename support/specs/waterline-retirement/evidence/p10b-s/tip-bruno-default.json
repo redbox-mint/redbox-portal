@@ -1,0 +1,17 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh bruno default",
+  "exitCode": 137,
+  "durationMs": 274143,
+  "rawBytes": 2482929,
+  "sha256": "42070b7cd0bacc94973522dc843e719aff6b478326ef4ba4156a70b2ef694829",
+  "failureExcerpt": "Agent stopped the fresh test stack after detecting the stale nested MongoDB copy. This run is not final-pin qualification.",
+  "counts": {
+    "requests": 309,
+    "requestsPassed": 309,
+    "testsPassed": 553,
+    "testsTotal": 553,
+    "assertionsPassed": 3,
+    "assertionsTotal": 3
+  },
+  "qualification": "Stopped by agent for stale-driver lock correction; superseded by guarded final-bruno-default"
+}

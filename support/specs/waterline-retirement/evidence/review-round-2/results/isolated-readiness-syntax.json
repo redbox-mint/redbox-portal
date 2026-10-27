@@ -1,0 +1,11 @@
+{
+  "name": "isolated-readiness-syntax",
+  "command": "node --check packages/redbox-core/test/fixtures/waterline-retirement/durable-siem-readiness.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/durable-figshare-readiness.cjs",
+  "sourceCommit": "f291c3260f0456f92730ed8e972bc8df920895fa",
+  "exitCode": 0,
+  "durationMs": 91,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

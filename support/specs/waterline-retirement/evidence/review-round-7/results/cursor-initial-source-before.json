@@ -1,0 +1,11 @@
+{
+  "name": "cursor-initial-source-before",
+  "command": "node .tmp/review-round-7/gridfs-cursor.cjs",
+  "sourceCommit": "7f8cc460f2a321f88ef66b19516cc1e51106dc43",
+  "exitCode": 1,
+  "durationMs": 526,
+  "sha256": "efcda13b9808fca1ff1b024c943438979e0f37d5232fa8a824acc258461f9206",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

@@ -1,0 +1,11 @@
+{
+  "name": "fix5-build",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint",
+  "sourceCommit": "322b5c9f4ef9d6d513623adbb1ac6e8651a53077",
+  "exitCode": 0,
+  "durationMs": 58172,
+  "sha256": "b49f7385f24aa0827b2c498065d03c8712f3f5fa0f07dbd324fe9ae4ac8532eb",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

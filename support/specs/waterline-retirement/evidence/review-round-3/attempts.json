@@ -1,0 +1,196 @@
+{
+  "notes": [
+    "These are excluded or superseded attempts, not accepted final qualification. No healthcheck, assertion, budget or skip was relaxed.",
+    "Expected before-fix regression failures are recorded separately in fix-validation.json."
+  ],
+  "attempts": [
+    {
+      "name": "fix2-both-readers",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-compatibility",
+      "sourceCommit": "3386af419d5fc9ca45b7995d6f9fd6ad01a584cc",
+      "exitCode": 1,
+      "durationMs": 4465,
+      "sha256": "2050ec00329f18488fc530237e5eee3291aa390c6826a0d8a01214c50dd79acc",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Fixture attempted two simultaneous Sails ORM loads in one process; sails-mongo singleton refused adapter registration. Final fixture reinitializes readers against the same loaded app."
+    },
+    {
+      "name": "fix2-both-readers-final",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-compatibility",
+      "sourceCommit": "3386af419d5fc9ca45b7995d6f9fd6ad01a584cc",
+      "exitCode": 143,
+      "durationMs": 31983,
+      "sha256": "4cc48fa526711fa6ccf7106c7d8ea6dc74bf92bd43fa43a35508fc726cb0141c",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Superseded/interrupted fixture run; not accepted qualification."
+    },
+    {
+      "name": "fix4-build",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint",
+      "sourceCommit": "9c97f8b582bf823502ca582ebba06d89d64eacea",
+      "exitCode": 2,
+      "durationMs": 93802,
+      "sha256": "4e0a87441086a4116c6399c2727aee0ebcae4121a418b03445a551a4fc332d08",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Uncommitted implicit-this TypeScript error in response.end override; corrected before the HTTP fix commit."
+    },
+    {
+      "name": "query-producer",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-producer",
+      "sourceCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49",
+      "exitCode": 1,
+      "durationMs": 43418,
+      "sha256": "db50f5019e5f20757fbc06fa916e87f89c2da57d40e6313540223f1b22ecf987",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Fixture omitted the Sails lodash global; corrected in the live producer fixture."
+    },
+    {
+      "name": "associations-unit-before",
+      "command": "TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require packages/redbox-core/test/setup.ts packages/redbox-core/test/unit/reference-persistence.test.ts",
+      "sourceCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49",
+      "exitCode": 0,
+      "durationMs": 2656,
+      "sha256": "ac128f407f4231fb9d3551f6cf7687aeca51fa5d2df29793c8b01cfc23e25453",
+      "counts": {
+        "passing": [
+          17
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Discarded as before-proof: the process observed edited source and passed. The separate loaded associations-before failure is the evidence."
+    },
+    {
+      "name": "core-tests",
+      "command": "npm run test:core",
+      "sourceCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49",
+      "exitCode": 1,
+      "durationMs": 213993,
+      "sha256": "66816f45e6c2778a60b30dd828c69e1b5aa72e03e4cf20d380d0d4cca3191676",
+      "counts": {
+        "passing": [
+          4184
+        ],
+        "pending": [
+          113
+        ],
+        "failing": [
+          1
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Concurrent qualification exceeded the unchanged12000ms source-import child deadline; full final-head core run later passed."
+    },
+    {
+      "name": "startup-focused",
+      "command": "TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require packages/redbox-core/test/setup.ts packages/redbox-core/test/unit/startup-module-loading.test.ts",
+      "sourceCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49",
+      "exitCode": 1,
+      "durationMs": 30643,
+      "sha256": "902362a068ec00c12fb313f46a7b43e3cc37dd7b8c4c4915fb6b43e2e9a3984e",
+      "counts": {
+        "passing": [
+          0
+        ],
+        "failing": [
+          1
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Same source-import deadline while other qualification workloads were active; no assertion or timeout changes."
+    },
+    {
+      "name": "startup-isolated",
+      "command": "TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require packages/redbox-core/test/setup.ts packages/redbox-core/test/unit/startup-module-loading.test.ts",
+      "sourceCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49",
+      "exitCode": 1,
+      "durationMs": 13990,
+      "sha256": "902362a068ec00c12fb313f46a7b43e3cc37dd7b8c4c4915fb6b43e2e9a3984e",
+      "counts": {
+        "passing": [
+          0
+        ],
+        "failing": [
+          1
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Same source-import deadline; archived reviewed-source comparison independently also timed out. Final core run passes unchanged."
+    },
+    {
+      "name": "reference-operations",
+      "command": "npm --prefix packages/redbox-core run test:reference-operations",
+      "sourceCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49",
+      "exitCode": 1,
+      "durationMs": 164355,
+      "sha256": "ff12e01a3009a0053d7468c19b230b1ba1ec8a88bca4eba39eb691cd8ccbcb37",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Concurrent run exceeded250ms readiness budget; previous isolated f3 run passed. Final-head attempts recorded separately."
+    },
+    {
+      "name": "storage-operations",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh operations",
+      "sourceCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49",
+      "exitCode": 1,
+      "durationMs": 99349,
+      "sha256": "f5651395b03484dc20f0a25d40d32797648496453bad843585513706ba2270c3",
+      "counts": {},
+      "passGroups": 0,
+      "reason": "Concurrent run exceeded250ms readiness budget; final isolated run passed unchanged.",
+      "metrics": {
+        "ratios": {
+          "p95": 0.3682566392009923,
+          "throughput": 1.972181873985159,
+          "rss": 0.9441409870072481,
+          "calls": 0.6331046477920572
+        },
+        "pass": false,
+        "limits": {
+          "p95": 1.2,
+          "throughput": 0.9,
+          "rss": 1.1,
+          "calls": 1.25,
+          "readinessMs": 250
+        }
+      }
+    },
+    {
+      "name": "fresh-mocha",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha default",
+      "sourceCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49",
+      "exitCode": 1,
+      "durationMs": 311072,
+      "sha256": "eb88a249acd2d3c2d28ac9ae998870a1205df3a8724c9e5bd15bd54709d4a6ab",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "reason": "Keycloak Quarkus augmentation took92s and exceeded service health deadline before the portal started. Owned Compose project was cleaned. Final fresh-volume retry is separate."
+    },
+    {
+      "name": "reference-operations-final",
+      "command": "npm --prefix packages/redbox-core run test:reference-operations",
+      "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+      "exitCode": 1,
+      "durationMs": 86906,
+      "sha256": "248c9233a0e13937d2c9d79ce68ce11420c9259a0e9b478a8e8b78b876754510",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "note": "Final-head first isolated run: one mongodb p95 sample 25.08ms vs 13.36/13.96ms; aggregate ratio1.284 exceeded unchanged1.2. Throughput/RSS/calls/readiness/drain passed. Previous f3 isolated run passed; workload does not exercise the final structured-equality guard. The single unchanged retry passed at0.94555 and is recorded separately.",
+      "reason": "One final-head native sample p95 was25.08ms while the other two were13.36/13.96ms; aggregate1.284 exceeded1.2. Throughput/RSS/calls/readiness/drain passed. The single unchanged final-head retry passed at ratio0.94555; the failed attempt remains recorded."
+    }
+  ]
+}

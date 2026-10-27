@@ -1,0 +1,11 @@
+{
+  "name": "reference",
+  "command": "npm --prefix packages/redbox-core run test:reference-transition",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 41456,
+  "sha256": "0f3bc6016551a6d699668a4897dd76578b254f5748be66d92bfb0b5ac802219d",
+  "counts": {},
+  "passGroups": 13,
+  "checks": []
+}

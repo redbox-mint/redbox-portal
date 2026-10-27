@@ -1,0 +1,13 @@
+{
+  "name": "attachment-shared-complete-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh attachment-values && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh contract",
+  "sourceCommit": "465a156749faf31f834318011d171eceb73bb790",
+  "exitCode": 1,
+  "durationMs": 75715,
+  "sha256": "966afc1206d24a1c439eb60a2d895d18d58e081dbe9b8959f56421bb0006628a",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":700,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

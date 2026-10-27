@@ -1,0 +1,58 @@
+{
+  "excludedAttempts": [
+    {
+      "check": "initial full core, waterline environment",
+      "passing": 4316,
+      "pending": 117,
+      "failing": 1,
+      "reason": "Unchanged 12000ms source-load subprocess deadline expired under the broad suite. Accepted run splits that one check into a separate process, retaining the deadline."
+    },
+    {
+      "check": "initial portal Mocha, waterline",
+      "passing": 19,
+      "pending": 2,
+      "failing": 2,
+      "reason": "FigshareVocabularyBootstrapData before/after hooks addressed a non-exported service instance field on the Sails facade. Fixture now stubs/restores its public getter."
+    },
+    {
+      "check": "preliminary 3-entity benchmark (two attempts)",
+      "reason": "Observer baseline sampled before its second monitor socket opened at the default heartbeat. Final harness waits 11 seconds before measuring; all six final 7-entity samples return to baseline 3."
+    },
+    {
+      "check": "qualification development probes",
+      "reason": "Validation/error probes, duplicate findOne, batch and stale zero-row expectation were corrected before accepted contract. The original atomic driver update was replaced after discovering Waterline select-IDs/write-IDs concurrency. A cast cleanup dropped one needed await parenthesis; compiler caught it and the corrected source passed build and 160 focused tests."
+    },
+    {
+      "check": "initial Bruno General, waterline",
+      "requests": {
+        "passed": 292,
+        "failed": 1,
+        "skipped": 16
+      },
+      "tests": {
+        "passed": 523,
+        "total": 524
+      },
+      "reason": "Mocha Compose base selected Keycloak26.8.1 rather than General26.5.6; existing OIDC cookie helper received HTTP400 at login action. Overlay now selects the exact stock General Keycloak digest. All preceding vocabulary API cases passed."
+    },
+    {
+      "check": "first index initialization on owned main Mongo",
+      "exit": 137,
+      "oomKilled": true,
+      "memoryLimitBytes": 536870912,
+      "reason": "The long-lived task Mongo plus mongosh DDL exceeded the 512MiB container cgroup. No index test ran. Retain the same volume, raise only this owned container to1536MiB (WiredTiger still0.25GiB), restart, reset only task redbox-portal/redbox-storage and rerun. Contract18 and prior evidence completed beforehand."
+    },
+    {
+      "check": "owned index-container restart command",
+      "reason": "Installed Compose start does not support --wait. Before a valid index test, replaced with docker start plus a bounded health poll; the accidentally reached fixture refused the empty URL. No application or data change was required."
+    },
+    {
+      "check": "first full omitted-selector core after promotion",
+      "passed": 4314,
+      "pending": 117,
+      "failed": 2,
+      "reason": "Two database-free bootstrap-order fixtures explicitly select Waterline for all prior groups but omitted V. Add the same explicit V Waterline fixture selection; default live tests still exercise MongoDB without V model queries. No runtime fallback or readiness relaxation.",
+      "logSha256": "95e8a2f931e6f98e870773ca90fe23aa5c5a8e71305ef87ec34fbf5340a9e57d"
+    }
+  ]
+}

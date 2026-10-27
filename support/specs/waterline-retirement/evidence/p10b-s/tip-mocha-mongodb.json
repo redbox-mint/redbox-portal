@@ -1,0 +1,12 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha mongodb",
+  "exitCode": 0,
+  "durationMs": 281381,
+  "rawBytes": 1018262,
+  "sha256": "bc1d304eac578d2a869ed87bccf3b2d0db88b683d81a3a997c5f593347aafcdd",
+  "counts": {
+    "passing": 419,
+    "pending": 10
+  },
+  "qualification": "diagnostic only: stale nested MongoDB 7.2.0 copy; superseded by guarded final-* runs"
+}

@@ -1,0 +1,39 @@
+{
+  "input": "ebb1e61659ccd00f2d7460f6451648cb2fb67757",
+  "mergeBase": "ef23e07fe2933e62ea10620efa7db41f577213d0",
+  "p1": 0,
+  "p2": 2,
+  "unresolved": 0,
+  "issues": [
+    {
+      "id": "R16-01",
+      "priority": "P2",
+      "title": "Confirmed ended SQS state-save receipts retain payloads for the worker lifetime",
+      "inputLocation": "packages/redbox-core/src/services/AgendaQueueService.ts:281",
+      "origin": "Branch-owned claim tracking; 73f9afb7c gives every redelivery a distinct retained entry. 2ad89fd80 classifies ended receipts only on unlock.",
+      "reproduction": "Receive one envelope ID sixteen times with distinct receipts and a 15KB payload; return MessageNotInflight or ReceiptHandleIsInvalid for the initial visibility save, or ReceiptHandleIsInvalid for final DeleteMessage. Real Job.run abandons initial execution or swallows final persistence rejection. Shutdown still sends sixteen stale releases plus the newer active receipt; each stale entry retains its payload until then.",
+      "contract": "waterline-retirement/design.md:591-594 operational memory requirements; per-receipt ownership and ended-receipt release contract",
+      "fix": "1d6666614",
+      "resolution": "Apply the existing SQS-only terminal receipt predicate to rejected state saves; delete only the captured matching ownership entry and rethrow the original save error. Nonterminal errors retain ownership. Mongo fencing and drain timing are unchanged.",
+      "regressionTests": "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+      "terminalCases": 3,
+      "nonterminalControl": "AccessDenied initial saves remain owned and are released at shutdown",
+      "sources": [
+        "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibility.html",
+        "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteMessage.html"
+      ]
+    },
+    {
+      "id": "R16-02",
+      "priority": "P2",
+      "title": "An older successful Mongo claim release forgets a later same-ID claim after failed release",
+      "inputLocation": "packages/redbox-core/src/services/AgendaQueueService.ts:244",
+      "origin": "127595832c branch-owned retained claim fencing; unconditional post-await map deletion",
+      "reproduction": "Actual Agenda prefetches a Mongo job. Its next admitted claim is pending. Shutdown releases the old prefetched claim in Mongo but its acknowledgement is held; the pending query then claims the same physical document. Releasing that late claim fails. The old reply deletes its replacement ownership entry and cleanup closes the backend despite the newer durable lock. Both retained Agenda regression and actual MongoDB/backend probe fail before the fix.",
+      "fix": "c323055d8",
+      "resolution": "Delete only if the map entry still equals the captured fence array; preserve the later entry for existing cleanup retry. No timestamp/owner predicate, admission or lease change.",
+      "regressionTests": "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+      "liveProbe": "late-claim-replacement-live.cjs; actual pinned MongoDB, actual Agenda Mongo backend, fenced physical old/new releases, only response ordering and release failure controlled."
+    }
+  ]
+}

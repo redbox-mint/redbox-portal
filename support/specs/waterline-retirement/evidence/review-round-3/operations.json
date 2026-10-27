@@ -1,0 +1,52 @@
+{
+  "runtimeCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "reference": {
+    "comparisons": {
+      "p95": 0.9455467813668226,
+      "throughput": 1.0805056820201964,
+      "rss": 0.5091449482457222,
+      "calls": 1
+    },
+    "maxReadinessMs": 127.83711399999993,
+    "connectionsReturnedToBaseline": true,
+    "pass": true
+  },
+  "storage": {
+    "ratios": {
+      "p95": 0.2842891508930638,
+      "throughput": 2.482754138428509,
+      "rss": 0.9390829794735793,
+      "calls": 0.6331046477920572
+    },
+    "pass": true,
+    "limits": {
+      "p95": 1.2,
+      "throughput": 0.9,
+      "rss": 1.1,
+      "calls": 1.25,
+      "readinessMs": 250
+    },
+    "warmups": 100,
+    "operations": 1000,
+    "repeats": 3,
+    "bytes": {
+      "waterline": {
+        "bytes": 9437283,
+        "durationMs": 397.90800800000216,
+        "bytesPerSecond": 23717248.2339183
+      },
+      "mongodb": {
+        "bytes": 9437283,
+        "durationMs": 246.87787099999878,
+        "bytesPerSecond": 38226524.56363757
+      }
+    },
+    "atomicUnitsMoved": 0,
+    "maxReadinessMs": 214.93607900000006,
+    "connectionsReturnedToBaseline": true
+  },
+  "notes": [
+    "Three alternating backend rounds,100 warmups+1000 operations each, unchanged budgets.",
+    "The first final-head R attempt failed its latency ratio and is retained in attempts.json; its unchanged retry is the accepted run."
+  ]
+}

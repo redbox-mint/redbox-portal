@@ -1,0 +1,177 @@
+{
+  "fixture": {
+    "forms": 20,
+    "stages": 20,
+    "componentsPerForm": 24,
+    "configurationBytes": 26639,
+    "rawPreserved": true
+  },
+  "results": {
+    "waterline": [
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 7.588651000000027,
+        "p95": 11.715766000000258,
+        "p99": 13.593767999999727,
+        "throughput": 133.6763547554525,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 756744192,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "waterline",
+          "loadedMs": 309.50720200000023,
+          "readinessMs": 72.89895400000023,
+          "rss": 343212032,
+          "pid": 249475,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 8,
+          "closed": 3
+        }
+      },
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 7.816434000000299,
+        "p95": 11.629947999999786,
+        "p99": 13.8921849999997,
+        "throughput": 130.1055712436145,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 757678080,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "waterline",
+          "loadedMs": 319.1270159999999,
+          "readinessMs": 75.97511000000031,
+          "rss": 343097344,
+          "pid": 249545,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 8,
+          "closed": 3
+        }
+      },
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 7.858513999999559,
+        "p95": 11.952857000000222,
+        "p99": 13.94522599999982,
+        "throughput": 128.98108394571784,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 755326976,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "waterline",
+          "loadedMs": 330.04868099999976,
+          "readinessMs": 79.48496999999998,
+          "rss": 343629824,
+          "pid": 249569,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 8,
+          "closed": 3
+        }
+      }
+    ],
+    "mongodb": [
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 5.1605979999994815,
+        "p95": 7.411765999999716,
+        "p99": 9.091323000000557,
+        "throughput": 205.40841937535637,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 388157440,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "mongodb",
+          "loadedMs": 340.5534640000001,
+          "readinessMs": 106.21679899999981,
+          "rss": 345690112,
+          "pid": 249495,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 10,
+          "closed": 3
+        }
+      },
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 5.129729999999654,
+        "p95": 7.24941200000012,
+        "p99": 8.243209999999635,
+        "throughput": 211.6246076733194,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 395382784,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "mongodb",
+          "loadedMs": 336.41933900000004,
+          "readinessMs": 115.68092800000022,
+          "rss": 382275584,
+          "pid": 249517,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 10,
+          "closed": 3
+        }
+      },
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 5.241230999999971,
+        "p95": 7.29662400000052,
+        "p99": 8.252472000000125,
+        "throughput": 208.43969194424457,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 389865472,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "mongodb",
+          "loadedMs": 351.1047090000002,
+          "readinessMs": 114.30103000000008,
+          "rss": 345300992,
+          "pid": 249590,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 10,
+          "closed": 3
+        }
+      }
+    ]
+  },
+  "comparisons": {
+    "p95": 0.6220592329360923,
+    "throughput": 1.5924939547663874,
+    "rss": 0.516975915746619,
+    "calls": 1
+  },
+  "environment": {
+    "node": "24.18.0",
+    "mongo": "8.0.34",
+    "command": "npm --prefix packages/redbox-core run test:reference-operations",
+    "physicalCodecSha256": "d88361cfe6f161863be98c7fc849fe71a2cb3476b84473ed419ba6edafa02221"
+  }
+}

@@ -1,0 +1,904 @@
+{
+  "commit": "0ea5e9bc22396f02d184bc341194a3a579477320",
+  "node": "v24.16.0",
+  "mongo": "9.0.4",
+  "hello": {
+    "isWritablePrimary": true,
+    "minWireVersion": 0,
+    "maxWireVersion": 29
+  },
+  "models": {
+    "Vocabulary": {
+      "input": {
+        "name": " Synthetic Vocabulary ",
+        "branding": "6ad922ae80824962da4d2e9d",
+        "type": "tree"
+      },
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "required": false
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "description": {
+          "type": "string",
+          "required": false
+        },
+        "type": {
+          "type": "string",
+          "defaultsTo": "flat",
+          "required": false
+        },
+        "source": {
+          "type": "string",
+          "defaultsTo": "local",
+          "required": false
+        },
+        "sourceId": {
+          "type": "string",
+          "required": false
+        },
+        "sourceVersionId": {
+          "type": "string",
+          "required": false
+        },
+        "lastSyncedAt": {
+          "type": "string",
+          "required": false
+        },
+        "slug": {
+          "type": "string",
+          "defaultsTo": "__AUTO__",
+          "required": false
+        },
+        "owner": {
+          "type": "string",
+          "required": false
+        },
+        "branding": {
+          "required": true,
+          "model": "brandingconfig"
+        },
+        "rvaSourceKey": {
+          "type": "string",
+          "required": false
+        },
+        "figshareSourceKey": {
+          "type": "string",
+          "required": false
+        },
+        "entries": {
+          "collection": "vocabularyentry",
+          "via": "vocabulary",
+          "required": false
+        }
+      },
+      "associations": [
+        {
+          "alias": "branding",
+          "type": "model",
+          "model": "brandingconfig"
+        },
+        {
+          "alias": "entries",
+          "type": "collection",
+          "collection": "vocabularyentry",
+          "via": "vocabulary"
+        }
+      ],
+      "raw": {
+        "_id": {
+          "$oid": "6ad922ae0cb828f7a8ad8d25"
+        },
+        "name": "Synthetic Vocabulary",
+        "branding": {
+          "$oid": "6ad922ae80824962da4d2e9d"
+        },
+        "type": "tree",
+        "createdAt": "2026-10-21T20:38:06.091Z",
+        "updatedAt": "2026-10-21T20:38:06.091Z",
+        "description": "",
+        "source": "local",
+        "sourceId": "",
+        "sourceVersionId": "",
+        "lastSyncedAt": "",
+        "slug": "synthetic-vocabulary",
+        "owner": "",
+        "figshareSourceKey": ""
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ]
+    },
+    "VocabularyEntry": {
+      "input": {
+        "vocabulary": "6ad922ae0cb828f7a8ad8d25",
+        "label": " Synthetic Label ",
+        "value": " Synthetic Value ",
+        "identifier": "synthetic-entry"
+      },
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "required": false
+        },
+        "vocabulary": {
+          "required": true,
+          "model": "vocabulary"
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "labelLower": {
+          "type": "string",
+          "required": false
+        },
+        "value": {
+          "type": "string",
+          "required": false
+        },
+        "valueLower": {
+          "type": "string",
+          "required": false
+        },
+        "parent": {
+          "model": "vocabularyentry",
+          "required": false
+        },
+        "children": {
+          "collection": "vocabularyentry",
+          "via": "parent",
+          "required": false
+        },
+        "identifier": {
+          "type": "string",
+          "required": false
+        },
+        "order": {
+          "type": "number",
+          "defaultsTo": 0,
+          "required": false
+        },
+        "historical": {
+          "type": "boolean",
+          "defaultsTo": false,
+          "required": false
+        }
+      },
+      "associations": [
+        {
+          "alias": "vocabulary",
+          "type": "model",
+          "model": "vocabulary"
+        },
+        {
+          "alias": "parent",
+          "type": "model",
+          "model": "vocabularyentry"
+        },
+        {
+          "alias": "children",
+          "type": "collection",
+          "collection": "vocabularyentry",
+          "via": "parent"
+        }
+      ],
+      "raw": {
+        "_id": {
+          "$oid": "6ad922ae0cb828f7a8ad8d26"
+        },
+        "vocabulary": {
+          "$oid": "6ad922ae0cb828f7a8ad8d25"
+        },
+        "label": "Synthetic Label",
+        "value": "Synthetic Value",
+        "identifier": "synthetic-entry",
+        "createdAt": "2026-10-21T20:38:06.165Z",
+        "updatedAt": "2026-10-21T20:38:06.165Z",
+        "labelLower": "synthetic label",
+        "valueLower": "synthetic value",
+        "parent": null,
+        "order": 0,
+        "historical": false
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ]
+    },
+    "FigshareVocabularySource": {
+      "input": {
+        "branding": "6ad922ae80824962da4d2e9d",
+        "vocabulary": "6ad922ae0cb828f7a8ad8d25",
+        "scope": "public",
+        "taxonomyId": "synthetic-taxonomyId",
+        "displayName": "synthetic-displayName",
+        "createdBy": "2026-10-19T00:00:00.000Z",
+        "updatedBy": "2026-10-19T00:00:00.000Z"
+      },
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "required": false
+        },
+        "branding": {
+          "required": true,
+          "model": "brandingconfig"
+        },
+        "vocabulary": {
+          "required": true,
+          "model": "vocabulary"
+        },
+        "scope": {
+          "type": "string",
+          "required": true
+        },
+        "taxonomyId": {
+          "type": "string",
+          "required": true
+        },
+        "connectionKey": {
+          "type": "string",
+          "required": false
+        },
+        "displayName": {
+          "type": "string",
+          "required": true
+        },
+        "remoteHash": {
+          "type": "string",
+          "required": false
+        },
+        "lastSyncedAt": {
+          "type": "string",
+          "required": false
+        },
+        "lastSyncRun": {
+          "type": "string",
+          "required": false
+        },
+        "archived": {
+          "type": "boolean",
+          "defaultsTo": false,
+          "required": false
+        },
+        "createdBy": {
+          "type": "string",
+          "required": true
+        },
+        "updatedBy": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "associations": [
+        {
+          "alias": "branding",
+          "type": "model",
+          "model": "brandingconfig"
+        },
+        {
+          "alias": "vocabulary",
+          "type": "model",
+          "model": "vocabulary"
+        }
+      ],
+      "raw": {
+        "_id": {
+          "$oid": "6ad922ae0cb828f7a8ad8d27"
+        },
+        "branding": {
+          "$oid": "6ad922ae80824962da4d2e9d"
+        },
+        "vocabulary": {
+          "$oid": "6ad922ae0cb828f7a8ad8d25"
+        },
+        "scope": "public",
+        "taxonomyId": "synthetic-taxonomyId",
+        "displayName": "synthetic-displayName",
+        "createdBy": "2026-10-19T00:00:00.000Z",
+        "updatedBy": "2026-10-19T00:00:00.000Z",
+        "createdAt": "2026-10-21T20:38:06.194Z",
+        "updatedAt": "2026-10-21T20:38:06.194Z",
+        "connectionKey": "",
+        "remoteHash": "",
+        "lastSyncedAt": "",
+        "lastSyncRun": "",
+        "archived": false
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ]
+    },
+    "FigshareVocabularyCategory": {
+      "input": {
+        "source": "6ad922ae0cb828f7a8ad8d27",
+        "entry": "6ad922ae0cb828f7a8ad8d26",
+        "sourceId": "synthetic-sourceId",
+        "categoryId": 1,
+        "taxonomyId": "synthetic-taxonomyId",
+        "firstSeenAt": "2026-10-19T00:00:00.000Z",
+        "lastSeenAt": "2026-10-19T00:00:00.000Z",
+        "contentHash": "synthetic-contentHash",
+        "path": []
+      },
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "required": false
+        },
+        "source": {
+          "required": true,
+          "model": "figsharevocabularysource"
+        },
+        "entry": {
+          "required": true,
+          "model": "vocabularyentry"
+        },
+        "sourceId": {
+          "type": "string",
+          "required": true
+        },
+        "categoryId": {
+          "type": "number",
+          "required": true
+        },
+        "taxonomyId": {
+          "type": "string",
+          "required": true
+        },
+        "parentSourceId": {
+          "type": "string",
+          "required": false
+        },
+        "path": {
+          "type": "json",
+          "required": false
+        },
+        "selectable": {
+          "type": "boolean",
+          "defaultsTo": true,
+          "required": false
+        },
+        "historical": {
+          "type": "boolean",
+          "defaultsTo": false,
+          "required": false
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "required": true
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "required": true
+        },
+        "contentHash": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "associations": [
+        {
+          "alias": "source",
+          "type": "model",
+          "model": "figsharevocabularysource"
+        },
+        {
+          "alias": "entry",
+          "type": "model",
+          "model": "vocabularyentry"
+        }
+      ],
+      "raw": {
+        "_id": {
+          "$oid": "6ad922ae0cb828f7a8ad8d28"
+        },
+        "source": {
+          "$oid": "6ad922ae0cb828f7a8ad8d27"
+        },
+        "entry": {
+          "$oid": "6ad922ae0cb828f7a8ad8d26"
+        },
+        "sourceId": "synthetic-sourceId",
+        "categoryId": 1,
+        "taxonomyId": "synthetic-taxonomyId",
+        "firstSeenAt": "2026-10-19T00:00:00.000Z",
+        "lastSeenAt": "2026-10-19T00:00:00.000Z",
+        "contentHash": "synthetic-contentHash",
+        "path": [],
+        "createdAt": "2026-10-21T20:38:06.212Z",
+        "updatedAt": "2026-10-21T20:38:06.212Z",
+        "parentSourceId": "",
+        "selectable": true,
+        "historical": false
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ]
+    },
+    "FigshareVocabularyCrosswalk": {
+      "input": {
+        "branding": "6ad922ae80824962da4d2e9d",
+        "name": "synthetic-name",
+        "localVocabulary": "6ad922ae0cb828f7a8ad8d25",
+        "figshareSource": "6ad922ae0cb828f7a8ad8d27",
+        "updatedBy": "2026-10-19T00:00:00.000Z"
+      },
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "required": false
+        },
+        "branding": {
+          "required": true,
+          "model": "brandingconfig"
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "localVocabulary": {
+          "required": true,
+          "model": "vocabulary"
+        },
+        "figshareSource": {
+          "required": true,
+          "model": "figsharevocabularysource"
+        },
+        "status": {
+          "type": "string",
+          "defaultsTo": "draft",
+          "required": false
+        },
+        "workingRevision": {
+          "type": "number",
+          "defaultsTo": 1,
+          "required": false
+        },
+        "approvedRevision": {
+          "type": "number",
+          "allowNull": true,
+          "required": false
+        },
+        "approvedAt": {
+          "type": "string",
+          "required": false
+        },
+        "approvedBy": {
+          "type": "string",
+          "required": false
+        },
+        "updatedBy": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "associations": [
+        {
+          "alias": "branding",
+          "type": "model",
+          "model": "brandingconfig"
+        },
+        {
+          "alias": "localVocabulary",
+          "type": "model",
+          "model": "vocabulary"
+        },
+        {
+          "alias": "figshareSource",
+          "type": "model",
+          "model": "figsharevocabularysource"
+        }
+      ],
+      "raw": {
+        "_id": {
+          "$oid": "6ad922ae0cb828f7a8ad8d29"
+        },
+        "branding": {
+          "$oid": "6ad922ae80824962da4d2e9d"
+        },
+        "name": "synthetic-name",
+        "localVocabulary": {
+          "$oid": "6ad922ae0cb828f7a8ad8d25"
+        },
+        "figshareSource": {
+          "$oid": "6ad922ae0cb828f7a8ad8d27"
+        },
+        "updatedBy": "2026-10-19T00:00:00.000Z",
+        "createdAt": "2026-10-21T20:38:06.228Z",
+        "updatedAt": "2026-10-21T20:38:06.228Z",
+        "status": "draft",
+        "workingRevision": 1,
+        "approvedRevision": null,
+        "approvedAt": "",
+        "approvedBy": ""
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ]
+    },
+    "FigshareVocabularyCrosswalkMapping": {
+      "input": {
+        "crosswalk": "6ad922ae0cb828f7a8ad8d29",
+        "revision": 1,
+        "localEntry": "6ad922ae0cb828f7a8ad8d26",
+        "figshareCategory": "6ad922ae0cb828f7a8ad8d28",
+        "matchType": "exact-code"
+      },
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "required": false
+        },
+        "crosswalk": {
+          "required": true,
+          "model": "figsharevocabularycrosswalk"
+        },
+        "revision": {
+          "type": "number",
+          "required": true
+        },
+        "localEntry": {
+          "required": true,
+          "model": "vocabularyentry"
+        },
+        "figshareCategory": {
+          "required": true,
+          "model": "figsharevocabularycategory"
+        },
+        "status": {
+          "type": "string",
+          "defaultsTo": "proposed",
+          "required": false
+        },
+        "matchType": {
+          "type": "string",
+          "required": true
+        },
+        "evidence": {
+          "type": "json",
+          "required": false
+        },
+        "approvedAt": {
+          "type": "string",
+          "required": false
+        },
+        "approvedBy": {
+          "type": "string",
+          "required": false
+        }
+      },
+      "associations": [
+        {
+          "alias": "crosswalk",
+          "type": "model",
+          "model": "figsharevocabularycrosswalk"
+        },
+        {
+          "alias": "localEntry",
+          "type": "model",
+          "model": "vocabularyentry"
+        },
+        {
+          "alias": "figshareCategory",
+          "type": "model",
+          "model": "figsharevocabularycategory"
+        }
+      ],
+      "raw": {
+        "_id": {
+          "$oid": "6ad922ae0cb828f7a8ad8d2a"
+        },
+        "crosswalk": {
+          "$oid": "6ad922ae0cb828f7a8ad8d29"
+        },
+        "revision": 1,
+        "localEntry": {
+          "$oid": "6ad922ae0cb828f7a8ad8d26"
+        },
+        "figshareCategory": {
+          "$oid": "6ad922ae0cb828f7a8ad8d28"
+        },
+        "matchType": "exact-code",
+        "createdAt": "2026-10-21T20:38:06.246Z",
+        "updatedAt": "2026-10-21T20:38:06.246Z",
+        "status": "proposed",
+        "evidence": null,
+        "approvedAt": "",
+        "approvedBy": ""
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ]
+    },
+    "FigshareVocabularySyncRun": {
+      "input": {
+        "branding": "6ad922ae80824962da4d2e9d",
+        "scope": "public",
+        "taxonomyId": "synthetic-taxonomyId",
+        "normalizerVersion": "synthetic-normalizerVersion",
+        "expiresAt": "2026-10-20T00:00:00.000Z",
+        "requestedBy": "synthetic-requestedBy"
+      },
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "required": false
+        },
+        "branding": {
+          "required": true,
+          "model": "brandingconfig"
+        },
+        "source": {
+          "type": "string",
+          "allowNull": true,
+          "required": false
+        },
+        "scope": {
+          "type": "string",
+          "required": true
+        },
+        "taxonomyId": {
+          "type": "string",
+          "required": true
+        },
+        "localVocabulary": {
+          "type": "string",
+          "allowNull": true,
+          "required": false
+        },
+        "crosswalk": {
+          "type": "string",
+          "allowNull": true,
+          "required": false
+        },
+        "createLocalClone": {
+          "type": "boolean",
+          "defaultsTo": false,
+          "required": false
+        },
+        "localCloneName": {
+          "type": "string",
+          "required": false
+        },
+        "localCloneSlug": {
+          "type": "string",
+          "required": false
+        },
+        "normalizerVersion": {
+          "type": "string",
+          "required": true
+        },
+        "state": {
+          "type": "string",
+          "defaultsTo": "fetching",
+          "required": false
+        },
+        "baseHash": {
+          "type": "string",
+          "required": false
+        },
+        "remoteHash": {
+          "type": "string",
+          "required": false
+        },
+        "normalizedSnapshot": {
+          "type": "json",
+          "required": false
+        },
+        "diff": {
+          "type": "json",
+          "required": false
+        },
+        "proposals": {
+          "type": "json",
+          "required": false
+        },
+        "summary": {
+          "type": "json",
+          "required": false
+        },
+        "warnings": {
+          "type": "json",
+          "required": false
+        },
+        "result": {
+          "type": "json",
+          "required": false
+        },
+        "expiresAt": {
+          "type": "string",
+          "required": true
+        },
+        "requestedBy": {
+          "type": "string",
+          "required": true
+        },
+        "appliedBy": {
+          "type": "string",
+          "required": false
+        },
+        "appliedAt": {
+          "type": "string",
+          "required": false
+        },
+        "errorCode": {
+          "type": "string",
+          "required": false
+        },
+        "errorDetail": {
+          "type": "string",
+          "required": false
+        }
+      },
+      "associations": [
+        {
+          "alias": "branding",
+          "type": "model",
+          "model": "brandingconfig"
+        }
+      ],
+      "raw": {
+        "_id": {
+          "$oid": "6ad922ae0cb828f7a8ad8d2b"
+        },
+        "branding": {
+          "$oid": "6ad922ae80824962da4d2e9d"
+        },
+        "scope": "public",
+        "taxonomyId": "synthetic-taxonomyId",
+        "normalizerVersion": "synthetic-normalizerVersion",
+        "expiresAt": "2026-10-20T00:00:00.000Z",
+        "requestedBy": "synthetic-requestedBy",
+        "createdAt": "2026-10-21T20:38:06.268Z",
+        "updatedAt": "2026-10-21T20:38:06.268Z",
+        "source": null,
+        "localVocabulary": null,
+        "crosswalk": null,
+        "createLocalClone": false,
+        "localCloneName": "",
+        "localCloneSlug": "",
+        "state": "fetching",
+        "baseHash": "",
+        "remoteHash": "",
+        "normalizedSnapshot": null,
+        "diff": null,
+        "proposals": null,
+        "summary": null,
+        "warnings": null,
+        "result": null,
+        "appliedBy": "",
+        "appliedAt": "",
+        "errorCode": "",
+        "errorDetail": ""
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ]
+    }
+  },
+  "checks": {
+    "partialUpdateSelfParent": "accepted",
+    "omittedCategoryPath": {
+      "message": "FigshareVocabularyCategory.path must be an array of sourceIds",
+      "code": null
+    }
+  },
+  "logSha256": "bd19f415e3ba62d436856119aa25a2a08522df2ec79e10536e969292f0e3b01d"
+}

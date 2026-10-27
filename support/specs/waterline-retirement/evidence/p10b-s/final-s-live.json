@@ -1,0 +1,52 @@
+{
+  "command": "node packages/redbox-core/test/fixtures/waterline-retirement/verify-storage-runtime.cjs && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh contract && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh readiness && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh backfill && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership && P10_OWNER_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh owner-failures",
+  "exitCode": 0,
+  "durationMs": 36537,
+  "rawBytes": 49879,
+  "sha256": "a25fee9c80b959e3e3120fea814cfe241e16b121264b1f59235104d719cbd967",
+  "checkRuns": [
+    {
+      "passing": 37,
+      "failures": 0,
+      "stagedIndexScopes": 15
+    },
+    {
+      "passing": 8,
+      "failures": 0,
+      "indexScopes": 15
+    },
+    {
+      "passing": 16,
+      "failures": 0,
+      "atomicUnitsMoved": 0,
+      "modelFreeEntrypoint": true
+    },
+    {
+      "passing": 16,
+      "failures": 0,
+      "selector": "waterline"
+    },
+    {
+      "passing": 16,
+      "failures": 0,
+      "selector": "mongodb"
+    },
+    {
+      "passing": 5,
+      "failures": 0
+    }
+  ],
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

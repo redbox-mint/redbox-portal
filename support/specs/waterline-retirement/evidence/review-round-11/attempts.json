@@ -1,0 +1,231 @@
+{
+  "preliminaryInputHead": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+  "completedRecords": [
+    {
+      "name": "batch-clocks",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh batch-clocks",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 5905,
+      "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "cache-mongodb",
+      "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-mongodb",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 12647,
+      "sha256": "25daeb35a8496752a6daf541be476d05d33de44f1b11340fc2c3c31777e5ec56",
+      "counts": {
+        "passing": [17],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "cache-read-values",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cache-read-values",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 6208,
+      "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "cache-transition",
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 90148,
+      "sha256": "99a0de37a5157192f138598c1f33da7cfd4077fdcb0ade137232893003ba320b",
+      "counts": {
+        "passing": [17],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "core-tests",
+      "command": "npm run test:core",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 115317,
+      "sha256": "a02dcd93ecf55de45ec3d7ce87a6315679fccdeae5a0eeeba70700cb6541940b",
+      "counts": {
+        "passing": [4253],
+        "pending": [116],
+        "failing": []
+      }
+    },
+    {
+      "name": "fetch-mappings",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh fetch-mappings",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 4150,
+      "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "final-static",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm run lint && npm --prefix packages/redbox-core run lint && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && node_modules/.bin/tsc --noEmit && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json && git diff --check",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 69240,
+      "sha256": "3b44283fc0632989482f7233210621f3d3d1be59a5dcb2477f4084fad0969d97",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "foundation",
+      "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 12948,
+      "sha256": "9c81d94adbe9ff593481b4efb8f6d372cc3a14597809951377047b86bbb63171",
+      "counts": {
+        "passing": [12],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "migration",
+      "command": "P2_ROLLBACK_IMAGE=redbox-p2:prior-11742e9 npm --prefix packages/redbox-core run test:migration-transition",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 1,
+      "durationMs": 117034,
+      "sha256": "fceffa8655f7ea1f81c281ca63f8b4de1126e08798bb39f8022cca87f1d3f1a6",
+      "counts": {
+        "passing": [14],
+        "pending": [],
+        "failing": [1]
+      }
+    },
+    {
+      "name": "operation-boundaries",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh operation-boundaries",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 29826,
+      "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "operation-outcomes",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh operation-outcomes",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 7962,
+      "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "progress-writes",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh progress-writes",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 7413,
+      "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "storage-tests",
+      "command": "npm run test:storage-mongo",
+      "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+      "exitCode": 0,
+      "durationMs": 42679,
+      "sha256": "290348137aad2ec05cef9469c7f47a946c21b6454ac28126fb7bdf915b3b5a59",
+      "counts": {
+        "passing": [288],
+        "pending": [38],
+        "failing": []
+      }
+    }
+  ],
+  "failedMigrationDisposition": "Designated pre-P2 image worker startup timeout while docs audit/probes were concurrent; load causality is not established. Final sequential run passes all 15 tests, including that case in 7.4 seconds. No code/assertion/timeout changed for the migration case.",
+  "schedulerDisposition": "Preliminary scheduler terminated before applying fixes; unfinished reference command excluded; owned processes/container cleared before rebuilding. Final full 74-command run exits zero.",
+  "originalBrunoCliNpm": "11.13.0",
+  "originalBrunoDisposition": "Full stock suite passed but its CLI bundled npm 11.13.0. Accepted fresh replay bootstraps/asserts 11.20.0 before the unchanged test script. Application Compose files, healthchecks/time limits and assertions are unchanged.",
+  "originalStockRuntime": {
+    "mocha": {
+      "node": "v26.10.0",
+      "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+      "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+      "sha256": {
+        "packages/redbox-core/dist/index.js": "5e9436b2fd42ac4d8c66868e50114b4ff3ca0dba6e30352b0c675fecf753e9d6",
+        "packages/redbox-core/dist/persistence/indexes.js": "620bc5749f93999d2fb8c3b696fb00cc99f243fbf92c45ef0d75d507d44c472b",
+        "packages/sails-hook-redbox-storage-mongo/dist/index.js": "95adf87ff64d825c4aeaaf5b2e4421cc7e87228a3c92025879ef51dffee444d1",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/recordRevisionBackfill.js": "da55559b57fbd2c17221f6700f3e2eaca44d7e7e4f7919ccb5ce5d3ad3272864"
+      },
+      "container": "a1553cde19a3",
+      "project": "p10-s-mocha-default-21568-31076",
+      "image": "sha256:71e19ab6fd97d7527fb36f8c1d678da61ff2f92124dfb651dec130d8c96ed4cd",
+      "npm": "11.20.0",
+      "matchesHostArtifacts": true
+    },
+    "bruno": {
+      "node": "v26.10.0",
+      "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+      "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+      "sha256": {
+        "packages/redbox-core/dist/index.js": "5e9436b2fd42ac4d8c66868e50114b4ff3ca0dba6e30352b0c675fecf753e9d6",
+        "packages/redbox-core/dist/persistence/indexes.js": "620bc5749f93999d2fb8c3b696fb00cc99f243fbf92c45ef0d75d507d44c472b",
+        "packages/sails-hook-redbox-storage-mongo/dist/index.js": "95adf87ff64d825c4aeaaf5b2e4421cc7e87228a3c92025879ef51dffee444d1",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/recordRevisionBackfill.js": "da55559b57fbd2c17221f6700f3e2eaca44d7e7e4f7919ccb5ce5d3ad3272864"
+      },
+      "container": "2f52a81e9f48",
+      "project": "p10-s-bruno-default-12271-10631",
+      "image": "sha256:71e19ab6fd97d7527fb36f8c1d678da61ff2f92124dfb651dec130d8c96ed4cd",
+      "npm": "11.20.0",
+      "matchesHostArtifacts": true,
+      "cliNpm": "11.13.0"
+    }
+  },
+  "preliminarySchedulerExitCode": 143,
+  "unfinishedReferenceLogSha256": "e98a5143275c8ba38784a704db8cf170c8a9ece9f70a2837edf3f3dbdbf9ee08",
+  "originalBrunoResult": {
+    "name": "fresh-bruno",
+    "stage": "stock",
+    "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND RBPORTAL_IMAGE=redbox-waterline-r4:npm11.20.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh bruno default",
+    "sourceCommit": "9a3f371c3c59ab281b15e7f804f00992fb84f121",
+    "worktreeChanges": [],
+    "exitCode": 0,
+    "durationMs": 297086,
+    "sha256": "1cfa52c39190f810acdb7a8d8098dd6e87b88e6ffc2c2c64aac6d919e9343e61",
+    "counts": {
+      "passing": [],
+      "pending": [4],
+      "failing": []
+    },
+    "checks": []
+  }
+}

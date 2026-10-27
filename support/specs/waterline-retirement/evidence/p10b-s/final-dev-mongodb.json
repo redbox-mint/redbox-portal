@@ -1,0 +1,21 @@
+{
+  "command": "RBPORTAL_STORAGE_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+  "exitCode": 0,
+  "durationMs": 62599,
+  "rawBytes": 348770,
+  "sha256": "40b758ba8e0ca58ec4d8e447a8fcf6f937253968fed7c394ce8187d947b5598d",
+  "reportedPassGroups": 2,
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v26.10.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

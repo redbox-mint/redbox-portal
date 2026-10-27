@@ -1,0 +1,100 @@
+{
+  "candidate": "mikro",
+  "node": "v24.18.0",
+  "at": "2026-10-19T14:14:39.487Z",
+  "fixtureSha256": "4695372f1418990df93caa933987cb7e6b26984bb438bd9b6e4640996a0f2e8b",
+  "checks": [
+    {
+      "name": "existing P0 ObjectId/string times/numeric/no-read-rewrite",
+      "status": "PASS",
+      "ms": 18.801512000000002
+    },
+    {
+      "name": "JSON object/array/empty/false/zero/null writes and reads",
+      "status": "PASS",
+      "ms": 47.145650000000046
+    },
+    {
+      "name": "missing JSON, partial update, unknown field and createdAt preservation",
+      "status": "PASS",
+      "ms": 9.493364999999926,
+      "detail": {
+        "missingRead": "null"
+      }
+    },
+    {
+      "name": "create then raw read with ObjectId and ISO strings",
+      "status": "PASS",
+      "ms": 9.585353000000055
+    },
+    {
+      "name": "belongs-to/has-many and explicit junction populate",
+      "status": "PASS",
+      "ms": 38.306195,
+      "detail": {
+        "explicitEdges": 2,
+        "danglingTarget": 1,
+        "ormPopulation": true
+      }
+    },
+    {
+      "name": "junction add duplicate/remove/replace without array/timestamp/unique conversion",
+      "status": "PASS",
+      "ms": 38.269210000000044
+    },
+    {
+      "name": "ORM/driver multi-document commit",
+      "status": "PASS",
+      "ms": 13.136083000000099
+    },
+    {
+      "name": "injected failure after two writes rolls both back",
+      "status": "PASS",
+      "ms": 8.395924000000036
+    },
+    {
+      "name": "real write-conflict, whole callback retry, durable result",
+      "status": "FAIL",
+      "error": {
+        "name": "DriverException",
+        "message": "Caused by :: Write conflict during plan execution and yielding is disabled. :: Please retry your operation or multi-document transaction.\nQuery: ",
+        "code": 112
+      }
+    }
+  ],
+  "native": {},
+  "transactions": {
+    "writeConflict112": 1
+  },
+  "startup": {
+    "initializeMs": 178.666048,
+    "rssDelta": 17584128,
+    "heapDelta": 4473960,
+    "rss": 95293440
+  },
+  "notes": [
+    "Explicit edge entity, no Mongo many-to-many arrays. Two ORM contexts borrow one client; storage EM receives app transaction context. Own bounded transient retry (3); ambiguous-commit retry is NOT qualified. Plain DTO projection is mandatory."
+  ],
+  "server": {
+    "version": "8.0.34",
+    "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+  },
+  "topology": {
+    "setName": "wr_p0r",
+    "members": 1,
+    "directConnection": true
+  },
+  "closedMemory": {
+    "rss": 101216256,
+    "heapTotal": 38674432,
+    "heapUsed": 20055632,
+    "external": 21225780,
+    "arrayBuffers": 18588920
+  },
+  "status": "FAIL",
+  "error": {
+    "name": "DriverException",
+    "message": "Caused by :: Write conflict during plan execution and yielding is disabled. :: Please retry your operation or multi-document transaction.\nQuery: ",
+    "stack": "DriverException: Caused by :: Write conflict during plan execution and yielding is disabled. :: Please retry your operation or multi-document transaction.\nQuery: \n    at MongoExceptionConverter.convertException (file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/core/platforms/ExceptionConverter.js:6:16)\n    at MongoExceptionConverter.convertException (file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/mongodb/MongoExceptionConverter.js:15:22)\n    at MongoDriver.convertException (file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/core/drivers/DatabaseDriver.js:615:54)\n    at file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/core/drivers/DatabaseDriver.js:619:24\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async MongoEntityManager.nativeUpdate (file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/core/EntityManager.js:1644:21)\n    at async /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/dist/run.js:163:36\n    at async /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/dist/mikro.js:69:29\n    at async TransactionManager.executeTransactionFlow (file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/core/utils/TransactionManager.js:260:21)\n    at async MongoConnection.transactional (file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/mongodb/MongoConnection.js:253:25)\n\n    at Connection.sendCommand (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/mongodb/lib/cmap/connection.js:322:27)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async Connection.command (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/mongodb/lib/cmap/connection.js:349:26)\n    at async Server.command (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/mongodb/lib/sdam/server.js:208:29)\n    at async executeOperationWithRetries (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/mongodb/lib/operations/execute_operation.js:217:32)\n    at async executeOperation (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/mongodb/lib/operations/execute_operation.js:85:16)\n    at async Collection.updateMany (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/mongodb/lib/collection.js:262:16)\n    at async MongoConnection.runQuery (file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/mongodb/MongoConnection.js:327:24)\n    at async MongoEntityManager.nativeUpdate (file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/node_modules/@mikro-orm/core/EntityManager.js:1644:21)\n    at async /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/dist/run.js:163:36"
+  }
+}

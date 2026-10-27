@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "0ea5e9bc22396f02d184bc341194a3a579477320",
+  "imageId": "sha256:4d8dd714c3eefb3577bbf63f001f802ee8570af718334676b7d2183a663024be",
+  "repoDigests": [
+    "wrp8/prior@sha256:4d8dd714c3eefb3577bbf63f001f802ee8570af718334676b7d2183a663024be"
+  ],
+  "architecture": "arm64",
+  "node": "24.16.0",
+  "recipe": "Dockerfile.prior",
+  "labels": {
+    "org.opencontainers.image.revision": "0ea5e9bc22396f02d184bc341194a3a579477320",
+    "redbox.task": "wrp8-815a2a6e"
+  },
+  "buildLogSha256": "b14dfe761211598771f4f14060549c4047f3618dc27c2ded19d3a2802bb00977",
+  "limits": "Local installed ARM64 dependencies and compiled pre-V core/storage; not a clean production-pruned full portal image."
+}

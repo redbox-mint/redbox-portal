@@ -1,0 +1,11 @@
+{
+  "name": "reference-operations",
+  "command": "npm --prefix packages/redbox-core run test:reference-operations",
+  "sourceCommit": "658e932cdb97443d750274c967a2b1f94a35870b",
+  "exitCode": 0,
+  "durationMs": 84664,
+  "sha256": "5ca71cf57a996285072b7c6d18f3e38472bc21642308b7f93574216e138fc7a6",
+  "counts": {},
+  "passGroups": 1,
+  "checks": []
+}

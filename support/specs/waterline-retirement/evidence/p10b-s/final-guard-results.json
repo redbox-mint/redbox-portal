@@ -1,0 +1,49 @@
+{
+  "backfill": {
+    "passing": 16,
+    "failures": 0,
+    "runs": [
+      {
+        "backend": "waterline",
+        "documents": 1207,
+        "maxBatch": 73,
+        "dispatched": 12,
+        "resumed": {
+          "activeUpdated": 728,
+          "tombstonesUpdated": 5,
+          "batches": 11,
+          "durationMs": 179
+        },
+        "rawSha256": "8abc3b940021f940fab46ab208c61998e8b51c301fbe41117b891f5ef82dcb68"
+      },
+      {
+        "backend": "mongodb",
+        "documents": 1207,
+        "maxBatch": 73,
+        "dispatched": 12,
+        "resumed": {
+          "activeUpdated": 728,
+          "tombstonesUpdated": 5,
+          "batches": 11,
+          "durationMs": 161
+        },
+        "rawSha256": "8abc3b940021f940fab46ab208c61998e8b51c301fbe41117b891f5ef82dcb68"
+      }
+    ],
+    "atomicUnitsMoved": 0
+  },
+  "ownerFailures": {
+    "passing": 5,
+    "failures": 0,
+    "cases": [
+      "cleanup waits for partial start and disconnects an owned address before any worker exists",
+      "late successful initialization cannot start workers after drain begins",
+      "failed connect rejects startup and retained producers; cleanup owns partial backend",
+      "failed backend close retains backend and app pool until successful retry"
+    ],
+    "connectionCounts": {
+      "observerOnly": 2,
+      "afterPartialFailureAndCloseRetries": 2
+    }
+  }
+}

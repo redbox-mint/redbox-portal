@@ -1,0 +1,30 @@
+{
+  "name": "cross-group-mappings",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-mappings",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 6225,
+  "sha256": "9e20bfe406373b18159be8d29f3b58546f7ac17ef8b86918356b69a84a602c98",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 600,
+      "failures": 0,
+      "summary": {
+        "migration": 18,
+        "reference": 168,
+        "configuration": 74,
+        "progress": 56,
+        "harvest": 128,
+        "siem": 80,
+        "figshare": 64,
+        "cache": 12
+      }
+    }
+  ]
+}

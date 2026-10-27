@@ -1,0 +1,423 @@
+{
+  "browser-portal.txt": {
+    "sha256": "be958e07f7aded16eda503838fa258bbd3842159f3f70864b0968ce6e52720cd",
+    "bytes": 1282280,
+    "lines": 4088,
+    "counts": {
+      "pending": 4
+    },
+    "summaryExcerpt": "redboxportal-mount-1  | C2_ACTIVE_BACKEND mongodb MongoCacheEntryRepository"
+  },
+  "browser.txt": {
+    "sha256": "cd8aa43102db720fdddf9503cae4f8518a16b3ca0620130586b074803ba79e6d",
+    "bytes": 211,
+    "lines": 6,
+    "counts": {
+      "passed": 1
+    }
+  },
+  "browser.xml": {
+    "sha256": "6ec2fa84087f66e8e7d24be797b6dfba6aa958fd7e784223aeab6cd1f0ac8448",
+    "bytes": 454,
+    "lines": 6,
+    "counts": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "build.txt": {
+    "sha256": "05fbd1427370c957abf9ce0ebff66c7ecf97624ff49a939bdfb5ad58a71dd322",
+    "bytes": 2381,
+    "lines": 15
+  },
+  "cache-attempt2.txt": {
+    "sha256": "d3f6d84c6549bafda8477b2cdc0ec10305ebe0ef0de5bdb8a99def51e21292d3",
+    "bytes": 498,
+    "lines": 9,
+    "exitCode": 130,
+    "attemptExcerpt": "npm notice run bash test/fixtures/cache-persistence/run-transition.sh\n\n\n  P5 shared adapter contract and independent application instances\nP5 MongoDB 8.0.34\n    1) runs the same raw-document repository contract with explicit waterline\n    2) preserves real persistence, falsy/null/expiry/error and notification reset behavior with waterline\n    3) runs the same raw-document repository contract with explicit prisma"
+  },
+  "cache-attempt3.txt": {
+    "sha256": "b48a19fb828ae478ed93daab3ece60ed03feb805e3e27b3682b4592ced36e84a",
+    "bytes": 993,
+    "lines": 23,
+    "exitCode": 130,
+    "attemptExcerpt": "    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs:344:13\nEmitted 'error' event on process instance at:\n    at node:internal/child_process:781:35\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11) {\n  code: 'ERR_IPC_CHANNEL_CLOSED'\n}\n\nNode.js v24.18.0"
+  },
+  "cache-attempt4.txt": {
+    "sha256": "b0d9d824c4b8674dfd9f802da8829386184461e99eca988242a9f560a55d9da3",
+    "bytes": 6043,
+    "lines": 95,
+    "counts": {
+      "passing": 20
+    }
+  },
+  "cache-attempt5.txt": {
+    "sha256": "167f5c3352c1fbeb98c087b3e3f23e9a2b76b68025d49ef0fcc7831be51a1170",
+    "bytes": 9232,
+    "lines": 157,
+    "counts": {
+      "passing": 19,
+      "failing": 1
+    },
+    "exitCode": 1,
+    "attemptExcerpt": "       runs the same raw-document repository contract with explicit waterline:\n     Error: Cache timestamps must be strings\n      at ChildProcess.<anonymous> (test/fixtures/cache-persistence/transition-client.cjs:45:55)\n      at ChildProcess.emit (node:events:509:28)\n      at ChildProcess.emit (node:domain:489:12)\n      at emit (node:internal/child_process:972:14)\n      at processTicksAndRejections (node:internal/process/task_queues:91:21)"
+  },
+  "cache-attempt6.txt": {
+    "sha256": "bbcb40280c9056727d2a049542fef3d09366a988d3d7387634328db6624bf4dd",
+    "bytes": 8713,
+    "lines": 145,
+    "counts": {
+      "passing": 20
+    }
+  },
+  "cache-contract.txt": {
+    "sha256": "be9182fcc71d6c26cf41df5ed874295b90b0d305861e1d107dc3d5fe58f96990",
+    "bytes": 2327,
+    "lines": 15
+  },
+  "cache-driver-prerequisites-attempt2.txt": {
+    "sha256": "e6c806ce1c216133d114f561822a32ff098e1850923c5e4f3a4c8a2931ec8222",
+    "bytes": 3730,
+    "lines": 42,
+    "counts": {
+      "passing": 16
+    }
+  },
+  "cache-driver-prerequisites.txt": {
+    "sha256": "cb4058f77bdc83fd926fa05251d4ef991e17ab3f1b2991e84d6d4619d930dd2c",
+    "bytes": 4648,
+    "lines": 89,
+    "counts": {
+      "passing": 14,
+      "failing": 2
+    },
+    "exitCode": 2,
+    "attemptExcerpt": "+ }\n- [Error: original startup failure]\n\n      + expected - actual\n\n      -{\n      -  \"code\": \"lifecycle\""
+  },
+  "cache-prerequisites-attempt2.txt": {
+    "sha256": "0756fe550c670a77ec20d2628270a524d24066c556233bdcb8c7161a2389dab7",
+    "bytes": 4002,
+    "lines": 54,
+    "counts": {
+      "passing": 16,
+      "failing": 1
+    },
+    "exitCode": 1,
+    "attemptExcerpt": "+ [TypeError: model.getDatastore is not a function]\n- [Error: original startup failure]\n\n      + expected - actual\n\n\n      at Context.<anonymous> (test/integration/CacheEntryPrisma.test.ts:634:18)"
+  },
+  "cache-prerequisites-attempt3.txt": {
+    "sha256": "7716ffcbc267f0287449bc85e23bf4c84e0f2e6e1db5cbc742187c483d8ddea9",
+    "bytes": 3824,
+    "lines": 43,
+    "counts": {
+      "passing": 17
+    }
+  },
+  "cache-prerequisites-attempt4.txt": {
+    "sha256": "a3151f50203974169687df7d5ff5a1cbfeb32970244639dff5b4c44f76097854",
+    "bytes": 3823,
+    "lines": 43,
+    "counts": {
+      "passing": 17
+    }
+  },
+  "cache-prerequisites-attempt5.txt": {
+    "sha256": "6e5447e0f5597d93819fe5390099774c8afe3b8181acc3588af8c620219ce89d",
+    "bytes": 3822,
+    "lines": 43,
+    "counts": {
+      "passing": 17
+    }
+  },
+  "cache-prerequisites.txt": {
+    "sha256": "8d163d9d8cc9ccbd72b4af6ddd3ebdee3798d064b8b0dcf547353b9aa2e380c6",
+    "bytes": 3022,
+    "lines": 55,
+    "counts": {
+      "passing": 16,
+      "failing": 1
+    },
+    "exitCode": 1,
+    "attemptExcerpt": "+ }\n- [Error: original startup failure]\n\n      + expected - actual\n\n      -{\n      -  \"code\": \"configuration\""
+  },
+  "cache-types-attempt10.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "cache-types-attempt2.txt": {
+    "sha256": "7182f940071fb7ef0d845cdd735cead9d0d1351efb2e908fcafba7b6b9af31ad",
+    "bytes": 1166,
+    "lines": 5,
+    "exitCode": 2,
+    "attemptExcerpt": "  No index signature with a parameter of type 'string' was found on type '{ appconfig: string; dashboardconfiguration: string; i18nbundle: string; i18ntranslation: string; }'.\npackages/redbox-core/test/services/testHelper.ts(153,48): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ themeconfig: string; form: string; recordtype: string; workflowstep: string; dashboardtype: string; report: string; namedquery: string; workspacetype: string; }'.\n  No index signature with a parameter of type 'string' was found on type '{ themeconfig: string; form: string; recordtype: string; workflowstep: string; dashboardtype: string; report: string; namedquery: string; workspacetype: string; }'."
+  },
+  "cache-types-attempt3.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "cache-types-attempt4.txt": {
+    "sha256": "d16c0d47f114ddb401740d94dd3192916f8947a67beb11db6f2570082059b3c7",
+    "bytes": 121,
+    "lines": 1,
+    "exitCode": 2,
+    "attemptExcerpt": "packages/redbox-core/test/integration/CacheEntryTransition.test.ts(208,64): error TS18046: 'error' is of type 'unknown'."
+  },
+  "cache-types-attempt5.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "cache-types-attempt6.txt": {
+    "sha256": "716eca5c19536628bb05a087445fadf5f383d3cedb871592482e245f3049db88",
+    "bytes": 1012,
+    "lines": 6,
+    "exitCode": 2,
+    "attemptExcerpt": "  No index signature with a parameter of type 'string' was found on type 'Record<string, unknown> | DatastoreAdapterConfig'.\npackages/redbox-core/test/integration/CacheEntryPrisma.test.ts(501,53): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Record<string, unknown> | DatastoreAdapterConfig'.\n  No index signature with a parameter of type 'string' was found on type 'Record<string, unknown> | DatastoreAdapterConfig'."
+  },
+  "cache-types-attempt7.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "cache-types-attempt8.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "cache-types-attempt9.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "cache-types.txt": {
+    "sha256": "db1d428cdaaedae9309b42068855ce131ae41a2f5fffe178212a5315e4e3e1a8",
+    "bytes": 84,
+    "lines": 1,
+    "exitCode": 127,
+    "attemptExcerpt": "bash: line 1: packages/redbox-core/node_modules/.bin/tsc: No such file or directory"
+  },
+  "cache.txt": {
+    "sha256": "1432f8a7c637c195d338b17506cbeffe268f5a63f342b07ad5e5fbd23da1f56c",
+    "bytes": 5404,
+    "lines": 86,
+    "counts": {
+      "passing": 17
+    }
+  },
+  "configuration-readiness.txt": {
+    "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+    "bytes": 262,
+    "lines": 6,
+    "summaryExcerpt": "PASS all four callback-override refusals, sparse/conflicting UID indexes, duplicate blocking before any group DDL, safe ensure/readiness"
+  },
+  "configuration.txt": {
+    "sha256": "fc9d30129c5b4f6170218ac6f86e495abbee4e66541971198618a00219d96e6a",
+    "bytes": 2229,
+    "lines": 22,
+    "summaryExcerpt": "PASS migrated institution service hook on both adapters through the public plain repository seam\nPASS unsupported BSON repository/query refusal without read rewrite or silently omitted rows\nPASS pre-Q f8c8cd7de installed image reads driver config/dashboard/bundle/entry/lease and writes unchanged database"
+  },
+  "core-attempt2.txt": {
+    "sha256": "a27fb5dcba53262eb93bc9ab2f4281f4c25014fa8cfa77cbe04ec81911f4cd61",
+    "bytes": 358785,
+    "lines": 6123,
+    "counts": {
+      "passing": 4158,
+      "pending": 107
+    }
+  },
+  "core.txt": {
+    "sha256": "dcf58a5d2e8257633fbac8037c1007b778ed03062e996c91ee488039451404ec",
+    "bytes": 359318,
+    "lines": 6135,
+    "counts": {
+      "passing": 4157,
+      "pending": 107,
+      "failing": 1
+    },
+    "exitCode": 1,
+    "attemptExcerpt": "       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:\n     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT\n\nnull !== 0\n\n      at Context.<anonymous> (test/unit/startup-module-loading.test.ts:44:12)\n      at processImmediate (node:internal/timers:504:21)"
+  },
+  "development.txt": {
+    "sha256": "d7e62bf44a05eaa3c1d97cfe963f0cfc836d26a3222de7bd925f06b7385cff7d",
+    "bytes": 362568,
+    "lines": 1611,
+    "counts": {
+      "pending": 4
+    },
+    "summaryExcerpt": "PASS standard development app.js HTTP startup on fresh isolated volume\nPASS cache=mongodb and M=mongodb readiness, shared indexes and durable migration history"
+  },
+  "figshare-readiness.txt": {
+    "sha256": "2fda460809044a4325b95f92919b7292150bfcf88d25dd58595e597e196acb9d",
+    "bytes": 232,
+    "lines": 2,
+    "summaryExcerpt": "PASS J4 inspect-only startup; all three scopes before DDL; full OID + scalar partial duplicate audit; null/missing exclusions; arrays refused without mutation; conflicts retained; model-free explicit ensure"
+  },
+  "figshare-unit.txt": {
+    "sha256": "e88c8efd83528894dbbbfc8e7c2399e42b24b9e0bd8dbaa4f75c0ac26395025f",
+    "bytes": 5544,
+    "lines": 66,
+    "counts": {
+      "passing": 56
+    }
+  },
+  "figshare.txt": {
+    "sha256": "c45c9088c560b3ed4a96d4d5e373d0184505f494e3225e3c1288cf2abbf39efd",
+    "bytes": 653,
+    "lines": 14,
+    "summaryExcerpt": "PASS pre-J4 image native read/write/replacement/ms lease\nPASS J4 raw/bidirectional/mixed CAS/owner expiry/restart/config and prior-image rollback/dispatch/receipts/generation/readback-before-ack/known and unknown failures/drain/hooks/unsupported BSON"
+  },
+  "foundation.txt": {
+    "sha256": "56ff97942b748853f1a2bc2ac137277be15010497748387cd4e79d585940de7b",
+    "bytes": 1459,
+    "lines": 25,
+    "counts": {
+      "passing": 12
+    }
+  },
+  "harvest.txt": {
+    "sha256": "cd7078f57d479512bea0445a7c26774a2cb5c9f013081be03f79fe757a1b0ece",
+    "bytes": 686,
+    "lines": 13,
+    "summaryExcerpt": "PASS actual pre-J2 image reads run/chunk/event lineage and writes compatible status\nPASS J2 raw/bidirectional/mixed contention/unique dimensions/hash+attempt/restart/config+prior-image rollback/retention/known and ambiguous failures/no BSON leak"
+  },
+  "import-warmup.txt": {
+    "sha256": "918006e1063218985748f324bf9bc4a6d31c31f301de850bab98cd9cae7f978d",
+    "bytes": 84,
+    "lines": 2
+  },
+  "indexes.txt": {
+    "sha256": "50497b1b74f079fe7e3cffeaac81e68c71d506be0459e8fd50d67e60c2824fc4",
+    "bytes": 1939,
+    "lines": 19,
+    "summaryExcerpt": "PASS 13: installed J3 command reviews all eight scopes before DDL, preserves duplicate events on refusal and explicitly prepares both collections\nPASS 14: installed J4 command audits partial binding duplicates before all DDL and retains null/missing exclusions on explicit upgrade\nPASS 15: omitted group selectors prepare the promoted M, R, Q, J1, J2, J3 and J4 defaults plus the retained Prisma cache"
+  },
+  "lint.txt": {
+    "sha256": "886e13c3e127beb1cf9a19813d4531c327496d871f68c3daae7929746880ba95",
+    "bytes": 191,
+    "lines": 4
+  },
+  "migration.txt": {
+    "sha256": "e4dbaf0cb29eeaf7beaad8a02b1188589929960ab77cd3b001737a808cc601f4",
+    "bytes": 6184,
+    "lines": 67,
+    "counts": {
+      "passing": 15
+    },
+    "summaryExcerpt": "PRE-P2 IMAGE ROLLBACK PASS: reads driver ledger, no replay, pending body writes interoperable history."
+  },
+  "packed-24.txt": {
+    "sha256": "0ac9177fcb3002e4634f4e93a39f30657ae5f556f2972b8ec995babf032acbad",
+    "bytes": 10431,
+    "lines": 155,
+    "summaryExcerpt": "PASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)\nPASS installed driver foundation/cache, two DB routing and Prisma interop (v24.16.0)\nPASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v24.16.0)"
+  },
+  "packed-26.txt": {
+    "sha256": "e8b1970b26f25ba3d23d847d6a4727388d43d3f2e392b761988d98fb75b7fdc7",
+    "bytes": 9944,
+    "lines": 150,
+    "summaryExcerpt": "PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)\nPASS installed driver foundation/cache, two DB routing and Prisma interop (v26.11.1)\nPASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v26.11.1)"
+  },
+  "progress-attempt2.txt": {
+    "sha256": "24267fe5b54d45721630b39decf9b69a9c185987ad95c37defc90b56afc0ab01",
+    "bytes": 672,
+    "lines": 13,
+    "summaryExcerpt": "PASS prior J1 image loaded models/read/write\nPASS J1 raw/bidirectional/simultaneous mixed/fresh-process restart/config rollback/prior-image rollback/hooks/named-query tenant scope/cleanup/rejected and unknown-ack failure contracts"
+  },
+  "progress.txt": {
+    "sha256": "17a67081b988749fd928f0fc8230113f38d79f08a42077efc4ef1483802e15cb",
+    "bytes": 1155,
+    "lines": 24,
+    "exitCode": 1,
+    "attemptExcerpt": "  code: 'ERR_ASSERTION',\n  actual: Error: J worker startup timeout\n      at Timeout.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/jobs-client.cjs:13:14)\n      at listOnTimeout (node:internal/timers:605:17)\n      at process.processTimers (node:internal/timers:541:7),\n  expected: [Function (anonymous)],\n  operator: 'rejects',"
+  },
+  "reference.txt": {
+    "sha256": "81fd2e0207042df4fa7517a2e17bcd2d8736b6a9a5c21d2d3edd16ae9919672e",
+    "bytes": 2769,
+    "lines": 35,
+    "summaryExcerpt": "PASS migrated service hook and explicit institution target parity, tenant/count/order/projection/page, unsupported-predicate refusal\nPASS prior cb874201 installed artifact: reads driver reference/form/report data, old callback update and write\nPASS designated pre-change built-image rollback on unchanged MongoDB"
+  },
+  "root-types-attempt2.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "root-types.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "siem-readiness-attempt2.txt": {
+    "sha256": "5e889bf8ed6ab197f37ea9402c60cedd5aa77adec338305cb278357af966a827",
+    "bytes": 225,
+    "lines": 2,
+    "summaryExcerpt": "PASS J3 missing startup is inspect-only; all eight upgrade scopes reviewed before DDL; duplicates/conflicts block without modifying data; explicit ensure; loaded-model-free driver; sanitized guidance"
+  },
+  "siem-readiness.txt": {
+    "sha256": "fce63881e5bb9d1fddbc229eadd93cabe722846c4deb08fda993ba318319a94f",
+    "bytes": 472,
+    "lines": 14,
+    "exitCode": 1,
+    "attemptExcerpt": "Dynamic imports imported\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n11 !== 8\n\n    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/durable-siem-readiness.cjs:41:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {"
+  },
+  "siem-unit.txt": {
+    "sha256": "bd02bad7e44c2a58e87c2d0a10d972392790c549e015ba86d21bd244dc04e730",
+    "bytes": 6921,
+    "lines": 119,
+    "counts": {
+      "passing": 73
+    }
+  },
+  "siem.txt": {
+    "sha256": "99c4d8e6b775a2de5ef5d281d57273bb6491388c0f7891be878a76ef4eaa58cc",
+    "bytes": 598,
+    "lines": 14,
+    "summaryExcerpt": "PASS pre-J3 image loaded read/write/native fencing\nPASS J3 raw/bidirectional/mixed contention/expiry/restart/config rollback/prior image/hooks/replay/retry/redaction/retention/ambiguous failure/draining"
+  },
+  "standard-bruno.txt": {
+    "sha256": "93eac3b569fdbabcbc9bc0354b74d1fce916c2da37b250c07aaedc15fdeaf5c7",
+    "bytes": 2468270,
+    "lines": 11636,
+    "counts": {
+      "pending": 4
+    },
+    "summaryExcerpt": "bruno-mount-1         | \u2502 Requests      \u2502 309 (309 Passed) \u2502\nbruno-mount-1         | \u2502 Tests         \u2502     553/553      \u2502\nbruno-mount-1         | \u2502 Assertions    \u2502       3/3        \u2502"
+  },
+  "standard-mocha-isolation-failures.txt": {
+    "sha256": "32038799c7d58578b3832cec5caea65763ac4bad5f9ef2a7c0bfb43bffbb098d",
+    "bytes": 1147118,
+    "lines": 8204,
+    "counts": {
+      "pending": 10,
+      "passing": 415,
+      "failing": 3
+    },
+    "summaryExcerpt": "redboxportal-mount-1  |     Additional MenuService Tests",
+    "attemptExcerpt": "redboxportal-mount-1  | \nredboxportal-mount-1  |       Uncaught AssertionError: expected false to deeply equal true\nredboxportal-mount-1  |       + expected - actual\nredboxportal-mount-1  | \nredboxportal-mount-1  |       -false\nredboxportal-mount-1  |       +true\nredboxportal-mount-1  |       "
+  },
+  "standard-mocha-keycloak-before-app.txt": {
+    "sha256": "e64c6af6ac5ade7308e697a090b999161432baa2cc7dbc70b332fcb97af222c9",
+    "bytes": 4800,
+    "lines": 64,
+    "attemptExcerpt": " Container cache-c2-qualify-mocha-19325-13584-keycloak-1 Error dependency keycloak failed to start\ndependency failed to start: container cache-c2-qualify-mocha-19325-13584-keycloak-1 is unhealthy\n Container cache-c2-qualify-mocha-19325-13584-redboxportal-mount-1 Stopping \n Container cache-c2-qualify-mocha-19325-13584-redboxportal-mount-1 Stopped \n Container cache-c2-qualify-mocha-19325-13584-redboxportal-mount-1 Removing \n Container cache-c2-qualify-mocha-19325-13584-redboxportal-mount-1 Removed \n Container cache-c2-qualify-mocha-19325-13584-solr-1 Stopping "
+  },
+  "standard-mocha.txt": {
+    "sha256": "8aa6e954f0e78753d89d918e1ffc555143a5c698ead65616e4fcb12c12263a1a",
+    "bytes": 1146592,
+    "lines": 8197,
+    "counts": {
+      "pending": 10,
+      "passing": 418
+    },
+    "summaryExcerpt": "redboxportal-mount-1  |     Additional MenuService Tests"
+  },
+  "types.txt": {
+    "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+    "bytes": 144,
+    "lines": 2
+  }
+}

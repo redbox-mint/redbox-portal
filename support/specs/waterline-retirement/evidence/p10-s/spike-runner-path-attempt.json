@@ -1,0 +1,13 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-durable.sh storage-spike"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 1.567,
+  "sha256": "412f8626f2986e22d8bd92560b317bf491f451c1167231fe7ad13a3592ae57d9",
+  "logBytes": 855,
+  "counts": [],
+  "failureExcerpt": "node:internal/modules/cjs/loader:1520\n  throw err;\n  ^\n\nError: Cannot find module '/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/durable-storage-spike.cjs'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)\n    at Module._load (node:internal/modules/cjs/loader:1294:5)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.18.0"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "id-values",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh id-values",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 6565,
+  "sha256": "1d3534b921237ee776ae98aa09e6a8beb2e2ac94406b31b321ce0fc9de2666b6",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 228,
+      "failures": 0
+    }
+  ]
+}

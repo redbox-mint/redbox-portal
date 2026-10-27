@@ -1,0 +1,15 @@
+{
+  "name": "ordering-shapes-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/progress-persistence.test.ts",
+  "sourceCommit": "8304b61e05946458fc9f970654091402a0825c93",
+  "exitCode": 0,
+  "durationMs": 41884,
+  "sha256": "d73d5e49d82f57825f406c7f0c8091dcfde405ab1db8b5b95b336c863adf2b91",
+  "counts": {
+    "passing": [
+      6
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

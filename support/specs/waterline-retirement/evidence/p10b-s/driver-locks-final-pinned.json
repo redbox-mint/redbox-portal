@@ -1,0 +1,20 @@
+{
+  "command": "node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js install --package-lock-only --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer && node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js ci --dry-run --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer && node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js ci --dry-run --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer --prefix packages/sails-hook-redbox-storage-mongo && node packages/redbox-core/test/fixtures/waterline-retirement/verify-storage-runtime.cjs",
+  "exitCode": 0,
+  "durationMs": 14935,
+  "rawBytes": 13158,
+  "sha256": "10e09dd842aa7729b5a094548c96bff0eec07c3d957cbae55ce3add952fecd5e",
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

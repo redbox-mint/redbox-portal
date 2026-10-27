@@ -1,0 +1,28 @@
+{
+  "sourceBaseline": "f8c8cd7de136d619a2d173e0fb41ac820307da8d",
+  "implementation": "7c3abfdd05ad93fb4932bfbb558233e4b13d028e",
+  "consumers": [
+    "packages/redbox-core/src/persistence/reference/NamedQueryExecution.ts",
+    "packages/redbox-core/src/services/AppConfigSecrets.ts",
+    "packages/redbox-core/src/services/TranslationService.ts",
+    "packages/redbox-core/src/services/DashboardTypesService.ts",
+    "packages/redbox-core/src/services/I18nEntriesService.ts",
+    "packages/redbox-core/src/services/DashboardConfigService.ts",
+    "packages/redbox-core/src/services/AppConfigService.ts"
+  ],
+  "namedQueryTargets": [
+    "appconfig",
+    "dashboardconfiguration",
+    "i18nbundle",
+    "i18ntranslation"
+  ],
+  "nativeOwners": {
+    "dashboardconfiguration": "ConfigurationRepositories.dashboards.compareAndSwap",
+    "appconfigsecretlocks": "ConfigurationRepositories.secretLeases"
+  },
+  "retainedBridges": "WaterlineNamedQueryTargets is the explicit Q waterline backend; MongoNamedQueryTargets in configuration follows the independent Q selector",
+  "unpromotedDefault": "waterline",
+  "promotionCommit": "d2dc6f8ce",
+  "defaultAfterPromotion": "mongodb",
+  "explicitRollback": "waterline"
+}

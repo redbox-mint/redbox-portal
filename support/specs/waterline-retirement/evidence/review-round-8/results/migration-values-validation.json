@@ -1,0 +1,13 @@
+{
+  "name": "migration-values-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh migration-values",
+  "sourceCommit": "3e6eed3d48d1365b17671ab6cc97c6913e663deb",
+  "exitCode": 0,
+  "durationMs": 50473,
+  "sha256": "c4822506b6b5df4997b5608dc91bf3f8f9233272cf7642d1ba32ca0dd2609b05",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":102,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

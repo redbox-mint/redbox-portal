@@ -1,0 +1,60 @@
+{
+  "command": [
+    "bash",
+    "packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh",
+    "mocha",
+    "mongodb"
+  ],
+  "exitCode": 2,
+  "durationSeconds": 324.925,
+  "sha256": "ff76b23536f94a67f38f1aa5a5823f41831cf481e49c39c44df906a085f9efb0",
+  "logBytes": 1142443,
+  "counts": [
+    [
+      "4",
+      "pending",
+      ""
+    ],
+    [
+      "2",
+      "pending",
+      ""
+    ],
+    [
+      "0",
+      "pending",
+      ""
+    ],
+    [
+      "1",
+      "pending",
+      ""
+    ],
+    [
+      "1",
+      "pending",
+      ""
+    ],
+    [
+      "417",
+      "passing",
+      ""
+    ],
+    [
+      "10",
+      "pending",
+      ""
+    ],
+    [
+      "2",
+      "failing",
+      ""
+    ]
+  ],
+  "failureExcerpt": "redboxportal-mount-1  |   2 failing\nredboxportal-mount-1  | \nredboxportal-mount-1  |   1) Selected staged S repository in the stock application\nredboxportal-mount-1  |        uses the selected attachment owner and keeps record and authorization operations on baseline:\nredboxportal-mount-1  | \nredboxportal-mount-1  |       AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\nredboxportal-mount-1  | + actual - expected\nredboxportal-mount-1  | \nredboxportal-mount-1  | + 'waterline'\nredboxportal-mount-1  | - 'mongodb'\nredboxportal-mount-1  | \nredboxportal-mount-1  |       + expected - actual\nredboxportal-mount-1  | \nredboxportal-mount-1  |       -waterline\nredboxportal-mount-1  |       +mongodb\nredboxportal-mount-1  |       \nredboxportal-mount-1  |       at Context.<anonymous> (test/integration/persistence/StorageRepository.test.ts:8:12)\nredboxportal-mount-1  |       at processImmediate (node:internal/timers:574:21)\nredboxportal-mount-1  | \nredboxportal-mount-1  |   2) Request chronicle in lifted Sails\nredboxportal-mount-1  |        does not warn for virtual requests, which have no request chronicle:\nredboxportal-mount-1  | \nredboxportal-mount-1  |       AssertionError [ERR_ASSERTION]: virtual requests do not produce events\nredboxportal-mount-1  | \nredboxportal-mount-1  | 1 !== 0\nredboxportal-mount-1  | \nredboxportal-mount-1  |       + expected - actual\nredboxportal-mount-1  | \nredboxportal-mount-1  |       -1\nredboxportal-mount-1  |       +0\nredboxportal-mount-1  |       \nredboxportal-mount-1  |       at Context.<anonymous> (test/integration/services/RequestChronicle.test.ts:345:12)\nredboxportal-mount-1  | \nredboxportal-mount-1  | \nredboxportal-mount-1  | \nredboxportal-mount-1  |",
+  "totals": {
+    "pending": 10,
+    "passing": 417,
+    "failing": 2
+  }
+}

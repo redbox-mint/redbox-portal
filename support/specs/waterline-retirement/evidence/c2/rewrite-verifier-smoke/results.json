@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "840833e65c13470e62f0735908c7e26def363b2c",
+  "startedAt": "2026-10-20T13:10:31.804212+00:00",
+  "checks": [
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "exitCode": 0,
+      "log": "lint.txt",
+      "durationSeconds": 0.35,
+      "logSha256": "5cd646146a6567bcb7adc1fb95bac9df02c9a2f15cd361379b4ac287d13909e1",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    }
+  ]
+}

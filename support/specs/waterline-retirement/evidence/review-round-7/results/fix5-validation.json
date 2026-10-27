@@ -1,0 +1,17 @@
+{
+  "name": "fix5-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh review-scalars && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/harvest-persistence.test.ts test/unit/siem-persistence.test.ts",
+  "sourceCommit": "7c52cabe6e1d50505f180a3246c8bbc944f4eb95",
+  "exitCode": 0,
+  "durationMs": 51740,
+  "sha256": "66555b6def2eff0a4104d3ca35ca2bda264b497040a0c8566e7c9815a040ce4c",
+  "counts": {
+    "passing": [
+      9
+    ]
+  },
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":315,\"failures\":0,\"firstFailures\":[],\"baseline\":\"actual loaded Waterline create/fetch for every J2/J3 numeric field\"}"
+  ]
+}

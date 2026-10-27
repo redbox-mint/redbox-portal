@@ -1,0 +1,20 @@
+{
+  "name": "gridfs-streams",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 5797,
+  "sha256": "8d0e940e8dac1e0ed00195820459c2f2c6d00bd7792424ac484ec22256a530a6",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 14,
+      "failures": 0
+    }
+  ]
+}

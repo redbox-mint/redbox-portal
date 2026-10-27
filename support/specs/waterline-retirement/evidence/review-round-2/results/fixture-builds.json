@@ -1,0 +1,11 @@
+{
+  "name": "fixture-builds",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build",
+  "sourceCommit": "f291c3260f0456f92730ed8e972bc8df920895fa",
+  "exitCode": 0,
+  "durationMs": 39673,
+  "sha256": "f0b68b79b3bdab45bc9f779444f626ee7e282e2c2a42e83cd3e8d15208747c08",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

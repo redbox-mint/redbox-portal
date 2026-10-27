@@ -1,0 +1,755 @@
+{
+  "M": {
+    "file": "packages/redbox-core/src/persistence/migration/MongoMigrationLedgerRepository.ts",
+    "paths": [
+      {
+        "operation": "executedNames",
+        "line": 25
+      },
+      {
+        "operation": "isExecuted",
+        "line": 37
+      },
+      {
+        "operation": "recordExecution",
+        "line": 44
+      },
+      {
+        "operation": "removeExecution",
+        "line": 69
+      }
+    ]
+  },
+  "R": {
+    "file": "packages/redbox-core/src/persistence/reference/MongoReferenceRepositories.ts",
+    "paths": [
+      {
+        "operation": "themes.list",
+        "line": 18
+      },
+      {
+        "operation": "themes.findByName",
+        "line": 24
+      },
+      {
+        "operation": "themes.reviseDefinition",
+        "line": 36
+      },
+      {
+        "operation": "themes.createDefinition",
+        "line": 49
+      },
+      {
+        "operation": "forms.list",
+        "line": 57
+      },
+      {
+        "operation": "forms.listByName",
+        "line": 66
+      },
+      {
+        "operation": "forms.findByName",
+        "line": 75
+      },
+      {
+        "operation": "forms.findByIds",
+        "line": 90
+      },
+      {
+        "operation": "forms.removeByName",
+        "line": 99
+      },
+      {
+        "operation": "forms.createDefinition",
+        "line": 109
+      },
+      {
+        "operation": "recordTypes.listForBrand",
+        "line": 117
+      },
+      {
+        "operation": "recordTypes.findByName",
+        "line": 126
+      },
+      {
+        "operation": "recordTypes.findByKey",
+        "line": 141
+      },
+      {
+        "operation": "recordTypes.reviseDefinition",
+        "line": 153
+      },
+      {
+        "operation": "recordTypes.removeForBrand",
+        "line": 166
+      },
+      {
+        "operation": "recordTypes.createDefinition",
+        "line": 170
+      },
+      {
+        "operation": "workflows.listAll",
+        "line": 178
+      },
+      {
+        "operation": "workflows.listForRecordType",
+        "line": 184
+      },
+      {
+        "operation": "workflows.findByName",
+        "line": 193
+      },
+      {
+        "operation": "workflows.findStarting",
+        "line": 205
+      },
+      {
+        "operation": "workflows.attachForm",
+        "line": 217
+      },
+      {
+        "operation": "workflows.removeAllForBootstrap",
+        "line": 228
+      },
+      {
+        "operation": "workflows.createDefinition",
+        "line": 232
+      },
+      {
+        "operation": "dashboardTypes.listForBrand",
+        "line": 240
+      },
+      {
+        "operation": "dashboardTypes.findByName",
+        "line": 249
+      },
+      {
+        "operation": "dashboardTypes.reviseDefinition",
+        "line": 261
+      },
+      {
+        "operation": "dashboardTypes.removeForBrand",
+        "line": 283
+      },
+      {
+        "operation": "dashboardTypes.createDefinition",
+        "line": 289
+      },
+      {
+        "operation": "reports.listForBrand",
+        "line": 297
+      },
+      {
+        "operation": "reports.findByKey",
+        "line": 306
+      },
+      {
+        "operation": "reports.reviseDefinition",
+        "line": 318
+      },
+      {
+        "operation": "reports.removeByKey",
+        "line": 331
+      },
+      {
+        "operation": "reports.createDefinition",
+        "line": 335
+      },
+      {
+        "operation": "namedQueries.listForBrand",
+        "line": 343
+      },
+      {
+        "operation": "namedQueries.findByKey",
+        "line": 352
+      },
+      {
+        "operation": "namedQueries.reviseDefinition",
+        "line": 364
+      },
+      {
+        "operation": "namedQueries.removeByKey",
+        "line": 377
+      },
+      {
+        "operation": "namedQueries.createDefinition",
+        "line": 384
+      },
+      {
+        "operation": "workspaceTypes.listForBrand",
+        "line": 392
+      },
+      {
+        "operation": "workspaceTypes.findByName",
+        "line": 401
+      },
+      {
+        "operation": "workspaceTypes.setLogo",
+        "line": 413
+      },
+      {
+        "operation": "workspaceTypes.removeForBrand",
+        "line": 419
+      },
+      {
+        "operation": "workspaceTypes.createDefinition",
+        "line": 423
+      },
+      {
+        "operation": "workflowForms",
+        "line": 430
+      }
+    ]
+  },
+  "Q": {
+    "file": "packages/redbox-core/src/persistence/configuration/MongoConfigurationRepositories.ts",
+    "paths": [
+      {
+        "operation": "appConfigs.listForBrand",
+        "line": 43
+      },
+      {
+        "operation": "appConfigs.findForBrandAndKey",
+        "line": 55
+      },
+      {
+        "operation": "appConfigs.createConfiguration",
+        "line": 59
+      },
+      {
+        "operation": "appConfigs.replaceForBrandAndKey",
+        "line": 60
+      },
+      {
+        "operation": "appConfigs.removeForBrandAndKey",
+        "line": 69
+      },
+      {
+        "operation": "dashboards.prepareLegacyStorage",
+        "line": 77
+      },
+      {
+        "operation": "dashboards.findForBrand",
+        "line": 78
+      },
+      {
+        "operation": "dashboards.createAggregate",
+        "line": 84
+      },
+      {
+        "operation": "dashboards.compareAndSwap",
+        "line": 85
+      },
+      {
+        "operation": "bundles.findByUid",
+        "line": 92
+      },
+      {
+        "operation": "bundles.findById",
+        "line": 94
+      },
+      {
+        "operation": "bundles.findForLocale",
+        "line": 95
+      },
+      {
+        "operation": "bundles.listForBrand",
+        "line": 102
+      },
+      {
+        "operation": "bundles.createBundle",
+        "line": 108
+      },
+      {
+        "operation": "bundles.reviseBundle",
+        "line": 109
+      },
+      {
+        "operation": "bundles.setEnabled",
+        "line": 110
+      },
+      {
+        "operation": "translations.findByUid",
+        "line": 120
+      },
+      {
+        "operation": "translations.listForLocale",
+        "line": 124
+      },
+      {
+        "operation": "translations.createEntry",
+        "line": 140
+      },
+      {
+        "operation": "translations.reviseEntry",
+        "line": 141
+      },
+      {
+        "operation": "translations.removeByUid",
+        "line": 142
+      },
+      {
+        "operation": "translations.addEntries",
+        "line": 154
+      },
+      {
+        "operation": "secretLeases.inspect",
+        "line": 161
+      },
+      {
+        "operation": "secretLeases.acquire",
+        "line": 162
+      },
+      {
+        "operation": "secretLeases.renew",
+        "line": 163
+      },
+      {
+        "operation": "secretLeases.publishToken",
+        "line": 164
+      },
+      {
+        "operation": "secretLeases.release",
+        "line": 165
+      }
+    ]
+  },
+  "Q-leases": {
+    "file": "packages/redbox-core/src/persistence/configuration/secretLeases.ts",
+    "paths": [
+      {
+        "operation": "inspect",
+        "line": 11
+      },
+      {
+        "operation": "acquire",
+        "line": 26
+      },
+      {
+        "operation": "renew",
+        "line": 35
+      },
+      {
+        "operation": "publishToken",
+        "line": 47
+      },
+      {
+        "operation": "release",
+        "line": 59
+      }
+    ]
+  },
+  "J1": {
+    "file": "packages/redbox-core/src/persistence/progress/MongoProgressRepositories.ts",
+    "paths": [
+      {
+        "operation": "progress.startProgress",
+        "line": 44
+      },
+      {
+        "operation": "progress.listProgress",
+        "line": 50
+      },
+      {
+        "operation": "progress.reviseProgress",
+        "line": 112
+      },
+      {
+        "operation": "progress.removeProgress",
+        "line": 123
+      },
+      {
+        "operation": "workspaces.registerWork",
+        "line": 129
+      },
+      {
+        "operation": "workspaces.reviseStatus",
+        "line": 135
+      },
+      {
+        "operation": "workspaces.listStatus",
+        "line": 144
+      },
+      {
+        "operation": "workspaces.removeWork",
+        "line": 150
+      }
+    ]
+  },
+  "J2": {
+    "file": "packages/redbox-core/src/persistence/harvest/MongoHarvestRepositories.ts",
+    "paths": [
+      {
+        "operation": "runs.findRun",
+        "line": 27
+      },
+      {
+        "operation": "runs.createRun",
+        "line": 42
+      },
+      {
+        "operation": "runs.listRuns",
+        "line": 48
+      },
+      {
+        "operation": "runs.countRuns",
+        "line": 57
+      },
+      {
+        "operation": "runs.completeChunkCounters",
+        "line": 58
+      },
+      {
+        "operation": "runs.incrementDuplicateChunks",
+        "line": 69
+      },
+      {
+        "operation": "runs.removeRun",
+        "line": 87
+      },
+      {
+        "operation": "chunks.findAttempts",
+        "line": 93
+      },
+      {
+        "operation": "chunks.listForRun",
+        "line": 99
+      },
+      {
+        "operation": "chunks.createAttempt",
+        "line": 107
+      },
+      {
+        "operation": "chunks.reviseAttempt",
+        "line": 113
+      },
+      {
+        "operation": "chunks.removeForRun",
+        "line": 124
+      },
+      {
+        "operation": "events.appendEvents",
+        "line": 130
+      },
+      {
+        "operation": "events.listCheckpointed",
+        "line": 134
+      },
+      {
+        "operation": "events.listEvents",
+        "line": 150
+      },
+      {
+        "operation": "events.countEvents",
+        "line": 161
+      },
+      {
+        "operation": "events.removeForRun",
+        "line": 162
+      }
+    ]
+  },
+  "J3": {
+    "file": "packages/redbox-core/src/persistence/siem/MongoSiemRepository.ts",
+    "paths": [
+      {
+        "operation": "capture",
+        "line": 45
+      },
+      {
+        "operation": "findEvent",
+        "line": 55
+      },
+      {
+        "operation": "listEvents",
+        "line": 57
+      },
+      {
+        "operation": "countEvents",
+        "line": 67
+      },
+      {
+        "operation": "appendAttempt",
+        "line": 68
+      },
+      {
+        "operation": "listAttempts",
+        "line": 72
+      },
+      {
+        "operation": "countAttempts",
+        "line": 80
+      },
+      {
+        "operation": "readyEvents",
+        "line": 81
+      },
+      {
+        "operation": "claimDelivery",
+        "line": 83
+      },
+      {
+        "operation": "saveDelivery",
+        "line": 89
+      },
+      {
+        "operation": "cleanupDeadLetters",
+        "line": 95
+      }
+    ]
+  },
+  "J4": {
+    "file": "packages/redbox-core/src/persistence/figshare/NativeFigshareRepository.ts",
+    "paths": [
+      {
+        "operation": "assertReady",
+        "line": 319
+      },
+      {
+        "operation": "initialise",
+        "line": 320
+      },
+      {
+        "operation": "get",
+        "line": 321
+      },
+      {
+        "operation": "change",
+        "line": 322
+      },
+      {
+        "operation": "importSource",
+        "line": 323
+      },
+      {
+        "operation": "request",
+        "line": 324
+      },
+      {
+        "operation": "claim",
+        "line": 325
+      },
+      {
+        "operation": "renew",
+        "line": 326
+      },
+      {
+        "operation": "assertOwner",
+        "line": 327
+      },
+      {
+        "operation": "release",
+        "line": 328
+      },
+      {
+        "operation": "due",
+        "line": 329
+      },
+      {
+        "operation": "dispatchClaim",
+        "line": 330
+      },
+      {
+        "operation": "claimAdministration",
+        "line": 331
+      },
+      {
+        "operation": "findOtherBinding",
+        "line": 332
+      }
+    ]
+  },
+  "cache": {
+    "file": "packages/redbox-core/src/persistence/cache/MongoCacheEntryRepository.ts",
+    "paths": [
+      {
+        "operation": "findByName",
+        "line": 14
+      },
+      {
+        "operation": "create",
+        "line": 31
+      },
+      {
+        "operation": "updateByName",
+        "line": 45
+      },
+      {
+        "operation": "deleteById",
+        "line": 64
+      }
+    ]
+  },
+  "S-attachments": {
+    "file": "packages/redbox-core/src/persistence/storage/MongoAttachmentRepository.ts",
+    "paths": [
+      {
+        "operation": "upsert",
+        "line": 130
+      },
+      {
+        "operation": "findByOid",
+        "line": 175
+      },
+      {
+        "operation": "findUnresolvedByOid",
+        "line": 199
+      },
+      {
+        "operation": "findUnresolvedByStagingFileId",
+        "line": 219
+      },
+      {
+        "operation": "prepareMutations",
+        "line": 232
+      },
+      {
+        "operation": "markMutation",
+        "line": 304
+      },
+      {
+        "operation": "hasCleanupClaim",
+        "line": 366
+      },
+      {
+        "operation": "claimExpiredStagingCleanup",
+        "line": 378
+      },
+      {
+        "operation": "beginStagingCleanup",
+        "line": 459
+      },
+      {
+        "operation": "authorizeStagingCleanup",
+        "line": 503
+      },
+      {
+        "operation": "releaseStagingCleanup",
+        "line": 540
+      },
+      {
+        "operation": "completeStagingCleanup",
+        "line": 576
+      },
+      {
+        "operation": "recoverStagingCleanup",
+        "line": 611
+      },
+      {
+        "operation": "markDeleted",
+        "line": 658
+      },
+      {
+        "operation": "findOneByStorageKey",
+        "line": 668
+      },
+      {
+        "operation": "deleteByStorageKey",
+        "line": 676
+      },
+      {
+        "operation": "recordAccess",
+        "line": 684
+      }
+    ]
+  },
+  "S-staged": {
+    "file": "packages/sails-hook-redbox-storage-mongo/src/persistence/MongoStagedStorage.ts",
+    "paths": [
+      {
+        "operation": "init",
+        "line": 82
+      },
+      {
+        "operation": "createRecordAudit",
+        "line": 105
+      },
+      {
+        "operation": "createIntegrationAudit",
+        "line": 108
+      },
+      {
+        "operation": "getRecordAudit",
+        "line": 111
+      },
+      {
+        "operation": "getIntegrationAudit",
+        "line": 132
+      },
+      {
+        "operation": "countIntegrationAudit",
+        "line": 147
+      }
+    ]
+  },
+  "S-inherited-schema": {
+    "file": "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts",
+    "paths": [
+      {
+        "operation": "putRecordSchemaArtifact",
+        "line": 1234
+      },
+      {
+        "operation": "getRecordSchemaArtifact",
+        "line": 1281
+      },
+      {
+        "operation": "listRecordSchemaArtifacts",
+        "line": 1296
+      },
+      {
+        "operation": "touchRecordSchemaArtifact",
+        "line": 1323
+      },
+      {
+        "operation": "putRecordSchemaReference",
+        "line": 1384
+      },
+      {
+        "operation": "listRecordSchemaReferences",
+        "line": 1549
+      }
+    ],
+    "note": "The exact inherited baseline methods, reached only for the explicit staged allowlist. Grant authorization is excluded."
+  },
+  "S-revision-maintenance": {
+    "file": "packages/sails-hook-redbox-storage-mongo/src/persistence/RecordRevisionMaintenance.ts",
+    "paths": [
+      {
+        "operation": "recordRevisionMaintenance",
+        "line": 17
+      }
+    ],
+    "note": "backfill is the single bounded revision-only entry point; both selections call shared backfillRecordRevisions. No content, lifecycle, identity or authorization promotion."
+  },
+  "R-named-query": {
+    "file": "packages/redbox-core/src/persistence/reference/MongoNamedQueryTargets.ts",
+    "paths": [
+      {
+        "operation": "executeMongoReferenceQuery",
+        "line": 11
+      }
+    ],
+    "note": "Shared criteria/scalar/order/projection parser; group physical ID and DTO codecs."
+  },
+  "Q-named-query": {
+    "file": "packages/redbox-core/src/persistence/configuration/MongoNamedQueryTargets.ts",
+    "paths": [
+      {
+        "operation": "executeMongoConfigurationQuery",
+        "line": 11
+      }
+    ],
+    "note": "Shared criteria/scalar/order/projection parser; group physical ID and DTO codecs."
+  },
+  "J1-named-query": {
+    "file": "packages/redbox-core/src/persistence/progress/MongoNamedQueryTargets.ts",
+    "paths": [
+      {
+        "operation": "executeMongoProgressQuery",
+        "line": 11
+      }
+    ],
+    "note": "Shared criteria/scalar/order/projection parser; group physical ID and DTO codecs."
+  }
+}

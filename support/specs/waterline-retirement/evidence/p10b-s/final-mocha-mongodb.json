@@ -1,0 +1,35 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha mongodb",
+  "exitCode": 0,
+  "durationMs": 280803,
+  "rawBytes": 1017097,
+  "sha256": "7eb15458c87007aa5204b1e4d0348b22ba052da2e47d8eb7459e612f323bee0c",
+  "counts": {
+    "passing": 419,
+    "pending": 10
+  },
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    },
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

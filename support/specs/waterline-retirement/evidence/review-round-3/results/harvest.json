@@ -1,0 +1,11 @@
+{
+  "name": "harvest",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh harvest-contract",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 33211,
+  "sha256": "4cd9730913edcb9c99a4ddb10a2605c347000decc9978f60142961527f50d400",
+  "counts": {},
+  "passGroups": 2,
+  "checks": []
+}

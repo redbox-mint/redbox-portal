@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import { retainHttpCallback, runHttpRequestHandler, trackHttpRequestWork } from './middleware/requestLifetime';
 import * as _ from 'lodash';
 import path from 'path';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
@@ -106,7 +107,12 @@ export namespace Controllers.Core {
           // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
           if (methodName[0] !== '_' || methodName === '_config') {
             if (_.isFunction(member)) {
-              exportedMethods[methodName] = (member as (...args: unknown[]) => unknown).bind(this);
+              const bound = (member as (...args: unknown[]) => unknown).bind(this);
+              const invoke = (args: unknown[]) => runHttpRequestHandler(args[0], () => bound(...args));
+              // Sails catches rejected action promises only for AsyncFunction.
+              exportedMethods[methodName] = bound.constructor.name === 'AsyncFunction'
+                ? async (...args: unknown[]) => invoke(args)
+                : (...args: unknown[]) => invoke(args);
             } else {
               exportedMethods[methodName] = member;
             }
@@ -676,6 +682,11 @@ export namespace Controllers.Core {
       }
     }
 
+    /** Retain a callback response after an async action's own promise settles. */
+    protected retainRequestCallback(req: Sails.Req): void {
+      retainHttpCallback(req);
+    }
+
     /**
      * Record the result of work that is not awaited before the response is sent, such as an audit event.
      * If the work finishes after the response, its result is logged separately with the request id,
@@ -686,6 +697,7 @@ export namespace Controllers.Core {
      * @protected
      */
     protected recordBackgroundOperation(req: Sails.Req, operation: string, work: PromiseLike<unknown>): void {
+      trackHttpRequestWork(req, work);
       // Capture the helper now, in case the request options change before the work finishes.
       const rc = RequestChronicleHelper.existing(req);
       const onResult = (error?: unknown) => {

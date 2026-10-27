@@ -1,0 +1,29 @@
+{
+  "name": "query-adversarial",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-adversarial",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 34721,
+  "sha256": "4db1ce8627a76eb4db5a8669a841eeafb881d52311aa1b2bea4cfe52662c5b54",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 6129,
+      "comparisons": 6129,
+      "parityComparisons": 3777,
+      "explicitRefusals": 2352,
+      "failures": 0,
+      "firstFailures": [],
+      "writers": [
+        "waterline",
+        "mongodb"
+      ],
+      "readers": [
+        "waterline",
+        "mongodb"
+      ],
+      "baseline": "loaded Waterline find/count plus legacy plain projection"
+    }
+  ]
+}

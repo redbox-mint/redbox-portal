@@ -1,0 +1,15 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh backfill",
+  "exitCode": 0,
+  "durationMs": 6486,
+  "rawBytes": 576,
+  "sha256": "ee911734218c7e74f9f365369ad9d18b1241f35506e7d18aefed259eb2116337",
+  "checkRuns": [
+    {
+      "passing": 16,
+      "failures": 0,
+      "atomicUnitsMoved": 0,
+      "modelFreeEntrypoint": true
+    }
+  ]
+}

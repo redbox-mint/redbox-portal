@@ -1,0 +1,6 @@
+{
+  "name": "final-cache-test-types",
+  "command": "node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json",
+  "exitCode": 0,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

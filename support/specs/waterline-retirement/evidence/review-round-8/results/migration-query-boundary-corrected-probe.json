@@ -1,0 +1,13 @@
+{
+  "name": "migration-query-boundary-corrected-probe",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh migration-values",
+  "sourceCommit": "676c953c69f97e76b6ccf201b25230b22f35b04c",
+  "exitCode": 1,
+  "durationMs": 10154,
+  "sha256": "ed4144b8d70f8535adb1a298689d17a9e132c3f30f5e83543e1369776eb01887",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":102,\"failures\":4,\"firstFailures\":[{\"method\":\"isExecuted\",\"input\":\"\",\"waterline\":{\"ok\":true,\"value\":false},\"mongodb\":{\"ok\":false,\"code\":\"invalid-migration\"}},{\"method\":\"removeExecution\",\"input\":\"\",\"waterline\":{\"ok\":true},\"mongodb\":{\"ok\":false,\"code\":\"invalid-migration\"}},{\"method\":\"isExecuted\",\"input\":null,\"waterline\":{\"ok\":true,\"value\":false},\"mongodb\":{\"ok\":false,\"code\":\"invalid-migration\"}},{\"method\":\"removeExecution\",\"input\":null,\"waterline\":{\"ok\":true},\"mongodb\":{\"ok\":false,\"code\":\"invalid-migration\"}}]}"
+  ]
+}

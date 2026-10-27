@@ -1,0 +1,20 @@
+{
+  "name": "cache-read-values",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cache-read-values",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 5608,
+  "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 60,
+      "failures": 0
+    }
+  ]
+}

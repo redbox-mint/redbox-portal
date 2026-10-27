@@ -1,0 +1,31 @@
+{
+  "timeoutMs": 12000,
+  "reviewedHead": "91cf1cc27",
+  "results": [
+    {
+      "name": "reviewed-source",
+      "status": null,
+      "error": "ETIMEDOUT",
+      "durationMs": 12058.343065000001,
+      "output": "",
+      "stderr": ""
+    },
+    {
+      "name": "current-source",
+      "status": 0,
+      "durationMs": 11009.095943999999,
+      "output": "{\"importMs\":9966.503048999999,\"totalMs\":10631.611404}\nDynamic imports imported",
+      "stderr": ""
+    },
+    {
+      "name": "current-built",
+      "status": 0,
+      "durationMs": 3508.4619730000013,
+      "output": "{\"importMs\":2301.04888,\"totalMs\":3177.068993}\nDynamic imports imported",
+      "stderr": ""
+    }
+  ],
+  "checkoutHeadAtMeasurement": "0adca052c",
+  "currentSourceChangeCommit": "f3e2382165506e72fca2ea69328d9db330788649",
+  "currentBuiltCommit": "0adca052c8be101aa448f8a2fd45d1659d516a49"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "final-root-types",
+  "command": "node_modules/.bin/tsc --noEmit",
+  "sourceCommit": "ceb24d4814aa8c5f6624530815485b8aa9acc003",
+  "exitCode": 0,
+  "durationMs": 2066,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

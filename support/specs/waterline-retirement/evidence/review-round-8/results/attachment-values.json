@@ -1,0 +1,13 @@
+{
+  "name": "attachment-values",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh attachment-values",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 23158,
+  "sha256": "ca782e7f4c952c8a6c5ca263b69fa007c62e887d1fbbfecdcfe61e235b59c7e9",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":700,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

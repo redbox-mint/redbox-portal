@@ -1,0 +1,1320 @@
+{
+  "mongo": "9.0.4",
+  "fcv": "9.0",
+  "topology": "standalone",
+  "image": "mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+  "physicalIdentity": "ObjectId identities/association asserted by both live-contract layouts",
+  "fixtures": [
+    {
+      "layout": "two-databases-one-server",
+      "node": "v24.16.0",
+      "models": {
+        "brandingconfig": {
+          "datastore": "mongodb",
+          "tableName": "brandingconfig",
+          "attributes": {
+            "createdAt": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            },
+            "updatedAt": {
+              "type": "string",
+              "autoUpdatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            },
+            "id": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": true,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              },
+              "required": false
+            },
+            "name": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "css": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "variables": {
+              "type": "json",
+              "validations": {},
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "version": {
+              "type": "number",
+              "defaultsTo": 0,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "required": false
+            },
+            "hash": {
+              "type": "string",
+              "defaultsTo": "",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "logo": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "favicon": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "typeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "draftTypeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "draftRevision": {
+              "type": "number",
+              "defaultsTo": 0,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "required": false
+            },
+            "roles": {
+              "collection": "role",
+              "via": "branding",
+              "required": false
+            }
+          },
+          "schema": {
+            "createdAt": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "createdAt"
+            },
+            "updatedAt": {
+              "type": "string",
+              "autoUpdatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "updatedAt"
+            },
+            "id": {
+              "type": "string",
+              "columnName": "_id",
+              "autoMigrations": {
+                "unique": true,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              }
+            },
+            "name": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "name"
+            },
+            "css": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "css"
+            },
+            "variables": {
+              "type": "json",
+              "validations": {},
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "variables"
+            },
+            "version": {
+              "type": "number",
+              "defaultsTo": 0,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "columnName": "version"
+            },
+            "hash": {
+              "type": "string",
+              "defaultsTo": "",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "hash"
+            },
+            "logo": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "logo"
+            },
+            "favicon": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "favicon"
+            },
+            "typeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "typeface"
+            },
+            "draftTypeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "draftTypeface"
+            },
+            "draftRevision": {
+              "type": "number",
+              "defaultsTo": 0,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "columnName": "draftRevision"
+            },
+            "roles": {
+              "collection": "role",
+              "via": "branding",
+              "references": "role",
+              "referenceIdentity": "role",
+              "on": "branding",
+              "onKey": "branding"
+            }
+          },
+          "callbackSha256": {
+            "beforeCreate": "06c44650e2154ded663c790206fa4b2540779ceeb3b480a33d7789684ed413cc",
+            "beforeUpdate": "06c44650e2154ded663c790206fa4b2540779ceeb3b480a33d7789684ed413cc"
+          }
+        },
+        "brandingconfighistory": {
+          "datastore": "redboxStorage",
+          "tableName": "brandingconfighistory",
+          "attributes": {
+            "createdAt": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            },
+            "updatedAt": {
+              "type": "string",
+              "autoUpdatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            },
+            "id": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": true,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              },
+              "required": false
+            },
+            "branding": {
+              "required": true,
+              "model": "brandingconfig",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              }
+            },
+            "version": {
+              "type": "number",
+              "required": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              }
+            },
+            "hash": {
+              "type": "string",
+              "required": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              }
+            },
+            "css": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "variables": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "typeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "actorId": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "actorDisplayName": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "restoredFromVersion": {
+              "type": "number",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "required": false
+            },
+            "dateCreated": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            }
+          },
+          "schema": {
+            "createdAt": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "createdAt"
+            },
+            "updatedAt": {
+              "type": "string",
+              "autoUpdatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "updatedAt"
+            },
+            "id": {
+              "type": "string",
+              "columnName": "_id",
+              "autoMigrations": {
+                "unique": true,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              }
+            },
+            "version": {
+              "type": "number",
+              "required": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "columnName": "version"
+            },
+            "hash": {
+              "type": "string",
+              "required": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "hash"
+            },
+            "css": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "css"
+            },
+            "variables": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "variables"
+            },
+            "typeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "typeface"
+            },
+            "actorId": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "actorId"
+            },
+            "actorDisplayName": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "actorDisplayName"
+            },
+            "restoredFromVersion": {
+              "type": "number",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "columnName": "restoredFromVersion"
+            },
+            "dateCreated": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "dateCreated"
+            },
+            "branding": {
+              "model": "brandingconfig",
+              "columnName": "branding",
+              "type": "string",
+              "foreignKey": true,
+              "references": "brandingconfig",
+              "referenceIdentity": "brandingconfig",
+              "on": "_id",
+              "onKey": "id",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              }
+            }
+          },
+          "callbackSha256": {
+            "beforeCreate": "eb045d78d273107348b0300c01d29b7552d622abbc6faf81b3ec55359aa9950c",
+            "beforeUpdate": "eb045d78d273107348b0300c01d29b7552d622abbc6faf81b3ec55359aa9950c"
+          }
+        }
+      },
+      "raw": {
+        "brandingconfig": {
+          "dto": {
+            "createdAt": "2026-10-21T22:03:36.560Z",
+            "updatedAt": "2026-10-21T22:03:36.560Z",
+            "id": "6ad936b812905d38849db5b6",
+            "name": "spike",
+            "css": "",
+            "variables": {
+              "primary": "#112233"
+            },
+            "version": 0,
+            "hash": "",
+            "logo": {
+              "id": "logo"
+            },
+            "favicon": {
+              "id": "icon"
+            },
+            "typeface": null,
+            "draftTypeface": null,
+            "draftRevision": 0
+          },
+          "documents": [
+            {
+              "_id": "6ad936b812905d38849db5b6",
+              "name": "spike",
+              "variables": {
+                "primary": "#112233"
+              },
+              "logo": {
+                "id": "logo"
+              },
+              "favicon": {
+                "id": "icon"
+              },
+              "createdAt": "2026-10-21T22:03:36.560Z",
+              "updatedAt": "2026-10-21T22:03:36.560Z",
+              "css": "",
+              "version": 0,
+              "hash": "",
+              "typeface": null,
+              "draftTypeface": null,
+              "draftRevision": 0
+            }
+          ],
+          "indexes": [
+            {
+              "v": 2,
+              "key": {
+                "_id": 1
+              },
+              "name": "_id_"
+            }
+          ]
+        },
+        "brandingconfighistory": {
+          "dto": {
+            "createdAt": "2026-10-21T22:03:36.645Z",
+            "updatedAt": "2026-10-21T22:03:36.645Z",
+            "id": "6ad936b812905d38849db5b7",
+            "version": 1,
+            "hash": "hash",
+            "css": "",
+            "variables": {
+              "primary": "#112233"
+            },
+            "typeface": null,
+            "actorId": "",
+            "actorDisplayName": "",
+            "restoredFromVersion": 0,
+            "dateCreated": "2026-10-21T22:03:36.645Z",
+            "branding": "6ad936b812905d38849db5b6"
+          },
+          "documents": [
+            {
+              "_id": "6ad936b812905d38849db5b7",
+              "branding": "6ad936b812905d38849db5b6",
+              "version": 1,
+              "hash": "hash",
+              "variables": {
+                "primary": "#112233"
+              },
+              "createdAt": "2026-10-21T22:03:36.645Z",
+              "updatedAt": "2026-10-21T22:03:36.645Z",
+              "css": "",
+              "typeface": null,
+              "actorId": "",
+              "actorDisplayName": "",
+              "restoredFromVersion": 0,
+              "dateCreated": "2026-10-21T22:03:36.645Z"
+            }
+          ],
+          "indexes": [
+            {
+              "v": 2,
+              "key": {
+                "_id": 1
+              },
+              "name": "_id_"
+            }
+          ]
+        }
+      },
+      "log": {
+        "path": ".tmp/wrp9/spike-one-server.json",
+        "sha256": "40ca7d1670ce83201a1e34a27db0bcd83836ebced9523be9c28dbe9be7d1ae00"
+      }
+    },
+    {
+      "layout": "two-separate-servers",
+      "node": "v24.16.0",
+      "models": {
+        "brandingconfig": {
+          "datastore": "mongodb",
+          "tableName": "brandingconfig",
+          "attributes": {
+            "createdAt": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            },
+            "updatedAt": {
+              "type": "string",
+              "autoUpdatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            },
+            "id": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": true,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              },
+              "required": false
+            },
+            "name": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "css": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "variables": {
+              "type": "json",
+              "validations": {},
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "version": {
+              "type": "number",
+              "defaultsTo": 0,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "required": false
+            },
+            "hash": {
+              "type": "string",
+              "defaultsTo": "",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "logo": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "favicon": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "typeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "draftTypeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "draftRevision": {
+              "type": "number",
+              "defaultsTo": 0,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "required": false
+            },
+            "roles": {
+              "collection": "role",
+              "via": "branding",
+              "required": false
+            }
+          },
+          "schema": {
+            "createdAt": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "createdAt"
+            },
+            "updatedAt": {
+              "type": "string",
+              "autoUpdatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "updatedAt"
+            },
+            "id": {
+              "type": "string",
+              "columnName": "_id",
+              "autoMigrations": {
+                "unique": true,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              }
+            },
+            "name": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "name"
+            },
+            "css": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "css"
+            },
+            "variables": {
+              "type": "json",
+              "validations": {},
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "variables"
+            },
+            "version": {
+              "type": "number",
+              "defaultsTo": 0,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "columnName": "version"
+            },
+            "hash": {
+              "type": "string",
+              "defaultsTo": "",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "hash"
+            },
+            "logo": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "logo"
+            },
+            "favicon": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "favicon"
+            },
+            "typeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "typeface"
+            },
+            "draftTypeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "draftTypeface"
+            },
+            "draftRevision": {
+              "type": "number",
+              "defaultsTo": 0,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "columnName": "draftRevision"
+            },
+            "roles": {
+              "collection": "role",
+              "via": "branding",
+              "references": "role",
+              "referenceIdentity": "role",
+              "on": "branding",
+              "onKey": "branding"
+            }
+          },
+          "callbackSha256": {
+            "beforeCreate": "06c44650e2154ded663c790206fa4b2540779ceeb3b480a33d7789684ed413cc",
+            "beforeUpdate": "06c44650e2154ded663c790206fa4b2540779ceeb3b480a33d7789684ed413cc"
+          }
+        },
+        "brandingconfighistory": {
+          "datastore": "redboxStorage",
+          "tableName": "brandingconfighistory",
+          "attributes": {
+            "createdAt": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            },
+            "updatedAt": {
+              "type": "string",
+              "autoUpdatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            },
+            "id": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": true,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              },
+              "required": false
+            },
+            "branding": {
+              "required": true,
+              "model": "brandingconfig",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              }
+            },
+            "version": {
+              "type": "number",
+              "required": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              }
+            },
+            "hash": {
+              "type": "string",
+              "required": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              }
+            },
+            "css": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "variables": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "typeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "required": false
+            },
+            "actorId": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "actorDisplayName": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "required": false
+            },
+            "restoredFromVersion": {
+              "type": "number",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "required": false
+            },
+            "dateCreated": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "required": false
+            }
+          },
+          "schema": {
+            "createdAt": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "createdAt"
+            },
+            "updatedAt": {
+              "type": "string",
+              "autoUpdatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "updatedAt"
+            },
+            "id": {
+              "type": "string",
+              "columnName": "_id",
+              "autoMigrations": {
+                "unique": true,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              }
+            },
+            "version": {
+              "type": "number",
+              "required": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "columnName": "version"
+            },
+            "hash": {
+              "type": "string",
+              "required": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "hash"
+            },
+            "css": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "css"
+            },
+            "variables": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "variables"
+            },
+            "typeface": {
+              "type": "json",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_json"
+              },
+              "columnName": "typeface"
+            },
+            "actorId": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "actorId"
+            },
+            "actorDisplayName": {
+              "type": "string",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_string"
+              },
+              "columnName": "actorDisplayName"
+            },
+            "restoredFromVersion": {
+              "type": "number",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_number"
+              },
+              "columnName": "restoredFromVersion"
+            },
+            "dateCreated": {
+              "type": "string",
+              "autoCreatedAt": true,
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringtimestamp"
+              },
+              "columnName": "dateCreated"
+            },
+            "branding": {
+              "model": "brandingconfig",
+              "columnName": "branding",
+              "type": "string",
+              "foreignKey": true,
+              "references": "brandingconfig",
+              "referenceIdentity": "brandingconfig",
+              "on": "_id",
+              "onKey": "id",
+              "autoMigrations": {
+                "unique": false,
+                "autoIncrement": false,
+                "columnType": "_stringkey"
+              }
+            }
+          },
+          "callbackSha256": {
+            "beforeCreate": "eb045d78d273107348b0300c01d29b7552d622abbc6faf81b3ec55359aa9950c",
+            "beforeUpdate": "eb045d78d273107348b0300c01d29b7552d622abbc6faf81b3ec55359aa9950c"
+          }
+        }
+      },
+      "raw": {
+        "brandingconfig": {
+          "dto": {
+            "createdAt": "2026-10-21T22:03:40.311Z",
+            "updatedAt": "2026-10-21T22:03:40.311Z",
+            "id": "6ad936bc843b084def95d5e0",
+            "name": "spike",
+            "css": "",
+            "variables": {
+              "primary": "#112233"
+            },
+            "version": 0,
+            "hash": "",
+            "logo": {
+              "id": "logo"
+            },
+            "favicon": {
+              "id": "icon"
+            },
+            "typeface": null,
+            "draftTypeface": null,
+            "draftRevision": 0
+          },
+          "documents": [
+            {
+              "_id": "6ad936b812905d38849db5b6",
+              "name": "spike",
+              "variables": {
+                "primary": "#112233"
+              },
+              "logo": {
+                "id": "logo"
+              },
+              "favicon": {
+                "id": "icon"
+              },
+              "createdAt": "2026-10-21T22:03:36.560Z",
+              "updatedAt": "2026-10-21T22:03:36.560Z",
+              "css": "",
+              "version": 0,
+              "hash": "",
+              "typeface": null,
+              "draftTypeface": null,
+              "draftRevision": 0
+            },
+            {
+              "_id": "6ad936bc843b084def95d5e0",
+              "name": "spike",
+              "variables": {
+                "primary": "#112233"
+              },
+              "logo": {
+                "id": "logo"
+              },
+              "favicon": {
+                "id": "icon"
+              },
+              "createdAt": "2026-10-21T22:03:40.311Z",
+              "updatedAt": "2026-10-21T22:03:40.311Z",
+              "css": "",
+              "version": 0,
+              "hash": "",
+              "typeface": null,
+              "draftTypeface": null,
+              "draftRevision": 0
+            }
+          ],
+          "indexes": [
+            {
+              "v": 2,
+              "key": {
+                "_id": 1
+              },
+              "name": "_id_"
+            }
+          ]
+        },
+        "brandingconfighistory": {
+          "dto": {
+            "createdAt": "2026-10-21T22:03:40.330Z",
+            "updatedAt": "2026-10-21T22:03:40.330Z",
+            "id": "6ad936bc843b084def95d5e1",
+            "version": 1,
+            "hash": "hash",
+            "css": "",
+            "variables": {
+              "primary": "#112233"
+            },
+            "typeface": null,
+            "actorId": "",
+            "actorDisplayName": "",
+            "restoredFromVersion": 0,
+            "dateCreated": "2026-10-21T22:03:40.330Z",
+            "branding": "6ad936bc843b084def95d5e0"
+          },
+          "documents": [
+            {
+              "_id": "6ad936bc843b084def95d5e1",
+              "branding": "6ad936bc843b084def95d5e0",
+              "version": 1,
+              "hash": "hash",
+              "variables": {
+                "primary": "#112233"
+              },
+              "createdAt": "2026-10-21T22:03:40.330Z",
+              "updatedAt": "2026-10-21T22:03:40.330Z",
+              "css": "",
+              "typeface": null,
+              "actorId": "",
+              "actorDisplayName": "",
+              "restoredFromVersion": 0,
+              "dateCreated": "2026-10-21T22:03:40.330Z"
+            }
+          ],
+          "indexes": [
+            {
+              "v": 2,
+              "key": {
+                "_id": 1
+              },
+              "name": "_id_"
+            }
+          ]
+        }
+      },
+      "log": {
+        "path": ".tmp/wrp9/spike-separate-servers.json",
+        "sha256": "8baabf6e3cef5f25fa023343e13390fb4ef47b4b92c3fbdbe0620c9b3ae33b33"
+      }
+    }
+  ]
+}

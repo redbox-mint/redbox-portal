@@ -1,0 +1,17 @@
+{
+  "name": "cache-values-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cache-values && P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+  "sourceCommit": "8d97945a51a39939e36577abc5a10d07e16cbb34",
+  "exitCode": 0,
+  "durationMs": 151890,
+  "sha256": "8f976ed66958d7326788232fef84382dccca939d0d717ba80ca7241a0f90e5ed",
+  "counts": {
+    "passing": [
+      17
+    ]
+  },
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":22,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

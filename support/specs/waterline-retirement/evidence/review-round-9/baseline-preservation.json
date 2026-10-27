@@ -1,0 +1,110 @@
+{
+  "checked": 26,
+  "allUnchanged": true,
+  "files": {
+    "packages/redbox-core/src/middleware/redboxSession.ts": {
+      "sha256": "0c7256ad338dabdcc9451aac2b51f1583aecfc4a903ffac3ad79d0e866982f9c",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/middleware/requestLifetime.ts": {
+      "sha256": "a3b1d6f824c3a69a1a1be4f2bca21ea4115bcde1e89edf69bc5934e6ba955f53",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/cache/WaterlineCacheEntryRepository.ts": {
+      "sha256": "4255685016d81de57093d2a37d6b18a3623b0c952d085f5298f3e1e2ed940200",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/configuration/WaterlineConfigurationRepositories.ts": {
+      "sha256": "bff29d4b9602deaf69ddc3642e7463aaf2a1a6ae0646b0d5176bf380f93ef6f5",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/configuration/dashboardCas.ts": {
+      "sha256": "7506b3c62be20540738d255654e05f2fc70a2455060024afeff8080beb84bfe7",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/configuration/secretLeases.ts": {
+      "sha256": "a88e6d349bb35960f52d51b8b1c8fec2acd3909d9c536a33bb2f436ef292af45",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/figshare/NativeFigshareRepository.ts": {
+      "sha256": "fde077f428beb4fd0ef932a62f42071db90060e15fdf9980f60ef6e5a7fb2671",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/figshare/WaterlineFigshareRepository.ts": {
+      "sha256": "231207118becbbe3223421b222c69f198cc01227734888315eb10f5904bd61ea",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/harvest/WaterlineHarvestRepositories.ts": {
+      "sha256": "b88a2e97f60477b92236450f548a4915ae341566f6236143c7fe09aa823c1aa0",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/harvest/WaterlineRunCounters.ts": {
+      "sha256": "a7ac00353845c7b11f69a9dd6496627eed22069fc6827634d8a7ec44212cdb12",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/migration/WaterlineMigrationLedgerRepository.ts": {
+      "sha256": "daae34945b285af7e609a66b14df8f3e80269414078710c6ce37a7a7e1dc7a24",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/progress/WaterlineProgressRepositories.ts": {
+      "sha256": "f2157fd024040735365150d486055e3b6a4c98819ffa734d3250949c0c765a6d",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/reference/WaterlineNamedQueryTargets.ts": {
+      "sha256": "d9869e084d4dab4acfd89c88426f3a0872e40b805ba4a2e9434932f86d85617a",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/reference/WaterlineReferenceRepositories.ts": {
+      "sha256": "2c3e1adc20ff95855a6124891545c72ad0128a01461a8ee23b6966137fc40e4a",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/siem/WaterlineDelivery.ts": {
+      "sha256": "504e3c6cbb89d21bede27ee18996aa01ba4be8a4181096d8bc660af9e0b294f2",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/siem/WaterlineSiemRepository.ts": {
+      "sha256": "92ecab7a0ac06a3ff96934c443b13b793ce2d20bf8ef2d22932d2d7fbb7ce761",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/storage/WaterlineAttachmentRepository.ts": {
+      "sha256": "62be40d35fa1d40f1d7b541acb85abf0c00de65fb2355cff7869e4615ef093e3",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/storage/WaterlineCounterRepository.ts": {
+      "sha256": "cb95689338a1031ea7e1cca7205e4bfbb71a8c6dcb2d6bbfcfd03e646276dbb4",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/storage/GridFSDriver.ts": {
+      "sha256": "368b9d3227ef8f57d6362551b10b20620d5e0efbd0ac6551155368f941994950",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/storage/ownGridFSDownload.ts": {
+      "sha256": "ffd8ae91a917af3bc6980e75cb45f887860fd55b4c3e095384acd64516b894c1",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/storage/writeGridFSStream.ts": {
+      "sha256": "3a5e97dfab9abd7e76451584963c72a7044e47211b75a4a843747b0967ac47c6",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/sails-hook-redbox-storage-mongo/src/migrations/recordRevisionBackfill.ts": {
+      "sha256": "e5c47d65ed1b5e5a274fe3fdf37e5538e927da81d502613f08acea50245e4f20",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts": {
+      "sha256": "3ffc872ceb912a4744d4cb33bce65196dd5f3d195a58805264218b9e61faa0b3",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/sails-hook-redbox-storage-mongo/src/persistence/recordRevisionBackfill.ts": {
+      "sha256": "658265befb73e5c758b9e347e1fb8f4c6b8ce3f921eb7298444431b72b0218d1",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/sails-hook-redbox-storage-mongo/src/persistence/recordSchemaCodec.ts": {
+      "sha256": "889b7ec7acdf0a91d82aac1ebb42b302327f09bbc7b83cdad69edc9a78aa58e5",
+      "unchangedSinceReviewHead": true
+    },
+    "packages/redbox-core/src/persistence/cache/MongoCacheEntryRepository.ts": {
+      "sha256": "3ee96ec460d09a2334f2c48a2febe4f86442ef7f94b15ec004a1c3518b16372b",
+      "unchangedSinceReviewHead": true
+    }
+  }
+}

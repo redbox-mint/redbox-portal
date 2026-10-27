@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-21",
+  "source": "12e566575e046dc9b217f189f90adaf0e1126f3f",
+  "runtimeFiles": 619,
+  "runtimeSha256": "cd6bd02176adf7cbf0941cbddab479946de36051116b5a932b60df4513620844",
+  "GS-staged": "PASS for bounded next; eligible for independent promotion",
+  "defaultAtQualification": "waterline",
+  "GTX": "CLOSED",
+  "atomicUnitsMoved": 0,
+  "P10.4": "blocked; not implemented",
+  "P11": "not started",
+  "acceptedLedgers": [
+    "qualification-build.json",
+    "qualification-fixtures-final.json",
+    "qualification-restored.json",
+    "storage-live.json",
+    "operations-full.json",
+    "packed-prior-retry.json",
+    "prior-image.json"
+  ],
+  "rollbackArtifact": "packed-prior-artifact.json",
+  "priorAcceptedApiEvidence": "../p10b-s/verification.json; same 619 runtime sources and SHA-256, guarded fresh Mocha/Bruno per selector; renewed stock matrix follows promotion",
+  "retainedBaseline": [
+    "Record/DeletedRecord/read/CAS/lifecycle/source intents",
+    "recordidentity",
+    "U participation/access assignment",
+    "schema authorization lookup",
+    "Counter",
+    "attachment OID rebind"
+  ],
+  "staged": [
+    "attachment metadata/journal/access audit (rebind excluded)",
+    "six schema artifact/reference operations",
+    "five record/integration audit operations",
+    "conditional bounded revision maintenance"
+  ],
+  "newDependencies": false,
+  "locksChanged": false,
+  "topologyChanged": false,
+  "institutionDataUsed": false,
+  "pushed": false,
+  "provisionalBudgetRatios": {
+    "p95": 0.28811232946133225,
+    "throughput": 2.468600499310052,
+    "rss": 0.9426120623272395,
+    "calls": 0.6331046477920572
+  }
+}

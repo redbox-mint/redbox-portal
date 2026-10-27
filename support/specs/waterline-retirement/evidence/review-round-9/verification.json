@@ -1,0 +1,197 @@
+{
+  "recordedAt": "2026-10-21T05:04:42.313515+00:00",
+  "reviewedRange": {
+    "base": "79c116fe0a6e07830ac1313d7403b4277b39e498",
+    "head": "bf5e18e6adbd38c4c42b85d61ed110ad6acbf311"
+  },
+  "runtimeCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "runtimeSha256": "3bde1739f4890b37e24c547a89038057d8b3fa343a93fdcbc0742de756a41177",
+  "acceptedResultFiles": [
+    "results/final-static.json",
+    "results/batch-clocks.json",
+    "results/cache-read-values.json",
+    "results/operation-outcomes.json",
+    "results/progress-writes.json",
+    "results/fetch-mappings.json",
+    "results/operation-boundaries.json",
+    "results/core-tests.json",
+    "results/storage-tests.json",
+    "results/foundation.json",
+    "results/migration.json",
+    "results/cache-mongodb.json",
+    "results/cache-transition.json",
+    "results/reference.json",
+    "results/query-pages.json",
+    "results/query-adversarial.json",
+    "results/query-baseline.json",
+    "results/query-associations.json",
+    "results/query-equality.json",
+    "results/query-producer-final.json",
+    "results/tenant-scope-final.json",
+    "results/configuration.json",
+    "results/configuration-readiness.json",
+    "results/configuration-siem.json",
+    "results/indexes.json",
+    "results/progress.json",
+    "results/harvest.json",
+    "results/siem.json",
+    "results/figshare.json",
+    "results/siem-readiness.json",
+    "results/figshare-readiness.json",
+    "results/siem-unit.json",
+    "results/figshare-unit.json",
+    "results/figshare-unit-mongodb.json",
+    "results/review-mappings.json",
+    "results/record-arrays.json",
+    "results/review-scalars.json",
+    "results/gridfs-streams.json",
+    "results/gridfs-initializing.json",
+    "results/storage-contract.json",
+    "results/storage-qualification.json",
+    "results/storage-live.json",
+    "results/storage-ownership.json",
+    "results/storage-owner-failures.json",
+    "results/storage-backfill.json",
+    "results/storage-readiness.json",
+    "results/storage-ownership-waterline.json",
+    "results/cross-group-scalars.json",
+    "results/cross-group-timestamps.json",
+    "results/cross-group-mappings.json",
+    "results/id-values.json",
+    "results/recordtype-selection.json",
+    "results/id-mappings.json",
+    "results/migration-values.json",
+    "results/domain-queries.json",
+    "results/job-queries.json",
+    "results/harvest-pages.json",
+    "results/siem-native-pages.json",
+    "results/siem-native-values.json",
+    "results/dashboard-native-values.json",
+    "results/cache-values.json",
+    "results/attachment-values.json",
+    "results/fresh-mocha.json",
+    "results/fresh-bruno.json",
+    "results/dev-default.json",
+    "results/dev-waterline.json"
+  ],
+  "acceptedCommands": 66,
+  "newChecks": {
+    "operation-outcomes": {
+      "passing": 346,
+      "summary": {
+        "read-missing-null-bson": 171,
+        "unsupported-bson-refusal": 57,
+        "create-fetch": 80,
+        "create-fetch-missing": 6,
+        "no-match-validation": 32
+      },
+      "failures": 0,
+      "firstFailures": []
+    },
+    "progress-writes": {
+      "passing": 172,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "fetch-mappings": {
+      "passing": 19,
+      "failures": 0,
+      "details": []
+    },
+    "operation-boundaries": {
+      "passing": 34,
+      "summary": {
+        "document-size": 8,
+        "duplicate-error-code": 4,
+        "duplicate-no-write": 4,
+        "literal-unicode-case": 10,
+        "batch-size": 6,
+        "batch-invalid-before-write": 2
+      },
+      "failures": 0,
+      "details": []
+    },
+    "cache-read-values": {
+      "passing": 60,
+      "documentedNullTimestampExceptions": 10,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "batch-clocks": {
+      "passing": 14,
+      "failures": 0,
+      "details": []
+    }
+  },
+  "newCheckTotal": 645,
+  "tests": {
+    "core-tests": {
+      "passing": [
+        4242
+      ],
+      "pending": [
+        116
+      ]
+    },
+    "storage-tests": {
+      "passing": [
+        288
+      ],
+      "pending": [
+        38
+      ]
+    },
+    "storage-live": {
+      "passing": [
+        326
+      ]
+    },
+    "fresh-mocha": {
+      "passing": [
+        419
+      ],
+      "pending": [
+        4,
+        2,
+        0,
+        1,
+        1,
+        10
+      ]
+    }
+  },
+  "stockRuntimeMatchesHost": true,
+  "stockOutcomes": {
+    "fresh-bruno": {
+      "requests": {
+        "passed": 309,
+        "total": 309
+      },
+      "tests": {
+        "passed": 553,
+        "total": 553
+      },
+      "assertions": {
+        "passed": 3,
+        "total": 3
+      }
+    },
+    "dev-default": {
+      "ready": true,
+      "selectedScopes": 49,
+      "collections": 20
+    },
+    "dev-waterline": {
+      "ready": true,
+      "selectedScopes": 0,
+      "collections": 0
+    }
+  },
+  "dependencyChanges": false,
+  "gates": "G-TX CLOSED / OPS-TX-01 undecided; no P6/U/V/B/atomic-S/P11/P12 work.",
+  "limits": [
+    "Private institution hooks/data/query dialects remain separately qualified.",
+    "No additional performance campaign or clean packed Node/release image matrix is claimed.",
+    "Model create DTO parity adds a fetched read, matching Waterline; no universal equivalence outside the finite DTO contract is claimed."
+  ]
+}

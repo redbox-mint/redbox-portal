@@ -1,0 +1,148 @@
+{
+  "notes": [
+    "Per-fix checks run on the working patch before its commit; sourceCommit records the parent checkpoint. Final suites all run at runtime commit 84f7c6ce6.",
+    "The upload fix was amended from unpublished draft 7f8cc460f to 27a9be9be after finalization/error preservation qualification, before later corrections. Some earlier result parent hashes retain that draft ID.",
+    "The initial cursor proof transpiles the archived 1b471907c source into ignored scratch space; no tracked production source was reverted.",
+    "The final upload binary qualification and initializing-query peer review corrected the new patches before final whole-programme validation."
+  ],
+  "fixes": [
+    {
+      "number": 1,
+      "severity": "P2",
+      "issue": "Retain GridFS download cursors, including an initializing native next(), until read and cursor cleanup settle",
+      "commits": [
+        "babf38830297ce279e03f90d2fc91926dfb24062",
+        "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d"
+      ],
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/storage/GridFSDriver.ts:143",
+        "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts:3473"
+      ],
+      "before": [
+        "results/cursor-unit-before.json",
+        "results/cursor-initial-source-before.json",
+        "results/gridfs-initializing-before.json"
+      ],
+      "accepted": [
+        "results/fix1-validation.json",
+        "results/cursor-initializing-final-validation.json",
+        "results/gridfs-streams.json",
+        "results/gridfs-initializing.json"
+      ]
+    },
+    {
+      "number": 2,
+      "severity": "P2",
+      "issue": "Drain dispatched GridFS chunk writes before source failure cleanup and disposal",
+      "commits": [
+        "27a9be9be97c65c3dbb0bfea04bc9cac6a9f3b9c",
+        "8304b61e05946458fc9f970654091402a0825c93"
+      ],
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/storage/GridFSDriver.ts:221",
+        "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts:3438"
+      ],
+      "before": [
+        "results/gridfs-upload-before.json"
+      ],
+      "accepted": [
+        "results/fix2-finalization-validation.json",
+        "results/upload-binary-final-validation.json",
+        "results/cursor-initializing-final-validation.json",
+        "results/gridfs-streams.json"
+      ],
+      "boundary": "Native uncertain finalization bytes remain available for existing staged recovery; no atomic staged promotion."
+    },
+    {
+      "number": 3,
+      "severity": "P2",
+      "issue": "Refuse unqualified automatic timestamp behavior on every R/Q mapping attribute",
+      "commits": [
+        "8918acad2b34c8596299392b5019f71158bd7cd9"
+      ],
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/reference/preflight.ts:69",
+        "packages/redbox-core/src/persistence/configuration/preflight.ts:75"
+      ],
+      "before": [
+        "results/mappings-before.json"
+      ],
+      "accepted": [
+        "results/fix3-validation.json",
+        "results/review-mappings.json"
+      ]
+    },
+    {
+      "number": 4,
+      "severity": "P2",
+      "issue": "Preserve native record bare-array equality in both named-query selections",
+      "commits": [
+        "7c52cabe6e1d50505f180a3246c8bbc944f4eb95"
+      ],
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/reference/NamedQueryExecution.ts:259"
+      ],
+      "before": [
+        "results/record-arrays-before.json"
+      ],
+      "accepted": [
+        "results/fix4-validation.json",
+        "results/record-arrays.json"
+      ]
+    },
+    {
+      "number": 5,
+      "severity": "P2",
+      "issue": "Use installed Waterline scalar coercion for all J2/J3 numeric fields",
+      "commits": [
+        "88bff6b403c0f56ee6906fbf0905e50bc5976467"
+      ],
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/harvest/physical.ts:298",
+        "packages/redbox-core/src/persistence/siem/physical.ts:208"
+      ],
+      "before": [
+        "results/numeric-before.json",
+        "results/numeric-live-before-isolated.json"
+      ],
+      "accepted": [
+        "results/fix5-validation.json",
+        "results/review-scalars.json"
+      ]
+    },
+    {
+      "number": 6,
+      "severity": "P3",
+      "issue": "Refuse trailing ordering tokens and malformed ordering term shapes before execution",
+      "commits": [
+        "2bda92167172548ec9f342fa7c12461b772fb979",
+        "ed87ef8607a341772588793e80a94ac71896e754"
+      ],
+      "locationsAtReviewedHead": [
+        "packages/redbox-core/src/persistence/progress/MongoProgressRepositories.ts:67"
+      ],
+      "before": [
+        "results/ordering-before.json",
+        "results/ordering-shapes-before.json"
+      ],
+      "accepted": [
+        "results/fix6-validation.json",
+        "results/ordering-shapes-validation.json",
+        "results/progress.json",
+        "results/query-adversarial.json"
+      ]
+    }
+  ],
+  "finalTestOnlyChanges": {
+    "paths": [
+      "packages/redbox-core/test/fixtures/waterline-retirement/reference-query-adversarial.cjs",
+      "packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts"
+    ],
+    "purpose": "Retain malformed ordering shapes and replace the obsolete manual-finish upload fake with real writable completion plus a byte assertion.",
+    "accepted": [
+      "results/query-adversarial.json",
+      "results/storage-fixture-validation.json"
+    ],
+    "hashes": "test-harness.json"
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "command": "node packages/redbox-core/test/fixtures/waterline-retirement/verify-storage-runtime.cjs && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh contract && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh readiness && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh backfill && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership && P10_OWNER_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh owner-failures",
+  "exitCode": 0,
+  "durationMs": 41667,
+  "rawBytes": 49879,
+  "sha256": "56537e7a724c0ce95656fac4682f79b2880b81cea9d3994c68d209aa1395616c",
+  "sourceCommit": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "counts": {},
+  "checks": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    },
+    {
+      "passing": 37,
+      "failures": 0,
+      "stagedIndexScopes": 15,
+      "databases": [
+        "p10_application",
+        "p10_storage"
+      ],
+      "baselineOnly": [
+        "Record",
+        "DeletedRecord",
+        "recordidentity",
+        "Counter",
+        "authorization grant lookup",
+        "attachment OID rebind"
+      ]
+    },
+    {
+      "passing": 8,
+      "failures": 0,
+      "indexScopes": 15,
+      "checks": [
+        "inspect-only",
+        "all-scopes-before-DDL",
+        "duplicate-counts",
+        "conflict-retention",
+        "explicit-ensure",
+        "idempotence",
+        "logical-database-routing",
+        "sanitized-inspection-failure",
+        "native-schema-hidden-options"
+      ]
+    },
+    {
+      "passing": 16,
+      "failures": 0,
+      "runs": [
+        {
+          "backend": "waterline",
+          "documents": 1207,
+          "maxBatch": 73,
+          "dispatched": 12,
+          "resumed": {
+            "activeUpdated": 728,
+            "tombstonesUpdated": 5,
+            "batches": 11,
+            "durationMs": 181
+          },
+          "rawSha256": "8abc3b940021f940fab46ab208c61998e8b51c301fbe41117b891f5ef82dcb68"
+        },
+        {
+          "backend": "mongodb",
+          "documents": 1207,
+          "maxBatch": 73,
+          "dispatched": 12,
+          "resumed": {
+            "activeUpdated": 728,
+            "tombstonesUpdated": 5,
+            "batches": 11,
+            "durationMs": 169
+          },
+          "rawSha256": "8abc3b940021f940fab46ab208c61998e8b51c301fbe41117b891f5ef82dcb68"
+        }
+      ],
+      "modelFreeEntrypoint": true,
+      "atomicUnitsMoved": 0
+    },
+    {
+      "passing": 16,
+      "failures": 0,
+      "selector": "waterline",
+      "bytes": 1048587,
+      "sha256": "df4a197909a34edf52c4bd8c64bd8edb3674db2dfb4978f1a498db6198051f2a",
+      "connectionCounts": [
+        {
+          "stage": "observer-only",
+          "current": 2
+        },
+        {
+          "stage": "orm-and-shared-runtime",
+          "current": 6
+        },
+        {
+          "stage": "all-owners-active",
+          "current": 14
+        },
+        {
+          "stage": "after-owner-cleanup-orm-retained",
+          "current": 5
+        },
+        {
+          "stage": "after-app-lower-observer-only",
+          "current": 2
+        }
+      ],
+      "drainMs": 145,
+      "sqsCommands": {
+        "GetQueueAttributes": 1,
+        "ReceiveMessage": 3,
+        "SendMessage": 1
+      },
+      "sqsOwnedClientDestroy": 1,
+      "legacyGridfsAbi": "owned BSON 7 Db; Waterline BSON 6 manager retained only for records",
+      "historyRouting": "application DB; explicit queue address preserved"
+    },
+    {
+      "passing": 16,
+      "failures": 0,
+      "selector": "mongodb",
+      "bytes": 1048587,
+      "sha256": "df4a197909a34edf52c4bd8c64bd8edb3674db2dfb4978f1a498db6198051f2a",
+      "connectionCounts": [
+        {
+          "stage": "observer-only",
+          "current": 2
+        },
+        {
+          "stage": "orm-and-shared-runtime",
+          "current": 6
+        },
+        {
+          "stage": "all-owners-active",
+          "current": 14
+        },
+        {
+          "stage": "after-owner-cleanup-orm-retained",
+          "current": 5
+        },
+        {
+          "stage": "after-app-lower-observer-only",
+          "current": 2
+        }
+      ],
+      "drainMs": 147,
+      "sqsCommands": {
+        "GetQueueAttributes": 1,
+        "ReceiveMessage": 3,
+        "SendMessage": 1
+      },
+      "sqsOwnedClientDestroy": 1,
+      "legacyGridfsAbi": "owned BSON 7 Db; Waterline BSON 6 manager retained only for records",
+      "historyRouting": "application DB; explicit queue address preserved"
+    },
+    {
+      "passing": 5,
+      "failures": 0,
+      "cases": [
+        "cleanup waits for partial start and disconnects an owned address before any worker exists",
+        "late successful initialization cannot start workers after drain begins",
+        "failed connect rejects startup and retained producers; cleanup owns partial backend",
+        "failed backend close retains backend and app pool until successful retry"
+      ],
+      "connectionCounts": {
+        "observerOnly": 2,
+        "afterPartialFailureAndCloseRetries": 2
+      }
+    }
+  ],
+  "passGroups": 0
+}

@@ -1,0 +1,11 @@
+{
+  "name": "progress",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh progress-contract",
+  "sourceCommit": "e30b8898f0ca050bbdc061dc705b3f99cc2db9c3",
+  "exitCode": 0,
+  "durationMs": 33148,
+  "sha256": "a59ae454c801903a35db676f3bca8b7872ed41695a5ff5ec98eb7b531fdef00a",
+  "counts": {},
+  "passGroups": 2,
+  "checks": []
+}

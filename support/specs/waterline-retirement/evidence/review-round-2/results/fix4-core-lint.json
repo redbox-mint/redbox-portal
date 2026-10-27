@@ -1,0 +1,11 @@
+{
+  "name": "fix4-core-lint",
+  "command": "npm --prefix packages/redbox-core run lint",
+  "sourceCommit": "ceb24d4814aa8c5f6624530815485b8aa9acc003",
+  "exitCode": 0,
+  "durationMs": 492,
+  "sha256": "c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

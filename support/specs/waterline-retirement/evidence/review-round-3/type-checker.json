@@ -1,0 +1,7 @@
+{
+  "coreTypeChecker": "10.0.1",
+  "loadedWaterlineTypeChecker": "10.0.1",
+  "driver": "7.7.0",
+  "node": "v24.18.0",
+  "qualifiedRefAttributeCount": 0
+}

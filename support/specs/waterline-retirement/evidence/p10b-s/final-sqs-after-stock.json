@@ -1,0 +1,27 @@
+{
+  "command": "node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=dev --include=peer --prefix packages/agenda-sqs-backend && npm run test:agenda-sqs && node packages/redbox-core/test/fixtures/waterline-retirement/verify-storage-runtime.cjs && node scripts/verify-core-imports.cjs",
+  "exitCode": 0,
+  "durationMs": 6174,
+  "rawBytes": 815,
+  "sha256": "5837a3e8254f754d3b532042fb4a3f1e6dc91351681cca7a2dccdc152c242188",
+  "counts": {
+    "testFilesPassed": 1,
+    "testFilesTotal": 1,
+    "testsPassed": 6,
+    "testsTotal": 6
+  },
+  "reportedPassGroups": 1,
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

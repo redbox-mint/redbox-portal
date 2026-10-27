@@ -1,0 +1,15 @@
+{
+  "name": "fix5-focused",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/reference-persistence.test.ts test/unit/progress-persistence.test.ts test/services/NamedQueryService.test.ts",
+  "sourceCommit": "b6e12e6b01a572b680ef7eda378fbd9a4cb5c287",
+  "exitCode": 0,
+  "durationMs": 3540,
+  "sha256": "08ae2fc3c28f29958fdce7a1f5690d33a1c04fcbb327ded913477977040597e1",
+  "counts": {
+    "passing": [
+      61
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

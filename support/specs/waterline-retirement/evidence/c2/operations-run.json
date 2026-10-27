@@ -1,0 +1,18 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/cache-persistence/run-c2-operations.sh",
+  "exitCode": 0,
+  "assessmentCommand": "python3 packages/redbox-core/test/fixtures/cache-persistence/assess-c2-operations.py",
+  "assessmentExitCode": 0,
+  "controlCommand": "node packages/redbox-core/test/fixtures/cache-persistence/c2-observer-control.cjs (new owned MongoDB, P5_CACHE_MONGO_URL set to its published port)",
+  "controlExitCode": 0,
+  "observerOnlyOption": "maxPoolSize=1; application options unchanged",
+  "noConcurrentOwnedStacksOrBuilds": true,
+  "logSha256": {
+    "operations.txt": "5eab81fe1fb9c71a26eb4a89fd1793bd45feacae57b435c8dd472edb0076ce2a",
+    "operations.json": "a3ae0a60fb6797540c8636c55fac9e4ad0be9d9a0e91a258674f9d730d2ab726",
+    "operations-assessment.txt": "a46ceb14dd25db020e5ceedac411c0feaf3b9c943dfc0798957144b4e4221be7",
+    "operations-assessment.json": "a46ceb14dd25db020e5ceedac411c0feaf3b9c943dfc0798957144b4e4221be7",
+    "operations-observer-control.txt": "00d6e31b8517db989d26a02a044d864af7a937dba422cf57056227acbae5db20",
+    "operations-observer-pool-failure.txt": "19b61e1927bbc95449e732e6cfbe168edf10d86885de8170e9a89f2037d620cf"
+  }
+}

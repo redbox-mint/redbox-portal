@@ -1,0 +1,115 @@
+{
+  "disposition": "Passed, then superseded by final-runtime reruns after the inherited projection-member correction. The remaining batch was held at a process boundary with no live fixtures while rebuilding.",
+  "results": [
+    {
+      "name": "core-tests",
+      "command": "npm run test:core",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 0,
+      "durationMs": 111975,
+      "sha256": "a0e4e262e7d1e9a5013ead0786df4e8088ec88d61ad0548c2d9dc354ddd2c9ca",
+      "counts": {
+        "passing": [
+          4202
+        ],
+        "pending": [
+          116
+        ]
+      },
+      "passGroups": 0
+    },
+    {
+      "name": "storage-tests",
+      "command": "npm run test:storage-mongo",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 0,
+      "durationMs": 40235,
+      "sha256": "bd87eb7475574a87b83334689cbcee4cd9ec5d0925d0c408082384ed5f1adbab",
+      "counts": {
+        "passing": [
+          288
+        ],
+        "pending": [
+          38
+        ]
+      },
+      "passGroups": 0
+    },
+    {
+      "name": "foundation",
+      "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 0,
+      "durationMs": 8685,
+      "sha256": "c5ca24e5cf5430ffd1e557a634f7d02858811058db213bce0f9d94fff89be7e2",
+      "counts": {
+        "passing": [
+          12
+        ]
+      },
+      "passGroups": 0
+    },
+    {
+      "name": "migration",
+      "command": "P2_ROLLBACK_IMAGE=redbox-p2:prior-11742e9 npm --prefix packages/redbox-core run test:migration-transition",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 0,
+      "durationMs": 73014,
+      "sha256": "1c494b605d0bc80794884ab4fdbd5845f3806c6c7f602ad2dca171fd510121c3",
+      "counts": {
+        "passing": [
+          15
+        ]
+      },
+      "passGroups": 1
+    },
+    {
+      "name": "cache-mongodb",
+      "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-mongodb",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 0,
+      "durationMs": 12266,
+      "sha256": "de68e7983fc3f3b7ebdd7929b591d90b4264eaaa233295d0229cca326bf6fae9",
+      "counts": {
+        "passing": [
+          17
+        ]
+      },
+      "passGroups": 0
+    },
+    {
+      "name": "cache-transition",
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 0,
+      "durationMs": 84690,
+      "sha256": "76da3c135529600a089e6d558ad494b21bdfc5bb097539b0ae56104661a3add9",
+      "counts": {
+        "passing": [
+          17
+        ]
+      },
+      "passGroups": 0
+    },
+    {
+      "name": "reference",
+      "command": "npm --prefix packages/redbox-core run test:reference-transition",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 0,
+      "durationMs": 45472,
+      "sha256": "5f4c11302f1473b3fc988484465aa8f36f38ce95af8e469971def1cc473a5451",
+      "counts": {},
+      "passGroups": 13
+    },
+    {
+      "name": "query-adversarial",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-adversarial",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 0,
+      "durationMs": 29245,
+      "sha256": "40946d8f962088e39309a8d52560eb165b8c5ab4c46db42ed5947720f9cc1ac0",
+      "counts": {},
+      "passGroups": 0
+    }
+  ]
+}

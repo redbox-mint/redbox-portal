@@ -1,0 +1,33 @@
+{
+  "reviewedBase": "79c116fe0a6e07830ac1313d7403b4277b39e498",
+  "reviewedHead": "1b471907ca462ebdd460fd014ad4b5e890385a12",
+  "runtimeCommit": "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d",
+  "runtimeSourceFiles": 623,
+  "runtimeSha256": "96feaa55348a889f8f8df79f55ad3bd6e409a8e878ad7f30761c853b5e98c7c1",
+  "artifactHashes": {
+    "packages/redbox-core/dist/storage/ownGridFSDownload.js": "eb63cc3bac44f78dceddef2cbcab68aa238a159b04c98487ae546fff4f4c443e",
+    "packages/redbox-core/dist/storage/writeGridFSStream.js": "2b5bf5ceed47a8f83d3f762dc6af3d21aa3190e99fd34d1a939d6f6029fb1f96",
+    "packages/sails-hook-redbox-storage-mongo/dist/persistence/WaterlineNativeStorage.js": "30c70fdce59f97efe41347fc97750e90829a06023c97309758d1d16165eb5e1e",
+    "packages/redbox-core/dist/persistence/reference/preflight.js": "29d0425ab193f198bbd10123939962b31ca042aa39f1d1586e459a7e9c332b1b",
+    "packages/redbox-core/dist/persistence/configuration/preflight.js": "fe44eb43fbe6ddbad7b70005b35f2f1ca2008ad6add62f22a8ccf291cbe5d35c",
+    "packages/redbox-core/dist/persistence/harvest/physical.js": "0765f596bbea9b4a05c42ba8b0a6ec7a1999a66f4df8565bc09e375f0c585654",
+    "packages/redbox-core/dist/persistence/siem/physical.js": "575bd7e9e8ecd0e869e62f7ac0f619ffd1d1a22fa1dfa1f93acb8254bf5c906a",
+    "packages/redbox-core/dist/storage/GridFSDriver.js": "9c7c6ac19fb9f3cccf00cae17e4703279b1a7144c26fd68325e4c748d6434481",
+    "packages/redbox-core/dist/persistence/reference/NamedQueryExecution.js": "598cc839fe345c84b2bb9f17b3c9da195db0222f4ef90a9075ec16d8abe9189f",
+    "packages/redbox-core/dist/persistence/reference/WaterlineNamedQueryTargets.js": "d0313c9455a376c3845f805c5bb475b1b1a81b73ccc688adc7ac7f0696d27889",
+    "packages/redbox-core/dist/persistence/reference/MongoNamedQueryTargets.js": "2f6895abb6a45b0438878d77b439d2a1ed4fba0aa50f0d976f4721cc03aa716f",
+    "packages/redbox-core/dist/persistence/configuration/MongoNamedQueryTargets.js": "bab7226c8c9017cde2cb04e29574ffc96ef4486401f5203cb5a3f9b61c07d6a1",
+    "packages/redbox-core/dist/persistence/progress/MongoNamedQueryTargets.js": "98d2e206cda9ed5631e771b2e226e905981207bff8e9f0701d6a816fb6f0ca3b",
+    "packages/redbox-core/dist/persistence/progress/MongoProgressRepositories.js": "7c1e2d913af6f394b7573b5175d9dd16a9fcdadb30079ab52f14a654b4bca411",
+    "packages/redbox-core/dist/persistence/cache/validation.js": "ac6abb5befb208772a4b5cda8ba4e697a68b845339e4fbca81625ee33518b371",
+    "packages/redbox-core/dist/persistence/cache/MongoCacheEntryRepository.js": "9d52ffe5c6c25118dfd54366afb436b495c3160b9df444a6c6f72858cf798ee7",
+    "packages/redbox-core/dist/persistence/cache/WaterlineCacheEntryRepository.js": "53306ab337fc14fdc3ff54d5af9d5a5e0e9c5bc99c04520c520fd130497bdd9e",
+    "packages/redbox-core/dist/persistence/cache/configuration.js": "f1f91e71fda822e9ac3b1af460a530e87bae58015c2a81528e757cdadb4f88c9",
+    "packages/redbox-core/dist/middleware/redboxSession.js": "123509519998706baa93662648df98c36548599b462f075dc0a3b79f2361e9f3",
+    "packages/redbox-core/dist/middleware/requestLifetime.js": "b28af7714225b618baccbfeec0e54c4e02c3faae838b2eabecfa6675095d0890",
+    "packages/redbox-core/dist/persistence/scalars.js": "7a101c0e46b98bf18f2bfd5f908e40994fe7d8eeade93bfe834a07aeed4cf2a6",
+    "packages/sails-hook-redbox-storage-mongo/dist/persistence/MongoStagedStorage.js": "b544cdce90c38042f520329a80c5779791030a502cff291ef718ccec301e1838"
+  },
+  "hostNode": "v24.18.0",
+  "npm": "11.20.0"
+}

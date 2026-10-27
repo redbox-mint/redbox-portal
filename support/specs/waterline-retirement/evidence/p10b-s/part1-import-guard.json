@@ -1,0 +1,8 @@
+{
+  "command": "node scripts/verify-core-imports.cjs && python3 - <<'PY'\nimport pathlib,subprocess\np=pathlib.Path(\"packages/sails-hook-redbox-storage-mongo/.core-import-guard.ts\")\ntry:\n p.write_text(\"import type { Db } from \\\"@researchdatabox/redbox-core/dist/x\\\";\\nconst a = require(\\\"@researchdatabox/redbox-core/dist/y\\\");\\nconst b = import(\\\"@researchdatabox/redbox-core/dist/z\\\");\\n\")\n r=subprocess.run([\"node\",\"scripts/verify-core-imports.cjs\"],capture_output=True,text=True)\n assert r.returncode==1 and r.stderr.count(\"import redbox-core through its package entry\")==3\n print(\"PASS guard rejects static, require and dynamic deep imports\")\nfinally: p.unlink(missing_ok=True)\nPY",
+  "exitCode": 0,
+  "durationMs": 2551,
+  "rawBytes": 114,
+  "sha256": "c6a722f23dd81fb88c23d27b2c3ce2b3683b2181c06e934659ef08d1acdc5031",
+  "reportedPassGroups": 2
+}

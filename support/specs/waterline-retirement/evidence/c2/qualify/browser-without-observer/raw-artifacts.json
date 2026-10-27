@@ -1,0 +1,29 @@
+{
+  "browser-portal.txt": {
+    "sha256": "c4d0366bc0b4dfa0c656ba428171bfc53668e8d57e004df196966d348443088d",
+    "bytes": 1109699,
+    "lines": 3725,
+    "counts": {
+      "pending": 4
+    }
+  },
+  "browser.txt": {
+    "sha256": "a0fa3459c2f0728fe8774f6597696095074f82f0186e477acdc99b1aa00bf927",
+    "bytes": 212,
+    "lines": 6,
+    "counts": {
+      "passed": 1
+    }
+  },
+  "browser.xml": {
+    "sha256": "0b71f931469ea96d8c9d6c9f6c78f457a52bcbba42c25505c50c4e0ef2aac366",
+    "bytes": 456,
+    "lines": 6,
+    "counts": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  }
+}

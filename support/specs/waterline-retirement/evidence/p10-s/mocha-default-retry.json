@@ -1,0 +1,19 @@
+{
+  "command": [
+    "bash",
+    "packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh",
+    "mocha",
+    "default"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 377.835,
+  "sha256": "951357f3e63fef9875dfd4e70f2f75e5f98f465695ed3acd1f994814aa6e7884",
+  "logBytes": 1162283,
+  "totals": {
+    "passing": 419,
+    "pending": 10,
+    "failing": 0
+  },
+  "selectorAssertion": "S backend=waterline; attachment manager bypass=false; U/record owner=baseline",
+  "fixture": "unique Compose project and fresh volumes, unfiltered stock npm runner, original dependency pins"
+}

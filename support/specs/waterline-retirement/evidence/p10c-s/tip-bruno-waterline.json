@@ -1,0 +1,55 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh bruno waterline",
+  "exitCode": 0,
+  "durationMs": 296842,
+  "rawBytes": 2466254,
+  "sha256": "974b4929eaaabfd2ff83d3047b76f7a4f9288a3fad28327ee9779aa47d8cffca",
+  "sourceCommit": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "counts": {
+    "requests": {
+      "passed": 309,
+      "total": 309
+    },
+    "tests": {
+      "passed": 553,
+      "total": 553
+    },
+    "assertions": {
+      "passed": 3,
+      "total": 3
+    }
+  },
+  "checks": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    },
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ],
+  "passGroups": 0,
+  "stock": {
+    "suite": "bruno",
+    "selection": "waterline",
+    "composeProject": "p10-s-bruno-waterline-12813-17111",
+    "unfiltered": true,
+    "freshProject": true,
+    "createdVolumes": []
+  }
+}

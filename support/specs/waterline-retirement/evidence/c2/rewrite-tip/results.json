@@ -1,0 +1,146 @@
+{
+  "sourceCommit": "2feae9431efd408c77218ab2ce736e2d22c7fcd7",
+  "checks": [
+    {
+      "name": "build",
+      "command": "npm --prefix packages/redbox-core run build",
+      "exitCode": 0,
+      "durationSeconds": 26.06,
+      "log": "build-attempt1.txt",
+      "logSha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "core-lint",
+      "command": "npm --prefix packages/redbox-core run lint",
+      "exitCode": 0,
+      "durationSeconds": 0.68,
+      "log": "core-lint-attempt1.txt",
+      "logSha256": "c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "exitCode": 0,
+      "durationSeconds": 1.02,
+      "log": "lint-attempt1.txt",
+      "logSha256": "357debf5ad940c83311560a548a42810bcccb4a12e7811e060a9912d9eeb2ad8",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "persistence-types",
+      "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+      "exitCode": 0,
+      "durationSeconds": 21.28,
+      "log": "persistence-types-attempt1.txt",
+      "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "root-types",
+      "command": "node_modules/.bin/tsc --noEmit",
+      "exitCode": 0,
+      "durationSeconds": 4.57,
+      "log": "root-types-attempt1.txt",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "cache-types",
+      "command": "node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json",
+      "exitCode": 0,
+      "durationSeconds": 18.3,
+      "log": "cache-types-attempt1.txt",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "core",
+      "command": "npm run test:core",
+      "exitCode": 1,
+      "durationSeconds": 123.96,
+      "log": "core-attempt1.txt",
+      "logSha256": "54533ed622c24f2ee34c4b2c98c9a6e07543c39d360c9a7005ed50863056ed57",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 4158,
+        "pending": 113,
+        "failing": 1
+      }
+    },
+    {
+      "name": "core",
+      "command": "npm run test:core",
+      "exitCode": 0,
+      "durationSeconds": 116.67,
+      "log": "core-attempt2.txt",
+      "logSha256": "299fe3c7a1b77dd4869e21e0e950959bc50d612e9f6b06400609a639b2aa20f2",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 4159,
+        "pending": 113
+      }
+    },
+    {
+      "name": "artifact-smoke",
+      "command": "docker run --rm --network none --entrypoint node -v \"$PWD/packages/redbox-core/test/fixtures/cache-persistence/c2-artifact-smoke.cjs:/probe.cjs:ro\" redbox-c2:remove /probe.cjs",
+      "exitCode": 0,
+      "durationSeconds": 14.76,
+      "log": "artifact-smoke-attempt1.txt",
+      "logSha256": "98fbddd62e3fd34bd3d370edd727c98f1b395d1fb39deaedd1b2838ad1ffe954",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "packed-24",
+      "command": "CACHE_PACKAGE_NODE_VERSION=24.16.0 npm --prefix packages/redbox-core run test:cache-package",
+      "exitCode": 0,
+      "durationSeconds": 134.47,
+      "log": "packed-24-attempt1.txt",
+      "logSha256": "54afa656d5131828518b7c4d5f82c8a1ad9574166a21e7a847595b6e4b2605c7",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "packed-26",
+      "command": "CACHE_PACKAGE_NODE_VERSION=26.11.1 npm --prefix packages/redbox-core run test:cache-package",
+      "exitCode": 0,
+      "durationSeconds": 93.45,
+      "log": "packed-26-attempt1.txt",
+      "logSha256": "656f14e455f909182b7690e4e90721a8eb8fa71f1d37cbe22475236a817f8920",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "evidence-audit",
+      "command": "python3 packages/redbox-core/test/fixtures/cache-persistence/c2_evidence.py audit support/specs/waterline-retirement/evidence/c2",
+      "exitCode": 0,
+      "durationSeconds": 0.07,
+      "log": "evidence-audit-attempt1.txt",
+      "logSha256": "00a665d9a598bb8f79a6179613ca2b66a01b71617db7fe7676b4de34b67af964",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "inventory-audit",
+      "command": "python3 packages/redbox-core/test/fixtures/waterline-retirement/review-inventory.py",
+      "exitCode": 0,
+      "durationSeconds": 0.1,
+      "log": "inventory-audit-attempt1.txt",
+      "logSha256": "0e58fd62f29b8461a7eaac7211cca4efb14a87eb540bcec5e7a2ea4eeae0e2c0",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    }
+  ],
+  "historyNote": "Checks ran after the initial seven-commit rewrite. Subsequent regrouping changed intermediate history only; the final tree was identical. Final audit/ledger/documentation amendments leave all compiled production source and packaging identical to d6084a79b.",
+  "coreSourceTree": "f6487db71a1a1555ec367cf5c48111ee2e75b632"
+}

@@ -1,0 +1,21 @@
+{
+  "command": "npx --yes --package=npm@11.20.0 -c 'npm run docs:audit'",
+  "exitCode": 0,
+  "sourceCommit": "3d24e991a3a8fd9f18bc7989ba8eb616dcf83b43",
+  "publishedSurfaces": 42,
+  "advisoryFindings": 817,
+  "persistenceCacheWaterlineFindings": [
+    {
+      "code": "unclassified",
+      "severity": "advisory",
+      "surfaceId": "service:CacheService",
+      "message": "CacheService is registered but has no lifecycle classification.",
+      "source": {
+        "file": "packages/redbox-core/src/services/CacheService.ts",
+        "line": 38,
+        "url": "https://github.com/redbox-mint/redbox-portal/blob/master/packages/redbox-core/src/services/CacheService.ts#L38"
+      }
+    }
+  ],
+  "logSha256": "0e67887452e31bf9c6b768347510d31ca8dc852c013d717b7ef4b3c82c903dc3"
+}

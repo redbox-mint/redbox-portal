@@ -1,0 +1,33 @@
+{
+  "passing": 15,
+  "failures": 0,
+  "runs": [
+    {
+      "backend": "waterline",
+      "documents": 1207,
+      "maxBatch": 73,
+      "dispatched": 12,
+      "resumed": {
+        "activeUpdated": 728,
+        "tombstonesUpdated": 5,
+        "batches": 11,
+        "durationMs": 170
+      },
+      "rawSha256": "8abc3b940021f940fab46ab208c61998e8b51c301fbe41117b891f5ef82dcb68"
+    },
+    {
+      "backend": "mongodb",
+      "documents": 1207,
+      "maxBatch": 73,
+      "dispatched": 12,
+      "resumed": {
+        "activeUpdated": 728,
+        "tombstonesUpdated": 5,
+        "batches": 11,
+        "durationMs": 161
+      },
+      "rawSha256": "8abc3b940021f940fab46ab208c61998e8b51c301fbe41117b891f5ef82dcb68"
+    }
+  ],
+  "atomicUnitsMoved": 0
+}

@@ -1,0 +1,11 @@
+{
+  "name": "fix2-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && node_modules/.bin/tsc --noEmit -p .tmp/review-round-6/tsconfig.changed-tests.json && npm run lint && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts test/middleware/redboxSession.test.ts test/services/GridFSDriver.test.ts",
+  "sourceCommit": "50517f1881527607fb65a9af18fb7869c9eb5058",
+  "exitCode": 2,
+  "durationMs": 64873,
+  "sha256": "4d9876d25cc42c8d07675e962f89e2b44603d6826cbd238011caa39b70e1f239",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

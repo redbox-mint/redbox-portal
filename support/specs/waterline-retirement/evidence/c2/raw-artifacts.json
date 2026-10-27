@@ -1,0 +1,152 @@
+{
+  "build-io.txt": {
+    "sha256": "ab4582b662712bca9ca327ebf456aa28f9dbbad386ea0dd7bac5fc4cbde46ec4",
+    "bytes": 2413,
+    "lines": 21
+  },
+  "lifecycle-before-server-ready.txt": {
+    "sha256": "8e07829bc6bc9b227e180cce36e592d07785298744a5ee2a8cef245f240bf0df",
+    "bytes": 871,
+    "lines": 8
+  },
+  "lifecycle-old-socket.txt": {
+    "sha256": "a7ad71f44d928a6aaaaba360fdd9fc990a9a94360e9dc440b90cde99aff37df5",
+    "bytes": 381,
+    "lines": 9
+  },
+  "lifecycle-remapped-port.txt": {
+    "sha256": "a26a1115a009b549535a77e8ac0cba10b16f6e14524a15a0549bcb8fe7c70d63",
+    "bytes": 36,
+    "lines": 2
+  },
+  "lifecycle.txt": {
+    "sha256": "977766cac4047b7f3aa08ab415b8b7821bba3bc3c44a698649d19fdd16ca0111",
+    "bytes": 180,
+    "lines": 2,
+    "summaryExcerpt": "PASS C2 actual cache write drain, refused new work, model-free restart, standalone server restart, missing/duplicate/conflicting readiness without cleanup"
+  },
+  "operations-assessment.txt": {
+    "sha256": "a46ceb14dd25db020e5ceedac411c0feaf3b9c943dfc0798957144b4e4221be7",
+    "bytes": 4475,
+    "lines": 192
+  },
+  "operations-observer-control.txt": {
+    "sha256": "00d6e31b8517db989d26a02a044d864af7a937dba422cf57056227acbae5db20",
+    "bytes": 225,
+    "lines": 2
+  },
+  "operations-observer-pool-failure.txt": {
+    "sha256": "19b61e1927bbc95449e732e6cfbe168edf10d86885de8170e9a89f2037d620cf",
+    "bytes": 2874,
+    "lines": 25,
+    "attemptExcerpt": "{\"round\":0,\"backend\":\"waterline\",\"ready\":{\"backend\":\"waterline\",\"adapter\":\"WaterlineCacheEntryRepository\",\"selectorProvided\":true,\"pid\":809616,\"legacy\":false,\"startupMs\":4077.4627299999997,\"startupStagesMs\":{\"coreImported\":3668.225821,\"ormLoaded\":4074.9951260000003,\"persistenceReady\":4076.0449459999995,\"cacheBootstrapped\":4077.431204},\"memory\":{\"rss\":329265152,\"heapTotal\":254496768,\"heapUsed\":142016200,\"external\":41094301,\"arrayBuffers\":41388179},\"node\":\"v24.18.0\",\"cacheExpiry\":60},\"baselineConnections\":3,\"peakConnections\":11,\"retainedMemory\":[{\"rss\":420884480,\"heapTotal\":280973312,\"heapUsed\":125603752,\"external\":45840025,\"arrayBuffers\":41518896},{\"rss\":466104320,\"heapTotal\":298799104,\"heapUsed\":125526496,\"external\":49660087,\"arrayBuffers\":44385840},{\"rss\":466366464,\"heapTotal\":288051200,\"heapUsed\":125629904,\"external\":46958959,\"arrayBuffers\":42180720},{\"rss\":470794240,\"heapTotal\":273371136,\"heapUsed\":125764912,\"external\":44714510,\"arrayBuffers\":41649968}],\"databaseCalls\":{\"insert\":700,\"query\":3200,\"update\":500,\"delete\":600,\"getmore\":0},\"readinessMs\":1.0498199999992721,\"count\":500,\"concurrency\":8,\"operations\":2500,\"elapsedMs\":5635.656393000001,\"operationsPerSecond\":443.604049939103"
+  },
+  "operations.json": {
+    "sha256": "a3ae0a60fb6797540c8636c55fac9e4ad0be9d9a0e91a258674f9d730d2ab726",
+    "bytes": 499746,
+    "lines": 17540,
+    "summary": "operations-summary.json"
+  },
+  "operations.txt": {
+    "sha256": "5eab81fe1fb9c71a26eb4a89fd1793bd45feacae57b435c8dd472edb0076ce2a",
+    "bytes": 22908,
+    "lines": 231
+  },
+  "prior-core-build.txt": {
+    "sha256": "f572b3a4b551948d0886a15bdcc0a271bfeff0a5e4db2db1d00d3dd81d3c78c2",
+    "bytes": 2486,
+    "lines": 15
+  },
+  "prior-image-build.txt": {
+    "sha256": "f2ccc6333e1573858e99da8aa92b96f6c45aaf9805c5993da6bfdcbe57b58a14",
+    "bytes": 3144,
+    "lines": 62,
+    "summaryExcerpt": "#8 61.45 PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)"
+  },
+  "prior-portal-cold-seed-timeout.txt": {
+    "sha256": "8b40a88e66db98fbf7959ce2b173c4c8a7df28ca60681ada74ba1d90ba10bb1f",
+    "bytes": 312,
+    "lines": 4,
+    "attemptExcerpt": "Error: P5 worker startup timed out\n    at Timeout._onTimeout (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/cache-persistence/transition-client.cjs:15:16)\n    at listOnTimeout (node:internal/timers:605:17)\n    at process.processTimers (node:internal/timers:541:7)"
+  },
+  "prior-portal-image-build.txt": {
+    "sha256": "ecd406f0925da0c4259cb28a42bb38bde9f13f1f588b81024cf4e31afb975259",
+    "bytes": 12435,
+    "lines": 210
+  },
+  "prior-portal-image-inspect.json": {
+    "sha256": "e9e7e8aa3cfe4082ab751f5456fb3096a356458ebabad668e2cc9af8fd994cab",
+    "bytes": 5181,
+    "lines": 105,
+    "images": [
+      {
+        "id": "sha256:cd54d56b5adf3afa9fc7c3ba610601375907bb1a368fc7201a5233c675b75f7c",
+        "tags": [
+          "redbox-c2:prior-portal-b83234da9"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "b83234da9a6e5ce31387c75f3873bd3100e83175",
+          "redbox.qualification": "cache-c2"
+        }
+      }
+    ]
+  },
+  "prior-portal.txt": {
+    "sha256": "05e2139f10d1a0147ff3fae33f9dd43a202ad1bcc787b5a4b5d09466c38e55c7",
+    "bytes": 86112,
+    "lines": 702,
+    "artifactHashes": {
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/c2-prior-portal-hNi6VW/local.js": "2d8c843f7f1ba4be47d66a9640a2baab3a818011d4ea8b2c02cd07f352342529"
+    },
+    "counts": {
+      "pending": 4
+    },
+    "summaryExcerpt": "PASS observed driver preview refresh after old-image maintenance, before the timed old-app startup\n{\"result\":\"PASS\",\"probe\":\"pre-C2 full app.js/HTTP rollback\",\"backend\":\"prisma\",\"adapter\":\"PrismaCacheEntryRepository\",\"startupMs\":50395.919074000005,\"node\":\"v26.11.1\",\"memory\":{\"rss\":815030272,\"heapTotal\":612495360,\"heapUsed\":393338928,\"external\":184929274,\"arrayBuffers\":177940672}}\nPASS current driver reads observed CacheService completion from the prior full portal image"
+  },
+  "recovery-cold-worker-timeout.txt": {
+    "sha256": "77d45bf1d4c3742da8b8d2288400d9e14fe9224c0f9bb1fa54724b2e90ca64a5",
+    "bytes": 4423,
+    "lines": 43,
+    "artifactHashes": {
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/c2-recovery-WthVuu/checkpoint.archive.gz": "dea72bab7e4d6ff425c8e04d25fd5bb5326b5b841cc919e813a0be83799c6a31",
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/c2-recovery-WthVuu/assets.tar.gz": "a1c8c60a965b0d6092dde882df3307de855dcc2a9a3df16009d3a89b7983d2af"
+    },
+    "summaryExcerpt": "PASS driver seed: observed service/notification completion, raw JSON, previews, retained storage/session checkpoints\n{\"result\":\"PASS\",\"mode\":\"restored-read\",\"ready\":{\"backend\":\"mongodb\",\"adapter\":\"MongoCacheEntryRepository\",\"selectorProvided\":true,\"pid\":747810,\"legacy\":false,\"startupMs\":2665.169554,\"startupStagesMs\":{\"coreImported\":2241.6217810000003,\"ormLoaded\":2609.185123,\"persistenceReady\":2664.202233,\"cacheBootstrapped\":2665.137133},\"memory\":{\"rss\":331247616,\"heapTotal\":254758912,\"heapUsed\":144556608,\"external\":41122740,\"arrayBuffers\":41396366},\"node\":\"v24.18.0\"},\"checkpoint\":\"driver-completed; retained storage/session; JSON/ObjectId/string timestamps\"}\n{\"result\":\"PASS\",\"mode\":\"restored-",
+    "attemptExcerpt": "Dynamic imports imported\n{\"result\":\"PASS\",\"mode\":\"restored-read\",\"ready\":{\"backend\":\"mongodb\",\"adapter\":\"MongoCacheEntryRepository\",\"selectorProvided\":true,\"pid\":747851,\"legacy\":false,\"startupMs\":2718.157135,\"startupStagesMs\":{\"coreImported\":2275.1065719999997,\"ormLoaded\":2664.986629,\"persistenceReady\":2717.108554,\"cacheBootstrapped\":2718.12469},\"memory\":{\"rss\":329838592,\"heapTotal\":255021056,\"heapUsed\":145087512,\"external\":41122740,\"arrayBuffers\":41396366},\"node\":\"v24.18.0\"},\"checkpoint\":\"driver-completed; retained storage/session; JSON/ObjectId/string timestamps\"}\nsha256:4f4f3570cae35fab61929d66fe79b8bf4d037359e35704d9af09b94def707e06 {\"org.opencontainers.image.revision\":\"b83234da9a6e5ce31387c75f3873bd3100e83175\"}\nError: P5 worker startup timed out\n    at Timeout._onTimeout (/probe/transition-client.cjs:14:14)\n    at listOnTimeout (node:internal/timers:685:17)\n    at process.processTimers (node:internal/timers:618:7)"
+  },
+  "recovery.txt": {
+    "sha256": "2bd8a6566f4c0803edec62f17341b4c433b899255fdeeb8246ee951c199225a4",
+    "bytes": 5751,
+    "lines": 55,
+    "artifactHashes": {
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/c2-recovery-kDGhlV/checkpoint.archive.gz": "b01509d4f682d3248e58ad4c9d1371dafb5571a8febce4bc9f173ad4a3bfe7ae",
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/c2-recovery-kDGhlV/assets.tar.gz": "070a669c81ee6dcbe9413eb9e25971dfdbbc2a66c0bae3e877ef5105bdc4a774",
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/c2-recovery-kDGhlV/local.js": "a78b15931916269b6e30f59684ed1b5a7a2e01e88a9b95bc12325923fdc3808b"
+    },
+    "summaryExcerpt": "{\"result\":\"PASS\",\"mode\":\"restored-read\",\"ready\":{\"backend\":\"mongodb\",\"adapter\":\"MongoCacheEntryRepository\",\"selectorProvided\":true,\"pid\":749699,\"legacy\":false,\"startupMs\":2702.021523,\"startupStagesMs\":{\"coreImported\":2263.174803,\"ormLoaded\":2649.286909,\"persistenceReady\":2700.784722,\"cacheBootstrapped\":2701.88542},\"memory\":{\"rss\":330076160,\"heapTotal\":255021056,\"heapUsed\":145220792,\"external\":41122740,\"arrayBuffers\":41396366},\"node\":\"v24.18.0\",\"cacheExpiry\":3600},\"checkpoint\":\"driver-completed; retained storage/session; JSON/ObjectId/string timestamps\"}\n{\"result\":\"PASS\",\"mode\":\"rollback\",\"ready\":{\"backend\":\"prisma\",\"adapter\":\"PrismaCacheEntryRepository\",\"selectorProvided\":false,\"pid\":18,\"leg"
+  },
+  "tls-srv-permissions-failure.txt": {
+    "sha256": "aa2edae24111eb906b292779606cb495ca94573902339259cf4580a43898b0c2",
+    "bytes": 853,
+    "lines": 8,
+    "attemptExcerpt": "about to fork child process, waiting until server is ready for connections.\nforked process: 33\n\n{\"t\":{\"$date\":\"2026-10-20T04:07:12.304+00:00\"},\"s\":\"I\",  \"c\":\"CONTROL\",  \"id\":20698,   \"ctx\":\"main\",\"msg\":\"***** SERVER RESTARTED *****\"}\n{\"t\":{\"$date\":\"2026-10-20T04:07:12.483+00:00\"},\"s\":\"E\",  \"c\":\"NETWORK\",  \"id\":23248,   \"ctx\":\"main\",\"msg\":\"Cannot read certificate file\",\"attr\":{\"keyFile\":\"/certs/server.pem\",\"error\":\"error:FFFFFFFF8000000D:system library::Permission denied\"}}\n{\"t\":{\"$date\":\"2026-10-20T04:07:12.523+00:00\"},\"s\":\"F\",  \"c\":\"CONTROL\",  \"id\":20574,   \"ctx\":\"main\",\"msg\":\"Error during global initialization\",\"attr\":{\"error\":{\"code\":140,\"codeName\":\"InvalidSSLConfiguration\",\"errmsg\":\"Can not set up PEM key file.\"}}}\nERROR: child process failed, exited with 1\nTo see additional information in this output, start without the \"--fork\" option."
+  },
+  "tls-srv-srv-only.txt": {
+    "sha256": "704ff475a1d6eeb3f26580eb9da3cd4980e2f4522c186e0a0c929d39a5b2724d",
+    "bytes": 160,
+    "lines": 2,
+    "summaryExcerpt": "{\"result\":\"PASS live authenticated TLS and SRV, CA rejection, authentication rejection, no fallback\",\"srvQueries\":1,\"node\":\"v26.11.1\"}"
+  },
+  "tls-srv-txt-probe.txt": {
+    "sha256": "5e57ab9cec23cf75421eb3722b0ac8949ef0162ea857e8595185d49d35fc23fc",
+    "bytes": 179,
+    "lines": 2,
+    "summaryExcerpt": "{\"result\":\"PASS live authenticated TLS and SRV/TXT, CA rejection, authentication rejection, no fallback\",\"srvQueries\":1,\"txtQueries\":1,\"node\":\"v26.11.1\"}"
+  },
+  "tls-srv.txt": {
+    "sha256": "5e57ab9cec23cf75421eb3722b0ac8949ef0162ea857e8595185d49d35fc23fc",
+    "bytes": 179,
+    "lines": 2,
+    "summaryExcerpt": "{\"result\":\"PASS live authenticated TLS and SRV/TXT, CA rejection, authentication rejection, no fallback\",\"srvQueries\":1,\"txtQueries\":1,\"node\":\"v26.11.1\"}"
+  }
+}

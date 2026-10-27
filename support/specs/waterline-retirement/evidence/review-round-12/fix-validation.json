@@ -1,0 +1,160 @@
+[
+  {
+    "name": "fix-startup",
+    "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && cd packages/sails-hook-redbox-storage-mongo && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register --require test/setup.ts test/services/MongoStorageService.test.ts test/migrations/recordRevisionBackfill.test.ts",
+    "exitCode": 0,
+    "durationMs": 46390,
+    "sha256": "7deec8dbf4c4456c6a8d5f47ac98f89ea94261bdd822bb855b11c9ead9e73c8f",
+    "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+    "worktreeChanges": [
+      " M packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts",
+      " M packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts",
+      "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-accepted-drain.cjs"
+    ],
+    "counts": {
+      "passing": [
+        "265"
+      ],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "2123ec7f0"
+  },
+  {
+    "name": "fix-compound-drain-accepted",
+    "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint && node_modules/.bin/tsc --noEmit && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh accepted-drain",
+    "exitCode": 0,
+    "durationMs": 53205,
+    "sha256": "ad5cabc9948a16d466f0d06dffb18e65e1e6c309d7f7a116d0571bd807ac8032",
+    "sourceCommit": "2123ec7f0e446cf5d12648cc2983cc62add49fb8",
+    "worktreeChanges": [
+      " M packages/redbox-core/src/persistence/reference/runtime.ts",
+      " M packages/redbox-core/src/persistence/storage/runtime.ts",
+      " M packages/redbox-core/test/fixtures/waterline-retirement/review-regressions.json",
+      "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-accepted-drain.cjs"
+    ],
+    "counts": {
+      "passing": [],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "880f135b6"
+  },
+  {
+    "name": "fix-agenda",
+    "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint && node_modules/.bin/tsc --noEmit && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/IntegrationAuditService.test.ts",
+    "exitCode": 0,
+    "durationMs": 49151,
+    "sha256": "a739609d5dc2761256bce29112e3b5987520d7b57c6a5ee4ba3d2320ed613e4d",
+    "sourceCommit": "880f135b65732fca041c03cafc61313b3820ac45",
+    "worktreeChanges": [
+      " M packages/redbox-core/src/services/AgendaQueueService.ts",
+      " M packages/redbox-core/test/services/AgendaQueueService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "72"
+      ],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "bd336c6c9"
+  },
+  {
+    "name": "fix-audit",
+    "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint && node_modules/.bin/tsc --noEmit && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register --require test/setup.ts test/services/AttachmentMetadataService.test.ts",
+    "exitCode": 0,
+    "durationMs": 62302,
+    "sha256": "25c8bdae4fae72005162f37e685add654306aab2ad315b679bdeffea74002dc6",
+    "sourceCommit": "bd336c6c965c442e9361590c905eb72d9a7c071a",
+    "worktreeChanges": [
+      " M packages/redbox-core/src/persistence/storage/WaterlineAttachmentRepository.ts",
+      " M packages/redbox-core/test/services/AttachmentMetadataService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "23"
+      ],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "666524fb0"
+  },
+  {
+    "name": "fix-audit-job",
+    "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint && node_modules/.bin/tsc --noEmit && node_modules/.bin/tsc -p .tmp/review-round-12/tsconfig.changed-tests.json && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/IntegrationAuditService.test.ts",
+    "exitCode": 0,
+    "durationMs": 68846,
+    "sha256": "b08db4d6767821e5d3cd3408b4167fca8680d46ed9f5ed3a5d390b0f373e1396",
+    "sourceCommit": "666524fb0b149539934e37188dc1ef04601a80fe",
+    "worktreeChanges": [
+      " M packages/redbox-core/src/services/IntegrationAuditService.ts",
+      " M packages/redbox-core/test/services/AgendaQueueService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "73"
+      ],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "9e1493d25"
+  },
+  {
+    "name": "fix-retry",
+    "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint && node_modules/.bin/tsc --noEmit && node_modules/.bin/tsc -p .tmp/review-round-12/tsconfig.changed-tests.json && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/IntegrationAuditService.test.ts",
+    "exitCode": 0,
+    "durationMs": 72125,
+    "sha256": "e2e0d161d8c3c7112f759d69025f742a70a87b365f23de396447aae457fa127d",
+    "sourceCommit": "9e1493d25d21f24574768fa5afe57c5f4c250dcf",
+    "worktreeChanges": [
+      " M packages/redbox-core/src/services/AgendaQueueService.ts",
+      " M packages/redbox-core/test/services/AgendaQueueService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "74"
+      ],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "a0503fbe0"
+  },
+  {
+    "name": "fix-legacy-audits",
+    "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && cd packages/sails-hook-redbox-storage-mongo && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register --require test/setup.ts test/services/MongoStorageService.test.ts test/migrations/recordRevisionBackfill.test.ts",
+    "exitCode": 0,
+    "durationMs": 45524,
+    "sha256": "3f6a59eab7d4856d2f4bb29c0c3d1d8f62c3df8882e5ebdfc582bf22338acff2",
+    "sourceCommit": "a0503fbe02540c96738b830da2027633b6a1a3c1",
+    "worktreeChanges": [
+      " M packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts",
+      " M packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "268"
+      ],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "63a8ddee2"
+  },
+  {
+    "name": "fix-integration-assertions",
+    "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && node_modules/.bin/tsc --noEmit && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && node_modules/.bin/tsc --noEmit -p .tmp/review-round-12/tsconfig.integration-audit.json && git diff --check",
+    "exitCode": 0,
+    "durationMs": 78249,
+    "sha256": "bcb43bdfb8f9ce35056c65ab3219ef28cb49fe2946164a510c52563d2cec184c",
+    "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+    "worktreeChanges": [
+      " M test/integration/services/AttachmentMetadataService.test.ts"
+    ],
+    "counts": {
+      "passing": [],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "73bb34656"
+  }
+]

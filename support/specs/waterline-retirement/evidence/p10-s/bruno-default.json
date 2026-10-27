@@ -1,0 +1,28 @@
+{
+  "command": [
+    "bash",
+    "packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh",
+    "bruno",
+    "default"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 281.847,
+  "sha256": "51e93c8b9807849eb8cfb7ae7952809ea539a3f2b967e3fe81cf9c5cc07ac428",
+  "logBytes": 2491673,
+  "results": {
+    "requests": {
+      "passed": 309,
+      "total": 309
+    },
+    "tests": {
+      "passed": 553,
+      "total": 553
+    },
+    "assertions": {
+      "passed": 3,
+      "total": 3
+    }
+  },
+  "selector": "waterline (default, environment unset)",
+  "fixture": "unique Compose project and fresh volumes, unfiltered stock npm runner, original dependency pins"
+}

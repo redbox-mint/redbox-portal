@@ -1,0 +1,222 @@
+{
+  "gate": "G-J4",
+  "decision": "PASS for bounded transaction-free next",
+  "sourceCommit": "7ef6087e24f7cbec81d0afcb063c3b65a6aaf1e8",
+  "candidateRuntimeDiffSha256": "fff3da320eec06964f857bca86f0d050de01f11b19e81e837cba46edb9da4d02",
+  "selectedDefault": "mongodb",
+  "freshVolumes": true,
+  "stockRunnerCommandsUnchanged": true,
+  "commands": [
+    {
+      "label": "build",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "build"
+      ],
+      "exitCode": 0,
+      "log": "/tmp/redbox-p5d-default-build.log",
+      "sha256": "4a8fa8479746b7d1a532d477c5be6f6e4007be6e9b9bc4553fdec27c14715313",
+      "summary": "PASS default-candidate build before core/stack runners"
+    },
+    {
+      "label": "core",
+      "command": [
+        "npm",
+        "run",
+        "test:core"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 107.8,
+      "log": "/tmp/redbox-p5d-default-core.log",
+      "sha256": "578a15f08a74f8d3859fdea2dc6e6ea73a27a96d5e4a45d0c0b8bd1f7ef09ad7",
+      "summary": "Error: Inline vocabulary 'status' was not found for branding 'default'\n  4158 passing (2m)\n  107 pending"
+    },
+    {
+      "label": "persistence-types",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "typecheck:persistence"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 27.42,
+      "log": "/tmp/redbox-p5d-default-persistence-types.log",
+      "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+      "summary": ""
+    },
+    {
+      "label": "root-types",
+      "command": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 2.21,
+      "log": "/tmp/redbox-p5d-default-root-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "summary": ""
+    },
+    {
+      "label": "foundation",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "test:persistence-foundation"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 12.81,
+      "log": "/tmp/redbox-p5d-default-foundation.log",
+      "sha256": "5730fb8ba73ba032a65032a94a01f3572515e1a289ca568d1cc466300d53955a",
+      "summary": "  12 passing (854ms)"
+    },
+    {
+      "label": "cache-contract",
+      "command": [
+        "npm",
+        "run",
+        "check:cache-contract"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 3.3,
+      "log": "/tmp/redbox-p5d-default-cache-contract.log",
+      "sha256": "bef61ae7f445ac64b42f3316b4a5cd819fc4d8b503d2a78a31c2e00232db3a9d",
+      "summary": "Cache contracts: check passed"
+    },
+    {
+      "label": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 0.42,
+      "log": "/tmp/redbox-p5d-default-lint.log",
+      "sha256": "4c779dfd082b25205489fa30f6313fd57c4c3f14e0db6f3602f7e23308712e23",
+      "summary": "Found 0 warnings and 0 errors."
+    },
+    {
+      "label": "indexes",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "test:persistence-indexes"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 142.81,
+      "log": "/tmp/redbox-p5d-default-indexes.log",
+      "sha256": "50497b1b74f079fe7e3cffeaac81e68c71d506be0459e8fd50d67e60c2824fc4",
+      "summary": "PASS 1: actual official fresh-volume init prepares cache + M + R + Q + J2 and satisfies J1/J2/J3/J4 driver readiness\nPASS 2: existing-volume inspect preserves raw documents and missing indexes; ignores migrate:drop; no business callbacks\nPASS 3: duplicate M history blocks all selected DDL, including a missing cache index, without cleanup\nPASS 4: explicit existing-volume ensure prepares both selected groups, preserves BSON and is idempotent\nPASS 5: backend selection scopes DDL: both Waterline, M-only driver, cache-only driver and R-only driver\nPASS 6: Q-only DDL prepares dashboard/UID indexes and preserves duplicate AppConfig rows without uniqueness\nPASS 7: conflicting index blocks all ensure writes without dropping the conflict\nPASS 8: configuration failure exits safely without exposing native credentials or changing data/indexes\nPASS 9: R duplicate keys block every selected group and startup without DDL, fallback or document cleanup\nPASS 10: the installed command prepares R key indexes idempotently, preserving raw data and satisfying driver startup\nPASS 11: missing and incompatible sparse R indexes stop startup/ensure without repair\nPASS 12: J2 duplicate dimensions block all 14 scopes before DDL; explicit ensure preserves lineage and prepares every run/chunk/event index\nPASS 13: installed J3 command reviews all eight scopes before DDL, preserves duplicate events on refusal and explicitly prepares both collections\nPASS 14: installed J4 command audits partial binding duplicates before all DDL and retains null/missing exclusions on explicit upgrade\nPASS 15: omitted group selectors prepare the promoted M, R, Q, J1, J2, J3 and J4 defaults plus the retained Prisma cache"
+    },
+    {
+      "label": "mocha-default",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-figshare-portal.sh"
+      ],
+      "environment": {
+        "FIGSHARE_BACKENDS": "default",
+        "FIGSHARE_SKIP_PREWARM": "false",
+        "FIGSHARE_MOCHA_PATHS": "test/integration/persistence/*.test.ts\ntest/integration/services/FigshareQueued.test.ts\ntest/integration/services/SecurityEventService.test.ts\ntest/integration/services/SiemForwardingService.test.ts\ntest/integration/services/SiemApi.test.ts\ntest/integration/services/AppConfigService.test.ts\ntest/integration/services/DashboardConfigService.test.ts\ntest/integration/services/DashboardTypesService.test.ts\ntest/integration/services/I18nEntriesService.test.ts\ntest/integration/services/FormsService.test.ts\ntest/integration/services/WorkflowStepsService.test.ts\ntest/integration/services/ReportsService.test.ts\ntest/integration/services/NamedQueryService.test.ts\ntest/integration/models/I18nTranslation.test.ts"
+      },
+      "exitCode": 0,
+      "seconds": 298.15,
+      "log": "/tmp/redbox-p5d-default-mocha-default.log",
+      "sha256": "d182c0240e7bd188bb761a4a9813f2b331e0a57b5b675d4d770fe972d8748a8e",
+      "summary": "redboxportal-mount-1  | level=info time=2026-10-20T13:43:28+1000 pid=165 hostname=7cb4032fa899 msg=\"Data migrations: 4 pending: 20260904000000-branding-typeface-backfill, 20260925T000000-dashboard-stage-configuration, 20261014T000000-admin-sidebar-text-color, @researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions\"\nredboxportal-mount-1  | J4 selected backend=mongodb; loaded-manager bypass=true\nredboxportal-mount-1  | level=info time=2026-10-20T13:44:34+1000 pid=165 hostname=7cb4032fa899 msg=\"Data migrations: 2 pending: 20990101T000000-p2-portal-01, 20990101T000000-p2-portal-02\"\nredboxportal-mount-1  | level=info time=2026-10-20T13:44:34+1000 pid=165 hostname=7cb4032fa899 msg=\"Data migrations: 0 pending.\"\nredboxportal-mount-1  | level=info time=2026-10-20T13:44:34+1000 pid=165 hostname=7cb4032fa899 msg=\"Data migrations: 1 pending: 20990101T000000-p2-portal-03\"\nredboxportal-mount-1  | level=info time=2026-10-20T13:44:34+1000 pid=165 hostname=7cb4032fa899 msg=\"Data migrations: 1 pending: 20990101T000000-p2-portal-03\"\nredboxportal-mount-1  | J3 selected backend=mongodb; loaded-manager bypass=true\nredboxportal-mount-1  |   98 passing (1m)\nredboxportal-mount-1  |   1 pending"
+    },
+    {
+      "label": "bruno-default",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-figshare-bruno.sh"
+      ],
+      "environment": {
+        "FIGSHARE_BACKENDS": "default",
+        "FIGSHARE_SKIP_PREWARM": "false"
+      },
+      "exitCode": 0,
+      "seconds": 240.4,
+      "log": "/tmp/redbox-p5d-default-bruno-default-retry.log",
+      "sha256": "c54a13c62a04eee9943cd31df7c0df21941443dbcdef0ce24be6113d99c9e902",
+      "summary": "bruno-mount-1         | \u2502 Requests      \u2502 309 (309 Passed) \u2502\nbruno-mount-1         | \u2502 Tests         \u2502     553/553      \u2502"
+    },
+    {
+      "label": "dev-default",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 66.7,
+      "log": "/tmp/redbox-p5d-default-dev-default-retry.log",
+      "sha256": "7a35259552372c5d7ce7f382246a33b80165b65c8542d94762d4ab4bb947a822",
+      "summary": "PASS standard development app.js HTTP startup on fresh isolated volume\n{\"mode\":\"inspect\",\"ready\":true,\"groups\":[{\"group\":\"cache\",\"backend\":\"prisma\",\"collection\":\"cacheentry\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"migration\",\"backend\":\"mongodb\",\"collection\":\"migration\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"reference\",\"backend\":\"mongodb\",\"collection\":\"recordtype\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"reference\",\"backend\":\"mongodb\",\"collection\":\"dashboardtype\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"reference\",\"backend\":\"mongodb\",\"collection\":\"report\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"reference\",\"backend\":\"mongodb\",\"collection\":\"namedquery\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"configuration\",\"backend\":\"mongodb\",\"collection\":\"dashboardconfiguration\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"configuration\",\"backend\":\"mongodb\",\"collection\":\"i18nbundle\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"configuration\",\"backend\":\"mongodb\",\"collection\":\"i18ntranslation\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrun\",\"name\":\"brandId_1_recordType_1_sourceName_1_sourceRunId_1\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrun\",\"name\":\"brandId_1_startedAt_1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrun\",\"name\":\"status_1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrun\",\"name\":\"recordType_1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrunchunk\",\"name\":\"runId_1_contentHash_1_attempt_1\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrunchunk\",\"name\":\"runId_1_contentHash_1_status_1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrunchunk\",\"name\":\"runId_1_chunkIndex_1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrunchunk\",\"name\":\"runId_1_submittedAt_1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrecordevent\",\"name\":\"runId_1_brandId_1_createdAt_-1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrecordevent\",\"name\":\"runId_1_brandId_1_outcome_1_createdAt_-1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrecordevent\",\"name\":\"runId_1_brandId_1_operation_1_createdAt_-1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrecordevent\",\"name\":\"runId_1_brandId_1_chunkId_1_createdAt_1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrecordevent\",\"name\":\"harvestId_1_recordType_1_brandId_1\",\"index\":\"ready\"},{\"group\":\"harvest\",\"backend\":\"mongodb\",\"collection\":\"harvestrecordevent\",\"name\":\"oid_1\",\"index\":\"ready\"},{\"group\":\"siem\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"securityevent\",\"name\":\"eventId_1\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"siem\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"securityevent\",\"name\":\"brandId_1_deliveryState_1_nextEligibleAt_1_occurredAt_1\",\"index\":\"ready\"},{\"group\":\"siem\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"securityevent\",\"name\":\"brandId_1_occurredAt_-1\",\"index\":\"ready\"},{\"group\":\"siem\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"securityevent\",\"name\":\"brandId_1_deliveryState_1_leaseExpiresAt_1\",\"index\":\"ready\"},{\"group\":\"siem\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"securityevent\",\"name\":\"brandId_1_deliveryState_1_terminalAt_1\",\"index\":\"ready\"},{\"group\":\"siem\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"securityevent\",\"name\":\"brandId_1_deliveryState_1_updatedAt_1\",\"index\":\"ready\"},{\"group\":\"siem\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"siemdeliveryattempt\",\"name\":\"eventId_1_destinationId_1\",\"index\":\"ready\"},{\"group\":\"siem\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"siemdeliveryattempt\",\"name\":\"brandId_1_startedAt_-1\",\"index\":\"ready\"},{\"group\":\"figshare\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"figsharesync\",\"name\":\"oid_1\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"figshare\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"figsharesync\",\"name\":\"namespace_1_articleId_1\",\"index\":\"ready\",\"duplicateKeyGroups\":0},{\"group\":\"figshare\",\"backend\":\"mongodb\",\"datastore\":\"mongodb\",\"collection\":\"figsharesync\",\"name\":\"nextActionAt_1_dispatchUntil_1\",\"index\":\"ready\"}]}\nPASS default cache=prisma and M=mongodb readiness, shared indexes and durable migration history"
+    }
+  ],
+  "excludedAttempts": [
+    {
+      "label": "bruno-default",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-figshare-bruno.sh"
+      ],
+      "environment": {
+        "FIGSHARE_BACKENDS": "default",
+        "FIGSHARE_SKIP_PREWARM": "false"
+      },
+      "exitCode": -15,
+      "seconds": 202.08,
+      "log": "/tmp/redbox-p5d-default-bruno-default.log",
+      "sha256": "e4462c1706a8094922ea5fd17725de9fa67b2c91364f482aac1751cb70040bf3",
+      "summary": ""
+    }
+  ],
+  "packedDefaultArtifact": "packed-default-artifact.json",
+  "packedDefaultResult": "PASS (manifest written after all set-e type/offline/live checks on both Node versions; fixture cleanup completed)",
+  "provisionalLimits": true,
+  "operationsArtifact": "operations.json",
+  "independentSelectors": {
+    "siem": "mongodb",
+    "figshare": "mongodb"
+  },
+  "rollbackBackend": "waterline",
+  "defaultMocha": {
+    "passing": 98,
+    "pending": 1,
+    "pendingReason": "Existing dataPublication-1.0-embargoed FormConfigFrame migration"
+  },
+  "bruno": {
+    "requests": 309,
+    "tests": 553,
+    "assertions": 3
+  },
+  "core": {
+    "passing": 4158,
+    "pending": 107,
+    "priorPending": 106,
+    "newPendingCoveredLive": 1
+  },
+  "indexScopes": 34,
+  "indexCollections": 15,
+  "topology": "standalone",
+  "transactionGate": "closed; OPS-TX-01 undecided",
+  "promotionCommit": "6c0194dcbd8940bc00c758e890d3a0ed1df555ba"
+}

@@ -1,0 +1,34 @@
+{
+  "name": "projection-before",
+  "baseline": "loaded Waterline find plus plain legacy projection",
+  "observed": "valid parent/child selections rejected by the driver",
+  "cases": 108,
+  "examples": [
+    {
+      "target": "form",
+      "select": [
+        "configuration",
+        "configuration.num"
+      ],
+      "start": 0
+    },
+    {
+      "target": "form",
+      "select": [
+        "configuration",
+        "configuration.num"
+      ],
+      "start": 0,
+      "rows": 2
+    },
+    {
+      "target": "form",
+      "select": [
+        "configuration",
+        "configuration.num"
+      ],
+      "start": 1
+    }
+  ],
+  "rawProbeSha256": "abd17c5554306f7dea65f2a2429ce6e973dd1c377d0fa84ac7b19389f4027624"
+}

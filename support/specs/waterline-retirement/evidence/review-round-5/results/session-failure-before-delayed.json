@@ -1,0 +1,18 @@
+{
+  "name": "session-failure-before-delayed",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts",
+  "sourceCommit": "92183a2fd6d737a5d6b2585c815eea4e09c2dcc2",
+  "exitCode": 6,
+  "durationMs": 2140,
+  "sha256": "944d8c1df841e4a00252868c8c6554fab5da81c99fbc2e53f3bc062a5c0e7199",
+  "counts": {
+    "passing": [
+      14
+    ],
+    "failing": [
+      6
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

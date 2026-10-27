@@ -1,0 +1,87 @@
+{
+  "sourceBefore": "dcf7d7ad7f82051a2ca7702f0c209bbc38683d65",
+  "sourceAfter": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+  "red": {
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts --grep \"retains a newer SQS receipt\"",
+    "exitCode": 2,
+    "expectedFailure": true,
+    "runtime": "input runtime, added regression tests only",
+    "sha256": "fb9a7c48b60f357aad7291e1a4357a897f777811889f73b90e6572689a3e1314",
+    "counts": {
+      "passing": [
+        0
+      ],
+      "pending": [],
+      "failing": [
+        2
+      ]
+    }
+  },
+  "green": [
+    {
+      "name": "strict-focused-final",
+      "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-15/tsconfig.focused.json",
+      "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+      "exitCode": 0,
+      "durationMs": 45798,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "focused-final-committed",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/AuditFollowupDrain.test.ts test/middleware/requestLifetime.test.ts",
+      "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+      "exitCode": 0,
+      "durationMs": 30315,
+      "sha256": "f5bacbfd077cc8659bf291e831ca7b7be3789c2285e991ef0fc7128a12891430",
+      "counts": {
+        "passing": [
+          110
+        ],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-unlock-green",
+      "command": "node .tmp/review-round-15/sqs-receipt-identity.cjs unlock",
+      "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+      "exitCode": 0,
+      "durationMs": 898,
+      "sha256": "d20fe40a0a64add37a8c0505b9fbb6493e6610452883583aa9ec2ff8762d86fd",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-complete-green",
+      "command": "node .tmp/review-round-15/sqs-receipt-identity.cjs complete",
+      "source": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+      "exitCode": 0,
+      "durationMs": 1105,
+      "sha256": "e542d9a2ba2ae4921204835d441f13b7ee64cc353e5a0b23043d07e069a0144a",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    }
+  ],
+  "httpFailureCoverage": {
+    "commit": "5de68b600",
+    "cases": 9,
+    "producers": 3,
+    "outcomes": [
+      "success",
+      "lookup rejection",
+      "enqueue rejection"
+    ],
+    "workerControls": 6
+  }
+}

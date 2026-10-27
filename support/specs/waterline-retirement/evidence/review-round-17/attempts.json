@@ -1,0 +1,138 @@
+{
+  "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+  "excludedPreliminary": {
+    "source": "a23b7cbe4",
+    "reason": "Integration audit found owned Job.save could replace the per-delivery owner. Qualification stopped before a forward compatibility correction. Results excluded from final acceptance.",
+    "completed": 26,
+    "failed": [],
+    "ownedPids": [
+      2319435,
+      2319433
+    ]
+  },
+  "handlerSaveCorrection": {
+    "before": "a23b7cbe4",
+    "after": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+    "redLogSha256": "fc9591895bcb412b053f8885b28d75ba48cda1ceedadc7f2aaae74e38a087be3",
+    "greenLogSha256": "e82f54596bd77c03db855c7653fc7c4c70c7567568328253352664060226ff3a",
+    "scenariosAfter": 8,
+    "forwardCorrection": true
+  },
+  "mainRunner": {
+    "commands": 77,
+    "exitCode": 0,
+    "failed": []
+  },
+  "unchangedRetries": [],
+  "flakyRetriesRequired": 0,
+  "deliberateRedTests": [
+    "old-unlock-baseline",
+    "overlapping-touch-baseline",
+    "many-failed-touches-baseline"
+  ],
+  "developmentCorrections": [
+    "Fixed a stray + in the new fixture before the first valid red run.",
+    "Shell wrapper used zsh readonly status; raw test assertions still recorded failure. Final baseline replay uses captured subprocess return codes.",
+    "Corrected old-runtime loader path to resolve from its directory after run-storage.sh changes working directory.",
+    "Added required nextRunAt/data to the new typed test fixture; strict compilation then passed.",
+    "Added const key typing and underscore aliases during the owned Job.save adapter implementation; build, lint and strict compilation then passed."
+  ],
+  "development": {
+    "fix-build.log": {
+      "sha256": "bdb1298adf2ad06862cac5a110b4d678bccbb120b871418457ea2a616867b4c3"
+    },
+    "focused-development.log": {
+      "sha256": "aabe600235dd5628a68cfb444deecaeaec4ed5c9315a2a23292ad9ad866cda11"
+    },
+    "strict-development.log": {
+      "sha256": "611328dcd6c63cb40c1008b6d66b079f12f1f3b9f81c740c260a1dae34f2bc1a"
+    },
+    "strict-final-development.log": {
+      "sha256": "318f8a9748fd6ba11452d562d840e9214d28dd7594d1a9e0b9d6d607dd2eeb5d"
+    },
+    "focused-final-development.log": {
+      "sha256": "10ded24f759c06a15e8ad9e2bf26eeed9dbc82600013e1fb76d44abd5c642520"
+    },
+    "lint-development.log": {
+      "sha256": "20a641126efff5ec9c6a6f88c486819454e983e2c7c2384718b753bff9d7b938"
+    }
+  },
+  "captureAttempts": [
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "45b3c969c67e231d221a507432c17b0bb10f8511ce0d18c99d9c489d42332bbd"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "45b3c969c67e231d221a507432c17b0bb10f8511ce0d18c99d9c489d42332bbd"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "45b3c969c67e231d221a507432c17b0bb10f8511ce0d18c99d9c489d42332bbd"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "45b3c969c67e231d221a507432c17b0bb10f8511ce0d18c99d9c489d42332bbd"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "45b3c969c67e231d221a507432c17b0bb10f8511ce0d18c99d9c489d42332bbd"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "45b3c969c67e231d221a507432c17b0bb10f8511ce0d18c99d9c489d42332bbd"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "45b3c969c67e231d221a507432c17b0bb10f8511ce0d18c99d9c489d42332bbd"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 0,
+      "outputSha256": "bd867631902ad6d6b521ceac8c334de497a3a52a643e900339ce7c6d99720b97"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "4a5adb2b66d0ebbc6c5e1eae2346823b4fde7ba55815ca2b0f26de37924f9c46"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "4a5adb2b66d0ebbc6c5e1eae2346823b4fde7ba55815ca2b0f26de37924f9c46"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "4a5adb2b66d0ebbc6c5e1eae2346823b4fde7ba55815ca2b0f26de37924f9c46"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "4a5adb2b66d0ebbc6c5e1eae2346823b4fde7ba55815ca2b0f26de37924f9c46"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "4a5adb2b66d0ebbc6c5e1eae2346823b4fde7ba55815ca2b0f26de37924f9c46"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "4a5adb2b66d0ebbc6c5e1eae2346823b4fde7ba55815ca2b0f26de37924f9c46"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 0,
+      "outputSha256": "d0e1d64a596eeb77368f1e204160c610d7027ab6a15c428261a0cc58a29def47"
+    }
+  ],
+  "quotaLimitEncountered": false
+}

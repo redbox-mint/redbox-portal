@@ -1,0 +1,74 @@
+b225aef06c9eee298b283118d8424820e30d3f797ca25f2be7b16ccda8164cdb mongo:8.0.34@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907 sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907 {"27017/tcp":[{"HostIp":"127.0.0.1","HostPort":"32801"}]}
+{
+  ok: 1,
+  '$clusterTime': {
+    clusterTime: Timestamp({ t: 1792419535, i: 1 }),
+    signature: {
+      hash: Binary.createFromBase64('AAAAAAAAAAAAAAAAAAAAAAAAAAA=', 0),
+      keyId: Long('0')
+    }
+  },
+  operationTime: Timestamp({ t: 1792419535, i: 1 })
+}
+{
+  topologyVersion: {
+    processId: ObjectId('6ad626cc374dbf8f2e38b909'),
+    counter: Long('6')
+  },
+  hosts: [
+    '127.0.0.1:27017'
+  ],
+  setName: 'wr_p0r',
+  setVersion: 1,
+  isWritablePrimary: true,
+  secondary: false,
+  primary: '127.0.0.1:27017',
+  me: '127.0.0.1:27017',
+  electionId: ObjectId('7fffffff0000000000000001'),
+  lastWrite: {
+    opTime: {
+      ts: Timestamp({ t: 1792419535, i: 17 }),
+      t: Long('1')
+    },
+    lastWriteDate: ISODate('2026-10-19T14:18:55.000Z'),
+    majorityOpTime: {
+      ts: Timestamp({ t: 1792419535, i: 17 }),
+      t: Long('1')
+    },
+    majorityWriteDate: ISODate('2026-10-19T14:18:55.000Z')
+  },
+  maxBsonObjectSize: 16777216,
+  maxMessageSizeBytes: 48000000,
+  maxWriteBatchSize: 100000,
+  localTime: ISODate('2026-10-19T14:18:56.244Z'),
+  logicalSessionTimeoutMinutes: 30,
+  connectionId: 15,
+  minWireVersion: 0,
+  maxWireVersion: 25,
+  readOnly: false,
+  ok: 1,
+  '$clusterTime': {
+    clusterTime: Timestamp({ t: 1792419535, i: 17 }),
+    signature: {
+      hash: Binary.createFromBase64('AAAAAAAAAAAAAAAAAAAAAAAAAAA=', 0),
+      keyId: Long('0')
+    }
+  },
+  operationTime: Timestamp({ t: 1792419535, i: 17 })
+}
+{
+  featureCompatibilityVersion: {
+    version: '8.0'
+  },
+  ok: 1,
+  '$clusterTime': {
+    clusterTime: Timestamp({ t: 1792419535, i: 17 }),
+    signature: {
+      hash: Binary.createFromBase64('AAAAAAAAAAAAAAAAAAAAAAAAAAA=', 0),
+      keyId: Long('0')
+    }
+  },
+  operationTime: Timestamp({ t: 1792419535, i: 17 })
+}
+["node@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7"]
+["node@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404"]

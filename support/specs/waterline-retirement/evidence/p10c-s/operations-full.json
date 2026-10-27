@@ -1,0 +1,260 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh operations",
+  "exitCode": 0,
+  "durationMs": 59796,
+  "rawBytes": 3956006,
+  "sha256": "4494f04f990ef5dcfaf45e18fdbf248a93216ddd3ccad2dc1c3dd5b0d5782b3a",
+  "counts": {},
+  "checks": [
+    {
+      "passing": 1,
+      "failures": 0,
+      "warmups": 100,
+      "operations": 1000,
+      "repeats": 3,
+      "concurrency": 1,
+      "payloadBytes": 15000,
+      "attachmentBytes": 1048587,
+      "samples": [
+        {
+          "round": 0,
+          "backend": "waterline",
+          "p50": 3.181735000000117,
+          "p95": 42.53897499999948,
+          "p99": 55.746140999999625,
+          "throughput": 142.0345638233444,
+          "rss": 446074880,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 82.3285049999995
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 25.682983999999124
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 26.784163000000262
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 62.65344499999992,
+          "loadedMs": 394.41662099999985,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 3451,
+          "baselineConnections": 2,
+          "activeConnections": 11,
+          "afterConnections": 2,
+          "socketConvergenceMs": 0.05051599999933387
+        },
+        {
+          "round": 0,
+          "backend": "mongodb",
+          "p50": 1.6318590000000768,
+          "p95": 11.991246000000501,
+          "p99": 19.017941000000064,
+          "throughput": 363.0725648856774,
+          "rss": 415981568,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 33.26376900000014
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 19.02727799999957
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 20.801409000000604
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 145.70430799999986,
+          "loadedMs": 316.8440169999999,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 2184,
+          "baselineConnections": 2,
+          "activeConnections": 11,
+          "afterConnections": 2,
+          "socketConvergenceMs": 0.017674999999144347
+        },
+        {
+          "round": 1,
+          "backend": "mongodb",
+          "p50": 1.6636349999998856,
+          "p95": 12.087008000000424,
+          "p99": 17.727159999999913,
+          "throughput": 360.5938546920252,
+          "rss": 417308672,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 41.98342500000035
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 27.491707999999562
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 28.816477999999734
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 140.83680099999992,
+          "loadedMs": 327.56782999999996,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 2184,
+          "baselineConnections": 2,
+          "activeConnections": 11,
+          "afterConnections": 2,
+          "socketConvergenceMs": 0.01962400000047637
+        },
+        {
+          "round": 1,
+          "backend": "waterline",
+          "p50": 3.030780999999479,
+          "p95": 42.20756600000095,
+          "p99": 50.03054400000019,
+          "throughput": 146.29768101468397,
+          "rss": 444952576,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 54.655571999999665
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 24.850931999999375
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 23.971729000000778
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 65.38767499999994,
+          "loadedMs": 323.81818999999996,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 3449,
+          "baselineConnections": 2,
+          "activeConnections": 11,
+          "afterConnections": 2,
+          "socketConvergenceMs": 0.018224999999802094
+        },
+        {
+          "round": 2,
+          "backend": "waterline",
+          "p50": 3.050318999999945,
+          "p95": 42.22260699999879,
+          "p99": 49.225751999999375,
+          "throughput": 148.26568932075108,
+          "rss": 444092416,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 56.12182600000051
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 26.52694899999915
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 24.197659999999814
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 62.63639499999999,
+          "loadedMs": 320.33214499999985,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 3449,
+          "baselineConnections": 2,
+          "activeConnections": 11,
+          "afterConnections": 2,
+          "socketConvergenceMs": 0.019918999998481013
+        },
+        {
+          "round": 2,
+          "backend": "mongodb",
+          "p50": 1.7293470000004163,
+          "p95": 12.503122999999505,
+          "p99": 17.458911999999145,
+          "throughput": 354.1194586843975,
+          "rss": 425209856,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 35.53589600000032
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 19.336059999999634
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 20.809688999999707
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 139.4000530000003,
+          "loadedMs": 342.1496689999999,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 2184,
+          "baselineConnections": 2,
+          "activeConnections": 11,
+          "afterConnections": 2,
+          "socketConvergenceMs": 0.02273099999729311
+        }
+      ],
+      "ratios": {
+        "p95": 0.28811232946133225,
+        "throughput": 2.468600499310052,
+        "rss": 0.9426120623272395,
+        "calls": 0.6331046477920572
+      },
+      "bytes": {
+        "waterline": {
+          "bytes": 9437283,
+          "durationMs": 345.1203199999982,
+          "bytesPerSecond": 27344906.842923794
+        },
+        "mongodb": {
+          "bytes": 9437283,
+          "durationMs": 247.06571199999962,
+          "bytesPerSecond": 38197461.41059029
+        }
+      },
+      "pass": true,
+      "limits": {
+        "p95": 1.2,
+        "throughput": 0.9,
+        "rss": 1.1,
+        "calls": 1.25,
+        "readinessMs": 250
+      },
+      "atomicUnitsMoved": 0
+    }
+  ],
+  "passGroups": 0
+}

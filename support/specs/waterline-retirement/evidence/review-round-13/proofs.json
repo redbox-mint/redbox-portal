@@ -1,0 +1,257 @@
+[
+  {
+    "name": "queue-before",
+    "behavior": "processors still poll; actual watchdog-released handler is not owned",
+    "passing": [
+      0
+    ],
+    "failing": [
+      2
+    ],
+    "sha256": "0bf440a15c9735513c074d59010b514bc7d5c79eaf747b4d097f6242dd5ca72e"
+  },
+  {
+    "name": "staged-before",
+    "behavior": "all five admitted audit methods refuse their database reacquisition",
+    "passing": [],
+    "failing": [],
+    "sha256": "7ddfa2962996bbbad43973c1ab8e002f0ab74144cfde052b7d491ae37b5a7516",
+    "fixtureFailures": 5,
+    "methods": [
+      "createRecordAudit",
+      "createIntegrationAudit",
+      "getRecordAudit",
+      "getIntegrationAudit",
+      "countIntegrationAudit"
+    ]
+  },
+  {
+    "name": "http-queue-before",
+    "behavior": "accepted HTTP completion enqueue is refused",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ],
+    "sha256": "aad89dbecdb32568cd74a1bb64a7143c905dd39bcf507d76bad2b35d319843a9"
+  },
+  {
+    "name": "prior-drain-before",
+    "behavior": "later producer hook exceeds queue drain deadline",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ],
+    "sha256": "0397497c4e494258269ba5d775dedf5e6e5ea9f5ece8853e862888c860dbf7d5"
+  },
+  {
+    "name": "failed-drain-before",
+    "behavior": "failed resource drain waits for a live operation",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ],
+    "sha256": "b49f0e8ec809a5bc2f5c6c73c566404bbdf1ce0c9aaac63b31e3d187c8cada7c"
+  },
+  {
+    "name": "failed-drain-resources-before",
+    "behavior": "failed resource drain waits for another held resource",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ],
+    "sha256": "25244b47d781767b9602eb94e0ae10d943161dcc7771fbc0bb849c8814167c8c"
+  },
+  {
+    "name": "audit-followup-before-valid",
+    "behavior": "record and both attachment audits outlive their brand-lookup/security follow-up",
+    "passing": [
+      0
+    ],
+    "failing": [
+      3
+    ],
+    "sha256": "89557ae855222e5e8d83c1e5a2e18ce2c46a2c2173d675afdfa0e12f2824dd69"
+  },
+  {
+    "name": "start-drain-before",
+    "behavior": "active processor waits on startup index work before quiescence",
+    "passing": [],
+    "failing": [],
+    "sha256": "7c421f15b291b006f33b6d080c45fb163f7e8604c2bf0306e4d4088a7efc2935"
+  },
+  {
+    "name": "startup-ownership-before",
+    "behavior": "startup index wait continues polling; partial start failure releases a still-pending start",
+    "passing": [
+      0
+    ],
+    "failing": [
+      2
+    ],
+    "sha256": "9f9c599373138c9fee96f3e32ef31b96585dc5aaa7566350716f1aafb6c6865f"
+  },
+  {
+    "name": "startup-error-before",
+    "behavior": "awaiting all starts delays reporting the original startup failure",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ],
+    "sha256": "9f41861f59596146c30aa9c85baa1706bf605a4a20199ada20a9eee69751b7b9"
+  },
+  {
+    "name": "http-owner-before",
+    "behavior": "global app replacement drains the wrong HTTP owner and grants cross-app completion admission",
+    "passing": [
+      0
+    ],
+    "failing": [
+      2
+    ],
+    "sha256": "496dfc448e4295cfafa9ab3eda0c623efa0483ac9bbe3571300e857c4b2405d4"
+  },
+  {
+    "name": "finalization-immutable-before",
+    "behavior": "real Agenda closes before final acknowledgement, retains prefetched claims, and closes beneath a late claim/unlock",
+    "passing": [
+      0
+    ],
+    "failing": [
+      3
+    ],
+    "sha256": "54a6da4c953838050695e3a3edfcf0f7291c94aa4b34336080575167ce866653"
+  },
+  {
+    "name": "release-failure-immutable-before-corrected",
+    "behavior": "3f50da154: recovered Mongo lock is not released; partial retry unlocks another owner; early failure revokes completion permission",
+    "passing": [
+      0
+    ],
+    "failing": [
+      3
+    ],
+    "sha256": "a8964f8bd411218c662baf17bd5c619e0280397f02c03b1212147388675e8dc0"
+  },
+  {
+    "name": "maintenance-before",
+    "behavior": "admitted driver revision backfill rejects database reacquisition; Waterline control completes",
+    "passing": [],
+    "failing": [],
+    "sha256": "2f592eab7d6ef0125fdd2f2dba9c9696de08d459a429edb83035a36ce69bf8ac",
+    "fixtureFailures": 1,
+    "method": "revisionBackfill-mongodb",
+    "code": "not-initialized",
+    "waterlineControl": true
+  },
+  {
+    "name": "acquisition-drain-before",
+    "behavior": "foundation waits for pending acquisition before starting a bounded failing resource drain",
+    "sha256": "e99cde6b56d29531f4aa8de562567590cff122cec0f98a0108e79464e5cdab54",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ]
+  },
+  {
+    "name": "recovery-redelivery-before",
+    "behavior": "actual Mongo recovered null-nextRunAt job cannot be redelivered after bulk unlock",
+    "sha256": "04cb81f40653081039b5e916c63ebb829d2c29fd89089187d96cbf2a1734f560",
+    "passing": [],
+    "failing": []
+  },
+  {
+    "name": "retry-state-before",
+    "behavior": "captured Date becomes stored null; releasing based on the stale snapshot strands pending retry state",
+    "sha256": "5bc93aec17e3ea460040437c0306c1303a22d2f4ae1301781e0231a919aad14a",
+    "passing": [],
+    "failing": []
+  },
+  {
+    "name": "auto-remove-before-quiesced-valid",
+    "behavior": "real Agenda removeOnComplete disconnects beneath held deletion at completion/request interleaving4",
+    "sha256": "39029430d371c235830508cef68dbe108bf83e3740d8915ace8cdaf4e81c39c5",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ]
+  },
+  {
+    "name": "heartbeat-before",
+    "behavior": "actual Job.touch renews Mongo lock; failed final save leaves cleanup using stale fence and retaining a locked null-next-run job",
+    "sha256": "d4a69fedc0e4ab33dac380a5887fc8cd23410393d73c7a2e0afbc25f4b86d62d",
+    "fixtureFailures": 1,
+    "source": "61adee143"
+  },
+  {
+    "name": "uncertain-heartbeat-before",
+    "behavior": "applied heartbeat with lost reply and refused final save leaves captured original fence unable to release Mongo lock",
+    "sha256": "07d2f6dc49b51d40379a4b51ef1abc15b0f2f608e4888827f72c5f44a6a82003",
+    "passing": [],
+    "failing": [],
+    "source": "e3d592bde"
+  },
+  {
+    "name": "figshare-heartbeat-before",
+    "behavior": "applied Figshare renewal reply remains held while worker returns and later touches final queue state",
+    "sha256": "4da110b506bd76c8c5d63d332f23eb0abc49f67f8837c5f5890cc7f8fc792e51",
+    "passing": [
+      56
+    ],
+    "failing": [
+      1
+    ],
+    "source": "e3d592bde"
+  },
+  {
+    "name": "startup-admission-before-valid",
+    "behavior": "accepted worker completion enqueue is refused after startup index failure",
+    "sha256": "cfad02882b84f17713befee4b226811562a418658186b403dabcfefdd6e5c377",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ],
+    "source": "e3d592bde"
+  },
+  {
+    "name": "sails-lower-before",
+    "source": "f96082066",
+    "behavior": "real Sails lower logs and ignores drain error, invoking native lower",
+    "sha256": "af5cf11b16ab2828b4d27a2c6aabe400feaa662fcee0e8f348c956d484698351",
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ]
+  },
+  {
+    "name": "sails-native-before-valid",
+    "source": "f96082066",
+    "behavior": "real Sails live lower fails to retain native teardown at the drain deadline",
+    "sha256": "739aa44564c4b6014d585a9befab1b66535b2b53e379da288bd43a5dab4ed77d",
+    "fixtureFailures": 1
+  },
+  {
+    "name": "sails-signals-before-valid",
+    "source": "f96082066",
+    "behavior": "real SIGTERM exits before failed-drain checkpoint can be reported",
+    "sha256": "2d65741282ea06237978a19c31c7b3ca96dcbefaa5941592e9dff85fc1ce413f",
+    "fixtureFailures": 1
+  }
+]

@@ -1,0 +1,50 @@
+{
+  "input": "2cdb5442d",
+  "comparison": "ef23e07fe",
+  "qualification": "3691a3d73",
+  "p1": 0,
+  "p2": 2,
+  "outsideOwnershipFindings": 0,
+  "issues": [
+    {
+      "id": "R17-01",
+      "priority": "P2",
+      "title": "Older Mongo delivery unlock releases the newer same-ID claim",
+      "introducedBy": [
+        "f48c69dad",
+        "127595832"
+      ],
+      "inputCode": "AgendaQueueService.ownAgendaRepository unlockJob ID lookup and ID-to-fences map",
+      "scenario": "Receive the same expired/released Mongo document twice in one Agenda owner, then unlock the older delivery. The input map points at the newer delivery, so its fence is released. Equal lock timestamps are included in the retained control.",
+      "observedRed": "Old delivery must not release a newer claim: newer lockedAt was removed.",
+      "violatedInvariant": "Never release another delivery owner",
+      "fix": "a23b7cbe4",
+      "resolution": "Fresh persisted owner per Mongo acquisition and independent delivery record; save/release match that owner. Exact SQS receipt key is preserved.",
+      "retainedRegression": "storage-agenda-claims.cjs / old-unlock",
+      "newOwnerProtocolControl": "storage-agenda-claims.cjs / successor-save; not counted as a distinct newly introduced stale-write defect."
+    },
+    {
+      "id": "R17-02",
+      "priority": "P2",
+      "title": "Older heartbeat acknowledgement forgets the newer ambiguous Mongo lock",
+      "introducedBy": [
+        "e3d592bde",
+        "127595832"
+      ],
+      "inputCode": "AgendaQueueService.ownAgendaRepository successful save splices possible-fences array",
+      "scenario": "Heartbeat A applies and its reply waits. Heartbeat B applies and rejects as reply lost. Then A acknowledges. Input code replaces the candidate array with A, and cleanup releases only A while Mongo still stores B. Cleanup succeeds and closes with the owned lock still persisted.",
+      "observedRed": "Cleanup must release the latest possibly applied heartbeat: newer lockedAt remained a Date.",
+      "violatedInvariant": "Keep every unresolved claim releasable; a successful cleanup cannot forget its persisted owned lock",
+      "fix": "a23b7cbe4",
+      "resolution": "Snapshot and serialize state saves/release per delivery. A stable unique owner spans heartbeat timestamps, eliminating candidate replacement/history.",
+      "retainedRegression": "storage-agenda-claims.cjs / overlapping-touch",
+      "corroboratingStateBoundControl": {
+        "scenario": "128 applied heartbeat reply losses",
+        "inputReleaseAttempts": 129,
+        "fixedReleaseAttempts": 1,
+        "payloadBytesPerClaim": 15000,
+        "meaning": "The same ambiguous-write design retained timestamp/payload history. This supports the forward simplification and is not counted as a third unique issue."
+      }
+    }
+  ]
+}

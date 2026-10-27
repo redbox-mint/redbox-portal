@@ -1,0 +1,106 @@
+{
+  "gate": "G-J1",
+  "decision": "PASS for transaction-free next; provisional bounded operations/rollback budgets",
+  "date": "2026-10-20",
+  "sourceCheckpoint": "b68846eeb9364adeb43448b024dd36e33da25a67",
+  "candidateDiffSha256": "7b279f6ed44a92dd5eb768af6a3c3b30c39e1c400a687efb09830d90d98e42c6",
+  "omittedSelectorBackends": {
+    "progress": "mongodb",
+    "harvest": "waterline"
+  },
+  "freshVolumes": true,
+  "runnerCommandsUnchanged": true,
+  "mochaTestPaths": [
+    "test/integration/persistence/*.test.ts",
+    "test/integration/services/AppConfigService.test.ts",
+    "test/integration/services/DashboardConfigService.test.ts",
+    "test/integration/services/DashboardTypesService.test.ts",
+    "test/integration/services/I18nEntriesService.test.ts",
+    "test/integration/services/FormsService.test.ts",
+    "test/integration/services/WorkflowStepsService.test.ts",
+    "test/integration/services/ReportsService.test.ts",
+    "test/integration/services/NamedQueryService.test.ts",
+    "test/integration/models/I18nTranslation.test.ts"
+  ],
+  "runnerFixtures": "run-progress-portal.sh and run-progress-bruno.sh with PROGRESS_BACKENDS=default and PROGRESS_SKIP_PREWARM=false; both RBPORTAL_PROGRESS_BACKEND and RBPORTAL_HARVEST_BACKEND unset",
+  "bootstrapPolicy": "safe; the former test-only global drop discarded deployment-prepared indexes; fresh volumes provide isolation",
+  "commands": [
+    {
+      "command": "npm --prefix packages/redbox-core run build",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "/tmp/p5-j1-promotion-build.log",
+      "sha256": "472eb5476d8ceb86195a0ef661740ae70add8aea46d042605bc5369940f6d0dd"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "/tmp/p5-j1-promotion-types.log",
+      "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+    },
+    {
+      "command": "node_modules/.bin/tsc --noEmit",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "/tmp/p5-j1-promotion-root-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "npm run test:core",
+      "exitCode": 0,
+      "result": "4151 passing; 106 existing pending; offline import 11075 ms (unchanged 12000 ms limit, no eager J1/J2 adapters)",
+      "log": "/tmp/p5-j1-promotion-core.log",
+      "sha256": "4f70c3f8b0f88f5508f7dc7b60a3706da40ec9a22b51b85eb084faec17e82268"
+    },
+    {
+      "command": "npm run check:cache-contract",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "/tmp/p5-j1-promotion-cache-contract.log",
+      "sha256": "fc05a9fa36a48228944c0da0c5dd84b93603ba22f21b8ac805172588d94bdc55"
+    },
+    {
+      "command": "npm run lint",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "/tmp/p5-j1-promotion-lint.log",
+      "sha256": "51f5b36739132514784bfc14f6b6c0aa7c3e60800629889c74aade24c82541bb"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+      "exitCode": 0,
+      "result": "13 deployment/upgrade cases; omitted-selector scopes 9",
+      "log": "/tmp/p5-j1-promotion-indexes.log",
+      "sha256": "f2b3d371c7d4277608583d516fd7b5558d8188961d865b68c924e7cf8c116e91"
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs-package.sh",
+      "exitCode": 0,
+      "result": "PASS clean prod install/prune; offline types/import/shims and live repositories on Node 24.16.0 + 26.11.1; npm 11.20.0",
+      "log": "/tmp/p5-j1-promotion-package.log",
+      "sha256": "5206ed808efa219165214c6615773b0491dc7d10195c2604abc016e8c01a652e"
+    },
+    {
+      "command": "npm run test:mocha:mount",
+      "exitCode": 0,
+      "result": "81 passing; 1 existing pending",
+      "log": "/tmp/p5-j1-promotion-mocha.log",
+      "sha256": "046ce604543c89db582ba293b81fd57c2f3574bdcaef5179ca7c170b34970164"
+    },
+    {
+      "command": "npm run test:bruno:general:mount",
+      "exitCode": 0,
+      "result": "309/309 requests; 553/553 tests",
+      "log": "/tmp/p5-j1-promotion-bruno.log",
+      "sha256": "0c8a37ee200e719cd3d3ac4b19ed6fa89ee4dd231f1b4b346b46a2d9eaa41997"
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+      "exitCode": 0,
+      "result": "HTTP startup and 9 prepared index scopes ready; no manual DDL",
+      "log": "/tmp/p5-j1-promotion-dev.log",
+      "sha256": "b2d009b5093376d616b99b53996a7dc0a83d6592cfbcd182f9493a40d4beece0"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "command": [
+    "bash",
+    "packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh",
+    "mocha",
+    "default"
+  ],
+  "exitCode": 3,
+  "durationSeconds": 410.056,
+  "sha256": "0d83b812ab28d14f4669a7008bedfd97fc28d0c60165f21b48be0a87c0fccdad",
+  "logBytes": 1159844,
+  "counts": [
+    [
+      "4",
+      "pending",
+      ""
+    ],
+    [
+      "2",
+      "pending",
+      ""
+    ],
+    [
+      "0",
+      "pending",
+      ""
+    ],
+    [
+      "1",
+      "pending",
+      ""
+    ],
+    [
+      "1",
+      "pending",
+      ""
+    ],
+    [
+      "416",
+      "passing",
+      ""
+    ],
+    [
+      "10",
+      "pending",
+      ""
+    ],
+    [
+      "3",
+      "failing",
+      ""
+    ]
+  ],
+  "failureExcerpt": "redboxportal-mount-1  |   3 failing\nredboxportal-mount-1  | \nredboxportal-mount-1  |   1) Branding typeface lifecycle (mounted)\nredboxportal-mount-1  |        drives the AJAX journey from config through restore with conflicts and policy denial:\nredboxportal-mount-1  |      Error: expected 200 \"OK\", got 500 \"Internal Server Error\"\nredboxportal-mount-1  |       at Context.<anonymous> (test/integration/services/BrandingTypefaceLifecycle.test.ts:230:8)\nredboxportal-mount-1  |       at processTicksAndRejections (node:internal/process/task_queues:104:5)\nredboxportal-mount-1  |   ----\nredboxportal-mount-1  |       at Test._assertStatus (node_modules/supertest/lib/test.js:404:14)\nredboxportal-mount-1  |       at /opt/redbox-portal/node_modules/supertest/lib/test.js:460:13\nredboxportal-mount-1  |       at Test._assertFunction (node_modules/supertest/lib/test.js:437:13)\nredboxportal-mount-1  |       at Test.assert (node_modules/supertest/lib/test.js:302:23)\nredboxportal-mount-1  |       at localAssert (node_modules/supertest/lib/test.js:220:38)\nredboxportal-mount-1  |       at Server.<anonymous> (node_modules/supertest/lib/test.js:227:13)\nredboxportal-mount-1  |       at Server.wrapper (node:events:639:12)\nredboxportal-mount-1  |       at Server.emit (node:events:514:20)\nredboxportal-mount-1  |       at emitCloseNT (node:net:2941:8)\nredboxportal-mount-1  |       at processTicksAndRejections (node:internal/process/task_queues:89:21)\nredboxportal-mount-1  | \nredboxportal-mount-1  |   2) The EmailService\nredboxportal-mount-1  |        should send a message:\nredboxportal-mount-1  | \nredboxportal-mount-1  |       Uncaught AssertionError: expected false to deeply equal true\nredboxportal-mount-1  |       + expected - actual\nredboxportal-mount-1  | \nredboxportal-mount-1  |       -false\nredboxportal-mount-1  |       +true\nredboxportal-mount-1  |       \nredboxportal-mount-1  |       at Object.next (test/integration/services/EmailService.test.ts:64:46)\nredboxportal-mount-1  |       at ConsumerObserver.next (node_modules/rxjs/src/internal/Subscriber.ts:155:25)\nredboxportal-mount-1  |       at SafeSubscriber.Subscriber._next (node_modules/rxjs/src/internal/Subscriber.ts:113:22)\nredboxportal-mount-1  |       at SafeSubscriber.Subscriber.next (node_modules/rxjs/src/internal/Subscriber.ts:71:12)\nredboxportal-mount-1  |       at /opt/redbox-portal/node_modules/rxjs/src/internal/observable/innerFrom.ts:90:24\nredboxportal-mount-1  | \nredboxportal-mount-1  |   3) The EmailService\nredboxportal-mount-1  |        send record notification\nredboxportal-mount-1  |          should send email when trigger condition matches and execute onNotifySuccess:\nredboxportal-mount-1  |      TypeError: Cannot read properties of undefined (reading 'log')\nredboxportal-mount-1  |       at Context.<anonymous> (test/integration/services/EmailService.test.ts:267:40)\nredboxportal-mount-1  | \nredboxportal-mount-1  | \nredboxportal-mount-1  | \nredboxportal-mount-1  | level=verbose time=2026-10-20T23:47:50+1000 pid=186 hostname=a321eaccac01 msg=\"Lowering sails...\"",
+  "diagnosis": {
+    "upload": "EACCES on root-owned .tmp/uploads reproduced by container UID 1000; fixture ownership corrected",
+    "email": "EAI_AGAIN integration-testing-email-1; existing Mailpit service lacked the configured alias in unique Compose projects; alias added"
+  }
+}

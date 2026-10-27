@@ -1,0 +1,28 @@
+{
+  "circleciYamlParsed": true,
+  "cacheSelector": {
+    "type": "enum",
+    "enum": [
+      "waterline",
+      "prisma",
+      "mongodb"
+    ],
+    "default": "mongodb"
+  },
+  "composeAndArchetypeForwarding": [
+    "support/development/docker-compose.yml",
+    "packages/redbox-dev-tools/templates/hook-archetype/standard/support/integration-testing/docker-compose.mocha.yml.hbs",
+    "support/integration-testing/docker-compose.bruno.oidc.yml",
+    "support/integration-testing/docker-compose.yml",
+    "packages/redbox-dev-tools/templates/hook-archetype/standard/support/development/docker-compose.yml.hbs",
+    "support/integration-testing/docker-compose.playwright.yml",
+    "support/integration-testing/docker-compose.bruno.general.yml",
+    "support/integration-testing/docker-compose.bruno.s3.yml",
+    "support/integration-testing/docker-compose.bruno.yml",
+    "support/integration-testing/docker-compose.mocha.yml"
+  ],
+  "locksUnchangedFromQualification": {
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+  }
+}

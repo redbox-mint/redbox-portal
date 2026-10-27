@@ -1,0 +1,195 @@
+{
+  "sourceStart": "5afe0957c6b98e49ad608dfd27b89e2ca66d3012",
+  "implementation": "d70a40dde",
+  "atomicConditionalWrite": "7783a3861",
+  "decision": "TX-PARITY-01/01a",
+  "environment": {
+    "node": "24.16.0",
+    "npm": "11.20.0",
+    "architecture": "arm64",
+    "mongo": "9.0.4",
+    "fcv": "9.0",
+    "topology": "standalone"
+  },
+  "selectors": {
+    "waterline": {
+      "core": {
+        "passed": 4317,
+        "failed": 0,
+        "pending": 117,
+        "logs": [
+          {
+            "path": ".tmp/wrp9/final-core-waterline.log",
+            "sha256": "382333e3f2bf9e429268f153e694df62655bf74e7a341e7f1e43d48721165c1c"
+          },
+          {
+            "path": ".tmp/wrp9/final-startup-waterline.log",
+            "sha256": "8fe2546b9bcf4cde764a33f370daf36e551cc648a64421e098d76943a089c249"
+          }
+        ],
+        "earlierQualificationLogs": [
+          {
+            "path": ".tmp/wrp9/core-waterline.log",
+            "sha256": "03cee0131c88d936bbd195dd55c7b809d405a19b34ed2e9ec00593ecdef0cdf4"
+          },
+          {
+            "path": ".tmp/wrp9/startup-waterline-stopped.log",
+            "sha256": "89b88147ed433da3d52163ec27571c5cb812610a9ffd52e3a86a9572eaabc7b6"
+          }
+        ],
+        "revalidatedOnPromotedHead": "7827feb33",
+        "command": "timeout 1500 bash .tmp/wrp9/run-final-core.sh",
+        "startupMs": 10991
+      },
+      "portalMocha": {
+        "passed": 35,
+        "failed": 0,
+        "pending": 0,
+        "log": {
+          "path": ".tmp/wrp9/mocha-waterline.log",
+          "sha256": "4d9fe029e13927e28e28aa78a79806a02e99be61c53228d81864e21f79093d84"
+        }
+      },
+      "browser": {
+        "passed": 2,
+        "failed": 0,
+        "pending": 0,
+        "log": {
+          "path": ".tmp/wrp9/browser-waterline.log",
+          "sha256": "7b9d53b432900ab1421a575f4c08360ac424249675795ecbab6528c38b07fcde"
+        }
+      },
+      "brunoGeneral": {
+        "requests": 309,
+        "tests": 553,
+        "assertions": 3,
+        "failed": 0,
+        "source": "All stock General directories 1\u20134; 310 unchanged source files. Exact-lock CLI4.2.1 copied within this worktree, environment reset per selector.",
+        "logs": [
+          {
+            "path": ".tmp/wrp9/bruno-waterline.log",
+            "sha256": "825fd189a1af1a81e484e9095bf35f6ed914d2b5f7f9d61c6bee841b27556c5f"
+          },
+          {
+            "path": ".tmp/wrp9/bruno-waterline-results.json",
+            "sha256": "5cbdaeacf151674ba594d0bc19ba68dc80977aa4c7ddf17b60d9cf05e4d8be91"
+          }
+        ],
+        "appBrandingRequests": 17,
+        "publicBrandingFontRequests": 2
+      }
+    },
+    "mongodb": {
+      "core": {
+        "passed": 4317,
+        "failed": 0,
+        "pending": 117,
+        "logs": [
+          {
+            "path": ".tmp/wrp9/final-core-mongodb.log",
+            "sha256": "f89de8fe286c434d34266d061dbe35007f2ac65c163f895135fcbfc62fda0071"
+          },
+          {
+            "path": ".tmp/wrp9/final-startup-mongodb.log",
+            "sha256": "6cbd2f9fbb4171671f5faa57bc37ab47f14b83f0a7edb1a4a76e842a4cb1ef07"
+          }
+        ],
+        "earlierQualificationLogs": [
+          {
+            "path": ".tmp/wrp9/core-mongodb.log",
+            "sha256": "29c6cb745fbbc4adf7a09d75c4f220543e02a7b0d3d88211399106ecdc296c33"
+          },
+          {
+            "path": ".tmp/wrp9/startup-mongodb-stopped.log",
+            "sha256": "d258de849f2ac3ed65742ba2e6f510b8af6b8eb24a67e2c5b8c644e86bfaed15"
+          }
+        ],
+        "revalidatedOnPromotedHead": "7827feb33",
+        "command": "timeout 1500 bash .tmp/wrp9/run-final-core.sh",
+        "startupMs": 9568
+      },
+      "portalMocha": {
+        "passed": 35,
+        "failed": 0,
+        "pending": 0,
+        "log": {
+          "path": ".tmp/wrp9/mocha-mongodb.log",
+          "sha256": "12ca0b13348fecb32b8c21282dcbc08a5c58fd02638e2c44e2bb34b13db7c607"
+        }
+      },
+      "browser": {
+        "passed": 2,
+        "failed": 0,
+        "pending": 0,
+        "log": {
+          "path": ".tmp/wrp9/browser-mongodb.log",
+          "sha256": "caf8a77bce2ae3dc571beadf55310a4cd0e6cb8899763c7a09930e190e5975c3"
+        }
+      },
+      "brunoGeneral": {
+        "requests": 309,
+        "tests": 553,
+        "assertions": 3,
+        "failed": 0,
+        "source": "All stock General directories 1\u20134; 310 unchanged source files. Exact-lock CLI4.2.1 copied within this worktree, environment reset per selector.",
+        "logs": [
+          {
+            "path": ".tmp/wrp9/bruno-mongodb.log",
+            "sha256": "95f058eb4c7486f2845700b5229ccce4a3bb0be37f827008ecd75eb4d875e429"
+          },
+          {
+            "path": ".tmp/wrp9/bruno-mongodb-results.json",
+            "sha256": "3e6890eca7a9e3389b91b42ceb73a002ec5f7675f4024f51102e1d7c5dce4f45"
+          }
+        ],
+        "appBrandingRequests": 17,
+        "publicBrandingFontRequests": 2
+      }
+    }
+  },
+  "focused": {
+    "passed": 170,
+    "failed": 0,
+    "log": {
+      "path": ".tmp/wrp9/focused-2.log",
+      "sha256": "4fa85cc42e8dad6e42cd608d2d5c87cebc3ba173f19383807bae73618b63ed41"
+    }
+  },
+  "indexQualification": {
+    "passed": 18,
+    "failed": 0,
+    "omittedScopes": 70,
+    "log": {
+      "path": ".tmp/wrp9/index-qualification.log",
+      "sha256": "3a32ccd25d7e0d220f592ed51b4a641f06e277d0269bf724b3b5278b5874dd08"
+    }
+  },
+  "checks": {
+    "coreBuild": {
+      "path": ".tmp/wrp9/build-01a.log",
+      "sha256": "e652a9faf053767d6420cc35d5e310c24cd10fe87d128dbd9a27ae26f4776166"
+    },
+    "strictPersistenceTypes": {
+      "path": ".tmp/wrp9/types.log",
+      "sha256": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f"
+    },
+    "rootTypes": {
+      "path": ".tmp/wrp9/root-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lint": {
+      "path": ".tmp/wrp9/lint-final.log",
+      "sha256": "b5e9a60db1e67737130686da6148437b950a95507e5ef9fcc85b8ea6825d4a23"
+    },
+    "atomicAdapterLint": {
+      "path": ".tmp/wrp9/lint-01a.log",
+      "sha256": "2174e15406262fb0b6398a277b12ca5d317f74a56ae182f08d629f0cbb06b04e"
+    }
+  },
+  "limitations": [
+    "Unit model doubles use the explicit Waterline seam; live contracts exercise both actual adapters.",
+    "Portal Mocha matrix preceded the 01a CAS simplification; subsequent Bruno matrix uses it, and omitted-default portal regression is recorded separately.",
+    "Browser suites exercise real Chromium print/upload controls but not a private authenticated complete frontend build.",
+    "External RVA requests allow upstream unavailability."
+  ]
+}

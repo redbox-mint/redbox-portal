@@ -1,0 +1,11 @@
+Excluded default Bruno attempt: p5d-j4-bruno-default-29004-3817.
+The isolated official MongoDB 8.0.34 container completed the shared fresh-volume
+initialization script, then its final mongod exited 48 before application startup:
+  Error setting up listener: SocketException
+  0.0.0.0:27017 :: setup bind :: Address already in use
+This was inside that container's private network namespace, not a host published
+port or development MongoDB. The wrapper was stopped during dependency prewarm;
+only that owned Compose project and its fresh volumes were removed. No app/test
+result from this attempt is accepted. The same unmodified npm/Compose runner is
+retried using a new project/volume, without product changes or manual index DDL.
+Original Mongo log: /tmp/redbox-p5d-default-bruno-mongo-startup-failure.log

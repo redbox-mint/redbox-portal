@@ -1,0 +1,13 @@
+{
+  "command": "npm run test:core",
+  "exitCode": 2,
+  "durationMs": 137283,
+  "rawBytes": 360354,
+  "sha256": "c641e5cff84b701c3dc0498da59460bffb932b23235b721f534f59234230e1c7",
+  "failureExcerpt": "    \u2714 preserves explicit zero lock lifetime and processEvery values in agenda options\nDynamic imports imported\n\n\n  4157 passing (2m)\n  113 pending\n  2 failing\n\n  1) app-scoped non-model resource ownership\n       disposes only the captured application GridFS clients and survives module reload:\n     Error: Timeout of 5000ms exceeded. For async tests and hooks, ensure \"done()\" is called; if returning a Promise, ensure it resolves. (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/unit/persistence-foundation.test.ts)\n      at listOnTimeout (node:internal/timers:605:17)\n      at processTimers (node:internal/timers:541:7)\n\n  2) app-scoped non-model resource ownership\n       retains an errored GridFS client and a failed close for app cleanup retry:\n     Error: Timeout of 5000ms exceeded. For async tests and hooks, ensure \"done()\" is called; if returning a Promise, ensure it resolves. (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/unit/persistence-foundation.test.ts)\n      at listOnTimeout (node:internal/timers:605:17)\n      at processTimers (node:internal/timers:541:7)\n\n\n",
+  "counts": {
+    "passing": 4157,
+    "pending": 113,
+    "failing": 2
+  }
+}

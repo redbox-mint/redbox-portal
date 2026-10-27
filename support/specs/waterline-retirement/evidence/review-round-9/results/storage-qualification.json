@@ -1,0 +1,150 @@
+{
+  "name": "storage-qualification",
+  "command": "P10_PRIOR_IMAGE=redbox-p10-s:prior-12e566575 bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh qualification",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 35416,
+  "sha256": "50ca862cd36ebb59eb3b80209074ec724ba9564f5878c5617c842f2ba1ad7198",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 14,
+      "failures": 0,
+      "checks": [
+        "selected staged allowlist and every retained baseline owner in simultaneous real processes",
+        "real server insert rejection and applied/write-concern failure: safe unknown outcome, durable readback and no automatic replay",
+        "baseline to opposite adapter: raw ObjectId/ISO/null/falsy/unknown fields and GridFS bytes",
+        "driver to opposite adapter: raw ObjectId/ISO/null/falsy/unknown fields and GridFS bytes",
+        "mixed claim winner, stale-token refusal, process restart and staged bytes/journal recovery",
+        "immutable artifact collision refusal, BSON Date pin/expiry and bounded reference page",
+        "driver-written schema grant uses retained authorization lookup; user/role/brand/portal/operation isolation",
+        "retained record CAS has one mixed-instance winner and applied/failed-ack outcome is unknown with no replay",
+        "retained lifecycle delete/restore advances revisions; simultaneous restore is idempotent and pre-delete ABA write refuses",
+        "permanent baseline identity survives purge and refuses explicit OID reuse",
+        "actual registered revision migration: skipped stays pending, interrupted application resumes before ledger, recorded body never replays",
+        "database and byte checkpoint retains every existing raw BSON document across rollback; new writes append without restoration or engine downgrade",
+        "actual built prior image reads bytes/schema/raw driver rows and writes rows/audit readable after forward restart",
+        "matching logical database/index/GridFS checkpoint restored into fresh namespaces; bytes, authorization and permanent identity survive on rollback owner"
+      ],
+      "physical": {
+        "p10_application.attachmentmetadata": {
+          "documents": 6,
+          "bsonSha256": "7f5400348c906ce9107cb20dc5cb1b3ba8aa7623efd1eca1aa1cc0b2792b9ab5"
+        },
+        "p10_application.attachmentaccessaudit": {
+          "documents": 0,
+          "bsonSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "p10_storage.record": {
+          "documents": 2,
+          "bsonSha256": "9c82ed5b5046829de55c7905a71ff53373f2abd7275f1d224accd7006c506651"
+        },
+        "p10_storage.deletedrecord": {
+          "documents": 1,
+          "bsonSha256": "2d36098937b7ca59ea56766744d60d41ea000c9fd5d644a958c8d59a50f1fd73"
+        },
+        "p10_storage.recordidentity": {
+          "documents": 2,
+          "bsonSha256": "1d3ba6b5388b3273f7e0e689d58bd489f12cb194213142c6b16d8ff4112a27d0"
+        },
+        "p10_storage.recordschemaartifact": {
+          "documents": 1,
+          "bsonSha256": "c8e657191bd18782230171d8c13bfdc32edcb084d2a2764d80bec3c2619d605d"
+        },
+        "p10_storage.recordschemareference": {
+          "documents": 2,
+          "bsonSha256": "5d11c56fb4f82c8357dabb121958f8c8211e757ed6c21d83948cfa57a5be197c"
+        },
+        "p10_storage.recordaudit": {
+          "documents": 1,
+          "bsonSha256": "d23480223733f5a5bf82bee678d925093a1158178e774625b3dc0dff4e560c7e"
+        },
+        "p10_storage.fs.files": {
+          "documents": 2,
+          "bsonSha256": "b99f3c4ae081d6c81efd1e6e783a6679a72bdf287937280dbdcf26b67fc2e1ff"
+        },
+        "p10_storage.fs.chunks": {
+          "documents": 10,
+          "bsonSha256": "b47c1c86e10302c0be602291be7b8a1a851b623c7e9a0ad3ad18491fc98d6637"
+        }
+      },
+      "priorImage": "redbox-p10-s:prior-12e566575",
+      "rollbackCheckpoint": [
+        {
+          "namespace": "p10_application.attachmentmetadata",
+          "documents": 5,
+          "bsonSha256": "61fcb5ac4c3cd76e5143a1de43fd3b6a4f10f08eabf2cdb0d6ea9feb68301685"
+        },
+        {
+          "namespace": "p10_application.attachmentaccessaudit",
+          "documents": 0,
+          "bsonSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "namespace": "p10_application.migration",
+          "documents": 1,
+          "bsonSha256": "566f5f138573c40ea0c78cea081d48e97c755db2dcfb4587492cf4e2a1891251"
+        },
+        {
+          "namespace": "p10_application.qualification_staging.files",
+          "documents": 0,
+          "bsonSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "namespace": "p10_application.qualification_staging.chunks",
+          "documents": 0,
+          "bsonSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "namespace": "p10_storage.record",
+          "documents": 2,
+          "bsonSha256": "9c82ed5b5046829de55c7905a71ff53373f2abd7275f1d224accd7006c506651"
+        },
+        {
+          "namespace": "p10_storage.deletedrecord",
+          "documents": 1,
+          "bsonSha256": "2d36098937b7ca59ea56766744d60d41ea000c9fd5d644a958c8d59a50f1fd73"
+        },
+        {
+          "namespace": "p10_storage.recordidentity",
+          "documents": 2,
+          "bsonSha256": "1d3ba6b5388b3273f7e0e689d58bd489f12cb194213142c6b16d8ff4112a27d0"
+        },
+        {
+          "namespace": "p10_storage.recordschemaartifact",
+          "documents": 1,
+          "bsonSha256": "c8e657191bd18782230171d8c13bfdc32edcb084d2a2764d80bec3c2619d605d"
+        },
+        {
+          "namespace": "p10_storage.recordschemareference",
+          "documents": 2,
+          "bsonSha256": "5d11c56fb4f82c8357dabb121958f8c8211e757ed6c21d83948cfa57a5be197c"
+        },
+        {
+          "namespace": "p10_storage.recordaudit",
+          "documents": 0,
+          "bsonSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "namespace": "p10_storage.integrationaudit",
+          "documents": 0,
+          "bsonSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "namespace": "p10_storage.fs.files",
+          "documents": 2,
+          "bsonSha256": "b99f3c4ae081d6c81efd1e6e783a6679a72bdf287937280dbdcf26b67fc2e1ff"
+        },
+        {
+          "namespace": "p10_storage.fs.chunks",
+          "documents": 10,
+          "bsonSha256": "b47c1c86e10302c0be602291be7b8a1a851b623c7e9a0ad3ad18491fc98d6637"
+        }
+      ],
+      "topology": "standalone",
+      "mongo": "8.0.34",
+      "atomicUnitsMoved": 0
+    }
+  ]
+}

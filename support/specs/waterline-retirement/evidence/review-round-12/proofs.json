@@ -1,0 +1,115 @@
+{
+  "drain-baseline-original": {
+    "name": "drain-baseline-original",
+    "command": "NODE_OPTIONS=\"--require=$PWD/.tmp/review-round-12/baseline-runtimes.cjs\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh accepted-drain",
+    "exitCode": 1,
+    "durationMs": 7126,
+    "sha256": "b69c604c872f81e8a52e6372a27e6a37443256aff096cda5d801a11824405bf0",
+    "sourceCommit": "2123ec7f0e446cf5d12648cc2983cc62add49fb8",
+    "worktreeChanges": [
+      " M packages/redbox-core/src/persistence/reference/runtime.ts",
+      " M packages/redbox-core/src/persistence/storage/runtime.ts",
+      " M packages/redbox-core/test/fixtures/waterline-retirement/review-regressions.json",
+      "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-accepted-drain.cjs"
+    ],
+    "counts": {
+      "passing": [],
+      "pending": [],
+      "failing": []
+    }
+  },
+  "agenda-before": {
+    "name": "agenda-before",
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require test/setup.ts test/services/AgendaQueueService.test.ts --grep \"durably queues completion\"",
+    "exitCode": 1,
+    "durationMs": 1682,
+    "sha256": "b8d2f54e7d235db02a7f44925ef32945d4905d7f01bc7ff4f97c78f213f91a2b",
+    "sourceCommit": "880f135b65732fca041c03cafc61313b3820ac45",
+    "worktreeChanges": [
+      " M packages/redbox-core/test/services/AgendaQueueService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "0"
+      ],
+      "pending": [],
+      "failing": [
+        "1"
+      ]
+    }
+  },
+  "audit-before": {
+    "name": "audit-before",
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require test/setup.ts test/services/AttachmentMetadataService.test.ts --grep \"bounds audit errors\"",
+    "exitCode": 1,
+    "durationMs": 1944,
+    "sha256": "b6e9eb6a18ab7725392d759c87cdc9ffc59489397a42bbd5553f49aac0433d18",
+    "sourceCommit": "bd336c6c965c442e9361590c905eb72d9a7c071a",
+    "worktreeChanges": [
+      " M packages/redbox-core/test/services/AttachmentMetadataService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "0"
+      ],
+      "pending": [],
+      "failing": [
+        "1"
+      ]
+    }
+  },
+  "audit-job-before": {
+    "name": "audit-job-before",
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require test/setup.ts test/services/AgendaQueueService.test.ts --grep \"real audit storage handler\"",
+    "exitCode": 1,
+    "durationMs": 1613,
+    "sha256": "de730bf55f37470ae48c1f159b01375a9c292570fb097d168872512f9bb6406a",
+    "sourceCommit": "666524fb0b149539934e37188dc1ef04601a80fe",
+    "worktreeChanges": [
+      " M packages/redbox-core/test/services/AgendaQueueService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "0"
+      ],
+      "pending": [],
+      "failing": [
+        "1"
+      ]
+    }
+  },
+  "retry-before": {
+    "name": "retry-before",
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require test/setup.ts test/services/AgendaQueueService.test.ts --grep \"persists delayed retries\"",
+    "exitCode": 1,
+    "durationMs": 2423,
+    "sha256": "2c89e928e1247ef47130a52478c58eedd6ae271ed5761610ba91ff650b649376",
+    "sourceCommit": "9e1493d25d21f24574768fa5afe57c5f4c250dcf",
+    "worktreeChanges": [
+      " M packages/redbox-core/test/services/AgendaQueueService.test.ts"
+    ],
+    "counts": {
+      "passing": [
+        "0"
+      ],
+      "pending": [],
+      "failing": [
+        "1"
+      ]
+    }
+  },
+  "audit-complete-proof": {
+    "name": "audit-complete-proof",
+    "command": "TS_NODE_PROJECT=packages/sails-hook-redbox-storage-mongo/test/tsconfig.json node --require ./node_modules/ts-node/register/transpile-only .tmp/review-round-12/probe-audits.cjs baseline && node .tmp/review-round-12/probe-audits.cjs current",
+    "exitCode": 0,
+    "durationMs": 8162,
+    "sha256": "8f222b3d96d3e60de4e9d65acc4b7705c1f3469a0cf63f2d7e3734cd43ff0e1a",
+    "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+    "worktreeChanges": [],
+    "counts": {
+      "passing": [],
+      "pending": [],
+      "failing": []
+    }
+  }
+}

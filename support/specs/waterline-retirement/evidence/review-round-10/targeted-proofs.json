@@ -1,0 +1,98 @@
+[
+  {
+    "name": "cache-errors-before",
+    "sha256": "6d2437d53efcb683325277e1e16d4a23d930d502e2b8c4b2ebb6144f36f99747",
+    "counts": {
+      "passing": [3],
+      "failing": [8]
+    },
+    "summary": []
+  },
+  {
+    "name": "cache-errors-after",
+    "sha256": "dd71c7a3299d7fc8d9616962ed5374e9938210f5d6a8d11ec71cf2b02caf81c7",
+    "counts": {
+      "passing": [11],
+      "failing": []
+    },
+    "summary": []
+  },
+  {
+    "name": "indexes-before",
+    "sha256": "a39c88ade5582af2689b085b02e3221938022ddd6e914388c81bf4c9995e0a4e",
+    "counts": {
+      "passing": [],
+      "failing": []
+    },
+    "summary": [
+      {
+        "passing": 4,
+        "failures": 5,
+        "details": [
+          {
+            "name": "equivalent field predicate order and legacy name",
+            "expected": "ready",
+            "actual": "conflicting"
+          },
+          {
+            "name": "duplicate inspection matches native compound index",
+            "expected": 1,
+            "actual": 0
+          },
+          {
+            "name": "known duplicate returns blocked report rather than failed DDL",
+            "actual": "index-creation"
+          },
+          {
+            "name": "known duplicate keeps maintenance unready",
+            "expected": false
+          },
+          {
+            "name": "no earlier scope collection creation after duplicate preflight",
+            "expected": ["harvestrunchunk"],
+            "actual": [
+              "cacheentry",
+              "dashboardtype",
+              "harvestrun",
+              "harvestrunchunk",
+              "migration",
+              "namedquery",
+              "recordtype",
+              "report"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "partial-after",
+    "sha256": "5e8a33486394cf58fa57cf9c6e1781b9c436eebdff0dfdaf5fd29df2b4317212",
+    "counts": {
+      "passing": [],
+      "failing": []
+    },
+    "summary": [
+      {
+        "passing": 3,
+        "failures": 0,
+        "details": []
+      }
+    ]
+  },
+  {
+    "name": "indexes-after",
+    "sha256": "64ce85e5be104e91f8ff5c8ed47e42d664a2031f5828991279722c2da72bc4bc",
+    "counts": {
+      "passing": [],
+      "failing": []
+    },
+    "summary": [
+      {
+        "passing": 9,
+        "failures": 0,
+        "details": []
+      }
+    ]
+  }
+]

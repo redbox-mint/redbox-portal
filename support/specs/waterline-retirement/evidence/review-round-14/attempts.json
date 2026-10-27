@@ -1,0 +1,51 @@
+{
+  "mainRunner": {
+    "commands": 77,
+    "exitCode": 0,
+    "failed": [],
+    "flakyTests": [],
+    "unchangedFlakyRetries": []
+  },
+  "expectedRedProbes": [
+    {
+      "name": "http-followup-red",
+      "exitCode": 3,
+      "failing": 3
+    },
+    {
+      "name": "sqs-stale-red",
+      "exitCode": 2,
+      "failing": 2
+    }
+  ],
+  "testTypingCorrections": [
+    {
+      "commit": "4bd1aea7a",
+      "change": "Supply required now/options arguments explicitly as undefined in the new SDK fixture. Identical runtime values; no assertion/timeout/budget change.",
+      "detectedBy": "Source interface inspection before supplemental strict compile."
+    },
+    {
+      "commit": "1f84a1cc0",
+      "change": "Add error?: unknown to the new HTTP fixture shutdown callback. Annotation erases at runtime.",
+      "detectedBy": "Supplemental strict-focused compilation TS7006; exit 2, then exit 0 after annotation."
+    }
+  ],
+  "captureSetup": [
+    {
+      "stage": "fresh-mocha",
+      "attempt": 1,
+      "result": "Read-only runtime capture ran before the portal container was running; 0 matching running containers. No test failure or source change."
+    },
+    {
+      "stage": "fresh-mocha",
+      "attempt": 2,
+      "result": "Captured running portal successfully; npm 11.20.0 and all 16 artifact hashes match host."
+    }
+  ],
+  "baselineQualification": {
+    "finalStatic": 0,
+    "lifecycleCommands": 9,
+    "lifecycleFailed": []
+  },
+  "quotaLimitEncountered": false
+}

@@ -1,0 +1,20 @@
+{
+  "name": "native-cleanup-lazy-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && cd packages/redbox-core && ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require test/setup.ts --timeout 5000 test/services/SecurityEventOwnership.test.ts test/services/SiemDelivery.test.ts && cd ../.. && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh siem-native-pages",
+  "sourceCommit": "676c953c69f97e76b6ccf201b25230b22f35b04c",
+  "exitCode": 0,
+  "durationMs": 56230,
+  "sha256": "8f8959954be5572328953835ffd030ad0f00f8560e0a8a83c93c651ea98df807",
+  "counts": {
+    "passing": [
+      21
+    ],
+    "pending": [
+      7
+    ]
+  },
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":10,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

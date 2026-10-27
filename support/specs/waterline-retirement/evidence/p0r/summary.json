@@ -1,0 +1,130 @@
+[
+  {
+    "node": "24.16.0",
+    "candidate": "driver",
+    "runs": 3,
+    "checksPerRun": 15,
+    "statuses": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "initMsMedian": 36.9,
+    "rssDeltaMiBMedian": 2.9,
+    "heapDeltaMiBMedian": -1.7,
+    "transactionStatus": "PASS",
+    "commitDisconnect": "RECOVERED"
+  },
+  {
+    "node": "24.16.0",
+    "candidate": "mikro",
+    "runs": 3,
+    "checksPerRun": 14,
+    "statuses": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "initMsMedian": 189.0,
+    "rssDeltaMiBMedian": 15.7,
+    "heapDeltaMiBMedian": 3.0,
+    "transactionStatus": "PASS",
+    "commitDisconnect": "NOT_QUALIFIED"
+  },
+  {
+    "node": "24.16.0",
+    "candidate": "mongoose",
+    "runs": 3,
+    "checksPerRun": 15,
+    "statuses": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "initMsMedian": 155.2,
+    "rssDeltaMiBMedian": 11.2,
+    "heapDeltaMiBMedian": 2.5,
+    "transactionStatus": "PASS",
+    "commitDisconnect": "RECOVERED"
+  },
+  {
+    "node": "24.16.0",
+    "candidate": "prisma",
+    "runs": 3,
+    "checksPerRun": 9,
+    "statuses": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "initMsMedian": 640.6,
+    "rssDeltaMiBMedian": 67.3,
+    "heapDeltaMiBMedian": 25.9,
+    "transactionStatus": "BLOCKED",
+    "commitDisconnect": "UNSUPPORTED"
+  },
+  {
+    "node": "26.11.1",
+    "candidate": "driver",
+    "runs": 3,
+    "checksPerRun": 15,
+    "statuses": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "initMsMedian": 33.6,
+    "rssDeltaMiBMedian": 2.3,
+    "heapDeltaMiBMedian": -1.6,
+    "transactionStatus": "PASS",
+    "commitDisconnect": "RECOVERED"
+  },
+  {
+    "node": "26.11.1",
+    "candidate": "mikro",
+    "runs": 3,
+    "checksPerRun": 14,
+    "statuses": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "initMsMedian": 185.6,
+    "rssDeltaMiBMedian": 15.0,
+    "heapDeltaMiBMedian": 3.0,
+    "transactionStatus": "PASS",
+    "commitDisconnect": "NOT_QUALIFIED"
+  },
+  {
+    "node": "26.11.1",
+    "candidate": "mongoose",
+    "runs": 3,
+    "checksPerRun": 15,
+    "statuses": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "initMsMedian": 139.8,
+    "rssDeltaMiBMedian": 10.2,
+    "heapDeltaMiBMedian": 2.5,
+    "transactionStatus": "PASS",
+    "commitDisconnect": "RECOVERED"
+  },
+  {
+    "node": "26.11.1",
+    "candidate": "prisma",
+    "runs": 3,
+    "checksPerRun": 9,
+    "statuses": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "initMsMedian": 628.5,
+    "rssDeltaMiBMedian": 70.7,
+    "heapDeltaMiBMedian": 26.9,
+    "transactionStatus": "BLOCKED",
+    "commitDisconnect": "UNSUPPORTED"
+  }
+]

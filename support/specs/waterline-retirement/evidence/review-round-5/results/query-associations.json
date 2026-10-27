@@ -1,0 +1,13 @@
+{
+  "name": "query-associations",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-associations",
+  "sourceCommit": "e78b77780344b5bfa45608ffd6b89d54566fcae9",
+  "exitCode": 0,
+  "durationMs": 4900,
+  "sha256": "8864c96519175f3031c3c5fbc0d41be4e4b464b4595a3104190939de8c33ec50",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":28,\"failures\":0,\"writers\":[\"waterline\",\"mongodb\"],\"readers\":[\"waterline\",\"mongodb\"],\"loadedAssociation\":\"i18ntranslation.bundle -> i18nbundle\"}"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "command": "node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js install --package-lock-only --ignore-scripts --strict-peer-deps --include=peer",
+  "exitCode": 0,
+  "durationMs": 9077,
+  "rawBytes": 437,
+  "sha256": "03fd4ed286b738ae0fb06de63693c1893519102aa45e036c15e487f6fa1f771a"
+}

@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "cb874201e2c0215c003ae0a78a4ca637a4e789dc",
+  "tag": "redbox-p3-r:prior-cb874201",
+  "image": "sha256:2511de69363c6322f57a41f71023d46f34d90f1637dde354081a587cb4f800ba",
+  "labels": {
+    "org.opencontainers.image.revision": "cb874201e2c0215c003ae0a78a4ca637a4e789dc"
+  },
+  "node": "26.11.1",
+  "lockNpm": "11.20.0",
+  "files": {
+    "vendor/researchdatabox-sails-ng-common-0.2.1.tgz": "432f8f73a47e35eee638554f356d60af32831d4b10293bdef3600b76b57343f1",
+    "vendor/researchdatabox-raido-openapi-generated-node-0.0.3.tgz": "a50e5bc0fa7cbaff5a237f4372310f978c1d8dbc25a38055ebfebc02255ea892",
+    "vendor/researchdatabox-redbox-core-0.0.1-beta.9022.tgz": "3243d3f9a1f1f45578c71a00b94342acde57415b620fbd4d91730e5721fa3129",
+    "vendor/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz": "0e31c976464a67ec7b85f2f5222878c9be6c57dc836697df5e8e379e27f1b7d9",
+    "vendor/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d",
+    "vendor/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz": "91cb54f64bd473508fa4cfbae6584b6e18a359d137ede4e7fb038d5716eccb7d",
+    "package.json": "29640bd1b855826ae7d6d2443701f17d1d52996d6244e6edfb70eee84767688c",
+    "package-lock.json": "95928608412c6ea83e83b478a140be998b247ba7684f6b526043b964dec57262",
+    "Dockerfile": "b083e6734f31e36ca17b6344ea2fe199599b14828831c4e5453b101a81bf87a8"
+  }
+}

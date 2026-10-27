@@ -1,0 +1,15 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 build
+npm notice run npm run generate:cache-contract && rm -rf dist && tsc && node scripts/cache-contract.cjs copy
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 generate:cache-contract
+npm notice run node scripts/cache-contract.cjs generate
+{"kind":"step-started","step":"Resolving contract source...","id":"resolveSource","commandId":"contract.emit","timestamp":"2026-10-19T16:12:02.419Z"}
+{"kind":"step-finished","step":"Resolving contract source...","id":"resolveSource","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T16:12:02.533Z"}
+{"kind":"step-started","step":"Emitting contract...","id":"emit","commandId":"contract.emit","timestamp":"2026-10-19T16:12:02.533Z"}
+{"kind":"step-finished","step":"Emitting contract...","id":"emit","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T16:12:02.822Z"}
+(node:69388) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file://<REPO>/packages/redbox-core/src/persistence/prisma/contract.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to <REPO>/packages/redbox-core/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"kind":"result","envelope":{"ok":true,"commandId":"contract.emit","result":{"ok":true,"storageHash":"cbf09781f810c3d73d37c21822b691fd75a9c25b70ceeb5cb61a9d2b6c5a3d87","profileHash":"251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3","outDir":"<REPO>/packages/redbox-core/.cache-contract-y2yVjA","files":{"json":"<REPO>/packages/redbox-core/.cache-contract-y2yVjA/contract.json","dts":"<REPO>/packages/redbox-core/.cache-contract-y2yVjA/contract.d.ts"},"timings":{"total":414}},"exitCode":0,"diagnostics":[],"nextActions":[]},"commandId":"contract.emit","timestamp":"2026-10-19T16:12:02.833Z"}
+Prisma agent skills are out of date (installed @prisma/orm-mongo 8.0.0-rc.18, synced none). Run: prisma skills sync
+Cache contracts: generate passed

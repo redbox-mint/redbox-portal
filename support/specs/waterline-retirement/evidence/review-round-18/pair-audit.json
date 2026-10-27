@@ -1,0 +1,27 @@
+{
+  "source": "790e92ca5",
+  "events": [
+    "claim",
+    "heartbeat",
+    "ambiguous_write",
+    "redelivery",
+    "completion",
+    "state_save_failure",
+    "expiry",
+    "drain_deadline",
+    "release",
+    "release_retry",
+    "retry_save",
+    "user_save"
+  ],
+  "backends": [
+    "mongodb",
+    "sqs"
+  ],
+  "orderedPairs": 288,
+  "uniquePairs": 288,
+  "missingRows": 0,
+  "missingColumns": 0,
+  "unresolvedRuleReferences": 0,
+  "method": "Independent matrix shape validation and source inspection; not 288 live executions."
+}

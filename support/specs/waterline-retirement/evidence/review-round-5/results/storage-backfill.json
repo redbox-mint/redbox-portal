@@ -1,0 +1,13 @@
+{
+  "name": "storage-backfill",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh backfill",
+  "sourceCommit": "e78b77780344b5bfa45608ffd6b89d54566fcae9",
+  "exitCode": 0,
+  "durationMs": 6856,
+  "sha256": "00bd1a8d9df0cb57b2e321009a66c4be620ad3ad64b279555498acc672ed9f4f",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":16,\"failures\":0,\"runs\":[{\"backend\":\"waterline\",\"documents\":1207,\"maxBatch\":73,\"dispatched\":12,\"resumed\":{\"activeUpdated\":728,\"tombstonesUpdated\":5,\"batches\":11,\"durationMs\":185},\"rawSha256\":\"8abc3b940021f940fab46ab208c61998e8b51c301fbe41117b891f5ef82dcb68\"},{\"backend\":\"mongodb\",\"documents\":1207,\"maxBatch\":73,\"dispatched\":12,\"resumed\":{\"activeUpdated\":728,\"tombstonesUpdated\":5,\"batches\":11,\"durationMs\":186},\"rawSha256\":\"8abc3b940021f940fab46ab208c61998e8b51c301fbe41117b891f5ef82dcb68\"}],\"modelFreeEntrypoint\":true,\"atomicUnitsMoved\":0}"
+  ]
+}

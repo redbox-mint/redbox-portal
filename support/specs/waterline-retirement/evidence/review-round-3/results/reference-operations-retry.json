@@ -1,0 +1,11 @@
+{
+  "name": "reference-operations-retry",
+  "command": "npm --prefix packages/redbox-core run test:reference-operations",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 85352,
+  "sha256": "e89734924510cb706517f140c910a8b02c9ee4a2ab18aaae3bb732689ea7ba60",
+  "counts": {},
+  "passGroups": 1,
+  "checks": []
+}

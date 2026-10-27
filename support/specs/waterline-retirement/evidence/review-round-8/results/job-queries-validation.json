@@ -1,0 +1,11 @@
+{
+  "name": "job-queries-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh job-queries",
+  "sourceCommit": "5bc2356b9c174239cb9af3599e78df988285940c",
+  "exitCode": 2,
+  "durationMs": 23957,
+  "sha256": "799e9dd038c5eb01c89660e42858b1c02f46204035fb003ae5e8887c2107f5b2",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

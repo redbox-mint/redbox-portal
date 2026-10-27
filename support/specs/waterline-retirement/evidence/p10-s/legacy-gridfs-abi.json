@@ -1,0 +1,10 @@
+{
+  "baselineDriver": "7.2.0",
+  "baselineBsonDependency": "^7.2.0",
+  "candidateDriver": "7.7.0",
+  "candidateBsonDependency": "^7.3.2",
+  "probe": "legacy-gridfs-probe.json",
+  "result": "Legacy GridFSBucket on borrowed Waterline manager rejects BSON 7 ObjectId with BSONVersionError. Original 7.2.0 and attempted 7.7.0 pins both use BSON 7; final baseline pin remains 7.2.0. Owned-driver byte fixture passes. No P10.6 ownership/ABI fix performed.",
+  "finalStorageDriver": "7.2.0 (baseline pin retained)",
+  "stagedDriver": "7.7.0 (existing core foundation pin)"
+}

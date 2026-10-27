@@ -1,0 +1,987 @@
+Dynamic imports imported
+{
+  "source": "f8c8cd7de",
+  "node": "v24.18.0",
+  "mongo": "8.0.34",
+  "standalone": true,
+  "models": {
+    "AppConfig": {
+      "identity": "appconfig",
+      "collection": "appconfig",
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "configKey": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "branding": {
+          "required": true,
+          "model": "brandingconfig",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        },
+        "configData": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        }
+      },
+      "schema": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "columnName": "createdAt"
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "columnName": "updatedAt"
+        },
+        "id": {
+          "type": "string",
+          "columnName": "_id",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        },
+        "configKey": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "configKey"
+        },
+        "configData": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "columnName": "configData"
+        },
+        "branding": {
+          "model": "brandingconfig",
+          "columnName": "branding",
+          "type": "string",
+          "foreignKey": true,
+          "references": "brandingconfig",
+          "referenceIdentity": "brandingconfig",
+          "on": "_id",
+          "onKey": "id",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        }
+      },
+      "callbacks": {
+        "beforeCreate": "undefined",
+        "beforeUpdate": "undefined"
+      },
+      "raw": {
+        "_id": {
+          "$oid": "6ad689f061313a41a0fe3d7c"
+        },
+        "branding": {
+          "$oid": "6ad689f06b22e99c172c0b7b"
+        },
+        "configKey": "example",
+        "configData": {
+          "empty": "",
+          "falsy": false,
+          "nil": null
+        },
+        "createdAt": "2026-10-19T21:21:52.915Z",
+        "updatedAt": "2026-10-19T21:21:52.915Z"
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "checks": {
+        "missing": "E_INVALID_NEW_RECORD",
+        "nullValue": {
+          "value": null,
+          "createdAt": "2026-10-19T21:21:52.954Z",
+          "updatedAt": "2026-10-19T21:21:52.954Z",
+          "id": "6ad689f061313a41a0fe3d7d",
+          "configKey": "example",
+          "configData": {
+            "empty": "",
+            "falsy": false,
+            "nil": null
+          },
+          "branding": "6ad689f06b22e99c172c0b7b"
+        },
+        "global": "E_INVALID_NEW_RECORD",
+        "duplicates": "allowed; updateOne refuses multiple matches"
+      }
+    },
+    "DashboardConfiguration": {
+      "identity": "dashboardconfiguration",
+      "collection": "dashboardconfiguration",
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "branding": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "revision": {
+          "type": "number",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          }
+        },
+        "configData": {
+          "type": "json",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          }
+        },
+        "provenance": {
+          "type": "json",
+          "defaultsTo": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        }
+      },
+      "schema": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "columnName": "createdAt"
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "columnName": "updatedAt"
+        },
+        "id": {
+          "type": "string",
+          "columnName": "_id",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        },
+        "branding": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "branding"
+        },
+        "revision": {
+          "type": "number",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "columnName": "revision"
+        },
+        "configData": {
+          "type": "json",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "columnName": "configData"
+        },
+        "provenance": {
+          "type": "json",
+          "defaultsTo": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "columnName": "provenance"
+        }
+      },
+      "callbacks": {
+        "beforeCreate": "undefined",
+        "beforeUpdate": "undefined"
+      },
+      "raw": {
+        "_id": {
+          "$oid": "6ad689f061313a41a0fe3d7f"
+        },
+        "branding": "6ad689f06b22e99c172c0b7b",
+        "revision": 1,
+        "configData": {
+          "workflows": {},
+          "views": {},
+          "contexts": {}
+        },
+        "createdAt": "2026-10-19T21:21:52.987Z",
+        "updatedAt": "2026-10-19T21:21:52.987Z",
+        "provenance": {}
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "checks": {
+        "missing": "E_INVALID_NEW_RECORD",
+        "nullValue": {
+          "value": null,
+          "createdAt": "2026-10-19T21:21:53.006Z",
+          "updatedAt": "2026-10-19T21:21:53.006Z",
+          "id": "6ad689f161313a41a0fe3d80",
+          "branding": "6ad689f06b22e99c172c0b7b",
+          "revision": 1,
+          "configData": {
+            "workflows": {},
+            "views": {},
+            "contexts": {}
+          },
+          "provenance": {}
+        },
+        "global": "E_INVALID_NEW_RECORD"
+      }
+    },
+    "I18nBundle": {
+      "identity": "i18nbundle",
+      "collection": "i18nbundle",
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "locale": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "displayName": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "enabled": {
+          "type": "boolean",
+          "defaultsTo": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_boolean"
+          },
+          "required": false
+        },
+        "namespace": {
+          "type": "string",
+          "defaultsTo": "translation",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "branding": {
+          "model": "brandingconfig",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "data": {
+          "type": "json",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          }
+        },
+        "entries": {
+          "collection": "i18ntranslation",
+          "via": "bundle",
+          "required": false
+        },
+        "uid": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        }
+      },
+      "schema": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "columnName": "createdAt"
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "columnName": "updatedAt"
+        },
+        "id": {
+          "type": "string",
+          "columnName": "_id",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        },
+        "locale": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "locale"
+        },
+        "displayName": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "displayName"
+        },
+        "enabled": {
+          "type": "boolean",
+          "defaultsTo": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_boolean"
+          },
+          "columnName": "enabled"
+        },
+        "namespace": {
+          "type": "string",
+          "defaultsTo": "translation",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "namespace"
+        },
+        "data": {
+          "type": "json",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "columnName": "data"
+        },
+        "entries": {
+          "collection": "i18ntranslation",
+          "via": "bundle",
+          "references": "i18ntranslation",
+          "referenceIdentity": "i18ntranslation",
+          "on": "bundle",
+          "onKey": "bundle"
+        },
+        "uid": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "uid"
+        },
+        "branding": {
+          "model": "brandingconfig",
+          "columnName": "branding",
+          "type": "string",
+          "foreignKey": true,
+          "references": "brandingconfig",
+          "referenceIdentity": "brandingconfig",
+          "on": "_id",
+          "onKey": "id",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        }
+      },
+      "callbacks": {
+        "beforeCreate": "function",
+        "beforeUpdate": "function"
+      },
+      "raw": {
+        "_id": {
+          "$oid": "6ad689f161313a41a0fe3d81"
+        },
+        "branding": {
+          "$oid": "6ad689f06b22e99c172c0b7b"
+        },
+        "locale": "en",
+        "data": {},
+        "createdAt": "2026-10-19T21:21:53.022Z",
+        "updatedAt": "2026-10-19T21:21:53.022Z",
+        "displayName": "",
+        "enabled": true,
+        "namespace": "translation",
+        "uid": "6ad689f06b22e99c172c0b7b:en:translation"
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "checks": {
+        "missing": "E_INVALID_NEW_RECORD",
+        "nullValue": {
+          "value": null,
+          "createdAt": "2026-10-19T21:21:53.038Z",
+          "updatedAt": "2026-10-19T21:21:53.038Z",
+          "id": "6ad689f161313a41a0fe3d82",
+          "locale": "en",
+          "displayName": "",
+          "enabled": true,
+          "namespace": "translation",
+          "data": {},
+          "uid": "6ad689f06b22e99c172c0b7b:en:translation",
+          "branding": "6ad689f06b22e99c172c0b7b"
+        },
+        "global": {
+          "createdAt": "2026-10-19T21:21:53.051Z",
+          "updatedAt": "2026-10-19T21:21:53.051Z",
+          "id": "6ad689f161313a41a0fe3d83",
+          "locale": "fr",
+          "displayName": "",
+          "enabled": true,
+          "namespace": "translation",
+          "data": {},
+          "uid": "global:fr:translation",
+          "branding": null
+        },
+        "createOnlyUid": "6ad689f06b22e99c172c0b7b:en:translation"
+      }
+    },
+    "I18nTranslation": {
+      "identity": "i18ntranslation",
+      "collection": "i18ntranslation",
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "key": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "locale": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "namespace": {
+          "type": "string",
+          "defaultsTo": "translation",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "value": {
+          "type": "json",
+          "required": false,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          }
+        },
+        "category": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "contentFormat": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "branding": {
+          "model": "brandingconfig",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "bundle": {
+          "model": "i18nbundle",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "uid": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        }
+      },
+      "schema": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "columnName": "createdAt"
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "columnName": "updatedAt"
+        },
+        "id": {
+          "type": "string",
+          "columnName": "_id",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        },
+        "key": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "key"
+        },
+        "locale": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "locale"
+        },
+        "namespace": {
+          "type": "string",
+          "defaultsTo": "translation",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "namespace"
+        },
+        "value": {
+          "type": "json",
+          "required": false,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "columnName": "value"
+        },
+        "category": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "category"
+        },
+        "description": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "description"
+        },
+        "contentFormat": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "contentFormat"
+        },
+        "uid": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "columnName": "uid"
+        },
+        "branding": {
+          "model": "brandingconfig",
+          "columnName": "branding",
+          "type": "string",
+          "foreignKey": true,
+          "references": "brandingconfig",
+          "referenceIdentity": "brandingconfig",
+          "on": "_id",
+          "onKey": "id",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        },
+        "bundle": {
+          "model": "i18nbundle",
+          "columnName": "bundle",
+          "type": "string",
+          "foreignKey": true,
+          "references": "i18nbundle",
+          "referenceIdentity": "i18nbundle",
+          "on": "_id",
+          "onKey": "id",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        }
+      },
+      "callbacks": {
+        "beforeCreate": "function",
+        "beforeUpdate": "function"
+      },
+      "raw": {
+        "_id": {
+          "$oid": "6ad689f161313a41a0fe3d84"
+        },
+        "branding": {
+          "$oid": "6ad689f06b22e99c172c0b7b"
+        },
+        "locale": "en",
+        "key": "hello",
+        "value": "",
+        "createdAt": "2026-10-19T21:21:53.076Z",
+        "updatedAt": "2026-10-19T21:21:53.076Z",
+        "namespace": "translation",
+        "category": null,
+        "description": null,
+        "contentFormat": null,
+        "bundle": null,
+        "uid": "6ad689f06b22e99c172c0b7b:en:translation:hello"
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "checks": {
+        "missing": "E_INVALID_NEW_RECORD",
+        "nullValue": "E_INVALID_NEW_RECORD",
+        "global": {
+          "createdAt": "2026-10-19T21:21:53.092Z",
+          "updatedAt": "2026-10-19T21:21:53.092Z",
+          "id": "6ad689f161313a41a0fe3d85",
+          "key": "hello",
+          "locale": "fr",
+          "namespace": "translation",
+          "value": "",
+          "category": null,
+          "description": null,
+          "contentFormat": null,
+          "uid": "global:fr:translation:hello",
+          "branding": null,
+          "bundle": null
+        },
+        "valueOnly": "6ad689f06b22e99c172c0b7b:en:translation:hello",
+        "partialKey": "6ad689f06b22e99c172c0b7b:en:translation:hello",
+        "localeKey": "global:de:translation:renamed"
+      }
+    }
+  },
+  "lock": {
+    "_id": "fixture/brand",
+    "expiresAt": {
+      "$date": "2026-10-19T21:23:53.150Z"
+    },
+    "owner": "owner"
+  },
+  "lockIndexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ]
+}
+PASS Q loaded physical/callback/duplicate/partial UID spike

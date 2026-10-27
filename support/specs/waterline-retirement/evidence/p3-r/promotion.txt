@@ -1,0 +1,126 @@
+npm --prefix packages/redbox-core run build
+PASS
+
+npm run test:core
+4137 passing, 106 pending; startup 9909ms < unchanged 12000ms
+    ✔ replaces completed detached dispatches without double-counting pending actions
+    ✔ keeps the real core bootstrap pending until record-schema startup finishes after storage readiness (234ms)
+    - rehearses one deployment runner while the other instance skips pending migration bodies
+    ✔ should execute pending migrations in lexical name order and log each success
+    ✔ should log the pending migration names before executing
+    ✔ increments attempts when pending and preserves the count when applied
+    ✔ observes pending completion without another upload or completion POST
+    - pauses invalid observationMs configuration without losing pending work, and resumes after correction
+    - pauses invalid cleanupMs configuration without losing pending work, and resumes after correction
+    - reports an interrupted managed upload for repair, but waits quietly on a foreign pending upload
+      ✔ should restore pending permissions
+      ✔ should leave permissions pending when duplicate email matches are not linked
+      ✔ resolves edit and view users while preserving roles and pending lists
+      ✔ rebinds pending attachment URLs and clears the pending flag
+      ✔ does not open an S3 body while attachment metadata is still pending
+      ✔ should not crash when no pending records found
+      ✔ propagates pending-access mutation failures through the user lifecycle hook
+    pending
+      ✔ should find pending records
+    ✔ loads core without a browser DOM or the full Effect barrel, then sanitizes on first use (9909ms)
+  4137 passing (1m)
+  106 pending
+
+npm --prefix packages/redbox-core run typecheck:persistence
+PASS
+
+npm --prefix packages/redbox-core run lint
+PASS
+
+npm --prefix packages/redbox-core run check:cache-contract
+PASS; storage/profile hashes unchanged
+
+Focused reference persistence suite
+10 passing
+  10 passing (66ms)
+
+npm --prefix packages/redbox-core run test:persistence-foundation
+12 passing
+  12 passing (2s)
+
+P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-prisma
+17 passing
+  17 passing (10s)
+
+P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition
+15 passing
+  15 passing (2m)
+
+P2_ROLLBACK_IMAGE=sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be npm --prefix packages/redbox-core run test:migration-transition
+15 passing
+    ✔ rehearses one deployment runner while the other instance skips pending migration bodies (10161ms)
+PRE-P2 IMAGE ROLLBACK PASS: reads driver ledger, no replay, pending body writes interoperable history.
+  15 passing (2m)
+
+npm --prefix packages/redbox-core run test:persistence-indexes
+11 passing, including omitted selectors/all six default scopes
+PASS 1: actual official fresh-volume init prepares exactly cache + M + R and satisfies driver readiness
+PASS 2: existing-volume inspect preserves raw documents and missing indexes; ignores migrate:drop; no business callbacks
+PASS 3: duplicate M history blocks all selected DDL, including a missing cache index, without cleanup
+PASS 4: explicit existing-volume ensure prepares both selected groups, preserves BSON and is idempotent
+PASS 5: backend selection scopes DDL: both Waterline, M-only driver, cache-only driver and R-only driver
+PASS 6: conflicting index blocks all ensure writes without dropping the conflict
+PASS 7: configuration failure exits safely without exposing native credentials or changing data/indexes
+PASS 8: R duplicate keys block every selected group and startup without DDL, fallback or document cleanup
+PASS 9: the installed command prepares R key indexes idempotently, preserving raw data and satisfying driver startup
+PASS 10: missing and incompatible sparse R indexes stop startup/ensure without repair
+PASS 11: omitted group selectors prepare the promoted M and R defaults plus the retained Prisma cache
+
+npm --prefix packages/redbox-core run test:reference-transition
+PASS all eight, raw/mixed/restart/config and immutable prior artifact, hook/target parity and raw BSON refusal
+PASS all eight entities, raw defaults, both directions, unknown fields, read without rewrite
+PASS create-only keys, duplicate validation, explicit one/many/dangling relationships
+PASS tenant count, projection, ordering, pagination, unsupported-target/operator and required-field refusal
+PASS simultaneous independent mixed instances, restart, config rollback and forward, stale-reference fencing
+PASS fresh-process restart and baseline-compatible refusal of uppercase foreign IDs
+PASS historical missing fields and extension data without read normalization writes
+PASS unsupported raw BSON refuses repository/query reads without rewriting data or returning a smaller page
+PASS duplicate singular-name refusal without writes, nested comparison/membership filters on both backends
+PASS cross-group record tenant and user-role/link access, count after access, secret exclusion and missing related-target refusal
+PASS loaded hook callback/collection overrides on Waterline and driver refusal for unmigrated overrides
+PASS migrated service hook and explicit institution target parity, tenant/count/order/projection/page, unsupported-predicate refusal
+PASS prior cb874201 installed artifact: reads driver reference/form/report data, old callback update and write
+PASS designated pre-change built-image rollback on unchanged MongoDB
+
+npm --prefix packages/redbox-core run test:reference-operations
+PASS all provisional budgets with DTO guard
+PASS three rounds, 100 warmups + 1000 operations, provisional latency/throughput/RSS/calls/startup and drain budgets
+
+REFERENCE_PACKAGE_NODE_VERSION=24.16.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-package.sh
+PASS clean/pruned offline CJS/NodeNext/types/cache/M/default R, all eight writes
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)
+PASS installed driver foundation/cache, two DB routing and Prisma interop (v24.16.0)
+PASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v24.16.0)
+PASS production-pruned installed M/Waterline/driver/default mixed/raw/no-replay (v24.16.0)
+PASS clean installed/pruned default R repositories, all eight physical writes (v24.16.0)
+
+REFERENCE_PACKAGE_NODE_VERSION=26.11.1 bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-package.sh
+PASS same; sequential complete original runner
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)
+PASS installed driver foundation/cache, two DB routing and Prisma interop (v26.11.1)
+PASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v26.11.1)
+PASS production-pruned installed M/Waterline/driver/default mixed/raw/no-replay (v26.11.1)
+PASS clean installed/pruned default R repositories, all eight physical writes (v26.11.1)
+
+REFERENCE_BACKENDS=default REFERENCE_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-portal.sh
+30 passing, 1 pending; stock npm runner on fresh MongoDB volumes, no R selector/prewarming/manual indexes
+R standard runner backend=default project=p3-r-default-13082-596 skipPrewarm=true
+redboxportal-mount-1  |   pending: [Function: bound pending],
+redboxportal-mount-1  |   pending: [Function: bound pending],
+redboxportal-mount-1  |   30 passing (1m)
+redboxportal-mount-1  |   1 pending
+
+REFERENCE_BACKENDS=default REFERENCE_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-bruno.sh
+305/305 requests, 549/549 tests; stock npm runner on fresh MongoDB volumes, no R selector/prewarming/manual indexes
+R standard Bruno backend=default project=p3-r-bruno-default-31443-8216 skipPrewarm=true
+bruno-mount-1         |    ✓ Permissions tab response includes resolved and pending access groups
+bruno-mount-1         | │ Status        │      ✓ PASS      │
+bruno-mount-1         | │ Requests      │ 305 (305 Passed) │
+bruno-mount-1         | │ Tests         │     549/549      │
+bruno-mount-1         | │ Assertions    │       3/3        │
+

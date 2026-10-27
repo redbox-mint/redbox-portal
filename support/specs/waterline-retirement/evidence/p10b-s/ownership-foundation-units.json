@@ -1,0 +1,10 @@
+{
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/persistence-foundation.test.ts test/services/GridFSDriver.test.ts test/services/AgendaQueueService.test.ts test/middleware/redboxSession.test.ts test/services/BrandingLogoService.test.ts",
+  "exitCode": 0,
+  "durationMs": 2401,
+  "rawBytes": 4600,
+  "sha256": "34fddea3c97abb3d898e01df5a3a9273d9b614fe7011aad20f7c232e6bda19b6",
+  "counts": {
+    "passing": 64
+  }
+}

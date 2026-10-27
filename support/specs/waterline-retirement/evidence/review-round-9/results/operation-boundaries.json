@@ -1,0 +1,25 @@
+{
+  "name": "operation-boundaries",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh operation-boundaries",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 34090,
+  "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 34,
+      "summary": {
+        "document-size": 8,
+        "duplicate-error-code": 4,
+        "duplicate-no-write": 4,
+        "literal-unicode-case": 10,
+        "batch-size": 6,
+        "batch-invalid-before-write": 2
+      },
+      "failures": 0,
+      "details": []
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "migration",
+  "command": "P2_ROLLBACK_IMAGE=redbox-p2:prior-11742e9 npm --prefix packages/redbox-core run test:migration-transition",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 71489,
+  "sha256": "72b6b7860c0941f59ddc645539af8dec9051d61fd0af1384fa35340fd57e64d4",
+  "counts": {
+    "passing": [
+      15
+    ]
+  },
+  "passGroups": 1,
+  "checks": []
+}

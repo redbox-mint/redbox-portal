@@ -1,0 +1,23 @@
+{
+  "commands": [
+    "docker ps -a --format {{json .}}",
+    "docker network ls --format {{json .}}",
+    "docker volume ls --format {{json .}}"
+  ],
+  "exitCode": 0,
+  "durationMs": 2304,
+  "rawBytes": 174,
+  "sha256": "080b5e9f5a66b962c39da9a0ef356a9760236785b550dd2ed3de7de4614a3e5c",
+  "ownedResourcesRemaining": {
+    "containers": 0,
+    "networks": 0,
+    "volumes": 0
+  },
+  "matches": {
+    "containers": [],
+    "networks": [],
+    "volumes": []
+  },
+  "unrelatedResourcesChanged": false,
+  "scope": "Persistence fixture labels and p10-s-/p2-index-dev- project names; unrelated pre-existing stopped stacks retained."
+}

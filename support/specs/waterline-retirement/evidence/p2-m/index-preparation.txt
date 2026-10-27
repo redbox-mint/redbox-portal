@@ -1,0 +1,111 @@
+P2 post-promotion correction — 2026-10-20
+Base: ef4d80aa2aaf1867ad4f44cf986a9d92e7d99c1f (M promoted, cache Prisma).
+Only owned disposable standalone containers / unique Compose projects were used.
+No existing development data, MongoDB version, FCV or topology was changed.
+All owned containers/volumes/temp app/fixture directories removed after final runs.
+
+REPRODUCTION BEFORE FIX (owned fresh volume, old actual cache-only init)
+Dynamic imports imported
+{"migration":"missing"}
+PersistenceError index-readiness Required persistence index is not ready. Inspect scoped index definitions/duplicates and explicitly ensure after operator review; startup never repairs data.
+
+FRESH + EXISTING-VOLUME COMMAND REGRESSION (exit 0)
+Command: npm --prefix packages/redbox-core run test:persistence-indexes
+Uses official MongoDB init and actual npm CLI, raw document/index snapshots.
+Fixture child processes discard inherited Sails settings and pin both app URLs
+to the owned standalone; the dev fixture asserts the actual default backends.
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:persistence-indexes
+npm notice run bash test/fixtures/waterline-retirement/run-persistence-indexes.sh
+Dynamic imports imported
+PASS 1: actual official fresh-volume init prepares exactly cache + M and satisfies driver readiness
+PASS 2: existing-volume inspect preserves raw documents and missing indexes; ignores migrate:drop; no business callbacks
+PASS 3: duplicate M history blocks all selected DDL, including a missing cache index, without cleanup
+PASS 4: explicit existing-volume ensure prepares both selected groups, preserves BSON and is idempotent
+PASS 5: backend selection scopes DDL: both Waterline, M-only driver, and cache-only driver
+PASS 6: conflicting index blocks all ensure writes without dropping the conflict
+PASS 7: configuration failure exits safely without exposing native credentials or changing data/indexes
+7 persistence-index deployment/upgrade cases passed
+
+STANDARD UNMODIFIED MOCHA RUNNER (exit 0)
+COMPOSE_PROJECT_NAME=p2-index-standard-815a2a6e RBPORTAL_IMAGE=development-rbportal:latest
+RBPORTAL_MOCHA_TEST_PATHS contains newline-separated:
+  test/integration/persistence/MigrationLedger.test.ts
+  test/integration/services/DashboardConfigService.test.ts
+npm run test:mocha:mount
+No compose override, custom entrypoint or fixture-only index preparation.
+M=mongodb, cache=prisma defaults. Normal bootstrap and prepared fresh Mongo init.
+redboxportal-mount-1  |     ✔ asserts the selected adapter and dashboard migration history before serving dashboards
+redboxportal-mount-1  |     ✔ does not replay logged bodies and resumes failed and skipped pending bodies
+redboxportal-mount-1  |   6 passing (2m)
+[Kredboxportal-mount-1 exited with code 0
+
+STANDARD DEV COMPOSE + APP.JS (exit 0, including isolated-volume cleanup)
+Command: bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh
+Isolation override: project, disposable named data volumes, random loopback ports,
+no institution env file, cached image. Standard entrypoint/bootstrap/init preserved.
+No custom index preparation; operator inspect runs only after HTTP readiness.
+PASS standard development app.js HTTP startup on fresh isolated volume
+{"mode":"inspect","ready":true,"groups":[{"group":"cache","backend":"prisma","collection":"cacheentry","index":"ready","duplicateKeyGroups":0},{"group":"migration","backend":"mongodb","collection":"migration","index":"ready","duplicateKeyGroups":0}]}
+  appliedMigrations: 4
+PASS default cache=prisma and M=mongodb readiness, shared indexes and durable migration history
+Both standard runs used cached application image:
+  sha256:3d66a33890bafea037db006e8bc33a5bdf0baf952ac9c0b2dc6fe52856f84bf0
+Dev node -v: v26.10.0. Host CLI: v24.18.0.
+MongoDB: 8.0.34 standalone, existing digest
+  sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907
+Prior clean Node 24.16.0 / 26.11.1 package qualification remains in promotion.txt.
+
+REGRESSIONS (all exit 0)
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:persistence
+npm --prefix packages/redbox-core run lint
+npm --prefix packages/redbox-core run check:cache-contract
+Changed TS/CJS prettier --check, CJS node --check, shell bash -n
+npm --prefix packages/redbox-core run test:persistence-foundation: 12 passing (1s)
+npm --prefix packages/redbox-core run test:cache-prisma: 17 passing (6s)
+npm run test:core: 4127 passing (2m), 106 pending
+  startup module loading: 10581ms (existing 12000ms child timeout unchanged)
+  lazy import / no browser DOM / no full Effect/Prisma/ledger eager imports pass.
+No dependency pins or locks changed.
+
+PASS packed file inventory includes maintenance CLI and compiled coordinator
+Usage: npm run persistence:indexes -- [--inspect|--ensure] [--app <application directory>]
+PASS all 12 active compose/template mounts resolve to the shared script or its hook template
+packages/redbox-dev-tools/templates/hook-archetype/standard/support/development/docker-compose.yml.hbs
+packages/redbox-dev-tools/templates/hook-archetype/standard/support/integration-testing/docker-compose.mocha.yml.hbs
+packages/sails-hook-redbox-pdfgen/support/api-integration-testing/docker-compose.bruno.yml
+packages/sails-hook-redbox-pdfgen/support/development/docker-compose.yml
+support/development/docker-compose.yml
+support/integration-testing/docker-compose.bruno.general.yml
+support/integration-testing/docker-compose.bruno.oidc.yml
+support/integration-testing/docker-compose.bruno.s3.yml
+support/integration-testing/docker-compose.bruno.yml
+support/integration-testing/docker-compose.mocha.yml
+support/integration-testing/docker-compose.playwright.yml
+support/integration-testing/docker-compose.yml
+
+Known Solr-before-ready bootstrap indexing TypeErrors remain outside this fix;
+standard HTTP / M / dashboard assertions succeed. No Bruno/Playwright suite run
+is claimed here; their mounts are updated and included in the path audit.
+Historical inventories and archived P5 harnesses retain dated old script paths.
+Future qualified groups must extend the single init script, identical hook
+copy, maintenance coordinator using owning APIs, and deployment regressions.
+G-M standard-stack blocker: resolved; M stays promoted, other gates unchanged.
+
+FULL LOCAL LOG SHA-256 (safe excerpts above; native debug output not archived)
+307d00cc65a7cf73185d09de4d78d24382a4b77c9a59a02b906a874711f8c0a2  repro-before.txt
+08a12cccadf3a665c9dc58ce95c2952b7bb6929ee8e1a0a9a7b1551a50f6e8dc  upgrade-final.txt
+1561b4e56b11956985e226c5b9a0060f6ade3cfa9d33cc9fa32e79204db6a4f3  mocha-standard.txt
+1685ac55fc9255f9d7fb3393431de685b15ba8c1239d6123d331a3284bbed158  dev-standard-final.txt
+fb024090ce957b152604999498e810c7e9df0cd8acd24d0aa9fa094869714e2d  build-final.txt
+bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1  typecheck.txt
+c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183  lint.txt
+17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20  format.txt
+d09099ad75d4cf563eeaca878603805378c9be6a35db92102283c2fad3953037  cache-contract.txt
+ac474889e9967a89fe57450da7f424081878f0a770d687909739c5d9bb84787e  foundation.txt
+bd5065839db0c4cf04fec4c227ed51ac7e6ac8bb9b8b77a1e3d9989e02af6019  cache-prisma.txt
+609ef5e342a15b0b1d488acc22987af3c189e031d3511002e15824f18534f3cd  core.txt
+2ef3262302feca431636c6c6416a8bee8a0b825e00c0ab52bd0a5a8708b2f7f5  package-contents.json
+f2ab29d310a82f8d2e3146cc342bc7bb2ccfcd890edb2204d719b3215166b83e  package-check.txt
+7b45a291eb28e59bffc64c1655c384663948a95cdc86144832c4a3b9c0743b37  cli-help.txt
+d4e05023defca0a6a3ea662cc5912e20d82673b7247e430f2fa23f9b79f0c86f  mount-audit.txt

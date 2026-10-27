@@ -1,0 +1,225 @@
+{
+  "secondPreliminary": {
+    "source": "1d6666614",
+    "reason": "Stopped between commands after stock Mocha passed and cleaned resources; actual Agenda late same-ID Mongo claim probe reproduced lost ownership. Discarded all preliminary acceptance results before second runtime fix.",
+    "mochaPassing": 419,
+    "mochaPending": 10,
+    "runnerLogSha256": "344ba1b08bdf3685b4ee6d6466713611a4350d668f92b574abf0b35ad598fd8b",
+    "completedInventoryEntries": 67
+  },
+  "developmentSecond": [
+    {
+      "name": "strict-focused-final",
+      "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-16/tsconfig.focused.json",
+      "source": "1d6666614d48bcc646bb3d7b0ba5a6aec5cdac65",
+      "exitCode": 0,
+      "durationMs": 18365,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "focused-final-committed",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/AuditFollowupDrain.test.ts test/middleware/requestLifetime.test.ts",
+      "source": "1d6666614d48bcc646bb3d7b0ba5a6aec5cdac65",
+      "exitCode": 0,
+      "durationMs": 8978,
+      "sha256": "a50165a1eaa3092787cec2bdb7a6066dfe1e391c602c39d29e20a2920994b2bd",
+      "counts": {
+        "passing": [
+          115
+        ],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-unlock-green",
+      "command": "node .tmp/review-round-16/sqs-receipt-identity.cjs unlock",
+      "source": "1d6666614d48bcc646bb3d7b0ba5a6aec5cdac65",
+      "exitCode": 0,
+      "durationMs": 427,
+      "sha256": "d20fe40a0a64add37a8c0505b9fbb6493e6610452883583aa9ec2ff8762d86fd",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-complete-green",
+      "command": "node .tmp/review-round-16/sqs-receipt-identity.cjs complete",
+      "source": "1d6666614d48bcc646bb3d7b0ba5a6aec5cdac65",
+      "exitCode": 0,
+      "durationMs": 429,
+      "sha256": "e542d9a2ba2ae4921204835d441f13b7ee64cc353e5a0b23043d07e069a0144a",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    }
+  ],
+  "draftProbeSyntaxCorrection": true,
+  "source": "c323055d8e85d10daa352e02b50256048a392ca8",
+  "mainRunner": {
+    "commands": 77,
+    "exitCode": 0,
+    "failed": [],
+    "apparentlyFlakyTests": [],
+    "unchangedFlakyRetries": [],
+    "actualObservedExitCode": 0
+  },
+  "unchangedRetries": [],
+  "preliminary": {
+    "reason": "Stopped at static completion to reproduce potential expired-state-save receipt retention before qualification. No preliminary result is acceptance evidence.",
+    "source": "ebb1e6165",
+    "runnerLogSha256": "2becc1a5e4d943d506f8cee4156d26d5a533eb00d8561d1c10dc7d7697e4e50f"
+  },
+  "deliberateRedTests": {
+    "failed": 3,
+    "notAcceptanceEvidence": true
+  },
+  "developmentFocused": [
+    {
+      "name": "strict-focused-final",
+      "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-16/tsconfig.focused.json",
+      "source": "ebb1e61659ccd00f2d7460f6451648cb2fb67757",
+      "exitCode": 0,
+      "durationMs": 18571,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "focused-final-committed",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/AuditFollowupDrain.test.ts test/middleware/requestLifetime.test.ts",
+      "source": "ebb1e61659ccd00f2d7460f6451648cb2fb67757",
+      "exitCode": 0,
+      "durationMs": 9370,
+      "sha256": "3cc7d0c7f25d315690a670fd20feff8ed9bb0170e72f4fc0be073f6dc4cc8aa3",
+      "counts": {
+        "passing": [
+          114
+        ],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-unlock-green",
+      "command": "node .tmp/review-round-16/sqs-receipt-identity.cjs unlock",
+      "source": "ebb1e61659ccd00f2d7460f6451648cb2fb67757",
+      "exitCode": 0,
+      "durationMs": 491,
+      "sha256": "d20fe40a0a64add37a8c0505b9fbb6493e6610452883583aa9ec2ff8762d86fd",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-complete-green",
+      "command": "node .tmp/review-round-16/sqs-receipt-identity.cjs complete",
+      "source": "ebb1e61659ccd00f2d7460f6451648cb2fb67757",
+      "exitCode": 0,
+      "durationMs": 498,
+      "sha256": "e542d9a2ba2ae4921204835d441f13b7ee64cc353e5a0b23043d07e069a0144a",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    }
+  ],
+  "captureAttempts": [
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "25558a3a68ff91523af24e0f0143921d3404b80211ff0ddb7a92e5c7de3e465d"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "25558a3a68ff91523af24e0f0143921d3404b80211ff0ddb7a92e5c7de3e465d"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "25558a3a68ff91523af24e0f0143921d3404b80211ff0ddb7a92e5c7de3e465d"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "25558a3a68ff91523af24e0f0143921d3404b80211ff0ddb7a92e5c7de3e465d"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "25558a3a68ff91523af24e0f0143921d3404b80211ff0ddb7a92e5c7de3e465d"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "25558a3a68ff91523af24e0f0143921d3404b80211ff0ddb7a92e5c7de3e465d"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "25558a3a68ff91523af24e0f0143921d3404b80211ff0ddb7a92e5c7de3e465d"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "25558a3a68ff91523af24e0f0143921d3404b80211ff0ddb7a92e5c7de3e465d"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 0,
+      "outputSha256": "1930f7e2981e16bded85bad8a4635295e44f595299a198ad3a175def20ef390d"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "72157f541afa0fae250da45af50ab14cd510a8811324c7282a2b792cfd64a20e"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "72157f541afa0fae250da45af50ab14cd510a8811324c7282a2b792cfd64a20e"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "72157f541afa0fae250da45af50ab14cd510a8811324c7282a2b792cfd64a20e"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "72157f541afa0fae250da45af50ab14cd510a8811324c7282a2b792cfd64a20e"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "72157f541afa0fae250da45af50ab14cd510a8811324c7282a2b792cfd64a20e"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "72157f541afa0fae250da45af50ab14cd510a8811324c7282a2b792cfd64a20e"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 0,
+      "outputSha256": "38bbefb1bb38ba7a9bb21e8851d2f769f0cc4b9d2941845d841ee99deb781198"
+    }
+  ],
+  "quotaLimitEncountered": false
+}

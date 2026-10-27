@@ -1,0 +1,38 @@
+{
+  "promotionCommit": "8fe06bec6",
+  "qualificationCommit": "8350d1f66",
+  "generator": "Node26.11.1/npm11.20.0; strict package-lock-only root/core installs",
+  "cleanCiInstall": {
+    "node": "24.16.0",
+    "npm": "11.20.0",
+    "exitCode": 0,
+    "rootFlags": "--ignore-scripts --strict-peer-deps --no-audit --no-fund",
+    "coreFlags": "--include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund",
+    "log": "ci-clean-install.txt",
+    "logSha256": "dca4652ce3606b4264af5271e7c136a01bcfefdc3e7f0df75bffe61bd62a8fa0",
+    "logRetained": false,
+    "logSummary": "raw-artifacts.json"
+  },
+  "otherManifestPinsUnchanged": true,
+  "lockSummary": {
+    "package-lock.json": {
+      "removed": 333,
+      "added": 0,
+      "retainedVersionResolutionIntegrityChanges": 0,
+      "metadataEntries": 7
+    },
+    "packages/redbox-core/package-lock.json": {
+      "removed": 390,
+      "added": 0,
+      "retainedVersionResolutionIntegrityChanges": 0,
+      "metadataEntries": 3
+    }
+  },
+  "ordering": "Original object order preserved; generated/normalized JSON semantic identity asserted in lock-order.json",
+  "logSha256": {
+    "ci-clean-install.txt": "dca4652ce3606b4264af5271e7c136a01bcfefdc3e7f0df75bffe61bd62a8fa0",
+    "lock-generation.txt": "9bbc998518033a7c670aa789e77b72019b5b10c47f455ccb1d72e3f87b20f973",
+    "lock-delta.json": "d234e2994b1f4471a9532ca4ecf8b10e9013e576ec50e7d8d43a89137309ea0e",
+    "lock-order.json": "7f705d28f3f9971ea68f8872565edcb77afebf94fc16a38e95f40ba1ef701fd7"
+  }
+}

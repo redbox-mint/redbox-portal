@@ -1,0 +1,11 @@
+{
+  "command": "P10_PRIOR_REF=12e566575 P10_PRIOR_IMAGE=redbox-p10-s:prior-12e566575 P10_PACKAGE_EVIDENCE=\"$PWD/support/specs/waterline-retirement/evidence/p10c-s/packed-prior-artifact.json\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-package.sh",
+  "exitCode": 1,
+  "durationMs": 170652,
+  "rawBytes": 6326,
+  "sha256": "8d3c09b4f771966d5685f452b720e0c9a766b7c76daef2275d5504a0cece6c4b",
+  "counts": {},
+  "checks": [],
+  "passGroups": 1,
+  "failureExcerpt": "up to date in 2s\nDynamic imports imported\n[redbox-loader] Starting shim generation (NODE_ENV !== production)...\n[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)\n[redbox-loader] Form-config registry entries: 0 (core 0, hook 0)\n[redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.\n[redbox-loader] Shim generation complete in 131.63ms\nPASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)\nDynamic imports imported\nError: Could not load sails-disk adapter (could not ensure existence of directory for storing local data).  EROFS: read-only file system, mkdir '/fixture/.tmp'\n    at Interface.<anonymous> (/probe/storage-client.cjs:64:33)\n    at Interface.emit (node:events:509:28)\n    at [_onLine] [as _onLine] (node:internal/readline/interface:465:12)\n    at [_normalWrite] [as _normalWrite] (node:internal/readline/interface:647:22)\n    at Socket.ondata (node:internal/readline/interface:263:23)\n    at Socket.emit (node:events:509:28)\n    at addChunk (node:internal/streams/readable:563:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)\n    at Readable.push (node:internal/streams/readable:394:5)\n    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "storage-owner-failures",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh owner-failures",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 4717,
+  "sha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 5,
+      "failures": 0
+    }
+  ]
+}

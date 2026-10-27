@@ -1,0 +1,20 @@
+{
+  "name": "storage-backfill",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh backfill",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 5663,
+  "sha256": "18208035eca23ac9a837b83e4acba6833d3409743350914fa22c573c044be985",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 16,
+      "failures": 0
+    }
+  ]
+}

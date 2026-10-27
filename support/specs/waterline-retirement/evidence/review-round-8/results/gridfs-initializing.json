@@ -1,0 +1,13 @@
+{
+  "name": "gridfs-initializing",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-initializing",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 6879,
+  "sha256": "4f8360e29190b6f71418003858e4bf920a93c4dfe09f5d86771c33dfec6cf634",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":2,\"results\":[{\"owner\":\"flydrive\",\"early\":{\"aborted\":false,\"drained\":false,\"sessionEnded\":false},\"orphaned\":false},{\"owner\":\"legacy\",\"early\":{\"aborted\":false,\"drained\":false,\"sessionEnded\":false},\"orphaned\":false}]}"
+  ]
+}

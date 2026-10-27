@@ -1,0 +1,27 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "test:core"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 156.421,
+  "sha256": "98ad77c864be59b26d7217ca9e842cf4313413d27a97a6d00503976b67e69b79",
+  "logBytes": 359480,
+  "counts": [
+    [
+      "4159",
+      "passing",
+      ""
+    ],
+    [
+      "113",
+      "pending",
+      ""
+    ]
+  ],
+  "totals": {
+    "passing": 4159,
+    "pending": 113
+  }
+}

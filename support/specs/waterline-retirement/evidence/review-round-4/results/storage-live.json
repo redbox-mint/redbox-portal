@@ -1,0 +1,15 @@
+{
+  "name": "storage-live",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh integration",
+  "sourceCommit": "080267604af65ac7fe499c7631fc37c3074f98f3",
+  "exitCode": 0,
+  "durationMs": 87359,
+  "sha256": "d5937408335f34d620a0c03d942c05305d5745f9351ce0c53ecc36d4a4977c74",
+  "counts": {
+    "passing": [
+      326
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

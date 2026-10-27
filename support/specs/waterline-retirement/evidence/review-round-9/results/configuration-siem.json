@@ -1,0 +1,11 @@
+{
+  "name": "configuration-siem",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh siem",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 12407,
+  "sha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8",
+  "counts": {},
+  "passGroups": 1,
+  "checks": []
+}

@@ -1,0 +1,11 @@
+{
+  "name": "fix4-final-build",
+  "command": "npm --prefix packages/redbox-core run build",
+  "sourceCommit": "ceb24d4814aa8c5f6624530815485b8aa9acc003",
+  "exitCode": 0,
+  "durationMs": 30452,
+  "sha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

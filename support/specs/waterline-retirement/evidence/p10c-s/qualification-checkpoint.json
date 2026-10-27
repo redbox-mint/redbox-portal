@@ -1,0 +1,11 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh qualification",
+  "exitCode": 1,
+  "durationMs": 18288,
+  "rawBytes": 15163,
+  "sha256": "6e1a5e4b457352dd3c3709f1c57efa3b5258544c1393f5212a9d6a78804021c3",
+  "counts": {},
+  "checks": [],
+  "passGroups": 0,
+  "failureExcerpt": "    at async executeOperation (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/mongodb/lib/operations/execute_operation.js:85:16)\n    at async ListIndexesCursor._initialize (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/mongodb/lib/cursor/list_indexes_cursor.js:27:26)\n    at async ListIndexesCursor.cursorInit (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/mongodb/lib/cursor/abstract_cursor.js:619:27)\n    at async ListIndexesCursor.fetchBatch (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/mongodb/lib/cursor/abstract_cursor.js:653:13)\n    at async ListIndexesCursor.next (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/mongodb/lib/cursor/abstract_cursor.js:325:17)\n    at async [Symbol.asyncIterator] (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/mongodb/lib/cursor/abstract_cursor.js:253:34)\n    at async ListIndexesCursor.toArray (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/mongodb/lib/cursor/abstract_cursor.js:405:26)\n    at async Collection.indexes (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/mongodb/lib/collection.js:529:25)\n    at async /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/storage-qualification.cjs:433:20 {\n  errorLabelSet: Set(0) {},\n  errorResponse: {\n    ok: 0,\n    errmsg: 'ns does not exist: p10_storage.integrationaudit',\n    code: 26,\n    codeName: 'NamespaceNotFound'\n  },\n  ok: 0,\n  code: 26,\n  codeName: 'NamespaceNotFound'\n}"
+}

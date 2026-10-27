@@ -1,0 +1,15 @@
+{
+  "name": "cache-mongodb",
+  "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-mongodb",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 11568,
+  "sha256": "613eb00d302e5e317eca6f45b530949ff44418ee3bd3bb1efaad361aec004b24",
+  "counts": {
+    "passing": [
+      17
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

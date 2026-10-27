@@ -1,0 +1,18 @@
+{
+  "command": [
+    "npm",
+    "--prefix",
+    "packages/redbox-core",
+    "run",
+    "test:persistence-indexes"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 120.559,
+  "sha256": "4e4db40b48e19958ef58dcf0ef9ad96b0eafbde6cb6e550fdfc11b43199ffccb",
+  "logBytes": 1940,
+  "counts": [],
+  "results": {
+    "passing": 15,
+    "failures": 0
+  }
+}
