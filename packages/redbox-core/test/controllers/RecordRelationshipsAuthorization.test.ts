@@ -1,23 +1,22 @@
 import assert from 'node:assert/strict';
-import * as lodash from 'lodash';
 import * as sinon from 'sinon';
-import { Controllers } from '../../src/controllers/RecordController';
-import { RecordsService, RecordRelationshipGraph } from '../../src/RecordsService';
+import { httpRecordReadsFixture } from '../helpers/httpRecordReadsFixture';
+import { filterRelationshipGraph } from '../../src/records/relationships';
+import { hasViewAccess } from '../../src/records/access';
+import type { RecordRelationshipGraph } from '../../src/RecordsService';
 import { BrandingModel } from '../../src/model/storage/BrandingModel';
 
 describe('Record relationship authorization', () => {
   const brand = Object.assign(new BrandingModel(), { id: 'brand-1', name: 'default' });
-  class TestRecordController extends Controllers.Record {
-    public override sendResp = sinon.stub();
+  let f: Awaited<ReturnType<typeof httpRecordReadsFixture>>;
+  let getMeta: sinon.SinonStub, getRelatedRecords: sinon.SinonStub;
+  let response: Awaited<ReturnType<typeof f.request>>;
+  let oid: string;
+  async function request() {
+    response = await f.request(`/default/portal/record/${oid}/relatedRecords?relationshipDepth=0`, {
+      headers: { 'X-ReDBox-Api-Version': '2.0' },
+    });
   }
-  let controller: TestRecordController;
-  let getMeta: sinon.SinonStub;
-  let getRelatedRecords: sinon.SinonStub;
-  let hasViewAccess: sinon.SinonStub;
-  let sendResp: sinon.SinonStub;
-  let req: Sails.Req;
-  let res: Sails.Res;
-  let savedGlobals: Record<string, unknown>;
 
   function record(oid: string, brandId = brand.id) {
     return {
@@ -28,103 +27,86 @@ describe('Record relationship authorization', () => {
     };
   }
 
-  beforeEach(() => {
-    savedGlobals = {
-      sails: Reflect.get(globalThis, 'sails'),
-      _: Reflect.get(globalThis, '_'),
-    };
-    Object.assign(globalThis, {
-      sails: { log: { verbose: sinon.stub() } },
-      _: lodash,
-    });
-    controller = new TestRecordController();
-    getMeta = sinon.stub().resolves(record('root'));
-    getRelatedRecords = sinon.stub().resolves({
+  beforeEach(async () => {
+    f = await httpRecordReadsFixture();
+    getMeta = f.storage.getMeta.resolves(record('root'));
+    getRelatedRecords = f.storage.getRelatedRecords.resolves({
       rootOid: 'root',
       relatedObjects: { rdmp: [record('root')] },
       edges: [],
       omittedByAccess: {},
     });
-    hasViewAccess = sinon.stub().returns(true);
-    controller.recordsService = { getMeta, getRelatedRecords, hasViewAccess } as unknown as RecordsService;
-    sinon.stub(controller as unknown as { getReqBrand(): BrandingModel }, 'getReqBrand').returns(brand);
-    sendResp = controller.sendResp;
-    req = {
-      param: (name: string) => (name === 'oid' ? 'root' : undefined),
-      query: { relationshipDepth: '0' },
-      user: { username: 'alice', roles: [{ id: 'researcher-1', name: 'Researcher' }] },
-    } as unknown as Sails.Req;
-    res = {} as Sails.Res;
+    oid = 'root';
   });
-
-  afterEach(() => {
+  afterEach(async () => {
+    await f.close();
     sinon.restore();
-    Object.assign(globalThis, savedGlobals);
   });
 
   it('rejects an inaccessible root before traversing, including at depth zero', async () => {
-    hasViewAccess.returns(false);
-    await controller.getRelatedRecords(req, res);
-    assert.equal(sendResp.firstCall.args[2].status, 403);
+    getMeta.resolves({ ...record('root'), authorization: {} });
+    await request();
+    assert.equal(response.status, 403);
     sinon.assert.notCalled(getRelatedRecords);
-    sinon.assert.calledOnce(sendResp);
   });
 
   it('rejects a foreign-tenant root even when usernames or role names grant access', async () => {
     getMeta.resolves(record('root', 'brand-2'));
-    await controller.getRelatedRecords(req, res);
-    assert.equal(sendResp.firstCall.args[2].status, 404);
-    sinon.assert.notCalled(hasViewAccess);
+    await request();
+    assert.equal(response.status, 404);
     sinon.assert.notCalled(getRelatedRecords);
   });
 
   it('does not traverse a root without a stored tenant', async () => {
     getMeta.resolves({ redboxOid: 'root', metadata: {} });
-    await controller.getRelatedRecords(req, res);
-    assert.equal(sendResp.firstCall.args[2].status, 404);
+    await request();
+    assert.equal(response.status, 404);
     sinon.assert.notCalled(getRelatedRecords);
   });
 
   it('rejects a missing OID before loading metadata', async () => {
-    req.param = (() => '') as Sails.Req['param'];
-    await controller.getRelatedRecords(req, res);
-    assert.equal(sendResp.firstCall.args[2].status, 400);
+    oid = '';
+    await request();
+    assert.equal(response.status, 404);
     sinon.assert.notCalled(getMeta);
     sinon.assert.notCalled(getRelatedRecords);
   });
 
   it('returns 404 for a missing root', async () => {
     getMeta.resolves(null);
-    await controller.getRelatedRecords(req, res);
-    assert.equal(sendResp.firstCall.args[2].status, 404);
+    await request();
+    assert.equal(response.status, 404);
     sinon.assert.notCalled(getRelatedRecords);
   });
 
   it('handles storage failures without returning a graph', async () => {
     const storageError = new Error('Storage unavailable');
     getMeta.rejects(storageError);
-    await controller.getRelatedRecords(req, res);
+    await request();
     sinon.assert.calledOnceWithExactly(getMeta, 'root');
-    assert.equal(sendResp.firstCall.args[2].status, 500);
-    assert.deepEqual(sendResp.firstCall.args[2].errors, [storageError]);
-    assert.equal(sendResp.firstCall.args[2].data, undefined);
+    assert.equal(response.status, 500);
+    assert.ok(!response.text.includes(storageError.message));
+    sinon.assert.calledWithExactly(f.log.error, 'Record read failed');
+    assert.ok(!JSON.stringify(f.log.error.args).includes(storageError.message));
+    assert.equal(response.body.data, undefined);
     sinon.assert.notCalled(getRelatedRecords);
   });
 
-  it('enforces root authorization for internal callers too', async () => {
-    hasViewAccess.returns(false);
-    const result = await controller.getRelatedRecordsInternal(req, res);
-    assert.equal(result, undefined);
-    assert.equal(sendResp.firstCall.args[2].status, 403);
+  it('enforces root authorization in the shared domain filter too', async () => {
+    const candidate = { ...record('root'), authorization: {} };
+    const graph = { rootOid: 'root', relatedObjects: { rdmp: [candidate] }, edges: [], omittedByAccess: {} };
+    const result = await filterRelationshipGraph(brand, { username: 'alice' }, graph, async (selected, actor, row) =>
+      hasViewAccess(selected, actor!, [], row)
+    );
+    assert.deepEqual(result.relatedObjects, {});
     sinon.assert.notCalled(getRelatedRecords);
   });
 
   it('preserves the legacy graph response for an authorized root', async () => {
-    await controller.getRelatedRecords(req, res);
+    await request();
     sinon.assert.calledOnceWithExactly(getMeta, 'root');
-    sinon.assert.calledOnce(sendResp);
     assert.equal(getRelatedRecords.firstCall.args[2].depth, 0);
-    assert.deepEqual(sendResp.firstCall.args[2].data, {
+    assert.deepEqual(response.body.data, {
       rootOid: 'root',
       relatedObjects: { rdmp: [record('root')] },
       edges: [],
@@ -148,20 +130,24 @@ describe('Record relationship authorization', () => {
       omittedByAccess: {},
     };
     getRelatedRecords.resolves(graph);
-    hasViewAccess.callsFake((_brand, _user, _roles, candidate) => candidate.redboxOid !== 'denied');
+    (graph.relatedObjects.rdmp[2] as any).authorization = {};
 
-    await controller.getRelatedRecords(req, res);
+    await request();
 
-    const response = sendResp.firstCall.args[2].data;
-    assert.deepEqual(response.relatedObjects.rdmp, [record('root'), record('allowed')]);
-    assert.deepEqual(response.edges, allowedEdges);
-    assert.deepEqual(response.omittedByAccess, { related: 3 });
+    const data = response.body.data;
+    assert.deepEqual(data.relatedObjects.rdmp, [record('root'), record('allowed')]);
+    assert.deepEqual(data.edges, allowedEdges);
+    assert.deepEqual(data.omittedByAccess, { related: 3 });
   });
 
   it('does not exempt the root returned by traversal from access checks', async () => {
-    hasViewAccess.onFirstCall().returns(true);
-    hasViewAccess.onSecondCall().returns(false);
-    await controller.getRelatedRecords(req, res);
-    assert.deepEqual(sendResp.firstCall.args[2].data.relatedObjects, {});
+    getRelatedRecords.resolves({
+      rootOid: 'root',
+      relatedObjects: { rdmp: [{ ...record('root'), authorization: {} }] },
+      edges: [],
+      omittedByAccess: {},
+    });
+    await request();
+    assert.deepEqual(response.body.data.relatedObjects, {});
   });
 });

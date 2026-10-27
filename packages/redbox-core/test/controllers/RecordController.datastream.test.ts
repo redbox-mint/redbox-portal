@@ -2,10 +2,12 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { Readable, Writable } from 'node:stream';
 import { finished } from 'node:stream/promises';
-import { Controllers } from '../../src/controllers/RecordController';
+import { mountDatastreamReadRoutes } from '../../src/http/express/datastreamReads';
+import * as policies from '../../src/http/express/policies';
+import * as middleware from '../../src/http/express/middleware';
 
 describe('RecordController datastream downloads', () => {
-  let controller: Controllers.Record;
+  let controller: any;
   let req: any;
   let res: any;
   let sendResp: sinon.SinonSpy;
@@ -13,19 +15,11 @@ describe('RecordController datastream downloads', () => {
   let datastreams: any;
   let params: Record<string, unknown>;
   let chunks: Buffer[];
-  let originals: Record<string, unknown>;
   const latest = 'dataset-pdf-record-a-200.pdf';
   const historical = 'dataset-pdf-record-a-100.pdf';
   const pdf = Buffer.from('%PDF-1.7\nrecord a\n');
 
   beforeEach(() => {
-    originals = Object.fromEntries(['sails', 'BrandingService', 'TranslationService'].map(key => [key, global[key]]));
-    (global as any).sails = {
-      config: {},
-      log: { verbose: sinon.stub(), error: sinon.stub() },
-    };
-    (global as any).BrandingService = { getBrand: () => ({ id: 'brand-a' }) };
-    (global as any).TranslationService = { t: (key: string) => key };
     records = {
       getMeta: sinon.stub().resolves({
         redboxOid: 'record-a',
@@ -37,12 +31,17 @@ describe('RecordController datastream downloads', () => {
       getAttachments: sinon.stub().resolves([{ fileId: latest }, { fileId: historical }, { fileId: 'legacy.txt' }]),
     };
     datastreams = { getDatastream: sinon.stub().resolves({ body: pdf }) };
-    controller = new Controllers.Record();
-    controller.recordsService = records;
-    controller.datastreamService = datastreams;
+    let handler: any;
+    sinon.stub(middleware, 'httpAction').callsFake(action => action as any);
+    sinon.stub(policies, 'requestContext').returns({ actor: { id: 'alice-id', username: 'alice', roles: [] }, brand: { id: 'brand-a' } } as any);
+    mountDatastreamReadRoutes({ get: (path, ...handlers) => { if (path.includes('datastream{')) handler = handlers.at(-1); } } as any,
+      { records, datastream: datastreams, policies: {}, policyConfiguration: { '*': true }, log: { error: sinon.stub() } as any });
+    controller = { getDataStream: (...args) => handler(...args), isAjax: sinon.stub().returns(false) };
     params = { oid: 'record-a', datastreamId: latest, fileName: 'datarecord.pdf' };
     req = {
-      param: (key: string) => params[key],
+      get params() { return { oid: params.oid }; },
+      get query() { return { datastreamId: params.datastreamId, fileName: params.fileName }; },
+      get: () => controller.isAjax() ? 'jsclient' : undefined,
       user: { username: 'alice', roles: [] },
       session: { branding: 'default' },
     };
@@ -53,23 +52,20 @@ describe('RecordController datastream downloads', () => {
         callback();
       },
     });
-    res.set = sinon.stub();
+    res.set = sinon.stub().returnsThis();
     res.attachment = sinon.stub();
     res.status = sinon.stub().returns(res);
     res.json = sinon.stub().returns(res);
-    sendResp = sinon.spy(controller as any, 'sendResp');
-    sinon.stub(controller as any, 'isAjax').returns(false);
+    sendResp = res.json;
   });
 
   afterEach(() => {
     sinon.restore();
-    Object.assign(global, originals);
   });
 
   async function expectFailure(status: number) {
     await controller.getDataStream(req, res);
     expect(sendResp.calledOnce).to.equal(true);
-    expect(sendResp.firstCall.args[2].status).to.equal(status);
     expect(res.attachment.called).to.equal(false);
     expect(res.set.calledWith('Content-Type', 'application/octet-stream')).to.equal(false);
     expect(res.status.lastCall.args[0]).to.equal(status);
@@ -82,7 +78,7 @@ describe('RecordController datastream downloads', () => {
     await finished(res);
     expect(Buffer.concat(chunks)).to.deep.equal(pdf);
     expect(res.attachment.calledOnceWithExactly('datarecord.pdf')).to.equal(true);
-    expect(datastreams.getDatastream.calledOnceWithExactly('record-a', latest, { username: 'alice' })).to.equal(true);
+    expect(datastreams.getDatastream.calledOnceWithExactly('record-a', latest, { username: 'alice', actorId: 'alice-id', brandId: 'brand-a' })).to.equal(true);
     expect(records.getAttachments.calledOnceWithExactly('record-a', undefined, { username: 'alice' })).to.equal(true);
     expect(sendResp.called).to.equal(false);
   });

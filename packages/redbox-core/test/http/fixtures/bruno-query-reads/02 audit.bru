@@ -1,0 +1,19 @@
+meta {
+  name: Persisted audit snapshots
+  type: http
+  seq: 2
+}
+get {
+  url: {{host}}/default/rdmp/record/viewAudit/read-record/audit?apiVersion=2.0
+  body: none
+  auth: bearer
+}
+auth:bearer {
+  token: {{token}}
+}
+tests {
+  test("snapshot diff", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.data.records[0].changeSummary.count).to.equal(1);
+  });
+}

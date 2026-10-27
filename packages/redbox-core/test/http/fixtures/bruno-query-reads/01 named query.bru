@@ -1,0 +1,20 @@
+meta {
+  name: Persisted scoped named query
+  type: http
+  seq: 1
+}
+get {
+  url: {{host}}/default/rdmp/api/report/namedQuery?queryName=records
+  body: none
+  auth: bearer
+}
+auth:bearer {
+  token: {{token}}
+}
+tests {
+  test("brand scoped persisted records", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.summary.numFound).to.equal(2);
+    expect(JSON.stringify(res.body)).not.to.include("other-record");
+  });
+}

@@ -1,159 +1,165 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { Agent, createServer, get, IncomingMessage } from 'node:http';
+import { Agent, createServer, get, type IncomingMessage, type ServerResponse } from 'node:http';
 import { PassThrough, Readable } from 'node:stream';
-import * as lodash from 'lodash';
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
-import { Controllers as PortalControllers } from '../../src/controllers/RecordController';
-import { Controllers as ApiControllers } from '../../src/controllers/webservice/RecordController';
+import { httpRouteFixture } from '../helpers/httpRouteFixture';
+import { mountDatastreamReadRoutes } from '../../src/http/express/datastreamReads';
+import { hasViewAccess } from '../../src/records/access';
 
-describe('Attachment download stream cleanup', () => {
-  let originalGlobals: Record<string, PropertyDescriptor | undefined>;
+describe('Attachment download stream cleanup', function () {
   const attachment = { fileId: 'file-1', name: 'notes.txt', mimeType: 'text/plain' };
-  const record = { metaMetadata: { brandId: 'brand-1', attachmentFields: ['files'] }, metadata: { files: [attachment] } };
-
-  beforeEach(() => {
-    originalGlobals = Object.fromEntries(
-      ['sails', 'BrandingService', '_'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
-    );
-    Object.assign(globalThis, {
-      sails: {
-        log: { verbose: sinon.stub(), debug: sinon.stub(), info: sinon.stub(), error: sinon.stub() },
-      },
-      BrandingService: {
-        getBrandAndPortalPath: () => '/default/rdmp',
-        getBrand: () => ({ id: 'brand-1' }),
-      },
-      _: lodash,
-    });
-  });
-
-  afterEach(() => {
-    for (const [key, descriptor] of Object.entries(originalGlobals)) {
-      if (descriptor) {
-        Object.defineProperty(globalThis, key, descriptor);
-      } else {
-        Reflect.deleteProperty(globalThis, key);
-      }
-    }
+  const record = {
+    metaMetadata: { brandId: 'brand-1', attachmentFields: ['files'] },
+    authorization: { view: ['alice'] },
+    metadata: { files: [attachment] },
+  };
+  const fixtures: Array<Awaited<ReturnType<typeof httpRouteFixture>>> = [];
+  afterEach(async function () {
+    for (const f of fixtures.splice(0)) await f.close();
     sinon.restore();
   });
-
   for (const route of ['attachment', 'datastream', 'webservice'] as const) {
-    describe(route, () => {
-      function setup() {
+    describe(route, function () {
+      async function setup() {
         const getDatastream = sinon.stub();
-        const controller = route === 'webservice' ? new ApiControllers.Record() : new PortalControllers.Record();
-        Object.assign(controller, {
-          getReqBrand: () => ({ id: 'brand-1' }),
-          getRecord: () => of(record),
-          hasViewAccess: () => route === 'webservice' ? true : of(true),
-          requireRecordInBrand: async () => record,
-          initTusServer: () => undefined,
-          datastreamService: { getDatastream },
-          DatastreamService: { getDatastream },
-          recordsService: { getMeta: async () => record, getAttachments: async () => [attachment] },
-          RecordsService: { getAttachments: async () => [attachment] },
+        const requested = Promise.withResolvers<ServerResponse>();
+        const completed = Promise.withResolvers<ServerResponse>();
+        const f = await httpRouteFixture((router, input) => {
+          router.use((_req, res, next) => {
+            requested.resolve(res);
+            res.once('close', () => completed.resolve(res));
+            next();
+          });
+          mountDatastreamReadRoutes(router, {
+            ...input,
+            records: {
+              getMeta: sinon.stub().resolves(record),
+              getAttachments: sinon.stub().resolves([attachment]),
+              hasViewAccess,
+            },
+            datastream: { getDatastream },
+          });
         });
-        const sendResp = sinon.stub();
-        Object.assign(controller, { sendResp });
-        const params: Record<string, string> = { oid: 'oid-1', attachId: 'file-1', datastreamId: 'file-1' };
-        const req = {
-          method: 'GET', headers: {}, user: { username: 'tester' },
-          session: { branding: 'brand-1' },
-          url: '/default/rdmp/record/oid-1/attach/file-1',
-          path: '/default/rdmp/record/oid-1/attach/file-1',
-          param: (key: string) => params[key],
-          apiRequest: { params, query: {} },
-        } as unknown as Sails.Req;
-        const res = Object.assign(new PassThrough(), { set: sinon.stub(), attachment: sinon.stub() });
-        const run = () => route === 'attachment'
-          ? (controller as PortalControllers.Record).doAttachment(req, res as unknown as Sails.Res)
-          : controller.getDataStream(req, res as unknown as Sails.Res);
-        return { getDatastream, res, run, sendResp };
+        fixtures.push(f);
+        const path =
+          route === 'attachment'
+            ? '/default/portal/record/oid-1/attach/file-1'
+            : route === 'datastream'
+              ? '/default/portal/record/oid-1/datastream?datastreamId=file-1'
+              : '/default/portal/api/records/datastreams/oid-1/file-1';
+        const read = () =>
+          new Promise<IncomingMessage>((resolve, reject) => {
+            get(f.url + path, { signal: AbortSignal.timeout(5000) }, resolve).on('error', reject);
+          });
+        return { ...f, getDatastream, read, path, requested: requested.promise, completed: completed.promise };
       }
-
-      it('finishes a successful download with its original contents', async () => {
-        const { getDatastream, res, run, sendResp } = setup();
+      it('finishes a successful download with its original contents', async function () {
+        const f = await setup();
+        f.getDatastream.resolves({ readstream: Readable.from(['complete file']) });
+        const response = await f.read();
         const chunks: Buffer[] = [];
-        res.on('data', chunk => chunks.push(Buffer.from(chunk)));
-        getDatastream.resolves({ readstream: Readable.from(['complete file']) });
-        await run();
+        for await (const chunk of response) chunks.push(Buffer.from(chunk));
+        assert.equal(response.statusCode, 200);
         assert.equal(Buffer.concat(chunks).toString(), 'complete file');
-        assert.equal(res.writableFinished, true);
-        assert.equal(sendResp.called, false);
+        assert.equal((await f.completed).writableFinished, true);
+        sinon.assert.calledOnceWithExactly(f.getDatastream, 'oid-1', 'file-1', { username: 'alice', actorId: 'user-1', brandId: 'brand-1' });
       });
-
-      it('destroys the source when the client disconnects during a download', async () => {
-        const { getDatastream, res, run, sendResp } = setup();
+      it('destroys the source when the client disconnects during a download', async function () {
+        const f = await setup();
         const source = new PassThrough();
-        getDatastream.resolves({ readstream: source });
-        res.once('data', () => res.destroy());
+        f.getDatastream.resolves({ readstream: source });
         source.write('partial file');
         const closed = new Promise<void>(resolve => source.once('close', resolve));
-        await run();
+        const response = await f.read();
+        response.once('data', () => response.destroy());
+        response.resume();
         await closed;
         assert.equal(source.destroyed, true);
-        assert.equal(sendResp.called, false);
+        const serverResponse = await f.completed;
+        assert.equal(serverResponse.writableFinished, false);
+        assert.equal(serverResponse.statusCode, 200);
       });
-
-      it('destroys a stream returned after the client has already disconnected', async () => {
-        const { getDatastream, res, run, sendResp } = setup();
+      it('destroys a stream returned after the client has already disconnected', async function () {
+        const f = await setup();
         const source = new PassThrough();
-        let resolveRead!: (value: { readstream: PassThrough }) => void;
-        let started!: () => void;
-        const requested = new Promise<void>(resolve => { started = resolve; });
-        getDatastream.callsFake(() => {
-          started();
-          return new Promise(resolve => { resolveRead = resolve; });
+        const result = Promise.withResolvers<{ readstream: PassThrough }>();
+        const entered = Promise.withResolvers<void>();
+        f.getDatastream.callsFake(() => {
+          entered.resolve();
+          return result.promise;
         });
-        const running = run();
-        await requested;
-        const responseClosed = once(res, 'close');
-        res.destroy();
-        await responseClosed;
-        resolveRead({ readstream: source });
-        await running;
+        const client = get(f.url + f.path);
+        client.on('error', () => {});
+        await entered.promise;
+        client.destroy();
+        const serverResponse = await f.completed;
+        const closed = new Promise<void>(resolve => source.once('close', resolve));
+        result.resolve({ readstream: source });
+        await closed;
         assert.equal(source.destroyed, true);
-        assert.equal(sendResp.called, false);
+        assert.equal(serverResponse.writableFinished, false);
       });
-
-      it('closes the response on a source error without sending a second response', async () => {
-        const { getDatastream, res, run, sendResp } = setup();
+      it('closes the response on a source error without sending a second response', async function () {
+        const f = await setup();
         const source = new PassThrough();
-        getDatastream.resolves({ readstream: source });
-        res.once('data', () => source.destroy(new Error('storage read failed')));
+        f.getDatastream.resolves({ readstream: source });
         source.write('partial file');
-        await run();
+        const response = await f.read();
+        const responseClosed = new Promise<void>(resolve => response.once('close', resolve));
+        response.on('error', () => {});
+        response.once('data', () => source.destroy(new Error('storage read failed')));
+        response.resume();
+        await responseClosed;
         assert.equal(source.destroyed, true);
-        assert.equal(res.destroyed, true);
-        assert.equal(sendResp.called, false);
+        assert.equal(response.complete, false);
+        assert.equal((await f.completed).writableFinished, false);
+        assert.equal(response.statusCode, 200);
       });
-
-      it('releases the storage HTTP connection for the next request after cancellation', async () => {
+      it('releases the storage HTTP connection for the next request after cancellation', async function () {
         const agent = new Agent({ keepAlive: true, maxSockets: 1 });
-        const storage = createServer((_req, res) => res.end(Buffer.alloc(1024 * 1024)));
+        let storageRequests = 0;
+        const storage = createServer((_req, res) => {
+          storageRequests++;
+          if (storageRequests > 1) {
+            res.end('next file');
+            return;
+          }
+          res.write(Buffer.alloc(64 * 1024));
+          const timer = setInterval(() => res.write(Buffer.alloc(64 * 1024)), 10);
+          res.once('close', () => clearInterval(timer));
+        });
         storage.listen(0, '127.0.0.1');
         await once(storage, 'listening');
         const address = storage.address();
         assert.ok(address && typeof address !== 'string');
-        const read = () => new Promise<IncomingMessage>((resolve, reject) => {
-          get({ host: '127.0.0.1', port: address.port, agent, signal: AbortSignal.timeout(2000) }, resolve).on('error', reject);
-        });
-
+        const read = () =>
+          new Promise<IncomingMessage>((resolve, reject) => {
+            get({ host: '127.0.0.1', port: address.port, agent, signal: AbortSignal.timeout(2000) }, resolve).on(
+              'error',
+              reject
+            );
+          });
         try {
-          const { getDatastream, res, run } = setup();
-          getDatastream.callsFake(async () => ({ readstream: await read() }));
-          res.once('data', () => res.destroy());
-          await run();
-
-          // With only one connection, this request cannot start if the previous
-          // download still owns its unread response body.
+          const f = await setup();
+          const firstSource = Promise.withResolvers<IncomingMessage>();
+          f.getDatastream.callsFake(async () => {
+            const readstream = await read();
+            firstSource.resolve(readstream);
+            return { readstream };
+          });
+          const response = await f.read();
+          const source = await firstSource.promise;
+          const sourceClosed = new Promise<void>(resolve => source.once('close', resolve));
+          response.once('data', () => response.destroy());
+          response.resume();
+          await f.completed;
+          await sourceClosed;
           const next = await read();
           next.resume();
           await once(next, 'end');
           assert.equal(Object.values(agent.requests).flat().length, 0);
+          assert.equal(source.destroyed, true);
         } finally {
           agent.destroy();
           storage.closeAllConnections();

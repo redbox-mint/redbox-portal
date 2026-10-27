@@ -154,6 +154,19 @@ describe('TusStorageManagerDataStore', function () {
     });
   }
 
+  it('bounds storage write failures and retains the resumable offset', async function () {
+    const { store, disk, logger } = createStore();
+    await store.create(createUpload('failed-upload', 5));
+    const secret = 'private-tus-storage-credential';
+    sinon.stub(disk, 'put').rejects(Object.assign(new Error(secret), { credentials: secret }));
+    let caught: unknown;
+    try { await store.write(Readable.from([Buffer.from('hello')]), 'failed-upload', 0); } catch (error) { caught = error; }
+    expect(caught).to.equal(ERRORS.FILE_WRITE_ERROR);
+    expect((await store.getUpload('failed-upload')).offset).to.equal(0);
+    expect(logger.error.calledOnce).to.equal(true);
+    expect(JSON.stringify(logger.error.args)).not.to.include(secret);
+  });
+
   it('creates upload metadata and returns a storage-manager upload', async function () {
     const { store, disk } = createStore();
     const upload = createUpload('file-1', 4);
