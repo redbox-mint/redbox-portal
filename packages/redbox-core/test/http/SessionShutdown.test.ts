@@ -7,12 +7,14 @@ import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { ApplicationRuntime } from '../../src/application';
 import { ExpressHost, HttpIdentity, prepareHttpMiddleware, httpErrorHandler } from '../../src/http/express';
 import * as runtime from '../../src/persistence/runtime';
+import * as indexes from '../../src/persistence/sessions/indexes';
 
 describe('accepted HTTP session loading during shutdown', () => {
   afterEach(() => sinon.restore());
   it('allows a partially received POST to load its Mongo session after quiesce', async () => {
     const owner = { config: {}, log: nothingLogger };
     const store = Object.assign(new session.MemoryStore(), { collectionP: Promise.resolve({}), close: async () => {} });
+    sinon.stub(indexes, 'prepareSessionIndexes').resolves([]);
     sinon.stub(MongoStore, 'create').returns(store as any);
     sinon.stub(runtime, 'mongoSessionDatabase').resolves({ client: {} } as any);
     const admitted = Promise.withResolvers<void>();
