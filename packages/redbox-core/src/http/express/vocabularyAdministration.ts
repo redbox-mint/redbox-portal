@@ -38,6 +38,32 @@ class VocabularyRequestError extends Error {
     super(message);
   }
 }
+function sanitizeEntries(raw: unknown): Vocabulary.VocabularyEntryInput[] {
+  if (!Array.isArray(raw)) throw new VocabularyRequestError(400, 'entries must be an array');
+  return raw.map(value => {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      throw new VocabularyRequestError(400, 'Every vocabulary entry must be an object');
+    const entry = value as Record<string, unknown>;
+    const sanitized: Partial<Vocabulary.VocabularyEntryInput> = {};
+    for (const key of ['id', 'parent', 'label', 'value', 'identifier'] as const) {
+      if (entry[key] !== undefined && entry[key] !== null) sanitized[key] = String(entry[key]).trim();
+    }
+    if (entry.order !== undefined) {
+      const order = Number.parseInt(String(entry.order), 10);
+      if (!Number.isInteger(order) || order < 0)
+        throw new VocabularyRequestError(400, 'Entry order must be a non-negative integer');
+      sanitized.order = order;
+    }
+    if (entry.historical !== undefined) {
+      if (typeof entry.historical !== 'boolean')
+        throw new VocabularyRequestError(400, 'Entry historical must be a boolean');
+      sanitized.historical = entry.historical;
+    }
+    if (entry.children !== undefined) sanitized.children = sanitizeEntries(entry.children);
+    return sanitized as Vocabulary.VocabularyEntryInput;
+  });
+}
+
 export function mountVocabularyAdministrationRoutes(router: Router, input: VocabularyAdministrationHttpInput): void {
   const bindings = vocabularyAdministrationRoutes.map(route => ({
     route,
@@ -65,7 +91,8 @@ export function mountVocabularyAdministrationRoutes(router: Router, input: Vocab
             if (!vocabulary || vocabulary.branding !== brand.id)
               throw new VocabularyRequestError(404, 'Vocabulary not found');
           }
-          const body = (validated.body as Record<string, unknown>) ?? {};
+          const body = { ...((validated.body as Record<string, unknown>) ?? {}) };
+          if (body.entries !== undefined) body.entries = sanitizeEntries(body.entries);
           let data: unknown,
             status = 200;
           switch (route.action) {
