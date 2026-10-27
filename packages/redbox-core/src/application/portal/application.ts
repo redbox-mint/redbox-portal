@@ -187,9 +187,7 @@ export async function createPortalApplication(options: PortalApplicationOptions)
         .solrAddOrUpdate(job as Parameters<ReturnType<typeof data.search.get>['solrAddOrUpdate']>[0]);
     },
     'solrsearchservice.solrDelete': async job => {
-      await data.search
-        .get()
-        .solrDelete(job as Parameters<ReturnType<typeof data.search.get>['solrDelete']>[0]);
+      await data.search.get().solrDelete(job as Parameters<ReturnType<typeof data.search.get>['solrDelete']>[0]);
     },
     'recordsservice.storeRecordAudit': job => data.records.get().storeRecordAudit({ attrs: job.attrs }),
     'recordsservice.reconcilePostCommitSave': job => data.records.get().reconcilePostCommitSave(job),
@@ -396,7 +394,11 @@ export async function createPortalApplication(options: PortalApplicationOptions)
         persistence.initializeHarvestPersistence,
         persistence.initializeSiemPersistence,
         persistence.initializeFigsharePersistence,
-        persistence.initializeIdentityPersistence,
+        (selectedOwner: PersistenceOwner) =>
+          persistence.initializeIdentityPersistence(selectedOwner, {
+            assignPendingAccess: user =>
+              data.users.get().findAndAssignAccessToRecords(String(user.email), String(user.id)),
+          }),
         persistence.initializeVocabularyPersistence,
         persistence.initializeBrandingPersistence,
         (selectedOwner: PersistenceOwner) =>
