@@ -5,7 +5,7 @@ meta {
 }
 
 patch {
-  url: http:{{attachmentLocation}}
+  url: {{host}}{{attachmentLocation}}
   body: file
   auth: none
 }
@@ -33,10 +33,15 @@ headers {
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
   bruHelper.setCookies({bru, req});
+  await require("./bruno-helpers.js").csrf({bru, req});
 }
 
 tests {
   test("Status code is 204", function () {
       expect(res.getStatus()).to.equal(204);
+  });
+
+  test("The complete fixture reached its declared upload length", function () {
+      expect(Number(res.headers["upload-offset"])).to.equal(30148);
   });
 }

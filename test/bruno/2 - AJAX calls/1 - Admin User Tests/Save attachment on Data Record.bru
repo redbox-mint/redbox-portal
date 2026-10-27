@@ -135,7 +135,7 @@ body:json {
               "mimeType": "image/png",
               "name": "Screen Shot 2018-11-26 at 3.39.48 pm.png",
               "fileId": "{{attachmentId}}",
-              "uploadUrl": "http:{{attachmentLocation}}"
+              "uploadUrl": "{{host}}{{attachmentLocation}}"
           }
       ],
       "software_equipment": ""
@@ -145,6 +145,7 @@ body:json {
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
   bruHelper.setCookies({bru, req});
+  await require("./bruno-helpers.js").csrf({bru, req});
 }
 
 tests {

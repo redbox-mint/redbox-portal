@@ -17,13 +17,15 @@ headers {
 
 body:json {
   {
-    "expectedVersion": 999999
+    "expectedVersion": 999999,
+    "expectedDraftRevision": 0
   }
 }
 
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
   bruHelper.setCookies({bru, req});
+  await require("./bruno-helpers.js").csrf({bru, req});
 }
 
 tests {

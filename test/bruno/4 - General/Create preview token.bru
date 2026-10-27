@@ -10,6 +10,10 @@ post {
   auth: none
 }
 
+headers {
+  Authorization: Bearer {{token}}
+}
+
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
@@ -27,4 +31,8 @@ tests {
       expect(body).to.have.property('url');
       bru.setVar('preview_token', body.token);
   });
+}
+
+script:pre-request {
+  await require("./bruno-helpers.js").csrf({bru, req});
 }

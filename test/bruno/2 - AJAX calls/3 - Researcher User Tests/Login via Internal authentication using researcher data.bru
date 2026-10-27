@@ -58,3 +58,7 @@ tests {
   });
   
 }
+
+script:pre-request {
+  await require("./bruno-helpers.js").csrf({bru, req});
+}

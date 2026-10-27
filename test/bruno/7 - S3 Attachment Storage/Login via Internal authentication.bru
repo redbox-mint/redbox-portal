@@ -48,3 +48,7 @@ tests {
     expect(jsonData.user.username).to.eql(bru.getEnvVar("test_username"));
   });
 }
+
+script:pre-request {
+  await require("./bruno-helpers.js").csrf({bru, req});
+}

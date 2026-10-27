@@ -35,3 +35,7 @@ tests {
       expect(err.code).to.equal('invalid-query-params');
   });
 }
+
+script:pre-request {
+  await require("./bruno-helpers.js").csrf({bru, req});
+}
