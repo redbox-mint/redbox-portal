@@ -28,7 +28,7 @@ export interface TabContentFieldComponentConfigFrame extends FieldComponentConfi
     /**
      * The components to render in the tab.
      */
-    componentDefinitions: AvailableFormComponentDefinitionFrames[];
+    componentDefinitions?: AvailableFormComponentDefinitionFrames[];
     /**
      * Whether the tab is selected on initialization
      */

@@ -37,7 +37,7 @@ export const AccordionStartingOpenModeOptions = ['all-open', 'first-open', 'last
 export type AccordionStartingOpenModeOptionsType = (typeof AccordionStartingOpenModeOptions)[number];
 
 export interface AccordionFieldComponentConfigFrame extends FieldComponentConfigFrame {
-  panels: AccordionPanelFormComponentDefinitionFrame[];
+  panels?: AccordionPanelFormComponentDefinitionFrame[];
   startingOpenMode?: AccordionStartingOpenModeOptionsType;
 }
 
@@ -65,7 +65,7 @@ export const AccordionPanelComponentName = 'AccordionPanelComponent' as const;
 export type AccordionPanelComponentNameType = typeof AccordionPanelComponentName;
 
 export interface AccordionPanelFieldComponentConfigFrame extends FieldComponentConfigFrame {
-  componentDefinitions: AvailableFormComponentDefinitionFrames[];
+  componentDefinitions?: AvailableFormComponentDefinitionFrames[];
 }
 
 export interface AccordionPanelFieldComponentConfigOutline

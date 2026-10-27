@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove, fixturePatchOne, fixtureCount } from '../../helpers/persistenceFixtures';
 import {
   BrandingModel,
@@ -24,7 +25,7 @@ const RETENTION_CURSOR = `${'f'.repeat(63)}9`;
 const RETENTION_DIGESTS = ['a', 'b', 'c', 'd', 'e'].map(suffix => `${'f'.repeat(63)}${suffix}`);
 
 function adminCaller(brand: BrandingModel) {
-  const adminRole = RolesService.getRole(brand, 'Admin') as RoleModel;
+  const adminRole = fixture.services.RolesService.getRole(brand, 'Admin') as RoleModel;
   const user = new UserModel();
   user.id = 'record-schema-integration-admin';
   user.username = 'admin';
@@ -35,7 +36,7 @@ function adminCaller(brand: BrandingModel) {
 }
 
 describe('RecordSchemaService storage-backed orchestration', function () {
-  const storage = () => sails.services.mongostorageservice;
+  const storage = () => fixture.services.MongoStorageService;
 
   afterEach(async function () {
     await fixtureRemove("RecordSchemaReference", { digest: DIGEST });
@@ -76,6 +77,7 @@ describe('RecordSchemaService storage-backed orchestration', function () {
       ],
     };
     const service = new RecordSchemaService.Services.RecordSchema({
+      ...fixture.services.RecordSchemaService.dependencies,
       getConfig: () => config,
       getStorageProvider: storage,
     });
@@ -202,6 +204,7 @@ describe('RecordSchemaService storage-backed orchestration', function () {
     }
 
     const service = new RecordSchemaService.Services.RecordSchema({
+      ...fixture.services.RecordSchemaService.dependencies,
       getConfig: () => ({
         ...structuredClone(recordSchema),
         enabled: true,
@@ -268,7 +271,7 @@ describe('RecordSchemaService storage-backed orchestration', function () {
 describe('RecordSchemaService configured-form integration', function () {
   const persistedDigests = new Set<string>();
   const persistedRecordOids = new Set<string>();
-  const storage = () => sails.services.mongostorageservice;
+  const storage = () => fixture.services.MongoStorageService;
   const config = {
     ...structuredClone(recordSchema),
     enabled: true,
@@ -377,11 +380,12 @@ describe('RecordSchemaService configured-form integration', function () {
   ): RecordSchemaService.Services.RecordSchema {
     const registry = integrationRegistry(onHookCompile);
     return new RecordSchemaService.Services.RecordSchema({
+      ...fixture.services.RecordSchemaService.dependencies,
       getConfig: () => config,
       getStorageProvider,
       getContributorRegistry: () => registry,
       buildContractFormConfig: async (context, recordAccessContext) => {
-        const built = await sails.services.formsservice.buildContractFormConfig(context, recordAccessContext);
+        const built = await fixture.services.FormsService.buildContractFormConfig(context, recordAccessContext);
         if (!built.ok) return built;
         const effectiveForm = structuredClone(built.effectiveForm);
         nameAnonymousRepeatableTemplates(effectiveForm.componentDefinitions);
@@ -410,7 +414,7 @@ describe('RecordSchemaService configured-form integration', function () {
 
   it('resolves a real workflow form through hook and fallback contributors and survives a fresh service', async function () {
     let hookCompileCount = 0;
-    const defaultBrand = sails.services.brandingservice.getDefault();
+    const defaultBrand = fixture.services.BrandingService.getDefault();
     const brandId = defaultBrand.id;
     const branding = defaultBrand.name;
     expect(brandId).to.be.a('string').and.not.equal('');
@@ -615,7 +619,7 @@ describe('RecordSchemaService configured-form integration', function () {
   });
 
   it('tracks the durable RDMP artifact when grant persistence fails', async function () {
-    const defaultBrand = sails.services.brandingservice.getDefault();
+    const defaultBrand = fixture.services.BrandingService.getDefault();
     const brandId = defaultBrand.id;
     const branding = defaultBrand.name;
     const grantFailure = new StorageServiceResponse();

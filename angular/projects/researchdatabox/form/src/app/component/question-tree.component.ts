@@ -321,8 +321,8 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     const availableOutcomes = Object.fromEntries((config.availableOutcomes ?? []).map(o => [o.value, o]));
     const availableMeta = config.availableMeta ?? {};
 
-    const availableOutcomeIndexes = Object.fromEntries(config.availableOutcomes.map((a, index) => [a.value, index]));
-    const questions = config.questions;
+    const availableOutcomeIndexes = Object.fromEntries((config.availableOutcomes ?? []).map((a, index) => [a.value, index]));
+    const questions = config.questions ?? [];
 
     const collectedOutcomes = new Set<string>();
     const collectedMeta: { outcome: QuestionTreeOutcome; [key: string]: QuestionTreeOutcome }[] = [];

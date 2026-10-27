@@ -26,8 +26,8 @@ export const TextAreaComponentName = "TextAreaComponent" as const;
 export type TextAreaComponentNameType = typeof TextAreaComponentName;
 
 export interface TextAreaFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    rows: number;
-    cols: number;
+    rows?: number;
+    cols?: number;
     placeholder?: string;
 }
 

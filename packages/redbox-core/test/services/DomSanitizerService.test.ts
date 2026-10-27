@@ -3,15 +3,15 @@ import {createSinonStubLogger} from "../logger.test";
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
 import { dompurify as dompurifyConfig, safeHtmlUriRegexp, safeSvgUriRegexp } from '../../src/config/dompurify.config';
 
 describe('DomSanitizerService', function() {
-  let mockSails: any;
+  let fixture: any;
   let DomSanitizerService: any;
 
   beforeEach(function() {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         record: {
@@ -40,21 +40,20 @@ describe('DomSanitizerService', function() {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/DomSanitizerService');
-    DomSanitizerService = new Services.DomSanitizer();
+    DomSanitizerService = new Services.DomSanitizer({ config: fixture.config, log: fixture.log });
   });
 
-  afterEach(function() {
-    cleanupServiceTestGlobals();
+  afterEach(async function() {
+    await DomSanitizerService.close();
     sinon.restore();
   });
 
   describe('service exports', function() {
-    it('should expose public sanitizer methods through the Sails service shim', function() {
-      const exportedMethods = DomSanitizerService.exports();
+    it('should expose the owned public sanitizer operations', function() {
+      const exportedMethods = DomSanitizerService;
 
       expect(exportedMethods.sanitize).to.be.a('function');
       expect(exportedMethods.sanitizeWithProfile).to.be.a('function');
@@ -75,7 +74,7 @@ describe('DomSanitizerService', function() {
     });
 
     it('should preserve SVG path geometry and viewBox attributes', function() {
-      mockSails.config.dompurify = dompurifyConfig;
+      fixture.config.dompurify = dompurifyConfig;
       const svg = '<svg viewBox="0 0 100 100"><path d="m 0,0 100,0 0,100 z" fill="#fff"/></svg>';
 
       const result = DomSanitizerService.sanitize(svg);
@@ -86,7 +85,7 @@ describe('DomSanitizerService', function() {
     });
 
     it('should preserve fragment and relative SVG references', function() {
-      mockSails.config.dompurify = dompurifyConfig;
+      fixture.config.dompurify = dompurifyConfig;
       const svg = '<svg><image href="#mark"/><image href="images/logo.svg"/><image href="./images/logo.svg"/><image href="../logo.svg"/><image href="/logo.svg"/></svg>';
 
       const result = DomSanitizerService.sanitize(svg);
@@ -101,7 +100,7 @@ describe('DomSanitizerService', function() {
 
     ['mailto:', 'tel:', 'callto:', 'sms:', 'cid:', 'xmpp:', 'matrix:'].forEach((scheme, index) => {
       it(`should reject ${scheme} SVG references`, function() {
-        mockSails.config.dompurify = dompurifyConfig;
+        fixture.config.dompurify = dompurifyConfig;
         const attribute = index % 2 === 0 ? 'href' : 'xlink:href';
         const svg = `<svg><a ${attribute}="${scheme}attacker"><path d="m 0,0 1,1"/></a></svg>`;
 
@@ -232,7 +231,7 @@ describe('DomSanitizerService', function() {
     });
 
     it('should return default when not configured', function() {
-      delete mockSails.config.record.form.svgMaxBytes;
+      delete fixture.config.record.form.svgMaxBytes;
 
       const maxBytes = DomSanitizerService.getMaxBytes();
 

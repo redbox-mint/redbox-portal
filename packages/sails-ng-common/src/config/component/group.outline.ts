@@ -30,7 +30,7 @@ export const GroupFieldComponentName = "GroupComponent" as const;
 export type GroupFieldComponentNameType = typeof GroupFieldComponentName;
 
 export interface GroupFieldComponentConfigFrame extends FieldComponentConfigFrame {
-    componentDefinitions: AvailableFormComponentDefinitionFrames[];
+    componentDefinitions?: AvailableFormComponentDefinitionFrames[];
 }
 
 export interface GroupFieldComponentConfigOutline extends GroupFieldComponentConfigFrame, FieldComponentConfigOutline {

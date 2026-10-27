@@ -16,23 +16,6 @@ describe('Migrate v4 to v5 Visitor', async () => {
   const relPath = path.relative(path.join(__dirname, 'packages/sails-ng-common'), __dirname);
 
   describe('full migration', async () => {
-    beforeEach(() => {
-      (globalThis as any).sails = { config: { auth: { defaultBrand: 'default' } } };
-      (globalThis as any).VocabularyService = {
-        getEntries: async () => ({
-          entries: [
-            { label: 'Open', value: 'open' },
-            { label: 'Closed', value: 'closed' },
-          ],
-        }),
-      };
-    });
-
-    afterEach(() => {
-      delete (globalThis as any).sails;
-      delete (globalThis as any).VocabularyService;
-    });
-
     // Full form config migration tests
     [
       {

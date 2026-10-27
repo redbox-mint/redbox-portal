@@ -39,6 +39,7 @@ interface CsrfConfigShape {
 interface CompanionAuthProvider {
     login: (args: unknown) => Promise<unknown>;
     setAuthToken: (token: string) => Promise<unknown> | unknown;
+    setCompanionHeaders?: (headers: Record<string, string>) => void;
     __redboxAuthFallbackInstalled?: boolean;
 }
 
@@ -425,14 +426,14 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
 
         if (this.companionUrl) {
             if (this.enabledSources.includes("dropbox") && deps.DropboxPlugin) {
-                this.uppy.use(deps.DropboxPlugin, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.DropboxPlugin, { companionUrl: this.companionUrl, companionHeaders: this.buildCompanionHeaders() });
             }
             if (this.enabledSources.includes("googleDrive") && deps.GoogleDrivePlugin) {
-                this.uppy.use(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl, companionHeaders: this.buildCompanionHeaders() });
                 this.installProviderAuthFallback("GoogleDrive", ["companion-GoogleDrive-auth-token"], ["uppyAuthToken--googledrive", "uppyAuthToken--drive"]);
             }
             if (this.enabledSources.includes("onedrive") && deps.OneDrivePlugin) {
-                this.uppy.use(deps.OneDrivePlugin, { companionUrl: this.companionUrl });
+                this.uppy.use(deps.OneDrivePlugin, { companionUrl: this.companionUrl, companionHeaders: this.buildCompanionHeaders() });
                 this.installProviderAuthFallback("OneDrive", ["companion-OneDrive-auth-token"], ["uppyAuthToken--onedrive"]);
             }
         }
@@ -652,6 +653,11 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         return "";
     }
 
+    private buildCompanionHeaders(token?: string): Record<string, string> {
+        const csrfToken = this.buildTusHeaders(token)["X-CSRF-Token"];
+        return csrfToken ? { "X-CSRF-Token": csrfToken } : {};
+    }
+
     private async ensureTusHeadersContainCsrf(): Promise<void> {
         if (this.tusHeaders["X-CSRF-Token"]) {
             return;
@@ -672,6 +678,12 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             tusPlugin?.setOptions?.({ headers });
             if (tusPlugin?.opts) {
                 tusPlugin.opts["headers"] = headers;
+            }
+            for (const id of ["Dropbox", "GoogleDrive", "OneDrive"]) {
+                const plugin = this.uppy.getPlugin(id);
+                if (this.isProviderPlugin(plugin)) {
+                    plugin.provider?.setCompanionHeaders?.(this.buildCompanionHeaders(token));
+                }
             }
         } catch (err) {
             this.loggerService.error("ensureTusHeadersContainCsrf: failed to load config for CSRF token", err);

@@ -266,7 +266,7 @@ export interface QuestionTreeFieldComponentConfigFrame extends FieldComponentCon
      *
      * Interface only, there is no class for this config property.
      */
-    availableOutcomes: QuestionTreeOutcome[];
+    availableOutcomes?: QuestionTreeOutcome[];
     /**
      * The additional data that can be included with outcomes.
      * The additional data has no notion of important / sensitivity.
@@ -277,8 +277,8 @@ export interface QuestionTreeFieldComponentConfigFrame extends FieldComponentCon
      * The question definitions.
      * Interface only, there is no class for this config property.
      */
-    questions: QuestionTreeQuestion[];
-    componentDefinitions: AvailableFormComponentDefinitionFrames[];
+    questions?: QuestionTreeQuestion[];
+    componentDefinitions?: AvailableFormComponentDefinitionFrames[];
 }
 
 export interface QuestionTreeFieldComponentConfigOutline extends QuestionTreeFieldComponentConfigFrame, FieldComponentConfigOutline {

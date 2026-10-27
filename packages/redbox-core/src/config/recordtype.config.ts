@@ -1,6 +1,6 @@
 /**
  * Record Type Config Interface
- * (sails.config.recordtype)
+ * (configuration.recordtype)
  *
  * Record type definitions with hooks and permissions.
  */
@@ -12,7 +12,7 @@ import type {
   ValidationOperationOverride,
 } from '@researchdatabox/sails-ng-common';
 
-// Re-exported for configuration authors typing `sails.config.recordtype`.
+// Re-exported for configuration authors typing `configuration.recordtype`.
 // The runtime guards live on the package index, beside the other shared
 // record-save contracts.
 export type {
@@ -234,7 +234,7 @@ export interface RecordTypeConfig {
  *
  * The demo record types (rdmp, dataRecord, dataPublication, existing-locations,
  * party) now live in the redbox-hook-dev package and are merged into
- * sails.config.recordtype by the loader when that hook is installed. Core ships
+ * configuration.recordtype by extension composition when that hook is installed. Core ships
  * pristine so client instances are not forced to remove framework demo entries.
  */
 export const recordtype: RecordTypeConfig = {};
