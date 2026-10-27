@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { createHash } from 'node:crypto';
 import ConnectionString from 'mongodb-connection-string-url';
 import { MongoClient } from 'mongodb';
@@ -32,7 +33,7 @@ function stable(value: unknown, plainOnly = false): string {
   return JSON.stringify(value);
 }
 
-/** Resolve raw Sails config, without requiring ORM loading, normalization or a manager. */
+/** Resolve explicit datastore configuration, without requiring ORM loading, normalization or a manager. */
 export function resolveDatastore(config: Record<string, unknown>): ResolvedDatastore {
   if (
     ['adapter', 'identity', 'schema', 'forceLoadAdapter', 'migrate', 'dontUseObjectIds'].some(key =>
@@ -132,7 +133,7 @@ export function resolveDatastore(config: Record<string, unknown>): ResolvedDatas
   }
 }
 
-export function resolveApplicationDatastore(app: Sails.Application, name: string): ResolvedDatastore {
+export function resolveApplicationDatastore(app: PersistenceOwner, name: string): ResolvedDatastore {
   const config: unknown = app.config.datastores?.[name];
   if (typeof config !== 'object' || config === null)
     throw new PersistenceError(

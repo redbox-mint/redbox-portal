@@ -1,216 +1,129 @@
-import { repositoryFixtures } from '../helpers/repositoryFixtures';
-import { installIdentityRepositoryMock } from '../helpers/identityMock';
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { Services } from '../../src/services/PathRulesService';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import { of } from 'rxjs';
+import { PathRules } from '../../src/authorization/PathRules';
+import { bootstrapPathRules } from '../../src/identity/bootstrap';
 
-describe('PathRulesService', function() {
-  let service: Services.PathRules;
-  let mockSails: any;
-
-  beforeEach(function() {
-    installIdentityRepositoryMock();
-    mockSails = createMockSails();
-    mockSails.config.auth = {
-      rules: [
-        { role: 'admin', path: '/admin/*', can_read: true, can_update: true },
-        { role: 'guest', path: '/public/*', can_read: true, can_update: false }
-      ]
-    };
-
-    setupServiceTestGlobals(mockSails);
-
-    const mockDeferred = (result: unknown) => ({
-      exec: sinon.stub().yields(null, result)
+describe('PathRulesService', function () {
+  let service: PathRules;
+  let read: sinon.SinonStub;
+  const rules = [
+    { role: 'admin', path: '/admin/*', can_read: true, can_update: true },
+    { role: 'guest', path: '/public/*', can_read: true, can_update: false },
+  ];
+  beforeEach(function () {
+    read = sinon.stub().resolves([]);
+    service = new PathRules(() => read());
+  });
+  afterEach(() => sinon.restore());
+  async function bootstrap(create: sinon.SinonStub) {
+    await bootstrapPathRules({
+      repository: { create },
+      brandId: 'brand1',
+      rules,
+      readRules: () => read(),
+      roleId: name => (name === 'admin' ? 'admin-id' : 'guest-id'),
     });
-
-    repositoryFixtures.PathRule = {
-      find: sinon.stub().returns(mockDeferred([])),
-      create: sinon.stub().returns(mockDeferred({}))
-    };
-
-    (global as any).RolesService = {
-      getRoleWithName: sinon.stub().returns({ id: 'role1' })
-    };
-
-    (global as any).BrandingService = {
-      getDefault: sinon.stub().returns({ id: 'brand1', name: 'default' })
-    };
-
-    service = new Services.PathRules();
-  });
-
-  afterEach(function() {
-    cleanupServiceTestGlobals();
-    delete repositoryFixtures.PathRule;
-    delete (global as any).RolesService;
-    delete (global as any).BrandingService;
-    sinon.restore();
-  });
-
-  describe('bootstrap', function() {
-    it('should load existing rules', async function() {
+    return service.loadRules();
+  }
+  describe('bootstrap', function () {
+    it('should load existing rules', async function () {
       const existingRules = [{ id: 'rule1', path: '/foo' }];
-
-      const findStub = sinon.stub().returns({
-        populate: sinon.stub().returns({
-          populate: sinon.stub().returns({
-             exec: sinon.stub().yields(null, existingRules)
-          })
-        })
-      });
-      repositoryFixtures.PathRule.find = findStub;
-
-      const result = await new Promise((resolve, reject) => {
-        service.bootstrap(null, []).subscribe(resolve, reject);
-      });
-
-      expect(result).to.deep.equal(existingRules);
+      read.resolves(existingRules);
+      const create = sinon.stub().resolves({});
+      expect(await bootstrap(create)).to.deep.equal(existingRules);
+      sinon.assert.notCalled(create);
     });
-
-    it('should seed rules if missing', async function() {
-      // First find returns empty, second find returns created rules
+    it('should seed rules if missing', async function () {
       const createdRules = [{ id: 'rule1', path: '/foo' }];
-
-      const findStub = sinon.stub();
-      findStub.onFirstCall().returns({
-        populate: sinon.stub().returns({
-          populate: sinon.stub().returns({
-             exec: sinon.stub().yields(null, [])
-          })
-        })
-      });
-      findStub.onSecondCall().returns({
-        populate: sinon.stub().returns({
-          populate: sinon.stub().returns({
-             exec: sinon.stub().yields(null, createdRules)
-          })
-        })
-      });
-
-      repositoryFixtures.PathRule.find = findStub;
-
-      const createDeferred = (data: unknown) => ({
-        exec: sinon.stub().yields(null, data)
-      });
-      repositoryFixtures.PathRule.create.callsFake((data: unknown) => createDeferred(data));
-
-      const result = await new Promise((resolve, reject) => {
-        service.bootstrap(null, []).subscribe(resolve, reject);
-      });
-
-      expect(result).to.deep.equal(createdRules);
-      expect(repositoryFixtures.PathRule.create.calledTwice).to.be.true; // 2 rules in config
+      read.onFirstCall().resolves([]);
+      read.onSecondCall().resolves(createdRules);
+      const create = sinon.stub().resolves({});
+      expect(await bootstrap(create)).to.deep.equal(createdRules);
+      sinon.assert.calledTwice(create);
+      expect(create.firstCall.args).to.deep.equal(['pathrule', { ...rules[0], role: 'admin-id', branding: 'brand1' }]);
+      expect(create.secondCall.args).to.deep.equal(['pathrule', { ...rules[1], role: 'guest-id', branding: 'brand1' }]);
     });
   });
-
-  describe('getRulesFromPath', function() {
-    beforeEach(async function() {
-       // Load some rules into the service cache
-       const rules = [
-         { id: '1', path: '/admin/*', branding: { id: 'brand1' }, role: { id: 'admin' } },
-         { id: '2', path: '/public/*', branding: { id: 'brand1' }, role: { id: 'guest' } },
-         { id: '3', path: '/other/*', branding: { id: 'brand2' }, role: { id: 'guest' } }
-       ];
-
-       const findStub = sinon.stub().returns({
-        populate: sinon.stub().returns({
-          populate: sinon.stub().returns({
-             exec: sinon.stub().yields(null, rules)
-          })
-        })
-      });
-      repositoryFixtures.PathRule.find = findStub;
-
-      await new Promise((resolve) => service.loadRules().subscribe(resolve));
+  describe('getRulesFromPath', function () {
+    beforeEach(async function () {
+      read.resolves([
+        { id: '1', path: '/admin/*', branding: { id: 'brand1' }, role: { id: 'admin' } },
+        { id: '2', path: '/public/*', branding: { id: 'brand1' }, role: { id: 'guest' } },
+        { id: '3', path: '/other/*', branding: { id: 'brand2' }, role: { id: 'guest' } },
+      ]);
+      await service.loadRules();
     });
-
-    it('should return matching rules for brand', function() {
+    it('should return matching rules for brand', function () {
       const brand = { id: 'brand1' };
       const rules = service.getRulesFromPath('/admin/dashboard', brand as any);
       expect(rules).to.have.length(1);
       expect((rules as any[])[0].id).to.equal('1');
     });
 
-    it('should not return matching rules for other brand', function() {
+    it('should not return matching rules for other brand', function () {
       const brand = { id: 'brand1' };
       const rules = service.getRulesFromPath('/other/foo', brand as any);
       // Rule 3 matches path but wrong brand
       expect(rules).to.be.null;
     });
 
-    it('should return null if no match', function() {
+    it('should return null if no match', function () {
       const brand = { id: 'brand1' };
       const rules = service.getRulesFromPath('/nomatch', brand as any);
       expect(rules).to.be.null;
     });
   });
 
-  describe('canRead', function() {
-    it('should return true if user has role with can_read=true', function() {
-      const rules = [
-        { can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }
-      ];
+  describe('canRead', function () {
+    it('should return true if user has role with can_read=true', function () {
+      const rules = [{ can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }];
       const roles = [{ id: 'role1' }];
       const result = service.canRead(rules, roles, 'brand1');
       expect(result).to.be.true;
     });
 
-    it('should return true if user has role with can_update=true', function() {
-      const rules = [
-        { can_read: false, can_update: true, role: { id: 'role1' }, branding: { name: 'brand1' } }
-      ];
+    it('should return true if user has role with can_update=true', function () {
+      const rules = [{ can_read: false, can_update: true, role: { id: 'role1' }, branding: { name: 'brand1' } }];
       const roles = [{ id: 'role1' }];
       const result = service.canRead(rules, roles, 'brand1');
       expect(result).to.be.true;
     });
 
-    it('should return false if user does not have role', function() {
-      const rules = [
-        { can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }
-      ];
+    it('should return false if user does not have role', function () {
+      const rules = [{ can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }];
       const roles = [{ id: 'role2' }];
       const result = service.canRead(rules, roles, 'brand1');
       expect(result).to.be.false;
     });
 
-    it('should return false if wrong branding', function() {
-      const rules = [
-        { can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }
-      ];
+    it('should return false if wrong branding', function () {
+      const rules = [{ can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }];
       const roles = [{ id: 'role1' }];
       const result = service.canRead(rules, roles, 'brand2');
       expect(result).to.be.false;
     });
   });
 
-  describe('canWrite', function() {
-    it('should return true if user has role with can_update=true', function() {
-      const rules = [
-        { can_read: true, can_update: true, role: { id: 'role1' }, branding: { name: 'brand1' } }
-      ];
+  describe('canWrite', function () {
+    it('should return true if user has role with can_update=true', function () {
+      const rules = [{ can_read: true, can_update: true, role: { id: 'role1' }, branding: { name: 'brand1' } }];
       const roles = [{ id: 'role1' }];
       const result = service.canWrite(rules, roles, 'brand1');
       expect(result).to.be.true;
     });
 
-    it('should return false if user has role with can_update=false', function() {
-      const rules = [
-        { can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }
-      ];
+    it('should return false if user has role with can_update=false', function () {
+      const rules = [{ can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }];
       const roles = [{ id: 'role1' }];
       const result = service.canWrite(rules, roles, 'brand1');
       expect(result).to.be.false;
     });
   });
 
-  describe('exports', function() {
-    it('should export all public methods', function() {
-      const exported = service.exports();
-      expect(exported).to.have.property('bootstrap');
+  describe('exports', function () {
+    it('should export all public methods', function () {
+      const exported = service;
+      expect(exported).to.have.property('loadRules');
       expect(exported).to.have.property('getRulesFromPath');
       expect(exported).to.have.property('canRead');
       expect(exported).to.have.property('canWrite');

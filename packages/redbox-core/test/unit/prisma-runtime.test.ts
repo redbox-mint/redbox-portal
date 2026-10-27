@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { MongoClient } from 'mongodb';
@@ -19,7 +20,7 @@ describe('app-owned Prisma datastore clients', function () {
     const app = {
       config: { datastores: { mongodb: { url }, redboxStorage: { url } } },
       log: { warn() {} },
-    } as unknown as Sails.Application;
+    } as unknown as PersistenceOwner;
     const connect = sinon.stub(MongoClient.prototype, 'connect');
     connect.onFirstCall().rejects(new Error('server unavailable'));
     connect.callsFake(async function (this: MongoClient) {
@@ -64,7 +65,7 @@ describe('app-owned Prisma datastore clients', function () {
     const app = {
       config: { datastores: { mongodb: { url: 'mongodb://fixture/accepted' } } },
       log: { warn() {} },
-    } as unknown as Sails.Application;
+    } as unknown as PersistenceOwner;
     sinon.stub(MongoClient.prototype, 'connect').resolvesThis();
     const poolClose = sinon.stub(MongoClient.prototype, 'close').resolves();
     await initializePersistence(app);
@@ -95,7 +96,7 @@ describe('app-owned Prisma datastore clients', function () {
     const app = {
       config: { datastores: { mongodb: { url: 'mongodb://fixture/recovery' } } },
       log: { warn() {} },
-    } as unknown as Sails.Application;
+    } as unknown as PersistenceOwner;
     const connect = sinon.stub(MongoClient.prototype, 'connect');
     connect.onFirstCall().rejects(new Error('server unavailable'));
     connect.callsFake(async function (this: MongoClient) {
@@ -127,7 +128,7 @@ describe('app-owned Prisma datastore clients', function () {
         },
       },
       log: { warn() {} },
-    } as unknown as Sails.Application;
+    } as unknown as PersistenceOwner;
     const connect = sinon.stub(MongoClient.prototype, 'connect').callsFake(async function (this: MongoClient) {
       return this;
     });
@@ -201,7 +202,7 @@ describe('app-owned Prisma datastore clients', function () {
     const app = {
       config: { datastores: { mongodb: { url: 'mongodb://fixture/core' } } },
       log: { warn() {} },
-    } as unknown as Sails.Application;
+    } as unknown as PersistenceOwner;
     sinon.stub(MongoClient.prototype, 'connect').callsFake(async function (this: MongoClient) {
       return this;
     });

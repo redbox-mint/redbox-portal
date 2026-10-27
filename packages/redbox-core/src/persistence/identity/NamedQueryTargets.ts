@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { projectNamedQueryRecords } from '../reference/projection';
 import type { NamedQueryRequest, NamedQueryPage } from '../reference/NamedQueryExecution';
 import { namedQueryCriteria } from '../reference/NamedQueryExecution';
@@ -5,7 +6,7 @@ import { getIdentityRepositories } from '../runtime';
 
 /** Identity-owned named queries; tenant membership filtering precedes count and paging. */
 export async function executeIdentityQuery(
-  app: Sails.Application,
+  app: PersistenceOwner,
   request: NamedQueryRequest,
   count: boolean
 ): Promise<NamedQueryPage> {

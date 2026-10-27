@@ -124,6 +124,8 @@ export const contract = defineContract({
         mutationState: field.string().optional(),
         generation: field.string().optional(),
         mutationFileId: field.string().optional(),
+        stagingActorId: field.string().optional(),
+        stagingBrandId: field.string().optional(),
         coordinationToken: field.string().optional(),
         attemptCount: field.double().optional(),
         lastAttemptAt: field.string().optional(),

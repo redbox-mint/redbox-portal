@@ -1,18 +1,19 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import assert from 'node:assert/strict';
 import { getConfigurationRepositories } from '@researchdatabox/redbox-core';
 
 describe('Q best-effort synchronization and secret lease failures', () => {
   it('returns the committed entry and reloads even when the following bundle write fails', async () => {
-    const repositories = getConfigurationRepositories(sails);
+    const repositories = getConfigurationRepositories(fixture.owner);
     const original = repositories.bundles.createBundle;
-    const reload = require('sinon').stub(TranslationService, 'reloadResources');
-    const brand = BrandingService.getDefault();
+    const reload = require('sinon').stub(fixture.services.TranslationService, 'reloadResources');
+    const brand = fixture.services.BrandingService.getDefault();
     const namespace = `q-failed-sync-${Date.now()}`;
     repositories.bundles.createBundle = async () => {
       throw new Error('Injected bundle synchronization failure');
     };
     try {
-      const saved = await I18nEntriesService.setEntry(brand, 'en', namespace, 'retained', '');
+      const saved = await fixture.services.I18nEntriesService.setEntry(brand, 'en', namespace, 'retained', '');
       assert(saved?.id);
       assert.equal(reload.callCount, 1);
       assert.equal((await repositories.translations.findByUid(`${brand.id}:en:${namespace}:retained`))?.value, '');
@@ -27,16 +28,16 @@ describe('Q best-effort synchronization and secret lease failures', () => {
   it('rejects a stale secret owner before another AWS or database write', async () => {
     const { createRequire } = require('node:module');
     const coreRequire = createRequire(require.resolve('@researchdatabox/redbox-core'));
-    const { AppConfigSecrets } = coreRequire('./services/AppConfigSecrets');
+    const { AppConfigSecrets } = coreRequire('./configuration/AppConfigSecrets');
     const { SecretsManagerClient } = coreRequire('@aws-sdk/client-secrets-manager');
     const sinon = require('sinon');
     const send = sinon.stub(SecretsManagerClient.prototype, 'send');
-    const leases = getConfigurationRepositories(sails).secretLeases;
+    const leases = getConfigurationRepositories(fixture.owner).secretLeases;
     const store = new AppConfigSecrets({
       provider: 'aws-secrets-manager',
       region: 'ap-southeast-2',
       namePrefix: 'q-integration',
-    });
+    }, { leases: () => leases, log: fixture.log });
     let name: string | undefined;
     try {
       await assert.rejects(

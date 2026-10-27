@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { persistenceIndexPreflight } from '../indexPreflight';
 import type { PersistenceIndex } from '../indexes';
 
@@ -12,5 +13,5 @@ const preflight = persistenceIndexPreflight({
   collections: { mongodb: ['migration'] },
   indexes: [migrationLedgerIndex],
 });
-export const inspectMigrationPersistence = async (app: Sails.Application) => (await preflight.inspect(app))[0];
-export const ensureMigrationPersistenceIndex = async (app: Sails.Application) => (await preflight.ensure(app))[0];
+export const inspectMigrationPersistence = async (app: PersistenceOwner) => (await preflight.inspect(app))[0];
+export const ensureMigrationPersistenceIndex = async (app: PersistenceOwner) => (await preflight.ensure(app))[0];

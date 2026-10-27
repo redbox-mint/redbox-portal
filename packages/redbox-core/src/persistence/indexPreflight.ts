@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from './owner';
 import type { LogicalDatastore } from './types';
 import type { PersistenceIndex, PersistenceIndexInspection } from './indexes';
 import { inspectPersistenceIndex, ensurePersistenceIndex, requirePersistenceIndex } from './indexes';
@@ -6,7 +7,7 @@ import { PersistenceError } from './errors';
 
 /** The only retained native readiness command: RC19 has no server-version API. */
 export async function inspectPersistenceCollections(
-  app: Sails.Application,
+  app: PersistenceOwner,
   datastore: LogicalDatastore,
   names: readonly string[]
 ): Promise<number> {
@@ -30,9 +31,9 @@ export function persistenceIndexPreflight(options: {
   collections: Partial<Record<LogicalDatastore, readonly string[]>>;
   indexes: readonly PersistenceIndex[];
   alternative?: (index: PersistenceIndex) => PersistenceIndex;
-  audit?: (app: Sails.Application, reports: PersistenceIndexInspection[]) => Promise<void>;
+  audit?: (app: PersistenceOwner, reports: PersistenceIndexInspection[]) => Promise<void>;
 }) {
-  const inspect = (app: Sails.Application): Promise<PersistenceIndexInspection[]> =>
+  const inspect = (app: PersistenceOwner): Promise<PersistenceIndexInspection[]> =>
     persistenceOperation(app, async () => {
       try {
         for (const [datastore, names] of Object.entries(options.collections))
@@ -56,7 +57,7 @@ export function persistenceIndexPreflight(options: {
         );
       }
     });
-  const ensure = async (app: Sails.Application): Promise<PersistenceIndexInspection[]> => {
+  const ensure = async (app: PersistenceOwner): Promise<PersistenceIndexInspection[]> => {
     const before = await inspect(app);
     for (const report of before)
       if (report.index === 'conflicting' || report.duplicateKeyGroups) requirePersistenceIndex(report);

@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { getReferenceRepositories } from '../runtime';
 import { PersistenceError } from '../errors';
 import { coercePersistenceScalar, coercePersistenceQueryScalar } from '../scalars';
@@ -25,7 +26,7 @@ export interface InstitutionNamedQueryTarget {
   metadata: NamedQueryTargetMetadata;
   execute(request: Readonly<NamedQueryRequest>): Promise<NamedQueryPage>;
 }
-const registrations = new WeakMap<Sails.Application, Map<string, InstitutionNamedQueryTarget>>();
+const registrations = new WeakMap<PersistenceOwner, Map<string, InstitutionNamedQueryTarget>>();
 // Closed core catalogue. No model/attribute discovery determines supported targets.
 const brandTargets = [
   'appconfig',
@@ -59,7 +60,7 @@ function refusal(): never {
     'Unsupported named-query target or expression. Review the stored data and migrate institution extensions before startup; for unmigrated hooks; inventory the stored definition and register an explicit tenant-scoped named-query target or migrate the expression. See p3-r-operations.md.'
   );
 }
-export function registerNamedQueryTarget(app: Sails.Application, target: InstitutionNamedQueryTarget): void {
+export function registerNamedQueryTarget(app: PersistenceOwner, target: InstitutionNamedQueryTarget): void {
   if (!target.metadata.name || coreTargets.some(entry => entry.name === target.metadata.name)) refusal();
   if (target.metadata.scope.type !== 'field' || !validPath(target.metadata.scope.fieldPath)) refusal();
   let targets = registrations.get(app);
@@ -73,7 +74,7 @@ export function registerNamedQueryTarget(app: Sails.Application, target: Institu
     execute: target.execute.bind(target),
   });
 }
-export function namedQueryTarget(app: Sails.Application, name: string): NamedQueryTargetMetadata {
+export function namedQueryTarget(app: PersistenceOwner, name: string): NamedQueryTargetMetadata {
   const target = coreTargets.find(entry => entry.name === name) ?? registrations.get(app)?.get(name)?.metadata;
   if (!target) refusal();
   return structuredClone(target);
@@ -267,7 +268,7 @@ export function namedQueryCriteria(
 }
 
 export async function executeNamedQuery(
-  app: Sails.Application,
+  app: PersistenceOwner,
   request: NamedQueryRequest,
   count = true
 ): Promise<NamedQueryPage> {

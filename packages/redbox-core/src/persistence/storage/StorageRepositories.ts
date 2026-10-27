@@ -26,6 +26,8 @@ export type AttachmentStagingCleanupClaim = {
   generation: string;
   token: string;
   phase?: 'checking' | 'removing';
+  actorId?: string;
+  brandId?: string;
 };
 export type AttachmentMetadataServiceContract = {
   upsert: (row: AttachmentMetadataInput) => Promise<void>;

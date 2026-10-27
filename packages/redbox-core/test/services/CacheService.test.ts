@@ -1,18 +1,19 @@
+import * as _ from 'lodash';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { stubCacheEntryRepository } from '../helpers/cacheRepository';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
 
 describe('CacheService', function() {
   let CacheService: any;
-  let mockSails: any;
+  let fixture: any;
   let mockRepository: ReturnType<typeof stubCacheEntryRepository>;
 
   beforeEach(function() {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         custom_cache: {
@@ -26,30 +27,28 @@ describe('CacheService', function() {
 
     mockRepository = stubCacheEntryRepository();
 
-    setupServiceTestGlobals(mockSails);
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
     sinon.restore();
   });
 
   describe('bootstrap', function() {
     it('should initialize the cache with config options', async function() {
       const { Services } = require('../../src/services/CacheService');
-      const cacheService = new Services.Cache();
+      const cacheService = new Services.Cache({ config: fixture.config, log: fixture.log, entries: () => mockRepository });
 
       await cacheService.bootstrap();
 
       // Should have called log.verbose with cache options
-      expect(mockSails.log.verbose.called).to.be.true;
+      expect(fixture.log.verbose.called).to.be.true;
     });
   });
 
   describe('get', function() {
     it('should return cached data from local cache when available', function(done) {
       const { Services } = require('../../src/services/CacheService');
-      const cacheService = new Services.Cache();
+      const cacheService = new Services.Cache({ config: fixture.config, log: fixture.log, entries: () => mockRepository });
 
       // Set up the cache first
       cacheService.cache = {
@@ -68,7 +67,7 @@ describe('CacheService', function() {
 
     it('should query database when local cache misses', function(done) {
       const { Services } = require('../../src/services/CacheService');
-      const cacheService = new Services.Cache();
+      const cacheService = new Services.Cache({ config: fixture.config, log: fixture.log, entries: () => mockRepository });
 
       const mockDbData = {
         id: 'test-id',
@@ -112,7 +111,7 @@ describe('CacheService', function() {
     it('should return null when no database entry exists', function() {
       // Test that empty data is handled correctly
       const emptyDbData = null;
-      const isEmpty = (global as any)._.isEmpty(emptyDbData);
+      const isEmpty = _.isEmpty(emptyDbData);
 
       expect(isEmpty).to.be.true;
     });
@@ -121,7 +120,7 @@ describe('CacheService', function() {
   describe('set', function() {
     it('should update local cache', function() {
       const { Services } = require('../../src/services/CacheService');
-      const cacheService = new Services.Cache();
+      const cacheService = new Services.Cache({ config: fixture.config, log: fixture.log, entries: () => mockRepository });
 
       const mockLocalCache = {
         get: sinon.stub().returns(undefined),
@@ -141,7 +140,7 @@ describe('CacheService', function() {
   describe('getNgAppFileHash', function() {
     it('should return empty hash when app not in hash map', function() {
       const { Services } = require('../../src/services/CacheService');
-      const cacheService = new Services.Cache();
+      const cacheService = new Services.Cache({ config: fixture.config, log: fixture.log, entries: () => mockRepository });
       cacheService.ngFileAppHash = {};
 
       const result = cacheService.getNgAppFileHash('unknown-app', 'main');
@@ -151,7 +150,7 @@ describe('CacheService', function() {
 
     it('should return hash with prefix and suffix when available', function() {
       const { Services } = require('../../src/services/CacheService');
-      const cacheService = new Services.Cache();
+      const cacheService = new Services.Cache({ config: fixture.config, log: fixture.log, entries: () => mockRepository });
       cacheService.ngFileAppHash = {
         'my-app': {
           main: 'abc123'
@@ -165,7 +164,7 @@ describe('CacheService', function() {
 
     it('should return hash with prefix/suffix when insertEvenOnEmpty is true and hash is empty', function() {
       const { Services } = require('../../src/services/CacheService');
-      const cacheService = new Services.Cache();
+      const cacheService = new Services.Cache({ config: fixture.config, log: fixture.log, entries: () => mockRepository });
       cacheService.ngFileAppHash = {
         'my-app': {
           main: ''
@@ -181,7 +180,7 @@ describe('CacheService', function() {
   describe('exports', function() {
     it('should export bootstrap, get, set, and getNgAppFileHash methods', function() {
       const { Services } = require('../../src/services/CacheService');
-      const cacheService = new Services.Cache();
+      const cacheService = new Services.Cache({ config: fixture.config, log: fixture.log, entries: () => mockRepository });
       const exported = cacheService.exports();
 
       expect(exported).to.have.property('bootstrap');

@@ -40,11 +40,3 @@ export interface IdentityRepositories {
   verifyPassword(userId: string, password: string): Promise<boolean>;
   findByApiTokenHash(hash: string, options?: IdentityRead): Promise<IdentityRows['user'] | null>;
 }
-
-/** Bridge callback-owned Passport flows; no ORM query object escapes the boundary. */
-export function identityCallback<T>(operation: Promise<T>, callback: (error: unknown, result: T) => unknown): void {
-  void operation.then(
-    result => callback(null, result),
-    error => callback(error, undefined as T)
-  );
-}

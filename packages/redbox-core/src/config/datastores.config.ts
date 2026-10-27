@@ -1,6 +1,6 @@
 /**
  * Datastores Config
- * (sails.config.datastores)
+ * (configuration.datastores)
  *
  * Application-owned MongoDB connection configuration.
  */

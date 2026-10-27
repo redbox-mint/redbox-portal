@@ -6,7 +6,7 @@ import { CachePersistenceError, DuplicateCacheEntryError } from '../../src/persi
 import { InvalidCacheEntryError } from '../../src/persistence/cache/validation';
 import type { CorePrismaClient } from '../../src/persistence/prisma/client';
 import type { CacheEntryRepository } from '../../src/persistence/cache/CacheEntryRepository';
-import { mapBrandingError } from '../../src/controllers/BrandingControllerSupport';
+import { mapBrandingError } from '../../src/branding/HttpErrors';
 
 describe('cache Prisma errors at the preview API boundary', function () {
   const marker = 'private-payload-and-database-details';

@@ -18,7 +18,7 @@ import type {
 } from '@prisma/orm-mongo/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'e18c86af989162ba1da9886a698496e00566f55439b9fe1fbfe1f95bfad7657c'>;
+  StorageHashBase<'2cd0538839428f8618a96d2d0837f22a940ade5c56f8fb41c99aff6f657c153d'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3'>;
@@ -96,6 +96,8 @@ export type FieldOutputTypes = {
       readonly mutationState: CodecTypes['mongo/string@1']['output'] | null;
       readonly oid: CodecTypes['mongo/string@1']['output'] | null;
       readonly operation: CodecTypes['mongo/string@1']['output'] | null;
+      readonly stagingActorId: CodecTypes['mongo/string@1']['output'] | null;
+      readonly stagingBrandId: CodecTypes['mongo/string@1']['output'] | null;
       readonly storageKey: CodecTypes['mongo/string@1']['output'] | null;
       readonly updatedAt: CodecTypes['mongo/string@1']['output'] | null;
       readonly uploadedBy: CodecTypes['mongo/string@1']['output'] | null;
@@ -715,6 +717,8 @@ export type FieldInputTypes = {
       readonly mutationState: CodecTypes['mongo/string@1']['input'] | null;
       readonly oid: CodecTypes['mongo/string@1']['input'] | null;
       readonly operation: CodecTypes['mongo/string@1']['input'] | null;
+      readonly stagingActorId: CodecTypes['mongo/string@1']['input'] | null;
+      readonly stagingBrandId: CodecTypes['mongo/string@1']['input'] | null;
       readonly storageKey: CodecTypes['mongo/string@1']['input'] | null;
       readonly updatedAt: CodecTypes['mongo/string@1']['input'] | null;
       readonly uploadedBy: CodecTypes['mongo/string@1']['input'] | null;
@@ -1338,6 +1342,8 @@ export namespace Models {
     mutationState: CodecTypes['mongo/string@1']['output'] | null;
     oid: CodecTypes['mongo/string@1']['output'] | null;
     operation: CodecTypes['mongo/string@1']['output'] | null;
+    stagingActorId: CodecTypes['mongo/string@1']['output'] | null;
+    stagingBrandId: CodecTypes['mongo/string@1']['output'] | null;
     storageKey: CodecTypes['mongo/string@1']['output'] | null;
     updatedAt: CodecTypes['mongo/string@1']['output'] | null;
     uploadedBy: CodecTypes['mongo/string@1']['output'] | null;
@@ -2130,6 +2136,8 @@ type ContractBase = Omit<
                     readonly mutationState: { readonly bsonType: readonly ['null', 'string'] };
                     readonly oid: { readonly bsonType: readonly ['null', 'string'] };
                     readonly operation: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly stagingActorId: { readonly bsonType: readonly ['null', 'string'] };
+                    readonly stagingBrandId: { readonly bsonType: readonly ['null', 'string'] };
                     readonly storageKey: { readonly bsonType: readonly ['null', 'string'] };
                     readonly updatedAt: { readonly bsonType: readonly ['null', 'string'] };
                     readonly uploadedBy: { readonly bsonType: readonly ['null', 'string'] };
@@ -4389,6 +4397,14 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
               };
+              readonly stagingActorId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
+              };
+              readonly stagingBrandId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
+              };
               readonly storageKey: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'mongo/string@1' };
@@ -4433,6 +4449,8 @@ type ContractBase = Omit<
                 readonly mutationState: { readonly field: 'mutationState' };
                 readonly oid: { readonly field: 'oid' };
                 readonly operation: { readonly field: 'operation' };
+                readonly stagingActorId: { readonly field: 'stagingActorId' };
+                readonly stagingBrandId: { readonly field: 'stagingBrandId' };
                 readonly storageKey: { readonly field: 'storageKey' };
                 readonly updatedAt: { readonly field: 'updatedAt' };
                 readonly uploadedBy: { readonly field: 'uploadedBy' };

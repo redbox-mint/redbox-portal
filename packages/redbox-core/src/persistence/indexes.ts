@@ -1,8 +1,8 @@
+import type { PersistenceOwner } from './owner';
 import type { CollationOptions } from 'mongodb';
 import type { JsonValue, LogicalDatastore } from './types';
-import { mongoDatabase, prismaDatabase, persistenceOperation } from './runtime';
+import { mongoDatabase, persistenceOperation } from './runtime';
 import { PersistenceError } from './errors';
-import type { CorePrismaClient, StoragePrismaClient } from './prisma/client';
 
 /** Operator-owned, collection-scoped intent. No driver options escape this boundary. */
 export interface PersistenceIndex {
@@ -50,7 +50,7 @@ function canonicalPredicates(value: unknown): unknown {
 
 /** Inspection never performs DDL or repairs data. Descriptor order defines compound keys. */
 export function inspectPersistenceIndex(
-  app: Sails.Application,
+  app: PersistenceOwner,
   descriptor: PersistenceIndex
 ): Promise<PersistenceIndexInspection> {
   return persistenceOperation(app, async () => {
@@ -115,29 +115,18 @@ export function inspectPersistenceIndex(
       const group = Object.fromEntries(
         Object.keys(descriptor.keys).map((key, index) => [`k${index}`, { $ifNull: [`$${key}`, null] }])
       );
-      let result: { groups: number } | undefined | null;
-      {
-        const pipeline = [
+      // Index maintenance accepts explicit collection scopes, including ones
+      // outside the generated business-model catalog. Like catalog inspection
+      // above, this read-only audit borrows the owner's native connection; it
+      // never registers a model, writes documents or opens another pool.
+      const result = await db
+        .collection(descriptor.collection)
+        .aggregate<{ groups: number }>([
           { $group: { _id: group, count: { $sum: 1 } } },
           { $match: { count: { $gt: 1 } } },
           { $count: 'groups' },
-        ];
-        if (descriptor.datastore === 'redboxStorage') {
-          const client = await prismaDatabase(app, 'redboxStorage');
-          const plan = client.raw
-            .collection(descriptor.collection as keyof StoragePrismaClient['orm'])
-            .aggregate<{ groups: number }>(pipeline)
-            .build();
-          result = (await (await client.runtime()).query(plan).toArray())[0];
-        } else {
-          const client = await prismaDatabase(app, 'mongodb');
-          const plan = client.raw
-            .collection(descriptor.collection as keyof CorePrismaClient['orm'])
-            .aggregate<{ groups: number }>(pipeline)
-            .build();
-          result = (await (await client.runtime()).query(plan).toArray())[0];
-        }
-      }
+        ])
+        .next();
       duplicates = result?.groups ?? 0;
     }
     return {
@@ -166,7 +155,7 @@ export function requirePersistenceIndex(report: PersistenceIndexInspection): voi
 
 /** Explicit deployment action. Never drops indexes, deletes rows or runs at startup. */
 export async function ensurePersistenceIndex(
-  app: Sails.Application,
+  app: PersistenceOwner,
   descriptor: PersistenceIndex
 ): Promise<PersistenceIndexInspection> {
   const before = await inspectPersistenceIndex(app, descriptor);

@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRemove, fixtureRow, fixturePatch, fixtureCount } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
@@ -16,9 +17,9 @@ describe('The SecurityEventService', function () {
   let securityEventService: Services.SecurityEventService;
   let brandId: string;
   const sandbox = sinon.createSandbox();
-  let queue: sinon.SinonStub<Parameters<typeof AgendaQueueService.now>, ReturnType<typeof AgendaQueueService.now>>;
+  let queue: sinon.SinonStub<Parameters<typeof fixture.services.AgendaQueueService.now>, ReturnType<typeof fixture.services.AgendaQueueService.now>>;
   const createdEventIds: string[] = [];
-  let configuration: ReturnType<typeof AppConfigService.getAppConfigurationForBrand> & { siem: SiemConfigDto };
+  let configuration: ReturnType<typeof fixture.services.AppConfigService.getAppConfigurationForBrand> & { siem: SiemConfigDto };
 
   function queuedJobs(): QueuedJob[] {
     return queue.getCalls().map(call => {
@@ -31,12 +32,12 @@ describe('The SecurityEventService', function () {
   }
 
   before(function () {
-    securityEventService = SecurityEventService;
-    brandId = BrandingService.getDefault().id;
+    securityEventService = fixture.services.SecurityEventService;
+    brandId = fixture.services.BrandingService.getDefault().id;
   });
 
   beforeEach(function () {
-    const original = AppConfigService.getAppConfigurationForBrand(BrandingService.getDefault().name);
+    const original = fixture.services.AppConfigService.getAppConfigurationForBrand(fixture.services.BrandingService.getDefault().name);
     configuration = {
       ...original,
       siem: {
@@ -70,8 +71,8 @@ describe('The SecurityEventService', function () {
         },
       },
     };
-    sandbox.stub(AppConfigService, 'getAppConfigurationForBrand').returns(configuration);
-    queue = sandbox.stub(AgendaQueueService, 'now').resolves();
+    sandbox.stub(fixture.services.AppConfigService, 'getAppConfigurationForBrand').returns(configuration);
+    queue = sandbox.stub(fixture.services.AgendaQueueService, 'now').resolves();
   });
 
   afterEach(async function () {
@@ -133,7 +134,7 @@ describe('The SecurityEventService', function () {
   });
 
   it('captures and stores minimized record-worker identity without research metadata', async function () {
-    const records = sails.services.recordsservice;
+    const records = fixture.services.RecordsService;
     const originalStorage = Reflect.get(records, 'storageService');
     Reflect.set(records, 'storageService', { createRecordAudit: async () => ({ isSuccessful: () => true }) });
     try {

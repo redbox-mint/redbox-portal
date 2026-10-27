@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { MongoInspectionExecutor, MongoControlAdapterImpl } from '@prisma/orm-mongo/adapter/control';
@@ -37,7 +38,7 @@ describe('native persistence index options', () => {
     it(`creates missing indexes with TTL ${ttl} and hidden options intact`, async () => {
       existing = [];
       assert.equal(
-        (await ensurePersistenceIndex({} as Sails.Application, { ...descriptor, expireAfterSeconds: ttl })).index,
+        (await ensurePersistenceIndex({} as PersistenceOwner, { ...descriptor, expireAfterSeconds: ttl })).index,
         'ready'
       );
       assert.deepEqual(create.firstCall.args, [
@@ -54,7 +55,7 @@ describe('native persistence index options', () => {
     });
   }
   it('accepts matching TTL and hidden options', async () => {
-    assert.equal((await inspectPersistenceIndex({} as Sails.Application, descriptor)).index, 'ready');
+    assert.equal((await inspectPersistenceIndex({} as PersistenceOwner, descriptor)).index, 'ready');
   });
   for (const drift of [
     { expireAfterSeconds: 120 },
@@ -64,29 +65,29 @@ describe('native persistence index options', () => {
   ]) {
     it(`rejects existing option drift ${JSON.stringify(drift)}`, async () => {
       Object.assign(existing[0], drift);
-      assert.equal((await inspectPersistenceIndex({} as Sails.Application, descriptor)).index, 'conflicting');
-      await assert.rejects(ensurePersistenceIndex({} as Sails.Application, descriptor), /Required persistence index/);
+      assert.equal((await inspectPersistenceIndex({} as PersistenceOwner, descriptor)).index, 'conflicting');
+      await assert.rejects(ensurePersistenceIndex({} as PersistenceOwner, descriptor), /Required persistence index/);
       assert.equal(ddl.callCount, 0);
       assert.equal(create.callCount, 0);
     });
   }
   it('treats omitted hidden as visible and refuses an unexpected hidden index', async () => {
     const visible = { ...descriptor, hidden: undefined };
-    assert.equal((await inspectPersistenceIndex({} as Sails.Application, visible)).index, 'conflicting');
+    assert.equal((await inspectPersistenceIndex({} as PersistenceOwner, visible)).index, 'conflicting');
     delete existing[0].hidden;
-    assert.equal((await inspectPersistenceIndex({} as Sails.Application, visible)).index, 'ready');
+    assert.equal((await inspectPersistenceIndex({} as PersistenceOwner, visible)).index, 'ready');
     assert.equal(
-      (await inspectPersistenceIndex({} as Sails.Application, { ...visible, hidden: false })).index,
+      (await inspectPersistenceIndex({} as PersistenceOwner, { ...visible, hidden: false })).index,
       'ready'
     );
   });
   it('compares configured collation options with server defaults', async () => {
     existing[0].collation = { locale: 'en', strength: 2, numericOrdering: true, caseLevel: false, version: '57.1' };
     const collated = { ...descriptor, collation: { locale: 'en', strength: 2, numericOrdering: true } };
-    assert.equal((await inspectPersistenceIndex({} as Sails.Application, collated)).index, 'ready');
+    assert.equal((await inspectPersistenceIndex({} as PersistenceOwner, collated)).index, 'ready');
     assert.equal(
       (
-        await inspectPersistenceIndex({} as Sails.Application, {
+        await inspectPersistenceIndex({} as PersistenceOwner, {
           ...collated,
           collation: { ...collated.collation, numericOrdering: false },
         })

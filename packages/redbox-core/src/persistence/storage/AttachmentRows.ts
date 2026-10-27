@@ -23,6 +23,8 @@ export interface AttachmentRow {
   generation?: string | null;
   isJournal?: boolean;
   mutationFileId?: string | null;
+  stagingActorId?: string;
+  stagingBrandId?: string;
   coordinationToken?: string | null;
   attemptCount?: number;
   lastAttemptAt?: string | Date | null;

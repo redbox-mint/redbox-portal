@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { ObjectId } from 'mongodb';
 import type { NamedQueryRequest, NamedQueryPage } from './NamedQueryExecution';
 import { namedQueryCriteria, namedQueryScalar, namedQueryFieldType } from './NamedQueryExecution';
@@ -33,7 +34,7 @@ interface Target {
   fields: Record<string, { type: string }>;
   id(value: unknown): unknown;
   decode(row: DefinitionValues): DefinitionValues;
-  ready(app: Sails.Application): object;
+  ready(app: PersistenceOwner): object;
   operation<T>(run: () => Promise<T>): Promise<T>;
 }
 function targets<K extends string>(
@@ -134,7 +135,7 @@ function translate(criteria: DefinitionValues, target: Target): DefinitionValues
 
 /** Raw Mongo translation is limited to validated stored expressions. Identity/records own their semantics. */
 export async function executePrismaNamedQuery(
-  app: Sails.Application,
+  app: PersistenceOwner,
   request: NamedQueryRequest,
   count: boolean
 ): Promise<NamedQueryPage> {

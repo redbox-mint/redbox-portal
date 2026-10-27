@@ -1,11 +1,12 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { mongoDatabase } from '@researchdatabox/redbox-core';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {getFigshareSyncRepository} from '@researchdatabox/redbox-core';
 describe('Selected Figshare durable repository in the stock application',()=>{
  it('uses the selected owner for replacement, partial binding and numeric lease fencing',async()=>{
-  const repo=getFigshareSyncRepository(),oid='stock-'+randomUUID(),brandId=String(BrandingService.getDefault().id);
-  const manager = await mongoDatabase(sails, 'mongodb');
+  const repo=getFigshareSyncRepository(fixture.owner),oid='stock-'+randomUUID(),brandId=String(fixture.services.BrandingService.getDefault().id);
+  const manager = await mongoDatabase(fixture.owner, 'mongodb');
   try{
    await repo.initialise(oid,brandId);await repo.change(oid,s=>{s.waitingReason='remove';});await repo.change(oid,s=>{delete s.waitingReason;});
    const raw=await manager.collection('figsharesync').findOne({oid});assert(raw);assert.equal(raw.createdAt,undefined);assert.equal(raw.waitingReason,undefined);assert.equal(typeof raw.leaseUntil,'number');
