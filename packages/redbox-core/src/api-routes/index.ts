@@ -3,7 +3,6 @@ export * from './define';
 export * from './helpers';
 export * from './request-extraction';
 export * from './validation';
-export * from './route-resolution';
 export * from './route-registry';
 export * from './openapi';
 export * from './apib';

@@ -4,6 +4,7 @@ import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule } from "@angular/forms";
 import { ConfigService, I18NextPipe, LoggerService, TranslationService, UserService, UtilityService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
+import { HttpErrorResponse } from '@angular/common/http';
 
 let configService:any;
 let userService: any;
@@ -50,6 +51,30 @@ let usersData = [
    ];
 
 describe('AppComponent', () => {
+  for (const status of [0, 400, 403, 500]) {
+    it(`displays a completed role-save failure for HTTP ${status} and keeps the selection`, async () => {
+      const fixture = TestBed.createComponent(ManageRolesComponent);
+      const app = fixture.componentInstance;
+      const user = JSON.parse(JSON.stringify(usersData[0]));
+      user.newRoles = [{ name: 'Researcher', hasRole: true }];
+      app.currentUser = user;
+      app.isDetailsModalShown = true;
+      userService.updateUserRoles = jasmine.createSpy('updateUserRoles').and.rejectWith(new HttpErrorResponse({
+        status,
+        error: status ? { errors: [{ detail: 'Unknown role for brand' }] } : new ProgressEvent('error'),
+      }));
+      try {
+        await app.saveCurrentUser({});
+        expect(app.saveMsg).toContain(status ? 'Unknown role for brand' : 'check the current account state');
+        expect(app.saveMsgType).toBe('danger');
+        expect(app.isDetailsModalShown).toBeTrue();
+        expect(app.currentUser).toEqual(user);
+      } finally {
+        fixture.destroy();
+      }
+    });
+  }
+
   beforeEach(async () => {
     configService = getStubConfigService();
     translationService = getStubTranslationService();

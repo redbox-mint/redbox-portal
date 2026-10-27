@@ -6,6 +6,7 @@ import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
+import { HttpErrorResponse } from '@angular/common/http';
 
 let configService: any;
 let userService: any;
@@ -234,6 +235,38 @@ describe('ManageUsersComponent', () => {
       TestBed.inject(UserService),
       TestBed.inject(FormBuilder)
     ));
+  }
+
+  for (const status of [0, 400, 403, 500]) {
+    for (const action of ['genKey', 'revokeKey', 'updateUserDetails', 'addLocalUser']) {
+      it(`displays a completed failure for ${action} HTTP ${status} without losing the draft`, async () => {
+        const app = createBareComponent();
+        const user = { ...cloneTestData(baseUsersData[0]), accountLinkState: 'active' as const, password: '', token: '', newRoles: [], roleStr: '', roles: [{ id: '123', name: 'Admin', users: [], hasRole: true }] };
+        app.currentUser = user;
+        app.isDetailsModalShown = true;
+        app.isNewUserModalShown = true;
+        userService[action] = jasmine.createSpy(action).and.rejectWith(new HttpErrorResponse({
+          status,
+          error: status ? { message: 'User administration failed.' } : new ProgressEvent('error'),
+        }));
+        if (action === 'genKey' || action === 'revokeKey') {
+          await app[action](user.id);
+        } else if (action === 'updateUserDetails') {
+          await app.updateUserSubmit(user, true);
+        } else {
+          await app.newUserSubmit(user, true);
+        }
+        const creating = action === 'addLocalUser';
+        const message = creating ? app.newUserMsg : app.updateDetailsMsg;
+        expect(message).not.toMatch(/Saving|Generating|Revoking/);
+        expect(message).toContain(status ? 'User administration failed.' : 'check the current account state');
+        expect(creating ? app.newUserMsgType : app.updateDetailsMsgType).toBe('danger');
+        expect(app.isDetailsModalShown).toBeTrue();
+        expect(app.isNewUserModalShown).toBeTrue();
+        expect(app.currentUser).toEqual(user);
+        expect(app.showToken).toBeFalse();
+      });
+    }
   }
 
   it('should create the app and perform testing of basic functions', async () => {

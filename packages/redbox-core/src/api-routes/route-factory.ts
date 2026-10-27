@@ -1,5 +1,5 @@
 import { defineApiRoute } from './define';
-import { getRedboxRoleExtension } from './helpers';
+import { type AuthRuleLike, getRedboxRoleExtension } from './helpers';
 import { ApiOpenApiMetadata, ApiRequestDefinition, HttpMethod } from './types';
 
 export function apiRoute(
@@ -8,9 +8,10 @@ export function apiRoute(
   controller: string,
   action: string,
   request?: ApiRequestDefinition,
-  metadata: ApiOpenApiMetadata = {}
+  metadata: ApiOpenApiMetadata = {},
+  authRules?: readonly AuthRuleLike[]
 ) {
-  const redboxRoleExtension = getRedboxRoleExtension(path);
+  const redboxRoleExtension = getRedboxRoleExtension(path, authRules);
   const extensions = redboxRoleExtension || metadata.extensions
     ? {
       ...(metadata.extensions ?? {}),

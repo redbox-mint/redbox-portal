@@ -84,13 +84,22 @@ export class LocalAuthComponent extends BaseComponent {
     }
     event.preventDefault();
     this.isLoginDisabled = true;
-    this.loginResult = await this.userService.loginLocal(this.form.value.username, this.form.value.password);
-    this.loggerService.debug(`LocalAuth, login result: `, this.loginResult);
-    if (this.loginResult.user) {
-      this.loggerService.debug(`LocalAuth, login success, redirecting...${this.loginResult.url}`);
-      this.window.location.href = this.loginResult.url;
-    } else {
-      this.loginMessage = this.loginResult.message;
+    try {
+      this.loginResult = await this.userService.loginLocal(this.form.value.username, this.form.value.password);
+      this.loggerService.debug(`LocalAuth, login result: `, this.loginResult);
+      if (this.loginResult.user) {
+        this.loggerService.debug(`LocalAuth, login success, redirecting...${this.loginResult.url}`);
+        this.window.location.href = this.loginResult.url;
+      } else {
+        this.loginMessage = this.loginResult.message;
+        this.isLoginDisabled = false;
+      }
+    } catch (error: unknown) {
+      const body = (error as { error?: { message?: unknown; errors?: { detail?: unknown }[] } } | null)?.error;
+      const detail = body?.message ?? body?.errors?.[0]?.detail;
+      const message = typeof detail === 'string' && detail.trim() ? detail : 'The login request failed.';
+      // A failed login can destroy its session, so the page must obtain a fresh CSRF token.
+      this.loginMessage = `${message} Refresh this page before trying again.`;
       this.isLoginDisabled = false;
     }
   }

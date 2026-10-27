@@ -1,6 +1,6 @@
 import { buildApiBlueprint } from './apib';
 import { buildOpenApiDocument } from './openapi';
-import { buildSailsRouteConfig, ensureUniqueApiRoutes, isRecord, toRouteMap, validateApiRouteConsistency } from './helpers';
+import { getRedboxRoleExtension, type AuthRuleLike, ensureUniqueApiRoutes, toRouteMap } from './helpers';
 import { ApiRouteDefinition, type ApiRouteProvider } from './types';
 import { appConfigApiRoutes } from './groups/appconfig';
 import { adminApiRoutes } from './groups/admin';
@@ -58,10 +58,13 @@ export function registerCoreApiRoutes(): ApiRouteDefinition[] {
   return [...ensureUniqueApiRoutes(coreApiRouteGroups.flat(), 'core API routes')];
 }
 
-export function registerHookApiRoutes(): ApiRouteDefinition[] {
-  const sailsConfig =
-    typeof sails === 'undefined' ? {} : ((sails as unknown as { config?: Record<string, unknown> }).config ?? {});
-  const hookProviders = sailsConfig['apiRoutesHooks'] as ApiRouteProvider[] | undefined;
+export interface ApiRouteConfiguration {
+  readonly auth?: { readonly rules?: readonly AuthRuleLike[] };
+  readonly apiRoutesHooks?: readonly ApiRouteProvider[];
+}
+
+export function registerHookApiRoutes(configuration?: ApiRouteConfiguration): ApiRouteDefinition[] {
+  const hookProviders = configuration?.apiRoutesHooks;
   if (!Array.isArray(hookProviders)) {
     return [];
   }
@@ -77,32 +80,23 @@ export function registerHookApiRoutes(): ApiRouteDefinition[] {
   return [...ensureUniqueApiRoutes(routes, 'hook API routes')];
 }
 
-function getRuntimeRouteTable(): Record<string, unknown> | undefined {
-  const sailsConfig =
-    typeof sails === 'undefined' ? {} : ((sails as unknown as { config?: Record<string, unknown> }).config ?? {});
-  const runtimeRoutes = sailsConfig['routes'];
-  return isRecord(runtimeRoutes) ? runtimeRoutes : undefined;
-}
-
-export function getMergedApiRoutes(): ApiRouteDefinition[] {
-  const routes = [...ensureUniqueApiRoutes([...registerCoreApiRoutes(), ...registerHookApiRoutes()], 'merged API routes')];
-  const runtimeRoutes = getRuntimeRouteTable();
-  if (runtimeRoutes) {
-    validateApiRouteConsistency(routes, runtimeRoutes, 'merged runtime route table');
-  }
-  return routes;
+export function getMergedApiRoutes(configuration?: ApiRouteConfiguration): ApiRouteDefinition[] {
+  const routes = [
+    ...ensureUniqueApiRoutes(
+      [...registerCoreApiRoutes(), ...registerHookApiRoutes(configuration)],
+      'merged API routes'
+    ),
+  ];
+  const rules = configuration?.auth?.rules;
+  if (!rules) return routes;
+  return routes.map(route => {
+    const { ['x-redbox-roles']: _oldRoles, ...extensions } = route.extensions ?? {};
+    return { ...route, extensions: { ...extensions, ...getRedboxRoleExtension(route.path, rules) } };
+  });
 }
 
 export function getCoreApiRouteMap() {
   return toRouteMap(registerCoreApiRoutes());
-}
-
-export function buildCoreApiRouteConfig() {
-  return buildSailsRouteConfig(registerCoreApiRoutes());
-}
-
-export function buildMergedApiRouteConfig() {
-  return buildSailsRouteConfig(getMergedApiRoutes());
 }
 
 function buildApiOpenApiDocumentForRoutes(
@@ -123,14 +117,20 @@ export function buildCoreApiOpenApiDocument(options: { branding?: string; portal
   return buildApiOpenApiDocumentForRoutes(registerCoreApiRoutes(), options);
 }
 
-export function buildMergedApiOpenApiDocument(options: { branding?: string; portal?: string } = {}) {
-  return buildApiOpenApiDocumentForRoutes(getMergedApiRoutes(), options);
+export function buildMergedApiOpenApiDocument(
+  options: { branding?: string; portal?: string } = {},
+  configuration?: ApiRouteConfiguration
+) {
+  return buildApiOpenApiDocumentForRoutes(getMergedApiRoutes(configuration), options);
 }
 
 export function buildCoreApiBlueprint(options: { branding?: string; portal?: string } = {}) {
   return buildApiBlueprintForRoutes(registerCoreApiRoutes(), options);
 }
 
-export function buildMergedApiBlueprint(options: { branding?: string; portal?: string } = {}) {
-  return buildApiBlueprintForRoutes(getMergedApiRoutes(), options);
+export function buildMergedApiBlueprint(
+  options: { branding?: string; portal?: string } = {},
+  configuration?: ApiRouteConfiguration
+) {
+  return buildApiBlueprintForRoutes(getMergedApiRoutes(configuration), options);
 }

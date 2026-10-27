@@ -1,0 +1,34 @@
+meta {
+  name: 03 protected login
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/user/login_local
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+  Content-Type: application/json
+  X-Source: jsclient
+  X-CSRF-Token: {{csrf}}
+}
+
+body:json {
+  {"username":"pilot-admin","password":"pilot-password","branding":"default","portal":"rdmp"}
+}
+
+script:post-response {
+  let value = res.headers['set-cookie'];
+  if (Array.isArray(value)) value = value.map(item => item.split(';')[0]).join('; ');
+  if (value) bru.setVar('cookie', value.split(';')[0]);
+  bru.setVar('beforeCsrf', bru.getVar('csrf'));
+}
+
+tests {
+  test("Status 200", () => expect(res.getStatus()).to.equal(200));
+  test("Authenticated user", () => expect(res.getBody().user.username).to.equal("pilot-admin"));
+}
