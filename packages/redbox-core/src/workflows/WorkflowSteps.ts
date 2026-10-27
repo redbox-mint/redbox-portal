@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, firstValueFrom, from, of, switchMap } from 'rxjs';
+import { Observable, firstValueFrom, from, of } from 'rxjs';
 import _ from 'lodash';
 import { defer } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
@@ -118,15 +118,20 @@ export namespace Services {
       hidden: boolean = false
     ) {
       const recordTypeId = recordType.id as string;
-      return defer(() =>
-        this.input.references.workflows.createDefinition({
-          name: name,
-          config: workflowConf,
-          recordType: recordTypeId,
-          starting: starting,
-          hidden: hidden,
-        })
-      ).pipe(switchMap(created => from(this.initialiseDashboardSettings(recordType).then(() => created))));
+      return from(
+        this.input.references.workflows
+          .createDefinition({
+            name: name,
+            config: workflowConf,
+            recordType: recordTypeId,
+            starting: starting,
+            hidden: hidden,
+          })
+          .then(async created => {
+            await this.initialiseDashboardSettings(recordType);
+            return created;
+          })
+      );
     }
 
     /**
