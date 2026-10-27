@@ -251,7 +251,7 @@ then restores the entire checkpoint and restarts the released source. It never
 connects to an institution database. Keep at least 6 GiB free in the scratch root:
 
 ```sh
-export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
+export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.12.1-linux-x64/bin:$PATH"
 export SR_P7_SCRATCH_ROOT=/path/to/disposable/scratch
 # Immutable Sails-free P8 rehearsal image recorded in the archived P8 artifact manifest (853f21caa).
 export SR_P7_CANDIDATE_IMAGE=sha256:581f7c6d5fe880e3c6daff909079635ee34d7cf75c93adc35b9bad90ef8806a1
