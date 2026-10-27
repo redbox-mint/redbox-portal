@@ -23,6 +23,10 @@ settings
 |
 |- exposedConfigPaths
 |
+|- additionalContextRoots
+|
+|- maxSubjectBytes / maxBodyBytes
+|
 defaults
 |
 |- from
@@ -50,6 +54,9 @@ Where <> are property labels that are variables.
 | settings/from    | The from address to use when sending emails | Yes      | noreply@redboxresearchdata.com.au         |
 | settings/templateDir    | The template directory that contains the email template files | Yes      | views/emailTemplates/        |
 | settings/exposedConfigPaths | Dotted config paths copied into `sailsConfig`; non-secret values only. Defaults to `['appUrl']`. | No | `['appUrl', 'publicContact.email']` |
+| settings/additionalContextRoots | Extra hook display roots permitted in DB overrides; defaults to `[]`. | No | `['scuEmail']` |
+| settings/maxSubjectBytes | UTF-8 byte cap on source and rendered subject; defaults to `998`. | No | `998` |
+| settings/maxBodyBytes | UTF-8 byte cap on source and rendered body; defaults to `1048576` (1 MiB). | No | `1048576` |
 | defaults   | Section used to capture default properties for emails (when not otherwise set) | Yes      | N/A          |
 | defaults/from    | The default from address | Yes      | redbox@redboxresearchdata.com.au             |
 | defaults/subject    | The default from email subject | Yes      | A notification from ReDBox         |
@@ -143,12 +150,69 @@ A path that does not exist (or has value `undefined`) is omitted, with a warning
 
 Existing `{{sailsConfig.appUrl}}` and `{{get sailsConfig "appUrl" ""}}` expressions continue to work. Templates that read other config paths must move to `portal`, receive explicit hook display values, or have a deployer allowlist the required non-secret paths. Hook JavaScript can still read `sails.config` directly. Preserve the three-argument `buildFromTemplateAsync(name, data, response)` override and pass the same response to `super`; injected display values such as SCU's `scuEmail` remain available to bodies and selected subjects. Reserved aliases are reconstructed after hook injection too.
 
-Record and integration display data (`record`, `oid`, `imports`, payload fields and hook values) retain their existing shapes. HTTP caller subjects and to/cc/bcc/from fields continue to support Handlebars with this restricted configuration context. `sendMessage` still accepts already-rendered strings.
+Bodies and subjects receive a **constructed record**, for supplied files and DB overrides on every path (record notifications, HTTP notifications, integrations, `sendTemplate`, direct builders and `runTemplate`). All of `record.metadata` is retained as a copy; deployers remain responsible for what their metadata contains. The record schema is:
 
-### Remaining stage 2 work
+| Path | Purpose |
+|---|---|
+| `record.oid` and top-level `oid` | Record link/identifier; explicit top-level OID takes precedence, otherwise `record.oid`/`record.redboxOid`. |
+| `record.metadata` | All record metadata for display. |
+| `record.dateCreated`, `record.lastSaveDate` | Creation and modification display dates. |
+| `record.workflow.stage`, `record.workflow.stageLabel` | Workflow status and human-readable label. |
+| `record.metaMetadata.type` | Display record type. |
+| `record.metaMetadata.brandId` | Display tenant identity; never used to infer the trusted render brand. |
+| `record.metaMetadata.createdBy` | Creator attribution. |
+| `record.metaMetadata.createdOn`, `record.metaMetadata.lastSaveDate` | Compatibility date aliases used for record provenance displays. |
 
-Curated record context, a helper allowlist (including a decision on `json`), prototype-access hardening, HTTP endpoint hardening, save-time validation and HTML sanitisation remain deferred. The shared helpers, including `json`, are unchanged by this configuration restriction.
+No other record fields cross this boundary: authorization lists, stored authorization, internal IDs/revisions, lifecycle/harvest fields, search core, form/package configuration and attachment-field lists are excluded. The legacy `imports` object is unused by the seven core and 19 SCU `.hbs` templates inspected, but is retained for other hooks as **only** `{ record, oid }`, with the same curated record; it cannot retain a second raw record. Caller data is not mutated. Integration payload fields and explicit hook display roots retain their existing values. `to`, `cc`, `bcc` and `from` templates still receive the **full record and original imports** for recipient resolution, with the restricted `portal`/`sailsConfig` values. Definitive subject rendering for template sends happens after hook injection so hook values are available for supplied subjects too. `sendMessage` continues accepting already-rendered strings, subject to the output protections below.
 
+### Persisted-template expression validation
+
+Create/update validate Handlebars syntax **and AST expressions** in both fields. Partials (including dynamic partials and partial blocks) and decorators are rejected. Explicit helper calls must name a currently registered Handlebars helper: built-ins and the shared `sails-ng-common` helpers remain available, including `json`. Quoted helper names are supported in calls, blocks and subexpressions; other literal heads follow Handlebars' conversion to a helper name and must also be registered. This validates helper existence; a narrower helper allowlist is deferred. Triple-stash output remains allowed because HTML is sanitised at delivery.
+
+Recognised top-level roots are `record`, `oid`, `imports`, `portal`, `sailsConfig`, legacy core `name`/`data`, and all integration payload keys: `kind`, `title`, `summary`, `severity`, `redboxOid`, `brandId`, `integrationName`, `integrationAction`, `status`, `triggeredBy`, `message`, `errorDetail`, `httpStatusCode`, `traceId`, `spanId`, `startedAt`, `completedAt`, `durationMs`, `recordUrl`, `timestamp`. Metadata/payload descendants are dynamic; validation checks roots, not whether a nested field exists. `this`, explicit current-context paths, Handlebars data variables (`@index`, `@key`, `@first`, `@last`, `@root`), lexical block params and relative parent paths are supported. Strict runtime rendering still validates actual data availability.
+
+Save-time validation is an **authoring policy**, not a proof that a template can or cannot render. It is not the data-exposure boundary: the constructed render context is, and strict rendering still fails at send time for anything missing. The policy rejects, wherever they appear (including branches that would never run): partials and decorators, and invocations of unregistered helpers. An `@`-prefixed invocation head is always treated as a data variable or block parameter, never as a helper, so helpers whose registered names begin with `@` cannot be called from overrides. It rejects unknown roots where the context is certainly the template's root data: bare paths, `this.X` and `./X` at the top level (outside any block), **including as helper or block arguments** (for example `{{#if unknown}}` or `{{concat oid unused=unknown}}`, even though Handlebars would treat the missing value as empty there), and explicit `@root.X` anywhere, unless a block parameter named `root` is in scope (Handlebars resolves that name first). A template that violates the policy is rejected even if it would render. `../unknown` at the top level has no parent context, so it is accepted and fails strict rendering.
+
+Inside **any** block, including the built-in `if`/`unless`, `each`, `with`, implicit/section blocks and custom block helpers, relative paths are left to render time. Helper context semantics cannot be established reliably (helpers can be replaced or wrapped), so no block is trusted to preserve the root context. For example, `{{#if oid}}{{unknown}}{{/if}}` and `{{#record.metadata.enabled}}{{this.unknown}}{{/record.metadata.enabled}}` pass validation and fail strict rendering. Block parameters belong to their declaring program's lexical scope (including nested programs), end at its boundary and cannot be reached through `../`, `this.` or `./`. A block parameter used as an invocation head, with or without an `@` prefix (such as `(get)` or `(@get)` for `as |get|`), is a value rather than a helper call: Handlebars resolves it first and ignores its arguments, so neither the head nor its arguments are checked. A dotted head such as `p.title` for `as |p|` is also a lexical value (not an unknown helper), but Handlebars still evaluates its arguments, so they are checked as usual.
+
+Unknown roots in certain root contexts are **errors**, not warnings. Unknown roots inside context-changing blocks and missing dynamic metadata keys can pass this authoring check and surface as strict rendering failures. Handlebars can instead return an empty value for a missing property reached through a block parameter. The constructed curated render context is the data-exposure boundary: data that is not passed in cannot be rendered. Root validation does not expand that context and is not a security boundary. Hooks must explicitly declare extra display roots for references in certain root contexts:
+
+```javascript
+settings: {
+  additionalContextRoots: ['scuEmail'] // default []
+}
+```
+
+Entries must be simple identifiers, without dots, whitespace or prototype names. This setting allows names; it does not populate their values or expose additional record/config internals. SCU deployments using DB overrides must add `scuEmail`. Supplied files retain their trusted hook-specific root vocabulary without this setting; they still use curated records, syntax/length validation and delivery sanitisation. A stored override is checked again against current configuration/helpers on every read/render, even if a caller replaces its subject. Removing a root can therefore invalidate existing overrides.
+
+AST and syntax failures use `EmailTemplateError` with `code: 'INVALID_TEMPLATE'`, a content-free message and structured `diagnostic: { field, reason, line, column }`. Reason categories are `UNKNOWN_CONTEXT_ROOT`, `UNKNOWN_HELPER`, `UNSUPPORTED_CONSTRUCT` and `INVALID_SYNTAX`; lines and columns are one-based. There is no `diagnostic.expression`, even for plain identifier paths or management calls. Template text, subjects, bodies and exception-provided names/codes are never copied into diagnostics, chronicles, logs or audit reports. Editors can use the location to highlight their separately authorised source. Missing data remains `RENDER_FAILED`.
+
+Audit stored overrides without aborting on the first invalid row:
+
+```typescript
+const failures = await EmailTemplateService.reportInvalidOverrides(brandId);
+// [{ brandId, templateId, id, revision, code, message, diagnostic? }]
+```
+
+The method reads raw rows for the requested validated brand and reports failures under current validation, including unknown template IDs, identity/revision errors, AST failures and limits. It returns no body/subject content and performs no writes. Unlike `list`, it continues past invalid rows. It is a backend-only method with the same trusted-code authorization boundary as other management methods.
+
+### HTML sanitisation and delivery failures
+
+Every `html` delivery, including supplied templates, DB overrides and already-rendered `sendMessage` calls, passes through `DomSanitizerService.sanitizeEmail` using `sails.config.dompurify.profiles.email` (defined in `packages/redbox-core/src/config/dompurify.config.ts`). The email profile permits paragraphs/divs/spans, common emphasis, sub/sup, headings, quotes/code, lists, tables/captions/rows/cells and images. Attributes cover presentation (`class`, `title`, `style`, dimensions/alignment and table attributes), link `href`, image `src`/`alt` and list numbering. Inline style declarations are retained for email layout, but CSS resource loading/execution constructs (`url()`, `image-set()`/`image()`/`src()`, unsafe protocols, `expression()`, at-rules, escapes/comments, `behavior`, `-moz-binding`) cause the style attribute to be removed. This is intentionally a presentation profile, not a full CSS parser.
+
+Only absolute HTTP/HTTPS or `mailto:` links and absolute HTTP/HTTPS image sources are allowed. Remote images may come from **any host**, to support institution-hosted logos and content. Relative/protocol-relative references, `cid:`, `data:`, `javascript:` and `vbscript:` URLs are removed; attribute-specific checks also block DOMPurify's usual data-image exception. No script/style elements, iframe/object/embed, forms/inputs, SVG/MathML, event attributes or data attributes are permitted. The explicit tag/attribute lists keep ordinary email formatting without enabling interactive content. Deployers can adjust the profile but must preserve these safety restrictions.
+
+Unsafe markup is stripped and the email still sends. The request chronicle records `emailSanitisationRemovedMarkup: true` when real disallowed content is removed, with no body/subject or sanitizer exception content. DOM normalisation (such as tag casing, quote changes or inserted `tbody`) and removal of DOMPurify's synthetic `BODY` wrapper do not count; disallowed attributes on that wrapper still count. A missing email profile is checked explicitly to prevent `getDOMPurifyConfig` falling back to another profile. Missing profiles, unavailable sanitizer services or sanitizer exceptions fail delivery with typed `SANITISATION_FAILED`; unsanitised output is never sent. Text-format bodies are passed through unchanged. Existing HTTP error envelopes handle delivery validation errors.
+
+### Subjects and content limits
+
+Final rendered subjects lose CR/LF, C0/C1 controls, DEL and Unicode line/paragraph separators before delivery. Subjects are not HTML-sanitised. Length checks count **UTF-8 bytes** and apply to both source and rendered subject/body, for files, stored overrides and caller overrides, plus already-rendered direct sends. Rendered body length is checked before sanitisation and again afterwards; the subject cap is checked before controls are removed. Oversized content fails with typed `LENGTH_LIMIT`; it is never silently truncated. Invalid cap settings fail bootstrap/render with `INVALID_TEMPLATE`.
+
+`settings.maxSubjectBytes` defaults to **998**, the SMTP header line limit (transport folding/encoding still applies); this comfortably accommodates ordinary notification subjects while rejecting runaway metadata expansion. `settings.maxBodyBytes` defaults to **1048576 (1 MiB)**, leaving room for detailed institutional HTML tables while bounding parsing, compilation and delivery work. Both must be positive safe integers. Source limits apply to unrendered Handlebars too, so raise a limit deliberately if a large template expression needs more room. These are content budgets, not total MIME message/attachment limits.
+
+### Deferred work
+
+A narrower helper allowlist/removing `json`, Handlebars prototype-access options, HTTP endpoint/access hardening, recipient rules, schedules, SMTP, conditions and post-send actions remain outside this stage. Stage 3 will add authorized administration, drafts/publication/history and editing-session identity. No management HTTP API or UI is added here.
 
 ## Brand-specific persisted overrides (stage 1)
 
@@ -192,13 +256,13 @@ await EmailTemplateService.reset(brandId, templateId, { id: edited.id, revision:
 await EmailTemplateService.upsert(brandId, templateId, content, expectedVersionOrNull, actorId);
 ```
 
-Create/update validate brand existence, a known template with a valid supplied default, allowed format, non-empty subject/body and strict Handlebars syntax. Precompilation validates syntax eagerly; actual required data is checked at render time. `resolve(templateId, brandId?)` returns the selected raw unit with `source`, and with brand, `id` and revision for an override.
+Create/update validate brand existence, a known template with a valid supplied default, allowed format, non-empty subject/body, source byte limits, Handlebars syntax and AST expressions as described above. Actual required data is checked at render time. `resolve(templateId, brandId?)` returns the selected raw unit with `source`, and with brand, `id` and revision for an override.
 
 A unique compound Mongo index enforces identity, supplemented by a collision-free unique `uid`. Bootstrap explicitly creates the compound index even with `migrate: safe`; index failure fails startup. Concurrent creates fail with `EmailTemplateConflictError` (`code: REVISION_CONFLICT`). Updates put the expected version token (`_id` plus `revision`) in a native Mongo `findOneAndUpdate` predicate and write `revision + 1` with an updated timestamp. The installed sails-mongo fetched Waterline update/destroy implementations first select IDs and then write by ID alone, discarding the original revision condition; this service therefore uses native atomic operations for update and reset. Missing/stale rows and conflicting reset operations fail with the same typed conflict. Reset uses a native conditional `deleteOne` and returns the supplied default; it never writes a default copy. Revisions start at 1 for each newly created override's lifetime; because the token includes the row ID, a stale token from before a reset/recreate cycle can never update or delete the replacement override.
 
 Atomic writes need native Mongo access to the `EmailTemplate` datastore. If the datastore's adapter is `sails-mongo` but the native manager or driver `ObjectId` is unavailable, bootstrap fails with `PERSISTENCE`. On another adapter (for example a sails-disk test application), bootstrap logs a warning and skips index creation, reads and supplied defaults keep working, and `update`/`reset` fail with `PERSISTENCE` rather than falling back to a non-atomic write.
 
-Other errors use `EmailTemplateError` codes `UNKNOWN_BRAND`, `UNKNOWN_TEMPLATE`, `MISSING_DEFAULT`, `INVALID_TEMPLATE`, `PERSISTENCE` and `RENDER_FAILED`. Rendering retains the existing `{ status: 500, body: 'Templating error.', ex }` failure envelope with a typed `ex`; record sends and `sendTemplate` throw it, HTTP returns an error, and integration delivery logs failure and reports unsuccessful delivery.
+Other errors use `EmailTemplateError` codes `UNKNOWN_BRAND`, `UNKNOWN_TEMPLATE`, `MISSING_DEFAULT`, `INVALID_TEMPLATE`, `PERSISTENCE`, `RENDER_FAILED`, `SANITISATION_FAILED` and `LENGTH_LIMIT`. Rendering retains the existing `{ status: 500, body: 'Templating error.', ex }` failure envelope with a typed `ex`; record sends and `sendTemplate` throw it, HTTP returns an error, and integration delivery logs failure and reports unsuccessful delivery.
 
 ### Rendering extension contract and caching
 
@@ -208,4 +272,4 @@ Successful wrapper renders return `{ status: 200, body, subject, format, source,
 
 Every branded render queries the DB; there is no override-query cache or DB compilation cache. Changes are visible to every process on the next send, including delete/recreate cycles. Supplied file compilation retains the existing per-process filename cache (restart after editing a supplied file). DB compilation caching, if added later, must include brand, template ID and revision plus generation/content identity across reset/recreate.
 
-The configuration-exposure restriction above is the first stage 2 slice; the remaining work is listed above. Stage 3 will add authorized administration, drafts/publication/history and editing-session identity.
+Stage 2 now includes restricted configuration, curated record context, persisted-expression validation/reporting, HTML sanitisation and subject/length hardening. Deferred work is listed above.
