@@ -45,8 +45,8 @@ npm run compile:dev-hook
 show_step 'Build raido.'
 npm run compile:raido
 
-show_step 'Build sails.'
-npm run compile:sails
+show_step 'Build host.'
+npm run compile:host
 
 show_step 'Build angular apps.'
 # portal-ng-form-custom can be partially created, remove it
