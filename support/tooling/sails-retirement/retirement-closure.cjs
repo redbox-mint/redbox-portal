@@ -49,7 +49,7 @@ if (!tree) {
       '-l',
       '-I',
       '-E',
-      'sails|Sails|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket|declare[[:space:]]+((const|var|let)[[:space:]]+[[:alnum:]_]*Service|global)',
+      'sails|Sails|waterline|skipper|@sailshq|req\\.(file|param|allParams|validate)|res\\.(view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\\.socket|declare[[:space:]]+((const|var|let)[[:space:]]+[[:alnum:]_]*Service|global)',
       commit,
       '--',
       '.'
@@ -80,15 +80,16 @@ if (!tree) {
           for (const entry of fs.readdirSync(full)) {
             const installed = path.join(full, entry);
             if (!fs.statSync(installed).isDirectory()) continue;
-            if (entry === '@researchdatabox') walk(installed, name + '/' + entry);
-            else if (!entry.startsWith('@') && !entry.startsWith('.')) {
-              const manifest = path.join(installed, 'package.json');
-              if (fs.existsSync(manifest)) {
-                const pkg = JSON.parse(fs.readFileSync(manifest, 'utf8'));
-                if (pkg.redbox || /^(?:redbox-hook-|@researchdatabox\/)/.test(pkg.name || ''))
-                  walk(installed, name + '/' + entry);
-              }
+            function inspectPackage(directory, relative) {
+              const manifest = path.join(directory, 'package.json');
+              if (!fs.statSync(directory).isDirectory() || !fs.existsSync(manifest)) return;
+              const pkg = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+              if (pkg.redbox || /^(?:redbox-hook-|@researchdatabox\/)/.test(pkg.name || '')) walk(directory, relative);
             }
+            if (entry.startsWith('@')) {
+              for (const packageName of fs.readdirSync(installed))
+                inspectPackage(path.join(installed, packageName), name + '/' + entry + '/' + packageName);
+            } else if (!entry.startsWith('.')) inspectPackage(installed, name + '/' + entry);
           }
         } else walk(full, name);
       } else if (/\.(?:[cm]?js|tsx?|json|hbs|sh|ya?ml|ejs|template)$/.test(name)) files.push(name);
@@ -171,7 +172,7 @@ for (const file of files) {
     continue;
   }
   if (
-    !/sails|Sails|req\.(?:file|param|allParams|validate)|res\.(?:view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\.socket|declare\s+(?:(?:const|var|let)\s+\w+Service|global)/.test(
+    !/sails|Sails|waterline|skipper|@sailshq|req\.(?:file|param|allParams|validate)|res\.(?:view|ok|badRequest|serverError|notFound|forbidden|negotiate|jsonx)|io\.socket|declare\s+(?:(?:const|var|let)\s+\w+Service|global)/.test(
       source
     )
   )
@@ -223,6 +224,22 @@ for (const file of files) {
     return '';
   }
   function visit(node) {
+    if (ts.isStringLiteralLike(node)) {
+      const parent = node.parent;
+      const moduleSpecifier =
+        ((ts.isImportDeclaration(parent) || ts.isExportDeclaration(parent)) && parent.moduleSpecifier === node) ||
+        (ts.isExternalModuleReference(parent) && parent.expression === node) ||
+        (ts.isCallExpression(parent) &&
+          parent.arguments[0] === node &&
+          ((ts.isIdentifier(parent.expression) && parent.expression.text === 'require') ||
+            parent.expression.kind === ts.SyntaxKind.ImportKeyword));
+      const parts = node.text.split('/');
+      const packageName = node.text.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+      if (moduleSpecifier && forbidden(packageName)) {
+        fail(node, 'Retired framework module import');
+        return;
+      }
+    }
     if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
       const oldHelpers = {
         req: /^(?:file|param|allParams|validate)$/,
@@ -267,27 +284,35 @@ for (const file of files) {
         classify(node, 'Negative stale registration metadata fixture; module must not execute');
       else if (
         /\/redbox-dev-tools\/(?:src|dist)\/cli\.[jt]s$/.test(file) &&
-        ts.isPropertyAccessExpression(node.parent) && node.parent.name === node &&
+        ts.isPropertyAccessExpression(node.parent) &&
+        node.parent.name === node &&
         node.parent.getText(ast) === 'pkg.sails' &&
-        ts.isBinaryExpression(node.parent.parent) && node.parent.parent.getText(ast) === 'pkg.sails != null' &&
+        ts.isBinaryExpression(node.parent.parent) &&
+        node.parent.parent.getText(ast) === 'pkg.sails != null' &&
         ts.isIfStatement(node.parent.parent.parent) &&
-        node.parent.parent.parent.thenStatement.getText(ast) === "findings.push('sails: remove legacy hook discovery metadata');"
+        node.parent.parent.parent.thenStatement.getText(ast) ===
+          "findings.push('sails: remove legacy hook discovery metadata');"
       )
         classify(node, 'Offline manifest rejection check; legacy metadata is never loaded');
       else if (
         /\/redbox-dev-tools\/test\/cli\.test\.ts$/.test(file) &&
         ((ts.isPropertyAssignment(node.parent) && node.parent.name === node) ||
-          (ts.isPropertyAccessExpression(node.parent) && node.parent.name === node && node.parent.getText(ast) === 'pkg.sails'))
+          (ts.isPropertyAccessExpression(node.parent) &&
+            node.parent.name === node &&
+            node.parent.getText(ast) === 'pkg.sails'))
       )
         classify(node, 'Negative CLI manifest fixture; subprocess must reject v6 legacy metadata');
       else if (
         file === 'support/tooling/sails-retirement/inventory.cjs' &&
-        ((ts.isPropertyAssignment(node.parent) && node.parent.name.getText(ast) === 'sails' &&
+        ((ts.isPropertyAssignment(node.parent) &&
+          node.parent.name.getText(ast) === 'sails' &&
           node.parent.initializer.getText(ast) === 'pkg.sails ?? null') ||
-         (ts.isPropertyAccessExpression(node.parent) && node.parent.getText(ast) === 'pkg.sails' &&
-          ts.isBinaryExpression(node.parent.parent) && node.parent.parent.getText(ast) === 'pkg.sails ?? null' &&
-          ts.isPropertyAssignment(node.parent.parent.parent) &&
-          node.parent.parent.parent.name.getText(ast) === 'sails'))
+          (ts.isPropertyAccessExpression(node.parent) &&
+            node.parent.getText(ast) === 'pkg.sails' &&
+            ts.isBinaryExpression(node.parent.parent) &&
+            node.parent.parent.getText(ast) === 'pkg.sails ?? null' &&
+            ts.isPropertyAssignment(node.parent.parent.parent) &&
+            node.parent.parent.parent.name.getText(ast) === 'sails'))
       )
         classify(node, 'Offline inventory records a manifest metadata value; no runtime loading');
       else fail(node, 'Executable/type Sails identifier');
@@ -316,50 +341,75 @@ for (const file of files) {
     ) {
       const ownAudit = file === 'support/tooling/sails-retirement/retirement-closure.cjs';
       const comparisonConstants = new Set([
-        'sails.io.js', '<%= sails.config.appUrl %>',
-        'sails,sails.io.js,skipper,waterline', 'sails.services.synthetic.unregistered',
+        'sails.io.js',
+        '<%= sails.config.appUrl %>',
+        'sails,sails.io.js,skipper,waterline',
+        'sails.services.synthetic.unregistered',
       ]);
-      const staticComparison = ts.isStringLiteralLike(node) && ts.isBinaryExpression(node.parent) &&
-        node.parent.operatorToken.kind === ts.SyntaxKind.EqualsEqualsEqualsToken && comparisonConstants.has(node.text);
-      const comparisonTable = ts.isStringLiteralLike(node) && ts.isArrayLiteralExpression(node.parent) &&
+      const staticComparison =
+        ts.isStringLiteralLike(node) &&
+        ts.isBinaryExpression(node.parent) &&
+        node.parent.operatorToken.kind === ts.SyntaxKind.EqualsEqualsEqualsToken &&
+        comparisonConstants.has(node.text);
+      const comparisonTable =
+        ts.isStringLiteralLike(node) &&
+        ts.isArrayLiteralExpression(node.parent) &&
         node.parent.elements.length === comparisonConstants.size &&
         node.parent.elements.every(item => ts.isStringLiteralLike(item) && comparisonConstants.has(item.text)) &&
-        ts.isNewExpression(node.parent.parent) && node.parent.parent.expression.getText(ast) === 'Set' &&
+        ts.isNewExpression(node.parent.parent) &&
+        node.parent.parent.expression.getText(ast) === 'Set' &&
         ts.isVariableDeclaration(node.parent.parent.parent) &&
         node.parent.parent.parent.name.getText(ast) === 'comparisonConstants';
-      const mappingConstant = ts.isStringLiteralLike(node) && ts.isPropertyAssignment(node.parent) &&
-        node.parent.name === node && ts.isStringLiteralLike(node.parent.initializer) &&
-        Object.hasOwn(wsuConversionNames, node.text) && wsuConversionNames[node.text] === node.parent.initializer.text &&
-        ts.isObjectLiteralExpression(node.parent.parent) && ts.isVariableDeclaration(node.parent.parent.parent) &&
+      const mappingConstant =
+        ts.isStringLiteralLike(node) &&
+        ts.isPropertyAssignment(node.parent) &&
+        node.parent.name === node &&
+        ts.isStringLiteralLike(node.parent.initializer) &&
+        Object.hasOwn(wsuConversionNames, node.text) &&
+        wsuConversionNames[node.text] === node.parent.initializer.text &&
+        ts.isObjectLiteralExpression(node.parent.parent) &&
+        ts.isVariableDeclaration(node.parent.parent.parent) &&
         node.parent.parent.parent.name.getText(ast) === 'wsuConversionNames';
       if (ownAudit && (staticComparison || comparisonTable || mappingConstant))
         classify(node, 'Exact offline auditor comparison/conversion constant; never executed as source');
       else if (/\/(?:src|dist)\/recordTypes\/RecordHookNames\.[cm]?[jt]s$/.test(file))
         classify(node, 'Finite persisted-declaration conversion key or rejected legacy prefix; never evaluated');
       else if (
-        /\/redbox-dev-tools\/test\/cli\.test\.ts$/.test(file) && ts.isStringLiteralLike(node) &&
-        node.text === '<%= sails.config.appUrl %>' && ts.isCallExpression(node.parent) &&
-        node.parent.expression.getText(ast) === 'fs.writeFileSync' && node.parent.arguments[1] === node
+        /\/redbox-dev-tools\/test\/cli\.test\.ts$/.test(file) &&
+        ts.isStringLiteralLike(node) &&
+        node.text === '<%= sails.config.appUrl %>' &&
+        ts.isCallExpression(node.parent) &&
+        node.parent.expression.getText(ast) === 'fs.writeFileSync' &&
+        node.parent.arguments[1] === node
       )
         classify(node, 'Exact negative EJS fixture written for offline v6 rejection; never rendered');
       else if (
         file.endsWith('/test/qualification/installed-dependency-graph.cjs') &&
-        ts.isStringLiteralLike(node) && node.text === 'sails.io.js' &&
+        ts.isStringLiteralLike(node) &&
+        node.text === 'sails.io.js' &&
         ts.isArrayLiteralExpression(node.parent) &&
         node.parent.elements.every(element => ts.isStringLiteralLike(element)) &&
         node.parent.elements.map(element => element.text).join(',') === 'sails,sails.io.js,skipper,waterline' &&
-        ts.isPropertyAccessExpression(node.parent.parent) && node.parent.parent.name.text === 'includes' &&
+        ts.isPropertyAccessExpression(node.parent.parent) &&
+        node.parent.parent.name.text === 'includes' &&
         ts.isCallExpression(node.parent.parent.parent) &&
-        node.parent.parent.parent.arguments.length === 1 && node.parent.parent.parent.arguments[0].getText(ast) === 'leaf'
+        node.parent.parent.parent.arguments.length === 1 &&
+        node.parent.parent.parent.arguments[0].getText(ast) === 'leaf'
       )
         classify(node, 'Exact forbidden installed-package membership table; never imported');
       else if (
         /(?:^|\/)redbox-hook-wsu\/(?:src|dist)\/migration-data\.[jt]s$/.test(file) &&
-        ts.isStringLiteralLike(node) && ts.isPropertyAssignment(node.parent) && node.parent.name === node &&
+        ts.isStringLiteralLike(node) &&
+        ts.isPropertyAssignment(node.parent) &&
+        node.parent.name === node &&
         ts.isStringLiteralLike(node.parent.initializer) &&
-        Object.hasOwn(wsuConversionNames, node.text) && wsuConversionNames[node.text] === node.parent.initializer.text
+        Object.hasOwn(wsuConversionNames, node.text) &&
+        wsuConversionNames[node.text] === node.parent.initializer.text
       )
-        classify(node, 'Finite WSU persisted-declaration conversion key to its explicit named operation; never evaluated');
+        classify(
+          node,
+          'Finite WSU persisted-declaration conversion key to its explicit named operation; never evaluated'
+        );
       else if (/\/test\/qualification\//.test(file) && fixtureFiles.has(path.basename(file)))
         classify(node, 'Persisted conversion fixture/opaque-value preservation and rejection assertions');
       else if (
@@ -369,7 +419,9 @@ for (const file of files) {
       )
         classify(node, 'Persisted queue migration fixture/opaque-value preservation and rejection assertions');
       else if (
-        /^(?:packages|node_modules\/@researchdatabox)\/redbox-core\/test\/configuration\/legacyInventoryTypes\.ts$/.test(file) &&
+        /^(?:packages|node_modules\/@researchdatabox)\/redbox-core\/test\/configuration\/legacyInventoryTypes\.ts$/.test(
+          file
+        ) &&
         ts.isStringLiteralLike(node) &&
         /^sails\.services\.[A-Za-z][A-Za-z0-9_.]*$/.test(node.text)
       )

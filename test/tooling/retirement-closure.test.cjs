@@ -40,74 +40,105 @@ for (const [label, source, count] of [
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-view-audit-'));
     try {
       const fixture = path.join(directory, 'packages/redbox-dev-tools/test');
-      fs.mkdirSync(fixture, {recursive:true});
+      fs.mkdirSync(fixture, { recursive: true });
       fs.writeFileSync(path.join(fixture, 'cli.test.ts'), source);
-      const result = spawnSync(process.execPath, [auditor, '--tree', directory], {encoding:'utf8'});
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
       assert.equal(result.error, undefined);
       const audit = JSON.parse(result.stdout);
       assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
       assert.equal(result.status, count ? 1 : 0);
-    } finally {fs.rmSync(directory, {recursive:true, force:true});}
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 }
 
 for (const [label, source, count] of [
   ['forbidden package table', "const rejected = ['sails','sails.io.js','skipper','waterline'].includes(leaf);", 0],
   ['actual forbidden package import', "require('sails.io.js');", 1],
-  ['unrelated runtime path', "const rejected = ['sails','sails.config.synthetic','skipper','waterline'].includes(leaf);", 1],
+  [
+    'unrelated runtime path',
+    "const rejected = ['sails','sails.config.synthetic','skipper','waterline'].includes(leaf);",
+    1,
+  ],
 ]) {
   test(`retirement audit distinguishes ${label}`, () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(),'redbox-retirement-graph-audit-'));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-graph-audit-'));
     try {
-      const fixture = path.join(directory,'packages/redbox-core/test/qualification');
-      fs.mkdirSync(fixture,{recursive:true});
-      fs.writeFileSync(path.join(fixture,'installed-dependency-graph.cjs'),source);
-      const result = spawnSync(process.execPath,[auditor,'--tree',directory],{encoding:'utf8'});
+      const fixture = path.join(directory, 'packages/redbox-core/test/qualification');
+      fs.mkdirSync(fixture, { recursive: true });
+      fs.writeFileSync(path.join(fixture, 'installed-dependency-graph.cjs'), source);
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
       const audit = JSON.parse(result.stdout);
-      assert.equal(audit.executableViolations,count,result.stdout+result.stderr);
-      assert.equal(result.status,count?1:0);
-    } finally {fs.rmSync(directory,{recursive:true,force:true});}
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 }
 
 for (const [label, source, count] of [
-  ['known finite conversion', "const names = {'sails.services.planattachmentservice.preserveIds':'wsu.plan.preserveIds'};", 0],
-  ['wrong target for a known conversion', "const names = {'sails.services.planattachmentservice.preserveIds':'wsu.unknown'};", 1],
+  [
+    'known finite conversion',
+    "const names = {'sails.services.planattachmentservice.preserveIds':'wsu.plan.preserveIds'};",
+    0,
+  ],
+  [
+    'wrong target for a known conversion',
+    "const names = {'sails.services.planattachmentservice.preserveIds':'wsu.unknown'};",
+    1,
+  ],
   ['evaluated conversion string', "resolve('sails.services.planattachmentservice.preserveIds');", 1],
   ['unknown conversion', "const names = {'sails.services.unknown.run':'wsu.unknown'};", 1],
   ['live access', 'sails.services.planattachmentservice.preserveIds();', 1],
 ]) {
   test(`retirement audit checks WSU ${label}`, () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(),'redbox-retirement-wsu-audit-'));
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-wsu-audit-'));
     try {
-      const fixture = path.join(directory,'node_modules/redbox-hook-wsu/dist');
-      fs.mkdirSync(fixture,{recursive:true});
-      fs.writeFileSync(path.join(directory,'node_modules/redbox-hook-wsu/package.json'),JSON.stringify({name:'redbox-hook-wsu'}));
-      fs.writeFileSync(path.join(fixture,'migration-data.js'),source);
-      const result = spawnSync(process.execPath,[auditor,'--tree',directory],{encoding:'utf8'});
+      const fixture = path.join(directory, 'node_modules/redbox-hook-wsu/dist');
+      fs.mkdirSync(fixture, { recursive: true });
+      fs.writeFileSync(
+        path.join(directory, 'node_modules/redbox-hook-wsu/package.json'),
+        JSON.stringify({ name: 'redbox-hook-wsu' })
+      );
+      fs.writeFileSync(path.join(fixture, 'migration-data.js'), source);
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
       const audit = JSON.parse(result.stdout);
-      assert.equal(audit.executableViolations,count,result.stdout+result.stderr);
-      assert.equal(result.status,count?1:0);
-    } finally {fs.rmSync(directory,{recursive:true,force:true});}
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 }
 
 for (const [label, source, count] of [
-  ['offline manifest rejection', "if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata');", 0],
+  [
+    'offline manifest rejection',
+    "if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata');",
+    0,
+  ],
   ['loading the legacy manifest value', 'load(pkg.sails);', 1],
-  ['live runtime access beside the rejection check', "if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata'); sails.lift();", 1],
+  [
+    'live runtime access beside the rejection check',
+    "if (pkg.sails != null) findings.push('sails: remove legacy hook discovery metadata'); sails.lift();",
+    1,
+  ],
 ]) {
   test(`retirement audit checks CLI ${label}`, () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-cli-audit-'));
     try {
       const fixture = path.join(directory, 'packages/redbox-dev-tools/src');
-      fs.mkdirSync(fixture, {recursive:true});
-      fs.writeFileSync(path.join(fixture,'cli.ts'),source);
-      const result = spawnSync(process.execPath,[auditor,'--tree',directory],{encoding:'utf8'});
+      fs.mkdirSync(fixture, { recursive: true });
+      fs.writeFileSync(path.join(fixture, 'cli.ts'), source);
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
       const audit = JSON.parse(result.stdout);
-      assert.equal(audit.executableViolations,count,result.stdout+result.stderr);
-      assert.equal(result.status,count?1:0);
-    } finally {fs.rmSync(directory,{recursive:true,force:true});}
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 }
 
@@ -194,7 +225,9 @@ for (const [label, suffix, count] of [
       const audit = JSON.parse(result.stdout);
       assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
       assert.equal(result.status, count ? 1 : 0);
-    } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 }
 for (const [label, filename, source, count] of [
@@ -212,7 +245,9 @@ for (const [label, filename, source, count] of [
       const audit = JSON.parse(result.stdout);
       assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
       assert.equal(result.status, count ? 1 : 0);
-    } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 }
 
@@ -231,6 +266,56 @@ for (const [label, source, count] of [
       const audit = JSON.parse(result.stdout);
       assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
       assert.equal(result.status, count ? 1 : 0);
-    } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}
+
+for (const [label, source, count] of [
+  ['aliased require', "const legacy = require('sails'); legacy.lift();", 1],
+  ['default import alias', "import framework from 'sails'; framework.lift();", 1],
+  ['namespace import alias', "import * as framework from 'sails';", 1],
+  ['dynamic import', "const framework = await import('sails');", 1],
+  ['import equals alias', "import framework = require('sails');", 1],
+  ['package subpath', "const framework = require('sails/lib/app');", 1],
+  ['re-export', "export { lift as start } from 'sails';", 1],
+  ['retired persistence package', "const legacy = require('waterline');", 1],
+  ['historical neutral package', "const common = require('@researchdatabox/sails-ng-common');", 0],
+  ['inert package name', "const framework = 'sails';", 0],
+]) {
+  test(`retirement audit checks ${label} by module specifier`, () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-import-'));
+    try {
+      fs.writeFileSync(path.join(directory, 'fixture.ts'), source);
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
+      const audit = JSON.parse(result.stdout);
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}
+
+for (const [name, redbox, count] of [
+  ['@institution/customization', { extension: '.' }, 1],
+  ['@other/vendor-library', undefined, 0],
+  ['redbox-hook-institution', undefined, 1],
+]) {
+  test(`retirement audit detects installed extension source in ${name}`, () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-retirement-scoped-'));
+    try {
+      const extension = path.join(directory, 'node_modules', name);
+      fs.mkdirSync(path.join(extension, 'dist'), { recursive: true });
+      fs.writeFileSync(path.join(extension, 'package.json'), JSON.stringify({ name, version: '1.0.0', redbox }));
+      fs.writeFileSync(path.join(extension, 'dist/index.js'), "const legacy = require('sails'); legacy.lift();");
+      const result = spawnSync(process.execPath, [auditor, '--tree', directory], { encoding: 'utf8' });
+      const audit = JSON.parse(result.stdout);
+      assert.equal(audit.executableViolations, count, result.stdout + result.stderr);
+      assert.equal(result.status, count ? 1 : 0);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 }
