@@ -6,8 +6,7 @@ import sinon from 'sinon';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { createPortalApplication } from '../../src/application/portal/application';
 import * as maintenance from '../../src/persistence/maintenance';
-import * as persistence from '../../src/persistence/runtime';
-import * as cache from '../../src/persistence/cache/runtime';
+import * as identity from '../../src/persistence/identity/runtime';
 import type { IdentityPersistenceInput } from '../../src/persistence/identity/runtime';
 
 describe('production pending record access binding', () => {
@@ -30,21 +29,22 @@ describe('production pending record access binding', () => {
       `
       );
       sinon.stub(maintenance, 'prepareSelectedPersistenceIndexes').resolves({ ready: true } as any);
-      sinon.stub(cache, 'initializeCachePersistence').resolves();
-      for (const name of [
-        'initializeMigrationPersistence',
-        'initializeReferencePersistence',
-        'initializeConfigurationPersistence',
-        'initializeProgressPersistence',
-        'initializeHarvestPersistence',
-        'initializeSiemPersistence',
-        'initializeFigsharePersistence',
+      for (const group of [
+        'cache',
+        'migration',
+        'reference',
+        'configuration',
+        'progress',
+        'harvest',
+        'siem',
+        'figshare',
       ]) {
-        sinon.stub(persistence as any, name).resolves();
+        const module = require(`../../src/persistence/${group}/runtime`);
+        sinon.stub(module, `initialize${group[0].toUpperCase() + group.slice(1)}Persistence`).resolves();
       }
       const boundary = new Error('identity binding observed');
       let binding: IdentityPersistenceInput | undefined;
-      sinon.stub(persistence, 'initializeIdentityPersistence').callsFake(async (_owner, input) => {
+      sinon.stub(identity, 'initializeIdentityPersistence').callsFake(async (_owner, input) => {
         binding = input;
         throw boundary;
       });
