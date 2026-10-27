@@ -180,7 +180,6 @@ export async function readFixture(options: { records?: boolean } = {}) {
       const reader = new RecordAuditReader({
         storage,
         log: nothingLogger,
-        createAudit: entry => storage.createRecordAudit!(entry as never),
         resolveUser: username => f.identities.one('user', { username }),
       });
       const integrations = new Integrations.IntegrationAuditService({
