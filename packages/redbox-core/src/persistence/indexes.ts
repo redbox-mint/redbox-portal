@@ -1,3 +1,4 @@
+import type { CollationOptions } from 'mongodb';
 import type { JsonValue, LogicalDatastore } from './types';
 import { mongoDatabase, prismaDatabase, persistenceOperation } from './runtime';
 import { PersistenceError } from './errors';
@@ -11,9 +12,10 @@ export interface PersistenceIndex {
   keys: Readonly<Record<string, 1 | -1>>;
   unique?: boolean;
   sparse?: boolean;
+  hidden?: boolean;
   partialFilter?: { [key: string]: JsonValue };
   expireAfterSeconds?: number;
-  collation?: { locale: string; strength?: number };
+  collation?: CollationOptions;
 }
 export interface PersistenceIndexInspection {
   datastore: LogicalDatastore;
@@ -77,6 +79,7 @@ export function inspectPersistenceIndex(
       ordered(index.key) === ordered(descriptor.keys) &&
       Boolean(index.unique) === Boolean(descriptor.unique) &&
       Boolean(index.sparse) === Boolean(descriptor.sparse) &&
+      Boolean(index.hidden) === Boolean(descriptor.hidden) &&
       ordered(canonicalPredicates(index.partialFilterExpression)) ===
         ordered(canonicalPredicates(descriptor.partialFilter)) &&
       index.expireAfterSeconds === descriptor.expireAfterSeconds &&
@@ -84,14 +87,20 @@ export function inspectPersistenceIndex(
         (descriptor.collation?.locale ?? 'simple') &&
       (descriptor.collation?.locale === undefined ||
         descriptor.collation.locale === 'simple' ||
-        ((index.collation?.strength ?? 3) === (descriptor.collation.strength ?? 3) &&
-          !index.collation?.caseLevel &&
-          !index.collation?.numericOrdering &&
-          !index.collation?.normalization &&
-          !index.collation?.backwards &&
-          (index.collation?.caseFirst ?? 'off') === 'off' &&
-          (index.collation?.alternate ?? 'non-ignorable') === 'non-ignorable' &&
-          (index.collation?.maxVariable ?? 'punct') === 'punct'));
+        Object.entries({
+          strength: 3,
+          caseLevel: false,
+          numericOrdering: false,
+          normalization: false,
+          backwards: false,
+          caseFirst: 'off',
+          alternate: 'non-ignorable',
+          maxVariable: 'punct',
+        }).every(
+          ([option, defaultValue]) =>
+            (index.collation?.[option] ?? defaultValue) ===
+            (Reflect.get(descriptor.collation ?? {}, option) ?? defaultValue)
+        ));
     const status: PersistenceIndexInspection['index'] = relevant.some(index => !compatible(index))
       ? 'conflicting'
       : relevant.some(compatible)
@@ -170,11 +179,16 @@ export async function ensurePersistenceIndex(
           name: descriptor.name,
           ...(descriptor.unique !== undefined ? { unique: descriptor.unique } : {}),
           ...(descriptor.sparse !== undefined ? { sparse: descriptor.sparse } : {}),
+          ...(descriptor.hidden !== undefined ? { hidden: descriptor.hidden } : {}),
           ...(descriptor.partialFilter !== undefined ? { partialFilterExpression: descriptor.partialFilter } : {}),
           ...(descriptor.expireAfterSeconds !== undefined ? { expireAfterSeconds: descriptor.expireAfterSeconds } : {}),
           collation: descriptor.collation ?? { locale: 'simple' },
         };
-        {
+        // Prisma RC19's CreateIndexCommand drops hidden. Keep this native DDL
+        // escape scoped to explicit maintenance, on the same owned connection.
+        if (descriptor.hidden !== undefined) {
+          await db.collection(descriptor.collection).createIndex(descriptor.keys, options);
+        } else {
           const {
             MongoControlAdapterImpl,
           }: typeof import('@prisma/orm-mongo/adapter/control') = require('@prisma/orm-mongo/adapter/control');
