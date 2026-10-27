@@ -73,6 +73,42 @@ export const auth: any = {
     expect(indexContent).not.to.contain('ControllerExports');
   });
 
+  for (const order of [
+    [false, true],
+    [true, false],
+  ]) {
+    it(`typechecks same-named browser and API controllers (API first: ${order[0]})`, async () => {
+      const paths = pathsModule.resolvePaths({ root: tempRoot });
+      for (const webservice of order) {
+        await new controllerGeneratorModule.ControllerGenerator({
+          name: 'Test',
+          actions: ['index'],
+          root: tempRoot,
+          paths,
+          webservice,
+        }).generate();
+      }
+      const { Project } = require('ts-morph');
+      const project = new Project({ compilerOptions: { noEmit: true, skipLibCheck: true, types: [] } });
+      project.createSourceFile(
+        path.join(tempRoot, 'express.d.ts'),
+        "declare module 'express' { export interface Request {} export interface Response { json(value: unknown): void } }"
+      );
+      project.addSourceFilesAtPaths(path.join(coreTypesRoot, 'src/controllers/**/*.ts'));
+      const index = project.getSourceFileOrThrow(path.join(coreTypesRoot, 'src/controllers/index.ts'));
+      project.createSourceFile(
+        path.join(coreTypesRoot, 'src/consumer.ts'),
+        `
+        import { Test, WebserviceTestController } from './controllers';
+        export const browser = new Test();
+        export const api = new WebserviceTestController.Test();
+      `
+      );
+      expect(project.getPreEmitDiagnostics().map((d: any) => d.getMessageText())).to.deep.equal([]);
+      expect(index.getExportDeclarations()).to.have.length(2);
+    });
+  }
+
   it('should update routes and auth', async () => {
     const paths = pathsModule.resolvePaths({ root: tempRoot });
     const generator = new controllerGeneratorModule.ControllerGenerator({
@@ -234,7 +270,7 @@ export const auth: any = {
     expect(fs.existsSync(controllerPath)).to.be.true;
 
     const indexContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'), 'utf-8');
-    expect(indexContent).to.contain("export * from './webservice/TestController'");
+    expect(indexContent).to.contain("export * as WebserviceTestController from './webservice/TestController'");
     expect(indexContent).to.contain('TestController');
     expect(indexContent).not.to.contain('getOrCreate');
 
