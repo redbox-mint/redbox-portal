@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable, from, firstValueFrom
+  Observable, defer, from, firstValueFrom
 } from 'rxjs';
 import { Services as services } from '../CoreService';
 // removed deprecated rxjs/add/operator imports; use firstValueFrom instead
@@ -53,6 +53,7 @@ export namespace Services {
       'sendMessage',
       'buildFromTemplate',
       'buildFromTemplateAsync',
+      'validateExposedConfig',
       'sendTemplate',
       'sendRecordNotification',
       'evaluateProperties',
@@ -62,6 +63,112 @@ export namespace Services {
     // Keep the three-argument async hook seam intact. Hooks (including SCU) pass
     // the response object to super after adding display values to data.
     private renderContexts = new WeakMap<Record<string, unknown>, EmailRenderContext>();
+
+    // Preserve trusted brand display context during address/string rendering,
+    // without reading tenant identifiers from caller-controlled display fields.
+    private renderDataContexts = new WeakMap<Record<string, unknown>, EmailRenderContext>();
+    private missingExposedPaths = new Set<string>();
+
+    /**
+     * Validate emailnotification.settings.exposedConfigPaths eagerly (called at
+     * bootstrap), so a bad allowlist fails startup instead of every send.
+     */
+    public validateExposedConfig(): void {
+      this.createRenderData({});
+    }
+
+    /** Construct reserved display values; never merge caller data into these objects. */
+    private createRenderData(data: Record<string, unknown>, context = this.renderDataContexts.get(data) ?? {}): Record<string, unknown> {
+      // Minimal hook/test apps may lift without email settings; use the default allowlist.
+      const configuredPaths = sails.config.emailnotification?.settings?.exposedConfigPaths;
+      const paths = configuredPaths === undefined ? ['appUrl'] : configuredPaths;
+      const unsafeSegment = (segment: string) => ['__proto__', 'constructor', 'prototype'].includes(segment);
+      if (!Array.isArray(paths)) {
+        throw new Error('emailnotification.settings.exposedConfigPaths must be an array of dotted paths.');
+      }
+      paths.forEach((path: unknown, index: number) => {
+        if (typeof path !== 'string' ||
+          path.split('.').some(segment => !segment.trim() || segment !== segment.trim() || unsafeSegment(segment))) {
+          throw new Error(`emailnotification.settings.exposedConfigPaths entry ${index} (${JSON.stringify(path)}) ` +
+            'must be a non-empty dotted path without prototype segments.');
+        }
+      });
+
+      // Only plain, acyclic data may cross this boundary. Do not retain functions,
+      // accessors, class instances or references to any live configuration object.
+      const clone = (value: unknown, ancestors = new Set<object>()): unknown => {
+        if (value === null || ['string', 'number', 'boolean', 'undefined'].includes(typeof value)) return value;
+        if ((!Array.isArray(value) && !_.isPlainObject(value)) || ancestors.has(value as object)) {
+          throw new Error('Email exposed config values must be plain, acyclic data.');
+        }
+        const nextAncestors = new Set(ancestors).add(value as object);
+        const copy: Record<string, unknown> | unknown[] = Array.isArray(value) ? new Array(value.length) : {};
+        for (const key of Object.keys(value as object)) {
+          const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
+          if (unsafeSegment(key) || !Object.hasOwn(descriptor, 'value')) {
+            throw new Error('Email exposed config values must not contain prototype keys or accessors.');
+          }
+          Object.defineProperty(copy, key, {
+            value: clone(descriptor.value, nextAncestors), enumerable: true, writable: true, configurable: true,
+          });
+        }
+        return copy;
+      };
+
+      const appUrl = typeof sails.config.appUrl === 'string' ? sails.config.appUrl : '';
+      const sailsConfig: Record<string, unknown> = { appUrl };
+      for (const path of paths) {
+        // appUrl is always present as a string, even on installations without a configured URL.
+        if (path === 'appUrl') continue;
+        try {
+          const segments = path.split('.');
+          let value: unknown = sails.config;
+          for (const segment of segments) {
+            const descriptor = value != null ? Object.getOwnPropertyDescriptor(value, segment) : undefined;
+            if (descriptor && !Object.hasOwn(descriptor, 'value')) {
+              throw new Error('Email exposed config paths must not reference accessors.');
+            }
+            value = descriptor?.value;
+          }
+          if (value === undefined) {
+            if (!this.missingExposedPaths.has(path)) {
+              this.missingExposedPaths.add(path);
+              sails.log.warn(`Email exposed config path '${path}' does not exist; omitting it from sailsConfig.`);
+            }
+            continue;
+          }
+          let target = sailsConfig;
+          for (const segment of segments.slice(0, -1)) {
+            if (!Object.hasOwn(target, segment)) target[segment] = {};
+            if (!_.isPlainObject(target[segment]) && !Array.isArray(target[segment])) {
+              throw new Error('Conflicting email exposed config paths.');
+            }
+            target = target[segment] as Record<string, unknown>;
+          }
+          target[segments[segments.length - 1]] = clone(value);
+        } catch (error) {
+          throw new Error(`emailnotification.settings.exposedConfigPaths entry '${path}': ${(error as Error).message}`, { cause: error });
+        }
+      }
+
+      const brand = context.brandId !== undefined && typeof BrandingService !== 'undefined'
+        ? BrandingService.getBrandById?.(context.brandId) : undefined;
+      const brandName = typeof brand?.name === 'string' ? brand.name : '';
+      const portalName = typeof sails.config.auth?.defaultPortal === 'string' ? sails.config.auth.defaultPortal : '';
+      const rootContext = sails.config.http?.rootContext;
+      // Same shape as BrandingService.getFullPath: appUrl[/rootContext]/brand/portal.
+      const brandPath = [typeof rootContext === 'string' ? rootContext.replace(/^\/+|\/+$/g, '') : '', brandName, portalName]
+        .filter(Boolean).join('/');
+      const portal = {
+        appUrl,
+        brandName,
+        brandUrl: appUrl && brandName && portalName ? `${appUrl.replace(/\/+$/, '')}/${brandPath}` : '',
+        portalName,
+      };
+      const prepared = { ...data, sailsConfig, portal };
+      this.renderDataContexts.set(prepared, { ...context });
+      return prepared;
+    }
 
     private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
 
@@ -201,6 +308,7 @@ export namespace Services {
     public async buildFromTemplateAsync(templateName: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
         const context = this.renderContexts.get(res);
+        data = this.createRenderData(data, context);
         const template = context?.brandId !== undefined
           ? await EmailTemplateService.resolve(templateName, context.brandId)
           : readEmailTemplateDefault(templateName);
@@ -245,11 +353,15 @@ export namespace Services {
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
     public buildFromTemplate(template: string, data: Record<string, unknown> = {}, context?: EmailRenderContext): Observable<Record<string, unknown>> {
-      const response: Record<string, unknown> = {};
-      // Legacy two-argument callers get body-only rendering (defaults only), as
-      // before; supplying a context opts into coherent subject/body/format output.
-      if (context !== undefined) this.renderContexts.set(response, { ...context });
-      return from(this.buildFromTemplateAsync(template, data, response));
+      // Deferred so render-data errors surface through the Observable, not
+      // synchronously. Each subscription renders into its own response object.
+      return defer(() => {
+        const response: Record<string, unknown> = {};
+        // Legacy two-argument callers get body-only rendering (defaults only), as
+        // before; supplying a context opts into coherent subject/body/format output.
+        if (context !== undefined) this.renderContexts.set(response, { ...context });
+        return this.buildFromTemplateAsync(template, this.createRenderData(data, context), response);
+      });
     }
 
     /**
@@ -281,7 +393,7 @@ export namespace Services {
     public runTemplate(template: string, variables: Record<string, unknown>) {
       if (template && template.indexOf('{{') !== -1) {
         const compiled = handlebarsCompile(template, { strict: true })
-        return compiled(variables);
+        return compiled(this.createRenderData(variables));
       }
       return template;
     }
@@ -463,8 +575,7 @@ export namespace Services {
         }
       }, config) as Record<string, Record<string, unknown>>;
 
-      // Add the sails config to the template data.
-      templateData['sailsConfig'] = sails.config;
+      templateData = this.createRenderData(templateData, context);
 
       // Get the template name first, so it is available for the other properties.
       let templateName = null;
