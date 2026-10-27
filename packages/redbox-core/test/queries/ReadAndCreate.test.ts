@@ -32,6 +32,21 @@ describe('query reads and creation ownership', () => {
     assert.equal(storage.getRecordAudit.callCount, 1);
   });
 
+  it('applies the fallback form to a copy of frozen deployment configuration', async () => {
+    const config = Object.freeze({ form: '' });
+    const createDefinition = sinon.stub().callsFake(async value => value);
+    const service = new Workflows.WorkflowSteps({
+      config: { appmode: {}, workflow: { dataset: { draft: { config, starting: true } } } },
+      references: { workflows: { listAll: sinon.stub().resolves([]), createDefinition } },
+      log: createSinonStubLogger(sinon),
+      initialiseDashboardSettings: sinon.stub().resolves(),
+    } as any);
+    const result = await service.bootstrap([{ id: 'type', name: 'dataset' }]);
+    assert.equal(createDefinition.firstCall.args[0].config.form, 'generated-view-only');
+    assert.equal((result[0] as any).config.form, 'generated-view-only');
+    assert.equal(config.form, '');
+    assert.notEqual(createDefinition.firstCall.args[0].config, config);
+  });
   for (const kind of ['report', 'workflow', 'workspace']) {
     for (const fails of [false, true]) {
       it(`shares one ${kind} creation ${fails ? 'failure' : 'result'} across subscriptions`, async () => {
