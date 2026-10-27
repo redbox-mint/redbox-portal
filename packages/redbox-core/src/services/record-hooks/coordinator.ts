@@ -98,6 +98,24 @@ function parseHookDefinition(
   }
   validateActionExecutionPolicy(hook.execution);
   resolveHook(hook, mode, phase);
+  // Validate explicit nested declarations before invoking any parent operation
+  // (notably sending email or enqueueing a trigger).
+  for (const key of ['hooks', 'onNotifySuccess'] as const) {
+    const nested = hook.options?.[key];
+    if (nested === undefined) continue;
+    if (!Array.isArray(nested)) invalidConfiguration(mode, phase);
+    const nestedIds = new Set<string>();
+    nested.forEach((child, childIndex) => parseHookDefinition(child, mode, phase, childIndex, nestedIds, resolveHook));
+  }
+  if (hook.options?.triggerConfiguration !== undefined)
+    parseHookDefinition(
+      hook.options.triggerConfiguration as RecordHookDefinition,
+      mode,
+      phase,
+      0,
+      new Set(),
+      resolveHook
+    );
   seenIds.add(actionId);
   return { hook, actionId, index };
 }

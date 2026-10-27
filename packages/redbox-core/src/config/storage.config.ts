@@ -1,6 +1,6 @@
 /**
  * Storage Config Interface
- * (sails.config.storage)
+ * (configuration.storage)
  *
  * Storage service configuration with Flydrive v2 disk support.
  */
@@ -13,10 +13,12 @@ export interface FSDriverOptions {
 }
 
 export interface S3DriverOptions {
-  key: string;
-  secret: string;
+  /** Omit explicit credentials to use the AWS default credential provider chain. */
+  key?: string;
+  secret?: string;
   bucket: string;
-  region: string;
+  /** Omit to use the AWS region provider chain. */
+  region?: string;
   endpoint?: string;
   forcePathStyle?: boolean;
   bucketEndpoint?: boolean;
@@ -41,6 +43,12 @@ export type DiskConfig =
   | { driver: 'gridfs'; config: GridFSDriverOptions };
 
 export interface StorageConfig {
+  /** Additional/overridden storage indexes inspected by explicit maintenance. */
+  mongodb?: {
+    indices?: import('mongodb').IndexDescription[];
+    deletedRecordIndices?: import('mongodb').IndexDescription[];
+    recordIdentityIndices?: import('mongodb').IndexDescription[];
+  };
   /** Name of the storage service to use */
   serviceName: string;
   /** Default disk name (used when no specific disk is requested) */

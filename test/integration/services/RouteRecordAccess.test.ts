@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureCreate, fixtureRemove, fixtureRow } from '../../helpers/persistenceFixtures';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -21,24 +22,24 @@ describe('Route and record access checks', function () {
   };
 
   async function csrf(agent: supertest.Agent): Promise<string> {
-    if (!sails.config.security.csrf) return '';
+    if (!fixture.config.security.csrf) return '';
     const response = await agent.get('/csrfToken').expect(200);
     return response.body._csrf;
   }
 
   before(async () => {
-    const app = (sails.hooks.http as { app: Parameters<typeof supertest.agent>[0] }).app;
+    const app = fixture.server;
     anonymous = supertest.agent(app);
     researcher = supertest.agent(app);
     admin = supertest.agent(app);
-    const brand = BrandingService.getDefault();
+    const brand = fixture.services.BrandingService.getDefault();
     const user = await firstValueFrom(
-      UsersService.addLocalUser(username, 'Access test researcher', `${username}@example.edu.au`, 'RBTest123!')
+      fixture.services.UsersService.addLocalUser(username, 'Access test researcher', `${username}@example.edu.au`, 'RBTest123!')
     );
     userId = String(user.id);
-    await firstValueFrom(UsersService.updateUserRoles(user.id, RolesService.getRoleIds(brand.roles, ['Researcher'])));
+    await firstValueFrom(fixture.services.UsersService.updateUserRoles(user.id, fixture.services.RolesService.getRoleIds(brand.roles, ['Researcher'])));
     const target = await firstValueFrom(
-      UsersService.addLocalUser(
+      fixture.services.UsersService.addLocalUser(
         `access-target-${suffix}`,
         'Access test target',
         'target@example.edu.au',
@@ -46,12 +47,14 @@ describe('Route and record access checks', function () {
       )
     );
     targetId = String(target.id);
-    await firstValueFrom(UsersService.setUserKey(targetId, 'initial-regression-token'));
+    await firstValueFrom(fixture.services.UsersService.updateUserRoles(target.id, fixture.services.RolesService.getRoleIds(brand.roles, ['Researcher'])));
+    await firstValueFrom(fixture.services.UsersService.setUserKey(targetId, 'initial-regression-token'));
 
     for (const [agent, loginUsername, password] of [
       [researcher, username, 'RBTest123!'],
       [admin, 'admin', 'rbadmin'],
     ] as const) {
+      const token = await csrf(agent);
       await agent
         .post('/user/login_local')
         .set('X-Source', 'jsclient')
@@ -60,7 +63,7 @@ describe('Route and record access checks', function () {
           password,
           branding: 'default',
           portal: 'rdmp',
-          _csrf: await csrf(agent),
+          _csrf: token,
         })
         .expect(200);
     }
@@ -89,7 +92,7 @@ describe('Route and record access checks', function () {
   for (const actor of ['anonymous', 'researcher'] as const) {
     it(`blocks ${actor} access to mixed-case administrative user lists`, async () => {
       const agent = actor === 'anonymous' ? anonymous : researcher;
-      await agent.get('/default/rdmp/AdMiN/users/get').set('Content-Type', 'application/json').expect(403);
+      await agent.get('/default/rdmp/AdMiN/users/get').set('Content-Type', 'application/json').expect(actor === 'anonymous' ? 401 : 403);
     });
 
     for (const path of [
@@ -107,7 +110,7 @@ describe('Route and record access checks', function () {
             userid: targetId,
             _csrf: await csrf(agent),
           })
-          .expect(403);
+          .expect(actor === 'anonymous' ? 401 : 403);
         const after = await fixtureRow("User", { id: targetId });
         assert.equal(after.token, before.token);
       });

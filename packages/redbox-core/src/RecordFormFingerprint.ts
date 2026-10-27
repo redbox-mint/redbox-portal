@@ -96,3 +96,68 @@ export function formatRecordFormFingerprint(value: unknown): RecordFormFingerpri
   const fingerprint = `sha256:${hash.digest('hex')}`;
   return isRecordFormFingerprint(fingerprint) ? fingerprint : undefined;
 }
+
+interface RecordFingerprintWorkflowStep {
+  name?: unknown;
+  starting?: boolean;
+  hidden?: boolean;
+  config?: unknown;
+}
+interface RecordFingerprintInput {
+  loadForm(name: string, brand: string): Promise<import('./persistence/rows').FormAttributes | null>;
+  loadWorkflowSteps(type: Record<string, unknown>): Promise<readonly RecordFingerprintWorkflowStep[]>;
+  readonly reusableFormDefinitions?: unknown;
+  readonly validatorDefinitions?: unknown;
+}
+/** Configuration composition shared by delivery and authoritative save checks. */
+export async function resolveRecordFormFingerprint(
+  input: RecordFingerprintInput,
+  record: Record<string, unknown>,
+  recordType: Record<string, unknown>,
+  sourceForm?: import('./persistence/rows').FormAttributes
+): Promise<string | undefined> {
+  const metaMetadata = (
+    record.metaMetadata && typeof record.metaMetadata === 'object' && !Array.isArray(record.metaMetadata)
+      ? record.metaMetadata
+      : {}
+  ) as Record<string, unknown>;
+  const formName = String(metaMetadata.form ?? '').trim();
+  const brandId = String(metaMetadata.brandId ?? '').trim();
+  if (!formName || !brandId) return undefined;
+  const suppliedFormName = String(sourceForm?.name ?? '').trim();
+  const suppliedBrandId = String(sourceForm?.branding ?? '').trim();
+  if (sourceForm && (suppliedFormName !== formName || (!!suppliedBrandId && suppliedBrandId !== brandId))) {
+    return undefined;
+  }
+  const form = sourceForm ?? (await input.loadForm(formName, brandId));
+  if (!form) return undefined;
+  const workflowSteps = (await input.loadWorkflowSteps(recordType)) ?? [];
+  const workflowFormContract = workflowSteps
+    .map(step => {
+      const workflowStep = step as unknown as RecordFingerprintWorkflowStep;
+      return {
+        name: String(workflowStep.name ?? '').trim(),
+        starting: workflowStep['starting'] === true,
+        hidden: workflowStep['hidden'] === true,
+        config: workflowStep.config ?? {},
+      };
+    })
+    .sort((first, second) => first.name.localeCompare(second.name));
+  return formatRecordFormFingerprint({
+    recordType: String(recordType.name ?? '').trim(),
+    recordValidation: recordType.recordValidation,
+    currentWorkflow: {
+      stage: String((record.workflow as Record<string, unknown> | undefined)?.stage ?? '').trim() || undefined,
+      form: String(metaMetadata.form ?? '').trim(),
+    },
+    workflowFormContract,
+    form: {
+      id: form.id,
+      name: form.name,
+      branding: form.branding,
+      configuration: form.configuration,
+    },
+    reusableFormDefinitions: input.reusableFormDefinitions ?? {},
+    validatorDefinitions: input.validatorDefinitions ?? [],
+  });
+}

@@ -1,16 +1,17 @@
+
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('StorageManagerService', function () {
-  let mockSails: any;
+  let fixture: any;
 
   before(async function () {
     ({ expect } = await import('chai'));
   });
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         storage: {
@@ -31,19 +32,19 @@ describe('StorageManagerService', function () {
         },
       },
     });
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     sinon.restore();
   });
 
   describe('exports', function () {
     it('should export bootstrap, disk, stagingDisk, primaryDisk, isBootstrapped, getMergedStorageConfig, getDiskConfig, and getStagingDiskConfig methods', function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
-      const exported = service.exports();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
+      const exported = service;
 
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('disk');
@@ -58,11 +59,11 @@ describe('StorageManagerService', function () {
 
   describe('bootstrap', function () {
     it('should fall back to default disks when no disks are configured', async function () {
-      mockSails.config.storage.disks = {};
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.disks = {};
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const mockDisk = { exists: sinon.stub(), get: sinon.stub() };
       (service as any)._DiskConstructor = class {
@@ -81,11 +82,11 @@ describe('StorageManagerService', function () {
     });
 
     it('should fall back to default disks when disks is undefined', async function () {
-      mockSails.config.storage.disks = undefined;
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.disks = undefined;
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const mockDisk = { exists: sinon.stub(), get: sinon.stub() };
       (service as any)._DiskConstructor = class {
@@ -104,11 +105,11 @@ describe('StorageManagerService', function () {
     });
 
     it('should throw if stagingDisk references a non-existent disk', async function () {
-      mockSails.config.storage.stagingDisk = 'nonexistent';
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.stagingDisk = 'nonexistent';
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       try {
         await service.bootstrap();
@@ -119,11 +120,11 @@ describe('StorageManagerService', function () {
     });
 
     it('should throw if primaryDisk references a non-existent disk', async function () {
-      mockSails.config.storage.primaryDisk = 'nonexistent';
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.primaryDisk = 'nonexistent';
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       try {
         await service.bootstrap();
@@ -135,7 +136,7 @@ describe('StorageManagerService', function () {
 
     it('should not re-bootstrap if already bootstrapped', async function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       // Manually inject a mock Disk constructor to simulate processDynamicImports having run
       const mockDiskInstance = { exists: sinon.stub(), get: sinon.stub() };
@@ -158,7 +159,7 @@ describe('StorageManagerService', function () {
 
     it('should create disks when Disk constructor is available', async function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const createdDisks: unknown[] = [];
       (service as any)._DiskConstructor = class {
@@ -184,7 +185,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should register mixed filesystem staging and S3 primary disks', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         staging: {
           driver: 'fs',
           config: { root: '/tmp/test-staging' },
@@ -201,10 +202,10 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      setupServiceTestGlobals(mockSails);
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const mockStagingDisk = { exists: sinon.stub(), name: 'staging-disk' };
       const mockPrimaryDisk = { exists: sinon.stub(), name: 'primary-disk' };
@@ -243,7 +244,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should omit explicit S3 credentials when key and secret are empty so instance roles can be used', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         staging: {
           driver: 'fs',
           config: { root: '/tmp/test-staging' },
@@ -258,10 +259,10 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      setupServiceTestGlobals(mockSails);
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const mockStagingDisk = { exists: sinon.stub(), name: 'staging-disk' };
       const mockPrimaryDisk = { exists: sinon.stub(), name: 'primary-disk' };
@@ -291,7 +292,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should register a GridFS primary disk', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         staging: {
           driver: 'fs',
           config: { root: '/tmp/test-staging' },
@@ -301,10 +302,10 @@ describe('StorageManagerService', function () {
           config: { datastore: 'mongodb', bucketName: 'attachments' },
         },
       };
-      setupServiceTestGlobals(mockSails);
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const createdDrivers: unknown[] = [];
       const mockStagingDisk = { exists: sinon.stub(), name: 'staging-disk' };
@@ -330,7 +331,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should not leave partially registered disks when S3 bootstrap fails', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         staging: {
           driver: 'fs',
           config: { root: '/tmp/test-staging' },
@@ -345,10 +346,10 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      setupServiceTestGlobals(mockSails);
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       (service as any)._DiskConstructor = class {
         constructor(_driver: unknown) {
@@ -384,7 +385,7 @@ describe('StorageManagerService', function () {
 
     it('should share concurrent bootstrap calls without duplicating disk registration', async function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const createdDisks: unknown[] = [];
       (service as any)._DiskConstructor = class {
@@ -407,7 +408,7 @@ describe('StorageManagerService', function () {
   describe('disk', function () {
     it('should throw when requesting an unregistered disk', function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       try {
         service.disk('nonexistent');
@@ -419,7 +420,7 @@ describe('StorageManagerService', function () {
 
     it('should return a registered disk by name', async function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const mockDisk = { exists: sinon.stub(), get: sinon.stub() };
       (service as any)._DiskConstructor = class {
@@ -439,7 +440,7 @@ describe('StorageManagerService', function () {
 
     it('should include available disks when a registered manager is asked for a missing disk', async function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       (service as any)._DiskConstructor = class {
         constructor(_driver: unknown) {
@@ -465,7 +466,7 @@ describe('StorageManagerService', function () {
   describe('stagingDisk', function () {
     it('should return the disk configured as stagingDisk', async function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const diskMap = new Map<string, unknown>();
       const mockStagingDisk = { exists: sinon.stub(), name: 'staging-disk' };
@@ -497,7 +498,7 @@ describe('StorageManagerService', function () {
   describe('getDiskConfig', function () {
     it('should return the merged config for a named disk', function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       expect(service.getDiskConfig('staging')).to.deep.equal({
         driver: 'fs',
@@ -507,7 +508,7 @@ describe('StorageManagerService', function () {
 
     it('should throw when a disk config is requested for a missing disk', function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       expect(() => service.getDiskConfig('missing')).to.throw("StorageManagerService: disk 'missing' is not registered");
     });
@@ -516,7 +517,7 @@ describe('StorageManagerService', function () {
   describe('getStagingDiskConfig', function () {
     it('should return the merged config for the staging disk', function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       expect(service.getStagingDiskConfig()).to.deep.equal({
         driver: 'fs',
@@ -528,7 +529,7 @@ describe('StorageManagerService', function () {
   describe('primaryDisk', function () {
     it('should return the disk configured as primaryDisk', async function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       const mockStagingDisk = { exists: sinon.stub(), name: 'staging-disk' };
       const mockPrimaryDisk = { exists: sinon.stub(), name: 'primary-disk' };
@@ -555,7 +556,7 @@ describe('StorageManagerService', function () {
   describe('createDriver', function () {
     it('should throw if FSDriver is not available but disk requires it', async function () {
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       // _FSDriver is null by default (no dynamic import ran)
       (service as any)._DiskConstructor = class {
@@ -572,18 +573,18 @@ describe('StorageManagerService', function () {
     });
 
     it('should throw for an unknown driver type', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         custom: {
           driver: 'gcs',
           config: { bucket: 'test' },
         },
       };
-      mockSails.config.storage.stagingDisk = undefined;
-      mockSails.config.storage.primaryDisk = undefined;
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.stagingDisk = undefined;
+      fixture.config.storage.primaryDisk = undefined;
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       (service as any)._DiskConstructor = class {
         constructor(_driver: unknown) { }
@@ -598,7 +599,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should throw if S3Driver is not available but disk requires it', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         s3disk: {
           driver: 's3',
           config: {
@@ -609,12 +610,12 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      mockSails.config.storage.stagingDisk = undefined;
-      mockSails.config.storage.primaryDisk = undefined;
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.stagingDisk = undefined;
+      fixture.config.storage.primaryDisk = undefined;
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       (service as any)._DiskConstructor = class {
         constructor(_driver: unknown) { }
@@ -630,7 +631,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should create an S3 driver when S3Driver is available', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         s3disk: {
           driver: 's3',
           config: {
@@ -642,12 +643,12 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      mockSails.config.storage.stagingDisk = undefined;
-      mockSails.config.storage.primaryDisk = undefined;
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.stagingDisk = undefined;
+      fixture.config.storage.primaryDisk = undefined;
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       let capturedOpts: any = null;
       (service as any)._DiskConstructor = class {
@@ -674,7 +675,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should create a GridFS driver when configured', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         gridfsdisk: {
           driver: 'gridfs',
           config: {
@@ -683,12 +684,12 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      mockSails.config.storage.stagingDisk = undefined;
-      mockSails.config.storage.primaryDisk = undefined;
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.stagingDisk = undefined;
+      fixture.config.storage.primaryDisk = undefined;
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       let capturedDriver: any = null;
       (service as any)._DiskConstructor = class {
@@ -711,7 +712,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should pass through extended S3 driver options when configured', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         s3disk: {
           driver: 's3',
           config: {
@@ -729,12 +730,12 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      mockSails.config.storage.stagingDisk = undefined;
-      mockSails.config.storage.primaryDisk = undefined;
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.stagingDisk = undefined;
+      fixture.config.storage.primaryDisk = undefined;
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       let capturedOpts: any = null;
       (service as any)._DiskConstructor = class {
@@ -760,7 +761,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should normalize string S3 boolean options from environment config', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         s3disk: {
           driver: 's3',
           config: {
@@ -776,12 +777,12 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      mockSails.config.storage.stagingDisk = undefined;
-      mockSails.config.storage.primaryDisk = undefined;
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.stagingDisk = undefined;
+      fixture.config.storage.primaryDisk = undefined;
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       let capturedOpts: any = null;
       (service as any)._DiskConstructor = class {
@@ -806,7 +807,7 @@ describe('StorageManagerService', function () {
     });
 
     it('should omit extended S3 driver options when they are not configured', async function () {
-      mockSails.config.storage.disks = {
+      fixture.config.storage.disks = {
         s3disk: {
           driver: 's3',
           config: {
@@ -817,12 +818,12 @@ describe('StorageManagerService', function () {
           },
         },
       };
-      mockSails.config.storage.stagingDisk = undefined;
-      mockSails.config.storage.primaryDisk = undefined;
-      setupServiceTestGlobals(mockSails);
+      fixture.config.storage.stagingDisk = undefined;
+      fixture.config.storage.primaryDisk = undefined;
+      installRepositoryFixtures();
 
       const { Services } = require('../../src/services/StorageManagerService');
-      const service = new Services.StorageManager();
+      const service = new Services.StorageManager({ config: fixture.config.storage, log: fixture.log });
 
       let capturedOpts: any = null;
       (service as any)._DiskConstructor = class {
