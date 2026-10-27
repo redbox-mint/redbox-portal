@@ -31,7 +31,7 @@ Read [cache architecture and build guidance](Cache-Persistence.md) before rebuil
 
 ## v6 toolchain and startup
 
-Use Node **26.11.1**, npm **11.20.0** and exact package pins. `npm run compile:all`
+Use Node **26.12.1**, npm **11.20.0** and exact package pins. `npm run compile:all`
 installs/builds all selected packages and browser assets; `npm run dev:run` mounts the compiled tree
 and `npm run dev:run:build` exercises image mode. Export `REDBOX_SESSION_SECRET`
 (at least 32 characters) before either command; the complete sequence is in

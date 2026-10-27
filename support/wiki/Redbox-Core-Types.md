@@ -33,7 +33,7 @@ npm --prefix packages/redbox-core run build
 This cleans emitted output, regenerates Prisma contracts, checks the portal-domain
 schema and compiles TypeScript. Dependents build after core completes. Reusing an
 old `dist` can hide removed code; artifact qualification uses a clean committed
-source and packed installation. Node 26.11.1/npm 11.20.0 are the qualified toolchain.
+source and packed installation. Node 26.12.1/npm 11.20.0 are the qualified toolchain.
 Use exact package pins and retain the lockfile.
 
 Configuration is provided to the selected application; repositories and external

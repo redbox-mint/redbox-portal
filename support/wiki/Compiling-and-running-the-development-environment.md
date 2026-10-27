@@ -1,6 +1,6 @@
 ### Node Version Manager (NVM) Usage ###
 
-Use Node.js `26.11.1` and npm `11.20.0` for this development branch. From the repository root, run `nvm install` followed by `nvm use`, then check `node --version` and `npm --version`. The root and PDF hook `.nvmrc` files select the same runtime. Docker build/runtime stages, CI and test runners use that Node patch too. Released v5 comparison artifacts retain their own supported runtime.
+Use Node.js `26.12.1` and npm `11.20.0` for this development branch. From the repository root, run `nvm install` followed by `nvm use`, then check `node --version` and `npm --version`. The root and PDF hook `.nvmrc` files select the same runtime. Docker build/runtime stages, CI and test runners use that Node patch too. Released v5 comparison artifacts retain their own supported runtime.
 
 ### Backend Compilation:
 1. **Install Packages**: Run `npm ci --ignore-scripts --strict-peer-deps` with the pinned runtime.

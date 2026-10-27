@@ -21,7 +21,7 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 
 ### Prerequisites
 
-- Node.js `26.11.1` and npm `11.20.0` (`nvm install && nvm use` at the repository root)
+- Node.js `26.12.1` and npm `11.20.0` (`nvm install && nvm use` at the repository root)
 - Docker & Docker Compose
 
 ### Development using Docker

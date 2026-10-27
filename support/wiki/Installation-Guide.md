@@ -1,6 +1,6 @@
 # Installation Guide
 
-V6 runs the owned Express 5 host (`app.express.cjs`) with Node 26.11.1 and
+V6 runs the owned Express 5 host (`app.express.cjs`) with Node 26.12.1 and
 MongoDB 8+. Select an immutable, qualified application image and exact converted
 hook artifacts. Internal-default promotion is not production release acceptance;
 see the current [retirement task status](../specs/sails-retirement/tasks.md).

@@ -51,7 +51,7 @@ artifacts. CI/Docker check before building. Build emits offline, compiles, and
 copies both contracts into dist; prepack checks freshness before rebuilding.
 Production needs the generated contracts and `@prisma/orm-mongo`, with no CLI or
 TypeScript schema source. Pins: CLI **8.0.0-rc.24**, Mongo runtime **8.0.0-rc.19**;
-Node **26.11.1**, npm **11.20.0**. See
+Node **26.12.1**, npm **11.20.0**. See
 [phase-1 evidence](../specs/waterline-retirement/evidence/prisma-phase1.md) for
 RC API gaps, exact overrides and ARM64 generation measurements.
 

@@ -1,6 +1,6 @@
 # Internal v6 development workflow
 
-The development Compose services run `app.express.cjs` on Node 26.11.1. Both
+The development Compose services run `app.express.cjs` on Node 26.12.1. Both
 mount and build modes use the `rehearsal` image target: it installs the bundled
 demo and PDF hooks in the production dependency graph. The pristine production
 `runtime` target continues to omit demo hooks.
@@ -10,7 +10,7 @@ Build mode uses `NODE_ENV=production` for that installed graph. Mount mode uses
 compile/install the workspace dependencies before starting it.
 
 ```sh
-# From the repository root, with Node 26.11.1 / npm 11.20.0 selected:
+# From the repository root, with Node 26.12.1 / npm 11.20.0 selected:
 npm run compile:all
 export REDBOX_SESSION_SECRET="$(openssl rand -hex 32)"
 npm run dev:run

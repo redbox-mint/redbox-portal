@@ -5,7 +5,7 @@ same qualified v6 portal checkout. Historical npm packages with the same version
 numbers can still contain the Sails implementation. An unqualified registry
 install does not establish v6 compatibility.
 
-Complete the portal's `npm run compile:all` first, using Node 26.11.1 and npm
+Complete the portal's `npm run compile:all` first, using Node 26.12.1 and npm
 11.20.0. From that built portal checkout, this complete example creates a new
 hook in an empty sibling directory:
 
