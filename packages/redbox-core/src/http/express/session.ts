@@ -4,6 +4,7 @@ import type { PersistenceOwner } from '../../persistence/owner';
 import { initializePersistence, registerPersistenceResource, mongoSessionDatabase } from '../../persistence/runtime';
 import {
   beginHttpRequest,
+  hasActiveHttpRequest,
   failHttpResponse,
   retainHttpResponse,
   trackHttpRequestWork,
@@ -49,7 +50,8 @@ export function composeHttpSession(
   let ready: Promise<unknown> = Promise.resolve();
   sessionConfig = buildRedboxSessionOptions(sessionConfig);
   const configured = sessionConfig.cookie;
-  if (typeof configured === 'function') throw new TypeError('Session cookie must be an object; per-request cookie functions are not supported.');
+  if (typeof configured === 'function')
+    throw new TypeError('Session cookie must be an object; per-request cookie functions are not supported.');
 
   const pending = new Set<Promise<void>>();
   let closing = false;
@@ -137,9 +139,12 @@ export function composeHttpSession(
   }
 
   // configure express-session using the sessionConfig object
-  const middleware = session({ ...sessionConfig, cookie: { ...configured, secure: configured?.secure === true ? true : 'auto' as const } }) as unknown as RequestHandler;
+  const middleware = session({
+    ...sessionConfig,
+    cookie: { ...configured, secure: configured?.secure === true ? true : ('auto' as const) },
+  }) as unknown as RequestHandler;
   const handler: RequestHandler = (req, res, next) => {
-    if (closing) {
+    if (closing && !(app && hasActiveHttpRequest(app))) {
       next(new Error('Session store is draining.'));
       return;
     }
