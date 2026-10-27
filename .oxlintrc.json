@@ -89,14 +89,6 @@
     },
     {
       "files": [
-        "packages/redbox-core/src/waterline-models/*.ts"
-      ],
-      "rules": {
-        "typescript/no-var-requires": "off"
-      }
-    },
-    {
-      "files": [
         "packages/redbox-core/src/sails.ts"
       ],
       "rules": {

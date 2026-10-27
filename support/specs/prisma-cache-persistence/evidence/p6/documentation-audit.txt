@@ -1,0 +1,6 @@
+PASS 48 local links/anchors across 7 cache runbooks/evidence/checklist pages
+PASS root/core dependency pins exact or permitted local paths; no changed package manifests/locks
+PASS canonical checkpoint hashes before7=restored7=upgraded8; after8=restored8
+PASS archived JSON parses
+PASS isolated Compose rendering
+PASS git diff --check

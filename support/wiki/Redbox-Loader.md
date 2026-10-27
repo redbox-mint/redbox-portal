@@ -1,13 +1,13 @@
 # Redbox Loader
 
-The loader exported by `@researchdatabox/redbox-core` generates shim files for models, services, policies, middleware, responses, controllers, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
+The loader exported by `@researchdatabox/redbox-core` generates shim files for services, policies, middleware, responses, controllers, and configuration BEFORE Sails.js lifts. This eliminates race conditions with hook loading order.
 
 ## Overview
 
 When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 1. Scan dependencies for registered hooks
 2. Generate shim files that bridge Sails.js to `@researchdatabox/redbox-core`
-3. Ensure all components are in place before the ORM, services, and policies load
+3. Ensure all components are in place before services and policies load
 
 ## How It Works
 
@@ -17,7 +17,6 @@ When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 ├─────────────────────────────────────────────────────────────┤
 │  1. generateAllShims() from @researchdatabox/redbox-core    │
 │     ├── Scan package.json dependencies for hooks            │
-│     ├── Generate api/models/*.js shims                      │
 │     ├── Generate api/services/*.js shims                    │
 │     ├── Generate api/policies/*.js shims                    │
 │     ├── Generate api/middleware/*.js shims                  │
@@ -29,7 +28,7 @@ When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 ├─────────────────────────────────────────────────────────────┤
 │  2. sails.lift()                                            │
 │     ├── Sails loads generated shim files                    │
-│     ├── ORM initializes with model definitions              │
+│     ├── Prisma repositories initialize on app-owned pools   │
 │     ├── Services become available as global sails services  │
 │     └── Bootstrap executes coreBootstrap()                  │
 └─────────────────────────────────────────────────────────────┘
@@ -44,19 +43,17 @@ Shims are regenerated when (in priority order):
 | `NODE_ENV !== 'production'` | Always regenerate in development |
 | `.regenerate-shims` file exists | Marker file triggers regeneration, then is deleted |
 | `REGENERATE_SHIMS=true` env var | Force regeneration via environment variable |
-| Empty shim directory | If `api/models/`, `api/policies/`, etc. are empty |
+| Empty shim directory | If `api/policies/`, `api/services/`, etc. are empty |
 
 In production mode, shims are cached unless explicitly triggered.
 
 ## What Gets Generated
 
-### Model Shims (`api/models/`)
+### Retired model surfaces
 
-```javascript
-// Example: api/models/User.js
-const { WaterlineModels } = require('@researchdatabox/redbox-core');
-module.exports = { ...WaterlineModels['User'], globalId: 'User' };
-```
+Model generation and registration have been removed. The loader refuses stale
+institution registrations and preserves edited model shims with migration guidance.
+Only exact old loader output is deleted. See [persistence migration](Persistence-Migration.md).
 
 ### Policy Shims (`api/policies/`)
 
@@ -157,7 +154,6 @@ The loader scans `package.json` dependencies for hooks that declare capabilities
 {
     "name": "my-redbox-hook",
     "sails": {
-        "hasModels": true,
         "hasPolicies": true,
         "hasServices": true,
         "hasControllers": true,
@@ -172,7 +168,6 @@ Hooks must export registration functions:
 
 | Flag | Required Export | Description |
 |---|---|---|
-| `hasModels` | `registerRedboxModels()` | Returns model definitions object |
 | `hasPolicies` | `registerRedboxPolicies()` | Returns policies object |
 | `hasServices` | `registerRedboxServices()` | Returns services object (hook services take precedence over core) |
 | `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Returns controller export objects (hook controllers take precedence) |
@@ -257,6 +252,14 @@ const { generateAllShims } = require('@researchdatabox/redbox-core');
 
 ## See Also
 
-- [Redbox Core Types](redbox-core) - Source of models, policies, and config
+- [Redbox Core Types](redbox-core) - Source of repository contracts, policies, and config
 - [Controllers Architecture](Controllers-Architecture) - Controller exports, shims, and lifecycle
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Creating hooks
+
+## Persistence startup
+
+Shim generation is offline. Pre-lift setup awaits the application runtime and all
+Prisma repositories before service initialization, migrations, core bootstrap and
+hook bootstrap. Bootstrap failure and normal shutdown drain registered resources
+and close borrowed clients before their pools. Hook registration must not acquire
+repositories. See [institution migration](Persistence-Migration.md).

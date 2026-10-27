@@ -1,0 +1,6 @@
+# Added only after the legacy database exists. The entrypoint must skip this
+# script on that volume; it would otherwise establish the required name index.
+services:
+  mongodb:
+    volumes:
+      - ./fresh-index.js:/docker-entrypoint-initdb.d/20-cache-index.js:ro

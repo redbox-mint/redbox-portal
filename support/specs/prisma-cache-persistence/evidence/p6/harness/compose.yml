@@ -1,0 +1,25 @@
+services:
+  mongodb:
+    image: ${P6_MONGO_IMAGE:-mongo:7.0.43-jammy@sha256:84c4a18b60a0e73d1577112b0a600b46cab477c64cfe0ff36d0647bbca055bd0}
+    volumes:
+      - source-data:/data/db
+    ports:
+      - '127.0.0.1::27017'
+  restore7:
+    profiles: [recovery]
+    image: mongo:7.0.43-jammy@sha256:84c4a18b60a0e73d1577112b0a600b46cab477c64cfe0ff36d0647bbca055bd0
+    volumes:
+      - restore7-data:/data/db
+    ports:
+      - '127.0.0.1::27017'
+  restore8:
+    profiles: [recovery]
+    image: mongo:8.0.34@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907
+    volumes:
+      - restore8-data:/data/db
+    ports:
+      - '127.0.0.1::27017'
+volumes:
+  source-data:
+  restore7-data:
+  restore8-data:

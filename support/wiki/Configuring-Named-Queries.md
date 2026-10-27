@@ -12,7 +12,7 @@ Below is a breakdown of how to configure a named query within the `module.export
 
 Each named query is a property of the `namedQuery` object, identified by a unique key. For instance, `listRDMPRecords` and `listDRRecords` are examples of named query keys. Each key contains several sub-properties that define the query behavior:
 
-- **collectionName**: Specifies the MongoDB collection to be queried. Supported values include `record`, `user`, and any other Sails-registered model name.
+- **collectionName**: Specifies the MongoDB collection to be queried. Use a supported repository target such as `record` or `user`. Targets form a closed registry with explicit tenant scope and credential-safe projections; arbitrary model/collection names are rejected. Institution targets use `registerNamedQueryTarget(app, target)` after initialization and must meet its reviewed repository contract. See [persistence migration](Persistence-Migration.md).
 - **brandIdFieldPath**: Path within the documents to identify brand Id field. For records this is `metaMetadata.brandId`
 - **resultObjectMapping**: Maps fields from MongoDB documents to the properties of the resulting JavaScript object. Use Handlebars templates for dynamic values, or plain dot paths for direct value lookup.
 - **mongoQuery**: Contains the MongoDB query to filter documents in the collection. It specifies the criteria that documents must meet to be included in the result set.
@@ -63,7 +63,7 @@ Each parameter within `queryParams` consists of several sub-properties:
 
 - **type**: The data type of the parameter (e.g., `string`, `number`).
 - **path**: The document path that the parameter pertains to.
-- **queryType**: Defines the type of comparison. Supported values are the [supported query modifier values](https://sailsjs.com/documentation/concepts/models-and-orm/query-language#?criteria-modifiers) in Sails (e.g., `contains`, `<=`).
+- **queryType**: Defines the type of comparison. Use the supported closed expression subset (for example `contains` or `<=`). Unsupported operators and target-specific expressions are rejected before execution; this is not the full Sails query language.
 - **whenUndefined**: Specifies the behavior if the parameter is not provided (e.g., `ignore`, `defaultValue`).
 - **defaultValue**: A default value used if the parameter is undefined and `whenUndefined` is set to `defaultValue`.
 

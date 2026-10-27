@@ -1,0 +1,35 @@
+{
+  "project": "redbox-cache-p6-rehearsal-9qpxct",
+  "archives": {
+    "before7.archive.gz": {
+      "bytes": 2297,
+      "sha256": "127110e87a1ba24518a454db511452fa6e8f6f67bb4dd024290f6e0660a7477c",
+      "namespaces": 9,
+      "documents": 18
+    },
+    "after8.archive.gz": {
+      "bytes": 2629,
+      "sha256": "3830f5ec106a504b8c53f90b6cd2a4c0cf5535bd9fe2738db8e9996b1e10fcef",
+      "namespaces": 10,
+      "documents": 21
+    }
+  },
+  "restores": {
+    "before7": {
+      "server": "7.0.43",
+      "fcv": "7.0",
+      "tools": "100.18.0",
+      "elapsedWholeSeconds": 0,
+      "failedDocuments": 0
+    },
+    "after8": {
+      "server": "8.0.34",
+      "fcv": "8.0",
+      "tools": "100.19.1",
+      "elapsedWholeSeconds": 1,
+      "failedDocuments": 0
+    }
+  },
+  "archivesCommitted": false,
+  "note": "Tiny quiesced synthetic dataset; integer-second timing is not a recovery SLA. Archives remain in ignored task temporary storage."
+}

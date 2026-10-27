@@ -26,9 +26,9 @@ Use this skill after a feature implementation lands (services, controllers, mode
 ### Type-safety / Any-casts
 
 1. Search the implementation for usages of `as any`, `(object as any)`, `as unknown as`, or other patterns that cast to `any` to bypass TypeScript types.
-   - Rationale: model and service code must adhere to declared Waterline model interfaces; casting to `any` hides mismatches and leads to runtime failures.
+   - Rationale: model and service code must adhere to declared Prisma contracts and repository interfaces; casting to `any` hides mismatches and leads to runtime failures.
    - Expected behavior: replace casts with proper interfaces, refine types, or add clear TODOs referencing a follow-up task (do not permanently use `as any`).
-   - Area mapping: set `area` to match the location of the cast (use `services` for service code, `models` for Waterline models, `controllers` for backend controllers, and `angular` for Angular/front-end code).
+   - Area mapping: set `area` to match the location of the cast (use `services` for service code, `models` for Prisma contracts, `controllers` for backend controllers, and `angular` for Angular/front-end code).
      Example: `packages/redbox-core/src/services/FooService.ts` -> `area: services`.
    - Severity: treat `as any` casts in model/service code as `blocker`; in controllers or angular code treat as `major` or `minor` depending on context but always report.
    - Evidence: include the exact file, line range, and code snippet where the cast occurs, and ensure the reported `area` matches the file type where the cast appears.
@@ -47,17 +47,9 @@ Use this skill after a feature implementation lands (services, controllers, mode
    - Evidence: include the exact file, line range, and snippet where the local declaration occurs (e.g., `declare const VocabularyService: ...`).
    - Suggested fix: remove the local declaration and use the global service reference; update typings if necessary instead of duplicating runtime declarations.
 
-### Waterline Models
+### Persistence
 
-1. The schema matches `implementation_plan.md`.
-2. Models are defined in `packages/redbox-core/src/waterline-models`.
-3. Avoid using `globalThis` to access Waterline models.
-   - Rationale: Waterline models are exposed as global variables (for example `Vocabulary`, `VocabularyEntry`) by Sails at runtime. Wrapping them again with `globalThis` lookups (e.g., `globalThis as typeof globalThis & { Vocabulary?: ... }`) is unnecessary and noisy; prefer referencing the global model by name and, if needed, cast to the appropriate model interface for typing only (e.g., `const VocabularyModel = Vocabulary as unknown as VocabularyWaterlineModel`).
-   - Expected behavior: use direct global model references in service/controller code instead of building `globalThis` accessor objects.
-   - Area mapping: `services`, `controllers` where Waterline models are used.
-   - Severity: `minor` for stylistic/clarity fixes, `major` if the `globalThis` indirection caused incorrect model resolution.
-   - Evidence: include file path, line range, and snippet where `globalThis` is used to access models.
-   - Suggested fix: replace `globalThis` lookups with direct model names and add a local typed alias only for TypeScript typing (see example above).
+Use declared Prisma fields and repository interfaces. No model globals, model registration or direct driver CRUD. Raw commands require a supported-model-API gap and an entry in the PostgreSQL rewrite register. GridFS stays on the driver with app-owned pools. See `support/wiki/Persistence-Migration.md`.
 
 ### Controllers
 

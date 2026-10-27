@@ -1,0 +1,27 @@
+Selected output from run-rollback.sh; full previous-release app.js and two independent old/current probes.
+sha256:b23de47e7be99203d86a789b6e685d809075b70f927627c27d2b7f6e6b5964c4 {"redbox.source":"0cfbd62b93260b63ad907d7c01ed9f33a2af619e","redbox.task":"prisma-cache-p5"}
+{"p5":"exact previous-release runtime graph","source":"0cfbd62b93260b63ad907d7c01ed9f33a2af619e","node":"v26.11.1","rootMongo":"7.2.0","coreMongo":"7.7.0","sails":"1.5.17","sailsMongo":"2.1.2","typescript":"5.9.3","lockSha256":{"package-lock.json":"408afc1a4ed061f1c96c85d84b65d7614639ad4ea68e4c4a50a8c5592d4c434e","packages/redbox-core/package-lock.json":"304000370f092e867d7df08439bed656dacb19ebfab50d17aa3cbed56876629a"}}
+P5 startup backend=prisma coreImported=9819.9ms
+P5 startup backend=prisma ormLoaded=18540.1ms
+P5 startup backend=prisma persistenceReady=19202.4ms
+P5 startup backend=prisma cacheBootstrapped=19206.1ms
+P5 rollback writer active backend=prisma {"backend":"prisma","adapter":"PrismaCacheEntryRepository","pid":2359069,"legacy":false,"startupMs":19206.278472,"startupStagesMs":{"coreImported":9819.918923,"ormLoaded":18540.057707,"persistenceReady":19202.438634000002,"cacheBootstrapped":19206.088298000002},"memory":{"rss":377462784,"heapTotal":278515712,"heapUsed":189976336,"external":59006926,"arrayBuffers":59280552},"node":"v24.18.0"}
+P5 full previous-release portal active backend=legacy-waterline source=0cfbd62b93260b63ad907d7c01ed9f33a2af619e
+[redbox-startup] Lift complete: 60703.1ms since process start
+P5 full previous-release portal PASS: ready, Prisma-written cache read and HTTP preview consumption
+P5 startup backend=prisma coreImported=2689.8ms
+P5 startup backend=prisma ormLoaded=3108.4ms
+P5 startup backend=prisma persistenceReady=3973.2ms
+P5 startup backend=prisma cacheBootstrapped=3977.1ms
+P5 rollback writer active backend=prisma {"backend":"prisma","adapter":"PrismaCacheEntryRepository","pid":2359979,"legacy":false,"startupMs":3977.334313,"startupStagesMs":{"coreImported":2689.825273,"ormLoaded":3108.390943,"persistenceReady":3973.160059,"cacheBootstrapped":3977.146424},"memory":{"rss":417820672,"heapTotal":304594944,"heapUsed":188625920,"external":59006260,"arrayBuffers":59279886},"node":"v24.18.0"}
+sha256:b23de47e7be99203d86a789b6e685d809075b70f927627c27d2b7f6e6b5964c4 {"redbox.source":"0cfbd62b93260b63ad907d7c01ed9f33a2af619e","redbox.task":"prisma-cache-p5"}
+P5 rollback next@0cfbd62b9 active backend=legacy-waterline {"backend":"waterline","adapter":"Object","pid":19,"legacy":true,"startupMs":4272.910795,"startupStagesMs":{"coreImported":2436.664092,"ormLoaded":4271.5516339999995,"persistenceReady":4271.800246999999,"cacheBootstrapped":4272.885079},"memory":{"rss":299302912,"heapTotal":178208768,"heapUsed":131477024,"external":50893921,"arrayBuffers":41519856},"node":"v26.11.1"}
+P5 previous-release rollback PASS: JSON/IDs/timestamps/read/update/delete/cache/notification/preview, unchanged MongoDB 8.0.34
+P5 startup backend=prisma coreImported=2550.4ms
+P5 startup backend=prisma ormLoaded=2935.3ms
+P5 startup backend=prisma persistenceReady=3831.5ms
+P5 startup backend=prisma cacheBootstrapped=3835.2ms
+P5 forward read of previous-release write PASS active backend=prisma
+
+Old bootstrap Solr errors before ready: 30. The same error occurs in current HTTP logs; old source initializes Solr clients on ready after Records bootstrap. Cache/HTTP assertions above pass.
+level=error time=2026-10-19T04:53:34+0000 pid=1 hostname=4631f1e52846 name=SolrSearchServiceService info_solr_index_outcome=failed error_name=TypeError error_message="Cannot read properties of undefined (reading 'add')" error_stack="TypeError: Cannot read properties of undefined (reading 'add')\n    at SolrSearchService.solrAddOrUpdate (/opt/redbox-portal/packages/redbox-core/dist/services/SolrSearchService.js:398:44)\n    at /opt/redbox-portal/packages/redbox-core/dist/services/SolrSearchService.js:262:108\n    at SolrSearchService.enqueueOrRunNow (/opt/redbox-portal/packages/redbox-core/dist/services/SolrSearchService.js:276:23)\n    at SolrSearchService.index (/opt/redbox-portal/packages/redbox-core/dist/services/SolrSearchService.js:262:25)\n    at Object.wrapper [as index] (/opt/redbox-portal/node_modules/@sailshq/lodash/lib/index.js:3323:19)\n    at Records.finishSave (/opt/redbox-portal/packages/redbox-core/dist/services/RecordsService.js:2135:52)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async Records.create (/opt/redbox-portal/packages/redbox-core/dist/services/RecordsService.js:3479:20)\n    at async Records.bootstrapData (/opt/redbox-portal/packages/redbox-core/dist/services/RecordsService.js:2731:48)\n    at async coreBootstrap (/opt/redbox-portal/packages/redbox-core/dist/bootstrap.js:77:5)\n    at async /opt/redbox-portal/packages/redbox-core/dist/loader/bootstrapShimRuntime.js:77:13" msg="Service operation failed."

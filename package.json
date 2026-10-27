@@ -35,14 +35,12 @@
     "sails-hook-sockets": "3.0.2",
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
-    "typescript-require": "0.3.0",
-    "sails-hook-orm": "4.0.3",
-    "sails-mongo": "2.1.2"
+    "typescript-require": "0.3.0"
   },
   "scripts": {
     "debug": "node debug app.js",
     "start": "node app.js",
-    "lint": "oxlint api config typescript packages/*/src",
+    "lint": "node scripts/verify-core-imports.cjs && oxlint api config typescript packages/*/src",
     "lint:fix": "oxlint api config typescript packages/*/src --fix",
     "format": "prettier --write \".oxlintrc.json\" \".prettierrc.json\" \".editorconfig\" \".vscode/*.json\" \"{api,config,test,typescript}/**/*.{ts,tsx,js,json}\" \"packages/*/{src,test}/**/*.{ts,tsx,js,json}\"",
     "format:check": "prettier --check \".oxlintrc.json\" \".prettierrc.json\" \".editorconfig\" \".vscode/*.json\" \"{api,config,test,typescript}/**/*.{ts,tsx,js,json}\" \"packages/*/{src,test}/**/*.{ts,tsx,js,json}\"",
@@ -221,9 +219,6 @@
     },
     "@prisma/orm-toolchain": {
       "@prisma/cli-engine": "0.9.0"
-    },
-    "sails-mongo": {
-      "qs": "6.15.2"
     }
   },
   "devDependencies": {

@@ -1,0 +1,30 @@
+{
+  "testId": "b6deb048dde6d8b2a452-308c55296c9bf50f4992",
+  "diagnostics": [
+    {
+      "kind": "console",
+      "url": "http://redboxportal:1500/default/rdmp/admin",
+      "message": "The Cross-Origin-Opener-Policy header has been ignored, because the URL's origin was untrustworthy. It was defined either in the final response or a redirect. Please deliver the response using the HTTPS protocol. You can also use the 'localhost' origin instead. See https://www.w3.org/TR/powerful-features/#potentially-trustworthy-origin and https://html.spec.whatwg.org/#the-cross-origin-opener-policy-header.",
+      "timestamp": "2026-10-19T04:22:52.045Z"
+    },
+    {
+      "kind": "console",
+      "url": "http://redboxportal:1500/default/rdmp/admin/branding",
+      "message": "The Cross-Origin-Opener-Policy header has been ignored, because the URL's origin was untrustworthy. It was defined either in the final response or a redirect. Please deliver the response using the HTTPS protocol. You can also use the 'localhost' origin instead. See https://www.w3.org/TR/powerful-features/#potentially-trustworthy-origin and https://html.spec.whatwg.org/#the-cross-origin-opener-policy-header.",
+      "timestamp": "2026-10-19T04:22:54.442Z"
+    },
+    {
+      "kind": "console",
+      "url": "http://redboxportal:1500/default/rdmp/admin/branding",
+      "message": "The Cross-Origin-Opener-Policy header has been ignored, because the URL's origin was untrustworthy. It was defined either in the final response or a redirect. Please deliver the response using the HTTPS protocol. You can also use the 'localhost' origin instead. See https://www.w3.org/TR/powerful-features/#potentially-trustworthy-origin and https://html.spec.whatwg.org/#the-cross-origin-opener-policy-header.",
+      "timestamp": "2026-10-19T04:22:59.460Z"
+    },
+    {
+      "kind": "console",
+      "url": "http://redboxportal:1500/default/rdmp/admin/branding",
+      "message": "The Cross-Origin-Opener-Policy header has been ignored, because the URL's origin was untrustworthy. It was defined either in the final response or a redirect. Please deliver the response using the HTTPS protocol. You can also use the 'localhost' origin instead. See https://www.w3.org/TR/powerful-features/#potentially-trustworthy-origin and https://html.spec.whatwg.org/#the-cross-origin-opener-policy-header.",
+      "timestamp": "2026-10-19T04:23:01.099Z"
+    }
+  ],
+  "expectations": []
+}

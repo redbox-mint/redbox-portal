@@ -1,0 +1,45 @@
+services:
+  mongodb:
+    pull_policy: missing
+  solr:
+    image: solr:latest@sha256:4316295f16175f676ac6798769f7a21729131ab555f1ba8663839dd7abd92e13
+    pull_policy: missing
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1-0
+    pull_policy: missing
+    healthcheck:
+      start_period: 180s
+      retries: 20
+  email:
+    image: axllent/mailpit:latest@sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365
+    pull_policy: missing
+    volumes: !override
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p5/http-email:/data"
+  redboxportal-mount:
+    image: redbox-cache-p4:runtime-815a2a6e
+    volumes:
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p5/http-attachments:/attachments"
+    ports:
+      - '127.0.0.1:15185:1500'
+    entrypoint: [node, .tmp/prisma-cache-p5/http-start.cjs]
+    environment:
+      sails_appUrl: "${P5_HTTP_APP_URL:-http://redboxportal:1500}"
+      sails_security__csrf: "${P5_HTTP_CSRF:-false}"
+  bruno-mount:
+    volumes: !override
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p5/bruno:/opt/bruno-tests"
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p5/bruno-rest:/opt/bruno-rest"
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p5/run-bruno.sh:/opt/run-bruno.sh:ro"
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
+    entrypoint: [bash, /opt/run-bruno.sh]
+    environment:
+      RBPORTAL_CACHE_BACKEND: "${RBPORTAL_CACHE_BACKEND}"
+  playwright-stubs:
+    image: node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
+    working_dir: /opt/playwright-stubs
+    command: [node, server.cjs]
+    volumes:
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/integration-testing/playwright-stubs:/opt/playwright-stubs:ro"
+    networks:
+      main:
+        aliases: [playwright-stubs]

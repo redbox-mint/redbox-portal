@@ -1,0 +1,39 @@
+{
+  "queriedAt": "2026-10-19T00:27:13.908Z",
+  "cli": [
+    {
+      "version": "8.0.0-rc.23",
+      "dist-tags": {
+        "turso": "5.4.0-dev.61",
+        "early-access": "5.12.0-dev.21",
+        "typed-sql": "5.19.0-integration-feat-typed-sql.14",
+        "patch-dev": "7.9.1-dev.1",
+        "integration": "7.10.0-integration-fix-prisma-publish-token.1",
+        "next": "8.0.0-rc.10",
+        "prev": "7.10.1",
+        "latest": "8.0.0-rc.23",
+        "dev": "8.0.0-rc.23-dev.153"
+      },
+      "engines": {
+        "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+      },
+      "dist.integrity": "sha512-qVSWdtk66NGLyYpiz0JdcSI9tAR61QAT1AWgZz4WFNeMtj1oDWhGTroI5uf80Ds4LlAufX0q943vUNjxmmNa5g=="
+    }
+  ],
+  "runtime": [
+    {
+      "version": "8.0.0-rc.18",
+      "dist-tags": {
+        "latest": "8.0.0-rc.18",
+        "dev": "8.0.0-rc.18-dev.16"
+      },
+      "dist.integrity": "sha512-J6ofniS7P67tyIaK+ADGjJj5o9u3v/NMSYUpkdevFC3EZsTQxCdKvDJAgzsMc9yZxOKOpjVYauCtkoY+6qBjEg=="
+    }
+  ],
+  "sources": [
+    "https://www.prisma.io/docs/orm/release-status",
+    "https://www.prisma.io/docs/orm/supported-databases",
+    "https://www.prisma.io/docs/cli/orm-init#in-a-commonjs-project",
+    "https://www.prisma.io/docs/orm/data-modeling/mongodb"
+  ]
+}

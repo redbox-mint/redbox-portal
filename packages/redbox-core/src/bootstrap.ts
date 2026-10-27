@@ -1,6 +1,9 @@
-import { initializeStoragePersistence } from './persistence/storage/runtime';
-import { initializeCachePersistence, cleanupCachePersistenceAfterFailure } from './persistence/cache/runtime';
-import { initializePersistence, cleanupPersistenceAfterFailure, initializeIdentityPersistence, initializeBrandingPersistence, initializeVocabularyPersistence, initializeMigrationPersistence, initializeReferencePersistence, initializeConfigurationPersistence, initializeProgressPersistence, initializeHarvestPersistence, initializeSiemPersistence, initializeFigsharePersistence } from './persistence/runtime';
+import {initializeIdentityPersistence} from './persistence/runtime';
+import {initializeBrandingPersistence} from './persistence/runtime';
+import {initializeVocabularyPersistence} from './persistence/runtime';
+import {initializeStoragePersistence} from './persistence/storage/runtime';
+import { initializePersistence, cleanupPersistenceAfterFailure } from './persistence/runtime';
+import { initializeMigrationPersistence, initializeReferencePersistence, initializeConfigurationPersistence, initializeProgressPersistence, initializeHarvestPersistence, initializeSiemPersistence, initializeFigsharePersistence } from './persistence/runtime';
 /**
  * Core Bootstrap Function
  *
@@ -18,6 +21,7 @@ import { BrandingAwareFunction, isPinoLogger } from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
 import { getMergedApiRoutes, resetResolvedApiRouteCache } from './api-routes';
+import { initializeCachePersistence, cleanupCachePersistenceAfterFailure } from './persistence/cache/runtime';
 
 declare const sails: Sails.Application;
 declare const _: LoDashStatic;

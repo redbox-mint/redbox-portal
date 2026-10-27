@@ -120,6 +120,35 @@ describe('generateHookArchetype standard template', () => {
     return fs.readFileSync(path.join(tempRoot, relativePath), 'utf8');
   }
 
+  for (const [relativePath, service] of [
+    ['support/development/docker-compose.yml', 'rbportal'],
+    ['support/integration-testing/docker-compose.mocha.yml', 'redboxportal'],
+  ]) {
+    it(`generates ${relativePath} with an environment accepted by the persistence guard`, () => {
+      hookArchetypeModule.generateHookArchetype({ cwd: tempRoot, packageName: 'redbox-hook-demo-client' });
+      const corePackage = require.resolve('@researchdatabox/redbox-core/package.json');
+      const coreRequire = require('module').createRequire(corePackage);
+      const compose = coreRequire('yaml').parse(readGenerated(relativePath));
+      const { assertPersistenceConfiguration } = loadTs(
+        module,
+        path.join(path.dirname(corePackage), 'src/persistence/selection.ts')
+      );
+      const previous = process.env;
+      try {
+        // Start with only the rendered service environment, as in a fresh hook.
+        process.env = Object.fromEntries(
+          compose.services[service].environment.map((entry: string) => {
+            const separator = entry.indexOf('=');
+            return separator < 0 ? [entry, ''] : [entry.slice(0, separator), entry.slice(separator + 1)];
+          })
+        );
+        expect(() => assertPersistenceConfiguration({})).not.to.throw();
+      } finally {
+        process.env = previous;
+      }
+    });
+  }
+
   it('generates the richer client hook scaffold by default', () => {
     hookArchetypeModule.generateHookArchetype({
       cwd: tempRoot,
@@ -142,7 +171,9 @@ describe('generateHookArchetype standard template', () => {
     expect(readGenerated('src/migrations/index.ts')).to.contain('export function registerRedboxMigrations()');
     expect(readGenerated('Dockerfile')).to.contain('npm pack --pack-destination /tmp --silent');
     expect(readGenerated('support/development/docker-compose.yml')).to.contain('minio:');
-    expect(readGenerated('support/development/docker-compose.core-mount.yml')).to.contain('@researchdatabox/redbox-core');
+    expect(readGenerated('support/development/docker-compose.core-mount.yml')).to.contain(
+      '@researchdatabox/redbox-core'
+    );
     expect(readGenerated('support/integration-testing/run-mocha-hook.sh')).to.contain('RBPORTAL_MOCHA_TEST_PATHS');
     expect(readGenerated('support/integration-testing/run-mocha-redbox.sh')).to.contain('generateAllShims');
     expect(readGenerated('language-defaults/en/translation.json')).to.contain('DemoClient hook ready');

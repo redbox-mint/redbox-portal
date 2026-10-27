@@ -1,0 +1,463 @@
+P6 project=redbox-cache-p6-rehearsal-9qpxct results=/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p6/rehearsal-9qPxCT
+ Network redbox-cache-p6-rehearsal-9qpxct_default Creating
+ Network redbox-cache-p6-rehearsal-9qpxct_default Created
+ Volume redbox-cache-p6-rehearsal-9qpxct_source-data Creating
+ Volume redbox-cache-p6-rehearsal-9qpxct_source-data Created
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Creating
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Created
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Starting
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Started
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.legacy
+#1 transferring dockerfile: 1.55kB done
+#1 DONE 0.0s
+
+#2 [context p6harness] load .dockerignore
+#2 transferring p6harness: 2B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:26.11.1-bookworm
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 749B done
+#4 DONE 0.0s
+
+#5 [context p6harness] load from client
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 [build 1/9] FROM docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
+#7 resolve docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404 0.0s done
+#7 DONE 0.0s
+
+#5 [context p6harness] load from client
+#5 transferring p6harness: 21.02kB done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 226.67kB 0.1s done
+#6 DONE 0.1s
+
+#8 [build 6/9] RUN cd packages/redbox-core && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund && npm run build
+#8 CACHED
+
+#9 [build 7/9] RUN node_modules/.bin/tsc -p tsconfig.json
+#9 CACHED
+
+#10 [build 2/9] WORKDIR /opt/redbox-portal
+#10 CACHED
+
+#11 [build 3/9] COPY . .
+#11 CACHED
+
+#12 [build 5/9] RUN node_modules/.bin/tsc -p packages/agenda-sqs-backend/tsconfig.json && node_modules/.bin/tsc -p packages/raido/tsconfig.json && node_modules/.bin/tsc -p packages/rva-registry/tsconfig.json && node_modules/.bin/tsc -p packages/sails-ng-common/tsconfig.json
+#12 CACHED
+
+#13 [build 8/9] RUN node_modules/.bin/tsc -p packages/redbox-dev-tools/tsconfig.json && node_modules/.bin/tsc -p packages/sails-hook-redbox-storage-mongo/tsconfig.json && node_modules/.bin/tsc -p packages/redbox-hook-dev/tsconfig.json
+#13 CACHED
+
+#14 [build 9/9] RUN rm -rf packages/redbox-core/node_modules node_modules/redoc node_modules/should
+#14 CACHED
+
+#15 [build 4/9] RUN npm --version && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+#15 CACHED
+
+#16 [rehearsal 1/3] RUN npm --version && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+#16 CACHED
+
+#17 [rehearsal 2/3] COPY --from=p6harness worker.cjs /opt/redbox-portal/p6-worker.cjs
+#17 DONE 0.1s
+
+#18 [rehearsal 3/3] RUN P6_CACHE_MONGO_URL="mongodb://127.0.0.1:32843/redbox_cache_p6" node p6-worker.cjs "seed"
+#18 2.483 Dynamic imports imported
+#18 2.524 {"mode":"seed","node":"v26.11.1","mongo":"7.0.43","fcv":{"version":"7.0"},"topology":"standalone"}
+#18 4.115 PASS legacy seed SHA=0cfbd62b9 original lock hashes; callback creates=9; cache documents=11; no unique-name index
+#18 DONE 4.2s
+Dynamic imports imported
+{"mode":"snapshot","node":"v24.18.0","mongo":"7.0.43","fcv":{"version":"7.0"},"topology":"standalone"}
+PASS canonical BSON snapshot {"redbox_cache_p6.agenda_logs":{"count":0,"documentsSha256":"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","indexesSha256":"1bbbaa6a29a3b9ed08f1f4f4ab87bb0202459a3eb5d52de82bf5802f7de7cb26","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.cacheentry":{"count":11,"documentsSha256":"bf15cc8052cf00bfea31e816c0bf8ca1a3d103938a26f924be220d492474c55a","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.p6_jobs":{"count":1,"documentsSha256":"c45551963482e336f373df1bf5656fd956dd92406753af22a88e5e2d073984f2","indexesSha256":"84fe06c10c184b95d716292dc5a2e87ff1b349230b61e401eaf2c4c40ec72960","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.role":{"count":1,"documentsSha256":"65c027173c726214ad0788a1ca78bedf7f1eb5744005a88836b44ac2b2f1d76e","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.user":{"count":1,"documentsSha256":"24f8afcf438d6897225bc0bd8380804e8b7fa60c5fa528653a319fc2ae15ddb1","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.chunks":{"count":1,"documentsSha256":"92dc19282128475f2f391e7674ba22114828ab424297b3799597118a0eb61a4d","indexesSha256":"a6bc6e108e7c7fbba7ffce19de324b352041d6b317bd6bca859623eb18e89272","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.files":{"count":1,"documentsSha256":"cb4962a5d61a4187e36e23aaac6fc7dd5b9d3596b21d5bf93e52ffa9183208ef","indexesSha256":"10240dccde6a5cc80a347f862c659dd175b46caf414b91c9e5961246596f6b23","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.record":{"count":1,"documentsSha256":"b9cd99266214f6ea79ca027c43812736ac83b5579f523dd607a2c32fd45b1b65","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_sessions_p6.sessions":{"count":1,"documentsSha256":"cfeecd12b8dd0d4c467ef32b0983563e65734cab4276ebf85d4a31cdef8f96ea","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"}}
+mongodump version: 100.18.0
+git version: 21a342dfee6468ad9350d156d25086da64dd03b1
+Go version: go1.26.5
+   os: linux
+   arch: amd64
+   compiler: gc
+2026-10-19T06:07:01.649+0000	writing `admin.system.version` to `archive on stdout`
+2026-10-19T06:07:01.651+0000	done dumping `admin.system.version` (1 document)
+2026-10-19T06:07:01.651+0000	writing `redbox_cache_p6.cacheentry` to `archive on stdout`
+2026-10-19T06:07:01.651+0000	writing `redbox_cache_p6.role` to `archive on stdout`
+2026-10-19T06:07:01.652+0000	writing `redbox_cache_p6.p6_jobs` to `archive on stdout`
+2026-10-19T06:07:01.652+0000	writing `redbox_cache_p6.user` to `archive on stdout`
+2026-10-19T06:07:01.656+0000	done dumping `redbox_cache_p6.role` (1 document)
+2026-10-19T06:07:01.656+0000	writing `redbox_sessions_p6.sessions` to `archive on stdout`
+2026-10-19T06:07:01.659+0000	done dumping `redbox_sessions_p6.sessions` (1 document)
+2026-10-19T06:07:01.659+0000	writing `redbox_storage_p6.record` to `archive on stdout`
+2026-10-19T06:07:01.663+0000	done dumping `redbox_cache_p6.p6_jobs` (1 document)
+2026-10-19T06:07:01.663+0000	writing `redbox_storage_p6.p6_gridfs.chunks` to `archive on stdout`
+2026-10-19T06:07:01.672+0000	done dumping `redbox_cache_p6.cacheentry` (11 documents)
+2026-10-19T06:07:01.672+0000	writing `redbox_storage_p6.p6_gridfs.files` to `archive on stdout`
+2026-10-19T06:07:01.682+0000	done dumping `redbox_storage_p6.record` (1 document)
+2026-10-19T06:07:01.683+0000	writing `redbox_cache_p6.agenda_logs` to `archive on stdout`
+2026-10-19T06:07:01.688+0000	done dumping `redbox_cache_p6.user` (1 document)
+2026-10-19T06:07:01.692+0000	done dumping `redbox_storage_p6.p6_gridfs.chunks` (1 document)
+2026-10-19T06:07:01.699+0000	done dumping `redbox_storage_p6.p6_gridfs.files` (1 document)
+2026-10-19T06:07:01.700+0000	done dumping `redbox_cache_p6.agenda_logs` (0 documents)
+127110e87a1ba24518a454db511452fa6e8f6f67bb4dd024290f6e0660a7477c  /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p6/rehearsal-9qPxCT/before7.archive.gz
+ Volume redbox-cache-p6-rehearsal-9qpxct_restore7-data Creating
+ Volume redbox-cache-p6-rehearsal-9qpxct_restore7-data Created
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Running
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Creating
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Created
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Starting
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Started
+mongorestore version: 100.18.0
+git version: 21a342dfee6468ad9350d156d25086da64dd03b1
+Go version: go1.26.5
+   os: linux
+   arch: amd64
+   compiler: gc
+2026-10-19T06:07:03.160+0000	preparing collections to restore from
+2026-10-19T06:07:03.173+0000	reading metadata for `redbox_cache_p6.p6_jobs` from `archive on stdin`
+2026-10-19T06:07:03.174+0000	reading metadata for `redbox_sessions_p6.sessions` from `archive on stdin`
+2026-10-19T06:07:03.174+0000	reading metadata for `redbox_storage_p6.record` from `archive on stdin`
+2026-10-19T06:07:03.174+0000	reading metadata for `redbox_cache_p6.cacheentry` from `archive on stdin`
+2026-10-19T06:07:03.174+0000	reading metadata for `redbox_cache_p6.role` from `archive on stdin`
+2026-10-19T06:07:03.174+0000	reading metadata for `redbox_cache_p6.agenda_logs` from `archive on stdin`
+2026-10-19T06:07:03.174+0000	reading metadata for `redbox_cache_p6.user` from `archive on stdin`
+2026-10-19T06:07:03.174+0000	reading metadata for `redbox_storage_p6.p6_gridfs.chunks` from `archive on stdin`
+2026-10-19T06:07:03.174+0000	reading metadata for `redbox_storage_p6.p6_gridfs.files` from `archive on stdin`
+2026-10-19T06:07:03.199+0000	restoring `redbox_cache_p6.role` from `archive on stdin`
+2026-10-19T06:07:03.210+0000	finished restoring `redbox_cache_p6.role` (1 document, 0 failures)
+2026-10-19T06:07:03.249+0000	restoring `redbox_sessions_p6.sessions` from `archive on stdin`
+2026-10-19T06:07:03.289+0000	finished restoring `redbox_sessions_p6.sessions` (1 document, 0 failures)
+2026-10-19T06:07:03.297+0000	restoring `redbox_cache_p6.p6_jobs` from `archive on stdin`
+2026-10-19T06:07:03.308+0000	finished restoring `redbox_cache_p6.p6_jobs` (1 document, 0 failures)
+2026-10-19T06:07:03.318+0000	restoring `redbox_cache_p6.cacheentry` from `archive on stdin`
+2026-10-19T06:07:03.328+0000	finished restoring `redbox_cache_p6.cacheentry` (11 documents, 0 failures)
+2026-10-19T06:07:03.366+0000	restoring `redbox_storage_p6.record` from `archive on stdin`
+2026-10-19T06:07:03.376+0000	finished restoring `redbox_storage_p6.record` (1 document, 0 failures)
+2026-10-19T06:07:03.412+0000	restoring `redbox_cache_p6.user` from `archive on stdin`
+2026-10-19T06:07:03.423+0000	finished restoring `redbox_cache_p6.user` (1 document, 0 failures)
+2026-10-19T06:07:03.456+0000	restoring `redbox_storage_p6.p6_gridfs.chunks` from `archive on stdin`
+2026-10-19T06:07:03.468+0000	finished restoring `redbox_storage_p6.p6_gridfs.chunks` (1 document, 0 failures)
+2026-10-19T06:07:03.501+0000	restoring `redbox_storage_p6.p6_gridfs.files` from `archive on stdin`
+2026-10-19T06:07:03.542+0000	finished restoring `redbox_storage_p6.p6_gridfs.files` (1 document, 0 failures)
+2026-10-19T06:07:03.549+0000	restoring `redbox_cache_p6.agenda_logs` from `archive on stdin`
+2026-10-19T06:07:03.570+0000	finished restoring `redbox_cache_p6.agenda_logs` (0 documents, 0 failures)
+2026-10-19T06:07:03.570+0000	restoring indexes for collection `redbox_cache_p6.p6_jobs` from metadata
+2026-10-19T06:07:03.571+0000	index: &idx.IndexDocument{Options:bson.M{"name":"findAndLockNextJobIndex", "v":2}, Key:bson.D{bson.E{Key:"name", Value:1}, bson.E{Key:"nextRunAt", Value:1}, bson.E{Key:"priority", Value:-1}, bson.E{Key:"lockedAt", Value:1}, bson.E{Key:"disabled", Value:1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:03.571+0000	no indexes to restore for collection `redbox_cache_p6.cacheentry`
+2026-10-19T06:07:03.571+0000	no indexes to restore for collection `redbox_cache_p6.role`
+2026-10-19T06:07:03.571+0000	restoring indexes for collection `redbox_cache_p6.agenda_logs` from metadata
+2026-10-19T06:07:03.571+0000	index: &idx.IndexDocument{Options:bson.M{"name":"agenda_logs_job_name_idx", "v":2}, Key:bson.D{bson.E{Key:"jobName", Value:1}, bson.E{Key:"timestamp", Value:-1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:03.571+0000	index: &idx.IndexDocument{Options:bson.M{"name":"agenda_logs_timestamp_idx", "v":2}, Key:bson.D{bson.E{Key:"timestamp", Value:-1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:03.571+0000	index: &idx.IndexDocument{Options:bson.M{"name":"agenda_logs_job_id_idx", "v":2}, Key:bson.D{bson.E{Key:"jobId", Value:1}, bson.E{Key:"timestamp", Value:-1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:03.571+0000	no indexes to restore for collection `redbox_cache_p6.user`
+2026-10-19T06:07:03.571+0000	no indexes to restore for collection `redbox_sessions_p6.sessions`
+2026-10-19T06:07:03.571+0000	no indexes to restore for collection `redbox_storage_p6.record`
+2026-10-19T06:07:03.571+0000	restoring indexes for collection `redbox_storage_p6.p6_gridfs.chunks` from metadata
+2026-10-19T06:07:03.571+0000	index: &idx.IndexDocument{Options:bson.M{"background":true, "name":"files_id_1_n_1", "unique":true, "v":2}, Key:bson.D{bson.E{Key:"files_id", Value:1}, bson.E{Key:"n", Value:1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:03.571+0000	restoring indexes for collection `redbox_storage_p6.p6_gridfs.files` from metadata
+2026-10-19T06:07:03.571+0000	index: &idx.IndexDocument{Options:bson.M{"background":false, "name":"filename_1_uploadDate_1", "v":2}, Key:bson.D{bson.E{Key:"filename", Value:1}, bson.E{Key:"uploadDate", Value:1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:03.624+0000	18 document(s) restored successfully. 0 document(s) failed to restore.
+P6 pre-upgrade archive restore seconds=0
+Dynamic imports imported
+{"mode":"snapshot","node":"v24.18.0","mongo":"7.0.43","fcv":{"version":"7.0"},"topology":"standalone"}
+PASS canonical BSON snapshot {"redbox_cache_p6.agenda_logs":{"count":0,"documentsSha256":"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","indexesSha256":"1bbbaa6a29a3b9ed08f1f4f4ab87bb0202459a3eb5d52de82bf5802f7de7cb26","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.cacheentry":{"count":11,"documentsSha256":"bf15cc8052cf00bfea31e816c0bf8ca1a3d103938a26f924be220d492474c55a","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.p6_jobs":{"count":1,"documentsSha256":"c45551963482e336f373df1bf5656fd956dd92406753af22a88e5e2d073984f2","indexesSha256":"84fe06c10c184b95d716292dc5a2e87ff1b349230b61e401eaf2c4c40ec72960","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.role":{"count":1,"documentsSha256":"65c027173c726214ad0788a1ca78bedf7f1eb5744005a88836b44ac2b2f1d76e","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.user":{"count":1,"documentsSha256":"24f8afcf438d6897225bc0bd8380804e8b7fa60c5fa528653a319fc2ae15ddb1","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.chunks":{"count":1,"documentsSha256":"92dc19282128475f2f391e7674ba22114828ab424297b3799597118a0eb61a4d","indexesSha256":"a6bc6e108e7c7fbba7ffce19de324b352041d6b317bd6bca859623eb18e89272","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.files":{"count":1,"documentsSha256":"cb4962a5d61a4187e36e23aaac6fc7dd5b9d3596b21d5bf93e52ffa9183208ef","indexesSha256":"10240dccde6a5cc80a347f862c659dd175b46caf414b91c9e5961246596f6b23","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.record":{"count":1,"documentsSha256":"b9cd99266214f6ea79ca027c43812736ac83b5579f523dd607a2c32fd45b1b65","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_sessions_p6.sessions":{"count":1,"documentsSha256":"cfeecd12b8dd0d4c467ef32b0983563e65734cab4276ebf85d4a31cdef8f96ea","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"}}
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.legacy
+#1 transferring dockerfile: 1.55kB done
+#1 DONE 0.0s
+
+#2 [context p6harness] load .dockerignore
+#2 transferring p6harness: 2B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:26.11.1-bookworm
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 749B done
+#4 DONE 0.0s
+
+#5 [context p6harness] load from client
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 [build 1/9] FROM docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
+#7 resolve docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404 0.0s done
+#7 DONE 0.0s
+
+#5 [context p6harness] load from client
+#5 transferring p6harness: 33B done
+#5 DONE 0.1s
+
+#6 [internal] load build context
+#6 transferring context: 226.67kB 0.1s done
+#6 DONE 0.2s
+
+#8 [build 8/9] RUN node_modules/.bin/tsc -p packages/redbox-dev-tools/tsconfig.json && node_modules/.bin/tsc -p packages/sails-hook-redbox-storage-mongo/tsconfig.json && node_modules/.bin/tsc -p packages/redbox-hook-dev/tsconfig.json
+#8 CACHED
+
+#9 [build 3/9] COPY . .
+#9 CACHED
+
+#10 [build 9/9] RUN rm -rf packages/redbox-core/node_modules node_modules/redoc node_modules/should
+#10 CACHED
+
+#11 [rehearsal 1/3] RUN npm --version && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+#11 CACHED
+
+#12 [build 2/9] WORKDIR /opt/redbox-portal
+#12 CACHED
+
+#13 [build 4/9] RUN npm --version && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+#13 CACHED
+
+#14 [build 5/9] RUN node_modules/.bin/tsc -p packages/agenda-sqs-backend/tsconfig.json && node_modules/.bin/tsc -p packages/raido/tsconfig.json && node_modules/.bin/tsc -p packages/rva-registry/tsconfig.json && node_modules/.bin/tsc -p packages/sails-ng-common/tsconfig.json
+#14 CACHED
+
+#15 [build 6/9] RUN cd packages/redbox-core && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund && npm run build
+#15 CACHED
+
+#16 [build 7/9] RUN node_modules/.bin/tsc -p tsconfig.json
+#16 CACHED
+
+#17 [rehearsal 2/3] COPY --from=p6harness worker.cjs /opt/redbox-portal/p6-worker.cjs
+#17 CACHED
+
+#18 [rehearsal 3/3] RUN P6_CACHE_MONGO_URL="mongodb://127.0.0.1:32844/redbox_cache_p6" node p6-worker.cjs "old-read"
+#18 2.530 Dynamic imports imported
+#18 2.583 {"mode":"old-read","node":"v26.11.1","mongo":"7.0.43","fcv":{"version":"7.0"},"topology":"standalone"}
+#18 3.212 PASS shared clients existing Waterline user/role, session, GridFS bytes, record and durable Agenda job
+#18 DONE 3.4s
+PASS pre-upgrade backup restore: canonical data/options/index hashes match; old application reads restored data
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Stopping
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Stopped
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Running
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Recreate
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Recreated
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Starting
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Started
+Dynamic imports imported
+{"mode":"snapshot","node":"v24.18.0","mongo":"8.0.34","fcv":{"version":"7.0"},"topology":"standalone"}
+PASS canonical BSON snapshot {"redbox_cache_p6.agenda_logs":{"count":0,"documentsSha256":"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","indexesSha256":"1bbbaa6a29a3b9ed08f1f4f4ab87bb0202459a3eb5d52de82bf5802f7de7cb26","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.cacheentry":{"count":11,"documentsSha256":"bf15cc8052cf00bfea31e816c0bf8ca1a3d103938a26f924be220d492474c55a","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.p6_jobs":{"count":1,"documentsSha256":"c45551963482e336f373df1bf5656fd956dd92406753af22a88e5e2d073984f2","indexesSha256":"84fe06c10c184b95d716292dc5a2e87ff1b349230b61e401eaf2c4c40ec72960","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.role":{"count":1,"documentsSha256":"65c027173c726214ad0788a1ca78bedf7f1eb5744005a88836b44ac2b2f1d76e","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.user":{"count":1,"documentsSha256":"24f8afcf438d6897225bc0bd8380804e8b7fa60c5fa528653a319fc2ae15ddb1","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.chunks":{"count":1,"documentsSha256":"92dc19282128475f2f391e7674ba22114828ab424297b3799597118a0eb61a4d","indexesSha256":"a6bc6e108e7c7fbba7ffce19de324b352041d6b317bd6bca859623eb18e89272","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.files":{"count":1,"documentsSha256":"cb4962a5d61a4187e36e23aaac6fc7dd5b9d3596b21d5bf93e52ffa9183208ef","indexesSha256":"10240dccde6a5cc80a347f862c659dd175b46caf414b91c9e5961246596f6b23","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.record":{"count":1,"documentsSha256":"b9cd99266214f6ea79ca027c43812736ac83b5579f523dd607a2c32fd45b1b65","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_sessions_p6.sessions":{"count":1,"documentsSha256":"cfeecd12b8dd0d4c467ef32b0983563e65734cab4276ebf85d4a31cdef8f96ea","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"}}
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.legacy
+#1 transferring dockerfile: 1.55kB done
+#1 DONE 0.0s
+
+#2 [context p6harness] load .dockerignore
+#2 transferring p6harness: 2B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:26.11.1-bookworm
+#3 DONE 0.1s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 749B done
+#4 DONE 0.0s
+
+#5 [context p6harness] load from client
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 [build 1/9] FROM docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
+#7 resolve docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404 0.0s done
+#7 DONE 0.0s
+
+#5 [context p6harness] load from client
+#5 transferring p6harness: 33B done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 226.67kB 0.2s done
+#6 DONE 0.2s
+
+#8 [build 2/9] WORKDIR /opt/redbox-portal
+#8 CACHED
+
+#9 [build 6/9] RUN cd packages/redbox-core && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund && npm run build
+#9 CACHED
+
+#10 [build 9/9] RUN rm -rf packages/redbox-core/node_modules node_modules/redoc node_modules/should
+#10 CACHED
+
+#11 [build 4/9] RUN npm --version && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+#11 CACHED
+
+#12 [build 7/9] RUN node_modules/.bin/tsc -p tsconfig.json
+#12 CACHED
+
+#13 [build 3/9] COPY . .
+#13 CACHED
+
+#14 [build 5/9] RUN node_modules/.bin/tsc -p packages/agenda-sqs-backend/tsconfig.json && node_modules/.bin/tsc -p packages/raido/tsconfig.json && node_modules/.bin/tsc -p packages/rva-registry/tsconfig.json && node_modules/.bin/tsc -p packages/sails-ng-common/tsconfig.json
+#14 CACHED
+
+#15 [build 8/9] RUN node_modules/.bin/tsc -p packages/redbox-dev-tools/tsconfig.json && node_modules/.bin/tsc -p packages/sails-hook-redbox-storage-mongo/tsconfig.json && node_modules/.bin/tsc -p packages/redbox-hook-dev/tsconfig.json
+#15 CACHED
+
+#16 [rehearsal 1/3] RUN npm --version && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+#16 CACHED
+
+#17 [rehearsal 2/3] COPY --from=p6harness worker.cjs /opt/redbox-portal/p6-worker.cjs
+#17 CACHED
+
+#18 [rehearsal 3/3] RUN P6_CACHE_MONGO_URL="mongodb://127.0.0.1:32845/redbox_cache_p6" node p6-worker.cjs "old-read"
+#18 2.854 Dynamic imports imported
+#18 2.894 {"mode":"old-read","node":"v26.11.1","mongo":"8.0.34","fcv":{"version":"7.0"},"topology":"standalone"}
+#18 3.507 PASS shared clients existing Waterline user/role, session, GridFS bytes, record and durable Agenda job
+#18 DONE 3.6s
+{
+  ok: 1
+}
+{
+  featureCompatibilityVersion: {
+    version: '8.0'
+  },
+  ok: 1
+}
+Dynamic imports imported
+{"mode":"migrate","node":"v24.18.0","mongo":"8.0.34","fcv":{"version":"8.0"},"topology":"standalone"}
+PASS actionable startup refusal: The required cacheentry unique name index is missing on the application datastore. Review duplicates/indexes, then explicitly run ensureCachePersistenceIndex or create a unique { name: 1 } index. Existing MongoDB volumes do not run fresh-stack init scripts. Copyable commands for existing development volumes and institution databases: support/wiki/Cache-Persistence-Migration.md#existing-development-volumes. No documents were cleaned up.
+PASS migration: 11/11 IDs retained; 9 documents byte-canonical unchanged; D1 one key rename; D2 one explicit codec; unique ensure twice; no cleanup/flush/bulk rewrite
+Dynamic imports imported
+{"mode":"ready","node":"v24.18.0","mongo":"8.0.34","fcv":{"version":"8.0"},"topology":"standalone"}
+PASS shared clients existing Waterline user/role, session, GridFS bytes, record and durable Agenda job; actual CRUD/touch/job execution/storage CAS/removal
+PASS readiness default=Prisma; migrated hook effect; cache persisted; preview fetch/delete; retained callback invocations=0; server connections={"current":9,"available":400,"totalCreated":61,"rejected":0,"active":5,"queuedForEstablishment":0,"establishmentRateLimit":{"rejected":0,"exempted":0,"interruptedDueToClientDisconnect":0},"threaded":9,"exhaustIsMaster":0,"exhaustHello":0,"awaitingTopologyChanges":4,"loadBalanced":0}
+Dynamic imports imported
+{"mode":"restart-read","node":"v24.18.0","mongo":"8.0.34","fcv":{"version":"8.0"},"topology":"standalone"}
+PASS independent process persisted read after graceful shutdown
+Dynamic imports imported
+{"mode":"snapshot","node":"v24.18.0","mongo":"8.0.34","fcv":{"version":"8.0"},"topology":"standalone"}
+PASS canonical BSON snapshot {"redbox_cache_p6.agenda_logs":{"count":0,"documentsSha256":"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","indexesSha256":"1bbbaa6a29a3b9ed08f1f4f4ab87bb0202459a3eb5d52de82bf5802f7de7cb26","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.cacheentry":{"count":12,"documentsSha256":"a5ddadf4ea602e6e5b635f653d2e26adc50714bdf2107ef595508dea028eb1c8","indexesSha256":"ca01d485a9a3faec2f7369fd390c27618b02e8eaa000f746d6c3759f75f62a9d","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.p6_jobs":{"count":2,"documentsSha256":"c10a893cc0d8b5b1a55a2d3f838ff7c6ec9033903881a9deda590dfba82dacb1","indexesSha256":"84fe06c10c184b95d716292dc5a2e87ff1b349230b61e401eaf2c4c40ec72960","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.role":{"count":1,"documentsSha256":"65c027173c726214ad0788a1ca78bedf7f1eb5744005a88836b44ac2b2f1d76e","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.user":{"count":1,"documentsSha256":"24f8afcf438d6897225bc0bd8380804e8b7fa60c5fa528653a319fc2ae15ddb1","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.chunks":{"count":1,"documentsSha256":"92dc19282128475f2f391e7674ba22114828ab424297b3799597118a0eb61a4d","indexesSha256":"a6bc6e108e7c7fbba7ffce19de324b352041d6b317bd6bca859623eb18e89272","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.files":{"count":1,"documentsSha256":"cb4962a5d61a4187e36e23aaac6fc7dd5b9d3596b21d5bf93e52ffa9183208ef","indexesSha256":"10240dccde6a5cc80a347f862c659dd175b46caf414b91c9e5961246596f6b23","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.record":{"count":1,"documentsSha256":"b9cd99266214f6ea79ca027c43812736ac83b5579f523dd607a2c32fd45b1b65","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.recordidentity":{"count":1,"documentsSha256":"b4837c36e0e2fe7d408e6e8b3047272334cca9f97923b552eded7d186eb066dd","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_sessions_p6.sessions":{"count":1,"documentsSha256":"cfeecd12b8dd0d4c467ef32b0983563e65734cab4276ebf85d4a31cdef8f96ea","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"}}
+mongodump version: 100.19.1
+git version: 9348e032419d906e40966f477278cce647b9b1eb
+Go version: go1.26.8
+   os: linux
+   arch: amd64
+   compiler: gc
+2026-10-19T06:07:38.264+0000	writing `admin.system.version` to `archive on stdout`
+2026-10-19T06:07:38.266+0000	done dumping `admin.system.version` (1 document)
+2026-10-19T06:07:38.266+0000	writing `redbox_cache_p6.cacheentry` to `archive on stdout`
+2026-10-19T06:07:38.266+0000	writing `redbox_cache_p6.p6_jobs` to `archive on stdout`
+2026-10-19T06:07:38.267+0000	writing `redbox_cache_p6.role` to `archive on stdout`
+2026-10-19T06:07:38.267+0000	writing `redbox_cache_p6.user` to `archive on stdout`
+2026-10-19T06:07:38.273+0000	done dumping `redbox_cache_p6.cacheentry` (12 documents)
+2026-10-19T06:07:38.273+0000	writing `redbox_sessions_p6.sessions` to `archive on stdout`
+2026-10-19T06:07:38.275+0000	done dumping `redbox_cache_p6.role` (1 document)
+2026-10-19T06:07:38.275+0000	writing `redbox_storage_p6.record` to `archive on stdout`
+2026-10-19T06:07:38.288+0000	done dumping `redbox_sessions_p6.sessions` (1 document)
+2026-10-19T06:07:38.288+0000	writing `redbox_storage_p6.recordidentity` to `archive on stdout`
+2026-10-19T06:07:38.296+0000	done dumping `redbox_storage_p6.record` (1 document)
+2026-10-19T06:07:38.296+0000	writing `redbox_storage_p6.p6_gridfs.chunks` to `archive on stdout`
+2026-10-19T06:07:38.301+0000	done dumping `redbox_cache_p6.p6_jobs` (2 documents)
+2026-10-19T06:07:38.301+0000	writing `redbox_storage_p6.p6_gridfs.files` to `archive on stdout`
+2026-10-19T06:07:38.301+0000	done dumping `redbox_cache_p6.user` (1 document)
+2026-10-19T06:07:38.301+0000	writing `redbox_cache_p6.agenda_logs` to `archive on stdout`
+2026-10-19T06:07:38.302+0000	done dumping `redbox_storage_p6.p6_gridfs.files` (1 document)
+2026-10-19T06:07:38.302+0000	done dumping `redbox_storage_p6.p6_gridfs.chunks` (1 document)
+2026-10-19T06:07:38.304+0000	done dumping `redbox_cache_p6.agenda_logs` (0 documents)
+2026-10-19T06:07:38.306+0000	done dumping `redbox_storage_p6.recordidentity` (1 document)
+3830f5ec106a504b8c53f90b6cd2a4c0cf5535bd9fe2738db8e9996b1e10fcef  /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p6/rehearsal-9qPxCT/after8.archive.gz
+ Volume redbox-cache-p6-rehearsal-9qpxct_restore8-data Creating
+ Volume redbox-cache-p6-rehearsal-9qpxct_restore8-data Created
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Running
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Running
+ Container redbox-cache-p6-rehearsal-9qpxct-restore8-1 Creating
+ Container redbox-cache-p6-rehearsal-9qpxct-restore8-1 Created
+ Container redbox-cache-p6-rehearsal-9qpxct-restore8-1 Starting
+ Container redbox-cache-p6-rehearsal-9qpxct-restore8-1 Started
+2026-10-19T06:07:39.751+0000	preparing collections to restore from
+2026-10-19T06:07:39.775+0000	reading metadata for `redbox_storage_p6.p6_gridfs.files` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_storage_p6.recordidentity` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_storage_p6.record` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_cache_p6.agenda_logs` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_cache_p6.role` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_storage_p6.p6_gridfs.chunks` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_cache_p6.cacheentry` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_cache_p6.user` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_cache_p6.p6_jobs` from `archive on stdin`
+2026-10-19T06:07:39.776+0000	reading metadata for `redbox_sessions_p6.sessions` from `archive on stdin`
+2026-10-19T06:07:39.788+0000	restoring `redbox_cache_p6.cacheentry` from `archive on stdin`
+2026-10-19T06:07:39.799+0000	finished restoring `redbox_cache_p6.cacheentry` (12 documents, 0 failures)
+2026-10-19T06:07:39.807+0000	restoring `redbox_cache_p6.role` from `archive on stdin`
+2026-10-19T06:07:39.827+0000	finished restoring `redbox_cache_p6.role` (1 document, 0 failures)
+2026-10-19T06:07:39.870+0000	restoring `redbox_sessions_p6.sessions` from `archive on stdin`
+2026-10-19T06:07:39.881+0000	finished restoring `redbox_sessions_p6.sessions` (1 document, 0 failures)
+2026-10-19T06:07:39.892+0000	restoring `redbox_storage_p6.record` from `archive on stdin`
+2026-10-19T06:07:39.903+0000	finished restoring `redbox_storage_p6.record` (1 document, 0 failures)
+2026-10-19T06:07:39.913+0000	restoring `redbox_cache_p6.p6_jobs` from `archive on stdin`
+2026-10-19T06:07:39.924+0000	finished restoring `redbox_cache_p6.p6_jobs` (2 documents, 0 failures)
+2026-10-19T06:07:39.954+0000	restoring `redbox_cache_p6.user` from `archive on stdin`
+2026-10-19T06:07:39.965+0000	finished restoring `redbox_cache_p6.user` (1 document, 0 failures)
+2026-10-19T06:07:39.999+0000	restoring `redbox_storage_p6.p6_gridfs.files` from `archive on stdin`
+2026-10-19T06:07:40.010+0000	restoring `redbox_storage_p6.p6_gridfs.chunks` from `archive on stdin`
+2026-10-19T06:07:40.031+0000	finished restoring `redbox_storage_p6.p6_gridfs.chunks` (1 document, 0 failures)
+2026-10-19T06:07:40.032+0000	finished restoring `redbox_storage_p6.p6_gridfs.files` (1 document, 0 failures)
+2026-10-19T06:07:40.062+0000	restoring `redbox_cache_p6.agenda_logs` from `archive on stdin`
+2026-10-19T06:07:40.082+0000	finished restoring `redbox_cache_p6.agenda_logs` (0 documents, 0 failures)
+2026-10-19T06:07:40.102+0000	restoring `redbox_storage_p6.recordidentity` from `archive on stdin`
+2026-10-19T06:07:40.122+0000	finished restoring `redbox_storage_p6.recordidentity` (1 document, 0 failures)
+2026-10-19T06:07:40.122+0000	restoring indexes for collection `redbox_storage_p6.p6_gridfs.files` from metadata
+2026-10-19T06:07:40.122+0000	index: &idx.IndexDocument{Options:bson.M{"background":false, "name":"filename_1_uploadDate_1", "v":2}, Key:bson.D{bson.E{Key:"filename", Value:1}, bson.E{Key:"uploadDate", Value:1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:40.122+0000	no indexes to restore for collection `redbox_storage_p6.recordidentity`
+2026-10-19T06:07:40.122+0000	no indexes to restore for collection `redbox_storage_p6.record`
+2026-10-19T06:07:40.122+0000	restoring indexes for collection `redbox_storage_p6.p6_gridfs.chunks` from metadata
+2026-10-19T06:07:40.122+0000	index: &idx.IndexDocument{Options:bson.M{"background":true, "name":"files_id_1_n_1", "unique":true, "v":2}, Key:bson.D{bson.E{Key:"files_id", Value:1}, bson.E{Key:"n", Value:1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:40.122+0000	no indexes to restore for collection `redbox_cache_p6.user`
+2026-10-19T06:07:40.122+0000	restoring indexes for collection `redbox_cache_p6.p6_jobs` from metadata
+2026-10-19T06:07:40.122+0000	index: &idx.IndexDocument{Options:bson.M{"name":"findAndLockNextJobIndex", "v":2}, Key:bson.D{bson.E{Key:"name", Value:1}, bson.E{Key:"nextRunAt", Value:1}, bson.E{Key:"priority", Value:-1}, bson.E{Key:"lockedAt", Value:1}, bson.E{Key:"disabled", Value:1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:40.122+0000	restoring indexes for collection `redbox_cache_p6.agenda_logs` from metadata
+2026-10-19T06:07:40.122+0000	index: &idx.IndexDocument{Options:bson.M{"name":"agenda_logs_timestamp_idx", "v":2}, Key:bson.D{bson.E{Key:"timestamp", Value:-1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:40.122+0000	index: &idx.IndexDocument{Options:bson.M{"name":"agenda_logs_job_id_idx", "v":2}, Key:bson.D{bson.E{Key:"jobId", Value:1}, bson.E{Key:"timestamp", Value:-1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:40.122+0000	index: &idx.IndexDocument{Options:bson.M{"name":"agenda_logs_job_name_idx", "v":2}, Key:bson.D{bson.E{Key:"jobName", Value:1}, bson.E{Key:"timestamp", Value:-1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:40.167+0000	no indexes to restore for collection `redbox_cache_p6.role`
+2026-10-19T06:07:40.167+0000	restoring indexes for collection `redbox_cache_p6.cacheentry` from metadata
+2026-10-19T06:07:40.167+0000	index: &idx.IndexDocument{Options:bson.M{"name":"cacheentry_name_unique", "unique":true, "v":2}, Key:bson.D{bson.E{Key:"name", Value:1}}, PartialFilterExpression:(*bson.D)(nil)}
+2026-10-19T06:07:40.169+0000	no indexes to restore for collection `redbox_sessions_p6.sessions`
+2026-10-19T06:07:40.192+0000	21 document(s) restored successfully. 0 document(s) failed to restore.
+P6 post-cutover archive restore seconds=1
+Dynamic imports imported
+{"mode":"snapshot","node":"v24.18.0","mongo":"8.0.34","fcv":{"version":"8.0"},"topology":"standalone"}
+PASS canonical BSON snapshot {"redbox_cache_p6.agenda_logs":{"count":0,"documentsSha256":"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","indexesSha256":"1bbbaa6a29a3b9ed08f1f4f4ab87bb0202459a3eb5d52de82bf5802f7de7cb26","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.cacheentry":{"count":12,"documentsSha256":"a5ddadf4ea602e6e5b635f653d2e26adc50714bdf2107ef595508dea028eb1c8","indexesSha256":"ca01d485a9a3faec2f7369fd390c27618b02e8eaa000f746d6c3759f75f62a9d","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.p6_jobs":{"count":2,"documentsSha256":"c10a893cc0d8b5b1a55a2d3f838ff7c6ec9033903881a9deda590dfba82dacb1","indexesSha256":"84fe06c10c184b95d716292dc5a2e87ff1b349230b61e401eaf2c4c40ec72960","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.role":{"count":1,"documentsSha256":"65c027173c726214ad0788a1ca78bedf7f1eb5744005a88836b44ac2b2f1d76e","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_cache_p6.user":{"count":1,"documentsSha256":"24f8afcf438d6897225bc0bd8380804e8b7fa60c5fa528653a319fc2ae15ddb1","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.chunks":{"count":1,"documentsSha256":"92dc19282128475f2f391e7674ba22114828ab424297b3799597118a0eb61a4d","indexesSha256":"a6bc6e108e7c7fbba7ffce19de324b352041d6b317bd6bca859623eb18e89272","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.p6_gridfs.files":{"count":1,"documentsSha256":"cb4962a5d61a4187e36e23aaac6fc7dd5b9d3596b21d5bf93e52ffa9183208ef","indexesSha256":"10240dccde6a5cc80a347f862c659dd175b46caf414b91c9e5961246596f6b23","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.record":{"count":1,"documentsSha256":"b9cd99266214f6ea79ca027c43812736ac83b5579f523dd607a2c32fd45b1b65","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_storage_p6.recordidentity":{"count":1,"documentsSha256":"b4837c36e0e2fe7d408e6e8b3047272334cca9f97923b552eded7d186eb066dd","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},"redbox_sessions_p6.sessions":{"count":1,"documentsSha256":"cfeecd12b8dd0d4c467ef32b0983563e65734cab4276ebf85d4a31cdef8f96ea","indexesSha256":"a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31","optionsSha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"}}
+Dynamic imports imported
+{"mode":"restart-read","node":"v24.18.0","mongo":"8.0.34","fcv":{"version":"8.0"},"topology":"standalone"}
+PASS independent process persisted read after graceful shutdown
+Dynamic imports imported
+{"mode":"ready","node":"v24.18.0","mongo":"8.0.34","fcv":{"version":"8.0"},"topology":"standalone"}
+PASS shared clients existing Waterline user/role, session, GridFS bytes, record and durable Agenda job; actual CRUD/touch/job execution/storage CAS/removal
+PASS readiness default=Prisma; migrated hook effect; cache persisted; preview fetch/delete; retained callback invocations=0; server connections={"current":9,"available":400,"totalCreated":40,"rejected":0,"active":5,"queuedForEstablishment":0,"establishmentRateLimit":{"rejected":0,"exempted":0,"interruptedDueToClientDisconnect":0},"threaded":9,"exhaustIsMaster":0,"exhaustHello":0,"awaitingTopologyChanges":4,"loadBalanced":0}
+PASS post-cutover backup restore: canonical data/options/index hashes match; new Prisma application and shared clients pass
+PASS P6 rehearsal complete; no engine downgrade, cache flush, bulk rewrite or automatic cleanup
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Stopping
+ Container redbox-cache-p6-rehearsal-9qpxct-restore8-1 Stopping
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Stopping
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Stopped
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Removing
+ Container redbox-cache-p6-rehearsal-9qpxct-restore7-1 Removed
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Stopped
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Removing
+ Container redbox-cache-p6-rehearsal-9qpxct-restore8-1 Stopped
+ Container redbox-cache-p6-rehearsal-9qpxct-restore8-1 Removing
+ Container redbox-cache-p6-rehearsal-9qpxct-mongodb-1 Removed
+ Container redbox-cache-p6-rehearsal-9qpxct-restore8-1 Removed
+ Volume redbox-cache-p6-rehearsal-9qpxct_restore7-data Removing
+ Volume redbox-cache-p6-rehearsal-9qpxct_source-data Removing
+ Network redbox-cache-p6-rehearsal-9qpxct_default Removing
+ Volume redbox-cache-p6-rehearsal-9qpxct_restore8-data Removing
+ Volume redbox-cache-p6-rehearsal-9qpxct_restore8-data Removed
+ Volume redbox-cache-p6-rehearsal-9qpxct_restore7-data Removed
+ Volume redbox-cache-p6-rehearsal-9qpxct_source-data Removed
+ Network redbox-cache-p6-rehearsal-9qpxct_default Removed

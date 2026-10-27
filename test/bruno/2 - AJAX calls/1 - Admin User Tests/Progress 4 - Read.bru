@@ -1,0 +1,33 @@
+meta {
+  name: Progress 4 - Read
+  type: http
+  seq: 57.4
+}
+
+get {
+  url: {{host}}/default/rdmp/asynch?fq={{j1ProgressQuery}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Reads finished progress in the current brand with unchanged results", function () {
+    expect(res.getStatus()).to.equal(200);
+    const rows=res.getBody();
+    expect(rows.length).to.equal(1);
+    expect(rows[0].id).to.equal(bru.getVar('j1ProgressId'));
+    expect(rows[0].status).to.equal('finished');
+    expect(rows[0].metadata.result.done).to.equal(true);
+  });
+}

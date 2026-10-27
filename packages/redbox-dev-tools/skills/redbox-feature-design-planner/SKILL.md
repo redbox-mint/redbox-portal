@@ -1,6 +1,6 @@
 ---
 name: redbox-feature-design-planner
-description: Create detailed feature designs, implementation plans, and task lists for ReDBox/Redbox features that use Waterline models, services, webservice (REST) controllers, ajax controllers, embedded Angular apps, views, and navigation config. Use when asked to design/plan a feature or produce a task list for this stack, especially when explicit sections, non-SPA Angular patterns, and interleaved tests are required.
+description: Create detailed feature designs, implementation plans, and task lists for ReDBox/Redbox features that use Prisma contracts and repositories, services, webservice (REST) controllers, ajax controllers, embedded Angular apps, views, and navigation config. Use when asked to design/plan a feature or produce a task list for this stack, especially when explicit sections, non-SPA Angular patterns, and interleaved tests are required.
 ---
 
 # Redbox Feature Design Planner
@@ -56,7 +56,7 @@ Use this structure and headings verbatim. Keep content concise but explicit.
 
 # Design
 
-## 1. Data Model (Waterline Models)
+## 1. Data Contract (Prisma)
 
 - Purpose and scope
 - New/changed models and attributes
@@ -64,7 +64,7 @@ Use this structure and headings verbatim. Keep content concise but explicit.
 - Validation, lifecycle hooks, and defaults
 - Access control considerations
 - File locations and naming (core-types vs hook, and shim implications)
-- Hook delivery requirements (capabilities + `registerRedboxModels()` if applicable)
+- Repository/service delivery requirements; no model registration or globals
 
 ## 2. Services Layer (Business Logic)
 

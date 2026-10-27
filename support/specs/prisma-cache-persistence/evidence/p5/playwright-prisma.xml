@@ -1,0 +1,6 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="14.203070000000002">
+<testsuite name="apps/portal-settings.spec.ts" timestamp="2026-10-19T04:51:45.009Z" hostname="" tests="1" failures="0" skipped="0" time="10.341" errors="0">
+<testcase name="A17 edits and previews a saved branding draft, reopens it and restores the captured draft" classname="apps/portal-settings.spec.ts" time="10.341">
+</testcase>
+</testsuite>
+</testsuites>

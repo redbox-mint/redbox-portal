@@ -67,7 +67,7 @@ module.exports = {
   up: async ({ context: sails } = {}) => {
     // TODO: implement the forward data transformation.
     // Example:
-    // await sails.models.appconfig.update({ key: 'oldKey' }, { key: 'newKey' });
+    // Use core repository operations after persistence initialization.
     throw new Error('Migration ${this.migrationName} is not implemented yet');
   },
 

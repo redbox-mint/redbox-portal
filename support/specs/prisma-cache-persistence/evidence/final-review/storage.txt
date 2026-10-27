@@ -1,0 +1,17 @@
+
+
+  MongoStorageService shared Mongo integration
+    ✔ has one winner across two service instances sharing one Mongo datastore
+    ✔ gives one durable incarnation to simultaneous explicit-OID creates
+    ✔ serializes explicit creation against a deleted incarnation and keeps ownership after purge
+    ✔ has one winner for an active update/removal race
+    ✔ atomically gives one winner to a legacy record with no revision
+    ✔ conditionally advances and removes a tombstone in the real dialect
+    ✔ gives one durable owner to two competing lifecycle intents
+    ✔ serializes restore/purge claims and idempotently delivers a claimed restore
+    ✔ runs the revision backfill idempotently against the real Mongo API
+
+
+  9 passing (300ms)
+
+PASS storage concurrency with mongodb@7.2.0, MongoDB 8.0.34, v24.18.0

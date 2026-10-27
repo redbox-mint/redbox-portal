@@ -1,0 +1,17 @@
+Post-promotion checks, source 210adbdc4ddd4b1100844469db8ba19d2747bc57.
+npm --prefix packages/redbox-core run build: exit 0 (contract generation, tsc, contract copy).
+node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json: exit 0.
+Prettier changed TypeScript/CJS files and bootstrap fixture: pass.
+Found 0 warnings and 0 errors.
+Finished in 185ms on 2 files with 1 rules using 4 threads.
+
+node packages/redbox-core/test/fixtures/cache-persistence/repository-import-smoke.cjs: exit 0.
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+[redbox-loader] Starting shim generation (NODE_ENV !== production)...
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+[redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+[redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+[redbox-loader] Shim generation complete in 165.99ms
+PASS core import, service exports, shim generation/loading: zero socket attempts (v24.18.0)

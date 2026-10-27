@@ -38,10 +38,7 @@ Default behavior:
 
 ## Backend Changes
 
-1. Update [I18nTranslation.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/waterline-models/I18nTranslation.ts) to add:
-   - `contentFormat?: 'plain' | 'html'`
-   - Waterline string attr with `allowNull: true`
-   - Type interface field.
+1. Declare `contentFormat` as an optional string in the Prisma core contract (`packages/redbox-core/src/persistence/prisma/contract.ts`) and the plain translation row interface, then regenerate and commit the contracts. Existing documents require no rewrite.
 
 2. Update [I18nEntriesService.ts](/Users/andrewbrazzatti/source/github/worktrees/redbox-portal/feature/translation-search-html-editor/packages/redbox-core/src/services/I18nEntriesService.ts):
    - Extend `setEntry` options with `contentFormat?: 'plain' | 'html'`.
@@ -156,7 +153,7 @@ Update content/form config support so rendering can respect metadata instead of 
 
 2. Existing translations with no metadata will be treated as plain text.
 
-3. No database migration is required for Mongo/Waterline beyond the model attribute addition; new writes will include `contentFormat` where applicable.
+3. No database migration is required for MongoDB beyond the Prisma field declaration; new writes will include `contentFormat` where applicable.
 
 ## Tests
 

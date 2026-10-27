@@ -1,0 +1,49 @@
+{
+  "baseline": "0cfbd62b93260b63ad907d7c01ed9f33a2af619e",
+  "node": "v24.18.0",
+  "sharedInstalledDependencies": true,
+  "runs": [
+    {
+      "selection": "base",
+      "wallMs": 10554.89738,
+      "coreMs": 9264.455810000001,
+      "totalMs": 10075.01254,
+      "prismaModules": 0
+    },
+    {
+      "selection": "current",
+      "wallMs": 10636.069492,
+      "coreMs": 9628.939842,
+      "totalMs": 10261.702476,
+      "prismaModules": 0
+    },
+    {
+      "selection": "current",
+      "wallMs": 11107.879241999999,
+      "coreMs": 10032.434806,
+      "totalMs": 10730.600074,
+      "prismaModules": 0
+    },
+    {
+      "selection": "base",
+      "wallMs": 11626.270957,
+      "coreMs": 10428.329655,
+      "totalMs": 11287.679181,
+      "prismaModules": 0
+    },
+    {
+      "selection": "base",
+      "wallMs": 12579.592852000002,
+      "coreMs": 11062.773613,
+      "totalMs": 12195.970463,
+      "prismaModules": 0
+    },
+    {
+      "selection": "current",
+      "wallMs": 12872.248375000003,
+      "coreMs": 11672.900596,
+      "totalMs": 12420.910663999999,
+      "prismaModules": 0
+    }
+  ]
+}

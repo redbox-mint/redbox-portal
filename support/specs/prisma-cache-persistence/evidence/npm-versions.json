@@ -1,0 +1,96 @@
+{
+  "queriedAtUtc": "2026-10-18",
+  "registry": "https://registry.npmjs.org",
+  "note": "Read-only npm view results; candidates only, no packages added. Missing engines means registry did not declare one.",
+  "queries": {
+    "prismaCli": "npm view prisma@8.0.0-rc.23 dist-tags version engines --json",
+    "prismaMongoRuntime": "npm view @prisma/orm-mongo@8.0.0-rc.18 version dist-tags type engines --json",
+    "mikroOrmMongo": "npm view @mikro-orm/mongodb version engines type dependencies --json",
+    "mikroOrmCore": "npm view @mikro-orm/core@7.2.5 engines type exports --json",
+    "mikroOrm6Core": "npm view @mikro-orm/core@6.6.17 version type exports engines --json"
+  },
+  "results": {
+    "prismaCli": [
+      {
+        "dist-tags": {
+          "turso": "5.4.0-dev.61",
+          "early-access": "5.12.0-dev.21",
+          "typed-sql": "5.19.0-integration-feat-typed-sql.14",
+          "patch-dev": "7.9.1-dev.1",
+          "integration": "7.10.0-integration-fix-prisma-publish-token.1",
+          "next": "8.0.0-rc.10",
+          "prev": "7.10.1",
+          "latest": "8.0.0-rc.23",
+          "dev": "8.0.0-rc.23-dev.153"
+        },
+        "version": "8.0.0-rc.23",
+        "engines": {
+          "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+        }
+      }
+    ],
+    "prismaMongoRuntime": [
+      {
+        "version": "8.0.0-rc.18",
+        "dist-tags": {
+          "latest": "8.0.0-rc.18",
+          "dev": "8.0.0-rc.18-dev.16"
+        },
+        "type": "module"
+      }
+    ],
+    "mikroOrmMongo": [
+      {
+        "version": "7.2.5",
+        "engines": {
+          "node": ">= 22.17.0"
+        },
+        "type": "module",
+        "dependencies": {
+          "mongodb": "7.7.0"
+        }
+      }
+    ],
+    "mikroOrmCore": [
+      {
+        "engines": {
+          "node": ">= 22.17.0"
+        },
+        "type": "module",
+        "exports": {
+          ".": "./index.js",
+          "./schema": "./utils/AbstractSchemaGenerator.js",
+          "./fs-utils": {
+            "node": "./utils/fs-utils.js",
+            "browser": "./not-supported.js"
+          },
+          "./dataloader": "./utils/DataloaderUtils.js",
+          "./migrations": "./utils/AbstractMigrator.js",
+          "./package.json": "./package.json",
+          "./file-discovery": {
+            "node": "./metadata/discover-entities.js",
+            "browser": "./not-supported.js"
+          }
+        }
+      }
+    ],
+    "mikroOrm6Core": [
+      {
+        "version": "6.6.17",
+        "exports": {
+          ".": {
+            "import": {
+              "types": "./index.d.ts",
+              "default": "./index.mjs"
+            },
+            "require": "./index.js"
+          },
+          "./package.json": "./package.json"
+        },
+        "engines": {
+          "node": ">= 18.12.0"
+        }
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 ## Using a Sails hook to customise ReDBox
 
 To allow us to make customisations to a ReDBox instance, we take advantage of the [sails installable hook](https://sailsjs.com/documentation/concepts/extending-sails/hooks) feature.
-This allows us to package our changes as an NPM package and using npm install, 
+This allows us to package our changes as an NPM package and using npm install,
 have them applied to the instance during the lifting process.
 
 ### Getting Started with TypeScript
@@ -23,11 +23,11 @@ npm run build
 ### Development
 
 A code project is setup in Bitbucket that contains the hook code.
-This should be of the format `redbox-hook-[project name]`, 
+This should be of the format `redbox-hook-[project name]`,
 where `[project-name]` is replaced with the project, feature, or client name.
 
 Each hook contains a `docker-compose.yml` intended for development.
-It loads the customised container (i.e. with hook installed) and 
+It loads the customised container (i.e. with hook installed) and
 volume mounts the local code so that you can make changes.
 
 For example:
@@ -52,7 +52,6 @@ Hooks can provide various components to ReDBox by declaring capabilities in `pac
 {
     "name": "redbox-hook-myproject",
     "sails": {
-        "hasModels": true,
         "hasPolicies": true,
         "hasServices": true,
         "hasControllers": true,
@@ -69,7 +68,6 @@ Each capability flag requires a corresponding export function:
 
 | Flag | Export Function | Returns |
 |---|---|---|
-| `hasModels` | `registerRedboxModels()` | Object of Waterline model definitions |
 | `hasPolicies` | `registerRedboxPolicies()` | Object of policy functions |
 | `hasServices` | `registerRedboxServices()` | Object of service exports (can override core services) |
 | `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Object of controller exports (can override core controllers) |
@@ -77,20 +75,12 @@ Each capability flag requires a corresponding export function:
 | `hasApiRoutes` | `registerHookApiRoutes()` | Array of contract-first API route definitions |
 | `hasConfig` | `registerRedboxConfig()` | Configuration object to merge |
 
-#### Example: Providing Models
+#### Persistence extensions
 
-```javascript
-module.exports.registerRedboxModels = function() {
-    return {
-        MyCustomModel: {
-            attributes: {
-                name: { type: 'string', required: true },
-                value: { type: 'json' }
-            }
-        }
-    };
-};
-```
+Model registration is retired. Move callbacks into services or plain repositories,
+declare fields in the Prisma contracts and migrate custom physical mappings.
+Stale registrations and custom model shims stop startup with migration guidance.
+See [institution persistence migration](Persistence-Migration.md).
 
 #### Example: Providing Policies
 

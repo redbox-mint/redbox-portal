@@ -131,8 +131,7 @@
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.1",
     "zod": "4.6.7",
-    "@prisma/orm-mongo": "8.0.0-rc.19",
-    "sails-mongo": "2.1.2"
+    "@prisma/orm-mongo": "8.0.0-rc.19"
   },
   "overrides": {
     "axios": "1.20.0",
@@ -158,9 +157,6 @@
     },
     "@prisma/orm-toolchain": {
       "@prisma/cli-engine": "0.9.0"
-    },
-    "sails-mongo": {
-      "qs": "6.15.2"
     }
   },
   "devDependencies": {

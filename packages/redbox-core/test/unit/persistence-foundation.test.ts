@@ -3,7 +3,7 @@ import { createSecureContext } from 'node:tls';
 import { definePersistenceGroup } from '../../src/persistence/groupRuntime';
 import * as sinon from 'sinon';
 import { resolveDatastore } from '../../src/persistence/mongodb/configuration';
-import { assertPersistenceConfiguration, groupBackends } from '../../src/persistence/selection';
+import { assertPersistenceConfiguration } from '../../src/persistence/selection';
 import {
   initializePersistence,
   cleanupPersistence,
@@ -18,13 +18,32 @@ function app(config: object = {}): Sails.Application {
 }
 describe('driver persistence foundation', function () {
   afterEach(() => sinon.restore());
-  it('keeps model configuration valid while all consumers use Prisma', () => {
-    const backends = groupBackends({ models: { migrate: 'safe' } });
-    assert.equal(backends.identity, 'prisma');
-    assert.equal(backends.storage, 'prisma');
-    assert.equal(backends.reference, 'prisma');
-    const resolved = resolveDatastore({ adapter: 'sails-mongo', url: 'mongodb://host/fixture', migrate: 'safe' });
-    assert.equal(resolved.database, 'fixture');
+  it('defaults migrated groups to Prisma and refuses unsupported/stale selectors without fallback', async () => {
+    assertPersistenceConfiguration({});
+    for (const value of [
+      { surprise: {} },
+      { groups: { unknown: { backend: 'waterline' } } },
+      ...[
+        'migration',
+        'reference',
+        'configuration',
+        'progress',
+        'harvest',
+        'siem',
+        'figshare',
+        'vocabulary',
+        'branding',
+        'storage',
+        'identity',
+      ].map(group => ({
+        groups: { [group]: { backend: 'mongodb' } },
+      })),
+    ])
+      assert.throws(() => assertPersistenceConfiguration({ persistence: value }));
+    await assert.rejects(
+      initializePersistence(app({ persistence: { groups: { identity: { backend: 'mongodb' } } } })),
+      (error: unknown) => error instanceof Error && Reflect.get(error, 'code') === 'configuration'
+    );
   });
   it('resolves legacy protocol/split/escaping/credential precedence without models or managers', function () {
     for (const url of ['host:27018/app%25db', '://host:27018/app%25db', 'mongodb://host:27018/app%25db']) {

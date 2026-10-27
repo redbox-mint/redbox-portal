@@ -1,0 +1,25 @@
+PASS support/integration-testing/docker-compose.bruno.oidc.yml: requested=default, effective=prisma,prisma, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.bruno.oidc.yml: requested=waterline, effective=waterline,waterline, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.yml: requested=default, effective=prisma, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.yml: requested=waterline, effective=waterline, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.playwright.yml: requested=default, effective=prisma,prisma, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.playwright.yml: requested=waterline, effective=waterline,waterline, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.bruno.general.yml: requested=default, effective=prisma,prisma, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.bruno.general.yml: requested=waterline, effective=waterline,waterline, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.mocha.yml: requested=default, effective=prisma,prisma, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.mocha.yml: requested=waterline, effective=waterline,waterline, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.bruno.yml: requested=default, effective=prisma, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.bruno.yml: requested=waterline, effective=waterline, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.bruno.s3.yml: requested=default, effective=prisma,prisma, explicit fresh-index mounts=1
+PASS support/integration-testing/docker-compose.bruno.s3.yml: requested=waterline, effective=waterline,waterline, explicit fresh-index mounts=1
+PASS support/development/docker-compose.yml: requested=default, effective=prisma,prisma, explicit fresh-index mounts=1
+PASS support/development/docker-compose.yml: requested=waterline, effective=waterline,waterline, explicit fresh-index mounts=1
+PASS packages/sails-hook-redbox-pdfgen/support/api-integration-testing/docker-compose.bruno.yml: requested=default, effective=prisma, explicit fresh-index mounts=1
+PASS packages/sails-hook-redbox-pdfgen/support/api-integration-testing/docker-compose.bruno.yml: requested=waterline, effective=waterline, explicit fresh-index mounts=1
+PASS packages/sails-hook-redbox-pdfgen/support/development/docker-compose.yml: requested=default, effective=prisma, explicit fresh-index mounts=1
+PASS packages/sails-hook-redbox-pdfgen/support/development/docker-compose.yml: requested=waterline, effective=waterline, explicit fresh-index mounts=1
+PASS .tmp/prisma-cache-p5/generated-hook/support/development/docker-compose.yml: requested=default, effective=prisma, explicit fresh-index mounts=1
+PASS .tmp/prisma-cache-p5/generated-hook/support/development/docker-compose.yml: requested=waterline, effective=waterline, explicit fresh-index mounts=1
+PASS .tmp/prisma-cache-p5/generated-hook/support/integration-testing/docker-compose.mocha.yml: requested=default, effective=prisma, explicit fresh-index mounts=1
+PASS .tmp/prisma-cache-p5/generated-hook/support/integration-testing/docker-compose.mocha.yml: requested=waterline, effective=waterline, explicit fresh-index mounts=1
+PASS CircleCI: Prisma parameter default; three explicit both-backend Mocha matrices retained

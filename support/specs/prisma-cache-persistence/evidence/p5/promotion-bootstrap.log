@@ -1,0 +1,135 @@
+P5 post-promotion bootstrap ordering fixtures explicitly select Waterline model doubles; other cases use lifecycle doubles.
+
+
+  bootstrap pre-lift setup
+    ✔ awaits service initialization before clearing the resolved route cache
+    ✔ defers record-schema validation to the post-storage readiness gate
+
+  record schema bootstrap lifecycle
+    ✔ awaits record-schema startup and propagates startup failure
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'disabled',
+  finding_count: 0
+}
+Dynamic imports imported
+    ✔ allows disabled record schemas to lift with legacy storage
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'startup-configured-forms',
+  status: 'passed',
+  finding_count: 0
+}
+Dynamic imports imported
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'passed',
+  finding_count: 0
+}
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'integration-pins',
+  status: 'passed'
+}
+    ✔ allows enabled record schemas to lift with complete startup dependencies
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'startup-configured-forms',
+  status: 'passed',
+  finding_count: 0
+}
+Dynamic imports imported
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'failed',
+  finding_count: 1
+}
+    ✔ blocks lift when enabled storage lacks a required capability
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'failed',
+  finding_count: 1
+}
+Dynamic imports imported
+    ✔ blocks lift for duplicate contributor registration
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'startup-configured-forms',
+  status: 'passed',
+  finding_count: 0
+}
+Dynamic imports imported
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'failed',
+  finding_count: 1
+}
+    ✔ blocks lift for an uncovered persisted core component
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'startup-configured-forms',
+  status: 'passed',
+  finding_count: 0
+}
+Dynamic imports imported
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'failed',
+  finding_count: 1
+}
+    ✔ blocks lift for a malformed configured integration pin
+Dynamic imports imported
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'startup-configured-forms',
+  status: 'passed',
+  finding_count: 0
+}
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'passed',
+  finding_count: 0
+}
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'integration-pins',
+  status: 'passed'
+}
+    ✔ allows a partial custom component contract to lift (64ms)
+Dynamic imports imported
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'startup-configured-forms',
+  status: 'failed',
+  finding_count: 1
+}
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'failed',
+  finding_count: 4
+}
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'startup-configured-forms',
+  status: 'failed',
+  finding_count: 1
+}
+record_schema_startup_check {
+  event: 'record_schema_startup_check',
+  context: 'lifecycle',
+  status: 'failed',
+  finding_count: 4
+}
+    ✔ aggregates and stably sorts fatal lift diagnostics across available checks
+    ✔ keeps the real core bootstrap pending until record-schema startup finishes after storage readiness
+
+
+  12 passing (175ms)

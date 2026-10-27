@@ -1,0 +1,38 @@
+P5 full core requested backend=prisma; unit suites select their own fixtures; live selections asserted in transition and portal runs.
+npm notice run redbox-portal@2.1.0 test:core
+npm notice run cd ./packages/redbox-core && npm run test && cd ../../
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test
+npm notice run TS_NODE_PROJECT=test/tsconfig.json mocha
+Mocha running in local dev.
+
+[... unchanged full suite output omitted ...]
+  startup module loading
+    ✔ loads core without a browser DOM or the full Effect barrel, then sanitizes on first use (11842ms)
+
+  4097 passing (1m)
+  88 pending
+  2 failing
+
+  1) bootstrap pre-lift setup
+       awaits service initialization before clearing the resolved route cache:
+     CachePersistenceError: Prisma cache requires the standard cacheentry collection and id mapping. Review and migrate CacheEntry hook overrides before selecting prisma.
+      at assertDefaultCacheMapping (src/persistence/cache/configuration.ts:24:11)
+      at createApplicationCacheDriver (src/persistence/cache/configuration.ts:57:3)
+      at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/cache/runtime.ts:91:50
+      at initializeCachePersistence (src/persistence/cache/runtime.ts:108:5)
+      at runPreLiftSetup (src/bootstrap.ts:245:35)
+      at preLiftSetup (src/bootstrap.ts:203:11)
+      at Context.<anonymous> (test/bootstrap.test.ts:101:23)
+      at processImmediate (node:internal/timers:504:21)
+
+  2) bootstrap pre-lift setup
+       defers record-schema validation to the post-storage readiness gate:
+     CachePersistenceError: Prisma cache requires the standard cacheentry collection and id mapping. Review and migrate CacheEntry hook overrides before selecting prisma.
+      at assertDefaultCacheMapping (src/persistence/cache/configuration.ts:24:11)
+      at createApplicationCacheDriver (src/persistence/cache/configuration.ts:57:3)
+      at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/cache/runtime.ts:91:50
+      at initializeCachePersistence (src/persistence/cache/runtime.ts:108:5)
+      at runPreLiftSetup (src/bootstrap.ts:245:35)
+      at preLiftSetup (src/bootstrap.ts:203:11)
+      at Context.<anonymous> (test/bootstrap.test.ts:134:23)
+      at processImmediate (node:internal/timers:504:21)

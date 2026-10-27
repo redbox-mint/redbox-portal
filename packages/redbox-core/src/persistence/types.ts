@@ -4,7 +4,6 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key:
 /** IDs are opaque to callers. Concrete operations own their physical codecs. */
 export type PersistenceId = string;
 export type LogicalDatastore = 'mongodb' | 'redboxStorage';
-export type PersistenceBackend = 'prisma' | 'waterline';
 export type PersistenceGroup =
   | 'migration'
   | 'reference'

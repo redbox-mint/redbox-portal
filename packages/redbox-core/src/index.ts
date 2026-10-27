@@ -462,6 +462,3 @@ export {
 export type { IdentityRepositories, IdentityRows, IdentityRead } from './persistence/identity/IdentityRepositories';
 
 export { prismaModelRow } from './persistence/prisma/modelRow';
-
-export * from './decorators';
-export { WaterlineModels } from './waterline-models';
