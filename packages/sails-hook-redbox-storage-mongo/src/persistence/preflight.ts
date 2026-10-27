@@ -24,9 +24,12 @@ export const prismaStagedStorageIndexes: readonly PersistenceIndex[] = [
       collection,
       name: index.name,
       keys: index.key as Record<string, 1 | -1>,
-      ...(index.unique ? { unique: true } : {}),
-      ...(index.sparse ? { sparse: true } : {}),
+      ...(index.unique !== undefined ? { unique: index.unique } : {}),
+      ...(index.sparse !== undefined ? { sparse: index.sparse } : {}),
       ...(index.partialFilterExpression ? { partialFilter: index.partialFilterExpression } : {}),
+      ...(index.expireAfterSeconds !== undefined ? { expireAfterSeconds: index.expireAfterSeconds } : {}),
+      ...(index.hidden !== undefined ? { hidden: index.hidden } : {}),
+      ...(index.collation !== undefined ? { collation: index.collation } : {}),
     }))
   ),
   {
@@ -59,7 +62,7 @@ export async function inspectPrismaStagedStorage(app: Sails.Application): Promis
         );
     }
     const reports = await Promise.all(storageIndexes(app).map(index => inspectPersistenceIndex(app, index)));
-    // Keep the existing native schema readiness contract, including hidden and
+    // Keep the existing native schema readiness contract, including
     // persistent options outside the foundation's common descriptor subset.
     for (const [collection, required] of [
       ['recordschemaartifact', RECORD_SCHEMA_ARTIFACT_INDEXES],
@@ -94,7 +97,8 @@ export async function ensurePrismaStagedStorageIndexes(app: Sails.Application): 
   return after;
 }
 
-function storageIndexes(app: Sails.Application): readonly PersistenceIndex[] {
+/** Effective configured native indexes for explicit maintenance and readiness. @internal */
+export function storageIndexes(app: Sails.Application): readonly PersistenceIndex[] {
   const config = (app.config.storage as { mongodb?: typeof storage.mongodb })?.mongodb ?? storage.mongodb;
   const groups: [string, import('mongodb').IndexDescription[]][] = [
     ['record', config.indices ?? []],
@@ -125,9 +129,12 @@ function storageIndexes(app: Sails.Application): readonly PersistenceIndex[] {
             .map(([key, direction]) => `${key}_${direction}`)
             .join('_'),
         keys: index.key as Record<string, 1 | -1>,
-        ...(index.unique ? { unique: true } : {}),
-        ...(index.sparse ? { sparse: true } : {}),
+        ...(index.unique !== undefined ? { unique: index.unique } : {}),
+        ...(index.sparse !== undefined ? { sparse: index.sparse } : {}),
         ...(index.partialFilterExpression ? { partialFilter: index.partialFilterExpression } : {}),
+        ...(index.expireAfterSeconds !== undefined ? { expireAfterSeconds: index.expireAfterSeconds } : {}),
+        ...(index.hidden !== undefined ? { hidden: index.hidden } : {}),
+        ...(index.collation !== undefined ? { collation: index.collation } : {}),
       }))
     ),
   ];
