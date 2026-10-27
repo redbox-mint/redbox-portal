@@ -2,16 +2,16 @@
     <div class="col-md-offset-5 col-md-3">
       <div class="panel panel-default">
         <div class="panel-heading">
-          <span class="panel-title"><%= TranslationService.t('aaf-title') %></span>
+          <span class="panel-title"><%= page.t('aaf-title') %></span>
         </div>
         <div class="panel-body">
           <% 
-            const brandingAwareConfig = typeof sails.config.brandingAware === 'function' ? sails.config.brandingAware(branding) : {};
+            const brandingAwareConfig = page.settings;
             const brandAuthConfig = brandingAwareConfig.auth || {};
             const aafConfig = brandAuthConfig.aaf || {};
             const aafLoginUrl = aafConfig.loginUrl || '#';
           %>
-          <a href='<%= aafLoginUrl %>'><img src='<%= BrandingService.getRootContext() %>/images/aaf_service_223x54.png' alt="<%= TranslationService.t('aaf-logo-alt-text') %>"/></a>
+          <a href='<%= aafLoginUrl %>'><img src='<%= page.root %>/images/aaf_service_223x54.png' alt="<%= page.t('aaf-logo-alt-text') %>"/></a>
         </div>
       </div>
     </div>

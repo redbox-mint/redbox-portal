@@ -1,113 +1,63 @@
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import assert from 'node:assert/strict';
+import { httpPolicyFixture } from '../helpers/httpPolicyFixture';
+import { requestContext } from '../../src/http/express/policies';
 
-// Mock lodash globally BEFORE importing the policy (as it uses `_` at import time)
-(global as any)._ = require('lodash');
-
-import { brandingAndPortal } from '../../src/policies/brandingAndPortal';
-
-describe('brandingAndPortal policy', function () {
-
-    function createMockReqRes(branding?: string, portal?: string) {
-        const params: Record<string, string | undefined> = { branding, portal };
-        const req: any = {
-            param: (name: string) => params[name],
-            options: {},
-            session: {}
-        };
-        const res: any = {};
-        return { req, res };
-    }
-
-    it('should set branding in options.locals and session', function () {
-        const { req, res } = createMockReqRes('testBrand', undefined);
-        let nextCalled = false;
-
-        brandingAndPortal(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(req.options.locals.branding).to.equal('testBrand');
-        expect(req.session.branding).to.equal('testBrand');
-    });
-
-    it('should set portal in options.locals and session', function () {
-        const { req, res } = createMockReqRes(undefined, 'testPortal');
-        let nextCalled = false;
-
-        brandingAndPortal(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(req.options.locals.portal).to.equal('testPortal');
-        expect(req.session.portal).to.equal('testPortal');
-    });
-
-    it('should set both branding and portal', function () {
-        const { req, res } = createMockReqRes('myBrand', 'myPortal');
-        let nextCalled = false;
-
-        brandingAndPortal(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(req.options.locals.branding).to.equal('myBrand');
-        expect(req.options.locals.portal).to.equal('myPortal');
-        expect(req.session.branding).to.equal('myBrand');
-        expect(req.session.portal).to.equal('myPortal');
-    });
-
-    it('should not overwrite existing branding in options.locals', function () {
-        const { req, res } = createMockReqRes('newBrand', undefined);
-        req.options.locals = { branding: 'existingBrand' };
-        let nextCalled = false;
-
-        brandingAndPortal(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(req.options.locals.branding).to.equal('existingBrand');
-    });
-
-    it('should not overwrite existing portal in options.locals', function () {
-        const { req, res } = createMockReqRes(undefined, 'newPortal');
-        req.options.locals = { portal: 'existingPortal' };
-        let nextCalled = false;
-
-        brandingAndPortal(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(req.options.locals.portal).to.equal('existingPortal');
-    });
-
-    it('should initialize options.locals if null', function () {
-        const { req, res } = createMockReqRes('testBrand', 'testPortal');
-        req.options.locals = null;
-        let nextCalled = false;
-
-        brandingAndPortal(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(req.options.locals).to.be.an('object');
-        expect(req.options.locals.branding).to.equal('testBrand');
-    });
-
-    it('should initialize session if undefined', function () {
-        const { req, res } = createMockReqRes('testBrand', undefined);
-        req.session = undefined;
-        let nextCalled = false;
-
-        brandingAndPortal(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(req.session).to.be.an('object');
-        expect(req.session.branding).to.equal('testBrand');
-    });
-
-    it('should call next with no params provided', function () {
-        const { req, res } = createMockReqRes(undefined, undefined);
-        let nextCalled = false;
-
-        brandingAndPortal(req, res, () => { nextCalled = true; });
-
-        expect(nextCalled).to.be.true;
-        expect(req.options.locals.branding).to.be.undefined;
-        expect(req.options.locals.portal).to.be.undefined;
-    });
+describe('brandingAndPortal explicit request context', () => {
+  it('resolves branding from the route to an authoritative brand snapshot', async () => {
+    const f = httpPolicyFixture();
+    await f.run('brandingandportal');
+    assert.equal(requestContext(f.req).brand, f.brand);
+    assert.deepEqual(f.getBrand.firstCall.args, [{ name: 'default' }, true]);
+  });
+  it('resolves a configured portal', async () => {
+    const f = httpPolicyFixture();
+    f.req.params.portal = 'other';
+    await f.run('brandingandportal');
+    assert.equal(requestContext(f.req).portal, 'other');
+  });
+  it('resolves both brand and portal together', async () => {
+    const f = httpPolicyFixture();
+    f.req.params.branding = 'custom';
+    f.req.params.portal = 'other';
+    const custom = { id: 'custom-id', name: 'custom' };
+    f.getBrand.resolves(custom);
+    await f.run('brandingandportal');
+    assert.deepEqual(requestContext(f.req), { brand: custom, portal: 'other' });
+    assert(Object.isFrozen(requestContext(f.req)));
+  });
+  it('does not trust a preexisting branding session snapshot', async () => {
+    const f = httpPolicyFixture();
+    Object.assign(f.req.session, { branding: 'foreign' });
+    await f.run('brandingandportal');
+    assert.equal(requestContext(f.req).brand.id, f.brand.id);
+    assert.equal(f.req.session.branding, 'foreign');
+  });
+  it('does not trust a preexisting portal session snapshot', async () => {
+    const f = httpPolicyFixture();
+    Object.assign(f.req.session, { portal: 'foreign' });
+    await f.run('brandingandportal');
+    assert.equal(requestContext(f.req).portal, 'portal');
+    assert.equal(f.req.session.portal, 'foreign');
+  });
+  it('requires no framework options/locals object', async () => {
+    const f = httpPolicyFixture();
+    await f.run('brandingandportal');
+    assert(f.next.calledOnce);
+    assert.equal(Reflect.get(f.req, 'options'), undefined);
+  });
+  it('resolves context without creating a session', async () => {
+    const f = httpPolicyFixture();
+    Reflect.deleteProperty(f.req, 'session');
+    await f.run('brandingandportal');
+    assert(f.next.calledOnce);
+    assert.equal(Reflect.get(f.req, 'session'), undefined);
+  });
+  it('rejects missing route brand and portal rather than inventing defaults', async () => {
+    const f = httpPolicyFixture();
+    f.req.params = {};
+    await f.run('brandingandportal');
+    assert(f.response.status.calledOnceWithExactly(404));
+    assert(!f.next.called);
+    assert(!f.getBrand.called);
+  });
 });

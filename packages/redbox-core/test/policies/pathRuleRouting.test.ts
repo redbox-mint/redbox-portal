@@ -1,10 +1,6 @@
-import { repositoryFixtures } from '../helpers/repositoryFixtures';
-import * as sinon from 'sinon';
-import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import assert from 'node:assert/strict';
-import { firstValueFrom } from 'rxjs';
-import { Services } from '../../src/services/PathRulesService';
-import { checkAuth } from '../../src/policies/checkAuth';
+import { PathRules } from '../../src/authorization/PathRules';
+import { httpPolicyFixture } from '../helpers/httpPolicyFixture';
 import { BrandingModel } from '../../src/model/storage/BrandingModel';
 
 describe('Path-rule routing authorization', () => {
@@ -18,29 +14,10 @@ describe('Path-rule routing authorization', () => {
     { path: '/:branding/:portal/user/revokeKey', role: admin, branding: brand, can_update: true },
     { path: '/:branding/:portal/home/', role: guest, branding: brand, can_read: true },
   ];
-  let service: Services.PathRules;
-  let savedGlobals: Record<string, unknown>;
-
+  let service: PathRules;
   beforeEach(async () => {
-    installIdentityRepositoryMock();
-    savedGlobals = {
-      PathRule: Reflect.get(repositoryFixtures, 'PathRule'),
-      PathRulesService: Reflect.get(globalThis, 'PathRulesService'),
-      BrandingService: Reflect.get(globalThis, 'BrandingService'),
-      RolesService: Reflect.get(globalThis, 'RolesService'),
-    };
-    const query = {
-      populate: (_association: string) => query,
-      exec: (callback: (error: null, result: typeof rules) => void) => callback(null, rules),
-    };
-    service = new Services.PathRules();
-    (Object.assign(repositoryFixtures, {PathRule: { find: () => query }}), Object.assign(globalThis, {PathRulesService: service,BrandingService: { getBrand: () => brand },RolesService: { getDefUnathenticatedRole: () => guest }}));
-    await firstValueFrom(service.loadRules());
-  });
-
-  afterEach(() => {
-    sinon.restore();
-    Object.assign(globalThis, savedGlobals);
+    service = new PathRules(async () => rules);
+    await service.loadRules();
   });
 
   const protectedPaths = [
@@ -55,31 +32,24 @@ describe('Path-rule routing authorization', () => {
 
   for (const path of protectedPaths) {
     for (const authenticated of [false, true]) {
-      it(`denies ${authenticated ? 'researcher' : 'anonymous'} access to ${path}`, () => {
-        let nextCalled = false;
-        let status: number | undefined;
-        const req = {
-          path,
-          headers: { 'content-type': 'application/json' },
-          session: { branding: brand.name },
-          isAuthenticated: () => authenticated,
-          user: authenticated ? { roles: [researcher] } : undefined,
-        } as unknown as Sails.Req;
-        const response = {
-          status: (value: number) => {
-            status = value;
-            return response;
-          },
-          json: () => response,
-          send: () => response,
-        };
-
-        checkAuth(req, response as unknown as Sails.Res, () => {
-          nextCalled = true;
-        });
-
-        assert.equal(status, 403);
-        assert.equal(nextCalled, false);
+      it(`denies ${authenticated ? 'researcher' : 'anonymous'} access to ${path}`, async () => {
+        const f = httpPolicyFixture();
+        Reflect.set(f.req, 'path', path);
+        f.req.headers['content-type'] = 'application/json';
+        f.authenticate.resolves(
+          authenticated
+            ? {
+                ...f.actor,
+                roles: [{ ...researcher, brandId: brand.id }],
+              }
+            : false
+        );
+        f.defaultUnauthenticatedRole.returns(guest);
+        f.getRulesFromPath.callsFake(service.getRulesFromPath.bind(service));
+        f.canRead.callsFake(service.canRead.bind(service));
+        await f.run('brandingandportal', 'checkauth');
+        assert(f.response.status.calledOnceWithExactly(403));
+        assert(!f.next.called);
       });
     }
 

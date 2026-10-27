@@ -1,240 +1,81 @@
-import {createSinonStubLogger} from "../logger.test";
+import { expect } from 'chai';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { PageArtifacts } from '../../src/pages/Artifacts';
+import { pageLocals } from '../../src/pages/locals';
 
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+const input = { root: '', origin: 'http://localhost', brand: { name: 'default' }, portal: 'portal',
+  typeface: null, faviconUrl: '/default/portal/images/favicon', settings: {}, config: {},
+  t: (key: string) => key, param: () => undefined, bundleHash: () => '', hasRole: () => false };
 
-describe('ViewUtilsService', function() {
-  let ViewUtilsService: any;
-  let mockSails: any;
-
-  beforeEach(function() {
-    mockSails = createMockSails({
-      config: {
-        appPath: '/app'
-      },
-      log: createSinonStubLogger(sinon),
+describe('Explicit page locals and installed partial artifacts', () => {
+  describe('displayValue', () => {
+    it('returns the default when a key path is absent', () => {
+      expect(pageLocals(input, {}).displayValue('user.name', 'defaultName')).to.equal('defaultName');
     });
-    setupServiceTestGlobals(mockSails);
-  });
-
-  afterEach(function() {
-    cleanupServiceTestGlobals();
-    sinon.restore();
-  });
-
-  describe('displayValue', function() {
-    let viewUtils: any;
-
-    beforeEach(function() {
-      // Import after globals are set up
-      const { Services } = require('../../src/services/ViewUtilsService');
-      viewUtils = new Services.ViewUtils();
+    it('returns a simple local value', () => {
+      expect(pageLocals(input, { username: 'testuser' }).displayValue('username', 'default')).to.equal('testuser');
     });
-
-    it('should return default value when key path is not found', function() {
-      const req = {
-        options: {
-          locals: {}
-        }
-      };
-
-      const result = viewUtils.displayValue('user.name', req, 'defaultName');
-      expect(result).to.equal('defaultName');
+    it('returns the default when an intermediate key is null', () => {
+      expect(pageLocals(input, { user: null }).displayValue('user.name', 'defaultName')).to.equal('defaultName');
     });
-
-    it('should return value from request locals for simple key', function() {
-      const req = {
-        options: {
-          locals: {
-            username: 'testuser'
-          }
-        }
-      };
-
-      const result = viewUtils.displayValue('username', req, 'default');
-      expect(result).to.equal('testuser');
-    });
-
-    it('should return default value when intermediate key is null', function() {
-      const req = {
-        options: {
-          locals: {
-            user: null
-          }
-        }
-      };
-
-      const result = viewUtils.displayValue('user.name', req, 'defaultName');
-      expect(result).to.equal('defaultName');
-    });
-
-    it('should return empty string as default when no default specified', function() {
-      const req = {
-        options: {
-          locals: {}
-        }
-      };
-
-      const result = viewUtils.displayValue('nonexistent', req);
-      expect(result).to.equal('');
+    it('defaults to an empty string', () => {
+      expect(pageLocals(input, {}).displayValue('nonexistent')).to.equal('');
     });
   });
-
-  describe('resolvePartialPath', function() {
-    let viewUtils: any;
-    let appPath: string;
-
-    function writeJson(filePath: string, value: unknown): void {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
-    }
-
-    function writeFile(filePath: string, content = ''): void {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, content);
-    }
-
-    function createHook(packageName = 'redbox-hook-client'): string {
-      const hookRoot = path.join(appPath, 'node_modules', packageName);
-      writeJson(path.join(hookRoot, 'package.json'), {
-        name: packageName,
-        main: 'index.js',
-        sails: { isHook: true },
-      });
-      writeFile(path.join(hookRoot, 'index.js'), 'module.exports = {};');
-      return hookRoot;
-    }
-
-    beforeEach(function() {
-      appPath = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-view-utils-')));
-      writeJson(path.join(appPath, 'package.json'), {
-        dependencies: {
-          'redbox-hook-client': '1.0.0',
-        },
-      });
-      mockSails.config.appPath = appPath;
-
-      const { Services } = require('../../src/services/ViewUtilsService');
-      viewUtils = new Services.ViewUtils();
+  describe('declared partial roots', () => {
+    let directory: string;
+    let views: string;
+    let assets: string;
+    const write = (name: string, content = 'partial') => {
+      const file = path.join(views, name);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, content);
+      return file;
+    };
+    beforeEach(() => {
+      directory = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-page-artifacts-')));
+      views = path.join(directory, 'views'); assets = path.join(directory, 'assets');
+      fs.mkdirSync(views); fs.mkdirSync(assets);
     });
-
-    afterEach(function() {
-      fs.rmSync(appPath, { recursive: true, force: true });
+    afterEach(() => fs.rmSync(directory, { recursive: true, force: true }));
+    it('reports a missing partial instead of fabricating an installed path', () => {
+      expect(new PageArtifacts([views], [assets]).view('partial.ejs', 'default', 'portal')).to.equal(undefined);
     });
-
-    it('should return original value when no matching partial exists', function() {
-      const result = viewUtils.resolvePartialPath(
-        'partial.ejs',
-        'default',
-        'portal',
-        path.join(appPath, 'views', 'template.ejs'),
-        false
-      );
-
-      expect(result).to.equal('partial.ejs');
+    it('checks the brand and portal path first', () => {
+      const expected = write('mybrand/myportal/partial.ejs');
+      write('default/myportal/partial.ejs'); write('default/default/partial.ejs');
+      expect(new PageArtifacts([views], [assets]).view('partial.ejs', 'mybrand', 'myportal')).to.equal(expected);
     });
-
-    it('should check branding/portal specific path first', function() {
-      const partialPath = path.join(appPath, 'views', 'mybrand', 'myportal', 'partial.ejs');
-      const templatePath = path.join(appPath, 'views', 'mybrand', 'myportal', 'pages', 'template.ejs');
-      writeFile(partialPath, 'partial');
-
-      const result = viewUtils.resolvePartialPath(
-        'partial.ejs',
-        'mybrand',
-        'myportal',
-        templatePath,
-        false
-      );
-
-      expect(path.resolve(path.dirname(templatePath), result)).to.equal(partialPath);
+    it('falls back to the default brand for the requested portal', () => {
+      const expected = write('default/myportal/partial.ejs'); write('default/default/partial.ejs');
+      expect(new PageArtifacts([views], [assets]).view('partial.ejs', 'mybrand', 'myportal')).to.equal(expected);
     });
-
-    it('should fallback to default branding with specific portal', function() {
-      const partialPath = path.join(appPath, 'views', 'default', 'myportal', 'partial.ejs');
-      const templatePath = path.join(appPath, 'views', 'mybrand', 'myportal', 'pages', 'template.ejs');
-      writeFile(partialPath, 'partial');
-
-      const result = viewUtils.resolvePartialPath(
-        'partial.ejs',
-        'mybrand',
-        'myportal',
-        templatePath,
-        false
-      );
-
-      expect(path.resolve(path.dirname(templatePath), result)).to.equal(partialPath);
+    it('falls back to the default brand and portal', () => {
+      const expected = write('default/default/partial.ejs');
+      expect(new PageArtifacts([views], [assets]).view('partial.ejs', 'mybrand', 'myportal')).to.equal(expected);
     });
-
-    it('should fallback to default/default path', function() {
-      const partialPath = path.join(appPath, 'views', 'default', 'default', 'partial.ejs');
-      const templatePath = path.join(appPath, 'views', 'mybrand', 'myportal', 'pages', 'template.ejs');
-      writeFile(partialPath, 'partial');
-
-      const result = viewUtils.resolvePartialPath(
-        'partial.ejs',
-        'mybrand',
-        'myportal',
-        templatePath,
-        false
-      );
-
-      expect(path.resolve(path.dirname(templatePath), result)).to.equal(partialPath);
+    it('renders relative includes from the actual template directory', async () => {
+      write('mybrand/myportal/partial.ejs', 'resolved partial');
+      const template = write('mybrand/myportal/pages/sub/template.ejs', '<%- include("../../partial.ejs") %>');
+      const artifacts = new PageArtifacts([views], [assets]);
+      try { await artifacts.initialize(); expect(artifacts.render(template, {})).to.equal('resolved partial'); }
+      finally { await artifacts.close(); }
     });
-
-    it('should return a relative path from the actual template directory', function() {
-      const partialPath = path.join(appPath, 'views', 'mybrand', 'myportal', 'partial.ejs');
-      const templatePath = path.join(appPath, 'views', 'mybrand', 'myportal', 'pages', 'sub', 'template.ejs');
-      writeFile(partialPath, 'partial');
-
-      const result = viewUtils.resolvePartialPath(
-        'partial.ejs',
-        'mybrand',
-        'myportal',
-        templatePath,
-        false
-      );
-
-      expect(result).to.equal('../../partial.ejs');
-      expect(path.resolve(path.dirname(templatePath), result)).to.equal(partialPath);
-    });
-
-    it('should resolve hook partials from a core layout directory', function() {
-      const hookRoot = createHook();
-      const hookPartialPath = path.join(hookRoot, 'views', 'default', 'default', 'layout', 'footer.ejs');
-      const layoutDirectory = path.join(appPath, 'views', 'default', 'default');
-      writeFile(hookPartialPath, 'hook footer');
-
-      const result = viewUtils.resolvePartialPath(
-        '/layout/footer.ejs',
-        'default',
-        'default',
-        layoutDirectory,
-        true
-      );
-
-      expect(path.resolve(layoutDirectory, result)).to.equal(hookPartialPath);
+    it('resolves explicitly selected hook partials from a core layout', async () => {
+      const hookViews = path.join(directory, 'hook-views');
+      fs.mkdirSync(path.join(hookViews, 'default/default/layout'), { recursive: true });
+      fs.writeFileSync(path.join(hookViews, 'default/default/layout/footer.ejs'), 'hook footer');
+      const layout = write('default/default/layout.ejs', '<%- include("layout/footer.ejs") %>');
+      const artifacts = new PageArtifacts([hookViews, views], [assets]);
+      try { await artifacts.initialize(); expect(artifacts.render(layout, {})).to.equal('hook footer'); }
+      finally { await artifacts.close(); }
     });
   });
-
-  describe('exports', function() {
-    it('should export displayValue and resolvePartialPath methods', function() {
-      // Need to update sails.log to have error function for this test
-      (global as any).sails.log = createSinonStubLogger(sinon);
-
-      const { Services } = require('../../src/services/ViewUtilsService');
-      const viewUtils = new Services.ViewUtils();
-      const exported = viewUtils.exports();
-
-      expect(exported).to.have.property('displayValue');
-      expect(exported).to.have.property('resolvePartialPath');
-      expect(exported.displayValue).to.be.a('function');
-      expect(exported.resolvePartialPath).to.be.a('function');
-    });
+  it('exposes plain page operations without a generated service instance', () => {
+    expect(pageLocals(input, {}).displayValue).to.be.a('function');
+    expect(PageArtifacts.prototype.view).to.be.a('function');
+    expect(PageArtifacts.prototype.render).to.be.a('function');
   });
 });

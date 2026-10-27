@@ -61,10 +61,15 @@ describe('Owned record browser pages', function () {
     expect(response.text.match(/<title>([\s\S]*?)<\/title>/)?.[1].trim()).to.equal('oid-1 | Site');
   });
   it('returns sanitized 500 on view metadata lookup failure', async function () {
-    f.loadRecord.rejects(new Error('PRIVATE'));
+    f.loadRecord.rejects(new TypeError('PRIVATE'));
     const response = await request('/record/view/oid-1');
     expect(response.status).to.equal(500);
     expect(response.text).not.to.include('PRIVATE');
+    const diagnostic = JSON.stringify(f.log.error.args);
+    expect(diagnostic).to.include('record/view');
+    expect(diagnostic).to.include('pageFailureCategory');
+    expect(diagnostic).to.include('type');
+    expect(diagnostic).not.to.include('PRIVATE');
   });
   it('rejects blank record identifiers before storage', async function () {
     const response = await request('/record/view/%20%20%20');

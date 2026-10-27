@@ -1,21 +1,15 @@
 import { repositoryFixtures } from '../../helpers/repositoryFixtures';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { Controllers as RestControllers } from '../../../src/controllers/webservice/AppConfigController';
-import { Controllers as FormControllers } from '../../../src/controllers/AppConfigController';
-import { APP_CONFIG_SECRET_MASK, Services } from '../../../src/services/AppConfigService';
+import { APP_CONFIG_SECRET_MASK, AppConfigs } from '../../../src/configuration/AppConfigs';
+import { ConfigModelRegistry } from '../../../src/configuration/ConfigModelRegistry';
+import { configurationFixtures } from '../../helpers/serviceRepositories';
+import { httpRouteFixture } from '../../helpers/httpRouteFixture';
+import { mountConfigurationWriteRoutes } from '../../../src/http/express/configurationWrites';
+import { createDomainFixture } from '../../services/testHelper';
 import { normalizeSiemConfiguration, SiemConfigurationError } from '../../../src/configmodels/SiemConfiguration';
 import { validateApiRouteRequest } from '../../../src/api-routes/validation';
 import { saveAppConfigByIdRoute } from '../../../src/api-routes/groups/appconfig';
-import type { BuildResponseType } from '../../../src/model/BuildResponse';
-import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from '../../services/testHelper';
-
-class TestRestAppConfig extends RestControllers.AppConfig {
-  public override sendResp(req: Sails.Req, res: Sails.Res, response?: BuildResponseType) {
-    return super.sendResp(req, res, response);
-  }
-}
-
 const target = { id: 'one', adapterType: 'cef', endpointUrl: 'https://collector.example/ingest' };
 const reservedNames = [
   'constructor',
@@ -30,32 +24,42 @@ const reservedNames = [
 ];
 
 describe('SIEM shared header validation and generic AppConfig boundaries', () => {
-  let service: Services.AppConfigs;
+  let service: AppConfigs;
+  let f: Awaited<ReturnType<typeof httpRouteFixture>>;
   let create: sinon.SinonStub;
   let updateOne: sinon.SinonStub;
   let set: sinon.SinonStub;
-  const brand = { id: 'brand', name: 'default' };
+  const brand = { id: 'brand-1', name: 'default' };
   const stored = normalizeSiemConfiguration({ destinations: [{ ...target, token: 'stored-token' }] });
 
-  beforeEach(() => {
-    setupServiceTestGlobals(createMockSails());
-    service = new Services.AppConfigs();
+  beforeEach(async () => {
+    const fixture = createDomainFixture();
+    service = new AppConfigs({
+      repository: configurationFixtures(),
+      models: new ConfigModelRegistry(),
+      config: fixture.config,
+      log: fixture.log,
+      availableBrands: () => ['default'],
+      getBrand: () => brand as any,
+    });
     create = sinon.stub().callsFake(async data => data);
     set = sinon.stub().callsFake(async data => data);
     updateOne = sinon.stub().returns({ set });
-    Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([{ configData: stored }]), create, updateOne });
-    Reflect.set(global, 'AppConfigService', service);
-    Reflect.set(global, 'BrandingService', { getBrand: () => brand });
-    Reflect.set(sails.services, 'appconfigservice', service);
-    sails.services.brandingservice = { getBrand: () => brand };
-    sinon.stub(service, 'loadAppConfigurationModel').resolves(createMockSails());
+    Reflect.set(repositoryFixtures, 'AppConfig', {
+      find: sinon.stub().resolves([{ configData: stored }]),
+      create,
+      updateOne,
+    });
+    sinon.stub(service, 'loadAppConfigurationModel').resolves({});
+    f = await httpRouteFixture((router, input) =>
+      mountConfigurationWriteRoutes(router, { ...input, appConfigs: service } as any)
+    );
   });
-  afterEach(() => {
+  afterEach(async () => {
+    await f.close();
+    await service.close();
     sinon.restore();
-    cleanupServiceTestGlobals();
     Reflect.deleteProperty(repositoryFixtures, 'AppConfig');
-    Reflect.deleteProperty(global, 'AppConfigService');
-    Reflect.deleteProperty(global, 'BrandingService');
   });
 
   for (const name of reservedNames) {
@@ -63,10 +67,7 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
       // Computed properties create an own __proto__ key, unlike object-literal prototype syntax.
       const config = { destinations: [{ ...target, headers: { [name]: 'credential' } }] };
       assert.throws(() => normalizeSiemConfiguration(config), SiemConfigurationError);
-      await assert.rejects(
-        service.createOrUpdateConfig(createMockSails(brand), 'siem', config),
-        SiemConfigurationError
-      );
+      await assert.rejects(service.createOrUpdateConfig(brand as any, 'siem', config), SiemConfigurationError);
       Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([]), create, updateOne });
       await assert.rejects(service.createConfig('default', 'siem', config), SiemConfigurationError);
       assert.equal(create.called, false);
@@ -86,8 +87,12 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
       Accept: 'application/json',
     };
     const config = normalizeSiemConfiguration({ destinations: [{ ...target, headers }] });
-    Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([{ configData: config }]), create, updateOne });
-    const masked = await service.getAppConfigByBrandAndKey('brand', 'siem');
+    Reflect.set(repositoryFixtures, 'AppConfig', {
+      find: sinon.stub().resolves([{ configData: config }]),
+      create,
+      updateOne,
+    });
+    const masked = await service.getAppConfigByBrandAndKey(brand.id, 'siem');
     assert.deepEqual(
       Reflect.get(Object(masked), 'destinations')[0].headers,
       Object.fromEntries(
@@ -95,7 +100,7 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
       )
     );
     assert.deepEqual(config.destinations[0].headers, headers);
-    await service.createOrUpdateConfig(createMockSails(brand), 'siem', { ...normalizeSiemConfiguration(masked) });
+    await service.createOrUpdateConfig(brand as any, 'siem', { ...normalizeSiemConfiguration(masked) });
     assert.deepEqual(set.firstCall.args[0].configData.destinations[0].headers, headers);
   });
 
@@ -115,56 +120,30 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
     },
   ];
   for (const { label, body, message } of invalidBodies) {
-    it(`returns REST 400 for ${label} through the actual service without writes`, async () => {
-      const controller = new TestRestAppConfig();
-      const response = sinon.stub(controller, 'sendResp').callsFake((_req, res) => res);
-      const req = createMockSails({
-        session: { branding: 'default' },
-        body,
-        query: {},
-        params: { appConfigId: 'siem' },
-        headers: {},
+    for (const [kind, path] of [
+      ['REST', '/api/appconfig/siem'],
+      ['admin form', '/appconfig/form/siem'],
+    ]) {
+      it(`returns ${kind} 400 for ${label} through the actual service without writes`, async () => {
+        const validated = validateApiRouteRequest({ params: { appConfigId: 'siem' }, body }, saveAppConfigByIdRoute);
+        assert.equal(validated.valid, true);
+        const result = await f.request('/default/portal' + path, { method: 'POST', body });
+        assert.equal(result.status, 400);
+        assert.match(result.body.message, new RegExp(message));
+        assert.equal(create.called, false);
+        assert.equal(updateOne.called, false);
       });
-      const validated = validateApiRouteRequest(req, saveAppConfigByIdRoute);
-      assert.equal(validated.valid, true);
-      if (!validated.valid) throw new Error('Invalid generic AppConfig request');
-      req.apiRequest = validated;
-      await controller.saveAppConfig(req, createMockSails());
-      const result = response.firstCall.args[2];
-      assert.ok(result);
-      assert.equal(result.status, 400);
-      assert.ok(result.displayErrors?.[0].title?.includes(message));
-      assert.equal(create.called, false);
-      assert.equal(updateOne.called, false);
-    });
-    it(`returns admin form 400 for ${label} through the actual service without writes`, async () => {
-      const badRequest = sinon.stub();
-      const serverError = sinon.stub();
-      const req = createMockSails({ session: { branding: 'default' }, body, param: () => 'siem' });
-      await new FormControllers.AppConfig().saveAppConfig(req, createMockSails({ badRequest, serverError }));
-      assert.equal(badRequest.calledOnce, true);
-      assert.ok(badRequest.firstCall.args[0].includes(message));
-      assert.equal(serverError.called, false);
-      assert.equal(create.called, false);
-      assert.equal(updateOne.called, false);
-    });
+    }
   }
 
-  it('keeps unexpected REST storage failures as HTTP 500', async () => {
+  it('keeps unexpected REST storage failures as sanitized HTTP 500', async () => {
     updateOne.throws(new Error('storage unavailable'));
-    const controller = new TestRestAppConfig();
-    const response = sinon.stub(controller, 'sendResp').callsFake((_req, res) => res);
-    const req = createMockSails({
-      session: { branding: 'default' },
-      apiRequest: {
-        params: { appConfigId: 'siem' },
-        body: { delivery: { batchSize: 2 } },
-        query: {},
-        headers: {},
-        files: {},
-      },
+    const result = await f.request('/default/portal/api/appconfig/siem', {
+      method: 'POST',
+      body: { delivery: { batchSize: 2 } },
     });
-    await controller.saveAppConfig(req, createMockSails());
-    assert.equal(response.firstCall.args[2]?.status, 500);
+    assert.equal(result.status, 500);
+    assert.equal(result.body.message, 'Internal server error');
+    assert(!result.text.includes('storage unavailable'));
   });
 });
