@@ -1,3 +1,4 @@
+import { recordServiceChronicle } from '../../utilities/serviceChronicle';
 import type { Router, RequestHandler, Request, Response } from 'express';
 import { STATUS_CODES } from 'node:http';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
@@ -281,7 +282,22 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
           locals.title = title && title !== site ? title + ' | ' + site : site;
           const body = render(view);
           res.type('html').send(route.view === 'admin/api-docs' ? body : render('layout', { body }));
-        } catch {
+        } catch (failure) {
+          recordServiceChronicle(
+            input.log,
+            {
+              pageController: route.controller,
+              pageAction: route.action,
+              pageView: route.view,
+              pageFailureCategory:
+                failure instanceof SyntaxError
+                  ? 'syntax'
+                  : failure instanceof TypeError
+                    ? 'type'
+                    : 'backend-or-template',
+            },
+            [new Error('Page rendering failed')]
+          );
           error(500);
         }
       })
