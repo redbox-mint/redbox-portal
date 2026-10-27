@@ -219,10 +219,13 @@ export class RecordHookCoordinator {
       index,
       policy: hook.execution,
       cooperativeCancellation: () => cancellation.value,
-      invoke: () => legacyHookToEffect(() => invoke(hook, index), cancellation, {
-        runWork: this.options.dependencies?.runLegacyWork,
-        retain: work => this.options.dependencies?.supervisor?.track?.(work),
-      }),
+      invoke: () =>
+        legacyHookToEffect(() => invoke(hook, index), cancellation, {
+          runWork: this.dependencies.runLegacyWork
+            ? operation => this.dependencies.runLegacyWork!(operation)
+            : undefined,
+          retain: work => this.dependencies.supervisor?.track?.(work),
+        }),
     };
   }
 
