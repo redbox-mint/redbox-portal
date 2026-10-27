@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "id": "10.5438/0014",
+      "type": "dois",
+      "attributes": {
+        "doi": "10.5438/0014",
+        "titles": [{ "title": "Bruno DOI lookup fixture" }],
+        "publisher": "ReDBox integration tests",
+        "publicationYear": 2026,
+        "types": { "resourceTypeGeneral": "Dataset" },
+        "url": "https://example.org/datasets/bruno-doi-fixture"
+      }
+    }
+  ],
+  "meta": { "total": 1, "totalPages": 1, "page": 1 }
+}
