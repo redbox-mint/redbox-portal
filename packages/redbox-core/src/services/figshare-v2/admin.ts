@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { RecordModel, FigshareArticle } from './types';
 import { getRecordField } from './types';
 import { getSyncStore } from './worker';
+import {figshareWork} from './worker-lifecycle';
 import { resolveFigsharePublishingConfig } from './config';
 import { createRunContext } from './context';
 import { makeLiveClient, makeFixtureClient } from './http';
@@ -14,7 +15,8 @@ export type FigshareAdminAction = 'inspect' | 'reconcile' | 'abandon-create' | '
 export interface FigshareAdminOptions { action: FigshareAdminAction; oid?: string; username: string; articleId?: string; ownerId?: string; apply?: boolean; receipt?: string; fileId?: string }
 
 /** Operators use application identities/configuration; no direct DB edits or remote writes. */
-export async function figshareAdmin(options: FigshareAdminOptions, internal: { legacyBindingsCounted?: boolean } = {}): Promise<unknown> {
+export function figshareAdmin(options:FigshareAdminOptions,internal:{legacyBindingsCounted?:boolean}={}):Promise<unknown>{return figshareWork(sails,()=>figshareAdminAccepted(options,internal));}
+async function figshareAdminAccepted(options:FigshareAdminOptions,internal:{legacyBindingsCounted?:boolean}={}):Promise<unknown>{
   const actor = await UsersService.getUserWithUsername(options.username).toPromise();
   if (!actor || actor.disabled === true || !RolesService.getAdminFromRoles(actor.roles ?? [])) throw new Error('A current ReDBox administrator is required');
   const store = getSyncStore();
@@ -51,10 +53,10 @@ export async function figshareAdmin(options: FigshareAdminOptions, internal: { l
       if (!id || duplicate) {
         report.push({ oid: record.redboxOid, articleId: id || undefined, status: duplicate ? 'duplicate_binding' : 'uncertain_legacy_create' });
         if (options.apply) {
-          await store.ensureIndexes(); await store.initialise(record.redboxOid, record.metaMetadata.brandId);
+          await store.assertReady(); await store.initialise(record.redboxOid, record.metaMetadata.brandId);
           const owner = `migration:${randomUUID()}`;
-          const lock = await store.collection.updateOne({ oid: record.redboxOid, leaseUntil: { $lte: Date.now() } }, { $set: { leaseOwner: owner, leaseUntil: Date.now() + 120000 }, $inc: { revision: 1 } });
-          if (!lock.matchedCount) throw new Error(`Record ${record.redboxOid} has an active worker; pause processing before migration`);
+          const lock = await store.claimAdministration(record.redboxOid,owner,120000);
+          if (!lock) throw new Error(`Record ${record.redboxOid} has an active worker; pause processing before migration`);
           try {
             await store.change(record.redboxOid, s => {
               s.status = 'repair_required'; s.waitingReason = duplicate ? 'duplicate_binding' : 'uncertain_legacy_create';
@@ -65,7 +67,7 @@ export async function figshareAdmin(options: FigshareAdminOptions, internal: { l
         continue;
       }
       try {
-        report.push({ oid: record.redboxOid, result: await figshareAdmin({ ...options, action: 'link', oid: record.redboxOid, articleId: id }, { legacyBindingsCounted: true }) });
+        report.push({ oid: record.redboxOid, result: await figshareAdminAccepted({ ...options, action: 'link', oid: record.redboxOid, articleId: id }, { legacyBindingsCounted: true }) });
       } catch (e) { report.push({ oid: record.redboxOid, status: 'repair_required', message: e instanceof Error ? e.message : String(e) }); }
     }
     return report;
@@ -144,7 +146,7 @@ export async function figshareAdmin(options: FigshareAdminOptions, internal: { l
     verifiedOwnerId = ownerId ?? String(remote.account_id ?? account.id);
   }
   if (remote) {
-    const duplicate = await store.collection.findOne({ namespace: apiNamespace(config), articleId: String(remote.id), oid: { $ne: oid } });
+    const duplicate = await store.findOtherBinding(apiNamespace(config),String(remote.id),oid);
     if (duplicate) throw new FigshareRepairRequired(`Article is already bound to record ${duplicate.oid}`);
     // Migration has already counted every legacy binding, so a per-record scan would only repeat it.
     const matches = internal.legacyBindingsCounted ? [] : await storage.findFigshareArticleRecords?.(config.record.articleIdPath, String(remote.id)) ?? [];
@@ -152,11 +154,11 @@ export async function figshareAdmin(options: FigshareAdminOptions, internal: { l
     if (state?.binding?.articleId && state.binding.articleId !== String(remote.id) && options.action !== 'relink') throw new Error('Use explicit relink to change an existing authoritative article ID');
   }
   if (!options.apply) return { dryRun: true, oid, action: options.action, articleId: remote?.id, file: verifiedFile, publication: remote && observedPublished(remote), ownerId: verifiedOwnerId, retainedLocalBytes: true };
-  await store.ensureIndexes();
+  await store.assertReady();
   await store.initialise(oid, record.metaMetadata.brandId);
   const owner = `admin:${randomUUID()}`;
-  const lock = await store.collection.updateOne({ oid, leaseUntil: { $lte: Date.now() } }, { $set: { leaseOwner: owner, leaseUntil: Date.now() + 120000 }, $inc: { revision: 1 } });
-  if (!lock.matchedCount) throw new Error('Record has an active worker; pause processing and try again');
+  const lock = await store.claimAdministration(oid,owner,120000);
+  if (!lock) throw new Error('Record has an active worker; pause processing and try again');
   try {
     state = await store.change(oid, s => {
       if (verifiedFile && receipt) {
@@ -195,7 +197,7 @@ export async function figshareAdmin(options: FigshareAdminOptions, internal: { l
         delete s.publish;
         // Publication is requested again by resume or a new eligible source save.
       }
-      s.corrections = [...(s.corrections ?? []).slice(-49), { at: new Date().toISOString(), actor: actor.username, action: options.action, articleId: remote ? String(remote.id) : undefined }];
+      s.corrections = [...(s.corrections ?? []).slice(-49), { at: new Date().toISOString(), actor: actor.username, action: options.action, ...(remote?{articleId:String(remote.id)}:{}) }];
     }, owner);
     return { oid, state, retainedLocalBytes: true };
   } finally { await store.release(oid, owner); }

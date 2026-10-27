@@ -13,6 +13,7 @@ import type { Logger, LoggerOptions, DestinationStream } from 'pino';
 import { AvailableLogLevels, ILogger, isLogger } from '@researchdatabox/sails-ng-common';
 import { isPinoLogger } from '../utilities/PinoLoggerUtils';
 import { defaultRequestChronicleSettings, RequestChronicleSettings } from '../utilities/RequestChronicleSettings';
+import { cachePersistenceFailureForLog } from '../persistence/cache/errors';
 
 export { isPinoLogger } from '../utilities/PinoLoggerUtils';
 
@@ -73,6 +74,10 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
     },
     customLevels: customLevelMap,
     level: level ?? initialLogLevel,
+    serializers: {
+      // Sails logs the original bootstrap error again after our failure wrapper.
+      err: error => cachePersistenceFailureForLog(error) ?? pino.stdSerializers.err(error),
+    },
     hooks: {
       logMethod(inputArgs: unknown[], method: (...args: unknown[]) => void, level: number) {
         if (level === customLevelBlank) {

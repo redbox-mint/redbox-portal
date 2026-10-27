@@ -1,3 +1,6 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
+import assert from 'node:assert/strict';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -6,7 +9,7 @@ import * as sinon from 'sinon';
 import * as lodash from 'lodash';
 import * as fs from 'node:fs/promises';
 import { Services as VocabularyServiceModule } from '../../src/services/VocabularyService';
-import type { VocabularyAttributes } from '../../src/waterline-models';
+import type { VocabularyAttributes } from '../../src/persistence/rows';
 import { ILogger } from "@researchdatabox/sails-ng-common";
 
 type ReaddirResult = Awaited<ReturnType<typeof fs.readdir>>;
@@ -65,6 +68,7 @@ describe('VocabularyService', () => {
   let previousUnderscore: unknown;
 
   beforeEach(() => {
+    stubVocabularyPersistence();
     g = globalThis as TestGlobals;
     previousUnderscore = Reflect.get(globalThis, '_');
     Reflect.set(globalThis, '_', lodash);
@@ -77,7 +81,7 @@ describe('VocabularyService', () => {
       }
     };
 
-    g.Vocabulary = {
+    repositoryFixtures.Vocabulary = {
       count: sinon.stub().resolves(1),
       find: sinon.stub().returns({ sort: sinon.stub().returnsThis(), skip: sinon.stub().returnsThis(), limit: sinon.stub().resolves([{ id: 'v1', name: 'V1' }]) }),
       findOne: sinon.stub().resolves({ id: 'v1', name: 'V1', type: 'flat' }),
@@ -86,7 +90,7 @@ describe('VocabularyService', () => {
       destroyOne: sinon.stub().resolves()
     };
 
-    g.VocabularyEntry = {
+    repositoryFixtures.VocabularyEntry = {
       count: sinon.stub().resolves(2),
       find: sinon.stub().returns({
         sort: sinon.stub().returns({
@@ -105,7 +109,7 @@ describe('VocabularyService', () => {
       { id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0 },
       { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 }
     ];
-    g.VocabularyEntry.find = sinon.stub().returns({
+    repositoryFixtures.VocabularyEntry.find = sinon.stub().returns({
       sort: sinon.stub().callsFake(() => ({
         skip: sinon.stub().returns({
           limit: sinon.stub().resolves(entries)
@@ -121,8 +125,8 @@ describe('VocabularyService', () => {
 
   afterEach(() => {
     sinon.restore();
-    Reflect.deleteProperty(globalThis, 'Vocabulary');
-    Reflect.deleteProperty(globalThis, 'VocabularyEntry');
+    Reflect.deleteProperty(repositoryFixtures, 'Vocabulary');
+    Reflect.deleteProperty(repositoryFixtures, 'VocabularyEntry');
     Reflect.deleteProperty(globalThis, 'BrandingService');
     Reflect.deleteProperty(globalThis, 'sails');
     if (previousUnderscore === undefined) {
@@ -143,32 +147,32 @@ describe('VocabularyService', () => {
 
     beforeEach(() => {
       figshareSourceFindOne = sinon.stub().resolves(null);
-      Reflect.set(globalThis, 'FigshareVocabularySource', { findOne: figshareSourceFindOne });
+      Reflect.set(repositoryFixtures, 'FigshareVocabularySource', { findOne: figshareSourceFindOne });
     });
 
     afterEach(() => {
-      Reflect.deleteProperty(globalThis, 'FigshareVocabularySource');
+      Reflect.deleteProperty(repositoryFixtures, 'FigshareVocabularySource');
     });
 
     it('does nothing for a blank vocabulary id', async () => {
       await service.assertMutableVocabulary('   ');
-      expect((g.Vocabulary.findOne as sinon.SinonStub).called).to.be.false;
+      expect((repositoryFixtures.Vocabulary.findOne as sinon.SinonStub).called).to.be.false;
     });
 
     it('allows a local vocabulary', async () => {
-      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v1', name: 'V1', source: 'local' }) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({ id: 'v1', name: 'V1', source: 'local' }) as unknown as VocabularyModelStub['findOne'];
       await service.assertMutableVocabulary('v1');
       expect(figshareSourceFindOne.called).to.be.false;
     });
 
     it('allows a vocabulary that no longer exists', async () => {
-      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       await service.assertMutableVocabulary('missing');
       expect(figshareSourceFindOne.called).to.be.false;
     });
 
     it('rejects an external vocabulary that is still owned by a figshare source', async () => {
-      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v-mirror', name: 'ANZSRC mirror', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({ id: 'v-mirror', name: 'ANZSRC mirror', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
       figshareSourceFindOne.resolves({ id: 'src-1', vocabulary: 'v-mirror' });
 
       let raised: Error | undefined;
@@ -185,7 +189,7 @@ describe('VocabularyService', () => {
     });
 
     it('allows an external vocabulary whose figshare source has been removed', async () => {
-      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v-orphan', name: 'Orphan', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({ id: 'v-orphan', name: 'Orphan', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
       await service.assertMutableVocabulary('v-orphan');
       expect(figshareSourceFindOne.calledOnce).to.be.true;
     });
@@ -206,7 +210,7 @@ describe('VocabularyService', () => {
   });
 
   it('builds a tree response', async () => {
-    g.VocabularyEntry.find = sinon.stub().returns({
+    repositoryFixtures.VocabularyEntry.find = sinon.stub().returns({
       sort: sinon.stub().resolves([
         { id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0 },
         { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 }
@@ -217,16 +221,23 @@ describe('VocabularyService', () => {
     expect(tree[0].children).to.have.length(1);
   });
 
-  it('gets vocabulary by id first then slug fallback', async () => {
+  it('gets vocabulary by a valid id first then falls back to the tenant-scoped slug', async () => {
     const findOne = sinon.stub();
     findOne.onFirstCall().resolves(null);
-    findOne.onSecondCall().resolves({ id: 'v1', name: 'Access rights', type: 'flat', slug: 'access-rights' });
-    g.Vocabulary.findOne = findOne as unknown as VocabularyModelStub['findOne'];
-
-    const result = await service.getByIdOrSlug('default', 'access-rights');
-
+    findOne.onSecondCall().resolves({ id: 'v1', name: 'Access rights', type: 'flat', slug: '012345678901234567890123' });
+    repositoryFixtures.Vocabulary.findOne = findOne as unknown as VocabularyModelStub['findOne'];
+    const result = await service.getByIdOrSlug('default', '012345678901234567890123');
     expect(result?.id).to.equal('v1');
     expect(findOne.callCount).to.equal(2);
+    expect(findOne.secondCall.args[0]).to.deep.equal({ slug: '012345678901234567890123', branding: 'default' });
+  });
+
+  it('routes a non-ObjectId spelling directly to the tenant-scoped slug', async () => {
+    const findOne = sinon.stub().resolves({ id: 'v1', name: 'Access rights', slug: 'access-rights' });
+    repositoryFixtures.Vocabulary.findOne = findOne as unknown as VocabularyModelStub['findOne'];
+    expect((await service.getByIdOrSlug('default', 'access-rights'))?.id).to.equal('v1');
+    expect(findOne.callCount).to.equal(1);
+    expect(findOne.firstCall.args[0]).to.deep.equal({ slug: 'access-rights', branding: 'default' });
   });
 
   it('returns null when getByIdOrSlug has no branding or value', async () => {
@@ -235,9 +246,9 @@ describe('VocabularyService', () => {
   });
 
   it('gets entries with metadata and search filter', async () => {
-    g.Vocabulary.findOne = sinon.stub().onFirstCall().resolves({ id: 'v1', name: 'Access rights', type: 'flat', slug: 'access-rights', branding: 'default' }) as unknown as VocabularyModelStub['findOne'];
+    repositoryFixtures.Vocabulary.findOne = sinon.stub().onFirstCall().resolves({ id: 'v1', name: 'Access rights', type: 'flat', slug: 'access-rights', branding: 'default' }) as unknown as VocabularyModelStub['findOne'];
     const countStub = sinon.stub().resolves(2);
-    g.VocabularyEntry.count = countStub as unknown as VocabularyEntryModelStub['count'];
+    repositoryFixtures.VocabularyEntry.count = countStub as unknown as VocabularyEntryModelStub['count'];
     const findStub = sinon.stub().returns({
       sort: sinon.stub().returns({
         skip: sinon.stub().returns({
@@ -248,7 +259,7 @@ describe('VocabularyService', () => {
         })
       })
     });
-    g.VocabularyEntry.find = findStub as unknown as VocabularyEntryModelStub['find'];
+    repositoryFixtures.VocabularyEntry.find = findStub as unknown as VocabularyEntryModelStub['find'];
 
     const result = await service.getEntries('default', 'access-rights', { search: 'op', limit: 5000, offset: 1 });
 
@@ -262,17 +273,17 @@ describe('VocabularyService', () => {
   });
 
   it('returns null from getEntries when vocabulary does not exist', async () => {
-    g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+    repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
     const result = await service.getEntries('default', 'missing');
     expect(result).to.equal(null);
   });
 
   it('getChildren returns direct root entries and hasChildren metadata', async () => {
-    g.Vocabulary.findOne = sinon.stub().resolves({
+    repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({
       id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
     }) as unknown as VocabularyModelStub['findOne'];
-    g.VocabularyEntry.findOne = sinon.stub().resolves(null) as unknown as VocabularyEntryModelStub['findOne'];
-    g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
+    repositoryFixtures.VocabularyEntry.findOne = sinon.stub().resolves(null) as unknown as VocabularyEntryModelStub['findOne'];
+    repositoryFixtures.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
       if (typeof criteria.parent === 'object' && criteria.parent !== null) {
         return Promise.resolve([
           { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' }
@@ -300,13 +311,13 @@ describe('VocabularyService', () => {
   });
 
   it('getChildren returns only direct children for supplied parentId', async () => {
-    g.Vocabulary.findOne = sinon.stub().resolves({
+    repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({
       id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
     }) as unknown as VocabularyModelStub['findOne'];
-    g.VocabularyEntry.findOne = sinon.stub().resolves({
+    repositoryFixtures.VocabularyEntry.findOne = sinon.stub().resolves({
       id: 'e1', vocabulary: 'v1', label: 'Mathematical Sciences', value: '01', parent: null
     }) as unknown as VocabularyEntryModelStub['findOne'];
-    g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
+    repositoryFixtures.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
       if (typeof criteria.parent === 'object' && criteria.parent !== null) {
         return Promise.resolve([]);
       }
@@ -330,10 +341,10 @@ describe('VocabularyService', () => {
   });
 
   it('getChildren rejects with invalid-parent-id when parent does not belong to vocabulary', async () => {
-    g.Vocabulary.findOne = sinon.stub().resolves({
+    repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({
       id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
     }) as unknown as VocabularyModelStub['findOne'];
-    g.VocabularyEntry.findOne = sinon.stub().resolves(null) as unknown as VocabularyEntryModelStub['findOne'];
+    repositoryFixtures.VocabularyEntry.findOne = sinon.stub().resolves(null) as unknown as VocabularyEntryModelStub['findOne'];
 
     let thrown: unknown = null;
     try {
@@ -347,13 +358,13 @@ describe('VocabularyService', () => {
   });
 
   it('getChildren tolerates orphan and cycle-like entries by returning direct rows only', async () => {
-    g.Vocabulary.findOne = sinon.stub().resolves({
+    repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({
       id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
     }) as unknown as VocabularyModelStub['findOne'];
-    g.VocabularyEntry.findOne = sinon.stub().resolves({
+    repositoryFixtures.VocabularyEntry.findOne = sinon.stub().resolves({
       id: 'e1', vocabulary: 'v1', label: 'Node A', value: 'A', parent: 'e2'
     }) as unknown as VocabularyEntryModelStub['findOne'];
-    g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
+    repositoryFixtures.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
       if (typeof criteria.parent === 'object' && criteria.parent !== null) {
         return Promise.resolve([
           { id: 'e1', label: 'Node A', value: 'A', identifier: 'A', parent: 'e2' }
@@ -378,28 +389,28 @@ describe('VocabularyService', () => {
   });
 
   it('getEntryByNotation resolves identifier and value matches within the vocabulary', async () => {
-    g.Vocabulary.findOne = sinon.stub().resolves({
+    repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({
       id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
     }) as unknown as VocabularyModelStub['findOne'];
-    g.VocabularyEntry.findOne = sinon.stub().resolves({
+    repositoryFixtures.VocabularyEntry.findOne = sinon.stub().resolves({
       id: 'e1', vocabulary: 'v1', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: null
     }) as unknown as VocabularyEntryModelStub['findOne'];
 
     const result = await service.getEntryByNotation('default', 'anzsrc-2020-for', '0101');
 
     expect(result?.id).to.equal('e1');
-    expect((g.VocabularyEntry.findOne as sinon.SinonStub).calledOnce).to.equal(true);
+    expect((repositoryFixtures.VocabularyEntry.findOne as sinon.SinonStub).calledOnce).to.equal(true);
   });
 
   it('getAncestorChain returns root-to-leaf order', async () => {
-    g.Vocabulary.findOne = sinon.stub().resolves({
+    repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({
       id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
     }) as unknown as VocabularyModelStub['findOne'];
     const findOneStub = sinon.stub();
     findOneStub.onCall(0).resolves({ id: 'e3', vocabulary: 'v1', label: 'Leaf', value: '010101', identifier: '010101', parent: 'e2' });
     findOneStub.onCall(1).resolves({ id: 'e2', vocabulary: 'v1', label: 'Child', value: '0101', identifier: '0101', parent: 'e1' });
     findOneStub.onCall(2).resolves({ id: 'e1', vocabulary: 'v1', label: 'Root', value: '01', identifier: '01', parent: null });
-    g.VocabularyEntry.findOne = findOneStub as unknown as VocabularyEntryModelStub['findOne'];
+    repositoryFixtures.VocabularyEntry.findOne = findOneStub as unknown as VocabularyEntryModelStub['findOne'];
 
     const chain = await service.getAncestorChain('default', 'anzsrc-2020-for', '010101');
 
@@ -409,15 +420,15 @@ describe('VocabularyService', () => {
   it('upserts entries with synthetic parent ids by remapping parents after create', async () => {
     const updateSetStub = sinon.stub().resolves({ id: 'ok' });
     const updateOneStub = sinon.stub().callsFake(() => ({ set: updateSetStub }));
-    g.VocabularyEntry.updateOne = updateOneStub as unknown as VocabularyEntryModelStub['updateOne'];
+    repositoryFixtures.VocabularyEntry.updateOne = updateOneStub as unknown as VocabularyEntryModelStub['updateOne'];
 
     const createFetchParent = sinon.stub().resolves({ id: 'db-parent' });
     const createFetchChild = sinon.stub().resolves({ id: 'db-child' });
-    g.VocabularyEntry.create = sinon.stub()
+    repositoryFixtures.VocabularyEntry.create = sinon.stub()
       .onFirstCall().returns({ fetch: createFetchParent })
       .onSecondCall().returns({ fetch: createFetchChild }) as unknown as VocabularyEntryModelStub['create'];
 
-    g.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
+    repositoryFixtures.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
       if (criteria.id === 'db-parent') {
         return { id: 'db-parent', vocabulary: 'v1', parent: null };
       }
@@ -445,15 +456,15 @@ describe('VocabularyService', () => {
 
   describe('replacement entry creation', () => {
     it('bounds bulk creation and maps parents across batches independently of return order', async () => {
-      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      repositoryFixtures.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
       const createEach = sinon.stub().callsFake((records: Array<{ identifier: string }>) => ({
         fetch: async () => records.map(record => ({ id: `db-${record.identifier}`, identifier: record.identifier })).reverse(),
       }));
-      g.VocabularyEntry.createEach = createEach;
-      g.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'db-entry-0', vocabulary: 'v1', parent: null });
+      repositoryFixtures.VocabularyEntry.createEach = createEach;
+      repositoryFixtures.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'db-entry-0', vocabulary: 'v1', parent: null });
       const set = sinon.stub().resolves({ id: 'db-entry-1000' });
       const updateOne = sinon.stub().returns({ set });
-      g.VocabularyEntry.updateOne = updateOne;
+      repositoryFixtures.VocabularyEntry.updateOne = updateOne;
 
       await service.create({
         name: 'Large vocabulary', branding: 'default', type: 'tree',
@@ -469,20 +480,20 @@ describe('VocabularyService', () => {
     });
 
     it('maps fetched batch rows by identifier before linking parents', async () => {
-      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      repositoryFixtures.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
       const fetched = [
         { id: 'db-child', identifier: 'child' },
         { id: 'db-root', identifier: 'root' },
       ];
       const createEach = sinon.stub().returns({ fetch: sinon.stub().resolves(fetched) });
-      g.VocabularyEntry.createEach = createEach;
-      g.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
+      repositoryFixtures.VocabularyEntry.createEach = createEach;
+      repositoryFixtures.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
         if (criteria.id === 'db-root') return { id: 'db-root', vocabulary: 'v1', parent: null };
         return null;
       });
       const set = sinon.stub().resolves({ id: 'db-child' });
       const updateOne = sinon.stub().returns({ set });
-      g.VocabularyEntry.updateOne = updateOne;
+      repositoryFixtures.VocabularyEntry.updateOne = updateOne;
 
       await service.create({
         name: 'RVA tree',
@@ -504,7 +515,7 @@ describe('VocabularyService', () => {
         { vocabulary: 'v1', label: 'Root', value: 'root', identifier: 'root', order: 0, historical: false },
         { vocabulary: 'v1', label: 'Child', value: '', identifier: 'child', order: 0, historical: true },
       ]);
-      expect((g.VocabularyEntry.create as sinon.SinonStub).called).to.equal(false);
+      expect((repositoryFixtures.VocabularyEntry.create as sinon.SinonStub).called).to.equal(false);
       expect(updateOne.calledOnceWithExactly({ id: 'db-child' })).to.equal(true);
       expect(set.calledOnceWithExactly({ parent: 'db-root' })).to.equal(true);
     });
@@ -515,14 +526,14 @@ describe('VocabularyService', () => {
     ]) {
       it(`retains serial model validation for identifiers ${JSON.stringify(identifiers)}`, async () => {
         const createEach = sinon.stub();
-        g.VocabularyEntry.createEach = createEach;
+        repositoryFixtures.VocabularyEntry.createEach = createEach;
         const create = sinon
           .stub()
           .onFirstCall()
           .returns({ fetch: sinon.stub().resolves({ id: 'entry-1' }) })
           .onSecondCall()
           .returns({ fetch: sinon.stub().resolves({ id: 'entry-2' }) });
-        g.VocabularyEntry.create = create;
+        repositoryFixtures.VocabularyEntry.create = create;
         await service.create({
           name: 'Local vocabulary',
           branding: 'default',
@@ -536,32 +547,21 @@ describe('VocabularyService', () => {
       });
     }
 
-    it('keeps parent writes serial and propagates the transaction connection', async () => {
-      const connection = {};
+    it('uses bounded parent writes without acquiring a transaction connection', async () => {
       let activeWrites = 0;
       let maximumWrites = 0;
-      const query = <T>(value: T, parentWrite = false) => ({
-        usingConnection: async (received: Sails.Connection): Promise<T> => {
-          expect(received).to.equal(connection);
-          if (parentWrite) {
-            maximumWrites = Math.max(maximumWrites, ++activeWrites);
-            await new Promise<void>(resolve => setImmediate(resolve));
-            activeWrites--;
-          }
-          return value;
-        },
-      });
-      sinon
-        .stub(service as unknown as { getDatastore: () => Pick<Sails.Datastore, 'transaction'> }, 'getDatastore')
-        .returns({
-          async transaction<T>(work: (connection: Sails.Connection) => Promise<T>): Promise<T> {
-            return work(connection);
-          },
-        });
-      g.Vocabulary.create = sinon.stub().returns({ fetch: () => query({ id: 'v1', type: 'tree' }) });
-      g.Vocabulary.findOne = sinon.stub().returns(query({ id: 'v1', type: 'tree' }));
-      g.VocabularyEntry.destroy = sinon.stub().returns(query([]));
-      g.VocabularyEntry.createEach = sinon.stub().returns({
+      const query = async <T>(value: T, parentWrite = false): Promise<T> => {
+        if (parentWrite) {
+          maximumWrites = Math.max(maximumWrites, ++activeWrites);
+          await new Promise<void>(resolve => setImmediate(resolve));
+          activeWrites--;
+        }
+        return value;
+      };
+      repositoryFixtures.Vocabulary.create = sinon.stub().returns({ fetch: () => query({ id: 'v1', type: 'tree' }) });
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().returns(query({ id: 'v1', type: 'tree' }));
+      repositoryFixtures.VocabularyEntry.destroy = sinon.stub().returns(query([]));
+      repositoryFixtures.VocabularyEntry.createEach = sinon.stub().returns({
         fetch: () =>
           query([
             { id: 'db-root', identifier: 'root' },
@@ -569,10 +569,10 @@ describe('VocabularyService', () => {
             { id: 'db-b', identifier: 'b' },
           ]),
       });
-      g.VocabularyEntry.findOne = sinon.stub().returns(query({ id: 'db-root', vocabulary: 'v1', parent: null }));
-      g.VocabularyEntry.updateOne = sinon.stub().returns({ set: () => query({ id: 'updated' }, true) });
+      repositoryFixtures.VocabularyEntry.findOne = sinon.stub().returns(query({ id: 'db-root', vocabulary: 'v1', parent: null }));
+      repositoryFixtures.VocabularyEntry.updateOne = sinon.stub().returns({ set: () => query({ id: 'updated' }, true) });
       await service.create({
-        name: 'Transactional tree',
+        name: 'Sequential tree',
         branding: 'default',
         type: 'tree',
         entries: [
@@ -588,19 +588,20 @@ describe('VocabularyService', () => {
           },
         ],
       });
-      expect(maximumWrites).to.equal(1);
+      expect(maximumWrites).to.equal(2);
+      sinon.assert.notCalled(g.sails.log.warn as sinon.SinonStub);
     });
 
     it('settles in-flight parent writes before cleaning up after an import failure', async () => {
-      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
-      g.VocabularyEntry.createEach = sinon.stub().returns({
+      repositoryFixtures.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      repositoryFixtures.VocabularyEntry.createEach = sinon.stub().returns({
         fetch: sinon.stub().resolves([
           { id: 'db-root', identifier: 'root' },
           { id: 'db-a', identifier: 'a' },
           { id: 'db-b', identifier: 'b' },
         ]),
       });
-      g.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'db-root', vocabulary: 'v1', parent: null });
+      repositoryFixtures.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'db-root', vocabulary: 'v1', parent: null });
       let finishLate: () => void = () => {
         throw new Error('late write was not started');
       };
@@ -623,7 +624,7 @@ describe('VocabularyService', () => {
           parentWritesStarted();
           return late;
         });
-      g.VocabularyEntry.updateOne = sinon.stub().returns({ set });
+      repositoryFixtures.VocabularyEntry.updateOne = sinon.stub().returns({ set });
       const importing = service
         .create({
           name: 'Tree',
@@ -647,15 +648,15 @@ describe('VocabularyService', () => {
           (error: unknown) => error
         );
       await started;
-      expect((g.Vocabulary.destroyOne as sinon.SinonStub).called).to.equal(false);
+      expect((repositoryFixtures.Vocabulary.destroyOne as sinon.SinonStub).called).to.equal(false);
       finishLate();
       expect(await importing).to.equal(failure);
-      expect((g.Vocabulary.destroyOne as sinon.SinonStub).calledOnce).to.equal(true);
+      expect((repositoryFixtures.Vocabulary.destroyOne as sinon.SinonStub).calledOnce).to.equal(true);
     });
 
     it('keeps cycle validation serial for a graph that is not a forest', async () => {
-      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
-      g.VocabularyEntry.createEach = sinon.stub().returns({
+      repositoryFixtures.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      repositoryFixtures.VocabularyEntry.createEach = sinon.stub().returns({
         fetch: sinon.stub().resolves([
           { id: 'db-a', identifier: 'a' },
           { id: 'db-b', identifier: 'b' },
@@ -665,7 +666,7 @@ describe('VocabularyService', () => {
         ['db-a', { id: 'db-a', vocabulary: 'v1', parent: null as string | null }],
         ['db-b', { id: 'db-b', vocabulary: 'v1', parent: null as string | null }],
       ]);
-      g.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: { id: string }) => records.get(criteria.id));
+      repositoryFixtures.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: { id: string }) => records.get(criteria.id));
       const updateOne = sinon.stub().callsFake((criteria: { id: string }) => ({
         set: async (values: { parent: string }) => {
           const row = records.get(criteria.id);
@@ -673,7 +674,7 @@ describe('VocabularyService', () => {
           return row;
         },
       }));
-      g.VocabularyEntry.updateOne = updateOne;
+      repositoryFixtures.VocabularyEntry.updateOne = updateOne;
       let rejected: unknown;
       try {
         await service.create({
@@ -693,11 +694,11 @@ describe('VocabularyService', () => {
     });
 
     it('rejects a parent from another vocabulary after batch creation', async () => {
-      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
-      g.VocabularyEntry.createEach = sinon
+      repositoryFixtures.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      repositoryFixtures.VocabularyEntry.createEach = sinon
         .stub()
         .returns({ fetch: sinon.stub().resolves([{ id: 'db-child', identifier: 'child' }]) });
-      g.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'foreign-parent', vocabulary: 'other', parent: null });
+      repositoryFixtures.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'foreign-parent', vocabulary: 'other', parent: null });
       let rejected: unknown;
       try {
         await service.create({
@@ -710,12 +711,12 @@ describe('VocabularyService', () => {
         rejected = error;
       }
       expect((rejected as Error).message).to.equal('VocabularyEntry.parent must belong to the same vocabulary');
-      expect((g.VocabularyEntry.updateOne as sinon.SinonStub).called).to.equal(false);
+      expect((repositoryFixtures.VocabularyEntry.updateOne as sinon.SinonStub).called).to.equal(false);
     });
 
     it('cleans up the vocabulary and its entries if a batch fails without a transaction', async () => {
       const failure = new Error('entry batch failed');
-      g.VocabularyEntry.createEach = sinon.stub().returns({ fetch: sinon.stub().rejects(failure) });
+      repositoryFixtures.VocabularyEntry.createEach = sinon.stub().returns({ fetch: sinon.stub().rejects(failure) });
       let rejected: unknown;
       try {
         await service.create({
@@ -730,9 +731,30 @@ describe('VocabularyService', () => {
         rejected = error;
       }
       expect(rejected).to.equal(failure);
-      expect((g.Vocabulary.destroyOne as sinon.SinonStub).calledOnce).to.equal(true);
-      expect((g.VocabularyEntry.destroy as sinon.SinonStub).calledTwice).to.equal(true);
+      expect((repositoryFixtures.Vocabulary.destroyOne as sinon.SinonStub).calledOnce).to.equal(true);
+      expect((repositoryFixtures.VocabularyEntry.destroy as sinon.SinonStub).calledTwice).to.equal(true);
     });
+  });
+
+  it('retains an earlier reorder write when a later write fails', async () => {
+    const rows = [{ id: 'e1', vocabulary: 'v1', order: 0 }, { id: 'e2', vocabulary: 'v1', order: 1 }];
+    const failure = new Error('second reorder failed');
+    Reflect.set(repositoryFixtures.VocabularyEntry, 'find', sinon.stub().resolves(rows));
+    const writes: string[] = [];
+    Reflect.set(repositoryFixtures.VocabularyEntry, 'updateOne', ({ id }: { id: string }) => ({
+      set: async ({ order }: { order: number }) => {
+        writes.push(id);
+        if (id === 'e2') throw failure;
+        const row = rows.find(row => row.id === id)!;
+        row.order = order;
+        return row;
+      }
+    }));
+    await assert.rejects(service.reorderEntries('v1', [{ id: 'e1', order: 10 }, { id: 'e2', order: 20 }]),
+      error => error === failure);
+    expect(rows.map(row => row.order)).to.deep.equal([10, 1]);
+    expect(writes).to.deep.equal(['e1', 'e2']);
+    sinon.assert.notCalled(g.sails.log.warn as sinon.SinonStub);
   });
 
   describe('bootstrapData', () => {
@@ -770,7 +792,7 @@ describe('VocabularyService', () => {
         type: 'flat',
         entries: [{ label: 'A', value: 'a' }]
       }));
-      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       const createStub = sinon.stub(service, 'create').resolves({ id: 'v-created' } as unknown as VocabularyAttributes);
 
       await service.bootstrapData();
@@ -786,7 +808,7 @@ describe('VocabularyService', () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'local.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ name: 'Existing', slug: 'existing' }));
-      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'existing-id', name: 'Existing', type: 'flat' }) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves({ id: 'existing-id', name: 'Existing', type: 'flat' }) as unknown as VocabularyModelStub['findOne'];
       const createStub = sinon.stub(service, 'create');
 
       await service.bootstrapData();
@@ -803,7 +825,7 @@ describe('VocabularyService', () => {
       readFileStub
         .onFirstCall().resolves('{invalid json')
         .onSecondCall().resolves(JSON.stringify({ name: 'Good', slug: 'good' }));
-      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       const createStub = sinon.stub(service, 'create').resolves({ id: 'good-id' } as unknown as VocabularyAttributes);
 
       await service.bootstrapData();
@@ -833,7 +855,7 @@ describe('VocabularyService', () => {
       const findOneStub = sinon.stub();
       findOneStub.onFirstCall().resolves(null);
       findOneStub.onSecondCall().resolves({ id: 'existing-rva', name: 'Existing RVA', type: 'flat' });
-      g.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
       const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
 
       await service.bootstrapData();
@@ -846,7 +868,7 @@ describe('VocabularyService', () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
-      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.onFirstCall().rejects(new Error('RVA import timed out'));
       importStub.onSecondCall().resolves({ id: 'rva-316' });
@@ -866,7 +888,7 @@ describe('VocabularyService', () => {
         const findOneStub = sinon.stub();
         findOneStub.onFirstCall().resolves(null);
         findOneStub.onSecondCall().resolves({ id: 'rva-316' });
-        g.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
+        repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
         const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(new Promise(() => undefined));
 
@@ -886,7 +908,7 @@ describe('VocabularyService', () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
-      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.rejects(new Error('RVA metadata is invalid'));
 
@@ -900,7 +922,7 @@ describe('VocabularyService', () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
-      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.rejects(new Error('RVA import timed out'));
 
@@ -927,7 +949,7 @@ describe('VocabularyService', () => {
           resolveImport({ id: 'rva-316' });
           return null;
         });
-        g.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
+        repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
         const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(originalImport);
 
@@ -946,7 +968,7 @@ describe('VocabularyService', () => {
     it('fails a still-pending RVA import after the settlement timeout', async () => {
       const clock = sinon.useFakeTimers();
       try {
-        g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+        repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
         const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(new Promise(() => undefined));
         const importBootstrap = Reflect.get(service, 'importRvaBootstrapVocabulary').bind(service) as (
@@ -993,7 +1015,7 @@ describe('VocabularyService', () => {
         .onFirstCall().resolves(JSON.stringify({ name: 'A', slug: 'a' }))
         .onSecondCall().resolves(JSON.stringify({ name: 'M', slug: 'm' }))
         .onThirdCall().resolves(JSON.stringify({ name: 'Z', slug: 'z' }));
-      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       sinon.stub(service, 'create').resolves({ id: 'created' } as unknown as VocabularyAttributes);
 
       await service.bootstrapData();

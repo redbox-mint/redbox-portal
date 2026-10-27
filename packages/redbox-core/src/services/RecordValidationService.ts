@@ -57,7 +57,7 @@ import type {
   RecordContractSourceForm,
   RecordContractUpdateContext,
 } from '../record-contract/record-contract-context';
-import type { FormAttributes } from '../waterline-models/Form';
+import type { FormAttributes } from '../persistence/rows';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
 import {
   ValidatorFormConfigVisitor,

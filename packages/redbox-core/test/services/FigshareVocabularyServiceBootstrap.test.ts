@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -60,8 +62,9 @@ describe('FigshareVocabularyService bootstrap data', function () {
   }
 
   beforeEach(function () {
+    stubVocabularyPersistence();
     for (const name of MODEL_GLOBALS) {
-      savedGlobals.set(name, (global as any)[name]);
+      savedGlobals.set(name, (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name]);
     }
 
     sourceFindOne = sinon.stub().resolves(null);
@@ -70,9 +73,9 @@ describe('FigshareVocabularyService bootstrap data', function () {
     crosswalkSet = sinon.stub().resolves(undefined);
     crosswalkUpdateOne = sinon.stub().returns({ set: crosswalkSet });
 
-    (global as any).FigshareVocabularySource = { findOne: sourceFindOne };
-    (global as any).FigshareVocabularySyncRun = { findOne: syncRunFindOne };
-    (global as any).FigshareVocabularyCrosswalk = {
+    repositoryFixtures.FigshareVocabularySource = { findOne: sourceFindOne };
+    repositoryFixtures.FigshareVocabularySyncRun = { findOne: syncRunFindOne };
+    repositoryFixtures.FigshareVocabularyCrosswalk = {
       findOne: crosswalkFindOne,
       updateOne: crosswalkUpdateOne
     };
@@ -127,9 +130,9 @@ describe('FigshareVocabularyService bootstrap data', function () {
     for (const name of MODEL_GLOBALS) {
       const previous = savedGlobals.get(name);
       if (previous === undefined) {
-        delete (global as any)[name];
+        delete (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name];
       } else {
-        (global as any)[name] = previous;
+        (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name] = previous;
       }
     }
     savedGlobals.clear();

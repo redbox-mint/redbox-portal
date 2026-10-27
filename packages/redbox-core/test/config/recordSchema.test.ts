@@ -13,7 +13,6 @@ import {
   normalizeRecordSchemaConfig,
   RECORD_SCHEMA_PROBLEM_CODES,
   RecordTypeModel,
-  WaterlineModels,
   recordSchema,
   resolveRecordSchemaUnknownProperties,
   validateRecordSchemaConfig,
@@ -231,8 +230,7 @@ describe('record-schema configuration', function () {
     expect(definition.recordSchema).to.deep.equal({ unknownProperties: 'declared' });
   });
 
-  it('mirrors the override in Waterline and storage record-type representations', function () {
-    expect(WaterlineModels.RecordType.attributes.recordSchema).to.deep.include({ type: 'json' });
+  it('retains schema overrides in storage record-type representations', function () {
 
     const storedRecordType = new RecordTypeModel();
     storedRecordType.recordValidation = { mode: 'shadow' };

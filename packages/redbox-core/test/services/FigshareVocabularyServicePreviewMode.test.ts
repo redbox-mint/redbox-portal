@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -47,19 +49,20 @@ describe('FigshareVocabularyService preview mode resolution', function () {
   const savedGlobals = new Map<string, unknown>();
 
   beforeEach(function () {
+    stubVocabularyPersistence();
     for (const name of MODEL_GLOBALS) {
-      savedGlobals.set(name, (global as any)[name]);
+      savedGlobals.set(name, (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name]);
     }
 
     sourceFindOne = sinon.stub().resolves(null);
     crosswalkFindOne = sinon.stub().resolves(null);
     vocabularyFindOne = sinon.stub().resolves(localVocabulary);
 
-    (global as any).FigshareVocabularySource = { findOne: sourceFindOne };
-    (global as any).FigshareVocabularyCrosswalk = { findOne: crosswalkFindOne };
-    (global as any).Vocabulary = { findOne: vocabularyFindOne };
-    (global as any).FigshareVocabularyCategory = { find: sinon.stub().resolves([]) };
-    (global as any).VocabularyEntry = { find: sinon.stub().resolves([]) };
+    repositoryFixtures.FigshareVocabularySource = { findOne: sourceFindOne };
+    repositoryFixtures.FigshareVocabularyCrosswalk = { findOne: crosswalkFindOne };
+    repositoryFixtures.Vocabulary = { findOne: vocabularyFindOne };
+    repositoryFixtures.FigshareVocabularyCategory = { find: sinon.stub().resolves([]) };
+    repositoryFixtures.VocabularyEntry = { find: sinon.stub().resolves([]) };
 
     delete require.cache[require.resolve('../../src/services/FigshareVocabularyService')];
     const { Services } = require('../../src/services/FigshareVocabularyService');
@@ -70,9 +73,9 @@ describe('FigshareVocabularyService preview mode resolution', function () {
     for (const name of MODEL_GLOBALS) {
       const previous = savedGlobals.get(name);
       if (previous === undefined) {
-        delete (global as any)[name];
+        delete (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name];
       } else {
-        (global as any)[name] = previous;
+        (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name] = previous;
       }
     }
     savedGlobals.clear();

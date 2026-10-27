@@ -15,8 +15,8 @@ import {
   type BrandingTypefaceState,
 } from '../model/BrandingTypeface';
 import { inspectWoff2Buffer, Woff2InspectError } from './BrandingWoff2Inspector';
-import type { BrandingConfigAttributes } from '../waterline-models/BrandingConfig';
-import type { BrandingConfigHistoryAttributes } from '../waterline-models/BrandingConfigHistory';
+import type { BrandRow as BrandingConfigAttributes, BrandingHistoryRow as BrandingConfigHistoryAttributes } from '../persistence/branding/BrandingRepository';
+import { getBrandingRepository } from '../persistence/runtime';
 
 export type BrandingTypefaceErrorCode =
   | 'typeface-invalid-slot'
@@ -296,13 +296,13 @@ export namespace Services {
           referenced.set(key, { brandingId, sha256: face.sha256 });
         }
       };
-      const brands = (await BrandingConfig.find({})) as BrandingConfigAttributes[];
+      const brands = (await getBrandingRepository().listBrands()) as BrandingConfigAttributes[];
       for (const brand of brands) {
         const brandingId = String(brand.id);
         addState(brandingId, brand.typeface);
         addState(brandingId, brand.draftTypeface);
       }
-      const histories = (await BrandingConfigHistory.find({})) as BrandingConfigHistoryAttributes[];
+      const histories = (await getBrandingRepository().listHistories()) as BrandingConfigHistoryAttributes[];
       for (const history of histories) {
         const branding = history.branding;
         const brandingId = String(
@@ -317,7 +317,7 @@ export namespace Services {
 
     /** Fresh per-key reference check used immediately before each deletion (scan/delete race). */
     async isKeyReferenced(brandingId: string, sha256: string): Promise<boolean> {
-      const brand = await BrandingConfig.findOne({ id: brandingId });
+      const brand = await getBrandingRepository().getBrand({ id: brandingId });
       if (brand) {
         for (const source of [brand.typeface, brand.draftTypeface]) {
           if (orderedTypefaceFaces(normalizeTypefaceState(source)).some(face => face.sha256 === sha256)) {
@@ -325,9 +325,7 @@ export namespace Services {
           }
         }
       }
-      const histories = (await BrandingConfigHistory.find({
-        branding: brandingId,
-      })) as BrandingConfigHistoryAttributes[];
+      const histories = (await getBrandingRepository().listHistories(brandingId)) as BrandingConfigHistoryAttributes[];
       for (const history of histories) {
         if (orderedTypefaceFaces(normalizeTypefaceState(history.typeface)).some(face => face.sha256 === sha256)) {
           return true;

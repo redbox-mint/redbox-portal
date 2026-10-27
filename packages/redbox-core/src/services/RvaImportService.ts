@@ -1,3 +1,4 @@
+import { getVocabularyRepositories } from '../persistence/runtime';
 import axios, { AxiosInstance } from 'axios';
 import {
   Configuration as RvaConfiguration,
@@ -7,9 +8,8 @@ import {
   Vocabulary as RvaVocabulary
 } from '@researchdatabox/rva-registry-openapi-generated-node';
 import { Services as services } from '../CoreService';
-import { VocabularyAttributes } from '../waterline-models';
+import type { VocabularyRow as VocabularyAttributes } from '../persistence/vocabulary/VocabularyRepositories';
 import { Services as VocabularyServiceModule } from './VocabularyService';
-import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 
 const RVA_REQUEST_TIMEOUT_MS = 15000;
 
@@ -56,13 +56,6 @@ export namespace Services {
     private configuration: RvaConfiguration | null = null;
     private resourcesClient: ResourcesApi | null = null;
     private servicesClient: ServicesApi | null = null;
-
-    private async executeQuery<T>(query: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
-      if (connection) {
-        return query.usingConnection(connection);
-      }
-      return query;
-    }
 
     private get httpClient(): AxiosInstance {
       if (!this.client) {
@@ -131,7 +124,7 @@ export namespace Services {
     }
 
     public async syncRvaVocabulary(vocabularyId: string, versionId?: string): Promise<{ updated: number; created: number; skipped: number; lastSyncedAt: string }> {
-      const vocabulary = await Vocabulary.findOne({ id: vocabularyId });
+      const vocabulary = await getVocabularyRepositories().getVocabulary({ id: vocabularyId });
       if (!vocabulary) {
         throw new Error('Vocabulary not found');
       }
@@ -149,33 +142,20 @@ export namespace Services {
 
       const lastSyncedAt = new Date().toISOString();
 
-      const counters = await runWithOptionalTransaction(
-        Vocabulary.getDatastore(),
-        async (connection) => {
-          const results = await VocabularyService.upsertEntries(String(vocabulary.id), entries, connection);
-          const updaterQuery = Vocabulary.updateOne({ id: vocabulary.id }).set({
-            sourceVersionId: selectedVersionId,
-            lastSyncedAt,
-            name: String(metadata.title ?? vocabulary.name),
-            description: metadata.description ?? vocabulary.description,
-            owner: metadata.owner ?? vocabulary.owner
-          });
-          try {
-            await this.executeQuery(updaterQuery, connection);
-          } catch (error) {
-            if (!connection) {
-              sails.log?.error?.('RVA sync failed after entry upsert; retry may be required.', error);
-              throw new Error(`Sync failed after updating entries: ${String(error)}`);
-            }
-            throw error;
-          }
-          return results;
-        },
-        {
-          logger: sails.log,
-          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional execution.'
-        }
-      );
+      const counters = await VocabularyService.upsertEntries(String(vocabulary.id), entries);
+      const updaterQuery = getVocabularyRepositories().reviseVocabulary(vocabulary.id, {
+        sourceVersionId: selectedVersionId,
+        lastSyncedAt,
+        name: String(metadata.title ?? vocabulary.name),
+        description: metadata.description ?? vocabulary.description,
+        owner: metadata.owner ?? vocabulary.owner
+      });
+      try {
+        await (updaterQuery);
+      } catch (error) {
+        sails.log?.error?.('RVA sync failed after entry upsert; retry may be required.', error);
+        throw new Error(`Sync failed after updating entries: ${String(error)}`);
+      }
 
       return {
         ...counters,

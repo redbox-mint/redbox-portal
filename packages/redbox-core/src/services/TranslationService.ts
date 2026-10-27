@@ -1,3 +1,4 @@
+import { getConfigurationRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -25,13 +26,6 @@ import i18next, { type i18n as I18nInstance } from "i18next"
 
 
 type NextFunction = () => void;
-
-// // Waterline globals
-// declare let BrandingService: {
-//   getBrand: (name: string) => BrandingModel;
-//   getAvailable: () => string[];
-//   getBrandNameFromReq: (req: RequestLike) => string;
-// };
 
 export namespace Services {
   /**
@@ -211,11 +205,11 @@ export namespace Services {
         for (const ns of namespaces) {
           try {
             // Prefer explicit fields query
-            let bundle = await I18nBundle.findOne({ branding: brandingId, locale: lng, namespace: ns });
+            let bundle = await getConfigurationRepositories().bundles.findForLocale(brandingId, lng, ns);
             if (!bundle) {
               // Fallback to uid-based lookup if needed
               const uid = `${brandingId}:${lng}:${ns}`;
-              bundle = await I18nBundle.findOne({ uid });
+              bundle = await getConfigurationRepositories().bundles.findByUid(uid);
             }
             const data = (bundle?.data && typeof bundle.data === 'object') ? { ...(bundle.data as Record<string, unknown>) } : {};
             if (data && typeof data === 'object' && '_meta' in data) {
@@ -294,7 +288,7 @@ export namespace Services {
 
         // Add languages from DB bundles
         try {
-          const bundles = await I18nBundle.find({ branding: brandingId }).sort('locale') as unknown as Array<{ locale?: string }>;
+          const bundles = await getConfigurationRepositories().bundles.listForBrand(brandingId, true) as unknown as Array<{ locale?: string }>;
           this.logger.debug(`Found ${bundles.length} bundles for branding ${brandingId}`);
           bundles.forEach((b: { locale?: string }) => {
             if (b?.locale) {

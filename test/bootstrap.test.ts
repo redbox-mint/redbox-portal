@@ -36,10 +36,6 @@ before(function (this: Mocha.Context, done) {
             hooks: {
               grunt: false,
             },
-            models: {
-              datastore: 'mongodb',
-              migrate: 'drop',
-            },
             security: {
               csrf: false,
             },

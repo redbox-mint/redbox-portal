@@ -2,9 +2,9 @@ import * as crypto from 'node:crypto';
 import { Services as services } from '../CoreService';
 import type { SiemConfigDto, SiemSeverity } from '../configmodels/SiemConfiguration';
 import { normalizeSiemConfiguration, DEFAULT_SIEM_REDACTION } from '../configmodels/SiemConfiguration';
-import type { SecurityEventAttributes } from '../waterline-models/SecurityEvent';
+import type { SecurityEventRow as SecurityEventAttributes } from '../persistence/siem/SiemRepository';
 import { redactForSiem } from './siem/SiemPayloadRedactor';
-import { ensureSecurityEventStorage } from './siem/SiemDeliveryStore';
+import { getSiemRepository } from '../persistence/runtime';
 import type { SecurityEventInput } from './siem/SiemTypes';
 
 type AgendaJobLike = { attrs?: { data?: unknown } };
@@ -13,14 +13,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isSecurityEvent(value: unknown): value is SecurityEventAttributes {
-  return (
-    isRecord(value) &&
-    ['id', 'eventId', 'brandId', 'eventType', 'category', 'severity', 'occurredAt', 'source', 'deliveryState'].every(
-      key => typeof value[key] === 'string'
-    )
-  );
-}
+
 
 export namespace Services {
   export class SecurityEventService extends services.Core.Service {
@@ -36,9 +29,9 @@ export namespace Services {
       'emitFromIntegrationAudit',
       'emitFromAttachmentAudit',
       'storeSecurityEvent',
-      'queryEvents',
       'init',
       'drain',
+      'queryEvents',
     ];
 
     private draining=false;
@@ -113,9 +106,9 @@ export namespace Services {
       };
     }
 
-    public emitSecurityEvent(input: SecurityEventInput): Promise<void> {
-      if (this.draining) return Promise.resolve();
-      return this.accept(() => this.emitAccepted(input));
+    public emitSecurityEvent(input:SecurityEventInput):Promise<void>{
+      if(this.draining)return Promise.resolve();
+      return this.accept(()=>this.emitAccepted(input));
     }
     private async emitAccepted(input: SecurityEventInput): Promise<void> {
       try {
@@ -257,22 +250,13 @@ export namespace Services {
       });
     }
 
-    public storeSecurityEvent(job: AgendaJobLike): Promise<void> { return this.accept(() => this.storeAccepted(job)); }
+    public storeSecurityEvent(job:AgendaJobLike):Promise<void>{return this.accept(()=>this.storeAccepted(job));}
     private async storeAccepted(job: AgendaJobLike): Promise<void> {
       const data = job.attrs?.data;
       if (!isRecord(data) || !isRecord(data.event)) return;
       const event = data.event;
       if (typeof event.brandId !== 'string' || typeof event.eventId !== 'string') return;
-      await ensureSecurityEventStorage();
-      try {
-        await SecurityEvent.create(event);
-      } catch (error) {
-        // Agenda may replay after create committed but before forwarding was queued.
-        // Only an existing event for the same tenant can make a unique error safe.
-        if (!isRecord(error) || (error.code !== 'E_UNIQUE' && error.code !== 11000)) throw error;
-        const existing = await SecurityEvent.findOne({ eventId: event.eventId, brandId: event.brandId });
-        if (!existing) throw error;
-      }
+      await getSiemRepository().capture(event);
       await AgendaQueueService.now(this.forwardJobName, { brandId: event.brandId });
     }
 
@@ -299,10 +283,8 @@ export namespace Services {
       if (Object.keys(occurredAt).length > 0) {
         where.occurredAt = occurredAt;
       }
-      const query = SecurityEvent.find(where).sort('occurredAt DESC').skip(skip).limit(limit);
-      const result = await query;
-      const rows: SecurityEventAttributes[] = Array.isArray(result) ? result.filter(isSecurityEvent) : [];
-      const total = await SecurityEvent.count(where);
+      const rows = await getSiemRepository().listEvents(where, skip, limit);
+      const total = await getSiemRepository().countEvents(where);
       return { rows, total };
     }
 
@@ -320,7 +302,7 @@ export namespace Services {
 
       const oid = String(payload.redboxOid ?? payload.oid ?? '').trim();
       if (oid) {
-        const record = await Record.findOne({ redboxOid: oid });
+        const record = await RecordsService.getMeta(oid);
         const recordBrandId = _.get(record, 'metaMetadata.brandId');
         if (typeof recordBrandId === 'string' && recordBrandId.trim() !== '') {
           return recordBrandId;

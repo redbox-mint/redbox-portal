@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import zlib from 'zlib';
@@ -126,8 +127,8 @@ describe('BrandingTypefaceService', function () {
     setupServiceTestGlobals(sails);
     disk = new FakeDisk();
     (global as unknown as Record<string, unknown>).StorageManagerService = { primaryDisk: () => disk };
-    (global as unknown as Record<string, unknown>).BrandingConfig = { find: async () => [], findOne: async () => null };
-    (global as unknown as Record<string, unknown>).BrandingConfigHistory = { find: async () => [] };
+    repositoryFixtures.BrandingConfig = { find: async () => [], findOne: async () => null };
+    repositoryFixtures.BrandingConfigHistory = { find: async () => [] };
     const { Services } = require('../../src/services/BrandingTypefaceService');
     service = new Services.BrandingTypeface();
   });
@@ -318,7 +319,7 @@ describe('BrandingTypefaceService', function () {
     disk.objects.set(`branding-fonts/brand-1/${recentSha}.woff2`, { bytes: recentBytes, lastModified: newAge });
     disk.objects.set('branding-fonts/brand-1/junk.txt', { bytes: Buffer.from('junk'), lastModified: oldAge });
     disk.pageSize = 2;
-    (global as unknown as Record<string, unknown>).BrandingConfig = {
+    repositoryFixtures.BrandingConfig = {
       find: async () => [
         { id: 'brand-1', typeface: { mode: 'custom', faces: { regular: refFace } }, draftTypeface: null },
       ],
@@ -328,7 +329,7 @@ describe('BrandingTypefaceService', function () {
         draftTypeface: null,
       }),
     };
-    (global as unknown as Record<string, unknown>).BrandingConfigHistory = { find: async () => [] };
+    repositoryFixtures.BrandingConfigHistory = { find: async () => [] };
     const result = await service.reconcileAssets({ graceMs: 24 * 60 * 60 * 1000 });
     expect(result.scanned).to.equal(4);
     expect(result.deleted).to.equal(1);
@@ -345,8 +346,8 @@ describe('BrandingTypefaceService', function () {
     const orphanKey = `branding-fonts/brand-1/${orphanSha}.woff2`;
     const oldAge = new Date(Date.now() - 48 * 60 * 60 * 1000);
     disk.objects.set(orphanKey, { bytes: orphanBytes, lastModified: oldAge });
-    (global as unknown as Record<string, unknown>).BrandingConfig = { find: async () => [], findOne: async () => null };
-    (global as unknown as Record<string, unknown>).BrandingConfigHistory = { find: async () => [] };
+    repositoryFixtures.BrandingConfig = { find: async () => [], findOne: async () => null };
+    repositoryFixtures.BrandingConfigHistory = { find: async () => [] };
     // Race: the key becomes referenced between scan and delete.
     const racedFace = {
       slot: 'regular',

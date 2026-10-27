@@ -340,7 +340,7 @@ export namespace Services {
       const config = fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false });
       if (!fresh || !config?.processing?.enabled || config.processingError || fresh.figshareSyncIntent?.readiness === 'initialising') return record;
       const store = getSyncStore();
-      await store.ensureIndexes();
+      await store.assertReady();
       await importRecordIntent(store, fresh);
       const state = await store.get(oid);
       if (state?.nextActionAt != null) {

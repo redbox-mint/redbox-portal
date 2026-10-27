@@ -1,3 +1,4 @@
+import { getBrandingRepository } from '../persistence/runtime';
 import { Controllers as controllers } from '../CoreController';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
@@ -9,7 +10,7 @@ import { mapBrandingError } from './BrandingControllerSupport';
 
 const yaml: { dump: (value: unknown, options?: { lineWidth?: number }) => string } = require('js-yaml');
 
-// sails is declared globally via sails.ts; BrandingConfig is declared globally via waterline-models/BrandingConfig.ts
+// sails is declared globally via sails.ts. Branding persistence uses the B-owned operations.
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
 declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.BrandingThemeCss;
@@ -173,7 +174,7 @@ export namespace Controllers {
     public async renderCss(req: Sails.Req, res: Sails.Res) {
       try {
         const branding = req.param('branding');
-        const brand = await BrandingConfig.findOne({ name: branding });
+        const brand = await getBrandingRepository().getBrand({ name: branding });
         res.set('Content-Type', 'text/css');
         // If brand (or css) not present, serve generated default variable CSS
         if (!brand || !brand.css) {
@@ -266,7 +267,7 @@ export namespace Controllers {
       try {
         const branding = req.param('branding');
         const portal = req.param('portal');
-        const brand = await BrandingConfig.findOne({ name: branding });
+        const brand = await getBrandingRepository().getBrand({ name: branding });
         if (!brand) {
           return this.sendResp(req, res, {
             status: 404,
@@ -338,7 +339,7 @@ export namespace Controllers {
         // validated. Otherwise a valid caller-supplied hash could turn a
         // missing brand or object into a false 304 response.
         const etag = `"${sha256}"`;
-        const brand = await BrandingConfig.findOne({ name: branding });
+        const brand = await getBrandingRepository().getBrand({ name: branding });
         if (!brand) {
           return notFound();
         }
@@ -444,7 +445,7 @@ export namespace Controllers {
     public async renderImage(req: Sails.Req, res: Sails.Res) {
       try {
         const branding = req.param('branding');
-        const brand = await BrandingConfig.findOne({ name: branding });
+        const brand = await getBrandingRepository().getBrand({ name: branding });
         const logo = brand?.logo as Record<string, unknown> | undefined;
         const storageId =
           typeof logo?.storageKey === 'string'

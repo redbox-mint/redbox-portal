@@ -1,4 +1,4 @@
-import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
+import { bindNodeCallback, bindCallback, Observable, defer } from 'rxjs';
 
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
@@ -79,8 +79,8 @@ export namespace Services.Core {
     }
 
     /**
-     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
-     * @param q The query object with an exec or similar method
+     * Wrap a loaded query or a lazy repository operation in an Observable.
+     * @param q A query with exec, or a function returning a repository Promise
      * @param method The method to call on q (default: 'exec')
      * @param type The binding type: 'node' for node-style callbacks, otherwise regular callbacks
      */
@@ -89,6 +89,12 @@ export namespace Services.Core {
       method: string = 'exec',
       type: string = 'node'
     ): Observable<T> {
+      if (typeof q === 'function') {
+        // Match deferred queries: start once on first subscription, and retain
+        // the same result/error for later subscriptions to this service call.
+        let pending: Promise<T> | undefined;
+        return defer(() => (pending ??= Promise.resolve().then(q as () => PromiseLike<T>)));
+      }
       const fn = (q as Record<string, (...args: unknown[]) => unknown>)[method];
       if (type == 'node') {
         return bindNodeCallback(fn.bind(q))() as Observable<T>;

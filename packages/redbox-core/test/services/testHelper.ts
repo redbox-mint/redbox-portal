@@ -1,9 +1,11 @@
-/**
- * Test helper utilities for service tests
- */
-import * as sinon from 'sinon';
-import { from } from 'rxjs';
-import {createSinonStubLogger} from "../logger.test";
+import { brandingFixtures, configurationFixtures, referenceFixtures } from "../helpers/serviceRepositories";
+import * as sinon from "sinon";
+import { from } from "rxjs";
+import { createSinonStubLogger } from "../logger.test";
+import * as persistence from "../../src/persistence/runtime";
+let brandingStub: sinon.SinonStub | undefined;
+let configurationStub: sinon.SinonStub | undefined;
+let referenceStub: sinon.SinonStub | undefined;
 
 /**
  * Creates a mock sails object with common configurations
@@ -44,7 +46,7 @@ export function toObservable(value: any) {
 }
 
 /**
- * Creates a query object that mimics Waterline's chainable queries.
+ * Creates a query object that mimics fixture chainable queries.
  * The exec method uses Node-style callback: callback(error, result)
  */
 export function createQueryObject(result: any, error: any = null): any {
@@ -81,7 +83,7 @@ export function createQueryObject(result: any, error: any = null): any {
 }
 
 /**
- * Creates a mock waterline model with proper query chain support
+ * Creates a fixture operation spies with proper query chain support
  * for use with CoreService.getObservable()
  */
 export function createMockModel(name: string): any {
@@ -114,12 +116,24 @@ export function configureModelMethod(stub: sinon.SinonStub, result: any, error: 
 export function setupServiceTestGlobals(mockSails?: any): void {
   (global as any).sails = mockSails || createMockSails();
   (global as any)._ = require('lodash');
+  brandingStub?.restore();
+  brandingStub = sinon.stub(require('../../src/persistence/branding/runtime'), 'getBrandingRepository').callsFake(brandingFixtures);
+  configurationStub?.restore();
+  configurationStub = sinon.stub(require('../../src/persistence/configuration/runtime'), 'getConfigurationRepositories').callsFake(configurationFixtures);
+  referenceStub?.restore();
+  referenceStub = sinon.stub(require('../../src/persistence/reference/runtime'), 'getReferenceRepositories').callsFake(referenceFixtures);
 }
 
 /**
  * Cleans up global mock environment
  */
 export function cleanupServiceTestGlobals(): void {
+  brandingStub?.restore();
+  brandingStub=undefined;
+  configurationStub?.restore();
+  configurationStub = undefined;
+  referenceStub?.restore();
+  referenceStub = undefined;
   delete (global as any).sails;
   delete (global as any).StorageManagerService;
 }

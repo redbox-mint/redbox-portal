@@ -1,3 +1,4 @@
+import { getReferenceRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -45,9 +46,9 @@ export namespace Services {
     ];
 
     public async bootstrap(recordTypes: RecordTypeLike[]): Promise<unknown[]> {
-      let workflows = await WorkflowStep.find({}) as unknown as unknown[];
+      let workflows = await getReferenceRepositories().workflows.listAll() as unknown as unknown[];
       if (sails.config.appmode.bootstrapAlways) {
-        await WorkflowStep.destroy({});
+        await getReferenceRepositories().workflows.removeAllForBootstrap();
         workflows = [];
       }
       
@@ -96,7 +97,7 @@ export namespace Services {
 
     public create(recordType: RecordTypeLike, name: string, workflowConf: unknown, starting: boolean, hidden: boolean = false) {
       const recordTypeId = recordType.id as string;
-      return super.getObservable(WorkflowStep.create({
+      return super.getObservable(() => getReferenceRepositories().workflows.createDefinition({
         name: name,
         config: workflowConf,
         recordType: recordTypeId,
@@ -124,7 +125,7 @@ export namespace Services {
     }
 
     public get(recordType: RecordTypeLike, name: string) {
-      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id as string, name: name }));
+      return super.getObservable(() => getReferenceRepositories().workflows.findByName(recordType.id as string, name));
     }
 
     public getAllForRecordType(recordType?: RecordTypeLike | null): Observable<WorkflowStepModel[]> {
@@ -132,7 +133,7 @@ export namespace Services {
         this.logger.warn('WorkflowStepsService.getAllForRecordType called without a valid record type id');
         return of([] as WorkflowStepModel[]);
       }
-      return super.getObservable<WorkflowStepModel[]>(WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } }));
+      return super.getObservable<WorkflowStepModel[]>(() => getReferenceRepositories().workflows.listForRecordType(recordType.id as string, false));
     }
 
     /**
@@ -143,11 +144,11 @@ export namespace Services {
       if (!recordType?.id) {
         return of([] as WorkflowStepModel[]);
       }
-      return super.getObservable<WorkflowStepModel[]>(WorkflowStep.find({ recordType: recordType.id as string }));
+      return super.getObservable<WorkflowStepModel[]>(() => getReferenceRepositories().workflows.listForRecordType(recordType.id as string));
     }
 
     public getFirst(recordType: RecordTypeLike) {
-      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id as string, starting: true }));
+      return super.getObservable(() => getReferenceRepositories().workflows.findStarting(recordType.id as string));
     }
   }
 }

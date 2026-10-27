@@ -1,3 +1,4 @@
+import { repositoryFixtures } from './helpers/repositoryFixtures';
 import '../src/sails';
 import * as lodash from 'lodash';
 import {
@@ -129,3 +130,7 @@ import * as sinon from "sinon";
 (global as any).AsynchProgress = { find: () => ({ exec: () => { } }) };
 (global as any).Role = { find: () => ({ exec: () => { } }) };
 (global as any).BrandingConfig = { findOne: () => ({ exec: () => { } }) };
+
+repositoryFixtures.AsynchProgress = { find: () => ({ exec: () => {} }) };
+repositoryFixtures.Role = { find: () => ({ exec: () => {} }) };
+repositoryFixtures.BrandingConfig = { findOne: () => ({ exec: () => {} }) };

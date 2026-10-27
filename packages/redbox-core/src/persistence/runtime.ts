@@ -4,7 +4,65 @@ import { PersistenceError, safePersistenceFailure } from './errors';
 import { assertPersistenceConfiguration } from './selection';
 import { guardSailsShutdown } from './shutdown';
 import type { PersistenceResource } from './types';
+import type { PersistenceIndexInspection } from './indexes';
 import type { CorePrismaClient, StoragePrismaClient } from './prisma/client';
+
+export { initializeReferencePersistence } from './reference/runtime';
+
+export { getReferenceRepositories } from './reference/runtime';
+
+// Group modules defer concrete factories; preflight imports stay lazy for offline startup.
+export { initializeMigrationPersistence } from './migration/runtime';
+
+export { getMigrationLedgerRepository } from './migration/runtime';
+
+export function inspectMigrationPersistence(app: Sails.Application): Promise<PersistenceIndexInspection> {
+  return (require('./migration/preflight') as typeof import('./migration/preflight')).inspectMigrationPersistence(app);
+}
+
+export function ensureMigrationPersistenceIndex(app: Sails.Application): Promise<PersistenceIndexInspection> {
+  return (require('./migration/preflight') as typeof import('./migration/preflight')).ensureMigrationPersistenceIndex(
+    app
+  );
+}
+
+export function inspectReferencePersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./reference/preflight') as typeof import('./reference/preflight')).inspectReferencePersistence(app);
+}
+export function ensureReferencePersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./reference/preflight') as typeof import('./reference/preflight')).ensureReferencePersistenceIndexes(
+    app
+  );
+}
+export { registerNamedQueryTarget } from './reference/NamedQueryExecution';
+
+export { initializeConfigurationPersistence } from './configuration/runtime';
+export { getConfigurationRepositories } from './configuration/runtime';
+export function inspectConfigurationPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (
+    require('./configuration/preflight') as typeof import('./configuration/preflight')
+  ).inspectConfigurationPersistence(app);
+}
+export function ensureConfigurationPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (
+    require('./configuration/preflight') as typeof import('./configuration/preflight')
+  ).ensureConfigurationPersistenceIndexes(app);
+}
+
+export { initializeProgressPersistence } from './progress/runtime';
+export { getProgressRepositories } from './progress/runtime';
+export function inspectProgressPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./progress/preflight') as typeof import('./progress/preflight')).inspectProgressPersistence(app);
+}
+
+export { initializeHarvestPersistence } from './harvest/runtime';
+export { getHarvestRepositories } from './harvest/runtime';
+export function inspectHarvestPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./harvest/preflight') as typeof import('./harvest/preflight')).inspectHarvestPersistence(app);
+}
+export function ensureHarvestPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./harvest/preflight') as typeof import('./harvest/preflight')).ensureHarvestPersistenceIndexes(app);
+}
 
 interface Pool {
   client: MongoClient;
@@ -337,3 +395,53 @@ export async function cleanupPersistenceAfterFailure(app: Sails.Application): Pr
     app.log.warn('Persistence cleanup failed after startup failure.');
   }
 }
+
+export { initializeSiemPersistence } from './siem/runtime';
+export { getSiemRepository } from './siem/runtime';
+
+export function inspectSiemPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./siem/preflight') as typeof import('./siem/preflight')).inspectSiemPersistence(app);
+}
+export function ensureSiemPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./siem/preflight') as typeof import('./siem/preflight')).ensureSiemPersistenceIndexes(app);
+}
+
+export { initializeFigsharePersistence } from './figshare/runtime';
+export { getFigshareSyncRepository } from './figshare/runtime';
+
+export function inspectFigsharePersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./figshare/preflight') as typeof import('./figshare/preflight')).inspectFigsharePersistence(app);
+}
+export function ensureFigsharePersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./figshare/preflight') as typeof import('./figshare/preflight')).ensureFigsharePersistenceIndexes(
+    app
+  );
+}
+
+export { initializeVocabularyPersistence } from './vocabulary/runtime';
+export { getVocabularyRepositories } from './vocabulary/runtime';
+export function inspectVocabularyPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./vocabulary/preflight') as typeof import('./vocabulary/preflight')).inspectVocabularyPersistence(
+    app
+  );
+}
+export function ensureVocabularyPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (
+    require('./vocabulary/preflight') as typeof import('./vocabulary/preflight')
+  ).ensureVocabularyPersistenceIndexes(app);
+}
+
+export { initializeBrandingPersistence } from './branding/runtime';
+
+export { getBrandingRepository } from './branding/runtime';
+
+export function inspectBrandingPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./branding/preflight') as typeof import('./branding/preflight')).inspectBrandingPersistence(app);
+}
+
+export function ensureBrandingPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./branding/preflight') as typeof import('./branding/preflight')).ensureBrandingPersistenceIndexes(
+    app
+  );
+}
+

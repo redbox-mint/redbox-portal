@@ -18,9 +18,11 @@ function app(config: object = {}): Sails.Application {
 }
 describe('driver persistence foundation', function () {
   afterEach(() => sinon.restore());
-  it('keeps unmigrated groups and model configuration on Waterline during foundation', () => {
-    assertPersistenceConfiguration({ models: { migrate: 'safe' } });
-    assert(Object.values(groupBackends({ models: { migrate: 'safe' } })).every(value => value === 'waterline'));
+  it('keeps identity and storage on Waterline while core groups use Prisma', () => {
+    const backends = groupBackends({ models: { migrate: 'safe' } });
+    assert.equal(backends.identity, 'waterline');
+    assert.equal(backends.storage, 'waterline');
+    assert.equal(backends.reference, 'prisma');
     const resolved = resolveDatastore({ adapter: 'sails-mongo', url: 'mongodb://host/fixture', migrate: 'safe' });
     assert.equal(resolved.database, 'fixture');
   });

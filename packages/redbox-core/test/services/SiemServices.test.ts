@@ -1,3 +1,4 @@
+import { installSiemRepositoryStub } from './siemRepositoryStub';
 // @ts-nocheck
 const { Effect } = require('effect');
 const sinon = require('sinon');
@@ -16,6 +17,7 @@ const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = 
 const expect: Chai.ExpectStatic = require('chai').expect;
 
 describe('SIEM services and helpers', function () {
+  beforeEach(function(){ installSiemRepositoryStub(); });
   const enabledSiemConfig = {
     enabled: true,
     destinations: [],

@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -47,7 +48,7 @@ describe('WorkspaceTypesService', function() {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).WorkspaceType = mockWorkspaceType;
+    repositoryFixtures.WorkspaceType = mockWorkspaceType;
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/WorkspaceTypesService');
@@ -56,7 +57,7 @@ describe('WorkspaceTypesService', function() {
 
   afterEach(function() {
     cleanupServiceTestGlobals();
-    delete (global as any).WorkspaceType;
+    delete repositoryFixtures.WorkspaceType;
     sinon.restore();
   });
 

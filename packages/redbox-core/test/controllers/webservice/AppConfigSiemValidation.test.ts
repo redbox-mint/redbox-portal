@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../../helpers/repositoryFixtures';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { Controllers as RestControllers } from '../../../src/controllers/webservice/AppConfigController';
@@ -42,7 +43,7 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
     create = sinon.stub().callsFake(async data => data);
     set = sinon.stub().callsFake(async data => data);
     updateOne = sinon.stub().returns({ set });
-    Reflect.set(global, 'AppConfig', { find: sinon.stub().resolves([{ configData: stored }]), create, updateOne });
+    Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([{ configData: stored }]), create, updateOne });
     Reflect.set(global, 'AppConfigService', service);
     Reflect.set(global, 'BrandingService', { getBrand: () => brand });
     Reflect.set(sails.services, 'appconfigservice', service);
@@ -52,7 +53,7 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
   afterEach(() => {
     sinon.restore();
     cleanupServiceTestGlobals();
-    Reflect.deleteProperty(global, 'AppConfig');
+    Reflect.deleteProperty(repositoryFixtures, 'AppConfig');
     Reflect.deleteProperty(global, 'AppConfigService');
     Reflect.deleteProperty(global, 'BrandingService');
   });
@@ -66,7 +67,7 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
         service.createOrUpdateConfig(createMockSails(brand), 'siem', config),
         SiemConfigurationError
       );
-      Reflect.set(global, 'AppConfig', { find: sinon.stub().resolves([]), create, updateOne });
+      Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([]), create, updateOne });
       await assert.rejects(service.createConfig('default', 'siem', config), SiemConfigurationError);
       assert.equal(create.called, false);
       assert.equal(updateOne.called, false);
@@ -85,7 +86,7 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
       Accept: 'application/json',
     };
     const config = normalizeSiemConfiguration({ destinations: [{ ...target, headers }] });
-    Reflect.set(global, 'AppConfig', { find: sinon.stub().resolves([{ configData: config }]), create, updateOne });
+    Reflect.set(repositoryFixtures, 'AppConfig', { find: sinon.stub().resolves([{ configData: config }]), create, updateOne });
     const masked = await service.getAppConfigByBrandAndKey('brand', 'siem');
     assert.deepEqual(
       Reflect.get(Object(masked), 'destinations')[0].headers,

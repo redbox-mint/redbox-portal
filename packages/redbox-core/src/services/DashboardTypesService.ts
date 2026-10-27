@@ -1,3 +1,5 @@
+import { getConfigurationRepositories } from '../persistence/runtime';
+import { getReferenceRepositories } from '../persistence/runtime';
 import { Observable, firstValueFrom, from } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -191,7 +193,7 @@ export namespace Services {
 
     private async listAssignedDashboardTypeNames(brand: BrandingModel): Promise<Set<string>> {
       // Retired overrides may still reference profiles; read the latest legacy row directly.
-      const legacyRows = await AppConfig.find({ branding: brand.id, configKey: 'dashboardTableConfig' }) as unknown as Array<{
+      const legacyRows = await getConfigurationRepositories().appConfigs.listForBrand(String(brand.id), 'dashboardTableConfig') as unknown as Array<{
         configData?: unknown;
         updatedAt?: unknown;
         createdAt?: unknown;
@@ -241,9 +243,9 @@ export namespace Services {
     }
 
     public async bootstrap(defBrand: BrandingModel): Promise<DashboardTypeModel[]> {
-      let dashboardTypes = await DashboardType.find({ branding: defBrand.id }) as DashboardTypeModel[];
+      let dashboardTypes = await getReferenceRepositories().dashboardTypes.listForBrand(defBrand.id) as unknown as DashboardTypeModel[];
       if (sails.config.appmode.bootstrapAlways) {
-        await DashboardType.destroy({ branding: defBrand.id });
+        await getReferenceRepositories().dashboardTypes.removeForBrand(defBrand.id);
         dashboardTypes = [];
       }
 
@@ -285,7 +287,7 @@ export namespace Services {
         if (existing) {
           throw new Error(`Dashboard type '${normalized.name}' already exists for brand '${brand.name}'`);
         }
-        const created = await DashboardType.create({
+        const created = await getReferenceRepositories().dashboardTypes.createDefinition({
           name: normalized.name,
           branding: brand.id,
           description: normalized.description,
@@ -299,13 +301,11 @@ export namespace Services {
     }
 
     public get(brand: BrandingModel, name: string): Observable<DashboardTypeModel | null> {
-      const criteria: { where: { branding: string; name: string } } = { where: { branding: brand.id, name: name } };
-      return super.getObservable<DashboardTypeModel | null>(DashboardType.findOne(criteria));
+      return super.getObservable<DashboardTypeModel | null>(() => getReferenceRepositories().dashboardTypes.findByName(brand.id, name));
     }
 
     public getAll(brand: BrandingModel): Observable<DashboardTypeModel[]> {
-      const criteria: { where: { branding: string } } = { where: { branding: brand.id } };
-      return super.getObservable<DashboardTypeModel[]>(DashboardType.find(criteria));
+      return super.getObservable<DashboardTypeModel[]>(() => getReferenceRepositories().dashboardTypes.listForBrand(brand.id));
     }
 
     public async getAllDashboardTypeDefinitions(brand: BrandingModel): Promise<DashboardTypeModel[]> {
@@ -339,7 +339,7 @@ export namespace Services {
           system: input.system ?? current.system
         };
 
-        const updated = await DashboardType.updateOne({ branding: brand.id, name }).set(updateData);
+        const updated = await getReferenceRepositories().dashboardTypes.reviseDefinition(brand.id, name, updateData);
         if (!updated) {
           throw new Error(`Dashboard type '${name}' was not updated`);
         }
@@ -362,7 +362,7 @@ export namespace Services {
           throw new Error(`Dashboard type '${name}' is assigned to one or more workflow states or dashboard views`);
         }
 
-        await DashboardType.destroy({ branding: brand.id, name });
+        await getReferenceRepositories().dashboardTypes.removeForBrand(brand.id, name);
         return { deleted: true };
       })());
     }

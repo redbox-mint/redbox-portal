@@ -1,7 +1,9 @@
+import { getReferenceRepositories } from '../persistence/runtime';
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../index';
 import { promises as fsp } from 'fs';
 import * as path from 'path';
+import { firstValueFrom } from 'rxjs';
 
 
 export namespace Controllers {
@@ -84,7 +86,7 @@ export namespace Controllers {
         }
 
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        const workspaceType = await WorkspaceType.findOne({ branding: brand.id, name: workspaceTypeName });
+        const workspaceType = await getReferenceRepositories().workspaceTypes.findByName(brand.id, workspaceTypeName);
         if (!workspaceType) {
           return this.sendResp(req, res, { data: { status: false, message: 'workspaceType not found' }, headers: this.getNoCacheHeaders() });
         }
@@ -110,7 +112,7 @@ export namespace Controllers {
               : path.extname(file.fd).replace(/^\./, '') || 'bin';
         const storageKey = `workspace-types/${brand.id}/${workspaceTypeName}/logo.${ext}`;
         await StorageManagerService.primaryDisk().put(storageKey, buffer, { contentType });
-        await WorkspaceType.update({ id: workspaceType.id }, { logo: storageKey });
+        await getReferenceRepositories().workspaceTypes.setLogo(workspaceType.id, storageKey);
         try {
           await fsp.unlink(file.fd);
         } catch (cleanupErr) {
@@ -127,42 +129,38 @@ export namespace Controllers {
       }
     }
 
-    public renderImage(req: Sails.Req, res: Sails.Res) {
+    public async renderImage(req: Sails.Req, res: Sails.Res) {
       const type = req.param('workspaceType');
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      return WorkspaceTypesService.getOne(brand, type).subscribe(async (response: unknown) => {
-        const workspaceType = response as globalThis.Record<string, unknown> | null;
-        const logo = typeof workspaceType?.logo === 'string' ? workspaceType.logo : '';
+      const workspaceType = await firstValueFrom(WorkspaceTypesService.getOne(brand, type)) as globalThis.Record<string, unknown> | null;
+      const logo = typeof workspaceType?.logo === 'string' ? workspaceType.logo : '';
 
-        if (!logo) {
+      if (!logo) return res.sendFile(this.getDefaultLogoPath());
+      if (logo.startsWith('/assets/') || logo.startsWith('assets/')) {
+        const logoPath = this.resolveLocalAssetPath(logo);
+        if (!logoPath) {
+          sails.log.warn('WorkspaceTypesController.renderImage rejected an out-of-bounds asset path. Sending default image instead.', logo);
           return res.sendFile(this.getDefaultLogoPath());
         }
-
-        if (logo.startsWith('/assets/') || logo.startsWith('assets/')) {
-          const logoPath = this.resolveLocalAssetPath(logo);
-          if (!logoPath) {
-            sails.log.warn('WorkspaceTypesController.renderImage rejected an out-of-bounds asset path. Sending default image instead.', logo);
-            return res.sendFile(this.getDefaultLogoPath());
-          }
-          return res.sendFile(logoPath);
-        }
-
-        try {
-          const primaryDisk = StorageManagerService.primaryDisk();
-          const [bytes, metadata] = await Promise.all([
-            primaryDisk.getBytes(logo),
-            primaryDisk.getMetaData(logo).catch(() => null),
-          ]);
-          res.contentType(metadata?.contentType || sails.config.static_assets.imageType);
-          return res.send(Buffer.from(bytes));
-        } catch (_error) {
-          sails.log.warn(
-            'WorkspaceTypesController.renderImage failed to load a workspace logo. Sending default image instead.',
-            _error instanceof Error ? (_error.stack ?? _error.message) : _error,
-          );
-          return res.sendFile(this.getDefaultLogoPath());
-        }
-      });
+        return res.sendFile(logoPath);
+      }
+      try {
+        const primaryDisk = StorageManagerService.primaryDisk();
+        const [bytes, metadata] = await Promise.all([
+          primaryDisk.getBytes(logo),
+          primaryDisk.getMetaData(logo).catch(() => null),
+        ]);
+        if (res.destroyed) return;
+        res.contentType(metadata?.contentType || sails.config.static_assets.imageType);
+        return res.send(Buffer.from(bytes));
+      } catch (_error) {
+        if (res.destroyed) return;
+        sails.log.warn(
+          'WorkspaceTypesController.renderImage failed to load a workspace logo. Sending default image instead.',
+          _error instanceof Error ? (_error.stack ?? _error.message) : _error,
+        );
+        return res.sendFile(this.getDefaultLogoPath());
+      }
     }
   }
 }

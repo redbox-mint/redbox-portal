@@ -10,6 +10,10 @@ import { ILogger, isLogger, logAtLevel, nothingLogger } from '@researchdatabox/s
 import { CoreBase } from '../../src/CoreBase';
 import { isPinoLogger, log, logfmtTransportOptions } from '../../src/config/log.config';
 import { createSinonStubLogger } from '../logger.test';
+import assert from 'node:assert/strict';
+import { InvalidCacheEntryError } from '../../src/persistence/cache/validation';
+import { DuplicateCacheEntryError } from '../../src/persistence/cache/errors';
+import { createGeneratedBootstrap } from '../../src/loader/bootstrapShimRuntime';
 
 type LogLine = { level: string; name?: string; msg?: string; [key: string]: unknown };
 
@@ -198,5 +202,60 @@ describe('log config', function () {
       errors: [{ message: 'failed' }],
       res: { statusCode: 500 },
     });
+  });
+
+  it('redacts cache causes in both bootstrap and the Sails default lift failure log', async function () {
+    const native = new Error('synthetic-private-cache-payload');
+    for (const cacheError of [
+      new InvalidCacheEntryError('Stored cache entry does not match the cache persistence contract', { cause: native }),
+      new DuplicateCacheEntryError(native),
+    ]) {
+      for (const failure of [cacheError, new Error('Migration failed', { cause: cacheError })]) {
+        const { lines, stream } = createSink();
+        const logger = log.createPinoLogger('error', stream);
+        const bootstrap = createGeneratedBootstrap(
+          async () => {},
+          async () => {
+            throw failure;
+          },
+          []
+        );
+        let returned: unknown;
+        const app = {
+          config: {},
+          log: require('captains-log')({ custom: logger, inspect: false, level: 'error' }),
+          load(_config: unknown, cb: () => void) {
+            cb();
+          },
+          lower(cb: () => void) {
+            cb();
+          },
+          initialize(cb: (error?: unknown) => void) {
+            bootstrap(error => {
+              returned = error;
+              cb(error);
+            });
+          },
+        };
+        Object.assign(globalThis, { sails: app });
+        // Exercise Sails' real callback-less entrypoint, including its second log.
+        require('sails/lib/app/lift').call(app, {});
+        await new Promise<void>(resolve => setImmediate(resolve));
+        assert.equal(returned, failure);
+        assert.equal(cacheError.cause, native);
+        assert.equal(lines.length, 2);
+        assert.equal(lines[1].msg, 'Failed to lift app:');
+        assert.doesNotMatch(JSON.stringify(lines), /synthetic-private-cache-payload/);
+        assert.match(JSON.stringify(lines), new RegExp(cacheError.name));
+      }
+    }
+  });
+
+  it('preserves non-cache error diagnostics through the Pino error serializer', function () {
+    const { lines, stream } = createSink();
+    const failure = new Error('ordinary failure', { cause: new Error('ordinary cause') });
+    log.createPinoLogger('error', stream).error(failure, 'Startup failed');
+    assert.match(JSON.stringify(lines), /ordinary failure.*ordinary cause/);
+    assert.match(JSON.stringify(lines), /stack/);
   });
 });

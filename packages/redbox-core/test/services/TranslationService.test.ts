@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -46,7 +47,7 @@ describe('TranslationService', function () {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).I18nBundle = mockI18nBundle;
+    repositoryFixtures.I18nBundle = mockI18nBundle;
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandNameFromReq: sinon.stub().returns('default'),
@@ -67,7 +68,7 @@ describe('TranslationService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).I18nBundle;
+    delete repositoryFixtures.I18nBundle;
     delete (global as any).BrandingService;
     const i18next = require('i18next');
     if (i18next.createInstance.restore) {

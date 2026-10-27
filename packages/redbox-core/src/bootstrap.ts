@@ -1,5 +1,5 @@
-import { initializePersistence, cleanupPersistenceAfterFailure } from './persistence/runtime';
-import { ensureSiemDeliveryStorage } from './services/siem/SiemDeliveryStore';
+import { initializeCachePersistence, cleanupCachePersistenceAfterFailure } from './persistence/cache/runtime';
+import { initializePersistence, cleanupPersistenceAfterFailure, initializeBrandingPersistence, initializeVocabularyPersistence, initializeMigrationPersistence, initializeReferencePersistence, initializeConfigurationPersistence, initializeProgressPersistence, initializeHarvestPersistence, initializeSiemPersistence, initializeFigsharePersistence } from './persistence/runtime';
 /**
  * Core Bootstrap Function
  *
@@ -45,7 +45,6 @@ export async function bootstrapRecordSchema(): Promise<void> {
  * in the correct order. Hook bootstraps run after this completes.
  */
 export async function coreBootstrap(): Promise<void> {
-  await ensureSiemDeliveryStorage();
   const schedule = require('node-schedule');
 
   const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
@@ -200,6 +199,7 @@ export async function preLiftSetup(): Promise<void> {
   try {
     await runPreLiftSetup();
   } catch (error) {
+    await cleanupCachePersistenceAfterFailure(sails);
     await cleanupPersistenceAfterFailure(sails);
     throw error;
   }
@@ -241,6 +241,16 @@ async function runPreLiftSetup(): Promise<void> {
   void getMergedApiRoutes();
 
   await initializePersistence(sails);
+  await initializeMigrationPersistence(sails);
+  await initializeCachePersistence(sails);
+  await initializeReferencePersistence(sails);
+  await initializeConfigurationPersistence(sails);
+  await initializeProgressPersistence(sails);
+  await initializeHarvestPersistence(sails);
+  await initializeSiemPersistence(sails);
+  await initializeFigsharePersistence(sails);
+  await initializeBrandingPersistence(sails);
+  await initializeVocabularyPersistence(sails);
 
   // Initialize all services that have an init() method
   // This allows services registered via redbox-loader shims to perform

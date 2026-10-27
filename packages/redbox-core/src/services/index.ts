@@ -122,7 +122,7 @@ export { SiemForwardingServiceModule as SiemForwardingService };
 
 /**
  * ServiceExports - Object containing lazy-instantiated service exports for use by the redbox-core loader
- * This follows the same pattern as WaterlineModels, Policies, etc.
+ * This follows the same registration pattern as Policies and Controllers.
  *
  * Each service is instantiated via `new ServiceClass().exports()` which provides
  * the method binding and exported method filtering that Sails services expect.

@@ -3,6 +3,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { runPendingMigrations } from './MigrationRunner';
 import type { RedboxMigration } from './MigrationRunner';
+import { cleanupCachePersistenceAfterFailure } from '../persistence/cache/runtime';
+import { cachePersistenceFailureForLog } from '../persistence/cache/errors';
 
 export interface GeneratedHookBootstrap {
   name: string;
@@ -68,7 +70,9 @@ async function exportPostBootstrapSnapshot(): Promise<void> {
  * bootstraps, and must finish before the server reports ready.
  */
 async function runPostBootstrapInitialisation(): Promise<void> {
-  const dashboardConfigService = (sails.services as Record<string, { initialiseAfterBootstrap?: () => Promise<void> } | undefined>)?.dashboardconfigservice;
+  const dashboardConfigService = (
+    sails.services as Record<string, { initialiseAfterBootstrap?: () => Promise<void> } | undefined>
+  )?.dashboardconfigservice;
   if (dashboardConfigService?.initialiseAfterBootstrap) {
     await dashboardConfigService.initialiseAfterBootstrap();
     sails.log.verbose('Dashboard configuration initialisation complete.');
@@ -106,9 +110,10 @@ export function createGeneratedBootstrap(
         cb();
       })
       .catch(async error => {
+        await cleanupCachePersistenceAfterFailure(sails);
         await cleanupPersistenceAfterFailure(sails);
         sails.log.verbose('Bootstrap failed!!!');
-        sails.log.error(error);
+        sails.log.error(cachePersistenceFailureForLog(error) ?? error);
         cb(error);
       });
   };

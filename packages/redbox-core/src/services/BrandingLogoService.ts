@@ -1,3 +1,4 @@
+import { getBrandingRepository } from '../persistence/runtime';
 import { Services as coreServices } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import crypto from 'crypto';
@@ -59,7 +60,7 @@ export namespace Services {
     private scheduleSupersededFaviconCleanup(brandId: string, storageKey: string): void {
       const cleanupTimer = setTimeout(async () => {
         try {
-          const currentBrand = await BrandingConfig.findOne({ id: brandId });
+          const currentBrand = await getBrandingRepository().getBrand({ id: brandId });
           if (_.get(currentBrand, 'favicon.storageKey') === storageKey) {
             return;
           }
@@ -205,7 +206,7 @@ export namespace Services {
       contentType: string;
       updatedAt: string;
     }> {
-      const brand = await BrandingConfig.findOne({ name: opts.branding });
+      const brand = await getBrandingRepository().getBrand({ name: opts.branding });
       if (!brand) throw new Error('branding-not-found');
       const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(
         opts.fileBuffer,
@@ -227,7 +228,7 @@ export namespace Services {
         contentType: resolvedContentType,
         updatedAt: new Date().toISOString(),
       };
-      await BrandingConfig.update({ id: brand.id }, { logo: meta });
+      await getBrandingRepository().setBrandAssets(brand.id, { logo: meta });
       return {
         hash: sha256!,
         gridFsId: storageKey,
@@ -244,7 +245,7 @@ export namespace Services {
       contentType: string;
       updatedAt: string;
     }> {
-      const brand = await BrandingConfig.findOne({ name: opts.branding });
+      const brand = await getBrandingRepository().getBrand({ name: opts.branding });
       if (!brand) throw new Error('branding-not-found');
       const { ok, sha256, sanitizedBuffer, errors, finalContentType } = await this.sanitizeAndValidate(
         opts.fileBuffer,
@@ -268,7 +269,7 @@ export namespace Services {
         updatedAt: new Date().toISOString(),
       };
       try {
-        await BrandingConfig.update({ id: brand.id }, { favicon: meta });
+        await getBrandingRepository().setBrandAssets(brand.id, { favicon: meta });
       } catch (error) {
         try {
           await StorageManagerService.primaryDisk().delete(storageKey);
@@ -326,7 +327,7 @@ export namespace Services {
     } | null> {
       let failedStorageId: string | null = null;
       for (let attempt = 0; attempt < 2; attempt += 1) {
-        const brand = await BrandingConfig.findOne({ name: branding });
+        const brand = await getBrandingRepository().getBrand({ name: branding });
         const favicon = brand?.favicon as Record<string, unknown> | undefined;
         const storageId =
           typeof favicon?.storageKey === 'string'

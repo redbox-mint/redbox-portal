@@ -1,5 +1,9 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
+import sinon from 'sinon';
+import { stubCacheEntryRepository } from '../helpers/cacheRepository';
+import type { JsonValue } from '../../src/persistence/cache/CacheEntryRepository';
 import fs from 'node:fs';
 import path from 'node:path';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
@@ -85,11 +89,10 @@ describe('BrandingService lifecycle', function () {
   let disk: FakeDisk;
   let brands: FakeRow[];
   let histories: FakeRow[];
-  let previews: Map<string, { data: Record<string, unknown> }>;
+  let cacheRepository: ReturnType<typeof stubCacheEntryRepository>;
+  let previews: Map<string, { data?: JsonValue }>;
   let brandWrites = 0;
   let historyWrites = 0;
-  let transactionCalls = 0;
-  let datastoreMode: 'none' | 'tx' | 'unsupported' = 'none';
   let failNextBrandUpdate = false;
   let updateError: { code?: string; commit?: boolean } | undefined;
   let failNextHistoryCreate: null | 'unique' = null;
@@ -141,8 +144,6 @@ describe('BrandingService lifecycle', function () {
     previews = new Map();
     brandWrites = 0;
     historyWrites = 0;
-    transactionCalls = 0;
-    datastoreMode = 'none';
     failNextBrandUpdate = false;
     updateError = undefined;
     failNextHistoryCreate = null;
@@ -153,7 +154,7 @@ describe('BrandingService lifecycle', function () {
     (global as unknown as Record<string, unknown>).BrandingThemeCssService = new themeCss.Services.BrandingThemeCss();
     const typeface = require('../../src/services/BrandingTypefaceService');
     (global as unknown as Record<string, unknown>).BrandingTypefaceService = new typeface.Services.BrandingTypeface();
-    (global as unknown as Record<string, unknown>).BrandingConfig = {
+    repositoryFixtures.BrandingConfig = {
       findOne: (criteria: Record<string, unknown>) =>
         brandQuery(structuredClone(brands.find(row => matches(row, criteria)) ?? null)),
       find: () => Promise.resolve(brands.map(row => ({ ...row }))),
@@ -172,27 +173,12 @@ describe('BrandingService lifecycle', function () {
           return { ...row };
         },
         usingConnection: function () {
-          return this;
+          throw new Error('must not attach a transaction connection');
         },
       }),
-      getDatastore: () => {
-        if (datastoreMode === 'none') return undefined;
-        if (datastoreMode === 'unsupported') {
-          return {
-            transaction: async () => {
-              throw new Error('The adapter does not support transactional operations');
-            },
-          };
-        }
-        return {
-          transaction: async (work: (conn: unknown) => Promise<unknown>) => {
-            transactionCalls += 1;
-            return work({});
-          },
-        };
-      },
+
     };
-    (global as unknown as Record<string, unknown>).BrandingConfigHistory = {
+    repositoryFixtures.BrandingConfigHistory = {
       find: (criteria: Record<string, unknown>) => {
         const rows = histories.filter(row => matches(row, criteria));
         return {
@@ -230,28 +216,27 @@ describe('BrandingService lifecycle', function () {
         historyWrites += 1;
       },
     };
-    (global as unknown as Record<string, unknown>).CacheEntry = {
-      create: async (values: { name: string; data: Record<string, unknown> }) => {
-        previews.set(values.name, { data: values.data });
-        return values;
-      },
-      findOne: async (criteria: { name: string }) =>
-        previews.has(criteria.name)
-          ? { id: criteria.name, ts_added: Math.floor(Date.now() / 1000), data: previews.get(criteria.name)?.data }
-          : null,
-      destroy: async (criteria: { id: string }) => {
-        previews.delete(criteria.id);
-      },
-    };
+    cacheRepository = stubCacheEntryRepository();
+    cacheRepository.create.callsFake(async values => {
+      previews.set(values.name, { data: values.data });
+    });
+    cacheRepository.findByName.callsFake(async name =>
+      previews.has(name)
+        ? { id: name, name, ts_added: Math.floor(Date.now() / 1000), data: previews.get(name)?.data }
+        : null
+    );
+    cacheRepository.deleteById.callsFake(async id => {
+      previews.delete(id);
+    });
     const { Services } = require('../../src/services/BrandingService');
     service = new Services.Branding();
   });
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as unknown as Record<string, unknown>).BrandingConfig;
-    delete (global as unknown as Record<string, unknown>).BrandingConfigHistory;
-    delete (global as unknown as Record<string, unknown>).CacheEntry;
+    delete repositoryFixtures.BrandingConfig;
+    delete repositoryFixtures.BrandingConfigHistory;
+    sinon.restore();
     delete (global as unknown as Record<string, unknown>).BrandingThemeCssService;
     delete (global as unknown as Record<string, unknown>).BrandingTypefaceService;
     delete (global as unknown as Record<string, unknown>).StorageManagerService;
@@ -719,7 +704,7 @@ describe('BrandingService lifecycle', function () {
     expect((await service.listVersions('default')).map(entry => entry.version)).to.deep.equal([4, 3, 2]);
   });
 
-  it('maps version-allocation conflicts to 409 and supports transactions', async function () {
+  it('maps version-allocation conflicts to 409 without attempting transactions', async function () {
     await service.publish('default', 'portal', { id: 'u1' }, { expectedVersion: 0, expectedDraftRevision: 0 });
     await service.saveDraft({ branding: 'default', variables: { primary: '#ffffff' }, expectedDraftRevision: 1 });
     // A concurrent publisher wins the next version: the duplicate insert maps to 409.
@@ -730,7 +715,6 @@ describe('BrandingService lifecycle', function () {
     );
     expect(conflict.code).to.equal('branding-conflict');
     expect(brands[0].version).to.equal(1);
-    datastoreMode = 'tx';
     await service.saveDraft({ branding: 'default', variables: { primary: '#ffffff' }, expectedDraftRevision: 2 });
     const published = await service.publish(
       'default',
@@ -739,8 +723,6 @@ describe('BrandingService lifecycle', function () {
       { expectedVersion: 1, expectedDraftRevision: 3 }
     );
     expect(published.version).to.equal(3);
-    expect(transactionCalls).to.be.greaterThan(0);
-    datastoreMode = 'unsupported';
     await service.saveDraft({ branding: 'default', variables: { primary: '#000000' }, expectedDraftRevision: 4 });
     const fallback = await service.publish(
       'default',
@@ -751,7 +733,7 @@ describe('BrandingService lifecycle', function () {
     expect(fallback.version).to.equal(4);
   });
 
-  it('cleans up the history row when the active update fails without transactions', async function () {
+  it('cleans up history after a definite failure without a transaction', async function () {
     await service.publish('default', 'portal', { id: 'u1' }, { expectedVersion: 0, expectedDraftRevision: 0 });
     await service.saveDraft({ branding: 'default', variables: { primary: '#ffffff' }, expectedDraftRevision: 1 });
     failNextBrandUpdate = true;
@@ -889,5 +871,35 @@ describe('BrandingService lifecycle', function () {
     );
     expect(defaulted.draft.typeface.mode).to.equal('default');
     expect(defaulted.draft.revision).to.equal(4);
+  });
+  it('awaits both draft and retained-version preview writes and propagates their failures', async function () {
+    const failure = new Error('synthetic preview write failure');
+    await service.saveDraft({ branding: 'default', variables: { primary: '#ffffff' }, expectedDraftRevision: 0 });
+    await service.publish('default', 'portal', null, { expectedVersion: 0, expectedDraftRevision: 1 });
+    const versionId = histories[0].id;
+    for (const createPreview of [
+      () => service.preview('default', 'portal', Number(brands[0].draftRevision)),
+      () => service.previewVersion({ branding: 'default', portal: 'portal', versionId }),
+    ]) {
+      let rejectWrite!: (error: Error) => void;
+      cacheRepository.create.returns(
+        new Promise<void>((_resolve, reject) => {
+          rejectWrite = reject;
+        })
+      );
+      let finished = false;
+      const result = createPreview().finally(() => {
+        finished = true;
+      });
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(finished).to.equal(false);
+      rejectWrite(failure);
+      try {
+        await result;
+        throw new Error('Expected preview failure');
+      } catch (error) {
+        expect(error).to.equal(failure);
+      }
+    }
   });
 });

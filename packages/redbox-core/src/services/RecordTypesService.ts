@@ -1,3 +1,4 @@
+import { getReferenceRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -70,11 +71,9 @@ export namespace Services {
     protected recordTypes!: RecordTypeModel[];
 
     public async bootstrap(defBrand: BrandingModel): Promise<RecordTypeModel[]> {
-      let recordTypes: RecordTypeModel[] = (await RecordType.find({
-        branding: defBrand.id,
-      })) as unknown as RecordTypeModel[];
+      let recordTypes: RecordTypeModel[] = (await getReferenceRepositories().recordTypes.listForBrand(defBrand.id)) as unknown as RecordTypeModel[];
       if (sails.config.appmode.bootstrapAlways) {
-        await RecordType.destroy({ branding: defBrand.id });
+        await getReferenceRepositories().recordTypes.removeForBrand(defBrand.id);
         recordTypes = [];
       }
       if (_.isUndefined(recordTypes)) {
@@ -130,7 +129,7 @@ export namespace Services {
       this.assertRecordSchemaConfig(name, config.recordSchema);
       const concurrentModification = resolveRecordConcurrentModificationConfig(config.concurrentModification);
       return super.getObservable(
-        RecordType.create({
+        () => getReferenceRepositories().recordTypes.createDefinition({
           name: name,
           branding: brand.id,
           packageType: config.packageType,
@@ -144,26 +143,16 @@ export namespace Services {
           recordValidation: config.recordValidation,
           concurrentModification,
           recordSchema: config.recordSchema,
-        }).fetch()
+        })
       );
     }
 
     public get(brand: BrandingModel, name: string, fields: string[] | null = null): Observable<RecordTypeModel> {
-      const criteria: { where: { branding: string; name: string }; select?: string[] } = {
-        where: { branding: brand.id, name: name },
-      };
-      if (fields) {
-        criteria.select = fields;
-      }
-      return super.getObservable(RecordType.findOne(criteria));
+      return super.getObservable(() => getReferenceRepositories().recordTypes.findByName(brand.id, name, fields));
     }
 
     public getAll(brand: BrandingModel, fields: string[] | null = null): Observable<RecordTypeModel[]> {
-      const criteria: { where: { branding: string }; select?: string[] } = { where: { branding: brand.id } };
-      if (fields) {
-        criteria.select = fields;
-      }
-      return super.getObservable(RecordType.find(criteria));
+      return super.getObservable(() => getReferenceRepositories().recordTypes.listForBrand(brand.id, fields));
     }
 
     public getAllCache(): RecordTypeModel[] {

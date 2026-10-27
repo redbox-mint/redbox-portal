@@ -2,7 +2,7 @@ import axios from 'axios';
 import { STATUS_CODES } from 'node:http';
 import * as Effect from 'effect/Effect';
 import type { SiemDestinationConfig } from '../../configmodels/SiemConfiguration';
-import type { SecurityEventAttributes } from '../../waterline-models/SecurityEvent';
+import type { SecurityEventRow as SecurityEventAttributes } from '../../persistence/siem/SiemRepository';
 import type { SiemDeliveryResult, SiemPayload } from './SiemTypes';
 
 export class SiemAdapterError extends Error {}
