@@ -62,9 +62,11 @@ sinon.stub(require('../src/persistence/reference/runtime'), 'initializeReference
 sinon.stub(require('../src/persistence/configuration/runtime'), 'initializeConfigurationPersistence').resolves();
 sinon.stub(require('../src/persistence/progress/runtime'), 'initializeProgressPersistence').resolves();
 sinon.stub(require('../src/persistence/harvest/runtime'), 'initializeHarvestPersistence').resolves();
+sinon.stub(require('../src/persistence/storage/runtime'), 'initializeStoragePersistence').resolves();
 sinon.stub(require('../src/persistence/vocabulary/runtime'), 'initializeVocabularyPersistence').resolves();
 sinon.stub(require('../src/persistence/branding/runtime'), 'initializeBrandingPersistence').resolves();
 sinon.stub(require('../src/persistence/siem/runtime'), 'initializeSiemPersistence').resolves();
+    sinon.stub(require('../src/persistence/identity/runtime'), 'initializeIdentityPersistence').resolves();
     sinon.stub(require('../src/persistence/figshare/runtime'), 'initializeFigsharePersistence').resolves();
   });
 

@@ -1,3 +1,4 @@
+import { fixtureRow } from '../../helpers/persistenceFixtures';
 /* eslint-disable no-unused-expressions */
 const { expect } = require('chai');
 const { createHash } = require('node:crypto');
@@ -11,7 +12,7 @@ describe('BrandingLogoService (Task 6)', () => {
     const res = await BrandingLogoService.putLogo({ branding: 'default', portal: 'default', fileBuffer: pngBuf, contentType: 'image/png' });
     expect(res.hash).to.match(/^[0-9a-f]{64}$/);
     expect(res.hash).to.equal(expectedHash);
-    const brand = await BrandingConfig.findOne({ name: 'default' });
+    const brand = await fixtureRow("BrandingConfig", { name: 'default' });
     expect(brand.logo).to.have.property('sha256', res.hash);
   });
 

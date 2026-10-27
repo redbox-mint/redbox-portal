@@ -1,3 +1,4 @@
+import { fixtureRemove, fixtureCreate, fixtureRows } from '../../helpers/persistenceFixtures';
 describe('The IntegrationAuditService', function () {
   const createdOids: string[] = [];
   let integrationAuditService;
@@ -30,7 +31,7 @@ describe('The IntegrationAuditService', function () {
     }
 
     const oidsToDelete = createdOids.splice(0, createdOids.length);
-    await IntegrationAudit.destroy({
+    await fixtureRemove("IntegrationAudit", {
       or: oidsToDelete.map(redboxOid => ({ redboxOid })),
     });
   });
@@ -39,7 +40,7 @@ describe('The IntegrationAuditService', function () {
     const oid = `integration-audit-service-${Date.now()}-1`;
     createdOids.push(oid);
 
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -50,7 +51,7 @@ describe('The IntegrationAuditService', function () {
       spanId: `span-${Date.now()}-1`,
       startedAt: '2025-01-01T00:00:00.000Z',
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -68,7 +69,7 @@ describe('The IntegrationAuditService', function () {
       responseSummary: { safe: true },
     });
 
-    const directAudits = await IntegrationAudit.find({ redboxOid: oid });
+    const directAudits = await fixtureRows("IntegrationAudit", { redboxOid: oid });
     expect(directAudits).to.have.length(2);
 
     const audits = await waitForAuditCount(oid, 2);
@@ -89,7 +90,7 @@ describe('The IntegrationAuditService', function () {
     const oid = `integration-audit-service-${Date.now()}-2`;
     createdOids.push(oid);
 
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -100,7 +101,7 @@ describe('The IntegrationAuditService', function () {
       spanId: `span-${Date.now()}-3`,
       startedAt: '2025-01-01T00:00:00.000Z',
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -114,7 +115,7 @@ describe('The IntegrationAuditService', function () {
       completedAt: '2025-01-01T00:00:02.000Z',
       durationMs: 1000,
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -125,7 +126,7 @@ describe('The IntegrationAuditService', function () {
       spanId: `span-${Date.now()}-5`,
       startedAt: '2025-01-01T00:00:03.000Z',
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -141,7 +142,7 @@ describe('The IntegrationAuditService', function () {
       durationMs: 1000,
     });
 
-    const directAudits = await IntegrationAudit.find({ redboxOid: oid });
+    const directAudits = await fixtureRows("IntegrationAudit", { redboxOid: oid });
     expect(directAudits).to.have.length(4);
 
     const allAudits = await waitForAuditCount(oid, 4);
@@ -184,7 +185,7 @@ describe('The IntegrationAuditService', function () {
     const traceFailed = `trace-${Date.now()}-8`;
     const traceStarted = `trace-${Date.now()}-9`;
 
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -197,7 +198,7 @@ describe('The IntegrationAuditService', function () {
       completedAt: '2025-01-01T00:00:01.000Z',
       durationMs: 1000,
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -211,7 +212,7 @@ describe('The IntegrationAuditService', function () {
       completedAt: '2025-01-01T00:00:05.000Z',
       durationMs: 1000,
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -224,7 +225,7 @@ describe('The IntegrationAuditService', function () {
       completedAt: '2025-01-01T00:00:03.500Z',
       durationMs: 500,
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -254,7 +255,7 @@ describe('The IntegrationAuditService', function () {
     const oid = `integration-audit-service-${Date.now()}-4`;
     createdOids.push(oid);
 
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'doi',
@@ -282,7 +283,7 @@ describe('The IntegrationAuditService', function () {
     const traceDoi2 = `trace-${Date.now()}-doi2`;
     const traceFigshare = `trace-${Date.now()}-fig`;
 
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'doi',
@@ -296,7 +297,7 @@ describe('The IntegrationAuditService', function () {
       durationMs: 1000,
       responseSummary: { doi: '10.1234/5678' },
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'doi',
@@ -307,7 +308,7 @@ describe('The IntegrationAuditService', function () {
       spanId: `span-${Date.now()}-doi2`,
       startedAt: '2025-01-01T00:00:02.000Z',
     });
-    await IntegrationAudit.create({
+    await fixtureCreate("IntegrationAudit", {
       redboxOid: oid,
       brandId: 'default',
       integrationName: 'figshare',
@@ -357,7 +358,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-out-pub`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'doi',
         integrationAction: 'publishDoi', triggeredBy: 'test', status: 'success',
         traceId, spanId: `span-${Date.now()}`,
@@ -387,7 +388,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-out-draft`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'doi',
         integrationAction: 'publishDoi', triggeredBy: 'test', status: 'success',
         traceId, spanId: `span-${Date.now()}`,
@@ -414,7 +415,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-out-noevent`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'doi',
         integrationAction: 'publishDoi', triggeredBy: 'test', status: 'success',
         traceId, spanId: `span-${Date.now()}`,
@@ -445,7 +446,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-out-figpub`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'figshare',
         integrationAction: 'syncRecordWithFigshare', triggeredBy: 'test', status: 'success',
         traceId, spanId: `span-${Date.now()}`,
@@ -472,7 +473,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-out-figdep`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'figshare',
         integrationAction: 'publishAfterUploadFilesJob', triggeredBy: 'test', status: 'success',
         traceId, spanId: `span-${Date.now()}`,
@@ -523,7 +524,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-doistart`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'doi',
         integrationAction: 'publishDoi', triggeredBy: 'test', status: 'started',
         traceId, spanId: `span-${Date.now()}`,
@@ -543,7 +544,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-doiupdstart`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'doi',
         integrationAction: 'updateDoi', triggeredBy: 'test', status: 'started',
         traceId, spanId: `span-${Date.now()}`,
@@ -564,7 +565,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-doifail`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'doi',
         integrationAction: 'publishDoi', triggeredBy: 'test', status: 'failed',
         traceId, spanId: `span-${Date.now()}`,
@@ -587,7 +588,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-figstart`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'figshare',
         integrationAction: 'syncRecordWithFigshare', triggeredBy: 'test', status: 'started',
         traceId, spanId: `span-${Date.now()}`,
@@ -607,7 +608,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-figfail`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'figshare',
         integrationAction: 'syncRecordWithFigshare', triggeredBy: 'test', status: 'failed',
         traceId, spanId: `span-${Date.now()}`,
@@ -630,7 +631,7 @@ describe('The IntegrationAuditService', function () {
       createdOids.push(oid);
       const traceId = `trace-${Date.now()}-safe`;
 
-      await IntegrationAudit.create({
+      await fixtureCreate("IntegrationAudit", {
         redboxOid: oid, brandId: 'default', integrationName: 'doi',
         integrationAction: 'publishDoi', triggeredBy: 'test', status: 'success',
         traceId, spanId: `span-${Date.now()}`,

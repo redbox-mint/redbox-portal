@@ -1,6 +1,9 @@
+import { attachmentFixture } from '../helpers/attachmentFixture';
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { inspect } from 'node:util';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
 
 describe('AttachmentMetadataService mutation journal', function () {
@@ -17,18 +20,17 @@ describe('AttachmentMetadataService mutation journal', function () {
       destroy: sinon.stub(),
     };
     setupServiceTestGlobals(createMockSails({ services: {} }));
-    (global as any).AttachmentMetadata = model;
-    (global as any).AttachmentAccessAudit = {
+    repositoryFixtures.AttachmentMetadata = model;
+    repositoryFixtures.AttachmentAccessAudit = {
       create: sinon.stub(),
     };
 
-    const { Services } = require('../../src/services/AttachmentMetadataService');
-    service = new Services.AttachmentMetadataService();
+    service = attachmentFixture();
   });
 
   afterEach(function () {
-    delete (global as any).AttachmentMetadata;
-    delete (global as any).AttachmentAccessAudit;
+    delete repositoryFixtures.AttachmentMetadata;
+    delete repositoryFixtures.AttachmentAccessAudit;
     cleanupServiceTestGlobals();
     sinon.restore();
   });
@@ -65,9 +67,9 @@ describe('AttachmentMetadataService mutation journal', function () {
   });
 
   it('increments attempts when pending and preserves the count when applied', async function () {
-    model.findOne.onFirstCall().resolves({ id: 'journal-1', attemptCount: 2, mutationState: 'prepared' });
-    model.findOne.onSecondCall().resolves({ id: 'journal-1', attemptCount: 3, mutationState: 'pending' });
-    const set = sinon.stub().resolves({ id: 'journal-1' });
+    model.findOne.onFirstCall().resolves({ id: '0915b0773a08030bc1713d7e', attemptCount: 2, mutationState: 'prepared' });
+    model.findOne.onSecondCall().resolves({ id: '0915b0773a08030bc1713d7e', attemptCount: 3, mutationState: 'pending' });
+    const set = sinon.stub().resolves({ id: '0915b0773a08030bc1713d7e' });
     model.updateOne.returns({ set });
 
     expect(await service.markMutation('oid-1', 'a', 'generation-1', 'pending')).to.equal(true);
@@ -83,35 +85,35 @@ describe('AttachmentMetadataService mutation journal', function () {
 
   it('does not let an older generation complete after its state CAS loses', async function () {
     model.findOne.onFirstCall().resolves({
-      id: 'old-generation-row',
+      id: '2ff227101da93572337e5e59',
       attemptCount: 1,
       mutationState: 'pending',
     });
     model.findOne.onSecondCall().resolves({
-      id: 'new-generation-row',
+      id: '48b377a1e9dfb5c7285e4fd1',
       attemptCount: 1,
       mutationState: 'pending',
     });
     const set = sinon.stub();
     set.onFirstCall().resolves(null);
-    set.onSecondCall().resolves({ id: 'new-generation-row' });
+    set.onSecondCall().resolves({ id: '48b377a1e9dfb5c7285e4fd1' });
     model.updateOne.returns({ set });
 
     expect(await service.markMutation('oid-1', 'a', 'old-generation', 'applied')).to.equal(false);
     expect(await service.markMutation('oid-1', 'a', 'new-generation', 'applied')).to.equal(true);
     expect(model.updateOne.firstCall.args[0]).to.deep.equal({
-      id: 'old-generation-row',
+      id: '2ff227101da93572337e5e59',
       mutationState: 'pending',
     });
   });
 
   it('holds an applied physical mutation as unknown when reference persistence is ambiguous', async function () {
     model.findOne.resolves({
-      id: 'journal-1',
+      id: '0915b0773a08030bc1713d7e',
       attemptCount: 1,
       mutationState: 'applied',
     });
-    const set = sinon.stub().resolves({ id: 'journal-1' });
+    const set = sinon.stub().resolves({ id: '0915b0773a08030bc1713d7e' });
     model.updateOne.returns({ set });
 
     expect(await service.markMutation('oid-1', 'a', 'generation-1', 'unknown')).to.equal(true);
@@ -122,7 +124,7 @@ describe('AttachmentMetadataService mutation journal', function () {
   });
 
   it('refuses preparation while cleanup owns the same staged blob', async function () {
-    model.findOne.resolves({ id: 'cleanup-row', mutationState: 'cleanup-pending' });
+    model.findOne.resolves({ id: '35d15eff0f72f37e015eb7f4', mutationState: 'cleanup-pending' });
 
     let failure: unknown;
     try {
@@ -156,7 +158,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     model.create.callsFake((payload: any) => ({
       fetch: async () => {
         if (payload.mutationState === 'staging-available') {
-          coordinator = { id: 'coordinator-1', ...payload };
+          coordinator = { id: 'd2699ae8d32e1ee3e0cef08b', ...payload };
           events.push('coordinator-created');
           return coordinator;
         }
@@ -168,12 +170,12 @@ describe('AttachmentMetadataService mutation journal', function () {
           generation: 'old-generation',
           token: 'cleanup-attempt-1',
         });
-        return { id: 'prepared-1', ...payload };
+        return { id: '4c62449641cdc82f287a98e3', ...payload };
       },
     }));
     model.updateOne.callsFake((criteria: any) => ({
       set: async (updates: any) => {
-        if (criteria.id !== 'coordinator-1' || coordinator.mutationState !== criteria.mutationState) return null;
+        if (criteria.id !== 'd2699ae8d32e1ee3e0cef08b' || coordinator.mutationState !== criteria.mutationState) return null;
         coordinator = { ...coordinator, ...updates };
         events.push(updates.mutationState);
         return coordinator;
@@ -199,7 +201,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       'staging-available',
     ]);
     expect(model.updateOne.lastCall.args[0]).to.include({
-      id: 'coordinator-1',
+      id: 'd2699ae8d32e1ee3e0cef08b',
       oid: '__global_attachment_staging__',
       mutationFileId: 'file-1',
       isJournal: true,
@@ -217,7 +219,7 @@ describe('AttachmentMetadataService mutation journal', function () {
   it('does not treat a missing, available, or expired coordinator as safely released', async function () {
     const identity = service.stagingCoordinatorIdentity('file-1');
     const coordinator = (mutationState: string, overrides: Record<string, unknown> = {}) => ({
-      id: 'coordinator-1',
+      id: 'd2699ae8d32e1ee3e0cef08b',
       oid: '__global_attachment_staging__',
       fileId: identity.fileId,
       storageKey: identity.storageKey,
@@ -263,7 +265,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     model.create.callsFake((payload: any) => ({
       fetch: async () => {
         if (payload.mutationState === 'staging-available') {
-          coordinator = { id: 'coordinator-1', ...payload };
+          coordinator = { id: 'd2699ae8d32e1ee3e0cef08b', ...payload };
           return coordinator;
         }
         coordinator = {
@@ -274,7 +276,7 @@ describe('AttachmentMetadataService mutation journal', function () {
           coordinationToken: 'replacement-token',
           coordinationLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
         };
-        return { id: 'prepared-1', ...payload };
+        return { id: '4c62449641cdc82f287a98e3', ...payload };
       },
     }));
     model.updateOne.callsFake((criteria: any) => ({
@@ -332,19 +334,19 @@ describe('AttachmentMetadataService mutation journal', function () {
         requestedState === claimState ||
         (Array.isArray(requestedState?.in) && requestedState.in.includes(claimState));
       return criteria.coordinationToken === claim.token && stateMatches
-        ? { id: 'journal-1', ...claim, mutationFileId: claim.fileId, mutationState: claimState }
+        ? { id: '0915b0773a08030bc1713d7e', ...claim, mutationFileId: claim.fileId, mutationState: claimState }
         : null;
     });
     model.create.callsFake((payload: any) => ({
       fetch: async () => {
-        coordinator = { id: 'coordinator-1', ...payload };
+        coordinator = { id: 'd2699ae8d32e1ee3e0cef08b', ...payload };
         events.push('coordinator-created');
         return coordinator;
       },
     }));
     model.updateOne.callsFake((criteria: any) => ({
       set: async (updates: any) => {
-        if (criteria.id === 'coordinator-1') {
+        if (criteria.id === 'd2699ae8d32e1ee3e0cef08b') {
           if (coordinator.mutationState !== criteria.mutationState) return null;
           coordinator = { ...coordinator, ...updates };
         } else {
@@ -356,7 +358,7 @@ describe('AttachmentMetadataService mutation journal', function () {
           claimState = updates.mutationState;
         }
         events.push(updates.mutationState);
-        return { id: criteria.id ?? 'journal-1', ...updates };
+        return { id: criteria.id ?? '0915b0773a08030bc1713d7e', ...updates };
       },
     }));
 
@@ -386,7 +388,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     };
     const identity = service.stagingCoordinatorIdentity(claim.fileId);
     let coordinator: any = {
-      id: 'coordinator-1',
+      id: 'd2699ae8d32e1ee3e0cef08b',
       oid: '__global_attachment_staging__',
       fileId: identity.fileId,
       storageKey: identity.storageKey,
@@ -412,7 +414,7 @@ describe('AttachmentMetadataService mutation journal', function () {
           coordinationToken: 'replacement-token',
           coordinationLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
         };
-        return { id: 'journal-1', mutationState: 'cleaned' };
+        return { id: '0915b0773a08030bc1713d7e', mutationState: 'cleaned' };
       },
     }));
 
@@ -429,7 +431,7 @@ describe('AttachmentMetadataService mutation journal', function () {
   it('claims only bounded expired cancelled rows and exposes no storage path', async function () {
     const limit = sinon.stub().resolves([
       {
-        id: 'journal-1',
+        id: '0915b0773a08030bc1713d7e',
         oid: 'oid-1',
         attachmentId: 'a',
         mutationFileId: 'file-1',
@@ -438,7 +440,7 @@ describe('AttachmentMetadataService mutation journal', function () {
         storageKey: '/private/staging/path',
       },
       {
-        id: 'journal-unsafe',
+        id: '07cf2232c3ffd56cb0b542de',
         oid: 'oid-1',
         attachmentId: 'b',
         mutationFileId: '../../outside-staging',
@@ -448,7 +450,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     ]);
     const sort = sinon.stub().returns({ limit });
     model.find.returns({ sort });
-    const set = sinon.stub().resolves({ id: 'journal-1' });
+    const set = sinon.stub().resolves({ id: '0915b0773a08030bc1713d7e' });
     model.updateOne.returns({ set });
 
     const claims = await service.claimExpiredStagingCleanup('2026-08-01T00:00:00.000Z', 5_000);
@@ -462,7 +464,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     ).to.equal(true);
     expect(limit.firstCall.calledWithExactly(1000)).to.equal(true);
     expect(model.updateOne.firstCall.args[0]).to.deep.equal({
-      id: 'journal-1',
+      id: '0915b0773a08030bc1713d7e',
       mutationState: 'cancelled',
       updatedAt: { '<': '2026-08-01T00:00:00.000Z' },
     });
@@ -489,7 +491,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     model.create.callsFake((payload: any) => ({
       fetch: async () => {
         const created = {
-          id: payload.mutationState === 'staging-available' ? 'coordinator-1' : 'journal-1',
+          id: payload.mutationState === 'staging-available' ? 'd2699ae8d32e1ee3e0cef08b' : '0915b0773a08030bc1713d7e',
           ...payload,
         };
         if (payload.mutationState === 'staging-available') coordinator = created;
@@ -498,7 +500,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     }));
     model.updateOne.callsFake((criteria: any) => ({
       set: async (updates: any) => {
-        if (criteria.id !== 'coordinator-1' || coordinator.mutationState !== criteria.mutationState) return null;
+        if (criteria.id !== 'd2699ae8d32e1ee3e0cef08b' || coordinator.mutationState !== criteria.mutationState) return null;
         coordinator = { ...coordinator, ...updates };
         return coordinator;
       },
@@ -538,8 +540,8 @@ describe('AttachmentMetadataService mutation journal', function () {
       fetch: async () => {
         const created = {
           id: payload.mutationState === 'staging-available'
-            ? `coordinator-${coordinators.size + 1}`
-            : `journal-${payload.attachmentId}`,
+            ? String(coordinators.size + 1).padStart(24, '0')
+            : '123456789012345678901234',
           ...payload,
         };
         if (payload.mutationState === 'staging-available') coordinators.set(payload.storageKey, created);
@@ -589,8 +591,8 @@ describe('AttachmentMetadataService mutation journal', function () {
   });
 
   it('marks the matching mutation when an attachment has replacement work', async function () {
-    model.findOne.resolves({ id: 'journal-new', attemptCount: 0, mutationState: 'applied' });
-    const set = sinon.stub().resolves({ id: 'journal-new' });
+    model.findOne.resolves({ id: '4f20277c4cef508d119d181b', attemptCount: 0, mutationState: 'applied' });
+    const set = sinon.stub().resolves({ id: '4f20277c4cef508d119d181b' });
     model.updateOne.returns({ set });
 
     const result = await service.markMutation('oid-1', 'a', 'generation-1', 'unknown', 'upload-failed', 'new-file');
@@ -634,7 +636,7 @@ describe('AttachmentMetadataService mutation journal', function () {
   });
 
   it('updates an existing row when the storage key is already known', async function () {
-    model.findOne.resolves({ id: 'metadata-1' });
+    model.findOne.resolves({ id: '5ba33242f2c0f4da906eb89d' });
     const set = sinon.stub().resolves();
     model.updateOne.returns({ set });
 
@@ -646,7 +648,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       accessCount: 3,
     });
 
-    expect(model.updateOne.calledOnceWithExactly({ id: 'metadata-1' })).to.equal(true);
+    expect(model.updateOne.calledOnceWithExactly({ id: '5ba33242f2c0f4da906eb89d' })).to.equal(true);
     expect(set.firstCall.args[0]).to.include({
       oid: 'oid-1',
       fileId: 'file-1',
@@ -659,7 +661,7 @@ describe('AttachmentMetadataService mutation journal', function () {
 
   it('upgrades a matching legacy journal row without creating a duplicate', async function () {
     model.findOne.onFirstCall().resolves(null);
-    model.findOne.onSecondCall().resolves({ id: 'legacy-journal' });
+    model.findOne.onSecondCall().resolves({ id: '0a500ce58f64f28ba37ef734' });
     const set = sinon.stub().resolves();
     model.updateOne.returns({ set });
 
@@ -689,8 +691,8 @@ describe('AttachmentMetadataService mutation journal', function () {
   it('reuses a non-journal row for the same physical file', async function () {
     model.findOne.resolves(null);
     model.find.resolves([
-      { id: 'journal-row', isJournal: true },
-      { id: 'physical-row', isJournal: false },
+      { id: 'dc4ea4c69e1a9c4becd3501a', isJournal: true },
+      { id: '29c67e909a2e487a149292a2', isJournal: false },
     ]);
     const set = sinon.stub().resolves();
     model.updateOne.returns({ set });
@@ -702,7 +704,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     });
 
     expect(model.find.calledOnceWithExactly({ oid: 'oid-1', fileId: 'file-1' })).to.equal(true);
-    expect(model.updateOne.calledOnceWithExactly({ id: 'physical-row' })).to.equal(true);
+    expect(model.updateOne.calledOnceWithExactly({ id: '29c67e909a2e487a149292a2' })).to.equal(true);
     expect(model.create.notCalled).to.equal(true);
   });
 
@@ -730,15 +732,16 @@ describe('AttachmentMetadataService mutation journal', function () {
     model.update.returns({ set });
     await service.rebindOid('oid-1', 'oid-2');
     expect(model.update.calledOnceWithExactly({ oid: 'oid-1' })).to.equal(true);
-    expect(set.calledOnceWithExactly({ oid: 'oid-2' })).to.equal(true);
+    expect(set.calledOnce).to.equal(true);
+    expect(set.firstCall.args[0]).to.include({ oid: 'oid-2' });
   });
 
   it('records access audits and increments download counts', async function () {
     const set = sinon.stub().resolves();
-    model.findOne.resolves({ id: 'metadata-1', accessCount: 2 });
+    model.findOne.resolves({ id: '5ba33242f2c0f4da906eb89d', accessCount: 2 });
     model.updateOne.returns({ set });
     const fetch = sinon.stub().resolves();
-    (global as any).AttachmentAccessAudit.create.returns({ fetch });
+    repositoryFixtures.AttachmentAccessAudit.create.returns({ fetch });
 
     await service.recordAccess({
       oid: ' oid-1 ',
@@ -750,7 +753,7 @@ describe('AttachmentMetadataService mutation journal', function () {
     });
 
     expect(set.firstCall.args[0]).to.include({ accessCount: 3, lastAccessedBy: 'user-1' });
-    expect((global as any).AttachmentAccessAudit.create.firstCall.args[0]).to.include({
+    expect(repositoryFixtures.AttachmentAccessAudit.create.firstCall.args[0]).to.include({
       oid: 'oid-1',
       fileId: 'file-1',
       storageKey: 'key-1',
@@ -760,9 +763,14 @@ describe('AttachmentMetadataService mutation journal', function () {
     expect(fetch.calledOnce).to.equal(true);
   });
 
-  it('does not count list access and rethrows audit failures', async function () {
-    const fetch = sinon.stub().rejects(new Error('audit unavailable'));
-    (global as any).AttachmentAccessAudit.create.returns({ fetch });
+  it('does not count list access and bounds audit errors before callers log them', async function () {
+    const failure = Object.assign(new Error('private audit payload'), {
+      code: 121, errInfo: { document: 'private audit document' }, cause: new Error('private audit credentials'),
+    });
+    const logger = { error: sinon.spy(), verbose: sinon.spy() };
+    Object.defineProperty(service, 'logger', { value: logger });
+    const fetch = sinon.stub().rejects(failure);
+    repositoryFixtures.AttachmentAccessAudit.create.returns({ fetch });
 
     let error: unknown;
     try {
@@ -771,7 +779,10 @@ describe('AttachmentMetadataService mutation journal', function () {
       error = caught;
     }
 
-    expect(error).to.be.an('error').with.property('message', 'audit unavailable');
+    expect(error).to.be.an('error').with.property('code', 'storage-unknown');
+    expect(inspect(new Error('Caller failed', { cause: error }), { depth: 10 })).not.to.include('private audit');
+    expect(inspect(logger.error.args, { depth: 10 })).not.to.include('private audit');
+    expect(logger.error.called).to.equal(true);
     expect(model.findOne.notCalled).to.equal(true);
   });
 });

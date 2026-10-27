@@ -396,13 +396,18 @@ export {
   ensureFigsharePersistenceIndexes,
 } from './persistence/runtime';
 
+export type {
+  AttachmentRepository,
+  CounterRepository,
+  CounterSnapshot,
+  StorageRepositories,
+} from './persistence/storage/StorageRepositories';
+export { initializeStoragePersistence, getStorageRepositories } from './persistence/storage/runtime';
 
-
-
-
+export { inspectStoragePersistence, ensureStoragePersistenceIndexes } from './persistence/runtime';
 // First-party concrete adapter seams; excluded from the hook extension catalogue.
 export { mongoDatabase, mongoSessionDatabase, prismaDatabase, persistenceOperation } from './persistence/runtime';
-
+export { storageAuditFields } from './persistence/storage/auditFields';
 export { writeGridFSStream } from './storage/writeGridFSStream';
 export { ownGridFSDownload } from './storage/ownGridFSDownload';
 
@@ -438,10 +443,23 @@ export type { BrandingRepository, BrandRow, BrandingHistoryRow } from './persist
 
 // First-party concrete S adapters; no query handles enter storage capability contracts.
 export type { StoragePrismaClient } from './persistence/prisma/client';
+export {
+  prismaRecordSnapshot,
+  prismaRecordValues,
+  prismaRecordFieldOperations,
+  prismaModelFilter,
+  persistenceCollections,
+  persistenceCollectionIndexes,
+  prismaRecordRevisionBatches,
+} from './persistence/storage/prismaAdapter';
 
-
-
-
+export {
+  initializeIdentityPersistence,
+  getIdentityRepositories,
+  inspectIdentityPersistence,
+  ensureIdentityPersistenceIndexes,
+} from './persistence/runtime';
+export type { IdentityRepositories, IdentityRows, IdentityRead } from './persistence/identity/IdentityRepositories';
 
 export { prismaModelRow } from './persistence/prisma/modelRow';
 

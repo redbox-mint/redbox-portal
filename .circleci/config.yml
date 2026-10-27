@@ -657,6 +657,10 @@ jobs:
             nvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core --reporter=lcov --exclude-after-remap=false \
               npx mocha --config .mocharc.js --exit test/**/*.test.ts
       - run:
+          name: Verify Prisma persistence on isolated MongoDB
+          no_output_timeout: 10m
+          command: nvm install && npm --prefix packages/redbox-core run test:persistence
+      - run:
           name: Upload redbox-core code coverage
           command: |
             cd ./packages/redbox-core

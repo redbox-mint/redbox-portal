@@ -1,3 +1,4 @@
+import { fixtureRow, fixtureCreate, fixtureRemove, fixturePatch } from '../../helpers/persistenceFixtures';
 import { randomUUID } from 'node:crypto';
 import { expect } from 'chai';
 import { firstValueFrom } from 'rxjs';
@@ -44,14 +45,14 @@ describe('SIEM authenticated HTTP API', function () {
     if (typeof configuredToken !== 'string' || !configuredToken) throw new Error('Missing integration admin token');
     const adminUsername: unknown = _.get(ConfigService.getBrand(brand.name, 'auth'), 'local.default.adminUser');
     if (typeof adminUsername !== 'string' || !adminUsername) throw new Error('Missing configured admin username');
-    const admin = await User.findOne({ username: adminUsername });
+    const admin = await fixtureRow("User", { username: adminUsername });
     if (!admin) throw new Error('Missing bootstrapped integration admin');
     adminId = admin.id;
     originalAdminToken = admin.token ?? null;
     await firstValueFrom(UsersService.setUserKey(adminId, configuredToken));
     token = configuredToken;
     for (const [index, eventId] of eventIds.entries()) {
-      await SecurityEvent.create({
+      await fixtureCreate("SecurityEvent", {
         eventId,
         brandId: brand.id,
         eventType: prefix,
@@ -62,7 +63,7 @@ describe('SIEM authenticated HTTP API', function () {
         deliveryState: 'failed',
         nextEligibleAt,
       });
-      await SiemDeliveryAttempt.create({
+      await fixtureCreate("SiemDeliveryAttempt", {
         eventId: eventIds[0],
         brandId: brand.id,
         destinationId: prefix,
@@ -72,7 +73,7 @@ describe('SIEM authenticated HTTP API', function () {
         startedAt: `2026-01-01T00:00:0${index}.000Z`,
       });
     }
-    await SecurityEvent.create({
+    await fixtureCreate("SecurityEvent", {
       eventId: `${prefix}-foreign`,
       brandId: 'foreign-brand',
       eventType: prefix,
@@ -87,13 +88,13 @@ describe('SIEM authenticated HTTP API', function () {
 
   after(async function () {
     try {
-      await SecurityEvent.destroy({ eventId: [...eventIds, `${prefix}-foreign`] });
-      await SiemDeliveryAttempt.destroy({ eventId: eventIds[0] });
+      await fixtureRemove("SecurityEvent", { eventId: [...eventIds, `${prefix}-foreign`] });
+      await fixtureRemove("SiemDeliveryAttempt", { eventId: eventIds[0] });
       await AppConfigService.createOrUpdateConfig(brand, 'siem', { ...originalConfig });
     } finally {
       if (adminId !== undefined) {
         // The stored value is already hashed; restore it without hashing it again.
-        await User.update({ id: adminId }).set({ token: originalAdminToken });
+        await fixturePatch("User", { id: adminId }, { token: originalAdminToken });
       }
     }
   });

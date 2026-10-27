@@ -1,9 +1,10 @@
+import { getIdentityRepositories } from '../persistence/runtime';
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 import { of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
-import { UserAttributes } from '../waterline-models/User';
+import { UserAttributes } from '../persistence/rows';
 
 export namespace Controllers {
   /**
@@ -76,12 +77,10 @@ export namespace Controllers {
       const brandId = _.get(brand, 'id') || brand || req.session.branding;
       try {
         const users = await firstValueFrom(UsersService.getUsersForBrand(brand));
-        const links = typeof UserLink !== 'undefined'
-          ? await UserLink.find({ brandId: String(brandId), status: 'active' })
-          : [];
+        const links = await getIdentityRepositories().list('userlink', { brandId: String(brandId), status: 'active' });
         const linkCountByPrimary = _.countBy(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? ''));
         const primaryIds = _.uniq(_.map(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')));
-        const primaryUsers = _.isEmpty(primaryIds) || typeof User === 'undefined' ? [] : await User.find({ id: primaryIds });
+        const primaryUsers = _.isEmpty(primaryIds) ? [] : await getIdentityRepositories().list('user', { id: primaryIds });
         const primaryUsernamesById = _.reduce(primaryUsers as globalThis.Record<string, unknown>[], (acc: globalThis.Record<string, string>, user: globalThis.Record<string, unknown>) => {
           acc[String(user.id ?? '')] = String(user.username ?? '');
           return acc;
@@ -100,7 +99,7 @@ export namespace Controllers {
             user.effectivePrimaryUsername = _.isEmpty(user.linkedPrimaryUserId)
               ? user.username
               : (primaryUsernamesById[String(user.linkedPrimaryUserId ?? '')] || user.username);
-            user.token = _.isEmpty(user.token) ? null : "user-has-token-but-is-suppressed";
+            user.token = user.hasApiKey || !_.isEmpty(user.token) ? "user-has-token-but-is-suppressed" : null;
             user.roles = brandId ? _.filter(user.roles as globalThis.Record<string, unknown>[], (role: globalThis.Record<string, unknown>) => role.branding === brandId || (role.branding as globalThis.Record<string, unknown>)?.id === brandId) : user.roles;
             delete user.password;
             responseUsers.push(user);

@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import { expect } from 'chai';
 import * as lodash from 'lodash';
 import * as sinon from 'sinon';
@@ -19,8 +21,7 @@ describe('SIEM capture and privacy regression boundaries', () => {
     'AppConfigService',
     'AgendaQueueService',
     'SecurityEventService',
-    'UserAudit',
-    'Record',
+    'RecordsService',
     'PathRulesService',
     'RolesService',
     'UsersService',
@@ -32,17 +33,15 @@ describe('SIEM capture and privacy regression boundaries', () => {
   let enabled: boolean;
   let maxPayloadBytes: number;
   beforeEach(() => {
+    installIdentityRepositoryMock();
     for (const key of globals) originals.set(key, Reflect.get(globalThis, key));
     queued = [];
     enabled = true;
     maxPayloadBytes = DEFAULT_SIEM_REDACTION.maxPayloadBytes;
     service = new SecurityServices.SecurityEventService();
-    Object.assign(globalThis, {
-      _: lodash,
-      sails: createMockSails({
+    (Object.assign(repositoryFixtures, {UserAudit: { create: (data: unknown) => createQueryObject(data) }}), Object.assign(globalThis, {_: lodash,sails: createMockSails({
         config: { environment: 'production', record: { auditing: { enabled: true, recordAuditJobName: 'audit' } } },
-      }),
-      BrandingService: {
+      }),BrandingService: {
         getBrandById: (id: string) => ({ id, name: id === 'other-id' ? 'other' : 'default' }),
         getBrand: (name: string) => ({ id: `${name}-id`, name }),
         getBrandFromReq: (req: { params: { branding: string } }) => ({
@@ -52,8 +51,7 @@ describe('SIEM capture and privacy regression boundaries', () => {
         getBrandNameFromReq: () => 'other',
         getFullPath: () => '/other/rdmp',
         getPortalFromReq: (req: { params: { portal: string } }) => req.params.portal,
-      },
-      AppConfigService: {
+      },AppConfigService: {
         getAppConfigurationForBrand: () => ({
           siem: {
             enabled,
@@ -61,16 +59,11 @@ describe('SIEM capture and privacy regression boundaries', () => {
             events: { severity: { 'integration.failure': 'critical' } },
           },
         }),
-      },
-      AgendaQueueService: {
+      },AgendaQueueService: {
         now: async (_name: string, data: { event: Record<string, unknown> }) => {
           queued.push(data);
         },
-      },
-      SecurityEventService: service,
-      UserAudit: { create: (data: unknown) => createQueryObject(data) },
-      Record: { findOne: async () => undefined },
-    });
+      },SecurityEventService: service,RecordsService: { getMeta: async () => undefined }}));
   });
   afterEach(() => {
     for (const key of globals) {

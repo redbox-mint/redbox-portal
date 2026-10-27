@@ -1,3 +1,4 @@
+import { getIdentityRepositories } from '../persistence/runtime';
 import { Observable, from } from 'rxjs';
 import { Services as services } from '../CoreService';
 import axios, { AxiosResponse } from 'axios';
@@ -153,50 +154,43 @@ export namespace Services {
 
     userInfo(userId: string) {
       return super.getObservable(
-        User.findOne({ id: userId })
+        () => getIdentityRepositories().one('user', { id: userId })
       )
     }
 
     provisionerUser(username: string) {
       return super.getObservable(
-        User.findOne({username: username})
+        () => getIdentityRepositories().one('user', {username: username})
       )
     }
 
     infoFormUserId(userId: string) {
       return this.getObservable(
-        User.findOne({ id: userId }).populate('workspaceApps')
+        () => getIdentityRepositories().one('user', { id: userId }, {populate: ['workspaceApps']})
       );
     }
 
     createWorkspaceInfo(userId: string, appName: string, info: unknown) {
       return this.getObservable(
-        WorkspaceApp.findOrCreate(
-          {app: appName, user: userId},
-          {app: appName, user: userId, info: info}
-        )
+        () => getIdentityRepositories().findOrCreateWorkspace({app: appName, user: userId}, {app: appName, user: userId, info: info})
       );
     }
 
     updateWorkspaceInfo(id: string, info: unknown) {
       return this.getObservable(
-        WorkspaceApp.update(
-          {id: id})
-        .set(
-          {info: info}
-        )
+        () => getIdentityRepositories().update('workspaceapp', {id: id}, {info: info})
       );
     }
 
     workspaceAppFromUserId(userId: string, appName: string){
       return this.getObservable(
-        WorkspaceApp.findOne({app: appName, user: userId})
+        () => getIdentityRepositories().one('workspaceapp', {app: appName, user: userId})
       );
     }
 
     removeAppFromUserId(userId: string, id: string){
       return this.getObservable(
-        WorkspaceApp.destroy({id: id, user: userId})
+        () => getIdentityRepositories().remove('workspaceapp', {id: id, user: userId})
       );
     }
 

@@ -3,7 +3,7 @@ import StorageServiceResponse from './StorageServiceResponse';
 import { cloneDeep, isEqual } from 'lodash';
 import { DatastreamRequestContext } from './DatastreamService';
 import { DeletedRecordModel, RecordModel, UserModel } from './model';
-import type { FormAttributes } from './waterline-models';
+import type { FormAttributes } from './persistence/rows';
 import { NormalizedRecordRelation } from './config/recordtype.config';
 import type { RecordSaveContext, RecordSaveResponse } from './RecordSaveResponse';
 

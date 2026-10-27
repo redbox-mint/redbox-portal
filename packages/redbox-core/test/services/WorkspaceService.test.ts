@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
@@ -14,6 +16,7 @@ describe('WorkspaceService', function () {
   let axiosStub: sinon.SinonStub;
 
   beforeEach(function () {
+    installIdentityRepositoryMock();
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -34,9 +37,9 @@ describe('WorkspaceService', function () {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).User = mockUser;
-    (global as any).WorkspaceApp = mockWorkspaceApp;
-    (global as any).Form = { findOne: sinon.stub() };
+    repositoryFixtures.User = mockUser;
+    repositoryFixtures.WorkspaceApp = mockWorkspaceApp;
+    repositoryFixtures.Form = { findOne: sinon.stub() };
     (global as any).Institution = { findOne: sinon.stub() };
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
@@ -58,9 +61,9 @@ describe('WorkspaceService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).User;
-    delete (global as any).WorkspaceApp;
-    delete (global as any).Form;
+    delete repositoryFixtures.User;
+    delete repositoryFixtures.WorkspaceApp;
+    delete repositoryFixtures.Form;
     delete (global as any).Institution;
     delete (global as any).RecordsService;
     delete (global as any).BrandingService;

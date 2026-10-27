@@ -1,3 +1,4 @@
+import { fixtureRemove, fixtureCreate, fixtureRow, fixturePatch, fixtureRows, fixtureCount } from '../../helpers/persistenceFixtures';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { normalizeSiemConfiguration, type SiemConfigDto } from '@researchdatabox/sails-ng-common';
@@ -54,16 +55,16 @@ describe('The SiemForwardingService', function () {
     BrandingService.getBrandById = originalGetBrandById;
     BrandingService.getBrand = originalGetBrand;
     if (createdAttemptEventIds.length > 0) {
-      await SiemDeliveryAttempt.destroy({ eventId: createdAttemptEventIds.splice(0, createdAttemptEventIds.length) });
+      await fixtureRemove("SiemDeliveryAttempt", { eventId: createdAttemptEventIds.splice(0, createdAttemptEventIds.length) });
     }
     if (createdEventIds.length > 0) {
-      await SecurityEvent.destroy({ eventId: createdEventIds.splice(0, createdEventIds.length) });
+      await fixtureRemove("SecurityEvent", { eventId: createdEventIds.splice(0, createdEventIds.length) });
     }
   });
 
   function securityEvent(eventId: string, eventBrandId = brandId) {
     createdEventIds.push(eventId);
-    return SecurityEvent.create({
+    return fixtureCreate("SecurityEvent", {
       eventId,
       brandId: eventBrandId,
       eventType: 'authentication.login.success',
@@ -83,7 +84,7 @@ describe('The SiemForwardingService', function () {
 
     await siemForwardingService.forwardSecurityEvents({ attrs: { data: { brandId } } });
 
-    const updated = await SecurityEvent.findOne({ eventId });
+    const updated = await fixtureRow("SecurityEvent", { eventId });
     expect(updated.deliveryState).to.equal('ignored');
   });
 
@@ -104,9 +105,9 @@ describe('The SiemForwardingService', function () {
     await securityEvent(pendingId, unrelatedBrandId);
     await securityEvent(expiredId, unrelatedBrandId);
     const expiredAt = new Date(Date.now() - 31 * 86400000).toISOString();
-    await SecurityEvent.update({ eventId: expiredId }, { deliveryState: 'deadLetter', terminalAt: expiredAt });
+    await fixturePatch("SecurityEvent", { eventId: expiredId }, { deliveryState: 'deadLetter', terminalAt: expiredAt });
     createdAttemptEventIds.push(expiredId);
-    await SiemDeliveryAttempt.create({
+    await fixtureCreate("SiemDeliveryAttempt", {
       eventId: expiredId,
       brandId: unrelatedBrandId,
       destinationId: 'unrelated',
@@ -119,13 +120,13 @@ describe('The SiemForwardingService', function () {
       httpStatusCode: 503,
       errorSummary: { message: 'unrelated expired attempt' },
     });
-    const unrelatedEvents = await SecurityEvent.find({ eventId: [pendingId, expiredId] }).sort('eventId ASC');
-    const unrelatedAttempts = await SiemDeliveryAttempt.find({ eventId: [pendingId, expiredId] });
+    const unrelatedEvents = await fixtureRows("SecurityEvent", { eventId: [pendingId, expiredId] }, {sort: 'eventId ASC'});
+    const unrelatedAttempts = await fixtureRows("SiemDeliveryAttempt", { eventId: [pendingId, expiredId] });
     const assertUnrelatedRowsUnchanged = async () => {
-      expect(await SecurityEvent.find({ eventId: [pendingId, expiredId] }).sort('eventId ASC')).to.deep.equal(
+      expect(await fixtureRows("SecurityEvent", { eventId: [pendingId, expiredId] }, {sort: 'eventId ASC'})).to.deep.equal(
         unrelatedEvents
       );
-      expect(await SiemDeliveryAttempt.find({ eventId: [pendingId, expiredId] })).to.deep.equal(unrelatedAttempts);
+      expect(await fixtureRows("SiemDeliveryAttempt", { eventId: [pendingId, expiredId] })).to.deep.equal(unrelatedAttempts);
     };
 
     const requests: string[] = [];
@@ -158,7 +159,7 @@ describe('The SiemForwardingService', function () {
       await securityEvent(disabledId);
       const job = { attrs: { data: { brandId } } };
       await siemForwardingService.forwardSecurityEvents(job);
-      expect((await SecurityEvent.findOne({ eventId: disabledId })).deliveryState).to.equal('ignored');
+      expect((await fixtureRow("SecurityEvent", { eventId: disabledId })).deliveryState).to.equal('ignored');
       expect(requests).to.have.length(0);
       await assertUnrelatedRowsUnchanged();
 
@@ -167,8 +168,8 @@ describe('The SiemForwardingService', function () {
       createdAttemptEventIds.push(enabledId);
       await securityEvent(enabledId);
       await siemForwardingService.forwardSecurityEvents(job);
-      expect((await SecurityEvent.findOne({ eventId: enabledId })).deliveryState).to.equal('delivered');
-      expect(await SiemDeliveryAttempt.count({ eventId: enabledId })).to.equal(1);
+      expect((await fixtureRow("SecurityEvent", { eventId: enabledId })).deliveryState).to.equal('delivered');
+      expect(await fixtureCount("SiemDeliveryAttempt", { eventId: enabledId })).to.equal(1);
       expect(requests).to.have.length(1);
       expect(JSON.parse(requests[0]).event.eventId).to.equal(enabledId);
       await assertUnrelatedRowsUnchanged();
@@ -185,16 +186,16 @@ describe('The SiemForwardingService', function () {
 
     await siemForwardingService.forwardSecurityEvents({ attrs: { data: { brandId } } });
 
-    const updated = await SecurityEvent.findOne({ eventId });
+    const updated = await fixtureRow("SecurityEvent", { eventId });
     expect(updated.deliveryState).to.equal('ignored');
     expect(updated.destinationStates).to.deep.equal({});
-    expect(await SiemDeliveryAttempt.count({ eventId })).to.equal(0);
+    expect(await fixtureCount("SiemDeliveryAttempt", { eventId })).to.equal(0);
   });
 
   it('lists delivery attempts with filters and pagination', async function () {
     const eventId = `siem-delivery-status-${Date.now()}`;
     createdAttemptEventIds.push(eventId);
-    await SiemDeliveryAttempt.create({
+    await fixtureCreate("SiemDeliveryAttempt", {
       eventId,
       brandId,
       destinationId: 'splunk',
@@ -258,10 +259,10 @@ describe('The SiemForwardingService', function () {
       await Promise.all(Array.from({ length: 8 }, () => siemForwardingService.forwardSecurityEvents(job)));
       expect(requests).to.have.length(1);
       expect(JSON.parse(requests[0]).event.eventId).to.equal(eventId);
-      const row = await SecurityEvent.findOne({ eventId });
+      const row = await fixtureRow("SecurityEvent", { eventId });
       expect(row.deliveryState).to.equal('delivered');
       expect(row.destinationStates.receiver.status).to.equal('success');
-      expect(await SiemDeliveryAttempt.count({ eventId })).to.equal(1);
+      expect(await fixtureCount("SiemDeliveryAttempt", { eventId })).to.equal(1);
     } finally {
       await new Promise<void>(resolve => receiver.close(() => resolve()));
     }
@@ -303,30 +304,24 @@ describe('The SiemForwardingService', function () {
       createdAttemptEventIds.push(eventId);
       await securityEvent(eventId);
       const job = { attrs: { data: { brandId } } };
-      const collection = SecurityEvent.getDatastore().manager.collection(SecurityEvent.tableName);
+      const collection = (await require('@researchdatabox/redbox-core').prismaDatabase(sails, 'mongodb')).orm.securityevent;
       for (let round = 0; round < 3; round++) {
         if (round)
-          await collection.updateOne(
-            { eventId },
-            { $set: { nextEligibleAt: null, 'destinationStates.long.nextEligibleAt': new Date(0).toISOString() } }
-          );
+          await fixturePatch('SecurityEvent', { eventId }, { nextEligibleAt: null, destinationStates: { ...(await fixtureRow('SecurityEvent', { eventId })).destinationStates, long: { ...(await fixtureRow('SecurityEvent', { eventId })).destinationStates.long, nextEligibleAt: new Date(0).toISOString() } } });
         const before = Date.now();
         await siemForwardingService.forwardSecurityEvents(job);
-        const row = await SecurityEvent.findOne({ eventId });
+        const row = await fixtureRow("SecurityEvent", { eventId });
         expect(row.deliveryState).to.equal(round === 2 ? 'deadLetter' : 'failed');
         if (round < 2) expect(Date.parse(row.nextEligibleAt) - before).to.be.at.least(1000 * 2 ** round);
       }
       expect(calls).to.deep.equal({ healthy: 1, short: 1, long: 3 });
-      const attempts = await SiemDeliveryAttempt.find({ eventId });
+      const attempts = await fixtureRows("SiemDeliveryAttempt", { eventId });
       expect(attempts.find(attempt => attempt.destinationId === 'short').httpStatusCode).to.equal(401);
       expect(attempts.find(attempt => attempt.destinationId === 'long').httpStatusCode).to.equal(503);
-      await collection.updateOne(
-        { eventId },
-        { $set: { terminalAt: new Date(Date.now() - 31 * 86400000).toISOString() } }
-      );
+      await fixturePatch('SecurityEvent', { eventId }, { terminalAt: new Date(Date.now() - 31 * 86400000).toISOString() });
       await siemForwardingService.forwardSecurityEvents(job);
-      expect(await SecurityEvent.count({ eventId })).to.equal(0);
-      expect(await SiemDeliveryAttempt.count({ eventId })).to.equal(0);
+      expect(await fixtureCount("SecurityEvent", { eventId })).to.equal(0);
+      expect(await fixtureCount("SiemDeliveryAttempt", { eventId })).to.equal(0);
     } finally {
       await new Promise<void>(resolve => receiver.close(() => resolve()));
     }

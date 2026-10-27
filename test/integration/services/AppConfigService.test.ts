@@ -1,3 +1,4 @@
+import { fixtureRows, fixtureRemove } from '../../helpers/persistenceFixtures';
 const { APP_CONFIG_SECRET_MASK } = require('../../../packages/redbox-core/dist/services/AppConfigService');
 
 describe('appConfigService', function () {
@@ -77,11 +78,11 @@ describe('appConfigService', function () {
       const data = { sites: { 'site.one[2]': { ingestion: { adminToken: 'integration-token', endpoint: 'unchanged' } } } };
       const created = await appConfigService.createConfig('default', key, data);
       expect(created.sites['site.one[2]'].ingestion.adminToken).to.equal(APP_CONFIG_SECRET_MASK);
-      let rows = await AppConfig.find({ branding: brand.id, configKey: key });
+      let rows = await fixtureRows("AppConfig", { branding: brand.id, configKey: key });
       expect(rows[0].configData.sites['site.one[2]'].ingestion.adminToken).to.deep.equal(reference);
       send.resetHistory();
       await appConfigService.createOrUpdateConfig(brand, key, data);
-      rows = await AppConfig.find({ branding: brand.id, configKey: key });
+      rows = await fixtureRows("AppConfig", { branding: brand.id, configKey: key });
       expect(rows).to.have.length(1);
       expect(rows[0].configData.sites['site.one[2]'].ingestion.adminToken).to.deep.equal(reference);
       expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
@@ -94,7 +95,7 @@ describe('appConfigService', function () {
     } finally {
       send.restore();
       sails.config.appConfigSecrets = originalSecretsConfig;
-      await AppConfig.destroy({ branding: brand.id, configKey: key });
+      await fixtureRemove("AppConfig", { branding: brand.id, configKey: key });
     }
   });
 

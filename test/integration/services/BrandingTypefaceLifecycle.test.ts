@@ -1,3 +1,4 @@
+import { fixtureRow, fixturePatch, fixtureRemove, fixtureCreate, fixtureRows } from '../../helpers/persistenceFixtures';
 /* eslint-disable no-unused-expressions */
 const { expect } = require('chai');
 const fs = require('fs');
@@ -26,11 +27,11 @@ describe('Branding typeface lifecycle (mounted)', function () {
   });
 
   beforeEach(async function () {
-    const brand = await BrandingConfig.findOne({ name: 'default' });
+    const brand = await fixtureRow("BrandingConfig", { name: 'default' });
     if (!brand) {
       throw new Error('Default brand not found');
     }
-    await BrandingConfig.update({ id: brand.id }).set({
+    await fixturePatch("BrandingConfig", { id: brand.id }, {
       css: '',
       hash: '',
       version: 0,
@@ -39,30 +40,30 @@ describe('Branding typeface lifecycle (mounted)', function () {
       draftTypeface: null,
       draftRevision: 0,
     });
-    await BrandingConfigHistory.destroy({ branding: brand.id });
+    await fixtureRemove("BrandingConfigHistory", { branding: brand.id });
   });
 
   async function counters() {
-    const brand = await BrandingConfig.findOne({ name: 'default' });
+    const brand = await fixtureRow("BrandingConfig", { name: 'default' });
     return { expectedVersion: brand.version || 0, expectedDraftRevision: brand.draftRevision || 0 };
   }
 
   it('runs the typeface backfill migration idempotently against legacy-shaped data', async function () {
     const loaded = require('../../../api/migrations/20260904000000-branding-typeface-backfill.js');
     const backfill = Array.isArray(loaded) ? loaded[0] : loaded;
-    const brand = await BrandingConfig.findOne({ name: 'default' });
+    const brand = await fixtureRow("BrandingConfig", { name: 'default' });
     // Realistic legacy state: active version/hash/css matching history v2,
     // with typeface fields absent everywhere.
-    await BrandingConfig.update({ id: brand.id }).set({ version: 2, hash: 'h2', css: 'c2', variables: {} });
-    await BrandingConfigHistory.create({ branding: brand.id, version: 1, hash: 'h1', css: 'c1', variables: {} });
-    await BrandingConfigHistory.create({ branding: brand.id, version: 2, hash: 'h2', css: 'c2', variables: {} });
+    await fixturePatch("BrandingConfig", { id: brand.id }, { version: 2, hash: 'h2', css: 'c2', variables: {} });
+    await fixtureCreate("BrandingConfigHistory", { branding: brand.id, version: 1, hash: 'h1', css: 'c1', variables: {} });
+    await fixtureCreate("BrandingConfigHistory", { branding: brand.id, version: 2, hash: 'h2', css: 'c2', variables: {} });
     await backfill.up({ context: sails });
-    const histories = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
+    const histories = await fixtureRows("BrandingConfigHistory", { branding: brand.id }, {sort: 'version ASC'});
     expect(histories.map(h => h.version)).to.deep.equal([1, 2]);
     expect(histories.every(h => h.typeface === null)).to.equal(true);
     const before = JSON.stringify(histories.map(h => ({ version: h.version, typeface: h.typeface })));
     await backfill.up({ context: sails });
-    const after = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
+    const after = await fixtureRows("BrandingConfigHistory", { branding: brand.id }, {sort: 'version ASC'});
     expect(JSON.stringify(after.map(h => ({ version: h.version, typeface: h.typeface })))).to.equal(before);
   });
 
@@ -70,7 +71,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
     const regularBytes = fs.readFileSync(REGULAR_FONT);
     const boldBytes = fs.readFileSync(BOLD_FONT);
     const face = await BrandingTypefaceService.inspectAndStoreFace({
-      brandingId: (await BrandingConfig.findOne({ name: 'default' })).id,
+      brandingId: (await fixtureRow("BrandingConfig", { name: 'default' })).id,
       slot: 'regular',
       bytes: regularBytes,
       originalFilename: 'regular.woff2',
@@ -131,7 +132,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
     const published = await BrandingService.publish('default', 'rdmp', admin, await counters());
     expect(published.version).to.equal(1);
 
-    const brand = await BrandingConfig.findOne({ name: 'default' });
+    const brand = await fixtureRow("BrandingConfig", { name: 'default' });
     const stored = await BrandingTypefaceService.readFace(brand.id, face.sha256);
     expect(Buffer.from(stored).equals(regularBytes)).to.equal(true);
 

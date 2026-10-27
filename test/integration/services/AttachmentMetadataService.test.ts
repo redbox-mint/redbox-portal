@@ -1,7 +1,10 @@
+import { fixtureRemove, fixtureRows, fixtureCount, fixtureCreate, fixturePatchOne } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import { inspect } from 'node:util';
 import { Services as AttachmentMetadataServices } from '../../../packages/redbox-core/src/services/AttachmentMetadataService.ts';
-import type { AttachmentAccessAuditAttributes } from '../../../packages/redbox-core/src/waterline-models';
+import { getStorageRepositories } from '@researchdatabox/redbox-core';
+import type { AttachmentAccessAuditAttributes } from '../../../packages/redbox-core/src/persistence/rows';
 
 describe('AttachmentMetadataService integration', function () {
   let service: AttachmentMetadataServices.AttachmentMetadataService;
@@ -11,8 +14,8 @@ describe('AttachmentMetadataService integration', function () {
   });
 
   beforeEach(async function () {
-    await AttachmentAccessAudit.destroy({});
-    await AttachmentMetadata.destroy({});
+    await fixtureRemove("AttachmentAccessAudit", {});
+    await fixtureRemove("AttachmentMetadata", {});
   });
 
   it('upserts insert and update paths and can query by oid', async function () {
@@ -69,7 +72,7 @@ describe('AttachmentMetadataService integration', function () {
       accessedBy: 'alice',
     });
 
-    const audits = await AttachmentAccessAudit.find({ oid: 'oid-1' }).sort([{ createdAt: 'ASC' }]) as AttachmentAccessAuditAttributes[];
+    const audits = await fixtureRows("AttachmentAccessAudit", { oid: 'oid-1' }, {sort: [{ createdAt: 'ASC' }]}) as AttachmentAccessAuditAttributes[];
     const row = await service.findOneByStorageKey('attachments/oid-1/file-1');
 
     expect(audits).to.have.length(2);
@@ -104,7 +107,10 @@ describe('AttachmentMetadataService integration', function () {
     expect(row?.lastAccessedAt).to.exist;
   });
 
-  it('rejects and rolls back the audit row when metadata update fails', async function () {
+  it('does not append an audit when the baseline metadata update fails', async function () {
+    const baselineService = new AttachmentMetadataServices.AttachmentMetadataService(
+      getStorageRepositories().attachments
+    );
     await service.upsert({
       oid: 'oid-1',
       fileId: 'file-1',
@@ -113,14 +119,16 @@ describe('AttachmentMetadataService integration', function () {
     });
     const originalRow = await service.findOneByStorageKey('attachments/oid-1/file-1');
 
-    const updateOneStub = sinon.stub(AttachmentMetadata, 'updateOne').callsFake(() => ({
-      set: async () => {
-        throw new Error('metadata update failed');
-      },
-    }) as never);
+    const model = Reflect.get(getStorageRepositories().attachments, 'client').orm.attachmentmetadata;
+    const where = model.where.bind(model);
+    const updateOneStub = sinon.stub(model, 'where').callsFake((criteria: any) => {
+      const query = where(criteria);
+      sinon.stub(query, 'update').rejects(new Error('metadata update failed'));
+      return query;
+    });
 
     try {
-      await service.recordAccess({
+      await baselineService.recordAccess({
         oid: 'oid-1',
         fileId: 'file-1',
         storageKey: 'attachments/oid-1/file-1',
@@ -129,12 +137,14 @@ describe('AttachmentMetadataService integration', function () {
       });
       expect.fail('Expected recordAccess to reject');
     } catch (err) {
-      expect((err as Error).message).to.equal('metadata update failed');
+      expect(err).to.have.property('code', 'storage-unknown');
+      expect((err as Error).message).to.include('unknown outcome');
+      expect(inspect(err, { depth: 10 })).not.to.include('metadata update failed');
     } finally {
       updateOneStub.restore();
     }
 
-    const audits = await AttachmentAccessAudit.find({ oid: 'oid-1' }) as AttachmentAccessAuditAttributes[];
+    const audits = await fixtureRows("AttachmentAccessAudit", { oid: 'oid-1' }) as AttachmentAccessAuditAttributes[];
     const row = await service.findOneByStorageKey('attachments/oid-1/file-1');
 
     expect(audits).to.have.length(0);
@@ -143,31 +153,32 @@ describe('AttachmentMetadataService integration', function () {
     expect(row?.lastAccessedBy).to.equal(originalRow?.lastAccessedBy);
   });
 
-  it('propagates failures during recordAccess audit creation', async function () {
-    const createStub = sinon.stub(AttachmentAccessAudit, 'create').throws(new Error('boom'));
+  it('propagates failures during baseline recordAccess audit creation', async function () {
+    const baselineService = new AttachmentMetadataServices.AttachmentMetadataService(
+      getStorageRepositories().attachments
+    );
+    const failure = Object.assign(new Error('private audit payload'), {
+      code: 121,
+      errInfo: { document: 'private audit document' },
+      cause: new Error('private audit credentials'),
+    });
+    const createStub = sinon.stub(Reflect.get(getStorageRepositories().attachments, 'client').orm.attachmentaccessaudit, 'create').throws(failure);
 
     try {
-      await service.recordAccess({ oid: 'oid-1', action: 'list' });
+      await baselineService.recordAccess({ oid: 'oid-1', action: 'list' });
       expect.fail('Expected recordAccess to reject');
     } catch (err) {
-      expect((err as Error).message).to.equal('boom');
+      expect(err).to.have.property('code', 'storage-unknown');
+      expect((err as Error).message).to.include('unknown outcome');
+      expect(inspect(new Error('Caller failed', { cause: err }), { depth: 10 })).not.to.include('private audit');
     } finally {
       createStub.restore();
     }
+    expect(await fixtureCount("AttachmentAccessAudit", { oid: 'oid-1' })).to.equal(0);
   });
 
-  it('rejects blank identifier fields on update', async function () {
-    const created = await AttachmentMetadata.create({
-      oid: 'oid-1',
-      fileId: 'file-1',
-      storageKey: 'attachments/oid-1/file-1',
-    }).fetch();
-
-    try {
-      await AttachmentMetadata.updateOne({ id: created.id }).set({ oid: '   ' });
-      expect.fail('Expected update to reject');
-    } catch (err) {
-      expect((err as Error).message).to.include('AttachmentMetadata.oid is required');
-    }
+  it('rejects blank attachment identifiers through the service', async () => {
+    try { await service.upsert({ oid: '   ', fileId: 'file-1', storageKey: 'attachments/invalid' }); expect.fail('Expected rejection'); }
+    catch (error) { expect(error).to.have.property('code', 'storage-unknown'); }
   });
 });

@@ -1,3 +1,4 @@
+import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import { firstValueFrom } from 'rxjs';
 import sinon from 'sinon';
 import { createRecordSaveContext, hasFullRecordStorageConcurrencyCapability } from '@researchdatabox/redbox-core';
@@ -30,25 +31,25 @@ describe('The RecordsService', function () {
     sails.config.recordValidation = originalRecordValidationConfig;
 
     for (const digest of createdSchemaDigests) {
-      await sails.models.recordschemareference.destroy({ digest });
-      await sails.models.recordschemaartifact.destroy({ digest });
+      await fixtureRemove("RecordSchemaReference", { digest });
+      await fixtureRemove("RecordSchemaArtifact", { digest });
     }
     createdSchemaDigests.clear();
 
     if (createdOids.length > 0) {
       const oidsToDelete = createdOids.splice(0, createdOids.length);
-      if (typeof RecordAudit !== 'undefined') {
-        await RecordAudit.destroy({
+      {
+        await fixtureRemove("RecordAudit", {
           or: oidsToDelete.map(redboxOid => ({ redboxOid })),
         });
       }
-      if (typeof DeletedRecord !== 'undefined') {
-        await DeletedRecord.destroy({
+      {
+        await fixtureRemove("DeletedRecord", {
           or: oidsToDelete.map(redboxOid => ({ redboxOid })),
         });
       }
-      if (typeof Record !== 'undefined') {
-        await Record.destroy({
+      {
+        await fixtureRemove("Record", {
           or: oidsToDelete.map(redboxOid => ({ redboxOid })),
         });
       }
@@ -56,8 +57,8 @@ describe('The RecordsService', function () {
 
     if (createdUserIds.length > 0) {
       const userIds = createdUserIds.splice(0, createdUserIds.length);
-      if (typeof User !== 'undefined') {
-        await User.destroy({ id: userIds });
+      {
+        await fixtureRemove("User", { id: userIds });
       }
     }
   });

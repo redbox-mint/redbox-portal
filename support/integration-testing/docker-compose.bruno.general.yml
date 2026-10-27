@@ -238,3 +238,4 @@ services:
       main:
         aliases:
           - 'email'
+          - 'integration-testing-email-1'

@@ -1,4 +1,6 @@
-const { Services } = require('../../../packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService');
+import { prismaDatabase, mongoDatabase } from '@researchdatabox/redbox-core';
+import { PrismaStorage } from '../../../packages/sails-hook-redbox-storage-mongo/src/persistence/PrismaStorage';
+import { prismaRecordDocuments } from '../../../packages/sails-hook-redbox-storage-mongo/src/persistence/PrismaRecordDocuments';
 
 describe('Mongo storage concurrency across service instances', function () {
   this.timeout(60_000);
@@ -9,16 +11,20 @@ describe('Mongo storage concurrency across service instances', function () {
   let firstService: any;
   let secondService: any;
 
-  before(function () {
-    const db = Record.getDatastore().manager;
-    recordCollection = db.collection(Record.tableName);
-    tombstoneCollection = db.collection(DeletedRecord.tableName);
-    firstService = new Services.MongoStorageService();
-    secondService = new Services.MongoStorageService();
-    firstService.recordCol = recordCollection;
-    firstService.deletedRecordCol = tombstoneCollection;
-    secondService.recordCol = recordCollection;
-    secondService.deletedRecordCol = tombstoneCollection;
+  before(async function () {
+    const db = await mongoDatabase(sails, 'redboxStorage');
+    recordCollection = db.collection('record');
+    tombstoneCollection = db.collection('deletedrecord');
+    const client = await prismaDatabase(sails, 'redboxStorage');
+    firstService = new PrismaStorage(sails);
+    secondService = new PrismaStorage(sails);
+    for (const service of [firstService, secondService]) {
+      service.client = client;
+      service.recordCol = prismaRecordDocuments(client, 'record');
+      service.deletedRecordCol = prismaRecordDocuments(client, 'deletedrecord');
+      service.recordIdentityCol = prismaRecordDocuments(client, 'recordidentity');
+      service._requiredIndicesReady = true;
+    }
   });
 
   afterEach(async function () {

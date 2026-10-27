@@ -1,3 +1,4 @@
+import { installIdentityRepositoryMock } from '../../helpers/identityMock';
 import * as sinon from 'sinon';
 import { of, throwError } from 'rxjs';
 import { Controllers } from '../../../src/controllers/webservice/UserManagementController';
@@ -30,6 +31,7 @@ describe('Webservice UserManagementController', () => {
     });
 
     beforeEach(() => {
+    installIdentityRepositoryMock();
         originalSails = (global as any).sails;
         originalUsersService = (global as any).UsersService;
         originalBrandingService = (global as any).BrandingService;

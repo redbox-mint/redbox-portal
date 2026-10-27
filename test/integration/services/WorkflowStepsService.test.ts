@@ -1,3 +1,4 @@
+import { fixtureRow } from '../../helpers/persistenceFixtures';
 describe('The WorkflowStepsService', function () {
   before(function (done) {
     done();
@@ -5,22 +6,22 @@ describe('The WorkflowStepsService', function () {
 
   it('should return the initial workflow step', function (done) {
     var brand = BrandingService.getDefault();
-    RecordType.findOne({key: brand.id+"_"+"rdmp"}).then(recordType => {
+    fixtureRow("RecordType", {key: brand.id+"_"+"rdmp"}).then(recordType => {
     WorkflowStepsService.getFirst(recordType).subscribe(function(workflowStep){
       expect(workflowStep).to.have.property('name', 'draft');
       done();
     });
-    });
+    }).catch(done);
   });
 
   it('should return the workflow step by name', function (done) {
     var brand = BrandingService.getDefault();
-    RecordType.findOne({key: brand.id+"_"+"dataPublication"}).then(recordType => {
+    fixtureRow("RecordType", {key: brand.id+"_"+"dataPublication"}).then(recordType => {
     WorkflowStepsService.get(recordType, 'published').subscribe(function(workflowStep){
       expect(workflowStep).to.have.property('name', 'published');
       done();
     });
-  });
+  }).catch(done);
   });
 
 });

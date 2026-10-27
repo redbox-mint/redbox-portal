@@ -1,3 +1,4 @@
+import { fixtureRemove, fixtureRow, fixtureCreate } from '../../helpers/persistenceFixtures';
 describe('ReportsService report configuration integration', function () {
   const mutableReportName = 'report-config-integration';
   const solrReportName = 'report-config-integration-solr';
@@ -8,7 +9,7 @@ describe('ReportsService report configuration integration', function () {
     if (!brand) {
       return;
     }
-    await RBReport.destroy({
+    await fixtureRemove("RBReport", {
       branding: brand.id,
       name: [mutableReportName, solrReportName],
     });
@@ -67,7 +68,7 @@ describe('ReportsService report configuration integration', function () {
       canPreview: true,
     });
 
-    const persisted = await RBReport.findOne({ key: `${brand.id}_${mutableReportName}` });
+    const persisted = await fixtureRow("RBReport", { key: `${brand.id}_${mutableReportName}` });
     expect(persisted).to.exist;
     expect(persisted).to.include({
       name: mutableReportName,
@@ -96,7 +97,7 @@ describe('ReportsService report configuration integration', function () {
       { label: 'Record OID', property: 'oid', hide: false, exportTemplate: '', template: '', multivalue: false },
     ]);
 
-    const persistedUpdate = await RBReport.findOne({ key: `${brand.id}_${mutableReportName}` });
+    const persistedUpdate = await fixtureRow("RBReport", { key: `${brand.id}_${mutableReportName}` });
     expect(persistedUpdate.title).to.equal('Updated integration report config');
     expect(persistedUpdate.columns).to.deep.equal([
       { label: 'Record OID', property: 'oid', hide: false, exportTemplate: '', template: '', multivalue: false },
@@ -104,7 +105,7 @@ describe('ReportsService report configuration integration', function () {
 
     const deleted = await ReportsService.deleteConfig(brand, mutableReportName);
     expect(deleted).to.deep.equal({ deleted: true });
-    expect(await RBReport.findOne({ key: `${brand.id}_${mutableReportName}` })).to.not.exist;
+    expect(await fixtureRow("RBReport", { key: `${brand.id}_${mutableReportName}` })).to.not.exist;
   });
 
   it('previews a draft database report through the named-query execution path', async function () {
@@ -142,12 +143,13 @@ describe('ReportsService report configuration integration', function () {
       expect(error.message).to.include("Named query 'does-not-exist' not found");
     }
 
-    expect(await RBReport.findOne({ key: `${brand.id}_${mutableReportName}` })).to.not.exist;
+    expect(await fixtureRow("RBReport", { key: `${brand.id}_${mutableReportName}` })).to.not.exist;
   });
 
   it('keeps solr report configs read-only for mutation APIs', async function () {
-    await RBReport.create({
+    await fixtureCreate("RBReport", {
       name: solrReportName,
+      key: `${brand.id}_${solrReportName}`,
       branding: brand.id,
       title: 'Read-only solr integration report',
       reportSource: 'solr',
@@ -180,6 +182,6 @@ describe('ReportsService report configuration integration', function () {
       expect(error.status).to.equal(403);
     }
 
-    expect(await RBReport.findOne({ key: `${brand.id}_${solrReportName}` })).to.exist;
+    expect(await fixtureRow("RBReport", { key: `${brand.id}_${solrReportName}` })).to.exist;
   });
 });

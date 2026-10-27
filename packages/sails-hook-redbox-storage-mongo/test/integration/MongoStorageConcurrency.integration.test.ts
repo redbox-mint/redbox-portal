@@ -2,8 +2,9 @@ const { expect } = require('chai');
 
 import { randomUUID } from 'node:crypto';
 import { MongoClient } from 'mongodb';
-import { backfillRecordRevisions } from '../../src/migrations/recordRevisionBackfill';
-const { Services } = require('../../src/services/MongoStorageService');
+import { runRecordRevisionBackfill } from '../../src/persistence/recordRevisionBackfill';
+import { prismaRecordRevisionBatches, prismaDatabase, cleanupPersistence } from '@researchdatabox/redbox-core';
+import { prismaStorage } from '../helpers/prismaStorage';
 
 const mongoUrl = process.env.MONGO_CONCURRENCY_TEST_URL;
 const describeMongo = mongoUrl ? describe : describe.skip;
@@ -31,21 +32,20 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
     await tombstones.createIndex({ redboxOid: 1 }, { unique: true });
     await identities.createIndex({ redboxOid: 1 }, { unique: true });
 
-    firstService = new Services.MongoStorageService();
-    secondService = new Services.MongoStorageService();
-    firstService.recordCol = records;
-    firstService.deletedRecordCol = tombstones;
-    firstService.recordIdentityCol = identities;
-    secondService.recordCol = records;
-    secondService.deletedRecordCol = tombstones;
-    secondService.recordIdentityCol = identities;
+    firstService = await prismaStorage(client, databaseName);
+    secondService = await prismaStorage(client, databaseName);
   });
 
   after(async function () {
+    await firstService?.testClose?.();
+    await secondService?.testClose?.();
     if (client) {
       // This database is uniquely named and created only by this test run.
-      await client.db(databaseName).dropDatabase();
-      await client.close();
+      try {
+        if (databaseName) await client.db(databaseName).dropDatabase();
+      } finally {
+        await client.close();
+      }
     }
   });
 
@@ -214,6 +214,7 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
 
   it('conditionally advances and removes a tombstone in the real dialect', async function () {
     const oid = `tombstone-${randomUUID()}`;
+    const purgeOperation = lifecycleOperation('purge', 5, 6);
     await tombstones.insertOne({
       redboxOid: oid,
       revision: 5,
@@ -229,17 +230,18 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
     const claimed = await firstService.updateTombstone(
       { id: 'brand-1' },
       oid,
-      { lifecycleState: 'purge-pending' },
-      { precondition: { expectedRevision: 5, requireRevision: true } }
+      { lifecycleState: 'purge-pending', lifecycleOperation: purgeOperation },
+      { precondition: { expectedRevision: 5, requireRevision: true }, lifecycle: { expectedState: 'deleted' } }
     );
     const stale = await secondService.updateTombstone(
       { id: 'brand-1' },
       oid,
-      { lifecycleState: 'restore-pending' },
-      { precondition: { expectedRevision: 5, requireRevision: true } }
+      { lifecycleState: 'restore-pending', lifecycleOperation: lifecycleOperation('restore', 5, 6) },
+      { precondition: { expectedRevision: 5, requireRevision: true }, lifecycle: { expectedState: 'deleted' } }
     );
     const removed = await firstService.removeTombstone({ id: 'brand-1' }, oid, {
       precondition: { expectedRevision: 6, requireRevision: true },
+      lifecycle: { expectedState: 'purge-pending', operationId: purgeOperation.operationId },
     });
 
     expect(claimed).to.include({ applicationState: 'applied', committedRevision: 6 });
@@ -351,10 +353,10 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
     await tombstones.insertOne({ redboxOid: tombstoneOid, deletedRecordMetadata: { redboxOid: tombstoneOid } });
     const logger = { info: () => undefined, error: () => undefined };
 
-    const first = await backfillRecordRevisions(client.db(databaseName), 'record', 'deletedrecord', logger, {
+    const first = await runRecordRevisionBackfill(prismaRecordRevisionBatches(await prismaDatabase(firstService.testApp, 'redboxStorage')), logger, {
       batchSize: 1,
     });
-    const repeated = await backfillRecordRevisions(client.db(databaseName), 'record', 'deletedrecord', logger);
+    const repeated = await runRecordRevisionBackfill(prismaRecordRevisionBatches(await prismaDatabase(firstService.testApp, 'redboxStorage')), logger);
 
     expect(first.activeUpdated).to.equal(1);
     expect(first.tombstonesUpdated).to.equal(1);

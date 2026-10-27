@@ -1,3 +1,4 @@
+import type {} from '../src/waterline-models/types';
 import { repositoryFixtures } from './helpers/repositoryFixtures';
 import '../src/sails';
 import * as lodash from 'lodash';
@@ -36,7 +37,6 @@ import type { Services as _FormRecordConsistencyServiceTypes } from '../src/serv
 import type { Services as _TranslationServiceTypes } from '../src/services/TranslationService';
 import type { Services as _NavigationServiceTypes } from '../src/services/NavigationService';
 import type { Services as _SolrSearchServiceTypes } from '../src/services/SolrSearchService';
-import type {} from '../src/waterline-models/types';
 
 export interface CapturedOpenTelemetryMeasurement {
   readonly name: string;
@@ -126,11 +126,6 @@ import * as sinon from "sinon";
 (global as any)._ = lodash;
 
 // Set up minimal model mocks that might be accessed during module loading
-(global as any).CacheEntry = { findOne: () => ({ exec: () => { } }) };
-(global as any).AsynchProgress = { find: () => ({ exec: () => { } }) };
-(global as any).Role = { find: () => ({ exec: () => { } }) };
-(global as any).BrandingConfig = { findOne: () => ({ exec: () => { } }) };
-
-repositoryFixtures.AsynchProgress = { find: () => ({ exec: () => {} }) };
-repositoryFixtures.Role = { find: () => ({ exec: () => {} }) };
-repositoryFixtures.BrandingConfig = { findOne: () => ({ exec: () => {} }) };
+repositoryFixtures.AsynchProgress = { find: () => ({ exec: () => { } }) };
+repositoryFixtures.Role = { find: () => ({ exec: () => { } }) };
+repositoryFixtures.BrandingConfig = { findOne: () => ({ exec: () => { } }) };

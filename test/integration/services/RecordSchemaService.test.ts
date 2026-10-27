@@ -1,3 +1,4 @@
+import { fixtureRemove, fixturePatchOne, fixtureCount } from '../../helpers/persistenceFixtures';
 import {
   BrandingModel,
   RECORD_CONTRACT_FORMAT_V1,
@@ -37,11 +38,11 @@ describe('RecordSchemaService storage-backed orchestration', function () {
   const storage = () => sails.services.mongostorageservice;
 
   afterEach(async function () {
-    await sails.models.recordschemareference.destroy({ digest: DIGEST });
-    await sails.models.recordschemaartifact.destroy({ digest: DIGEST });
+    await fixtureRemove("RecordSchemaReference", { digest: DIGEST });
+    await fixtureRemove("RecordSchemaArtifact", { digest: DIGEST });
     for (const digest of RETENTION_DIGESTS) {
-      await sails.models.recordschemareference.destroy({ digest });
-      await sails.models.recordschemaartifact.destroy({ digest });
+      await fixtureRemove("RecordSchemaReference", { digest });
+      await fixtureRemove("RecordSchemaArtifact", { digest });
     }
   });
 
@@ -156,7 +157,7 @@ describe('RecordSchemaService storage-backed orchestration', function () {
         byteLength: Buffer.byteLength(JSON.stringify(document), 'utf8'),
       };
       expect((await storage().putRecordSchemaArtifact(artifact)).success).to.equal(true);
-      await sails.models.recordschemaartifact.updateOne({ digest }).set({ createdAt: createdAt[index] });
+      await fixturePatchOne("RecordSchemaArtifact", { digest }, { createdAt: createdAt[index] });
     }
 
     const commonReference = (referenceKey: string, digest: string) => ({
@@ -260,7 +261,7 @@ describe('RecordSchemaService storage-backed orchestration', function () {
     expect(serialized).not.to.include('private-retention-schema');
     expect(serialized).not.to.include('private-retention-owner');
     expect(serialized).not.to.include('private-retention-oid');
-    expect(await sails.models.recordschemaartifact.count({ digest: { in: RETENTION_DIGESTS } })).to.equal(5);
+    expect(await fixtureCount("RecordSchemaArtifact", { digest: { in: RETENTION_DIGESTS } })).to.equal(5);
   });
 });
 
@@ -397,12 +398,12 @@ describe('RecordSchemaService configured-form integration', function () {
 
   afterEach(async function () {
     for (const digest of persistedDigests) {
-      await sails.models.recordschemareference.destroy({ digest });
-      await sails.models.recordschemaartifact.destroy({ digest });
+      await fixtureRemove("RecordSchemaReference", { digest });
+      await fixtureRemove("RecordSchemaArtifact", { digest });
     }
     persistedDigests.clear();
     for (const oid of persistedRecordOids) {
-      await sails.models.record.destroy({ redboxOid: oid });
+      await fixtureRemove("Record", { redboxOid: oid });
     }
     persistedRecordOids.clear();
   });

@@ -1,3 +1,7 @@
+import * as storageQueries from '../../src/persistence/storage/NamedQueryTargets';
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
+import { registerNamedQueryTarget, namedQueryCriteria } from '../../src/persistence/reference/NamedQueryExecution';
 import {createSinonStubLogger} from "../logger.test";
 import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
 import { runWithRequestChronicle } from '../../src/utilities/RequestChronicleContext';
@@ -20,6 +24,7 @@ describe('NamedQueryService', function() {
   let mockRecordsService: any;
 
   beforeEach(function() {
+    installIdentityRepositoryMock();
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -31,7 +36,7 @@ describe('NamedQueryService', function() {
         }
       },
       log: createSinonStubLogger(sinon),
-      models: {}
+      queryFixtures: {}
     });
 
     mockNamedQuery = {
@@ -85,13 +90,14 @@ describe('NamedQueryService', function() {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).NamedQuery = mockNamedQuery;
-    (global as any).User = mockUser;
-    (global as any).UserLink = mockUserLink;
-    (global as any).Record = mockRecord;
+    repositoryFixtures.NamedQuery = mockNamedQuery;
+    repositoryFixtures.User = mockUser;
+    repositoryFixtures.UserLink = mockUserLink;
+    repositoryFixtures.Record = mockRecord;
 
-    mockSails.models = {
+    mockSails.queryFixtures = {
       user: mockUser,
+      userlink: mockUserLink,
       record: mockRecord,
       relatedmodel: mockRelatedRecordModel,
       custommodel: {
@@ -106,6 +112,30 @@ describe('NamedQueryService', function() {
       }
     };
 
+    for (const name of ['custommodel', 'relatedmodel']) {
+      registerNamedQueryTarget(mockSails, {
+        metadata: { name, scope: { type: 'field', fieldPath: 'branding' } },
+        async execute(request) {
+          const model = mockSails.queryFixtures[name];
+          const where = namedQueryCriteria(request.expression, false);
+          const total = request.rows === undefined ? 0 : await model.count(where).meta({ enableExperimentalDeepTargets: true });
+          const records = await model.find({ where, ...(request.select ? { select: request.select } : {}),
+            ...(request.rows !== undefined ? { skip: request.start, limit: request.rows } : {}),
+            ...(request.sort?.length ? { sort: request.sort } : {}) }).meta({ enableExperimentalDeepTargets: true });
+          return { total, records };
+        },
+      });
+    }
+
+    sinon.stub(storageQueries, 'executeStorageQuery').callsFake(async (_app, request) => {
+      const where = namedQueryCriteria(request.expression, 'record');
+      const total = await mockRecordNativeCollection.countDocuments(where);
+      let cursor = mockRecordNativeCollection.find(where);
+      if (request.sort?.length) cursor = cursor.sort(Object.assign({}, ...request.sort.map(entry => Object.fromEntries(Object.entries(entry).map(([key, dir]) => [key, dir === 'DESC' ? -1 : 1])))));
+      const records = total ? await cursor.skip(request.start).limit(request.rows).toArray() : [];
+      return { total, records };
+    });
+
     const module = require('../../src/services/NamedQueryService');
     const { Services } = module;
     NamedQueryConfig = module.NamedQueryConfig;
@@ -114,10 +144,10 @@ describe('NamedQueryService', function() {
 
   afterEach(function() {
     cleanupServiceTestGlobals();
-    delete (global as any).NamedQuery;
-    delete (global as any).User;
-    delete (global as any).UserLink;
-    delete (global as any).Record;
+    delete repositoryFixtures.NamedQuery;
+    delete repositoryFixtures.User;
+    delete repositoryFixtures.UserLink;
+    delete repositoryFixtures.Record;
     sinon.restore();
   });
 
@@ -209,7 +239,7 @@ describe('NamedQueryService', function() {
       expect(result).to.deep.equal({ id: 'new-query' });
     });
 
-    it('should derive branding field from scoped Waterline model definitions', async function() {
+    it('should use explicitly registered institution target metadata', async function() {
       const brand = { id: 'brand-1' };
       const config = {
         mongoQuery: {},
@@ -253,7 +283,8 @@ describe('NamedQueryService', function() {
         await NamedQueryService.create(brand, 'unsafe-query', config);
         expect.fail('Expected error to be thrown');
       } catch (error: any) {
-        expect(error.message).to.equal("Invalid collectionName 'unscopedmodel': model does not expose a brand scope");
+        expect(error.code).to.equal('named-query-compatibility');
+        expect(error.message).to.include('register an explicit tenant-scoped');
       }
     });
 
@@ -582,7 +613,7 @@ describe('NamedQueryService', function() {
       expect(result.records[0].metadata).to.deep.equal({ password: '', token: '' });
     });
 
-    it('should perform query on arbitrary dynamic model', async function() {
+    it('should execute an explicitly registered institution target', async function() {
       const brand = { id: 'brand-1' };
       const result = await NamedQueryService.performNamedQuery(
         'branding',
@@ -596,9 +627,9 @@ describe('NamedQueryService', function() {
         10
       );
 
-      expect(mockSails.models.custommodel.count.called).to.be.true;
-      expect(mockSails.models.custommodel.count.firstCall.args[0].branding).to.equal('brand-1');
-      expect(mockSails.models.custommodel.find.called).to.be.true;
+      expect(mockSails.queryFixtures.custommodel.count.called).to.be.true;
+      expect(mockSails.queryFixtures.custommodel.count.firstCall.args[0].branding).to.equal('brand-1');
+      expect(mockSails.queryFixtures.custommodel.find.called).to.be.true;
       expect(result.records).to.have.length(1);
       expect(result.records[0].metadata.customName).to.equal('Custom Record');
     });
@@ -620,7 +651,8 @@ describe('NamedQueryService', function() {
         );
         expect.fail('Expected error to be thrown');
       } catch (error: any) {
-        expect(error.message).to.equal("Invalid collectionName 'unscopedmodel': model does not expose a brand scope");
+        expect(error.code).to.equal('named-query-compatibility');
+        expect(error.message).to.include('register an explicit tenant-scoped');
       }
     });
 
@@ -791,7 +823,7 @@ describe('NamedQueryService', function() {
       );
 
       const relatedCriteria = mockRelatedRecordModel.find.firstCall.args[0];
-      expect(relatedCriteria.where).to.deep.equal({ status: 'active' });
+      expect(relatedCriteria.where).to.deep.equal({ status: 'active', branding: 'brand-1' });
     });
   });
 

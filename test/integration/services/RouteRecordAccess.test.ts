@@ -1,3 +1,4 @@
+import { fixtureCreate, fixtureRemove, fixtureRow } from '../../helpers/persistenceFixtures';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { firstValueFrom } from 'rxjs';
@@ -65,7 +66,7 @@ describe('Route and record access checks', function () {
     }
 
     for (const [kind, oid] of Object.entries(oids)) {
-      await Record.create({
+      await fixtureCreate("Record", {
         redboxOid: oid,
         metaMetadata: { brandId: kind === 'foreign' ? 'another-brand' : brand.id, type: 'rdmp' },
         metadata: { title: `${kind} access test record` },
@@ -80,9 +81,9 @@ describe('Route and record access checks', function () {
   });
 
   after(async () => {
-    await Record.destroy({ redboxOid: Object.values(oids) });
+    await fixtureRemove("Record", { redboxOid: Object.values(oids) });
     const ids = [userId, targetId].filter(Boolean);
-    if (ids.length) await User.destroy({ id: ids });
+    if (ids.length) await fixtureRemove("User", { id: ids });
   });
 
   for (const actor of ['anonymous', 'researcher'] as const) {
@@ -98,7 +99,7 @@ describe('Route and record access checks', function () {
     ]) {
       it(`blocks ${actor} credential issuance at ${path}`, async () => {
         const agent = actor === 'anonymous' ? anonymous : researcher;
-        const before = await User.findOne({ id: targetId });
+        const before = await fixtureRow("User", { id: targetId });
         await agent
           .post(path)
           .set('X-Source', 'jsclient')
@@ -107,7 +108,7 @@ describe('Route and record access checks', function () {
             _csrf: await csrf(agent),
           })
           .expect(403);
-        const after = await User.findOne({ id: targetId });
+        const after = await fixtureRow("User", { id: targetId });
         assert.equal(after.token, before.token);
       });
     }

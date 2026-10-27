@@ -1,4 +1,3 @@
-import type {} from '../waterline-models/types'; // Declares the Waterline Record model global.
 import * as _ from 'lodash';
 import { createHash } from 'node:crypto';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -49,6 +48,7 @@ import type {
   HarvestRunFilter,
   HarvestEventFilter,
 } from '../persistence/harvest/HarvestRepositories';
+import type { StorageService } from '../StorageService';
 
 declare const RecordsService: RecordsServiceContract;
 
@@ -347,13 +347,18 @@ export namespace Services {
       });
     }
 
+    private harvestStorage(): StorageService {
+      const serviceName = sails.config.storage?.serviceName ?? 'RedboxJavaStorageService';
+      const storage = sails.services[serviceName] as unknown as StorageService | undefined;
+      if (!storage || typeof storage.findHarvestRecords !== 'function')
+        throw new HarvestRunServiceError(
+          'The configured storage service must implement findHarvestRecords for harvest enrichment. Port the storage hook before enabling harvest.'
+        );
+      return storage;
+    }
+
     private async findExistingHarvestRecord(harvestId: string, recordType: string): Promise<AnyRecord[]> {
-      return (await Record.find({
-        harvestId,
-        'metaMetadata.type': recordType,
-      }).meta({
-        enableExperimentalDeepTargets: true,
-      })) as AnyRecord[];
+      return this.harvestStorage().findHarvestRecords!([harvestId], recordType);
     }
 
     private async findExistingTrackedHarvestRecordsBatch(
@@ -362,24 +367,12 @@ export namespace Services {
       recordType: string
     ): Promise<Map<string, AnyRecord[]>> {
       const uniqueHarvestIds = _.uniq(harvestIds.filter(harvestId => !_.isEmpty(harvestId)));
-      if (uniqueHarvestIds.length === 0) {
-        return new Map<string, AnyRecord[]>();
-      }
-
-      const rows = (await Record.find({
-        harvestId: { in: uniqueHarvestIds },
-        'metaMetadata.type': recordType,
-        'metaMetadata.brandId': brandId,
-      }).meta({
-        enableExperimentalDeepTargets: true,
-      })) as AnyRecord[];
-
+      if (!uniqueHarvestIds.length) return new Map();
+      const rows = await this.harvestStorage().findHarvestRecords!(uniqueHarvestIds, recordType, brandId);
       const byHarvestId = new Map<string, AnyRecord[]>();
       for (const row of rows) {
         const harvestId = String(row.harvestId ?? '').trim();
-        if (_.isEmpty(harvestId)) {
-          continue;
-        }
+        if (!harvestId) continue;
         const matches = byHarvestId.get(harvestId) ?? [];
         matches.push(row);
         byHarvestId.set(harvestId, matches);

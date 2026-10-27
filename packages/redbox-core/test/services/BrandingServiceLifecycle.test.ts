@@ -1,4 +1,5 @@
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import sinon from 'sinon';
@@ -128,6 +129,8 @@ describe('BrandingService lifecycle', function () {
   }
 
   beforeEach(function () {
+    const identity = installIdentityRepositoryMock();
+    sinon.stub(identity, 'list').resolves([]);
     const mockSails = createMockSails({
       config: {
         appPath: '/app',

@@ -1,3 +1,4 @@
+import { fixtureCreate, fixtureRemoveOne, fixtureCount } from '../../helpers/persistenceFixtures';
 describe('The RDMPService', function () {
     const userAdminDefault = {
         type: 'local',
@@ -29,11 +30,11 @@ describe('The RDMPService', function () {
     };
     before(function () {
         // add another user
-        return User.create(userAdmin1);
+        return fixtureCreate("User", userAdmin1);
     });
     after(function () {
         // remove the users added in `before`
-        return User.destroyOne({ name: userAdmin1.name });
+        return fixtureRemoveOne("User", { name: userAdmin1.name });
     });
     describe('assign permissions as expected', function () {
         it('assignPermissions with no viewers or editors', function (done) {
@@ -76,10 +77,10 @@ describe('The RDMPService', function () {
                 expect(record.authorization.view).to.be.empty;
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
-                User.count().then(function (count) {
+                fixtureCount("User", {}).then(function (count) {
                     expect(count).equal(2);
                     done();
-                });
+                }).catch(done);
             });
         });
         it('assignPermissions with only viewers', function (done) {
@@ -123,10 +124,10 @@ describe('The RDMPService', function () {
                 expect(record.authorization.view).eql([userAdminDefault.name]);
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
-                User.count().then(function (count) {
+                fixtureCount("User", {}).then(function (count) {
                     expect(count).equal(2);
                     done();
-                });
+                }).catch(done);
             });
         });
         it('assignPermissions with only editors', function (done) {
@@ -170,10 +171,10 @@ describe('The RDMPService', function () {
                 expect(record.authorization.view).to.be.empty;
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
-                User.count().then(function (count) {
+                fixtureCount("User", {}).then(function (count) {
                     expect(count).equal(2);
                     done();
-                });
+                }).catch(done);
             });
         });
     });
@@ -229,10 +230,10 @@ describe('The RDMPService', function () {
                 expect(record.authorization.view).to.be.empty;
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
-                User.count().then(function (count) {
+                fixtureCount("User", {}).then(function (count) {
                     expect(count).equal(2);
                     done();
-                });
+                }).catch(done);
             });
         });
         it('complexAssignPermissions with only editors', function (done) {
@@ -273,10 +274,10 @@ describe('The RDMPService', function () {
                 expect(record.authorization.view).to.be.empty;
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
-                User.count().then(function (count) {
+                fixtureCount("User", {}).then(function (count) {
                     expect(count).equal(2);
                     done();
-                });
+                }).catch(done);
             });
         });
         it('complexAssignPermissions with only viewers', function (done) {
@@ -317,10 +318,10 @@ describe('The RDMPService', function () {
                 expect(record.authorization.view).eql([userAdmin1.name]);
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
-                User.count().then(function (count) {
+                fixtureCount("User", {}).then(function (count) {
                     expect(count).equal(2);
                     done();
-                });
+                }).catch(done);
             });
         });
         it('complexAssignPermissions to expected users', function (done) {
@@ -379,10 +380,10 @@ describe('The RDMPService', function () {
                 expect(record.authorization.view).eql([userAdminDefault.name, userAdmin1.name]);
                 expect(record.authorization.editPending).eql([userNotInDB1.email]);
                 expect(record.authorization.viewPending).eql([userNotInDB1.email, userNotInDB2.email]);
-                User.count().then(function (count) {
+                fixtureCount("User", {}).then(function (count) {
                     expect(count).equal(2);
                     done();
-                });
+                }).catch(done);
             });
         });
     });

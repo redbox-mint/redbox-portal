@@ -1,5 +1,6 @@
+import { initializeStoragePersistence } from './persistence/storage/runtime';
 import { initializeCachePersistence, cleanupCachePersistenceAfterFailure } from './persistence/cache/runtime';
-import { initializePersistence, cleanupPersistenceAfterFailure, initializeBrandingPersistence, initializeVocabularyPersistence, initializeMigrationPersistence, initializeReferencePersistence, initializeConfigurationPersistence, initializeProgressPersistence, initializeHarvestPersistence, initializeSiemPersistence, initializeFigsharePersistence } from './persistence/runtime';
+import { initializePersistence, cleanupPersistenceAfterFailure, initializeIdentityPersistence, initializeBrandingPersistence, initializeVocabularyPersistence, initializeMigrationPersistence, initializeReferencePersistence, initializeConfigurationPersistence, initializeProgressPersistence, initializeHarvestPersistence, initializeSiemPersistence, initializeFigsharePersistence } from './persistence/runtime';
 /**
  * Core Bootstrap Function
  *
@@ -249,6 +250,8 @@ async function runPreLiftSetup(): Promise<void> {
   await initializeHarvestPersistence(sails);
   await initializeSiemPersistence(sails);
   await initializeFigsharePersistence(sails);
+  await initializeStoragePersistence(sails);
+  await initializeIdentityPersistence(sails);
   await initializeBrandingPersistence(sails);
   await initializeVocabularyPersistence(sails);
 

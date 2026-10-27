@@ -1,9 +1,10 @@
+import * as _ from 'lodash';
 const { expect } = require('chai');
 const sinon = require('sinon');
 const { of, firstValueFrom } = require('rxjs');
-const { PassThrough, Readable } = require('node:stream');
+const { PassThrough, Readable, Writable } = require('node:stream');
 const mongodb = require('mongodb');
-const sailsMongoMongodb = require('sails-mongo/node_modules/mongodb');
+import { inspect } from 'node:util';
 
 async function expectRejects(fn: () => Promise<unknown>, message: string) {
   let rejection: unknown;
@@ -32,7 +33,7 @@ describe('MongoStorageService', function () {
   let RecordSchemaArtifact: any;
   let RecordSchemaReference: any;
 
-  beforeEach(function () {
+  beforeEach(async function () {
     sandbox = sinon.createSandbox();
     mockSails = {
       config: {
@@ -114,7 +115,6 @@ describe('MongoStorageService', function () {
 
     Record = {
       tableName: 'record',
-      getDatastore: sandbox.stub().returns({ manager: mockDb }),
       create: sandbox.stub().resolves({}),
       destroyOne: sandbox.stub().resolves({}),
       updateOne: sandbox.stub(),
@@ -124,7 +124,6 @@ describe('MongoStorageService', function () {
     };
     DeletedRecord = {
       tableName: 'deletedrecord',
-      getDatastore: sandbox.stub().returns({ manager: mockDb }),
       create: sandbox.stub().resolves({}),
       findOne: sandbox.stub().resolves(null),
       destroyOne: sandbox.stub().resolves({}),
@@ -146,29 +145,21 @@ describe('MongoStorageService', function () {
     };
     RecordSchemaArtifact = {
       tableName: 'recordschemaartifact',
-      getDatastore: sandbox.stub().returns({ manager: mockDb }),
     };
     RecordSchemaReference = {
       tableName: 'recordschemareference',
-      getDatastore: sandbox.stub().returns({ manager: mockDb }),
     };
 
     mockBucket = {
       find: sandbox.stub(),
       delete: sandbox.stub(),
       openUploadStream: sandbox.stub(),
-      openDownloadStreamByName: sandbox.stub().returns('download-stream'),
+      openDownloadStreamByName: sandbox.stub().returns(new PassThrough()),
     };
 
     (global as any).sails = mockSails;
-    (global as any).Record = Record;
-    (global as any).DeletedRecord = DeletedRecord;
-    (global as any).RecordAudit = RecordAudit;
-    (global as any).IntegrationAudit = IntegrationAudit;
-    (global as any).RecordSchemaArtifact = RecordSchemaArtifact;
-    (global as any).RecordSchemaReference = RecordSchemaReference;
     (global as any).TranslationService = { t: sandbox.stub().returns('missing attachment') };
-    (global as any).RecordTypesService = { get: sandbox.stub().returns(of({ relatedTo: [] })) };
+    (global as any).RecordTypesService = { get: sandbox.stub() };
     (global as any).FormsService = { getFormByName: sandbox.stub().returns(of({ attachmentFields: [] })) };
     (global as any).StorageManagerService = {
       stagingDisk: sandbox.stub(),
@@ -179,161 +170,92 @@ describe('MongoStorageService', function () {
       return mockBucket as any;
     });
 
-    delete require.cache[require.resolve('../../src/services/MongoStorageService')];
-    const { Services } = require('../../src/services/MongoStorageService');
-    service = new Services.MongoStorageService();
+    service = new (require('../../src/persistence/PrismaStorage').PrismaStorage)(mockSails);
+    service.recordCol = recordCollection;
+    service.deletedRecordCol = deletedRecordCollection;
+    service.recordIdentityCol = recordIdentityCollection;
+    service._requiredIndicesReady = true;
+    recordCollection.count = (...args: any[]) => Record.count(...args);
+    recordCollection.list = async (criteria: any, options: any = {}) => {
+      const query = Record.find(criteria, options);
+      const rows = [...((await (query?.meta ? query.meta({ enableExperimentalDeepTargets: true }) : query)) ?? [])];
+      rows.sort((a, b) => {
+        for (const [key, direction] of Object.entries(options.sort ?? {})) {
+          const result = String(_.get(a, key)).localeCompare(String(_.get(b, key)));
+          if (result) return result * Number(direction);
+        }
+        return 0;
+      });
+      return rows.slice(0, options.limit > 0 ? options.limit : Infinity);
+    };
+    deletedRecordCollection.list = async (criteria: any, options: any = {}) => {
+      const cursor = deletedRecordCollection.find(criteria, options);
+      if (options.sort) cursor.sort(options.sort);
+      if (options.limit) cursor.limit(options.limit);
+      return cursor.toArray();
+    };
+    // Inject physical read/audit ports for shared-protocol unit tests. The live
+    // suite exercises their actual Prisma encoders, plans and stored format.
+    service.requireClient = () => ({ orm: { recordaudit: RecordAudit, integrationaudit: IntegrationAudit } });
+    service.getMeta = (oid: string) => {
+      if (!oid) return Promise.reject(new Error('refusing to search using an empty OID'));
+      return Record.findOne({ redboxOid: oid });
+    };
+    service.getDeletedRecordMeta = async (oid: string) => {
+      if (!oid) throw new Error('refusing to search using an empty OID');
+      const row = await DeletedRecord.findOne({ redboxOid: oid });
+      return row?.deletedRecordMetadata ? { ...row.deletedRecordMetadata, revision: row.revision ?? 0 } : null;
+    };
+    sandbox.stub(service, 'gridFsDatabase').resolves(mockDb);
     service.gridFsBucket = mockBucket;
   });
 
   afterEach(function () {
     sandbox.restore();
     delete (global as any).sails;
-    delete (global as any).Record;
-    delete (global as any).DeletedRecord;
-    delete (global as any).RecordAudit;
-    delete (global as any).IntegrationAudit;
-    delete (global as any).RecordSchemaArtifact;
-    delete (global as any).RecordSchemaReference;
     delete (global as any).TranslationService;
-    delete (global as any).RecordTypesService;
     delete (global as any).FormsService;
+    delete (global as any).RecordTypesService;
     delete (global as any).StorageManagerService;
   });
 
-  it('registers a ready hook in the constructor', function () {
-    expect(mockSails.on.calledOnceWith('ready')).to.be.true;
+  it('allows institution services to override a forwarded operation before exporting it', async () => {
+    const { Services } = require('../../src/services/MongoStorageService');
+    class InstitutionStorageService extends Services.MongoStorageService {
+      getMeta = async (oid: string) => ({ redboxOid: oid, metadata: { institution: true } });
+    }
+    const exported = new InstitutionStorageService().exports();
+    expect(await exported.getMeta('institution-oid')).to.deep.equal({
+      redboxOid: 'institution-oid',
+      metadata: { institution: true },
+    });
   });
 
-  it('awaits one shared initialization and propagates the real failure before allowing a retry', async function () {
-    const failure = new Error('private initialization failure marker', {
-      cause: new Error('private initialization cause marker'),
+  it('allows institution services to override a forwarded operation with an ordinary method', async () => {
+    const { Services } = require('../../src/services/MongoStorageService');
+    class InstitutionStorageService extends Services.MongoStorageService {
+      async getMeta(oid: string) {
+        return { redboxOid: oid, metadata: { institution: 'method' } };
+      }
+    }
+    const exported = new InstitutionStorageService().exports();
+    expect(await exported.getMeta('institution-oid')).to.deep.equal({
+      redboxOid: 'institution-oid',
+      metadata: { institution: 'method' },
     });
-    let rejectInitialization: ((error: Error) => void) | undefined;
-    const pendingInitialization = new Promise<void>((_resolve, reject) => {
-      rejectInitialization = reject;
-    });
-    const performInit = sandbox.stub(service, 'performInit');
-    performInit.onFirstCall().returns(pendingInitialization);
-    performInit.onSecondCall().resolves();
-
-    const first = service.init();
-    const concurrent = service.init();
-    expect(performInit.calledOnce).to.equal(true);
-
-    rejectInitialization?.(failure);
-    await expectRejects(() => first, failure.message);
-    await expectRejects(() => concurrent, failure.message);
-    expect(
-      mockSails.log.error.calledOnceWithExactly('MongoStorageService:: storage_initialization_failed', {
-        event: 'storage_initialization_failed',
-        outcome: 'not-ready',
-        error_classification: 'unexpected-error',
-      })
-    ).to.equal(true);
-    const serializedLog = JSON.stringify(mockSails.log.error.args);
-    expect(serializedLog).not.to.include('private initialization failure marker');
-    expect(serializedLog).not.to.include('private initialization cause marker');
-
-    await service.init();
-    expect(performInit.calledTwice).to.equal(true);
   });
 
-  it('initializes collections and indices when they already exist', async function () {
-    const recordCollection = {
-      indexes: sandbox.stub().resolves([{ name: '_id_' }]),
-      createIndex: sandbox.stub().resolves(),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const deletedCollection = {
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const identityCollection = {
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const artifactCollection = {
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const referenceCollection = {
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const auditCollection = { createIndex: sandbox.stub().resolves('redboxOid_1_createdAt_1') };
-    mockDb.collection.callsFake((name: string, options?: any) => {
-      if (options?.strict) {
-        return { ok: 1 };
-      }
-      if (name === 'record') {
-        return recordCollection;
-      }
-      if (name === 'deletedrecord') return deletedCollection;
-      if (name === 'recordidentity') return identityCollection;
-      if (name === 'recordschemaartifact') {
-        return artifactCollection;
-      }
-      if (name === 'recordschemareference') {
-        return referenceCollection;
-      }
-      if (name === 'recordaudit') {
-        return auditCollection;
-      }
-      return deletedCollection;
+  it('keeps harvest enrichment scoped by tracked brand and record type', async () => {
+    const rows = [{ redboxOid: 'opaque', harvestId: 'item' }];
+    recordCollection.list = sandbox.stub().resolves(rows);
+    expect(await service.findHarvestRecords(['item'], 'data', 'brand')).to.deep.equal(rows);
+    expect(recordCollection.list.firstCall.args[0]).to.deep.equal({
+      harvestId: { $in: ['item'] },
+      'metaMetadata.type': 'data',
+      'metaMetadata.brandId': 'brand',
     });
-
-    await service.performInit();
-
-    expect(service.gridFsBucket).to.be.ok;
-    expect(service.recordCol).to.equal(recordCollection);
-    expect(service.deletedRecordCol).to.equal(deletedCollection);
-    expect(service.recordIdentityCol).to.equal(identityCollection);
-    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
-    expect(recordCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.indices)).to.be.true;
-    expect(deletedCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.deletedRecordIndices)).to.be
-      .true;
-    expect(artifactCollection.createIndexes.calledOnce).to.be.true;
-    expect(referenceCollection.createIndexes.calledOnce).to.be.true;
-  });
-
-  it('creates required record-schema indexes when their namespaces do not exist', async function () {
-    const namespaceNotFoundByCode = new sailsMongoMongodb.MongoServerError({
-      message: 'namespace not found',
-      code: 26,
-    });
-    const namespaceNotFoundByName = new sailsMongoMongodb.MongoServerError({
-      message: 'namespace not found',
-      codeName: 'NamespaceNotFound',
-    });
-    expect(namespaceNotFoundByCode instanceof mongodb.MongoServerError).to.equal(false);
-    expect(namespaceNotFoundByName instanceof mongodb.MongoServerError).to.equal(false);
-    const standardCollection = {
-      createIndex: sandbox.stub().resolves(),
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const artifactCollection = {
-      indexes: sandbox.stub().rejects(namespaceNotFoundByCode),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const referenceCollection = {
-      indexes: sandbox.stub().rejects(namespaceNotFoundByName),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    mockDb.collection.callsFake((name: string) => {
-      if (name === 'recordschemaartifact') return artifactCollection;
-      if (name === 'recordschemareference') return referenceCollection;
-      return standardCollection;
-    });
-    mockSails.config.recordSchema = { enabled: false };
-    const {
-      RECORD_SCHEMA_ARTIFACT_INDEXES,
-      RECORD_SCHEMA_REFERENCE_INDEXES,
-    } = require('../../src/services/MongoStorageService');
-
-    await service.performInit();
-
-    expect(artifactCollection.createIndexes.calledOnceWithExactly(RECORD_SCHEMA_ARTIFACT_INDEXES)).to.equal(true);
-    expect(referenceCollection.createIndexes.calledOnceWithExactly(RECORD_SCHEMA_REFERENCE_INDEXES)).to.equal(true);
-    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
+    expect(await service.findHarvestRecords([], 'data', 'brand')).to.deep.equal([]);
+    expect(recordCollection.list.calledOnce).to.equal(true);
   });
 
   it('selects the next update grant after an exclusive authorization cursor through the current-edit ACL join', async function () {
@@ -352,13 +274,9 @@ describe('MongoStorageService', function () {
       createdAt: new Date('2026-08-27T00:00:00.000Z'),
       updatedAt: new Date('2026-08-27T00:00:00.000Z'),
     };
-    const aggregateCursor = {
-      maxTimeMS: sandbox.stub().returnsThis(),
-      toArray: sandbox.stub().resolves([grant]),
-    };
-    const aggregate = sandbox.stub().returns(aggregateCursor);
-    service.recordSchemaReferenceCol = { aggregate };
-
+    const list = sandbox.stub().resolves([grant]);
+    service.schemaReferenceRepository = () => ({ list });
+    recordCollection.findOne.resolves({ redboxOid: 'oid-1' });
     const result = await service.findRecordSchemaGrantForAuthorization({
       digest,
       brand: 'default',
@@ -373,41 +291,12 @@ describe('MongoStorageService', function () {
     });
 
     expect(result).to.deep.include({ referenceKey: grant.referenceKey, oid: 'oid-1' });
-    const pipeline = aggregate.firstCall.firstArg;
-    const {
-      RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
-      RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
-    } = require('../../src/services/MongoStorageService');
-    expect(aggregate.firstCall.args[1]).to.deep.equal({ hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY });
-    expect(pipeline[0]).to.deep.equal({
-      $match: {
-        digest,
-        kind: 'grant',
-        brand: 'default',
-        portal: 'portal',
-        schemaKind: 'update',
-        recordType: 'dataset',
-        operation: 'strict-all',
-        referenceKey: { $gt: afterReferenceKey },
-      },
+    expect(list.firstCall.args[0].referenceKey).to.deep.equal({ $gt: afterReferenceKey });
+    expect(recordCollection.findOne.firstCall.args[0]).to.deep.equal({
+      redboxOid: 'oid-1',
+      'metaMetadata.brandId': 'brand-1',
+      $or: [{ 'authorization.edit': 'alice' }, { 'authorization.editRoles': { $in: ['Researcher'] } }],
     });
-    expect(pipeline).to.deep.include({ $limit: 1 });
-    expect(pipeline[1].$lookup).to.deep.include({
-      from: 'record',
-      localField: 'oid',
-      foreignField: 'redboxOid',
-    });
-    expect(pipeline[1].$lookup.pipeline).to.deep.equal([
-      {
-        $match: {
-          'metaMetadata.brandId': 'brand-1',
-          $or: [{ 'authorization.edit': 'alice' }, { 'authorization.editRoles': { $in: ['Researcher'] } }],
-        },
-      },
-    ]);
-    expect(aggregateCursor.maxTimeMS.calledOnceWithExactly(RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS)).to.equal(
-      true
-    );
   });
 
   it('selects the next create grant after an exclusive authorization cursor by exact public context', async function () {
@@ -426,7 +315,7 @@ describe('MongoStorageService', function () {
       updatedAt: new Date('2026-08-27T00:00:00.000Z'),
     };
     const findOne = sandbox.stub().resolves(grant);
-    service.recordSchemaReferenceCol = { findOne };
+    service.schemaReferenceRepository = () => ({ findOne });
 
     const result = await service.findRecordSchemaGrantForAuthorization({
       digest,
@@ -442,10 +331,6 @@ describe('MongoStorageService', function () {
     });
 
     expect(result).to.deep.include({ referenceKey: grant.referenceKey, schemaKind: 'create' });
-    const {
-      RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
-      RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
-    } = require('../../src/services/MongoStorageService');
     expect(
       findOne.calledOnceWithExactly(
         {
@@ -460,370 +345,9 @@ describe('MongoStorageService', function () {
         },
         {
           sort: { referenceKey: 1 },
-          hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
-          maxTimeMS: RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
         }
       )
     ).to.equal(true);
-  });
-
-  it('propagates a plain error from record-schema index discovery without creating indexes', async function () {
-    const failure = new Error('schema index discovery failed');
-    const standardCollection = {
-      createIndex: sandbox.stub().resolves(),
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const artifactCollection = {
-      indexes: sandbox.stub().rejects(failure),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const referenceCollection = {
-      indexes: sandbox.stub(),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    mockDb.collection.callsFake((name: string) => {
-      if (name === 'recordschemaartifact') return artifactCollection;
-      if (name === 'recordschemareference') return referenceCollection;
-      return standardCollection;
-    });
-
-    const rejection = await service.performInit().then(
-      () => undefined,
-      (error: unknown) => error
-    );
-
-    expect(rejection).to.equal(failure);
-    expect(artifactCollection.createIndexes.called).to.equal(false);
-    expect(referenceCollection.createIndexes.called).to.equal(false);
-  });
-
-  it('propagates an unrelated MongoServerError from record-schema index discovery without creating indexes', async function () {
-    const failure = new sailsMongoMongodb.MongoServerError({
-      message: 'schema index discovery was unauthorized',
-      code: 13,
-      codeName: 'Unauthorized',
-    });
-    expect(failure instanceof mongodb.MongoServerError).to.equal(false);
-    const standardCollection = {
-      createIndex: sandbox.stub().resolves(),
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const { RECORD_SCHEMA_ARTIFACT_INDEXES } = require('../../src/services/MongoStorageService');
-    const artifactCollection = {
-      indexes: sandbox.stub().resolves(RECORD_SCHEMA_ARTIFACT_INDEXES),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const referenceCollection = {
-      indexes: sandbox.stub().rejects(failure),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    mockDb.collection.callsFake((name: string) => {
-      if (name === 'recordschemaartifact') return artifactCollection;
-      if (name === 'recordschemareference') return referenceCollection;
-      return standardCollection;
-    });
-
-    const rejection = await service.performInit().then(
-      () => undefined,
-      (error: unknown) => error
-    );
-
-    expect(rejection).to.equal(failure);
-    expect(artifactCollection.createIndexes.called).to.equal(false);
-    expect(referenceCollection.createIndexes.called).to.equal(false);
-  });
-
-  it('creates the collection through a seed record when strict lookup fails', async function () {
-    const recordCollection = {
-      indexes: sandbox.stub().resolves([]),
-      createIndex: sandbox.stub().resolves(),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const artifactCollection = {
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const referenceCollection = {
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    mockDb.collection.callsFake((name: string, options?: { strict?: boolean }) => {
-      if (options?.strict) {
-        throw new Error('missing');
-      }
-      if (name === 'record') {
-        return recordCollection;
-      }
-      if (name === 'recordidentity') {
-        return { createIndex: sandbox.stub().resolves(), createIndexes: sandbox.stub().resolves([]) };
-      }
-      if (name === 'recordschemaartifact') {
-        return artifactCollection;
-      }
-      if (name === 'recordschemareference') {
-        return referenceCollection;
-      }
-      return { createIndex: sandbox.stub().resolves(), createIndexes: sandbox.stub().resolves([]) };
-    });
-
-    await service.performInit();
-
-    expect(Record.create.calledOnce).to.be.true;
-    expect(Record.destroyOne.calledOnce).to.be.true;
-  });
-
-  it('fails closed without advertising readiness or capability when a required index cannot be created', async function () {
-    const recordCollection = {
-      indexes: sandbox.stub().resolves([]),
-      createIndex: sandbox.stub().resolves(),
-      createIndexes: sandbox.stub().rejects(new Error('boom')),
-      findOneAndUpdate: sandbox.stub(),
-      findOneAndDelete: sandbox.stub(),
-      findOne: sandbox.stub(),
-      insertOne: sandbox.stub(),
-    };
-    mockDb.collection.returns(recordCollection);
-
-    await expectRejects(() => service.performInit(), 'boom');
-
-    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
-    expect(service.getCapabilities()).to.deep.equal({});
-  });
-
-  it('accepts equivalent record-schema indexes with legacy names without recreating them', async function () {
-    const standardCollection = {
-      createIndex: sandbox.stub().resolves(),
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const artifactCollection = {
-      indexes: sandbox.stub().resolves([
-        { name: '_id_', key: { _id: 1 } },
-        {
-          name: 'record_schema_artifact_digest_unique',
-          key: { digest: 1 },
-          unique: true,
-        },
-      ]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const referenceCollection = {
-      indexes: sandbox.stub().resolves([
-        { name: '_id_', key: { _id: 1 } },
-        {
-          name: 'record_schema_reference_key_unique',
-          key: { referenceKey: 1 },
-          unique: true,
-        },
-        {
-          name: 'digest_1_kind_1',
-          key: { digest: 1, kind: 1 },
-        },
-        {
-          name: 'digest_1_kind_1_brand_1_portal_1_referenceKey_1',
-          key: { digest: 1, kind: 1, brand: 1, portal: 1, referenceKey: 1 },
-        },
-        {
-          name: 'digest_1_kind_1_brand_1_portal_1_schemaKind_1_recordType_1_operation_1_oid_1',
-          key: {
-            digest: 1,
-            kind: 1,
-            brand: 1,
-            portal: 1,
-            schemaKind: 1,
-            recordType: 1,
-            operation: 1,
-            oid: 1,
-          },
-        },
-        {
-          name: 'digest_1_kind_1_brand_1_portal_1_schemaKind_1_recordType_1_operation_1_referenceKey_1',
-          key: {
-            digest: 1,
-            kind: 1,
-            brand: 1,
-            portal: 1,
-            schemaKind: 1,
-            recordType: 1,
-            operation: 1,
-            referenceKey: 1,
-          },
-        },
-        {
-          name: 'oid_1_kind_1',
-          key: { oid: 1, kind: 1 },
-          sparse: true,
-        },
-        {
-          name: 'kind_1_expiresAt_1',
-          key: { kind: 1, expiresAt: 1 },
-          partialFilterExpression: { kind: 'pin' },
-        },
-      ]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    mockDb.collection.callsFake((name: string) => {
-      if (name === 'recordschemaartifact') return artifactCollection;
-      if (name === 'recordschemareference') return referenceCollection;
-      return standardCollection;
-    });
-
-    await service.performInit();
-
-    expect(artifactCollection.createIndexes.called).to.equal(false);
-    expect(referenceCollection.createIndexes.called).to.equal(false);
-    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
-  });
-
-  it('accepts an equivalent Waterline digest_1 index definition', async function () {
-    const standardCollection = {
-      createIndex: sandbox.stub().resolves(),
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const artifactCollection = {
-      indexes: sandbox.stub().resolves([
-        { name: '_id_', key: { _id: 1 } },
-        { name: 'digest_1', key: { digest: 1 }, unique: true },
-      ]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    mockDb.collection.callsFake((name: string) =>
-      name === 'recordschemaartifact' ? artifactCollection : standardCollection
-    );
-
-    await service.performInit();
-
-    expect(artifactCollection.createIndexes.called).to.equal(false);
-  });
-
-  it('accepts the explicit simple collation reported by MongoDB 9 without recreating schema indexes', async function () {
-    const { RECORD_SCHEMA_REFERENCE_INDEXES } = require('../../src/services/MongoStorageService');
-    const standardCollection = {
-      createIndex: sandbox.stub().resolves(),
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const artifactCollection = {
-      indexes: sandbox.stub().resolves([
-        { name: '_id_', key: { _id: 1 }, v: 2, collation: { locale: 'simple' } },
-        { name: 'digest_1', key: { digest: 1 }, unique: true, v: 2, collation: { locale: 'simple' } },
-      ]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const referenceCollection = {
-      indexes: sandbox
-        .stub()
-        .resolves(RECORD_SCHEMA_REFERENCE_INDEXES.map(index => ({ ...index, v: 2, collation: { locale: 'simple' } }))),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    mockDb.collection.callsFake((name: string) => {
-      if (name === 'recordschemaartifact') return artifactCollection;
-      if (name === 'recordschemareference') return referenceCollection;
-      return standardCollection;
-    });
-
-    await service.performInit();
-
-    expect(artifactCollection.createIndexes.called).to.equal(false);
-    expect(referenceCollection.createIndexes.called).to.equal(false);
-    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
-  });
-
-  for (const { description, options } of [
-    { description: 'a non-default collation', options: { unique: true, collation: { locale: 'en', strength: 2 } } },
-    {
-      description: 'a non-unique index with simple collation',
-      options: { unique: false, collation: { locale: 'simple' } },
-    },
-  ]) {
-    it(`fails initialization when an existing record-schema index has ${description}`, async function () {
-      const standardCollection = {
-        createIndex: sandbox.stub().resolves(),
-        indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-        createIndexes: sandbox.stub().resolves([]),
-      };
-      const artifactCollection = {
-        indexes: sandbox.stub().resolves([{ name: 'digest_1', key: { digest: 1 }, ...options }]),
-        createIndexes: sandbox.stub().resolves([]),
-      };
-      mockDb.collection.callsFake((name: string) =>
-        name === 'recordschemaartifact' ? artifactCollection : standardCollection
-      );
-
-      await expectRejects(
-        () => service.performInit(),
-        'Existing index digest_1 has options that do not match required index digest_1'
-      );
-
-      expect(artifactCollection.createIndexes.called).to.equal(false);
-      expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
-    });
-  }
-
-  it('fails initialization when an existing record-schema index has mismatched options', async function () {
-    const standardCollection = {
-      createIndex: sandbox.stub().resolves(),
-      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const artifactCollection = {
-      indexes: sandbox.stub().resolves([
-        { name: '_id_', key: { _id: 1 } },
-        {
-          name: 'record_schema_artifact_digest_unique',
-          key: { digest: 1 },
-          unique: false,
-        },
-      ]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    mockDb.collection.callsFake((name: string) =>
-      name === 'recordschemaartifact' ? artifactCollection : standardCollection
-    );
-
-    await expectRejects(
-      () => service.performInit(),
-      'Existing index record_schema_artifact_digest_unique has options that do not match required index digest_1'
-    );
-
-    expect(artifactCollection.createIndexes.called).to.equal(false);
-    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
-  });
-
-  it('creates the audit index even when no record indices are configured', async function () {
-    mockSails.config.storage.mongodb.indices = [];
-    const recordCollection = {
-      indexes: sandbox.stub().resolves([]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const auditCollection = { createIndex: sandbox.stub().resolves('redboxOid_1_createdAt_1') };
-    mockDb.collection.withArgs('record').returns(recordCollection);
-    mockDb.collection.withArgs('recordaudit').returns(auditCollection);
-    mockDb.collection.withArgs('deletedrecord').returns({ createIndexes: sandbox.stub().resolves([]) });
-
-    await service.createIndices(mockDb);
-
-    expect(recordCollection.createIndexes.called).to.be.false;
-    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
-  });
-
-  it('logs audit index creation failures without throwing', async function () {
-    const recordCollection = {
-      indexes: sandbox.stub().resolves([]),
-      createIndexes: sandbox.stub().resolves([]),
-    };
-    const auditCollection = { createIndex: sandbox.stub().rejects(new Error('audit index failed')) };
-    mockDb.collection.withArgs('record').returns(recordCollection);
-    mockDb.collection.withArgs('recordaudit').returns(auditCollection);
-    mockDb.collection.withArgs('deletedrecord').returns({ createIndexes: sandbox.stub().resolves([]) });
-
-    await service.createIndices(mockDb);
-
-    expect(mockSails.log.error.calledWith('Failed to create record audit index:')).to.be.true;
-    expect(recordCollection.createIndexes.calledOnce).to.be.true;
   });
 
   it('creates a record and assigns a generated oid', async function () {
@@ -1072,12 +596,13 @@ describe('MongoStorageService', function () {
     expect(mockSails.log.error.calledWithMatch('updateMeta() failed for oid oid-1: update failed')).to.equal(true);
   });
 
-  it('declares full concurrency capability only after required indices and native atomic collections are ready', function () {
+  it('declares concurrency capability only after required indices and typed handles are ready', function () {
+    service._requiredIndicesReady = false;
     expect(service.getCapabilities()).to.deep.equal({});
     service._requiredIndicesReady = true;
     expect(service.getCapabilities().recordConcurrency).to.equal(1);
 
-    service.recordCol = { findOneAndUpdate: sandbox.stub() };
+    service.recordCol = undefined;
     expect(service.getCapabilities()).to.deep.equal({});
   });
 
@@ -1210,8 +735,8 @@ describe('MongoStorageService', function () {
     expect(result.nonApplicationReason).to.equal(undefined);
   });
 
-  it('fails closed on an unsupported dialect without using Waterline update fallback', async function () {
-    service.recordCol = {};
+  it('refuses mutation before the typed record handle is initialized', async function () {
+    service.recordCol = undefined;
     const response = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
       precondition: { expectedRevision: 0, requireRevision: true },
     });
@@ -1269,8 +794,10 @@ describe('MongoStorageService', function () {
       findOne: sandbox.stub().resolves(null),
     };
     const ServiceClass = service.constructor;
-    const firstService = new ServiceClass();
-    const secondService = new ServiceClass();
+    const firstService = new ServiceClass(mockSails);
+    const secondService = new ServiceClass(mockSails);
+    firstService._requiredIndicesReady = true;
+    secondService._requiredIndicesReady = true;
     firstService.recordCol = atomicCollection;
     firstService.deletedRecordCol = tombstoneCollection;
     secondService.recordCol = atomicCollection;
@@ -1766,7 +1293,7 @@ describe('MongoStorageService', function () {
     const getMetaStub = sandbox.stub(service, 'getMeta');
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
-    (global as any).RecordTypesService.get.callsFake((brand: any, recordTypeName: string) =>
+    (global as any).RecordTypesService.get.callsFake((_brand: any, recordTypeName: string) =>
       of(
         recordTypeName === 'parent'
           ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId' }] }
@@ -1798,7 +1325,7 @@ describe('MongoStorageService', function () {
     const getMetaStub = sandbox.stub(service, 'getMeta');
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
-    (global as any).RecordTypesService.get.callsFake((brand: any, recordTypeName: string) =>
+    (global as any).RecordTypesService.get.callsFake((_brand: any, recordTypeName: string) =>
       of(
         recordTypeName === 'parent'
           ? {
@@ -1831,7 +1358,7 @@ describe('MongoStorageService', function () {
     const getMetaStub = sandbox.stub(service, 'getMeta');
     getMetaStub.onFirstCall().resolves({ redboxOid: 'oid-1', metaMetadata: { type: 'parent' } });
     getMetaStub.onSecondCall().resolves({ redboxOid: 'child-1', metaMetadata: { type: 'child' } });
-    (global as any).RecordTypesService.get.callsFake((brand: any, recordTypeName: string) =>
+    (global as any).RecordTypesService.get.callsFake((_brand: any, recordTypeName: string) =>
       of(
         recordTypeName === 'parent'
           ? { relatedTo: [{ recordType: 'child', foreignField: 'parentId', cardinality: 'one' }] }
@@ -2484,11 +2011,11 @@ describe('MongoStorageService', function () {
 
   it('runs record and deleted-record collection helpers directly', async function () {
     service.recordCol = {
-      find: sandbox.stub().returns({ toArray: sandbox.stub().resolves(['record']) }),
+      list: sandbox.stub().resolves(['record']),
       count: sandbox.stub().resolves(1),
     };
     service.deletedRecordCol = {
-      find: sandbox.stub().returns({ toArray: sandbox.stub().resolves(['deleted']) }),
+      list: sandbox.stub().resolves(['deleted']),
       count: sandbox.stub().resolves(2),
     };
 
@@ -2502,18 +2029,14 @@ describe('MongoStorageService', function () {
   // Paged find stub that serves the same batch to every export pass: returns the batch on the
   // first page (skip 0) and an empty terminating batch afterwards. fetchAllRecords resets skip to
   // 0 on each pass, so both the field-collection pass and the CSV pass receive identical data.
-  const pagedFind = (batch: any[]) =>
-    sandbox.stub().callsFake((_query: any, opts: any) => ({
-      toArray: async () => ((opts.skip ?? 0) === 0 ? batch : []),
-    }));
+  const pagedList = (batch: any[]) =>
+    sandbox.stub().callsFake(async (_query: any, opts: any) => ((opts.skip ?? 0) === 0 ? batch : []));
 
-  const pagedFindPages = (pagesBySkip: Record<number, any[]>) =>
-    sandbox.stub().callsFake((_query: any, opts: any) => ({
-      toArray: async () => pagesBySkip[opts.skip ?? 0] ?? [],
-    }));
+  const pagedListPages = (pagesBySkip: Record<number, any[]>) =>
+    sandbox.stub().callsFake(async (_query: any, opts: any) => pagesBySkip[opts.skip ?? 0] ?? []);
 
   it('exports plans as UTF-8 BOM csv using streamed records', async function () {
-    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'Waldenström' } }]) };
+    service.recordCol = { list: pagedList([{ redboxOid: '1', metadata: { title: 'Waldenström' } }]) };
 
     const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
     const chunks: Buffer[] = [];
@@ -2528,8 +2051,8 @@ describe('MongoStorageService', function () {
     expect(output).to.include('Waldenström');
     // Two streamed passes over Mongo (column collection + CSV), each paging once for data and once
     // for the empty terminating batch.
-    expect(service.recordCol.find.callCount).to.equal(4);
-    for (const call of service.recordCol.find.getCalls()) {
+    expect(service.recordCol.list.callCount).to.equal(4);
+    for (const call of service.recordCol.list.getCalls()) {
       expect(Object.entries(call.args[1].sort)).to.deep.equal([
         ['lastSaveDate', -1],
         ['_id', 1],
@@ -2539,7 +2062,7 @@ describe('MongoStorageService', function () {
 
   it('sanitizes formula-prefixed values after nested records are flattened', async function () {
     service.recordCol = {
-      find: pagedFind([
+      list: pagedList([
         {
           redboxOid: '1',
           metadata: {
@@ -2564,7 +2087,7 @@ describe('MongoStorageService', function () {
 
   it('includes csv columns from later result pages that the first record lacks', async function () {
     service.recordCol = {
-      find: pagedFindPages({
+      list: pagedListPages({
         0: [
           { redboxOid: '1', metadata: { title: 'One' } },
           { redboxOid: '2', metadata: { title: 'Two' } },
@@ -2588,11 +2111,11 @@ describe('MongoStorageService', function () {
     expect(output).to.include('"1"');
     expect(output).to.include('"3"');
     // Two export passes, each reading skip 0, skip 2, then the empty terminating page at skip 4.
-    expect(service.recordCol.find.callCount).to.equal(6);
+    expect(service.recordCol.list.callCount).to.equal(6);
   });
 
   it('produces an empty csv and skips the second pass when there are no records', async function () {
-    service.recordCol = { find: pagedFind([]) };
+    service.recordCol = { list: pagedList([]) };
 
     const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
     const chunks: Buffer[] = [];
@@ -2605,20 +2128,16 @@ describe('MongoStorageService', function () {
     const outputBuffer = Buffer.concat(chunks);
     expect(outputBuffer).to.have.length(0);
     // Only the field-collection pass runs (single page, immediately empty); the CSV pass is skipped.
-    expect(service.recordCol.find.callCount).to.equal(1);
+    expect(service.recordCol.list.callCount).to.equal(1);
   });
 
   it('stops collecting csv fields once the export has been cancelled', async function () {
     // Each page holds one record; cancellation is signalled after the first record is seen.
-    const findStub = sandbox.stub();
-    findStub
-      .onFirstCall()
-      .returns({ toArray: sandbox.stub().resolves([{ redboxOid: '1', metadata: { title: 'One' } }]) });
-    findStub
-      .onSecondCall()
-      .returns({ toArray: sandbox.stub().resolves([{ redboxOid: '2', metadata: { extraField: 'present' } }]) });
+    const listStub = sandbox.stub();
+    listStub.onFirstCall().resolves([{ redboxOid: '1', metadata: { title: 'One' } }]);
+    listStub.onSecondCall().resolves([{ redboxOid: '2', metadata: { extraField: 'present' } }]);
     // A third page is never requested; if it were, this unstubbed call would throw and fail the test.
-    service.recordCol = { find: findStub };
+    service.recordCol = { list: listStub };
 
     let scanned = 0;
     const isCancelled = () => scanned++ >= 1;
@@ -2628,12 +2147,12 @@ describe('MongoStorageService', function () {
     // instead of reading every matching record.
     expect(fields).to.include('redboxOid');
     expect(fields).to.not.include('metadata.extraField');
-    expect(findStub.callCount).to.equal(2);
+    expect(listStub.callCount).to.equal(2);
   });
 
   it('errors the export stream when the csv query fails', async function () {
     service.recordCol = {
-      find: sandbox.stub().returns({ toArray: sandbox.stub().rejects(new Error('mongo query failed')) }),
+      list: sandbox.stub().rejects(new Error('mongo query failed')),
     };
 
     const exportStream = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp');
@@ -2645,11 +2164,11 @@ describe('MongoStorageService', function () {
   });
 
   it('exports plans as json and iterates over multiple record pages', async function () {
-    const findStub = sandbox.stub();
-    findStub.onFirstCall().returns({ toArray: sandbox.stub().resolves([{ redboxOid: '1' }]) });
-    findStub.onSecondCall().returns({ toArray: sandbox.stub().resolves([{ redboxOid: '2' }]) });
-    findStub.onThirdCall().returns({ toArray: sandbox.stub().resolves([]) });
-    service.recordCol = { find: findStub };
+    const listStub = sandbox.stub();
+    listStub.onFirstCall().resolves([{ redboxOid: '1' }]);
+    listStub.onSecondCall().resolves([{ redboxOid: '2' }]);
+    listStub.onThirdCall().resolves([]);
+    service.recordCol = { list: listStub };
 
     const exportStream = service.exportAllPlans(
       'user',
@@ -2670,8 +2189,8 @@ describe('MongoStorageService', function () {
     const output = outputBuffer.toString('utf8');
     expect(output).to.include('"redboxOid":"1"');
     expect(output).to.include('"redboxOid":"2"');
-    expect(findStub.callCount).to.equal(3);
-    for (const call of findStub.getCalls()) {
+    expect(listStub.callCount).to.equal(3);
+    for (const call of listStub.getCalls()) {
       expect(Object.entries(call.args[1].sort)).to.deep.equal([
         ['lastSaveDate', -1],
         ['_id', 1],
@@ -2705,14 +2224,20 @@ describe('MongoStorageService', function () {
     const readable = Readable.from(['hello']);
     const stagingDisk = { getStream: sandbox.stub().resolves(readable) };
     (global as any).StorageManagerService.stagingDisk.returns(stagingDisk);
-    const bucketStream = new PassThrough() as any;
+    const chunks: Buffer[] = [];
+    const bucketStream = new Writable({
+      write(chunk: Buffer, _encoding: string, callback: () => void) {
+        chunks.push(Buffer.from(chunk));
+        callback();
+      },
+    }) as any;
+    bucketStream.chunkSizeBytes = 255 * 1024;
     bucketStream.gridFSFile = { _id: 'grid-file' };
     mockBucket.openUploadStream.returns(bucketStream);
 
-    const promise = service.addDatastream('oid-1', { fileId: 'file-1', metadata: { name: 'doc' } });
-    bucketStream.emit('finish');
-    await promise;
+    await service.addDatastream('oid-1', { fileId: 'file-1', metadata: { name: 'doc' } });
 
+    expect(Buffer.concat(chunks).toString()).to.equal('hello');
     expect(stagingDisk.getStream.calledOnceWith('file-1')).to.be.true;
     expect(
       mockBucket.openUploadStream.calledOnceWith('oid-1/file-1', { metadata: { name: 'doc', redboxOid: 'oid-1' } })
@@ -2765,8 +2290,8 @@ describe('MongoStorageService', function () {
   });
 
   it('adds and removes datastreams when a staging disk is provided', async function () {
-    const addStub = sandbox.stub(service, 'addDatastream').resolves(undefined);
-    const removeStub = sandbox.stub(service, 'removeDatastream').resolves(undefined);
+    const addStub = sandbox.stub(service, 'addDatastreamInternal').resolves(undefined);
+    const removeStub = sandbox.stub(service, 'removeDatastreamInternal').resolves(undefined);
 
     await service.addAndRemoveDatastreams('oid-1', [{ fileId: 'new' }], [{ fileId: 'old' }], {
       getStream: sandbox.stub(),
@@ -2832,7 +2357,7 @@ describe('MongoStorageService', function () {
 
     const result = await service.getDatastream('oid-1', 'file-1');
 
-    expect(result.readstream).to.equal('download-stream');
+    expect(result.readstream).to.equal(mockBucket.openDownloadStreamByName.firstCall.returnValue);
   });
 
   it('lists datastreams by oid and optional file id', async function () {
@@ -2874,7 +2399,7 @@ describe('MongoStorageService', function () {
     });
 
     expect(response.success).to.equal(true);
-    expect(RecordAudit.create.calledOnceWith({ redboxOid: 'oid-1', action: 'save', record: { safe: true } })).to.be
+    expect(RecordAudit.create.calledOnceWithMatch({ redboxOid: 'oid-1', action: 'save', record: { safe: true } })).to.be
       .true;
   });
 
@@ -2897,8 +2422,8 @@ describe('MongoStorageService', function () {
     });
 
     expect(response.success).to.equal(false);
-    expect(response.message).to.equal('audit failed');
-    expect(RecordAudit.create.calledOnceWith({ redboxOid: 'oid-1', action: 'save' })).to.be.true;
+    expect(response.message).to.equal('Audit append has an unknown outcome. Reconcile before retrying.');
+    expect(RecordAudit.create.calledOnceWithMatch({ redboxOid: 'oid-1', action: 'save' })).to.be.true;
   });
 
   it('persists only the bounded execution-summary audit whitelist', async function () {
@@ -2943,28 +2468,19 @@ describe('MongoStorageService', function () {
     expect(saved.actions[0].secret).to.equal(undefined);
   });
 
-  it('builds record-audit queries from oid and dates', async function () {
-    const dateFrom = new Date('2025-01-01T00:00:00Z');
-    const dateTo = new Date('2025-01-02T00:00:00Z');
-
-    await service.getRecordAudit({ oid: 'oid-1', dateFrom, dateTo });
-
-    expect(RecordAudit.find.calledOnce).to.be.true;
-    expect(RecordAudit.find.firstCall.args[0]).to.deep.equal({
-      redboxOid: 'oid-1',
-      createdAt: {
-        '>=': dateFrom,
-        '<=': dateTo,
-      },
-    });
-  });
-
-  it('supports record-audit queries with only an end date and rejects empty oids', async function () {
-    await expectRejects(() => service.getRecordAudit({ oid: '' }), 'refusing to search using an empty OID');
-
-    await service.getRecordAudit({ oid: 'oid-1', dateTo: new Date('2025-01-02T00:00:00Z') });
-
-    expect(RecordAudit.find.lastCall.args[0].createdAt['<=']).to.be.instanceOf(Date);
+  it('scopes record audit reads and validates an empty OID', async () => {
+    const all = sandbox.stub().returns({ toArray: async () => [] });
+    const where = sandbox.stub().returns({ all });
+    RecordAudit.where = where;
+    const from = new Date('2025-01-01T00:00:00Z');
+    await service.getRecordAudit({ oid: 'oid-1', dateFrom: from });
+    expect(where.firstCall.args[0]).to.deep.equal(
+      require('@researchdatabox/redbox-core').prismaModelFilter({
+        redboxOid: 'oid-1',
+        createdAt: { $gte: from.toISOString() },
+      })
+    );
+    await expectRejects(() => service.getRecordAudit({ oid: '' }), 'require an OID');
   });
 
   it('sanitizes integration audits before saving', async function () {
@@ -2989,58 +2505,108 @@ describe('MongoStorageService', function () {
       integrationAction: 'syncRecordWithFigshare',
       status: 'started',
     });
-    expect(IntegrationAudit.create.firstCall.args[0].requestSummary).to.be.undefined;
+    expect(IntegrationAudit.create.firstCall.args[0].requestSummary).to.equal(null);
   });
 
-  it('builds integration-audit queries from oid, status, dates, and pagination', async function () {
+  it('scopes and pages integration audit reads with ISO bounds', async () => {
     const query = {
-      sort: sandbox.stub().returnsThis(),
-      skip: sandbox.stub().returnsThis(),
+      orderBy: sandbox.stub().returnsThis(),
+      offset: sandbox.stub().returnsThis(),
       limit: sandbox.stub().returnsThis(),
-      then: (onFulfilled: (value: unknown) => unknown) => Promise.resolve(onFulfilled([])),
+      all: () => ({ toArray: async () => [] }),
     };
-    IntegrationAudit.find.returns(query);
-
-    await service.getIntegrationAudit({
-      oid: 'oid-1',
-      status: 'failed',
-      dateFrom: new Date('2025-01-01T00:00:00Z'),
-      dateTo: new Date('2025-01-02T00:00:00Z'),
-      page: 2,
-      pageSize: 5,
-    });
-
-    expect(IntegrationAudit.find.calledOnce).to.be.true;
-    expect(IntegrationAudit.find.firstCall.args[0]).to.deep.equal({
-      redboxOid: 'oid-1',
-      status: 'failed',
-      startedAt: {
-        '>=': '2025-01-01T00:00:00.000Z',
-        '<=': '2025-01-02T00:00:00.000Z',
-      },
-    });
-    expect(query.sort.calledOnce).to.be.true;
-    expect(query.skip.calledOnceWith(5)).to.be.true;
-    expect(query.limit.calledOnceWith(5)).to.be.true;
+    const where = sandbox.stub().returns(query);
+    IntegrationAudit.where = where;
+    const from = new Date('2025-01-01T00:00:00Z');
+    await service.getIntegrationAudit({ oid: 'oid-1', status: 'failed', dateFrom: from, page: 2, pageSize: 5 });
+    expect(where.firstCall.args[0]).to.deep.equal(
+      require('@researchdatabox/redbox-core').prismaModelFilter({
+        redboxOid: 'oid-1',
+        status: 'failed',
+        startedAt: { $gte: from.toISOString() },
+      })
+    );
+    expect(query.offset.calledOnceWith(5)).to.equal(true);
+    expect(query.limit.calledOnceWith(5)).to.equal(true);
+  });
+  it('uses the same scoped count predicate without a payload read', async () => {
+    const match = sandbox.stub().returns({ count: () => ({ build: () => ({}) }) });
+    const client = {
+      query: { from: sandbox.stub().returns({ match }) },
+      runtime: async () => ({ query: () => ({ toArray: async () => [{ total: 4 }] }) }),
+    };
+    service.requireClient = () => client;
+    expect(await service.countIntegrationAudit({ oid: 'oid-1', status: 'failed' })).to.equal(4);
+    expect(match.firstCall.args[0]).to.deep.equal(
+      require('@researchdatabox/redbox-core').prismaModelFilter({ redboxOid: 'oid-1', status: 'failed' })
+    );
   });
 
-  it('counts integration-audit queries using ISO string criteria for startedAt', async function () {
-    await service.countIntegrationAudit({
-      oid: 'oid-1',
-      status: 'failed',
-      dateFrom: new Date('2025-01-01T00:00:00Z'),
-      dateTo: new Date('2025-01-02T00:00:00Z'),
+  for (const [method, modelName] of [
+    ['createRecordAudit', 'RecordAudit'],
+    ['createIntegrationAudit', 'IntegrationAudit'],
+  ]) {
+    it(`bounds ${method} native failures in responses and logs`, async function () {
+      const failure = Object.assign(new Error('private-native-audit'), {
+        code: 121,
+        errInfo: { document: 'private-native-audit-document' },
+        cause: new Error('private-native-audit-credentials'),
+      });
+      (({ RecordAudit, IntegrationAudit }) as any)[modelName].create.rejects(failure);
+      const response = await service[method]({ redboxOid: 'audit-oid', action: 'save' });
+      expect(response.success).to.equal(false);
+      expect(response.message).to.include('unknown outcome');
+      expect(inspect({ response, logs: mockSails.log.error.args }, { depth: 10 })).not.to.include(
+        'private-native-audit'
+      );
+      expect(inspect(response)).not.to.include('private-native-audit');
     });
+  }
 
-    expect(IntegrationAudit.count.calledOnce).to.be.true;
-    expect(IntegrationAudit.count.firstCall.args[0]).to.deep.equal({
-      redboxOid: 'oid-1',
-      status: 'failed',
-      startedAt: {
-        '>=': '2025-01-01T00:00:00.000Z',
-        '<=': '2025-01-02T00:00:00.000Z',
-      },
+  for (const method of ['getRecords', 'getDeletedRecords']) {
+    it(`preserves invalid sort validation through the deployed ${method} guard`, async () => {
+      const runtime = require('@researchdatabox/redbox-core');
+      const { guardPrismaStorage } = require('../../src/persistence/PrismaStorage');
+      await runtime.initializePersistence(mockSails);
+      const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
+      const run = sandbox.stub(service, queryMethod);
+      const guarded = guardPrismaStorage(mockSails, service);
+      try {
+        const failure = await guarded[method](
+          'draft', ['rdmp'], 0, 20, 'user', [], { id: 'brand-1' }, undefined, undefined, 'title:sideways'
+        ).then(() => undefined, (error: unknown) => error);
+        expect(failure).to.be.instanceOf(runtime.RBValidationError);
+        expect(failure).to.have.property('message', 'Invalid record sort direction');
+        expect(failure).to.have.nested.property('displayErrors[0].status', '400');
+        expect(run.notCalled).to.equal(true);
+      } finally {
+        await runtime.cleanupPersistence(mockSails);
+      }
     });
+  }
+
+  it('bounds audit read errors at the deployed storage boundary', async () => {
+    const { PersistenceError } = require('@researchdatabox/redbox-core');
+    const { guardPrismaStorage } = require('../../src/persistence/PrismaStorage');
+    const runtime = require('@researchdatabox/redbox-core');
+    await runtime.initializePersistence(mockSails);
+    const guarded = guardPrismaStorage(mockSails, service);
+    RecordAudit.where = () => {
+      throw new Error('private-audit-read');
+    };
+    IntegrationAudit.where = RecordAudit.where;
+    service.countIntegrationAudit = async () => {
+      throw new Error('private-audit-read');
+    };
+    for (const method of ['getRecordAudit', 'getIntegrationAudit']) {
+      const rejection = await guarded[method]({ oid: 'private-query-oid' }).then(
+        () => undefined,
+        (error: unknown) => error
+      );
+      expect(rejection).to.be.instanceOf(PersistenceError).with.property('code', 'storage-read');
+      expect(inspect(rejection, { depth: 10 })).not.to.include('private-');
+    }
+    await runtime.cleanupPersistence(mockSails);
   });
 
   it('fails closed for empty and populated legacy restore requests', async function () {

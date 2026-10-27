@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -10,6 +12,7 @@ describe('PathRulesService', function() {
   let mockSails: any;
 
   beforeEach(function() {
+    installIdentityRepositoryMock();
     mockSails = createMockSails();
     mockSails.config.auth = {
       rules: [
@@ -17,14 +20,14 @@ describe('PathRulesService', function() {
         { role: 'guest', path: '/public/*', can_read: true, can_update: false }
       ]
     };
-    
+
     setupServiceTestGlobals(mockSails);
-    
+
     const mockDeferred = (result: unknown) => ({
       exec: sinon.stub().yields(null, result)
     });
 
-    (global as any).PathRule = {
+    repositoryFixtures.PathRule = {
       find: sinon.stub().returns(mockDeferred([])),
       create: sinon.stub().returns(mockDeferred({}))
     };
@@ -36,13 +39,13 @@ describe('PathRulesService', function() {
     (global as any).BrandingService = {
       getDefault: sinon.stub().returns({ id: 'brand1', name: 'default' })
     };
-    
+
     service = new Services.PathRules();
   });
 
   afterEach(function() {
     cleanupServiceTestGlobals();
-    delete (global as any).PathRule;
+    delete repositoryFixtures.PathRule;
     delete (global as any).RolesService;
     delete (global as any).BrandingService;
     sinon.restore();
@@ -51,7 +54,7 @@ describe('PathRulesService', function() {
   describe('bootstrap', function() {
     it('should load existing rules', async function() {
       const existingRules = [{ id: 'rule1', path: '/foo' }];
-      
+
       const findStub = sinon.stub().returns({
         populate: sinon.stub().returns({
           populate: sinon.stub().returns({
@@ -59,19 +62,19 @@ describe('PathRulesService', function() {
           })
         })
       });
-      (global as any).PathRule.find = findStub;
-      
+      repositoryFixtures.PathRule.find = findStub;
+
       const result = await new Promise((resolve, reject) => {
         service.bootstrap(null, []).subscribe(resolve, reject);
       });
-      
+
       expect(result).to.deep.equal(existingRules);
     });
 
     it('should seed rules if missing', async function() {
       // First find returns empty, second find returns created rules
       const createdRules = [{ id: 'rule1', path: '/foo' }];
-      
+
       const findStub = sinon.stub();
       findStub.onFirstCall().returns({
         populate: sinon.stub().returns({
@@ -87,20 +90,20 @@ describe('PathRulesService', function() {
           })
         })
       });
-      
-      (global as any).PathRule.find = findStub;
-      
+
+      repositoryFixtures.PathRule.find = findStub;
+
       const createDeferred = (data: unknown) => ({
         exec: sinon.stub().yields(null, data)
       });
-      (global as any).PathRule.create.callsFake((data: unknown) => createDeferred(data));
-      
+      repositoryFixtures.PathRule.create.callsFake((data: unknown) => createDeferred(data));
+
       const result = await new Promise((resolve, reject) => {
         service.bootstrap(null, []).subscribe(resolve, reject);
       });
-      
+
       expect(result).to.deep.equal(createdRules);
-      expect((global as any).PathRule.create.calledTwice).to.be.true; // 2 rules in config
+      expect(repositoryFixtures.PathRule.create.calledTwice).to.be.true; // 2 rules in config
     });
   });
 
@@ -112,7 +115,7 @@ describe('PathRulesService', function() {
          { id: '2', path: '/public/*', branding: { id: 'brand1' }, role: { id: 'guest' } },
          { id: '3', path: '/other/*', branding: { id: 'brand2' }, role: { id: 'guest' } }
        ];
-       
+
        const findStub = sinon.stub().returns({
         populate: sinon.stub().returns({
           populate: sinon.stub().returns({
@@ -120,8 +123,8 @@ describe('PathRulesService', function() {
           })
         })
       });
-      (global as any).PathRule.find = findStub;
-      
+      repositoryFixtures.PathRule.find = findStub;
+
       await new Promise((resolve) => service.loadRules().subscribe(resolve));
     });
 
@@ -131,7 +134,7 @@ describe('PathRulesService', function() {
       expect(rules).to.have.length(1);
       expect((rules as any[])[0].id).to.equal('1');
     });
-    
+
     it('should not return matching rules for other brand', function() {
       const brand = { id: 'brand1' };
       const rules = service.getRulesFromPath('/other/foo', brand as any);
@@ -173,7 +176,7 @@ describe('PathRulesService', function() {
       const result = service.canRead(rules, roles, 'brand1');
       expect(result).to.be.false;
     });
-    
+
     it('should return false if wrong branding', function() {
       const rules = [
         { can_read: true, can_update: false, role: { id: 'role1' }, branding: { name: 'brand1' } }

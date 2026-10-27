@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import * as sinon from 'sinon';
 import { of, firstValueFrom } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
@@ -17,6 +19,7 @@ describe('RDMPService', function () {
   });
 
   beforeEach(function () {
+    installIdentityRepositoryMock();
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -48,9 +51,10 @@ describe('RDMPService', function () {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).User = mockUser;
-    (global as any).Counter = mockCounter;
-    (global as any).RecordType = {
+    repositoryFixtures.User = mockUser;
+    repositoryFixtures.Counter = mockCounter;
+    sinon.stub(require('../../src/persistence/storage/runtime'), 'getStorageRepositories').returns({ counters: { incrementGlobal: sinon.stub().resolves(101) } });
+    repositoryFixtures.RecordType = {
       findOne: sinon.stub()
     };
     (global as any).RecordsService = {
@@ -83,15 +87,15 @@ describe('RDMPService', function () {
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/RDMPService');
-    RDMPService = new Services.RDMPS();
+    RDMPService = new Services.RDMPS({ incrementGlobal: async () => 101 });
     RDMPService.queueService = mockSails.services.agendaqueueservice;
   });
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).User;
-    delete (global as any).Counter;
-    delete (global as any).RecordType;
+    delete repositoryFixtures.User;
+    delete repositoryFixtures.Counter;
+    delete repositoryFixtures.RecordType;
     delete (global as any).RecordsService;
     delete (global as any).BrandingService;
     delete (global as any).UsersService;
