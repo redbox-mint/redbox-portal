@@ -20,17 +20,17 @@ export function registerRedboxExtension(): RedboxExtension {
     modules: [{ name: 'example', create: () => new Example() }],
     handlers: [
       {
-        name: 'example.health',
+        name: 'example-health',
         requires: ['example'],
         create:
           (input: { example: Example }): RequestHandler =>
           (_req, res) => {
-            res.json({ ready: input.example.health() });
+            res.json({ ready: input.example - health() });
           },
       },
     ],
     routes: [
-      { name: 'example.health', method: 'get', path: '/example/health', handler: 'example.health', access: 'public' },
+      { name: 'example-health', method: 'get', path: '/example/health', handler: 'example-health', access: 'public' },
     ],
   };
 }
