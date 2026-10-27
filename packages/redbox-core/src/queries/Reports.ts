@@ -1,5 +1,6 @@
+import { bootstrapFailureDetails } from './bootstrapDiagnostics';
 import _ from 'lodash';
-import { defer, map } from 'rxjs';
+import { defer, from, map } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { ReferenceRepositories } from '../persistence/reference/ReferenceRepositories';
 import type { Services as Queries } from './NamedQueries';
@@ -141,7 +142,10 @@ export namespace Services {
           this.input.log.verbose(`Report bootstrap data path not found: ${bootstrapPath}`);
           return;
         }
-        this.input.log.error(`Failed to read report bootstrap data path: ${bootstrapPath}`);
+        this.input.log.error(
+          `Failed to read report bootstrap data path: ${bootstrapPath}`,
+          bootstrapFailureDetails(error)
+        );
         return;
       }
 
@@ -167,8 +171,8 @@ export namespace Services {
 
           await firstValueFrom(this.create(defBrand, name, definition as unknown as ReportConfig));
           this.input.log.verbose(`Bootstrapped report: ${name}`);
-        } catch (_error) {
-          this.input.log.error(`Failed to bootstrap report from file: ${fileName}`);
+        } catch (error) {
+          this.input.log.error(`Failed to bootstrap report from file: ${fileName}`, bootstrapFailureDetails(error));
         }
       }
     }
@@ -186,8 +190,11 @@ export namespace Services {
       try {
         const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
         return JSON.parse(content) as T;
-      } catch (_error) {
-        this.input.log.error(`Failed to read report bootstrap file: ${path.basename(filePath)}`);
+      } catch (error) {
+        this.input.log.error(
+          `Failed to read report bootstrap file: ${path.basename(filePath)}`,
+          bootstrapFailureDetails(error)
+        );
         return null;
       }
     }
@@ -204,7 +211,7 @@ export namespace Services {
 
     public create(brand: BrandingModel, name: string, config: ReportConfig): Observable<ReportModel> {
       const reports = this.input.reports;
-      return defer(() =>
+      return from(
         reports.createDefinition({
           name: name,
           branding: brand.id,
