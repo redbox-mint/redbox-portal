@@ -52,7 +52,21 @@ Service warnings raise `client-error` and `aborted` events to `warn` without cha
 
 ## Retention settings
 
-Configure retention in the selected application module under `log.requestChronicle`. The host receives these settings explicitly; the old environment/config discovery is retired. Invalid retention values use the documented defaults.
+Pass retention settings through the `requestLogging` option of `createPortalHost`:
+
+```typescript
+const portal = await createPortalHost({
+  appPath,
+  log,
+  requestLogging: {
+    successSampleRate: 1,
+    slowThresholdMs: 2000,
+    successSampleExcludePattern: '',
+  },
+});
+```
+
+These are host options, separate from the validated startup configuration loaded from application files and extensions. The startup `log` section accepts `level` and `format`; `log.requestChronicle` is rejected as an unknown field. Invalid retention values supplied through `requestLogging` use the documented defaults.
 
 | Setting | Default | Description |
 | --- | --- | --- |
