@@ -475,7 +475,10 @@ describe('Request chronicle controller integration', function () {
       (global as any).sails.services.emailservice = emailService;
       const controller = new EmailControllers.Email();
       controller.init();
-      const req = createReq({ apiRequest: { body: { to: 'person@example.com', template: 'tmpl', format: 'html' } } });
+      const req = createReq({
+        options: { locals: { branding: 'default' } },
+        apiRequest: { body: { to: 'person@example.com', template: 'tmpl', format: 'html' } },
+      });
       const res = createRes();
 
       controller.sendNotification(req, res as unknown as Sails.Res);

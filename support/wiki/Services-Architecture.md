@@ -188,7 +188,8 @@ export const ServiceExports = {
 
 | Service | Purpose |
 |---|---|
-| `EmailService` | Email delivery via nodemailer |
+| `EmailService` | Brand-aware email rendering and delivery via nodemailer |
+| `EmailTemplateService` | Validated per-brand email overrides, supplied defaults and revision-checked management |
 | `RDMPService` | Research Data Management Plans |
 
 ## Using Services in Controllers
@@ -452,3 +453,10 @@ cat api/services/RecordsService.js
 - [Redbox Loader](Redbox-Loader) - Shim generation system
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
 - [Architecture Overview](Architecture-Overview) - System architecture
+
+
+## Email template extension seam
+
+`EmailTemplateService` is registered in `ServiceExports`; its `EmailTemplate` Waterline model is registered in `WaterlineModels`, so the normal loader generates both shims. `coreBootstrap` calls its bootstrap before jobs start to ensure the unique Mongo identity index under `migrate: safe`. Production installations with cached shims must regenerate shims (`REGENERATE_SHIMS=true`) when deploying the new service/model.
+
+Email hooks can continue overriding `buildFromTemplateAsync(id, data, response)` to provide display values. They must forward the same response object to `super`; the public wrapper carries trusted brand context through that object without changing the override signature. The complete asynchronous build result owns subject/body/format. See [Configuring Email Notifications](Configuring-Email-Notifications#brand-specific-persisted-overrides-stage-1) for precedence, service methods, failure codes, concurrency, legacy behavior and stage boundaries.

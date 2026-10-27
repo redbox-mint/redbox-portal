@@ -279,3 +279,6 @@ export * from './api-routes';
 
 export * from './RecordWriteOptions';
 export * from './model/storage/FigshareSyncModel';
+export { EmailTemplateError, EmailTemplateConflictError } from './services/EmailTemplateService';
+export type { EmailTemplateContent, ResolvedEmailTemplate, EmailTemplateErrorCode } from './services/EmailTemplateService';
+export type { EmailRenderContext } from './services/EmailService';
