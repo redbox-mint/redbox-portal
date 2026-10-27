@@ -7,7 +7,7 @@ import { scenarioSeedData } from '../../../packages/redbox-hook-dev/src/playwrig
 
 test('F06 behaviour processors fetch real record metadata, transform and persist the mapped result', async ({ adminPage, records }, testInfo) => {
   const source = await records.create('e2e-initialisation-modes', { title: 'Independent metadata source' });
-  const target = await records.create('e2e-behaviour-processors', { title: 'Lookup target', lookup: '', result: 'Waiting' });
+  const target = await records.create('e2e-behaviour-processors', { ...scenarioSeedData('behaviour-processors'), title: 'Lookup target' });
   await adminPage.goto(`/default/rdmp/record/edit/${target.oid}`);
   const responsePromise = adminPage.waitForResponse(response => new URL(response.url()).pathname === `/default/rdmp/record/metadata/${source.oid}`);
   await field(adminPage, 'Lookup record').fill(`  ${source.oid}  `);
