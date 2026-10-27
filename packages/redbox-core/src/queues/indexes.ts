@@ -33,21 +33,18 @@ export async function inspectAgendaIndexes(
     throw new Error('Agenda requires simple collection collation.');
   const indexes = info ? await db.collection(collection).listIndexes().toArray() : [];
   return definitions.map(definition => {
-    const found = indexes.find(index => index.name === definition.name);
+    const relevant = indexes.filter(
+      index => index.name === definition.name || JSON.stringify(index.key) === JSON.stringify(definition.keys)
+    );
     const equivalent = (index: (typeof indexes)[number]) =>
       JSON.stringify(index.key) === JSON.stringify(definition.keys) &&
       !index.unique &&
       !index.sparse &&
+      !index.hidden &&
       !index.partialFilterExpression &&
       index.expireAfterSeconds === undefined &&
       (!index.collation || index.collation.locale === 'simple');
-    const index = found
-      ? equivalent(found)
-        ? 'ready'
-        : 'conflicting'
-      : indexes.some(index => equivalent(index))
-        ? 'ready'
-        : 'missing';
+    const index = relevant.some(index => !equivalent(index)) ? 'conflicting' : relevant.length ? 'ready' : 'missing';
     return { collection, name: definition.name, index };
   });
 }
