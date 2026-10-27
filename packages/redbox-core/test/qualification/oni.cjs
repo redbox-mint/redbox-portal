@@ -23,7 +23,7 @@ for (const keyEncoding of [undefined, 'raw']) {
     `owned Oni writes actual ${keyEncoding ?? 'default encoded'} OCFL files and retains admitted publication through drain`,
     { timeout: 45000 },
     async () => {
-      assert.equal(process.version, 'v26.11.1');
+      assert.equal(process.version, 'v26.12.1');
       assert.equal(global.sails, undefined);
       const url = process.env.SR_ONI_MONGO_URL;
       assert(url, 'SR_ONI_MONGO_URL is required; qualification cannot skip');
