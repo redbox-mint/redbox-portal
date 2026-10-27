@@ -7,6 +7,7 @@ import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { Effect, Layer } from 'effect';
 import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
+import { RaidApi } from '@researchdatabox/raido-openapi-generated-node';
 import { RaidRecordRepositoryTag } from '../../src/services/raid-v2/tags';
 import type { RaidRecordRepository } from '../../src/services/raid-v2/types';
 
@@ -103,14 +104,32 @@ describe('RaidService', function () {
       getAppConfigurationForBrand: sinon.stub().returns({}),
     };
 
+    collaborators.IntegrationAuditService = {
+      startAudit: sinon.stub().callsFake((_oid, action) => ({ id: action, traceId: 'trace', spanId: action })),
+      completeAudit: sinon.stub().resolves(),
+      failAudit: sinon.stub().resolves(),
+    };
+
     // Import after mocks are set up
     const { Services } = require('../../src/services/RaidService');
-    RaidService = new Services.Raid({ log: fixture.log,
-      brand: (id: string) => collaborators.BrandingService.getBrandById(id) ?? collaborators.BrandingService.getBrand(id),
+    RaidService = new Services.Raid({
+      log: fixture.log,
+      brand: (id: string) =>
+        collaborators.BrandingService.getBrandById(id) ?? collaborators.BrandingService.getBrand(id),
       configuration: (name: string) => collaborators.AppConfigService.getAppConfigurationForBrand(name)?.raidPublishing,
       defaultConfiguration: () => fixture.config.raid,
-      get records() { return collaborators.RecordsService; }, get queue() { return collaborators.AgendaQueueService; },
-      audit: { start: (...args: unknown[]) => collaborators.IntegrationAuditService?.startAudit(...args), complete: (...args: unknown[]) => collaborators.IntegrationAuditService?.completeAudit(...args), fail: (...args: unknown[]) => collaborators.IntegrationAuditService?.failAudit(...args) } });
+      get records() {
+        return collaborators.RecordsService;
+      },
+      get queue() {
+        return collaborators.AgendaQueueService;
+      },
+      audit: {
+        startAudit: (...args: unknown[]) => collaborators.IntegrationAuditService?.startAudit(...args),
+        completeAudit: (...args: unknown[]) => collaborators.IntegrationAuditService?.completeAudit(...args),
+        failAudit: (...args: unknown[]) => collaborators.IntegrationAuditService?.failAudit(...args),
+      },
+    });
   });
 
   afterEach(function () {
@@ -120,6 +139,7 @@ describe('RaidService', function () {
     delete collaborators.AgendaQueueService;
     delete collaborators.BrandingService;
     delete collaborators.AppConfigService;
+    delete collaborators.IntegrationAuditService;
     sinon.restore();
   });
 
@@ -327,6 +347,39 @@ describe('RaidService', function () {
   });
 
   describe('mintTrigger', function () {
+    it('audits a successful mint through the supplied integration audit adapter', async function () {
+      sinon
+        .stub(RaidApi.prototype, 'mintRaid')
+        .resolves({ status: 201, data: { identifier: { id: 'raid-minted' } } } as any);
+      const record = { metadata: {}, metaMetadata: { brandId: 'brand-1' } };
+      await RaidService.mintTrigger('oid-1', record, { forceRun: true, request: { mint: { fields: {} } } });
+      expect(record.metadata).to.have.property('raidUrl', 'raid-minted');
+      const audit = collaborators.IntegrationAuditService;
+      expect(audit.startAudit.calledWith('oid-1', 'mintRaid', sinon.match({ brandId: 'brand-1' }))).to.equal(true);
+      expect(
+        audit.completeAudit.calledWith(
+          sinon.match({ id: 'mintRaid' }),
+          sinon.match({ responseSummary: { oid: 'oid-1', raid: 'raid-minted' } })
+        )
+      ).to.equal(true);
+      expect(audit.failAudit.called).to.equal(false);
+    });
+
+    it('audits failed mint orchestration through the supplied integration audit adapter', async function () {
+      const record = { metadata: {}, metaMetadata: { brandId: 'brand-1' } };
+      let failed = false;
+      try {
+        await RaidService.mintTrigger('oid-1', record, { forceRun: true, request: { mappingProfile: 'missing' } });
+      } catch {
+        failed = true;
+      }
+      expect(failed).to.equal(true);
+      const audit = collaborators.IntegrationAuditService;
+      expect(audit.startAudit.calledWith('oid-1', 'mintRaid')).to.equal(true);
+      expect(audit.failAudit.calledWith(sinon.match({ id: 'mintRaid' }), sinon.match.has('message'))).to.equal(true);
+      expect(audit.completeAudit.calledWith(sinon.match({ id: 'mintRaid' }))).to.equal(false);
+    });
+
     it('should skip minting when trigger condition not met', async function () {
       const record = { metadata: { raidUrl: 'existing-raid' } };
       const options = { triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>' };
