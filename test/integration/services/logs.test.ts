@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 const pino = require('pino');
 const pinoTest = require('pino-test');
 
@@ -86,7 +87,7 @@ describe('The custom logger', function () {
 
     it("should have expected logs for default logger with level 'silly'", async function () {
         const stream = pinoTest.sink();
-        const defaultLogger = sails.config.log.createPinoLogger('silly', stream);
+        const defaultLogger = fixture.config.log.createPinoLogger('silly', stream);
 
         const defaultLoggerMsg = "log message for default logger";
         logAll(defaultLogger, defaultLoggerMsg);
@@ -107,10 +108,10 @@ describe('The custom logger', function () {
     });
     it("should have expected logs for namespace logger with level 'silly'", async function () {
         const stream = pinoTest.sink();
-        const defaultLogger = sails.config.log.createPinoLogger('crit', stream);
+        const defaultLogger = fixture.config.log.createPinoLogger('crit', stream);
 
         const prefix = '[testing] ';
-        const namespaceLogger = sails.config.log.createNamespaceLogger('childlogger1', defaultLogger, prefix, 'silly');
+        const namespaceLogger = fixture.config.log.createNamespaceLogger('childlogger1', defaultLogger, prefix, 'silly');
 
         const namespaceLoggerMsg = "log message for namespace logger";
         logAll(namespaceLogger, namespaceLoggerMsg);
@@ -133,9 +134,9 @@ describe('The custom logger', function () {
 
     it("should have expected values for child logger with level 'verbose' default logger with level 'error'", async function () {
         const stream = pinoTest.sink();
-        const defaultLogger = sails.config.log.createPinoLogger('error', stream);
+        const defaultLogger = fixture.config.log.createPinoLogger('error', stream);
         const prefix = '[testing] ';
-        const namespaceLogger = sails.config.log.createNamespaceLogger('childlogger2', defaultLogger, prefix, 'verbose');
+        const namespaceLogger = fixture.config.log.createNamespaceLogger('childlogger2', defaultLogger, prefix, 'verbose');
 
         const defaultLoggerMsg = "log message for default logger";
         logAll(defaultLogger, defaultLoggerMsg);
@@ -180,9 +181,9 @@ describe('The custom logger', function () {
 
     it("should have expected values for child logger with level 'log' default logger with level 'verbose'", async function () {
         const stream = pinoTest.sink();
-        const defaultLogger = sails.config.log.createPinoLogger('verbose', stream);
+        const defaultLogger = fixture.config.log.createPinoLogger('verbose', stream);
         const prefix = '[my prefix] ';
-        const namespaceLogger = sails.config.log.createNamespaceLogger('childlogger3', defaultLogger, prefix, 'log');
+        const namespaceLogger = fixture.config.log.createNamespaceLogger('childlogger3', defaultLogger, prefix, 'log');
 
         const defaultLoggerMsg = "log message for default logger";
         logAll(defaultLogger, defaultLoggerMsg);
@@ -225,8 +226,8 @@ describe('The custom logger', function () {
     });
 
     it("should use the configured namedspace log level", async function () {
-        sails.config.lognamespace['EmailService'] = 'info';
-        sails.config.lognamespace['ConfigService'] = 'crit';
+        fixture.config.lognamespace['EmailService'] = 'info';
+        fixture.config.lognamespace['ConfigService'] = 'crit';
 
         const prefix = "[testing namespaces] "
         const defaultLoggerMsg = "log message for default logger";
@@ -236,9 +237,9 @@ describe('The custom logger', function () {
         const namespaceMsg = prefix + namespaceLoggerMsg;
 
         const stream = pinoTest.sink();
-        const defaultLogger = sails.config.log.createPinoLogger('silly', stream);
+        const defaultLogger = fixture.config.log.createPinoLogger('silly', stream);
 
-        const namespaceLogger1 = sails.config.log.createNamespaceLogger('EmailService', defaultLogger, prefix);
+        const namespaceLogger1 = fixture.config.log.createNamespaceLogger('EmailService', defaultLogger, prefix);
         logAll(defaultLogger, defaultLoggerMsg);
         logAll(namespaceLogger1, namespaceLoggerMsg);
 
@@ -272,7 +273,7 @@ describe('The custom logger', function () {
             // "silly",
         ]);
 
-        const namespaceLogger2 = sails.config.log.createNamespaceLogger('ConfigService', defaultLogger, prefix);
+        const namespaceLogger2 = fixture.config.log.createNamespaceLogger('ConfigService', defaultLogger, prefix);
         logAll(defaultLogger, defaultLoggerMsg);
         logAll(namespaceLogger2, namespaceLoggerMsg);
 

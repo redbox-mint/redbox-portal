@@ -1,17 +1,16 @@
-import { brandingFixtures, configurationFixtures, referenceFixtures } from "../helpers/serviceRepositories";
-import * as sinon from "sinon";
-import { from } from "rxjs";
-import { createSinonStubLogger } from "../logger.test";
-import * as persistence from "../../src/persistence/runtime";
+import { brandingFixtures, configurationFixtures, referenceFixtures } from '../helpers/serviceRepositories';
+import * as sinon from 'sinon';
+import { from } from 'rxjs';
+import { createSinonStubLogger } from '../logger.test';
 let brandingStub: sinon.SinonStub | undefined;
 let configurationStub: sinon.SinonStub | undefined;
 let referenceStub: sinon.SinonStub | undefined;
 
 /**
- * Creates a mock sails object with common configurations
+ * Explicit suite-local domain configuration, logger and collaborator data.
  */
-export function createMockSails(overrides: any = {}): any {
-  const defaultSails = {
+export function createDomainFixture(overrides: any = {}): any {
+  const defaults = {
     config: {
       appPath: '/app',
       custom_cache: { cacheExpiry: 3600, checkPeriod: 600 },
@@ -31,11 +30,10 @@ export function createMockSails(overrides: any = {}): any {
       },
     },
     log: createSinonStubLogger(sinon),
-    services: {},
-    on: sinon.stub(), // Add sails.on for event handlers
+    collaborators: {},
   };
 
-  return { ...defaultSails, ...overrides };
+  return { ...defaults, ...overrides };
 }
 
 /**
@@ -110,32 +108,28 @@ export function configureModelMethod(stub: sinon.SinonStub, result: any, error: 
   stub.returns(createQueryObject(result, error));
 }
 
-/**
- * Sets up global mock environment for service tests
- */
-export function setupServiceTestGlobals(mockSails?: any): void {
-  (global as any).sails = mockSails || createMockSails();
-  (global as any)._ = require('lodash');
+/** Installs authored repository operation fixtures for focused domain tests. */
+export function installRepositoryFixtures(): void {
   brandingStub?.restore();
-  brandingStub = sinon.stub(require('../../src/persistence/branding/runtime'), 'getBrandingRepository').callsFake(brandingFixtures);
+  brandingStub = sinon
+    .stub(require('../../src/persistence/branding/runtime'), 'getBrandingRepository')
+    .callsFake(brandingFixtures);
   configurationStub?.restore();
-  configurationStub = sinon.stub(require('../../src/persistence/configuration/runtime'), 'getConfigurationRepositories').callsFake(configurationFixtures);
+  configurationStub = sinon
+    .stub(require('../../src/persistence/configuration/runtime'), 'getConfigurationRepositories')
+    .callsFake(configurationFixtures);
   referenceStub?.restore();
-  referenceStub = sinon.stub(require('../../src/persistence/reference/runtime'), 'getReferenceRepositories').callsFake(referenceFixtures);
+  referenceStub = sinon
+    .stub(require('../../src/persistence/reference/runtime'), 'getReferenceRepositories')
+    .callsFake(referenceFixtures);
 }
-
-/**
- * Cleans up global mock environment
- */
-export function cleanupServiceTestGlobals(): void {
+export function restoreRepositoryFixtures(): void {
   brandingStub?.restore();
-  brandingStub=undefined;
+  brandingStub = undefined;
   configurationStub?.restore();
   configurationStub = undefined;
   referenceStub?.restore();
   referenceStub = undefined;
-  delete (global as any).sails;
-  delete (global as any).StorageManagerService;
 }
 
 /** Native Mongo lock metadata shared by multiple simulated portal processes. */
@@ -153,7 +147,11 @@ export function createBundleLockCollection() {
       const lock = documents.get(filter._id);
       return lock && matches(lock, filter) ? { ...lock } : null;
     },
-    updateOne: async (filter: Filter, update: { $set?: Partial<Lock>; $unset?: { owner?: string }; $max?: { expiresAt: Date } }, options?: { upsert?: boolean }) => {
+    updateOne: async (
+      filter: Filter,
+      update: { $set?: Partial<Lock>; $unset?: { owner?: string }; $max?: { expiresAt: Date } },
+      options?: { upsert?: boolean }
+    ) => {
       const lock = documents.get(filter._id);
       const matched = lock !== undefined && matches(lock, filter);
       if (!matched && !options?.upsert) return { matchedCount: 0 };
@@ -163,6 +161,6 @@ export function createBundleLockCollection() {
       if (update.$unset?.owner !== undefined) delete next.owner;
       documents.set(filter._id, next);
       return { matchedCount: matched ? 1 : 0 };
-    }
+    },
   };
 }

@@ -1,10 +1,12 @@
+
+let fixture: any;
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { firstValueFrom } from 'rxjs';
 import { Services } from '../../src/services/AsynchsService';
 import * as runtime from '../../src/persistence/runtime';
 import type { ProgressRepositories } from '../../src/persistence/progress/ProgressRepositories';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('AsynchsService', () => {
   const progress = {
@@ -15,7 +17,7 @@ describe('AsynchsService', () => {
   };
   let service: Services.Asynchs;
   beforeEach(() => {
-    setupServiceTestGlobals(createMockSails());
+    installRepositoryFixtures();
     for (const method of Object.values(progress)) method.reset();
     const repositories: ProgressRepositories = {
       progress,
@@ -27,10 +29,10 @@ describe('AsynchsService', () => {
       },
     };
     sinon.stub(require('../../src/persistence/progress/runtime'), 'getProgressRepositories').returns(repositories);
-    service = new Services.Asynchs();
+    service = new Services.Asynchs(progress);
   });
   afterEach(() => {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     sinon.restore();
   });
   it('starts lazily and reuses one result for repeated subscriptions', async () => {
@@ -75,6 +77,6 @@ describe('AsynchsService', () => {
   });
   it('exports its existing service interface', () => {
     for (const name of ['start', 'update', 'finish', 'get'])
-      assert.equal(typeof Reflect.get(service.exports(), name), 'function');
+      assert.equal(typeof Reflect.get(service, name), 'function');
   });
 });

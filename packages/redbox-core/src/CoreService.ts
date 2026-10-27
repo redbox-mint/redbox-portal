@@ -1,21 +1,20 @@
+import { convertToType } from './utilities/convertToType';
+import { metTriggerCondition } from './utilities/metTriggerCondition';
 import { bindNodeCallback, bindCallback, Observable, defer } from 'rxjs';
 
-// changed to a manual lodash load instead of relying on Sails global object
-// this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
 import * as _ from 'lodash';
 import { CoreBase } from './CoreBase';
-import { currentRequestChronicle } from './utilities/RequestChronicleContext';
-import { sanitizeChronicleValue, toChronicleError, toChronicleLogRecord } from './utilities/RequestChronicle';
+import { recordServiceChronicle } from './utilities/serviceChronicle';
 
 // Type alias for query objects used with RxJS bindings
 type QueryObject = object;
 
 export namespace Services.Core {
   /**
-   * Base contract for services exposed through ReDBox loader-generated Sails shims.
+   * Shared Observable and logging utilities for explicitly constructed services.
    *
-   * @extensionPoint Hook services extend this class and list every public shim method in `_exportedMethods`; overrides should retain inherited exported methods when adding new ones.
-   * @remarks Constructors run before Sails is guaranteed to exist. Sails-dependent setup belongs in `init()`.
+   * @extensionPoint Services may extend this utility class with an injected logger; application factories own their dependencies and lifecycle.
+   * @remarks Constructors are synchronous. Application modules await initialization before activation.
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
    */
   export class Service extends CoreBase {
@@ -23,11 +22,7 @@ export namespace Services.Core {
      * Default exported methods.
      * These methods will be accessible.
      */
-    private _defaultExportedMethods: string[] = [
-      // Sails controller custom config.
-      '_config',
-      'convertToType',
-    ];
+    private _defaultExportedMethods: string[] = ['convertToType'];
 
     protected logHeader: string = '';
 
@@ -43,39 +38,7 @@ export namespace Services.Core {
       errors: unknown[] = [],
       level: 'debug' | 'info' | 'warn' = 'debug'
     ): void {
-      const helper = currentRequestChronicle();
-      let safeInfo: unknown;
-      try {
-        if (helper !== undefined) {
-          if (helper.isRunning || errors.length === 0) {
-            helper.addInfo(info, level);
-          }
-        } else {
-          safeInfo = sanitizeChronicleValue(info);
-          if (errors.length === 0 && Object.keys(info).length > 0) {
-            this.logger[level](toChronicleLogRecord({ info: safeInfo }), 'Service operation');
-          }
-        }
-      } catch {
-        // Observability must never change the result of a service operation.
-      }
-      for (const error of errors) {
-        try {
-          if (helper !== undefined) {
-            helper.addError(error, helper.isRunning ? undefined : info);
-          } else {
-            this.logger.error(
-              toChronicleLogRecord({
-                ...(safeInfo !== undefined ? { info: safeInfo } : {}),
-                error: toChronicleError(error),
-              }),
-              'Service operation failed.'
-            );
-          }
-        } catch {
-          // A failed details transport must not suppress error capture.
-        }
-      }
+      recordServiceChronicle(this.logger, info, errors, level);
     }
 
     /**
@@ -109,12 +72,7 @@ export namespace Services.Core {
       this.getObservable(q).subscribe(successFn, errorFn);
     }
 
-    /**
-     * Initialization method called during bootstrap for services that need to register
-     * hooks or perform other setup after Sails is available.
-     * Override in subclass to implement custom initialization logic.
-     * Called by coreBootstrap() for all services loaded via redbox-loader shims.
-     */
+    /** Optional synchronous setup hook; async lifecycle belongs to the owning application module. */
     public init(): void {
       // Override in sub class as needed
     }
@@ -126,52 +84,21 @@ export namespace Services.Core {
      */
     public exports(): Record<string, unknown> {
       const exportedMethods: Record<string, unknown> = {};
-      if (process.env['sails_redbox__mochaTesting'] === 'true') {
-        const allProperties = [
-          ...Object.getOwnPropertyNames(Object.getPrototypeOf(this)), // Prototype methods
-          ...Object.getOwnPropertyNames(this), // Instance properties
-        ];
-
-        const uniqueProperties = Array.from(new Set(allProperties));
-        uniqueProperties.forEach(property => {
-          const value = (this as Record<string, unknown>)[property];
-
-          // Check if the property is a function
-          if (typeof value === 'function' && property !== 'constructor') {
-            exportedMethods[property] = (value as (...args: unknown[]) => unknown).bind(this); // Bind the method to maintain `this` context
-          }
-        });
-        this.logger.error('Exported Methods for Mocha Testing: ', exportedMethods);
-      } else {
-        // Merge default array and custom array from child.
-        const methods = this._defaultExportedMethods.concat(this._exportedMethods);
-        const service = this as Record<string, unknown>;
-
-        for (let i = 0; i < methods.length; i++) {
-          const methodName = methods[i];
-          const member = service[methodName];
-          // Check if the method exists.
-          if (typeof member !== 'undefined') {
-            // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
-            if (methodName[0] !== '_' || methodName === '_config') {
-              if (_.isFunction(member)) {
-                exportedMethods[methodName] = (member as (...args: unknown[]) => unknown).bind(this);
-              } else {
-                exportedMethods[methodName] = member;
-              }
-            } else {
-              this.logger.error(
-                `The service method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`
-              );
-            }
-          } else {
-            // _config is optional for Sails services, so we don't log an error if it's missing.
-            if (methodName !== '_config') {
-              this.logger.error(`The service method "${methodName}" does not exist on ${this.constructor?.name}`);
-            }
-          }
+      const methods = this._defaultExportedMethods.concat(this._exportedMethods);
+      const service = this as Record<string, unknown>;
+      for (const methodName of methods) {
+        const member = service[methodName];
+        if (methodName.startsWith('_')) {
+          this.logger.error(
+            `The service method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`
+          );
+        } else if (member === undefined) {
+          this.logger.error(`The service method "${methodName}" does not exist on ${this.constructor?.name}`);
+        } else {
+          exportedMethods[methodName] = _.isFunction(member) ? member.bind(this) : member;
         }
       }
+
       return exportedMethods;
     }
 
@@ -191,31 +118,8 @@ export namespace Services.Core {
       options: Record<string, unknown>,
       user?: unknown
     ): string {
-      const triggerCondition = _.get(options, 'triggerCondition', '') as string;
-      const forceRun = _.get(options, 'forceRun', false) as boolean;
-      const variables = {
-        record: record,
-        oid: oid,
-        user: user || null,
-        imports: {
-          record: record,
-          oid: oid,
-          user: user || null,
-        },
-      };
-
-      if (!user) {
-        this.logger.trace('No user in metTriggerCondition');
-      }
-      if (!_.isUndefined(triggerCondition) && !_.isEmpty(triggerCondition)) {
-        const compiled = _.template(triggerCondition, variables);
-        return compiled();
-      } else if (forceRun) {
-        return 'true';
-      } else {
-        // if trigger condition is not set, fail fast!
-        return 'false';
-      }
+      if (!user) this.logger.trace('No user in metTriggerCondition');
+      return metTriggerCondition(oid, record, options, user);
     }
 
     protected sleep(ms: number): Promise<void> {
@@ -242,20 +146,7 @@ export namespace Services.Core {
       mapping: { [key: string]: string } | undefined,
       appendMappingToSource: boolean = false
     ): Type {
-      let fields = _.mapValues(dest, (val, key) => {
-        return key;
-      });
-      if (appendMappingToSource) {
-        fields = _.merge(fields, mapping);
-      } else {
-        // make the mapping optional
-        fields = _.isUndefined(mapping) ? fields : mapping;
-      }
-      // force to enumerable string keyed only, transforming at the root level
-      _.forOwn(fields, (destKey, srcKey) => {
-        _.set(dest, destKey, source[srcKey]);
-      });
-      return dest as Type;
+      return convertToType<Type>(source, dest, mapping, appendMappingToSource);
     }
   }
 }

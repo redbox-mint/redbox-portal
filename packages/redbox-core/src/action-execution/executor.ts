@@ -1,6 +1,6 @@
 import * as Effect from 'effect/Effect';
 import * as Cause from 'effect/Cause';
-import type * as Fiber from 'effect/Fiber';
+import * as Fiber from 'effect/Fiber';
 import { randomUUID } from 'node:crypto';
 import { ActionInterruptedFailure, ActionTimeoutFailure, normalizeActionFailure } from './failure';
 import { retryDelayMs, validateActionExecutionPolicy } from './policy';
@@ -203,7 +203,7 @@ function shouldRetry(action: ActionExecutionAction, attemptNumber: number, failu
   if (!retry || attemptNumber >= retry.maxAttempts) {
     return false;
   }
-  // An opaque Promise keeps running after Effect times out. Retrying it here
+  // An opaque asynchronous result may keep running after Effect times out. Retrying it here
   // would overlap the original side effect with a second invocation. The
   // idempotent acknowledgement alone is not enough to make that safe.
   if ((failure.kind === 'timeout' || failure.kind === 'interrupted') && failure.cancellationCooperative === false) {
@@ -338,16 +338,28 @@ export function createActionExecutionOperation(
 }
 
 /**
- * Owns detached fibers for the lifetime of a service. A Sails `lower` hook can
- * interrupt the set so shutdown does not leave post-save work running against
- * a closed datastore.
+ * Owns detached fibers for the lifetime of a service. Application drain can
+ * join fibers and opaque asynchronous lifetimes before closing their datastores.
  */
 export function createActionExecutionSupervisor(): ActionExecutionDependencies['supervisor'] {
   const fibers = new Set<Fiber.Fiber<unknown, unknown>>();
+  const promises = new Set<Promise<unknown>>();
   return {
     register(fiber): void {
       fibers.add(fiber);
       fiber.addObserver(() => fibers.delete(fiber));
+    },
+    track(work): void {
+      promises.add(work);
+      void work.then(
+        () => promises.delete(work),
+        () => promises.delete(work)
+      );
+    },
+    async drain(): Promise<void> {
+      while (fibers.size || promises.size) {
+        await Promise.allSettled([...promises, ...Array.from(fibers, fiber => Effect.runPromise(Fiber.await(fiber)))]);
+      }
     },
     interruptAll(): void {
       const active = Array.from(fibers);

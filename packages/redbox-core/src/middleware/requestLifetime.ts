@@ -2,7 +2,7 @@ import type { Response } from 'express';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 interface RequestLifetime {
-  app?: Sails.Application;
+  app?: object;
   transportDone: boolean;
   responseEnded: boolean;
   responsePending: boolean;
@@ -11,6 +11,7 @@ interface RequestLifetime {
   active: Set<Promise<unknown>>;
   completed: boolean;
   queued: boolean;
+  completions: Set<() => void>;
   check: () => void;
 }
 
@@ -19,22 +20,23 @@ interface HttpOwner {
   drain?: () => Promise<void>;
 }
 const ownerKey: unique symbol = Symbol.for('@researchdatabox/redbox-core/http-request-owner/v1');
-type Application = Sails.Application & { [ownerKey]?: HttpOwner };
-function owner(app: Sails.Application): HttpOwner {
+type Application = { [ownerKey]?: HttpOwner };
+function owner(app: object): HttpOwner {
   const holder = app as Application;
-  if (!holder[ownerKey]) Object.defineProperty(holder, ownerKey, { value: { context: new AsyncLocalStorage<RequestLifetime>() } });
+  if (!holder[ownerKey])
+    Object.defineProperty(holder, ownerKey, { value: { context: new AsyncLocalStorage<RequestLifetime>() } });
   return holder[ownerKey]!;
 }
 
 /** Queue shutdown must quiesce HTTP producers before finishing enqueue drain. */
-export function registerHttpRequestDrain(app: Sails.Application, drain: () => Promise<void>): void {
+export function registerHttpRequestDrain(app: object, drain: () => Promise<void>): void {
   owner(app).drain = drain;
 }
-export function drainHttpRequests(app: Sails.Application): Promise<void> {
+export function drainHttpRequests(app: object): Promise<void> {
   return owner(app).drain?.() ?? Promise.resolve();
 }
 /** Only the still-owned request's asynchronous descendants can finish enqueues. */
-export function hasActiveHttpRequest(app: Sails.Application): boolean {
+export function hasActiveHttpRequest(app: object): boolean {
   return owner(app).context.getStore()?.completed === false;
 }
 export function runHttpRequestContext<T>(request: unknown, invoke: () => T): T {
@@ -57,7 +59,14 @@ function promiseLike(value: unknown): value is PromiseLike<unknown> {
 }
 
 /** Own transport and controller work separately: a disconnected client does not cancel a write. */
-export function beginHttpRequest(request: object, response: Response, complete: () => void, app?: Sails.Application): void {
+export function beginHttpRequest(request: object, response: Response, complete: () => void, app?: object): void {
+  const existing = lifetime(request);
+  if (existing) {
+    if (app && existing.app !== app) throw new Error('HTTP lifetime belongs to a different application.');
+    if (existing.completed) complete();
+    else existing.completions.add(complete);
+    return;
+  }
   const state: RequestLifetime = {
     app,
     transportDone: false,
@@ -68,6 +77,7 @@ export function beginHttpRequest(request: object, response: Response, complete: 
     active: new Set(),
     completed: false,
     queued: false,
+    completions: new Set([complete]),
     check: () => {},
   };
   Object.defineProperty(request, key, { value: state });
@@ -91,7 +101,8 @@ export function beginHttpRequest(request: object, response: Response, complete: 
       state.completed = true;
       response.removeListener('finish', transportDone);
       response.removeListener('close', transportDone);
-      complete();
+      for (const completion of state.completions) completion();
+      state.completions.clear();
     });
   };
   response.once('finish', transportDone);
@@ -159,7 +170,7 @@ export function trackHttpRequestWork<T>(request: unknown, work: PromiseLike<T>):
 /** Optional follow-ups retain HTTP shutdown ownership without delaying the response.
  * Workers and direct callers still await their completion in their existing scope.
  */
-export function retainHttpRequestFollowup(app: Sails.Application, work: Promise<void>): Promise<void> {
+export function retainHttpRequestFollowup(app: object, work: Promise<void>): Promise<void> {
   const state = owner(app).context.getStore();
   if (!state || state.completed) return work;
   ownWork(state, work);

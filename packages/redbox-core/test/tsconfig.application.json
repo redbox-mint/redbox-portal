@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "types": ["node", "mocha"]
+  },
+  "include": [
+    "../src/**/*.ts",
+    "./application/**/*.ts",
+    "./recordTypes/**/*.ts",
+    "./http/**/*.ts",
+    "./compat/**/*.ts",
+    "./extensions/**/*.ts",
+    "./configuration/**/*.ts",
+    "./queues/**/*.ts"
+  ]
+}

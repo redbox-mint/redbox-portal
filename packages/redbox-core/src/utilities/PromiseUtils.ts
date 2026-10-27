@@ -2,7 +2,7 @@
  * Race a promise against a timeout.
  *
  * Used by the bootstrap importers so that a hung remote call (RVA, Figshare) cannot
- * stall the Sails lift indefinitely. The underlying promise is not cancelled - it is
+ * stall application initialization indefinitely. The underlying promise is not cancelled - it is
  * simply no longer awaited - so callers must treat a timeout as "outcome unknown".
  */
 export async function promiseWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {

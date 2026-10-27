@@ -1,15 +1,15 @@
 /**
  * Queue Config Interface
- * (sails.config.queue)
- * 
+ * (configuration.queue)
+ *
  * Queue service configuration.
  */
 
 export interface QueueConfig {
-    /** Name of the queue service to use */
-    serviceName: string;
+  /** Name of the queue service to use */
+  serviceName: string;
 }
 
 export const queue: QueueConfig = {
-    serviceName: 'agendaqueueservice',
+  serviceName: 'agendaqueueservice',
 };

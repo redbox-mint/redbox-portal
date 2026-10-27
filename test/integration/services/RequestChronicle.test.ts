@@ -1,13 +1,15 @@
+import { RequestChronicleHelper } from '../../../packages/redbox-core/src/utilities/RequestChronicle';
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
+import { csrf } from '../../helpers/csrf';
+import { StreamingMultipart } from '../../../packages/redbox-core/src/http/express/multipart';
+import type { RequestHandler } from 'express';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { Readable } from 'node:stream';
+import { request as httpRequest } from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import { inspect } from 'node:util';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
-import { ControllerExports, Controllers, Services } from '@researchdatabox/redbox-core';
+import { Services } from '@researchdatabox/redbox-core';
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
 type CapturedLog = { level: LogLevel; args: unknown[] };
@@ -30,20 +32,22 @@ class WarningService extends Services.Core.Service {
   }
 }
 
-class UploadController extends Controllers.Core.Controller {
-  public recordFailure(req: Sails.Req, error: Error): void {
-    this.updateChronicle(req, { controllerUploadOutcome: 'failed' }, [error]);
+class UploadHandler {
+  public recordFailure(req: import('express').Request, error: Error): void {
+    const helper = RequestChronicleHelper.fromReq(fixture.log, req);
+    helper.addInfo({ controllerUploadOutcome: 'failed' });
+    helper.addError(error);
   }
 }
 
 /**
- * Checks the request chronicle through lifted Sails: the HTTP middleware, routing, policies, and controllers.
+ * Checks the selected host middleware, policies and async service capture over real HTTP.
  */
-describe('Request chronicle in lifted Sails', function () {
+describe('Request chronicle in the application HTTP host', function () {
   this.timeout(60_000);
 
   const virtualPath = '/request-chronicle-virtual-test';
-  const translationFailurePath = '/request-chronicle-translation-failure-test';
+  const translationFailurePath = '/default/rdmp/app/i18n/bundles/en/translation';
   const servicePaths = ['/request-chronicle-service-first', '/request-chronicle-service-second'];
   const warningPath = '/request-chronicle-service-warning';
   const uploadPath = '/request-chronicle-service-upload';
@@ -54,31 +58,16 @@ describe('Request chronicle in lifted Sails', function () {
   let originalSettings: unknown;
   let anonymous: supertest.Agent;
   let admin: supertest.Agent;
-  let uploadDirectory: string;
+  let multipart: StreamingMultipart;
   let markUploadStarted: () => void = () => {};
 
   before(async () => {
-    const app = (sails.hooks.http as { app: Parameters<typeof supertest.agent>[0] }).app;
-    const router = sails.router as unknown as {
-      bind(path: string, handler: (req: Sails.Req, res: Sails.Res) => void): void;
-    };
-    const userController = ControllerExports.UserController as { info(req: Sails.Req, res: Sails.Res): void };
-    // Call the migrated action through the virtual router without HTTP-only authentication/language policies.
-    router.bind(virtualPath, (req, res) => {
-      req.user = { username: 'virtual-test' } as Sails.Req['user'];
-      userController.info(req, res);
-    });
-    const translationController = ControllerExports.TranslationController as {
-      getBundleApp(req: Sails.Req, res: Sails.Res): Promise<unknown>;
-    };
-    router.bind(translationFailurePath, (req, res) => {
-      req.params.branding = 'default';
-      return translationController.getBundleApp(req, res);
-    });
+    const app = fixture.server;
+    const router = fixture.routes;
     for (const [index, servicePath] of servicePaths.entries()) {
       router.bind(servicePath, async (_req, res) => {
         await new Promise(resolve => setTimeout(resolve, index === 0 ? 20 : 1));
-        const result = await EmailService.buildFromTemplateAsync(`missing-service-template-${index}`, {
+        const result = await fixture.services.EmailService.buildFromTemplateAsync(`missing-service-template-${index}`, {
           subject: 'PRIVATE SUBJECT',
           body: 'PRIVATE BODY',
         });
@@ -86,21 +75,27 @@ describe('Request chronicle in lifted Sails', function () {
         return res.json({ status: result.status });
       });
     }
-    const warningService = new WarningService();
-    const uploadController = new UploadController();
-    uploadDirectory = mkdtempSync(join(tmpdir(), 'chronicle-sails-upload-'));
+    const warningService = new WarningService(fixture.log);
+    const uploadController = new UploadHandler();
+    multipart = new StreamingMultipart(fixture.services.StorageManagerService.stagingDisk(), {
+      files: 1,
+      fileSize: 2 * 1024 * 1024,
+      fields: 2,
+      fieldSize: 1024,
+    });
     router.bind(warningPath, (_req, res) => {
       warningService.recordWarning();
       res.json({ status: true });
     });
-    router.bind(uploadPath, (req, res) => {
-      req.file('attachment').upload({ dirname: uploadDirectory }, (parserError: unknown, files: unknown[]) => {
+    router.bind(uploadPath, async (req, res) => {
+      const work = multipart.receive(req, async ({ files }) => {
         const error = new Error('upload service failed');
-        warningService.recordUploadFailure(files?.length ?? 0, error);
+        warningService.recordUploadFailure(files.length, error);
         uploadController.recordFailure(req, error);
-        res.json({ uploaded: files?.length ?? 0, parserFailed: parserError !== null && parserError !== undefined });
+        res.json({ uploaded: files.length, parserFailed: false });
       });
       markUploadStarted();
+      await work;
     });
     router.bind(rdmpPath, async (req, res) => {
       const record = { metaMetadata: { createdBy: 'admin' }, metadata: { description: 'PRIVATE RDMP DESCRIPTION' } };
@@ -108,7 +103,7 @@ describe('Request chronicle in lifted Sails', function () {
       if (req.query.failure === 'true') {
         try {
           await firstValueFrom(
-            RDMPService.runTemplates(
+            fixture.services.RDMPService.runTemplates(
               'privacy-rdmp',
               record,
               {
@@ -125,51 +120,53 @@ describe('Request chronicle in lifted Sails', function () {
             )
           );
         } catch (error) {
-          return res.serverError(error);
+          return res.status(500).end();
         }
       }
       const options = { templates: [{ field: 'metadata.copied', template: '<%= record.metadata.description %>' }] };
-      await firstValueFrom(RDMPService.runTemplates('privacy-rdmp', record, options, user));
-      await firstValueFrom(RDMPService.assignPermissions('privacy-rdmp', record, {}, user));
-      await firstValueFrom(RDMPService.complexAssignPermissions('privacy-rdmp', record, {}));
+      await firstValueFrom(fixture.services.RDMPService.runTemplates('privacy-rdmp', record, options, user));
+      await firstValueFrom(fixture.services.RDMPService.assignPermissions('privacy-rdmp', record, {}, user));
+      await firstValueFrom(fixture.services.RDMPService.complexAssignPermissions('privacy-rdmp', record, {}));
       res.json({ status: true });
     });
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
+    const loginCsrf = await csrf(admin);
     await admin
       .post('/user/login_local')
+      .set('X-CSRF-Token', loginCsrf)
       .set('X-Source', 'jsclient')
       .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
       .expect(200);
 
-    const logConfig = sails.config.log as { requestChronicle?: unknown };
+    const logConfig = fixture.config.log as { requestChronicle?: unknown };
     originalSettings = logConfig.requestChronicle;
     // Retain every request, so each request produces an event.
     logConfig.requestChronicle = { successSampleRate: 1, successSampleExcludePattern: '' };
 
-    const log = sails.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
+    const log = fixture.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
     for (const level of levels) {
       const original = log[level];
       originalLog[level] = original;
       log[level] = (...args: unknown[]) => {
         captured.push({ level, args });
-        return original.apply(sails.log, args);
+        return original.apply(fixture.log, args);
       };
     }
   });
 
-  after(() => {
-    (sails.router as unknown as { unbind(path: string): void }).unbind(virtualPath);
-    (sails.router as unknown as { unbind(path: string): void }).unbind(translationFailurePath);
-    (sails.router as unknown as { unbind(path: string): void }).unbind(warningPath);
-    (sails.router as unknown as { unbind(path: string): void }).unbind(uploadPath);
-    (sails.router as unknown as { unbind(path: string): void }).unbind(rdmpPath);
-    rmSync(uploadDirectory, { recursive: true, force: true });
+  after(async () => {
+    fixture.routes.unbind(virtualPath);
+    fixture.routes.unbind(translationFailurePath);
+    fixture.routes.unbind(warningPath);
+    fixture.routes.unbind(uploadPath);
+    fixture.routes.unbind(rdmpPath);
+    await multipart?.close();
     for (const servicePath of servicePaths) {
-      (sails.router as unknown as { unbind(path: string): void }).unbind(servicePath);
+      fixture.routes.unbind(servicePath);
     }
-    (sails.config.log as { requestChronicle?: unknown }).requestChronicle = originalSettings;
-    const log = sails.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
+    (fixture.config.log as { requestChronicle?: unknown }).requestChronicle = originalSettings;
+    const log = fixture.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
     for (const level of levels) {
       if (originalLog[level]) {
         log[level] = originalLog[level]!;
@@ -232,6 +229,7 @@ describe('Request chronicle in lifted Sails', function () {
     const path = '/default/rdmp/user/update';
     const response = await admin
       .post(path)
+      .set('X-CSRF-Token', await csrf(admin))
       .set('X-Source', 'jsclient')
       .send({ details: { email: 'admin@example.edu.au' } })
       .expect(200);
@@ -247,10 +245,11 @@ describe('Request chronicle in lifted Sails', function () {
     const path = '/default/rdmp/user/update';
     const response = await admin
       .post(path)
+      .set('X-CSRF-Token', await csrf(admin))
       .set('X-Source', 'jsclient')
       .set('Content-Type', 'application/json')
       .send('{"password":"PRIVATE MALFORMED PASSWORD",')
-      .expect(500);
+      .expect(400);
     await settle();
 
     const logged = events(path);
@@ -292,9 +291,9 @@ describe('Request chronicle in lifted Sails', function () {
     assert.ok(!inspect(captured, { depth: null }).includes('PRIVATE'));
   });
 
-  it('records a migrated translation failure once and redacts credentials in its message and stack', async () => {
-    const original = I18nEntriesService.getBundle;
-    I18nEntriesService.getBundle = async () => {
+  it('records a migrated translation failure once without native provider text or credentials', async () => {
+    const original = fixture.services.I18nEntriesService.getBundle;
+    fixture.services.I18nEntriesService.getBundle = async () => {
       throw new Error('Upstream rejected Authorization: Bearer private-runtime-token');
     };
     try {
@@ -306,11 +305,13 @@ describe('Request chronicle in lifted Sails', function () {
       assert.equal(logged[0].event.translationGetBundleFailed, true);
       const errors = Object.values(logged[0].event.errors ?? {});
       assert.equal(errors.length, 1);
-      assert.match(errors[0].message ?? '', /Authorization: Bearer REDACTED/);
+      assert.equal(errors[0].message, 'Translation read failed');
+      assert.ok(!JSON.stringify(logged[0].event).includes('Upstream rejected'));
+      assert.ok(!JSON.stringify(logged[0].event).includes('Authorization:'));
       assert.ok(!JSON.stringify(logged[0].event).includes('private-runtime-token'));
       assert.deepEqual(chronicleWarnings(), []);
     } finally {
-      I18nEntriesService.getBundle = original;
+      fixture.services.I18nEntriesService.getBundle = original;
     }
   });
 
@@ -335,19 +336,15 @@ describe('Request chronicle in lifted Sails', function () {
     assert.deepEqual(chronicleWarnings(), []);
   });
 
-  it('does not warn for virtual requests, which have no request chronicle', async () => {
-    await new Promise<void>((resolve, reject) => {
-      sails.request({ url: virtualPath, method: 'get' }, (err: unknown) => (err ? reject(err) : resolve()));
-    });
+  it('does not warn or create HTTP events for service operations outside a request', async () => {
+    await firstValueFrom(fixture.services.UsersService.getUserWithUsername('admin'));
     await settle();
-
     assert.deepEqual(chronicleWarnings(), []);
-    // Background HTTP probes can finish while this virtual request settles.
-    assert.equal(events(virtualPath).length, 0, 'virtual requests do not produce events');
+    assert.equal(events(virtualPath).length, 0, 'background operations do not produce HTTP events');
   });
 
   it('retains a successful service warning as one warn event when success sampling is disabled', async () => {
-    const logConfig = sails.config.log as { requestChronicle?: unknown };
+    const logConfig = fixture.config.log as { requestChronicle?: unknown };
     const settings = logConfig.requestChronicle;
     logConfig.requestChronicle = { successSampleRate: 0 };
     try {
@@ -370,21 +367,35 @@ describe('Request chronicle in lifted Sails', function () {
     const uploadStarted = new Promise<void>(resolve => {
       markUploadStarted = resolve;
     });
-    const attachment = Readable.from(
-      (async function* () {
-        yield Buffer.from('PRIVATE UPLOAD CONTENT');
-        await uploadStarted;
-        for (let index = 0; index < 4; index++) {
-          await delay(20);
-          yield Buffer.alloc(256 * 1024, 'x');
-        }
-      })()
-    );
-    const response = await anonymous
-      .post(uploadPath)
-      .field('marker', 'PRIVATE MARKER')
-      .attach('attachment', attachment, 'test.txt')
-      .expect(200);
+    const boundary = 'redbox-chronicle-streaming-fixture';
+    const address = fixture.server.address();
+    const request = httpRequest({ hostname: '127.0.0.1', port: address.port, path: uploadPath, method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` } });
+    request.setTimeout(15_000, () => request.destroy(new Error('Multipart fixture request timed out')));
+    const result = new Promise<{ status: number; body: unknown }>((resolve, reject) => {
+      request.once('error', reject);
+      request.once('response', response => {
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', chunk => { body += chunk; });
+        response.once('error', reject);
+        response.once('end', () => {
+          try { resolve({ status: response.statusCode!, body: JSON.parse(body) }); }
+          catch (error) { reject(error); }
+        });
+      });
+    });
+    request.flushHeaders();
+    request.write(`--${boundary}\r\nContent-Disposition: form-data; name="marker"\r\n\r\nPRIVATE MARKER\r\n`);
+    request.write(`--${boundary}\r\nContent-Disposition: form-data; name="attachment"; filename="test.txt"\r\nContent-Type: text/plain\r\n\r\nPRIVATE UPLOAD CONTENT`);
+    await uploadStarted;
+    for (let index = 0; index < 4; index++) {
+      await delay(20);
+      request.write(Buffer.alloc(256 * 1024, 'x'));
+    }
+    request.end(`\r\n--${boundary}--\r\n`);
+    const response = await result;
+    assert.equal(response.status, 200);
     await settle();
     assert.deepEqual(response.body, { uploaded: 1, parserFailed: false });
     const logged = events(uploadPath);

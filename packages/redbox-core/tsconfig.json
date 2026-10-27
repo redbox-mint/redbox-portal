@@ -5,6 +5,7 @@
     "moduleResolution": "nodenext",
     "declaration": true,
     "declarationMap": true,
+    "resolveJsonModule": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
@@ -12,5 +13,10 @@
     "types": ["node", "lodash"]
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["dist/**/*.ts", "dist/**/*.d.ts", "src/persistence/prisma/contract.ts", "src/persistence/prisma/storage-contract.ts"]
+  "exclude": [
+    "dist/**/*.ts",
+    "dist/**/*.d.ts",
+    "src/persistence/prisma/contract.ts",
+    "src/persistence/prisma/storage-contract.ts"
+  ]
 }
