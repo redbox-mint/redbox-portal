@@ -152,12 +152,50 @@ describe('EmailTemplateService persistence', function () {
     assert.equal(result.ex.code, 'INVALID_TEMPLATE');
   });
 
+  it('validates persisted expressions at save/render and reports invalid overrides per brand after configuration changes', async function () {
+    await assert.rejects(EmailTemplateService.create(brands[0].id, templateId,
+      { ...content('Invalid'), body: '{{unknownRoot}}' }), { code: 'INVALID_TEMPLATE' });
+    const a = await EmailTemplateService.create(brands[0].id, templateId, content('A'));
+    await EmailTemplateService.create(brands[1].id, templateId, content('B'));
+    await assert.rejects(EmailTemplateService.update(brands[0].id, templateId,
+      { ...content('Invalid'), subject: '{{unknownHelper oid}}' }, version(a)), { code: 'INVALID_TEMPLATE' });
+    const settings = sails.config.emailnotification.settings;
+    try {
+      sails.config.emailnotification.settings = { ...settings, additionalContextRoots: ['hookDisplay'] };
+      const updated = await EmailTemplateService.update(brands[0].id, templateId,
+        { ...content('A'), body: 'First line\n{{hookDisplay.name}}' }, version(a));
+      assert.deepEqual(await EmailTemplateService.reportInvalidOverrides(brands[0].id), []);
+      sails.config.emailnotification.settings = { ...settings, additionalContextRoots: [] };
+      const report = await EmailTemplateService.reportInvalidOverrides(brands[0].id);
+      assert.equal(report.length, 1);
+      assert.equal(report[0].id, updated.id);
+      assert.equal(report[0].revision, updated.revision);
+      assert.equal(report[0].code, 'INVALID_TEMPLATE');
+      assert.deepEqual(report[0].diagnostic, { field: 'body', reason: 'UNKNOWN_CONTEXT_ROOT', line: 2, column: 3 });
+      assert.ok(!Object.hasOwn(report[0], 'body'));
+      assert.deepEqual(await EmailTemplateService.reportInvalidOverrides(brands[1].id), []);
+      const failed = await render(brands[0].id);
+      assert.equal(failed.status, 500);
+      assert.equal(failed.ex.code, 'INVALID_TEMPLATE');
+      assert.equal((await render(brands[1].id)).status, 200);
+      // Simulate a legacy/raw writer bypassing the service's current validation.
+      const db = EmailTemplate.getDatastore().manager as any;
+      await db.collection(EmailTemplate.tableName).updateOne({ brandId: brands[0].id, templateId },
+        { $set: { body: '{{> forbiddenPartial}}' } });
+      const partial = (await EmailTemplateService.reportInvalidOverrides(brands[0].id))[0];
+      assert.equal(partial.diagnostic.reason, 'UNSUPPORTED_CONSTRUCT');
+      assert.ok(!partial.message.includes('forbiddenPartial'));
+    } finally {
+      sails.config.emailnotification.settings = settings;
+    }
+  });
+
   it('rejects invalid tenant IDs, unknown templates and strict render failures', async function () {
     await assert.rejects(EmailTemplateService.get('000000000000000000000000', templateId), { code: 'UNKNOWN_BRAND' });
     await assert.rejects(EmailTemplateService.create(brands[0].id, 'unknown-stage1-email', content('Initial')), {
       code: 'UNKNOWN_TEMPLATE',
     });
-    await EmailTemplateService.create(brands[0].id, templateId, { ...content('Initial'), subject: '{{missing}}' });
+    await EmailTemplateService.create(brands[0].id, templateId, { ...content('Initial'), subject: '{{record.metadata.missing}}' });
     const result = await render(brands[0].id);
     assert.equal(result.status, 500);
     assert.equal(result.ex.code, 'RENDER_FAILED');

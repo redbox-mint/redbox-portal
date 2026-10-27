@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Db, ObjectId } from 'mongodb';
-import { handlebarsPrecompile } from '@researchdatabox/sails-ng-common';
+import { handlebarsInstance, handlebarsPrecompile } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import type { EmailTemplateAttributes } from '../waterline-models/EmailTemplate';
 
@@ -12,13 +12,16 @@ export type EmailTemplateErrorCode =
   | 'INVALID_TEMPLATE'
   | 'REVISION_CONFLICT'
   | 'PERSISTENCE'
-  | 'RENDER_FAILED';
+  | 'RENDER_FAILED'
+  | 'SANITISATION_FAILED'
+  | 'LENGTH_LIMIT';
 
 export class EmailTemplateError extends Error {
   constructor(
     public readonly code: EmailTemplateErrorCode,
     message: string,
-    cause?: unknown
+    cause?: unknown,
+    public readonly diagnostic?: EmailTemplateDiagnostic
   ) {
     super(message, { cause });
     this.name = 'EmailTemplateError';
@@ -45,19 +48,19 @@ export interface EmailTemplateVersion {
 /**
  * Build a typed error that is safe for diagnostics. Parser, render and storage
  * errors can embed template text or stored documents, so the original error is
- * never attached as a cause: only its type and source position are kept.
+ * never attached as a cause. Only numeric source positions are retained; even
+ * an exception's name/code can contain untrusted content.
  */
 export function safeEmailTemplateError(
   code: EmailTemplateErrorCode,
   message: string,
   error: unknown
 ): EmailTemplateError {
-  const source = (error ?? {}) as { name?: unknown; lineNumber?: unknown; column?: unknown; code?: unknown };
+  const source = (error ?? {}) as { lineNumber?: unknown; column?: unknown };
+  const position = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) >= 0;
   const details = [
-    typeof source.name === 'string' ? `type ${source.name}` : undefined,
-    typeof source.code === 'string' || typeof source.code === 'number' ? `code ${source.code}` : undefined,
-    typeof source.lineNumber === 'number' ? `line ${source.lineNumber}` : undefined,
-    typeof source.column === 'number' ? `column ${source.column}` : undefined,
+    position(source.lineNumber) ? `line ${source.lineNumber}` : undefined,
+    position(source.column) ? `column ${source.column}` : undefined,
   ].filter(Boolean);
   return new EmailTemplateError(code, details.length ? `${message} (${details.join(', ')})` : message);
 }
@@ -100,27 +103,155 @@ export function emailTemplateDefinition(templateId: string): {
   };
 }
 
-export function validateEmailTemplate(content: EmailTemplateContent): void {
-  if (
-    !content ||
-    typeof content.subject !== 'string' ||
-    !content.subject.trim() ||
-    typeof content.body !== 'string' ||
-    !content.body.trim() ||
-    !['html', 'text'].includes(content.format)
-  ) {
-    throw new EmailTemplateError(
-      'INVALID_TEMPLATE',
-      'Email templates require non-empty subject/body and html or text format.'
-    );
+export interface EmailTemplateDiagnostic {
+  field: 'subject' | 'body';
+  reason: 'UNKNOWN_CONTEXT_ROOT' | 'UNKNOWN_HELPER' | 'UNSUPPORTED_CONSTRUCT' | 'INVALID_SYNTAX';
+  line: number;
+  column: number;
+}
+
+// Core legacy display values plus every IntegrationNotificationPayload key.
+const contextRoots = [
+  'record', 'oid', 'imports', 'portal', 'sailsConfig', 'name', 'data',
+  'kind', 'title', 'summary', 'severity', 'redboxOid', 'brandId', 'integrationName',
+  'integrationAction', 'status', 'triggeredBy', 'message', 'errorDetail', 'httpStatusCode',
+  'traceId', 'spanId', 'startedAt', 'completedAt', 'durationMs', 'recordUrl', 'timestamp',
+];
+
+export function emailTemplateContextRoots(): Set<string> {
+  const configured = sails.config.emailnotification?.settings?.additionalContextRoots;
+  const extra = configured === undefined ? [] : configured;
+  if (!Array.isArray(extra) || extra.some(root => typeof root !== 'string' ||
+    !/^[A-Za-z_][A-Za-z0-9_]*$/.test(root) || ['__proto__', 'constructor', 'prototype'].includes(root))) {
+    throw new EmailTemplateError('INVALID_TEMPLATE',
+      'emailnotification.settings.additionalContextRoots must be an array of context root identifiers.');
   }
-  // compile() is lazy in Handlebars; precompile forces syntax validation without
-  // inventing render data or rejecting valid strict-context expressions.
+  return new Set([...contextRoots, ...extra]);
+}
+
+/** Byte limits apply both to source and output, before expensive parsing/sanitisation. */
+export function validateEmailLength(value: string, field: 'subject' | 'body'): void {
+  const key = field === 'subject' ? 'maxSubjectBytes' : 'maxBodyBytes';
+  const configured = sails.config.emailnotification?.settings?.[key];
+  const limit = configured === undefined ? (field === 'subject' ? 998 : 1048576) : configured;
+  if (!Number.isSafeInteger(limit) || limit < 1) {
+    throw new EmailTemplateError('INVALID_TEMPLATE', `emailnotification.settings.${key} must be a positive safe integer.`);
+  }
+  if (Buffer.byteLength(value, 'utf8') > limit) {
+    throw new EmailTemplateError('LENGTH_LIMIT', `Email ${field} exceeds ${key} (${limit} UTF-8 bytes).`);
+  }
+}
+
+export function hardenEmailSubject(subject: string): string {
+  validateEmailLength(subject, 'subject');
+  // C0/C1 controls, CR/LF, DEL and Unicode line/paragraph separators.
+  return Array.from(subject).filter(char => {
+    const code = char.codePointAt(0)!;
+    return code > 31 && !(code >= 127 && code <= 159) && code !== 0x2028 && code !== 0x2029;
+  }).join('');
+}
+
+function validateExpressions(source: string, field: 'subject' | 'body'): void {
+  const handlebars = handlebarsInstance();
+  const roots = emailTemplateContextRoots();
+  const fail = (node: hbs.AST.Node, reason: EmailTemplateDiagnostic['reason']): never => {
+    const { line, column } = node.loc.start;
+    throw new EmailTemplateError('INVALID_TEMPLATE',
+      `Email ${field}: ${reason} at line ${line}, column ${column + 1}.`, undefined,
+      { field, reason, line, column: column + 1 });
+  };
+  // Root checks are an authoring aid, not the data-exposure boundary. Only
+  // reject paths whose resolution context is certainly the template root.
+  type Frame = { certainRoot: boolean };
+  const scoped = (node: hbs.AST.PathExpression) => /^(?:\.|this\b)/.test(node.original);
+  const path = (node: hbs.AST.PathExpression, frames: Frame[], params: Set<string>): void => {
+    let parts = node.parts;
+    let certainRoot: boolean;
+    if (node.data) {
+      // Block params are resolved before data variables (e.g. `as |root|` shadows @root).
+      if (parts[0] !== 'root' || params.has('root')) return;
+      certainRoot = true;
+      parts = parts.slice(1);
+    } else if (node.depth === 0 && !scoped(node) && params.has(parts[0])) {
+      // Block params are lexical names, never parent/current-context paths.
+      return;
+    } else {
+      certainRoot = frames[frames.length - 1 - node.depth]?.certainRoot === true;
+    }
+    if (certainRoot && parts.length && !roots.has(parts[0])) fail(node, 'UNKNOWN_CONTEXT_ROOT');
+  };
+  const visit = (node: hbs.AST.Node, frames: Frame[], params: Set<string>): void => {
+    if (['PartialStatement', 'PartialBlockStatement', 'Decorator', 'DecoratorBlock'].includes(node.type)) {
+      fail(node, 'UNSUPPORTED_CONSTRUCT');
+    }
+    if (node.type === 'PathExpression') {
+      path(node as hbs.AST.PathExpression, frames, params);
+      return;
+    }
+    if (node.type === 'Program') {
+      const program = node as hbs.AST.Program;
+      const scopeParams = new Set(params);
+      program.blockParams?.forEach(name => scopeParams.add(name));
+      program.body.forEach(child => visit(child, frames, scopeParams));
+    } else if (['MustacheStatement', 'BlockStatement', 'SubExpression'].includes(node.type)) {
+      const expression = node as hbs.AST.MustacheStatement | hbs.AST.BlockStatement | hbs.AST.SubExpression;
+      // Handlebars converts every literal invocation head to a single-part path,
+      // including quoted names, numbers, booleans, null and undefined.
+      const original = expression.path as hbs.AST.PathExpression;
+      const head: hbs.AST.PathExpression = original.type === 'PathExpression' ? original : {
+        type: 'PathExpression', data: false, depth: 0, parts: [String(original.original)],
+        original: String(original.original), loc: original.loc,
+      };
+      // Block params are lexical values; Handlebars resolves them (with or without an
+      // `@` prefix) before helpers and data variables. Only a single-part head ignores
+      // its arguments: a dotted head (`as |p|` ... `p.title (x)`) still evaluates them.
+      const lexicalHead = head.depth === 0 && !scoped(head) && params.has(head.parts[0]);
+      const blockParam = lexicalHead && head.parts.length === 1;
+      const helper = head.depth === 0 && !head.data && !scoped(head) && !blockParam &&
+        Object.hasOwn(handlebars.helpers, head.original);
+      const invocation = node.type === 'SubExpression' || expression.params.length > 0 || expression.hash?.pairs.length > 0;
+      if (!helper) {
+        if (invocation && !lexicalHead) fail(head, 'UNKNOWN_HELPER');
+        if (!lexicalHead) visit(head, frames, params);
+      }
+      if (!blockParam) {
+        expression.params.forEach(child => visit(child, frames, params));
+        expression.hash?.pairs.forEach(pair => visit(pair.value, frames, params));
+      }
+      if (node.type === 'BlockStatement') {
+        const block = node as hbs.AST.BlockStatement;
+        // Helper context semantics can't be established reliably (helpers can be
+        // replaced or wrapped), so every block program and inverse is uncertain:
+        // relative paths inside blocks are left to strict rendering.
+        const uncertain: Frame[] = [{ certainRoot: false }];
+        if (block.program) visit(block.program, uncertain, params);
+        if (block.inverse) visit(block.inverse, uncertain, params);
+      }
+    }
+  };
+  visit(handlebars.parse(source), [{ certainRoot: true }], new Set());
+}
+
+/** DB content is schema-checked; supplied files retain hook-specific display roots. */
+export function validateEmailTemplate(content: EmailTemplateContent, validateContext = true): void {
+  if (!content || typeof content.subject !== 'string' || !content.subject.trim() ||
+    typeof content.body !== 'string' || !content.body.trim() || !['html', 'text'].includes(content.format)) {
+    throw new EmailTemplateError('INVALID_TEMPLATE', 'Email templates require non-empty subject/body and html or text format.');
+  }
   for (const field of ['subject', 'body'] as const) {
+    validateEmailLength(content[field], field);
     try {
       handlebarsPrecompile(content[field], { strict: true });
+      if (validateContext) validateExpressions(content[field], field);
     } catch (error) {
-      throw safeEmailTemplateError('INVALID_TEMPLATE', `Invalid Handlebars syntax in email template ${field}.`, error);
+      if (error instanceof EmailTemplateError) throw error;
+      // Parser errors can include source excerpts. Keep only the location in public diagnostics.
+      const location = (error as { hash?: { loc?: { first_line?: number; first_column?: number } } }).hash?.loc;
+      const line = location?.first_line ?? 1;
+      const column = (location?.first_column ?? 0) + 1;
+      throw new EmailTemplateError('INVALID_TEMPLATE',
+        `Email ${field}: INVALID_SYNTAX at line ${line}, column ${column}.`, undefined,
+        { field, reason: 'INVALID_SYNTAX', line, column });
     }
   }
 }
@@ -141,7 +272,7 @@ export function readEmailTemplateDefault(templateId: string): ResolvedEmailTempl
     );
   }
   const result = { ...definition, templateId, body, source: 'default' as const };
-  validateEmailTemplate(result);
+  validateEmailTemplate(result, false);
   return result;
 }
 
@@ -151,6 +282,7 @@ export namespace Services {
       'bootstrap',
       'get',
       'list',
+      'reportInvalidOverrides',
       'getDefault',
       'create',
       'update',
@@ -233,6 +365,27 @@ export namespace Services {
         emailTemplateDefinition(row.templateId);
         return this.validateStored(row, brandId, row.templateId);
       });
+    }
+
+    /** Audit raw rows without list() aborting on the first invalid override. No content is returned. */
+    public async reportInvalidOverrides(brandId: string): Promise<Array<{
+      brandId: string; templateId: string; id: string; revision: number;
+      code: EmailTemplateErrorCode; message: string; diagnostic?: EmailTemplateDiagnostic;
+    }>> {
+      await this.validateBrand(brandId);
+      const rows = await this.persist(() => EmailTemplate.find({ brandId })) as EmailTemplateAttributes[];
+      const failures = [];
+      for (const row of rows) {
+        try {
+          emailTemplateDefinition(row.templateId);
+          this.validateStored(row, brandId, row.templateId);
+        } catch (error) {
+          if (!(error instanceof EmailTemplateError)) throw error;
+          failures.push({ brandId, templateId: row.templateId, id: row.id, revision: row.revision,
+            code: error.code, message: error.message, diagnostic: error.diagnostic });
+        }
+      }
+      return failures;
     }
 
     public async getDefault(brandId: string, templateId: string): Promise<ResolvedEmailTemplate> {
