@@ -23,7 +23,7 @@ test(
   'selected Figshare provider executes durable Agenda work through actual storage and drains held HTTP',
   { timeout: 45000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     assert.equal(global.sails, undefined);
     const url = process.env.SR_FIGSHARE_MONGO_URL;
     assert(url, 'SR_FIGSHARE_MONGO_URL is required; qualification cannot skip');

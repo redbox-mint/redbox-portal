@@ -38,7 +38,7 @@ test(
   'selected real reference domains: migration, bundled bootstrap, restart and failed cleanup',
   { timeout: 120000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     assert.equal(global.sails, undefined);
     const url = process.env.SR_REFERENCE_MONGO_URL;
     assert(url, 'SR_REFERENCE_MONGO_URL is required; no missing-service skip');

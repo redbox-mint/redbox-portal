@@ -13,7 +13,7 @@ const { prepareSelectedPersistenceIndexes } = require('../../dist/persistence/ma
 const runtime = require('../../dist/persistence/runtime');
 
 test('owned workspace providers use real Mongo and HTTP and drain completion writes', { timeout: 30000 }, async () => {
-  assert.equal(process.version, 'v26.11.1');
+  assert.equal(process.version, 'v26.12.1');
   const url = process.env.SR_WORKSPACE_MONGO_URL;
   assert(url, 'SR_WORKSPACE_MONGO_URL is required');
   assert.equal(new URL(url).pathname, '/sr_p7_workspace');

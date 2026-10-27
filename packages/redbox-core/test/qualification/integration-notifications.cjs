@@ -16,7 +16,7 @@ test(
   'notifications await SMTP and durable throttle state, survive reconstruction and clear on recovery',
   { timeout: 30000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     assert.equal(global.sails, undefined);
     const url = process.env.SR_NOTIFICATIONS_MONGO_URL;
     assert(url, 'SR_NOTIFICATIONS_MONGO_URL is required; qualification cannot skip');
