@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { loadPortalConfiguration } from '@researchdatabox/redbox-core/configuration';
+const { loadPortalConfiguration } = require('@researchdatabox/redbox-core/configuration');
 import { pdfgen } from '../../src/config/pdfgen';
 
 const load = (config: Record<string, unknown>) =>
