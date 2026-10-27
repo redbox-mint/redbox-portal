@@ -718,6 +718,84 @@ const url = process.env.PERSISTENCE_TEST_MONGO_URL;
       }
     });
   }
+  for (const datastore of ['mongodb', 'redboxStorage'] as const) {
+    for (const ttl of [0, 60])
+      it(`creates TTL ${ttl} and hidden indexes and refuses drift in ${datastore}`, async () => {
+        const nativeIndex = {
+          key: { expires: 1 },
+          name: 'institution-expiry',
+          expireAfterSeconds: ttl,
+          hidden: true,
+          sparse: true,
+        };
+        const descriptor = {
+          datastore,
+          collection: 'index_options_regression',
+          name: nativeIndex.name,
+          keys: { expires: 1 as const },
+          expireAfterSeconds: nativeIndex.expireAfterSeconds,
+          hidden: nativeIndex.hidden,
+          sparse: nativeIndex.sparse,
+        };
+        const database = native.db(new URL(url!).pathname.slice(1) + (datastore === 'redboxStorage' ? '_storage' : ''));
+        const collection = database.collection(descriptor.collection);
+        try {
+          assert.equal((await inspectPersistenceIndex(app, descriptor)).index, 'missing');
+          assert.equal((await ensurePersistenceIndex(app, descriptor)).index, 'ready');
+          assert.equal((await ensurePersistenceIndex(app, descriptor)).index, 'ready');
+          const actual = (await collection.listIndexes().toArray()).find(index => index.name === nativeIndex.name)!;
+          assert.equal(actual.expireAfterSeconds, ttl);
+          assert.equal(actual.hidden, true);
+          assert.equal(actual.sparse, true);
+          for (const change of [
+            { expireAfterSeconds: 120 },
+            { expireAfterSeconds: undefined },
+            { hidden: false },
+            { hidden: undefined },
+          ]) {
+            const changed = { ...descriptor, ...change };
+            assert.equal((await inspectPersistenceIndex(app, changed)).index, 'conflicting');
+            await assert.rejects(ensurePersistenceIndex(app, changed), /Required persistence index/);
+          }
+          const unchanged = (await collection.listIndexes().toArray()).find(index => index.name === nativeIndex.name)!;
+          assert.equal(unchanged.expireAfterSeconds, ttl);
+          assert.equal(unchanged.hidden, true);
+        } finally {
+          await collection.drop();
+        }
+      });
+  }
+  it('preserves configured partial, unique and collation options during native maintenance', async () => {
+    const descriptor = {
+      datastore: 'mongodb' as const,
+      collection: 'index_filter_regression',
+      name: 'institution-filter',
+      keys: { value: 1 as const },
+      unique: true,
+      hidden: false,
+      partialFilter: { active: true },
+      collation: { locale: 'en', strength: 2, numericOrdering: true },
+    };
+    const collection = native.db().collection(descriptor.collection);
+    try {
+      assert.equal((await ensurePersistenceIndex(app, descriptor)).index, 'ready');
+      const actual = (await collection.listIndexes().toArray()).find(index => index.name === descriptor.name)!;
+      assert.equal(actual.unique, true);
+      assert.deepEqual(actual.partialFilterExpression, descriptor.partialFilter);
+      assert.equal(actual.collation?.numericOrdering, true);
+      for (const change of [
+        { unique: false },
+        { partialFilter: { active: false } },
+        {
+          collation: { ...descriptor.collation, numericOrdering: false },
+        },
+      ]) {
+        assert.equal((await inspectPersistenceIndex(app, { ...descriptor, ...change })).index, 'conflicting');
+      }
+    } finally {
+      await collection.drop();
+    }
+  });
   it('inspects duplicate indexes without rewriting documents and only prepares explicit scopes', async () => {
     const descriptor = {
       datastore: 'mongodb' as const,
