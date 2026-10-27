@@ -46,6 +46,7 @@ x-rbportal-env: &rbportal-env
   - REDBOX_PUBLIC_URL=http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}
   - NODE_OPTIONS=--max-old-space-size=1024
   # Process the real queue promptly so indexing keeps pace with owned fixtures.
+  - REDBOX_AGENDA_PROCESS_EVERY=0.1 seconds
   - PLAYWRIGHT_BROWSER_STUB_URL=http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}
   - 'RBPORTAL_REMOTE_DEBUG=${RBPORTAL_REMOTE_DEBUG:-}'
   - UPPY_COMPANION_ENABLED=true

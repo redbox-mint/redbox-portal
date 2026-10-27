@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/test';
-import { field, saveForm } from '../helpers/forms';
+import { field, saveFormWithSchemaWarnings } from '../helpers/forms';
 import { verifyDatePickerRoundTrips } from '../helpers/date-picker';
 
 test('F19 components-basic preserve text, numeric-input strings, booleans and choices including empty, false and zero', async ({ adminPage, records }) => {
@@ -11,7 +11,7 @@ test('F19 components-basic preserve text, numeric-input strings, booleans and ch
   await adminPage.getByRole('checkbox', { name: 'Enabled', exact: true }).check();
   await adminPage.getByRole('radio', { name: 'Beta', exact: true }).check();
   await field(adminPage, 'Choice').selectOption({ label: 'Two' });
-  await saveForm(adminPage);
+  await saveFormWithSchemaWarnings(adminPage, [{ code: 'record-schema.type', pointer: '/number', expected: { type: 'number' } }]);
   expect((await records.read(record.oid)).body).toMatchObject({ text: 'Changed text', number: '42', description: 'First paragraph\nSecond paragraph', enabled: true, radio: 'beta', choice: 'two' });
   await adminPage.reload();
   await expect(adminPage.getByRole('checkbox', { name: 'Enabled', exact: true })).toBeChecked();
@@ -22,7 +22,7 @@ test('F19 components-basic preserve text, numeric-input strings, booleans and ch
   await field(adminPage, 'Description').clear();
   await field(adminPage, 'Number value').fill('0');
   await adminPage.getByRole('checkbox', { name: 'Enabled', exact: true }).uncheck();
-  await saveForm(adminPage);
+  await saveFormWithSchemaWarnings(adminPage, [{ code: 'record-schema.type', pointer: '/number', expected: { type: 'number' } }]);
   await adminPage.reload();
   await expect(field(adminPage, 'Text value')).toHaveValue('');
   await expect(field(adminPage, 'Number value')).toHaveValue('0');

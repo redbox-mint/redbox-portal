@@ -41,7 +41,12 @@ module.exports = {
     },
   },
   companion: fixtures.companion,
-  vocab: { bootstrapRvaImports: false },
+  vocab: {
+    bootstrapRvaImports: false,
+    ...(process.env.PLAYWRIGHT_BROWSER_STUB_URL
+      ? { rva: { baseUrl: `${process.env.PLAYWRIGHT_BROWSER_STUB_URL}/rva` } }
+      : {}),
+  },
   i18n: { next: { init: { debug: false } } },
   solr: { clientSleepTimeMillis: 0, cores: { default: { options: { host: 'solr', port: 8983, core: 'redbox' } } } },
   recordSchema: { enabled: ['general', 'mocha'].includes(profile), unknownProperties: 'allow' },
