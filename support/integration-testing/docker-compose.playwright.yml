@@ -42,6 +42,8 @@ x-rbportal-env: &rbportal-env
   # for acceptance runs; a direct portal start remains free of test forms.
   - RBPORTAL_PLAYWRIGHT_SCENARIOS=${RBPORTAL_PLAYWRIGHT_SCENARIOS:-false}
   - PORT=${RBPORTAL_PLAYWRIGHT_PORT:-1500}
+  - REDBOX_PORT=${RBPORTAL_PLAYWRIGHT_PORT:-1500}
+  - REDBOX_PUBLIC_URL=http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}
   - NODE_OPTIONS=--max-old-space-size=1024
   # Process the real queue promptly so indexing keeps pace with owned fixtures.
   - PLAYWRIGHT_BROWSER_STUB_URL=http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}
