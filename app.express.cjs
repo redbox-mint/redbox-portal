@@ -3,6 +3,7 @@
 const path = require('node:path');
 const pino = require('pino');
 const { ConfigurationError } = require('@researchdatabox/redbox-core/configuration');
+const { ExtensionError } = require('@researchdatabox/redbox-core/extensions');
 const {
   createPortalHost,
   createPortalApplication,
@@ -93,12 +94,12 @@ let portal;
     log.info({ startupMs: Math.round(process.uptime() * 1000), address: portal.host.address() }, 'Express host ready.');
   }
 })().catch(async error => {
-  // Arbitrary database/provider errors can contain credentials. Configuration errors
-  // already expose safe paths, while other failures use lifecycle status only.
+  // Configuration and extension errors expose controlled identifiers and diagnostics.
+  // Arbitrary database/provider errors can contain credentials; retain lifecycle status only.
   log.error(
     {
       name: error?.name,
-      ...(error instanceof ConfigurationError ? { message: error.message } : {}),
+      ...(error instanceof ConfigurationError || error instanceof ExtensionError ? { message: error.message } : {}),
       status: portal?.application.status(),
     },
     'Express startup or maintenance failed.'

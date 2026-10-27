@@ -15,7 +15,7 @@ const storageHook = require('@researchdatabox/sails-hook-redbox-storage-mongo/ex
 const runtime = require('../../dist/persistence/runtime');
 
 test('owned DOI sends actual HTTP and awaits durable nested audit completion', { timeout: 30000 }, async () => {
-  assert.equal(process.version, 'v26.11.1');
+  assert.equal(process.version, 'v26.12.1');
   assert.equal(global.sails, undefined);
   const url = process.env.SR_DOI_MONGO_URL;
   assert(url, 'SR_DOI_MONGO_URL is required; qualification cannot skip');
