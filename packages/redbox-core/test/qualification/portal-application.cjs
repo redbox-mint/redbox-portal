@@ -105,7 +105,8 @@ test(
       assert.equal(types.length, Object.keys(portal.config.recordtype).length);
       const formCount = await native.db().collection('form').countDocuments();
       assert(formCount > 0);
-      assert.equal((await runtime.getMigrationLedgerRepository(portal.owner).executedNames()).length, 6);
+      // Six reference migrations, queued payloads, and the installed storage migration.
+      assert.equal((await runtime.getMigrationLedgerRepository(portal.owner).executedNames()).length, 8);
       assert.equal(Object.keys(portal.config.agendaQueue.jobs).length, 17);
       assert.throws(() => portal.resolveHook('sails.services.recordsservice.create'), /Unregistered/);
       assert.equal(typeof portal.resolveHook('record.runTemplates'), 'function');
@@ -163,7 +164,7 @@ test(
         JSON.stringify({
           domains: portal.resolved.modules.length,
           jobs: 17,
-          migrations: 6,
+          migrations: 8,
           types: types.length,
           forms: formCount,
           workerWrites: 1,
