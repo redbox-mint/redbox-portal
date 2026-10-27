@@ -420,6 +420,9 @@ export async function cleanupPersistence(app: PersistenceOwner, options: { deadl
 
 /** Preserve the original bootstrap failure even if resource cleanup also fails. */
 export async function cleanupPersistenceAfterFailure(app: PersistenceOwner): Promise<void> {
+  // An admitted startup operation must settle before its application owner drains it.
+  // Waiting for cleanup here would make that operation wait on itself.
+  if (hasActivePersistenceWork(app)) return;
   try {
     await cleanupPersistence(app);
   } catch {
