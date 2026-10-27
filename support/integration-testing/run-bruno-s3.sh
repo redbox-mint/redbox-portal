@@ -21,7 +21,7 @@ rm /opt/junit/backend-bruno/backend-bruno-s3.xml || true
 
 set +e
 node_modules/.bin/bru run "7 - S3 Attachment Storage" \
-  --disable-cookies --env int-test --format junit --bail \
+  --disable-cookies --env int-test --sandbox developer --format junit --bail \
   --output /opt/junit/backend-bruno/backend-bruno-s3.xml
 status=$?
 set -e

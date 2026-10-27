@@ -12,7 +12,7 @@ test('A01 local authentication login and logout', async ({ page }) => {
   await page.locator('#username').fill(process.env.PLAYWRIGHT_ADMIN_USER ?? 'admin');
   await page.locator('#password').fill(process.env.PLAYWRIGHT_ADMIN_PASSWORD ?? 'rbadmin');
   await page.locator('button[type="submit"]').click();
-  const logout = page.getByRole('link', { name: /log ?out/i }).first();
+  const logout = page.getByRole('button', { name: /log ?out/i }).first();
   await expect(logout).toBeVisible();
   await logout.click();
   await expect(page.getByRole('link', { name: /login/i }).first()).toBeVisible();

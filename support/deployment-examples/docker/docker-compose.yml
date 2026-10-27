@@ -1,41 +1,31 @@
-version: '3.1'
-networks:
-    main:
+# Use an immutable v6 image containing the institution's selected extensions.
 services:
-    redboxportal:
-        image: 'qcifengineering/redbox-portal:latest'
-        ports:
-            - '80:80'
-        restart: always
-        expose:
-            - '80'
-        environment:
-            - NODE_ENV=docker
-            - PORT=80
-            - sails_redbox__apiKey=xxxx-xxxx-xxxx
-            - sails_record__baseUrl_redbox=http://redbox:9000/redbox
-            - sails_appUrl=http://localhost
-        networks:
-            main:
-                aliases: [rbportal]
-        init: true
-        entrypoint: '/bin/bash -c "cd /opt/redbox-portal && node app.js"'
-    redbox:
-        image: 'qcifengineering/redbox:2.x'
-        expose:
-            - '9000'
-        environment:
-            - RB_API_KEY=xxxx-xxxx-xxxx
-        networks:
-            main:
-                aliases: [redbox]
-        ports:
-            - '9000:9000'
-    mongodb:
-        image: 'mongo:8.0.34@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907'
-        networks:
-            main:
-                aliases: [mongodb]
-        ports:
-            - '27017:27017'
-            
+  redboxportal:
+    image: '${RBPORTAL_IMAGE:?Set the qualified v6 image digest}'
+    ports: ['127.0.0.1:1500:1500']
+    restart: unless-stopped
+    # Must exceed server.stopDeadlineMs (default 30000 ms) and queue drainTimeoutMs.
+    stop_grace_period: 45s
+    environment:
+      NODE_ENV: production
+      REDBOX_APPLICATION_CONFIG: /deployment.cjs
+      REDBOX_PUBLIC_URL: '${REDBOX_PUBLIC_URL:?Set the canonical public URL}'
+      REDBOX_SESSION_SECRET: '${REDBOX_SESSION_SECRET:?Set the session secret}'
+    volumes:
+      - './deployment.cjs:/deployment.cjs:ro'
+      - 'attachments:/attachments'
+    depends_on: [mongodb, solr]
+    init: true
+  mongodb:
+    image: mongo:8.0.34@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907
+    ulimits:
+      nofile: {soft: 64000, hard: 64000}
+    volumes: ['mongodb:/data/db']
+  solr:
+    image: solr:10.0.0@sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b
+    command: [solr-precreate, redbox]
+    volumes: ['solr:/var/solr']
+volumes:
+  mongodb:
+  solr:
+  attachments:

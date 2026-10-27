@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/test';
-import { field, saveForm } from '../helpers/forms';
+import { field, saveForm, saveFormWithSchemaWarnings } from '../helpers/forms';
 
 test('F16 structure-tabs-accordions preserve independent values across hidden panels and reload', async ({ adminPage, records }) => {
   const record = await records.create('e2e-structure-tabs-accordions', { title: 'Structure', overview: 'Overview stored', details: 'Details stored', first: 'First stored', second: 'Second stored' });
@@ -86,13 +86,13 @@ test('F18 structure-question-tree clears hidden branches and restores the saved 
   await expect(adminPage.getByRole('radio', { name: 'Alpha open', exact: true })).toBeHidden();
   await adminPage.getByRole('radio', { name: 'Beta restricted', exact: true }).check();
   await adminPage.getByRole('radio', { name: 'Participant consent', exact: true }).check();
-  await saveForm(adminPage);
+  await saveFormWithSchemaWarnings(adminPage, [{ code: 'record-schema.type', pointer: '/decision/questiontree-outcome-info' }]);
   expect((await records.read(record.oid)).body).toMatchObject({ decision: { branch: 'beta', alpha: null, beta: 'restricted', reason: 'consent' } });
   await adminPage.reload();
   await expect(adminPage.getByRole('radio', { name: 'Beta branch', exact: true })).toBeChecked();
   await expect(adminPage.getByRole('radio', { name: 'Participant consent', exact: true })).toBeChecked();
   await adminPage.getByRole('radio', { name: 'Beta open', exact: true }).check();
   await expect(adminPage.getByRole('radio', { name: 'Participant consent', exact: true })).toBeHidden();
-  await saveForm(adminPage);
+  await saveFormWithSchemaWarnings(adminPage, [{ code: 'record-schema.type', pointer: '/decision/questiontree-outcome-info' }]);
   expect((await records.read(record.oid)).body).toMatchObject({ decision: { branch: 'beta', alpha: null, beta: 'open', reason: null } });
 });

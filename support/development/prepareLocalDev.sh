@@ -45,7 +45,7 @@ npm run compile:dev-hook
 show_step 'Build raido.'
 npm run compile:raido
 
-show_step 'Build host.'
+show_step 'Build host assets.'
 npm run compile:host
 
 show_step 'Build angular apps.'
