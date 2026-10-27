@@ -137,7 +137,14 @@ function finding(
   context?: string
 ): LegacyMigrationFinding {
   const id = fingerprint([code, target ? targetKey(target) : '', context ?? '', message]).slice(0, 16);
-  return { id, severity, code, target, context, message };
+  return {
+    id,
+    severity,
+    code,
+    ...(target === undefined ? {} : { target }),
+    ...(context === undefined ? {} : { context }),
+    message,
+  };
 }
 
 /** v5.0.1 DashboardConfigService.normalizeTableConfig: empty => built-in columns. */

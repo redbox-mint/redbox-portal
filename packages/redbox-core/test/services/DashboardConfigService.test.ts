@@ -34,6 +34,7 @@ function createStore() {
         return found ? JSON.parse(JSON.stringify(found)) : undefined;
       },
       create: async (values: Doc) => {
+        assertJsonValue(values);
         if (docs.some((d) => d.branding === values.branding)) {
           throw Object.assign(new Error('duplicate key'), { code: 'E_UNIQUE' });
         }
