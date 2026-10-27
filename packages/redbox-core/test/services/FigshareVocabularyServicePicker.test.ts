@@ -1,3 +1,6 @@
+import { figshareVocabularyInput } from '../helpers/figshareVocabularyInput';
+import { createDomainFixture } from './testHelper';
+let environment: any;
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
 let expect: Chai.ExpectStatic;
@@ -30,8 +33,8 @@ describe('FigshareVocabularyService mapping picker reads', function () {
   let mappingFind: sinon.SinonStub;
   let categoryFind: sinon.SinonStub;
 
-  const savedGlobals = new Map<string, unknown>();
-  let createdSailsGlobal = false;
+  const savedFixtures = new Map<string, unknown>();
+  let createdEnvironment = false;
 
   /** Two live categories plus one retired upstream. */
   const CATEGORIES = [
@@ -55,7 +58,7 @@ describe('FigshareVocabularyService mapping picker reads', function () {
   beforeEach(function () {
     stubVocabularyPersistence();
     for (const name of MODEL_GLOBALS) {
-      savedGlobals.set(name, repositoryFixtures[name]);
+      savedFixtures.set(name, repositoryFixtures[name]);
     }
 
     crosswalkFindOne = sinon.stub().resolves({
@@ -88,32 +91,24 @@ describe('FigshareVocabularyService mapping picker reads', function () {
     repositoryFixtures.FigshareVocabularyCategory = { find: categoryFind };
     repositoryFixtures.VocabularyEntry = { find: entryFind };
 
-    createdSailsGlobal = (global as any).sails == null;
-    if (createdSailsGlobal) {
-      const { createMockSails } = require('./testHelper');
-      (global as any).sails = createMockSails();
-    }
+    environment = createDomainFixture();
 
     delete require.cache[require.resolve('../../src/services/FigshareVocabularyService')];
     const { Services } = require('../../src/services/FigshareVocabularyService');
-    service = new Services.FigshareVocabularyService();
+    service = new Services.FigshareVocabularyService(figshareVocabularyInput(environment));
   });
 
   afterEach(function () {
     for (const name of MODEL_GLOBALS) {
-      const previous = savedGlobals.get(name);
+      const previous = savedFixtures.get(name);
       if (previous === undefined) {
         delete repositoryFixtures[name];
       } else {
         repositoryFixtures[name] = previous;
       }
     }
-    savedGlobals.clear();
+    savedFixtures.clear();
 
-    if (createdSailsGlobal) {
-      delete (global as any).sails;
-      createdSailsGlobal = false;
-    }
     sinon.restore();
   });
 

@@ -14,14 +14,14 @@ import { ILogger } from "@researchdatabox/sails-ng-common";
 
 type ReaddirResult = Awaited<ReturnType<typeof fs.readdir>>;
 
-type StubbedSails = {
+type VocabularyEnvironment = {
   log: Partial<ILogger>;
   config: {
     auth: { defaultBrand: string };
     bootstrap?: { bootstrapDataPath?: string };
     vocab?: { bootstrapRvaImports?: boolean };
   };
-  services: Record<string, unknown>;
+  collaborators: Record<string, unknown>;
 };
 
 type VocabularyFindChain = {
@@ -55,8 +55,8 @@ type VocabularyEntryModelStub = {
   updateOne: (...args: unknown[]) => { set: (...args: unknown[]) => Promise<{ id: string }> };
 };
 
-type TestGlobals = typeof globalThis & {
-  sails: StubbedSails;
+type VocabularyFixture = {
+  environment: VocabularyEnvironment;
   Vocabulary: VocabularyModelStub;
   VocabularyEntry: VocabularyEntryModelStub;
   BrandingService: { getBrand?: (nameOrId: string) => { id?: string } | null };
@@ -64,18 +64,15 @@ type TestGlobals = typeof globalThis & {
 
 describe('VocabularyService', () => {
   let service: VocabularyServiceModule.VocabularyService;
-  let g: TestGlobals;
-  let previousUnderscore: unknown;
+  let g: VocabularyFixture;
 
   beforeEach(() => {
     stubVocabularyPersistence();
-    g = globalThis as TestGlobals;
-    previousUnderscore = Reflect.get(globalThis, '_');
-    Reflect.set(globalThis, '_', lodash);
-    g.sails = {
+    g = {} as VocabularyFixture;
+    g.environment = {
       log: createSinonStubLogger(sinon),
       config: { auth: { defaultBrand: 'default' } },
-      services: {
+      collaborators: {
         brandingservice: { getDefault: sinon.stub().returns('default') },
         rvaimportservice: { importRvaVocabulary: sinon.stub().resolves({ id: 'rva-v1' }) }
       }
@@ -117,7 +114,10 @@ describe('VocabularyService', () => {
       }))
     });
 
-    service = new VocabularyServiceModule.VocabularyService();
+    service = new VocabularyServiceModule.VocabularyService({ repository: require('../../src/persistence/vocabulary/runtime').getVocabularyRepositories(),
+      get config() { return g.environment.config; }, log: g.environment.log as ILogger,
+      getBrand: name => g.BrandingService.getBrand(name), defaultBrand: () => g.environment.collaborators.brandingservice.getDefault(),
+      get rva() { return g.environment.collaborators.rvaimportservice; } });
     g.BrandingService = {
       getBrand: sinon.stub().returns({ id: 'default' })
     };
@@ -127,13 +127,6 @@ describe('VocabularyService', () => {
     sinon.restore();
     Reflect.deleteProperty(repositoryFixtures, 'Vocabulary');
     Reflect.deleteProperty(repositoryFixtures, 'VocabularyEntry');
-    Reflect.deleteProperty(globalThis, 'BrandingService');
-    Reflect.deleteProperty(globalThis, 'sails');
-    if (previousUnderscore === undefined) {
-      Reflect.deleteProperty(globalThis, '_');
-    } else {
-      Reflect.set(globalThis, '_', previousUnderscore);
-    }
   });
 
   it('lists vocabularies with pagination metadata', async () => {
@@ -589,7 +582,7 @@ describe('VocabularyService', () => {
         ],
       });
       expect(maximumWrites).to.equal(2);
-      sinon.assert.notCalled(g.sails.log.warn as sinon.SinonStub);
+      sinon.assert.notCalled(g.environment.log.warn as sinon.SinonStub);
     });
 
     it('settles in-flight parent writes before cleaning up after an import failure', async () => {
@@ -754,7 +747,7 @@ describe('VocabularyService', () => {
       error => error === failure);
     expect(rows.map(row => row.order)).to.deep.equal([10, 1]);
     expect(writes).to.deep.equal(['e1', 'e2']);
-    sinon.assert.notCalled(g.sails.log.warn as sinon.SinonStub);
+    sinon.assert.notCalled(g.environment.log.warn as sinon.SinonStub);
   });
 
   describe('bootstrapData', () => {
@@ -779,7 +772,7 @@ describe('VocabularyService', () => {
       await service.bootstrapData();
 
       expect(createStub.called).to.equal(false);
-      expect((g.sails.log.verbose as sinon.SinonStub).called).to.equal(true);
+      expect((g.environment.log.verbose as sinon.SinonStub).called).to.equal(true);
     });
 
     it('creates vocabulary from valid local bootstrap json when vocabulary does not exist', async () => {
@@ -831,7 +824,7 @@ describe('VocabularyService', () => {
       await service.bootstrapData();
 
       expect(createStub.calledOnce).to.equal(true);
-      expect((g.sails.log.error as sinon.SinonStub).called).to.equal(true);
+      expect((g.environment.log.error as sinon.SinonStub).called).to.equal(true);
     });
 
     it('logs and skips local file when name or slug is missing', async () => {
@@ -843,7 +836,7 @@ describe('VocabularyService', () => {
       await service.bootstrapData();
 
       expect(createStub.called).to.equal(false);
-      expect((g.sails.log.error as sinon.SinonStub).called).to.equal(true);
+      expect((g.environment.log.error as sinon.SinonStub).called).to.equal(true);
     });
 
     it('imports rva vocabularies when missing and skips existing ones', async () => {
@@ -856,7 +849,7 @@ describe('VocabularyService', () => {
       findOneStub.onFirstCall().resolves(null);
       findOneStub.onSecondCall().resolves({ id: 'existing-rva', name: 'Existing RVA', type: 'flat' });
       repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
 
       await service.bootstrapData();
 
@@ -869,14 +862,14 @@ describe('VocabularyService', () => {
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
       repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.onFirstCall().rejects(new Error('RVA import timed out'));
       importStub.onSecondCall().resolves({ id: 'rva-316' });
 
       await service.bootstrapData();
 
       expect(importStub.callCount).to.equal(2);
-      expect((g.sails.log.error as sinon.SinonStub).called).to.equal(false);
+      expect((g.environment.log.error as sinon.SinonStub).called).to.equal(false);
     });
 
     it('stops retrying when a timed-out RVA import is reconciled', async () => {
@@ -889,7 +882,7 @@ describe('VocabularyService', () => {
         findOneStub.onFirstCall().resolves(null);
         findOneStub.onSecondCall().resolves({ id: 'rva-316' });
         repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
-        const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+        const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(new Promise(() => undefined));
 
         const bootstrap = service.bootstrapData();
@@ -898,7 +891,7 @@ describe('VocabularyService', () => {
         await bootstrap;
 
         expect(importStub.calledOnce).to.equal(true);
-        expect((g.sails.log.error as sinon.SinonStub).called).to.equal(false);
+        expect((g.environment.log.error as sinon.SinonStub).called).to.equal(false);
       } finally {
         clock.restore();
       }
@@ -909,13 +902,13 @@ describe('VocabularyService', () => {
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
       repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.rejects(new Error('RVA metadata is invalid'));
 
       await service.bootstrapData();
 
       expect(importStub.calledOnce).to.equal(true);
-      expect((g.sails.log.error as sinon.SinonStub).calledOnce).to.equal(true);
+      expect((g.environment.log.error as sinon.SinonStub).calledOnce).to.equal(true);
     });
 
     it('stops after three transient RVA bootstrap failures', async () => {
@@ -923,13 +916,13 @@ describe('VocabularyService', () => {
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
       repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
       importStub.rejects(new Error('RVA import timed out'));
 
       await service.bootstrapData();
 
       expect(importStub.callCount).to.equal(3);
-      expect((g.sails.log.error as sinon.SinonStub).calledOnce).to.equal(true);
+      expect((g.environment.log.error as sinon.SinonStub).calledOnce).to.equal(true);
     });
 
     it('accepts an RVA import that appears after the timeout', async () => {
@@ -950,7 +943,7 @@ describe('VocabularyService', () => {
           return null;
         });
         repositoryFixtures.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
-        const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+        const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(originalImport);
 
         const bootstrap = service.bootstrapData();
@@ -959,7 +952,7 @@ describe('VocabularyService', () => {
         await bootstrap;
 
         expect(importStub.calledOnce).to.equal(true);
-        expect((g.sails.log.error as sinon.SinonStub).called).to.equal(false);
+        expect((g.environment.log.error as sinon.SinonStub).called).to.equal(false);
       } finally {
         clock.restore();
       }
@@ -969,17 +962,17 @@ describe('VocabularyService', () => {
       const clock = sinon.useFakeTimers();
       try {
         repositoryFixtures.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
-        const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+        const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
         importStub.returns(new Promise(() => undefined));
         const importBootstrap = Reflect.get(service, 'importRvaBootstrapVocabulary').bind(service) as (
-          importService: typeof g.sails.services.rvaimportservice,
+          importService: typeof g.environment.collaborators.rvaimportservice,
           rvaId: string,
           versionId: string | undefined,
           branding: string,
           sourceKey: string
         ) => Promise<VocabularyAttributes>;
 
-        const importResult = importBootstrap(g.sails.services.rvaimportservice, '316', undefined, 'default', 'rva:316');
+        const importResult = importBootstrap(g.environment.collaborators.rvaimportservice, '316', undefined, 'default', 'rva:316');
         let error: unknown;
         importResult.catch((caughtError) => { error = caughtError; });
         await clock.runAllAsync();
@@ -993,11 +986,11 @@ describe('VocabularyService', () => {
     });
 
     it('does not import rva vocabularies when disabled in config', async () => {
-      g.sails.config.vocab = { bootstrapRvaImports: false };
+      g.environment.config.vocab = { bootstrapRvaImports: false };
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
-      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.environment.collaborators.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
 
       await service.bootstrapData();
 

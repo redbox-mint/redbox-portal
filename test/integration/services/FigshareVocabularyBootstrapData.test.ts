@@ -1,3 +1,4 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRows, fixtureRemove, fixtureRow, fixtureCount } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import sinon from 'sinon';
@@ -8,7 +9,7 @@ import * as path from 'node:path';
 /**
  * Exercises the declarative Figshare import end to end against the real datastore.
  *
- * The catalogue is served by the built-in fixture client (`sails.config.figshareDev`), so no
+ * The catalogue is served by the built-in fixture client (`fixture.config.figshareDev`), so no
  * live Figshare call is made. What matters here is the shape of what lands in the database:
  * a read-only mirror, an editable clone, and an *approved* crosswalk - publishing rejects a
  * crosswalk that has no approved revision, so a draft one would make the bootstrap pointless.
@@ -35,7 +36,7 @@ describe('Figshare vocabulary bootstrap data integration', function () {
   let appConfigStub: sinon.SinonStub | undefined;
 
   const getService = (): { bootstrapData: () => Promise<void> } => {
-    return sails.services.figsharevocabularyservice as { bootstrapData: () => Promise<void> };
+    return fixture.services.FigshareVocabularyService as { bootstrapData: () => Promise<void> };
   };
 
   const writeManifest = async (imports: unknown[]): Promise<void> => {
@@ -84,7 +85,7 @@ describe('Figshare vocabulary bootstrap data integration', function () {
   before(async function () {
     this.timeout(60000);
 
-    const defaultBrand = sails.services.brandingservice.getDefault();
+    const defaultBrand = fixture.services.BrandingService.getDefault();
     brandId = String(defaultBrand.id);
     brandName = String(defaultBrand.name);
 
@@ -100,13 +101,13 @@ describe('Figshare vocabulary bootstrap data integration', function () {
       crosswalkName: CROSSWALK_NAME
     }]);
 
-    originalBootstrapPath = sails.config.bootstrap?.bootstrapDataPath;
-    originalFigshareDev = sails.config.figshareDev;
-    originalBootstrapFigshareImports = sails.config.vocab.bootstrapFigshareImports;
+    originalBootstrapPath = fixture.config.bootstrap?.bootstrapDataPath;
+    originalFigshareDev = fixture.config.figshareDev;
+    originalBootstrapFigshareImports = fixture.config.vocab.bootstrapFigshareImports;
 
-    sails.config.bootstrap = { ...(sails.config.bootstrap ?? {}), bootstrapDataPath: tempDir };
-    sails.config.vocab.bootstrapFigshareImports = true;
-    sails.config.figshareDev = {
+    fixture.config.bootstrap = { ...(fixture.config.bootstrap ?? {}), bootstrapDataPath: tempDir };
+    fixture.config.vocab.bootstrapFigshareImports = true;
+    fixture.config.figshareDev = {
       enabled: true,
       mode: 'fixture',
       fixtures: { categories: CATEGORIES }
@@ -114,7 +115,7 @@ describe('Figshare vocabulary bootstrap data integration', function () {
 
     // resolveFigshareVocabularyConfig() reads the per-brand application configuration, so the
     // brand needs a figsharePublishing block before the importer will do anything at all.
-    const service = sails.services.appconfigservice;
+    const service = fixture.services.AppConfigService;
     const getConfig = service.getAppConfigurationForBrand.bind(service);
     const originalBrandConfig = getConfig(brandName);
     appConfigStub = sinon.stub(service, 'getAppConfigurationForBrand').callsFake((name: string) =>
@@ -132,9 +133,9 @@ describe('Figshare vocabulary bootstrap data integration', function () {
     this.timeout(60000);
 
     appConfigStub?.restore();
-    sails.config.bootstrap.bootstrapDataPath = originalBootstrapPath;
-    sails.config.figshareDev = originalFigshareDev;
-    sails.config.vocab.bootstrapFigshareImports = originalBootstrapFigshareImports;
+    fixture.config.bootstrap.bootstrapDataPath = originalBootstrapPath;
+    fixture.config.figshareDev = originalFigshareDev;
+    fixture.config.vocab.bootstrapFigshareImports = originalBootstrapFigshareImports;
 
     await cleanup();
     if (tempDir) {
@@ -188,7 +189,7 @@ describe('Figshare vocabulary bootstrap data integration', function () {
     const source = await fixtureRow("FigshareVocabularySource", { scope: SCOPE, taxonomyId: TAXONOMY_ID });
     const crosswalk = await fixtureRow("FigshareVocabularyCrosswalk", { figshareSource: source.id });
 
-    const resolved = await sails.services.figsharevocabularyservice.resolveCategories({
+    const resolved = await fixture.services.FigshareVocabularyService.resolveCategories({
       brandId,
       crosswalkId: String(crosswalk.id),
       sourceVocabularyId: String(crosswalk.localVocabulary),

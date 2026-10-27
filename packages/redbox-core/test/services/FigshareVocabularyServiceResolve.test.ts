@@ -1,3 +1,6 @@
+import { figshareVocabularyInput } from '../helpers/figshareVocabularyInput';
+import { createDomainFixture } from './testHelper';
+let environment: any;
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
 let expect: Chai.ExpectStatic;
@@ -30,8 +33,8 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
   let mappingFind: sinon.SinonStub;
   let categoryFind: sinon.SinonStub;
 
-  const savedGlobals = new Map<string, unknown>();
-  let createdSailsGlobal = false;
+  const savedFixtures = new Map<string, unknown>();
+  let createdEnvironment = false;
   let savedServices: unknown;
 
   /** Two live categories plus one retired upstream. */
@@ -65,7 +68,7 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
   beforeEach(function () {
     stubVocabularyPersistence();
     for (const name of MODEL_GLOBALS) {
-      savedGlobals.set(name, repositoryFixtures[name]);
+      savedFixtures.set(name, repositoryFixtures[name]);
     }
 
     crosswalkFindOne = sinon.stub().resolves({
@@ -91,35 +94,25 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
     repositoryFixtures.FigshareVocabularyCategory = { find: categoryFind };
     repositoryFixtures.VocabularyEntry = { find: entryFind };
 
-    createdSailsGlobal = (global as any).sails == null;
-    if (createdSailsGlobal) {
-      const { createMockSails } = require('./testHelper');
-      (global as any).sails = createMockSails();
-    }
-    savedServices = (global as any).sails.services;
+    environment = createDomainFixture();
+    savedServices = environment.collaborators;
 
     delete require.cache[require.resolve('../../src/services/FigshareVocabularyService')];
     const { Services } = require('../../src/services/FigshareVocabularyService');
-    service = new Services.FigshareVocabularyService();
+    service = new Services.FigshareVocabularyService(figshareVocabularyInput(environment));
   });
 
   afterEach(function () {
     for (const name of MODEL_GLOBALS) {
-      const previous = savedGlobals.get(name);
+      const previous = savedFixtures.get(name);
       if (previous === undefined) {
         delete repositoryFixtures[name];
       } else {
         repositoryFixtures[name] = previous;
       }
     }
-    savedGlobals.clear();
+    savedFixtures.clear();
 
-    if (createdSailsGlobal) {
-      delete (global as any).sails;
-      createdSailsGlobal = false;
-    } else {
-      (global as any).sails.services = savedServices;
-    }
     sinon.restore();
   });
 
@@ -184,7 +177,7 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
 
       expect(result.values).to.deep.equal(['Agricultural hydrology', 'src-2']);
       expect(result.unresolvedCodes).to.deep.equal([]);
-      sinon.assert.calledWithMatch((global as any).sails.log.warn, /src-2 has no mirrored label/);
+      sinon.assert.calledWithMatch(environment.log.warn, /src-2 has no mirrored label/);
     });
 
     it('defaults to categoryId output when none is supplied', async function () {
@@ -302,7 +295,7 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
    */
   describe('getCrosswalkUsage', function () {
     function withConfig(figsharePublishing: unknown) {
-      (global as any).sails.services = {
+      environment.collaborators = {
         appconfigservice: {
           getAppConfigurationForBrand: sinon.stub().returns({ figsharePublishing })
         }

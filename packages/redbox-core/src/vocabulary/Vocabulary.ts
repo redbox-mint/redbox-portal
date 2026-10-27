@@ -1,0 +1,1375 @@
+import _ from 'lodash';
+import type { ILogger } from '@researchdatabox/sails-ng-common';
+import type { VocabularyRepositories } from '../persistence/vocabulary/VocabularyRepositories';
+export interface VocabularyDependencies {
+  runAcceptedWork?<T>(operation: () => Promise<T>): Promise<T>;
+  readonly repository: VocabularyRepositories;
+  readonly config: {
+    readonly bootstrap?: { readonly bootstrapDataPath?: string };
+    readonly vocab?: { readonly bootstrapRvaImports?: boolean };
+  };
+  readonly log: ILogger;
+  getBrand(name: string): { id?: string | number } | null;
+  defaultBrand(): unknown;
+  readonly rva?: {
+    importRvaVocabulary(rvaId: string, versionId?: string, branding?: string): Promise<VocabularyAttributes>;
+  };
+}
+import type {
+  VocabularyRow as VocabularyAttributes,
+  EntryRow as VocabularyEntryAttributes,
+} from '../persistence/vocabulary/VocabularyRepositories';
+
+import { promiseWithTimeout } from '../utilities/PromiseUtils';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { toBoolean } from '@researchdatabox/sails-ng-common';
+
+export namespace Services {
+  type VocabType = 'flat' | 'tree';
+  type VocabSource = 'local' | 'rva' | 'external';
+  const VALID_TYPES = new Set<VocabType>(['flat', 'tree']);
+  const VALID_SOURCES = new Set<VocabSource>(['local', 'rva', 'external']);
+  const RVA_IMPORTS_FILE = 'rva-imports.json';
+  /**
+   * Handled by FigshareVocabularyService.bootstrapData() instead of here: Figshare connection
+   * settings come from AppConfigService, which is not bootstrapped until after this service runs.
+   */
+  const FIGSHARE_IMPORTS_FILE = 'figshare-imports.json';
+  const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
+  const RVA_IMPORT_TIMEOUT_MS = 30_000;
+  const RVA_IMPORT_SETTLEMENT_TIMEOUT_MS = 30_000;
+  const RVA_IMPORT_MAX_ATTEMPTS = 3;
+  const RVA_IMPORT_RETRY_DELAY_MS = 1_000;
+
+  export type VocabularyEntryInput = Pick<
+    VocabularyEntryAttributes,
+    'label' | 'value' | 'identifier' | 'order' | 'historical'
+  > & {
+    id?: string;
+    parent?: string | null;
+    children?: VocabularyEntryInput[];
+  };
+
+  export type VocabularyInput = Partial<
+    Pick<
+      VocabularyAttributes,
+      | 'id'
+      | 'slug'
+      | 'description'
+      | 'owner'
+      | 'sourceId'
+      | 'sourceVersionId'
+      | 'lastSyncedAt'
+      | 'figshareSourceKey'
+      | 'rvaSourceKey'
+    >
+  > & {
+    name: string;
+    branding: string;
+    type?: VocabType;
+    source?: VocabSource;
+    entries?: VocabularyEntryInput[];
+  };
+
+  export interface VocabularyListOptions {
+    q?: string;
+    type?: string;
+    source?: string;
+    limit?: number;
+    offset?: number;
+    sort?: string;
+    branding?: string;
+  }
+
+  export interface VocabularyTreeNode extends VocabularyEntryAttributes {
+    children: VocabularyTreeNode[];
+  }
+
+  export interface VocabularyEntriesOptions {
+    search?: string;
+    limit?: number;
+    offset?: number;
+    includeHistoricalValues?: boolean;
+  }
+
+  export interface VocabularyEntriesResponse {
+    entries: VocabularyEntryAttributes[];
+    meta: {
+      total: number;
+      limit: number;
+      offset: number;
+      vocabularyId: string;
+    };
+  }
+
+  export interface VocabularyChildrenNode {
+    id: string;
+    label: string;
+    value: string;
+    notation?: string;
+    parent?: string | null;
+    hasChildren: boolean;
+    children?: VocabularyChildrenNode[];
+  }
+
+  export interface VocabularyChildrenResponse {
+    entries: VocabularyChildrenNode[];
+    meta: {
+      vocabularyId: string;
+      parentId: string | null;
+      total: number;
+    };
+  }
+
+  export interface VocabularyExpandPathResponse {
+    paths: Record<string, VocabularyChildrenNode[]>;
+    meta: {
+      vocabularyId: string;
+      notations: string[];
+    };
+  }
+
+  export class ExternallyManagedVocabularyError extends Error {
+    public readonly code: 'externally-managed-vocabulary';
+
+    constructor(message = 'Vocabulary is managed by an external integration and is read-only here') {
+      super(message);
+      this.name = 'ExternallyManagedVocabularyError';
+      this.code = 'externally-managed-vocabulary';
+    }
+  }
+
+  export class InvalidParentIdError extends Error {
+    public readonly code: 'invalid-parent-id';
+
+    constructor(message = 'Parent entry does not belong to the requested vocabulary') {
+      super(message);
+      this.name = 'InvalidParentIdError';
+      this.code = 'invalid-parent-id';
+    }
+  }
+
+  interface BootstrapVocabularyEntryInput {
+    id?: unknown;
+    label?: unknown;
+    value?: unknown;
+    identifier?: unknown;
+    order?: unknown;
+    historical?: unknown;
+    parent?: unknown;
+    children?: unknown;
+  }
+
+  interface BootstrapVocabularyFile {
+    name?: unknown;
+    slug?: unknown;
+    description?: unknown;
+    type?: unknown;
+    entries?: unknown;
+  }
+
+  interface BootstrapRvaImportItem {
+    rvaId?: unknown;
+    versionId?: unknown;
+  }
+
+  interface BootstrapRvaImportsFile {
+    imports?: unknown;
+  }
+
+  type VocabularyListWhere = import('../persistence/vocabulary/VocabularyRepositories').VocabularyFilter;
+
+  export class VocabularyService {
+    public constructor(private readonly input: VocabularyDependencies) {}
+
+    private readonly imports = new Set<Promise<unknown>>();
+
+    public async drain(): Promise<void> {
+      while (this.imports.size) await Promise.allSettled(this.imports);
+    }
+
+    public close(): Promise<void> { return this.drain(); }
+
+    private ownImport<T>(operation: () => Promise<T>): Promise<T> {
+      const work = this.input.runAcceptedWork ? this.input.runAcceptedWork(operation) : Promise.resolve().then(operation);
+      this.imports.add(work);
+      void work.then(() => this.imports.delete(work), () => this.imports.delete(work));
+      return work;
+    }
+
+    /**
+     * Externally managed mirrors (a `source=external` vocabulary owned by a Figshare
+     * source) are only mutable through FigshareVocabularyService.applyPreview. Local
+     * clones created from a mirror are ordinary local vocabularies and stay editable.
+
+     */
+    public async assertMutableVocabulary(vocabularyId: string): Promise<void> {
+      const id = String(vocabularyId ?? '').trim();
+      if (!id) {
+        return;
+      }
+      const vocabulary = await this.input.repository.getVocabulary({ id });
+      if (!vocabulary || vocabulary.source !== 'external') {
+        return;
+      }
+      const managedSource = await this.input.repository.getSource({ vocabulary: id });
+      if (managedSource) {
+        throw new ExternallyManagedVocabularyError(
+          `Vocabulary '${vocabulary.name}' mirrors a Figshare catalogue and can only be changed through the Figshare vocabulary administration screen`
+        );
+      }
+    }
+
+    private resolveBrandingId(branding: unknown): string {
+      if (branding && typeof branding === 'object') {
+        const brandingObject = branding as { id?: string | number; _id?: string | number; name?: string };
+        if (brandingObject.id) {
+          return String(brandingObject.id);
+        }
+        if (brandingObject._id) {
+          return String(brandingObject._id);
+        }
+        if (typeof brandingObject.name === 'string' && brandingObject.name.trim()) {
+          return brandingObject.name.trim();
+        }
+        return '';
+      }
+
+      const brandingString = String(branding ?? '').trim();
+      if (!brandingString) {
+        return brandingString;
+      }
+
+      const brand = this.input.getBrand(brandingString);
+      if (brand?.id) {
+        return String(brand.id);
+      }
+
+      return brandingString;
+    }
+
+    public async list(
+      options: VocabularyListOptions
+    ): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
+      const parsedLimit = Number.parseInt(String(options.limit ?? 25), 10);
+      const parsedOffset = Number.parseInt(String(options.offset ?? 0), 10);
+      const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(200, parsedLimit) : 25;
+      const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
+      const sort = options.sort || 'name ASC';
+
+      const where: VocabularyListWhere = {};
+      if (options.type && VALID_TYPES.has(options.type as VocabType)) {
+        where.type = options.type as VocabularyAttributes['type'];
+      }
+      if (options.source && VALID_SOURCES.has(options.source as VocabSource)) {
+        where.source = options.source as VocabularyAttributes['source'];
+      }
+      // Branding is single-tenant for this admin feature; avoid ObjectId/string mismatch
+      // filtering at query time which can hide records in Mongo-backed environments.
+      if (options.q) {
+        where.search = options.q;
+      }
+
+      const total = await this.input.repository.countVocabularies(where);
+      const data = await this.input.repository.listVocabularies(where, {
+        sort: sort,
+        offset: offset,
+        limit: limit,
+      });
+      return { data, meta: { total, limit, offset } };
+    }
+
+    public async getById(id: string): Promise<VocabularyAttributes | null> {
+      return await this.input.repository.getVocabulary({ id });
+    }
+
+    public async getByIdOrSlug(branding: string, idOrSlug: string): Promise<VocabularyAttributes | null> {
+      const normalizedBranding = this.resolveBrandingId(branding);
+      const normalizedIdOrSlug = String(idOrSlug ?? '').trim();
+      if (!normalizedBranding || !normalizedIdOrSlug) {
+        return null;
+      }
+
+      if (/^[a-f\d]{24}$/i.test(normalizedIdOrSlug)) {
+        const byId = await this.input.repository.getVocabulary({
+          id: normalizedIdOrSlug,
+          branding: normalizedBranding,
+        });
+        if (byId) {
+          return byId;
+        }
+      }
+      return await this.input.repository.getVocabulary({
+        slug: normalizedIdOrSlug,
+        branding: normalizedBranding,
+      });
+    }
+
+    public async getEntries(
+      branding: string,
+      vocabIdOrSlug: string,
+      options?: VocabularyEntriesOptions
+    ): Promise<VocabularyEntriesResponse | null> {
+      const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
+      if (!vocabulary) {
+        return null;
+      }
+
+      const parsedLimit = Number.parseInt(String(options?.limit ?? 200), 10);
+      const parsedOffset = Number.parseInt(String(options?.offset ?? 0), 10);
+      const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(1000, parsedLimit) : 200;
+      const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
+      const search = String(options?.search ?? '')
+        .trim()
+        .toLowerCase();
+
+      const where: { vocabulary: string; search?: string; historical?: boolean } = {
+        vocabulary: String(vocabulary.id),
+      };
+      if (search) {
+        where.search = search;
+      }
+      if (options?.includeHistoricalValues !== true) {
+        where.historical = false;
+      }
+
+      const total = await this.input.repository.countEntries(where);
+      const entries = await this.input.repository.listEntries(where, {
+        sort: [{ order: 'ASC' }, { label: 'ASC' }],
+        offset: offset,
+        limit: limit,
+      });
+
+      return {
+        entries,
+        meta: {
+          total,
+          limit,
+          offset,
+          vocabularyId: String(vocabulary.id),
+        },
+      };
+    }
+
+    public async getChildren(
+      branding: string,
+      vocabIdOrSlug: string,
+      parentId?: string | null
+    ): Promise<VocabularyChildrenResponse | null> {
+      const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
+      if (!vocabulary) {
+        return null;
+      }
+
+      const normalizedParentId = String(parentId ?? '').trim();
+      if (normalizedParentId) {
+        const parentEntry = await this.input.repository.getEntry({
+          id: normalizedParentId,
+          vocabulary: String(vocabulary.id),
+        });
+        if (!parentEntry) {
+          throw new InvalidParentIdError();
+        }
+      }
+
+      const where: { vocabulary: string; parent?: string | null } = {
+        vocabulary: String(vocabulary.id),
+      };
+      where.parent = normalizedParentId || null;
+
+      const entries = await this.input.repository.listEntries(where, {
+        sort: [{ order: 'ASC' }, { label: 'ASC' }],
+      });
+
+      const childParentIds = entries.map(entry => String(entry.id));
+      const hasChildrenById = new Map<string, boolean>();
+
+      if (childParentIds.length > 0) {
+        const descendants = await this.input.repository.listEntries({
+          vocabulary: String(vocabulary.id),
+          parent: childParentIds,
+        });
+
+        for (const descendant of descendants) {
+          const descendantParent = String(descendant.parent ?? '');
+          if (descendantParent) {
+            hasChildrenById.set(descendantParent, true);
+          }
+        }
+      }
+
+      const responseEntries: VocabularyChildrenNode[] = entries.map(entry =>
+        this.toVocabularyChildrenNode(entry, hasChildrenById.get(String(entry.id)) === true)
+      );
+
+      return {
+        entries: responseEntries,
+        meta: {
+          vocabularyId: String(vocabulary.id),
+          parentId: normalizedParentId || null,
+          total: responseEntries.length,
+        },
+      };
+    }
+
+    public async expandPaths(
+      branding: string,
+      vocabIdOrSlug: string,
+      notations: string[]
+    ): Promise<VocabularyExpandPathResponse | null> {
+      const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
+      if (!vocabulary) {
+        return null;
+      }
+
+      const normalizedNotations = Array.from(
+        new Set(
+          (notations ?? []).map(notation => String(notation ?? '').trim()).filter(notation => notation.length > 0)
+        )
+      );
+      if (normalizedNotations.length === 0) {
+        return {
+          paths: {},
+          meta: {
+            vocabularyId: String(vocabulary.id),
+            notations: [],
+          },
+        };
+      }
+
+      const vocabularyId = String(vocabulary.id);
+      const entryCache = new Map<string, VocabularyEntryAttributes | null>();
+      const notationCache = new Map<string, VocabularyEntryAttributes | null>();
+      const paths: Record<string, VocabularyChildrenNode[]> = {};
+      const chainEntries = new Map<string, VocabularyEntryAttributes>();
+      const orderedChains: Array<{ notation: string; chain: VocabularyEntryAttributes[] }> = [];
+
+      const loadEntryById = async (entryId: string): Promise<VocabularyEntryAttributes | null> => {
+        const normalizedEntryId = String(entryId ?? '').trim();
+        if (!normalizedEntryId) {
+          return null;
+        }
+        if (entryCache.has(normalizedEntryId)) {
+          return entryCache.get(normalizedEntryId) ?? null;
+        }
+        const entry = await this.input.repository.getEntry({
+          id: normalizedEntryId,
+          vocabulary: vocabularyId,
+        });
+        entryCache.set(normalizedEntryId, entry);
+        return entry;
+      };
+
+      const loadEntryByNotation = async (notation: string): Promise<VocabularyEntryAttributes | null> => {
+        const normalizedNotation = String(notation ?? '').trim();
+        if (!normalizedNotation) {
+          return null;
+        }
+        if (notationCache.has(normalizedNotation)) {
+          return notationCache.get(normalizedNotation) ?? null;
+        }
+
+        const normalizedNotationLower = normalizedNotation.toLowerCase();
+        const exactMatch = await this.input.repository.getEntry({
+          vocabulary: vocabularyId,
+          identifier: normalizedNotation,
+        });
+        if (exactMatch) {
+          notationCache.set(normalizedNotation, exactMatch);
+          entryCache.set(String(exactMatch.id), exactMatch);
+          return exactMatch;
+        }
+
+        const lowerMatch = await this.input.repository.getEntry({
+          vocabulary: vocabularyId,
+          valueLower: normalizedNotationLower,
+        });
+        notationCache.set(normalizedNotation, lowerMatch);
+        if (lowerMatch) {
+          entryCache.set(String(lowerMatch.id), lowerMatch);
+        }
+        return lowerMatch;
+      };
+
+      for (const notation of normalizedNotations) {
+        const chain: VocabularyEntryAttributes[] = [];
+        const seenIds = new Set<string>();
+        let cursor = await loadEntryByNotation(notation);
+
+        while (cursor) {
+          const cursorId = String(cursor.id ?? '').trim();
+          if (!cursorId || seenIds.has(cursorId)) {
+            break;
+          }
+          seenIds.add(cursorId);
+          chain.unshift(cursor);
+          chainEntries.set(cursorId, cursor);
+
+          const parentId = String(cursor.parent ?? '').trim();
+          if (!parentId) {
+            break;
+          }
+          cursor = await loadEntryById(parentId);
+        }
+
+        orderedChains.push({ notation, chain });
+      }
+
+      const chainIds = Array.from(chainEntries.keys());
+      const hasChildrenById = new Map<string, boolean>();
+      const childrenByParentId = new Map<string, VocabularyEntryAttributes[]>();
+      if (chainIds.length > 0) {
+        const descendants = await this.input.repository.listEntries({
+          vocabulary: vocabularyId,
+          parent: chainIds,
+        });
+
+        for (const descendant of descendants) {
+          const descendantParent = String(descendant.parent ?? '').trim();
+          if (descendantParent) {
+            hasChildrenById.set(descendantParent, true);
+            const existing = childrenByParentId.get(descendantParent) ?? [];
+            existing.push(descendant);
+            childrenByParentId.set(descendantParent, existing);
+          }
+        }
+      }
+
+      const nodeCache = new Map<string, VocabularyChildrenNode>();
+      const buildNode = (entry: VocabularyEntryAttributes): VocabularyChildrenNode => {
+        const entryId = String(entry.id ?? '').trim();
+        if (!entryId) {
+          return this.toVocabularyChildrenNode(entry, hasChildrenById.get(entryId) === true);
+        }
+
+        const cached = nodeCache.get(entryId);
+        if (cached) {
+          return cached;
+        }
+
+        const node: VocabularyChildrenNode = this.toVocabularyChildrenNode(
+          entry,
+          hasChildrenById.get(entryId) === true
+        );
+        nodeCache.set(entryId, node);
+
+        const directChildren = childrenByParentId.get(entryId) ?? [];
+        if (directChildren.length > 0) {
+          node.children = directChildren.map(child => {
+            const childNode = buildNode(child);
+            if (chainEntries.has(String(child.id ?? '').trim())) {
+              return childNode;
+            }
+            return {
+              ...childNode,
+              children: childNode.children ?? [],
+            };
+          });
+        }
+
+        return node;
+      };
+
+      for (const { notation, chain } of orderedChains) {
+        paths[notation] = chain.map(entry => buildNode(entry));
+      }
+
+      return {
+        paths,
+        meta: {
+          vocabularyId,
+          notations: normalizedNotations,
+        },
+      };
+    }
+
+    public async getEntryByNotation(
+      branding: string,
+      vocabIdOrSlug: string,
+      notation: string
+    ): Promise<VocabularyEntryAttributes | null> {
+      const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
+      const normalizedNotation = String(notation ?? '').trim();
+      if (!vocabulary || !normalizedNotation) {
+        return null;
+      }
+
+      return await this.input.repository.getEntry({
+        vocabulary: String(vocabulary.id),
+        notation: normalizedNotation,
+      });
+    }
+
+    public async getAncestorChain(
+      branding: string,
+      vocabIdOrSlug: string,
+      notation: string
+    ): Promise<VocabularyEntryAttributes[]> {
+      const entry = await this.getEntryByNotation(branding, vocabIdOrSlug, notation);
+      if (!entry) {
+        return [];
+      }
+
+      const chain: VocabularyEntryAttributes[] = [];
+      const seenIds = new Set<string>();
+      let cursor: VocabularyEntryAttributes | null = entry;
+
+      while (cursor) {
+        const cursorId = String(cursor.id ?? '').trim();
+        if (!cursorId || seenIds.has(cursorId)) {
+          break;
+        }
+        seenIds.add(cursorId);
+        chain.unshift(cursor);
+
+        const parentId = String(cursor.parent ?? '').trim();
+        if (!parentId) {
+          break;
+        }
+        cursor = await this.input.repository.getEntry({
+          id: parentId,
+          vocabulary: String(cursor.vocabulary),
+        });
+      }
+
+      return chain;
+    }
+
+    private toVocabularyChildrenNode(entry: VocabularyEntryAttributes, hasChildren: boolean): VocabularyChildrenNode {
+      const id = String(entry.id);
+      const parent = entry.parent ? String(entry.parent) : null;
+      const notation = String(entry.identifier ?? '').trim() || String(entry.value ?? '').trim();
+      return {
+        id,
+        label: String(entry.label ?? ''),
+        value: String(entry.value ?? ''),
+        notation: notation || undefined,
+        parent,
+        hasChildren,
+      };
+    }
+
+    public async create(input: VocabularyInput): Promise<VocabularyAttributes> {
+      const payload: VocabularyInput = {
+        ...input,
+        type: input.type ?? 'flat',
+        source: input.source ?? 'local',
+      };
+
+      const entries = payload.entries ?? [];
+      delete payload.entries;
+
+      const createPayload: Partial<VocabularyAttributes> = {
+        name: payload.name,
+        description: payload.description,
+        type: payload.type,
+        source: payload.source,
+        sourceId: payload.sourceId,
+        sourceVersionId: payload.sourceVersionId,
+        lastSyncedAt: payload.lastSyncedAt,
+        owner: payload.owner,
+        branding: this.resolveBrandingId(payload.branding),
+      };
+      if (payload.slug) {
+        createPayload.slug = payload.slug;
+      }
+
+      let created: VocabularyAttributes | null = null;
+      try {
+        created = await this.input.repository.createVocabulary(createPayload);
+        if (!created) {
+          throw new Error('Vocabulary create failed');
+        }
+        if (entries.length > 0) {
+          await this.replaceEntries(created.id, created.type === 'flat', entries);
+        }
+        const findQuery = this.input.repository.getVocabulary({ id: created.id });
+        const saved = await findQuery;
+        if (!saved) {
+          throw new Error('Vocabulary create failed');
+        }
+        return saved;
+      } catch (err) {
+        if (created?.id) {
+          try {
+            await this.input.repository.removeVocabularyEntries(created.id);
+            await this.input.repository.removeVocabulary(created.id);
+          } catch (_cleanupErr) {
+            // Swallow cleanup errors to preserve the original failure.
+          }
+        }
+        throw err;
+      }
+    }
+
+    public async bootstrapData(): Promise<void> {
+      const bootstrapPath = this.getBootstrapDataPath();
+      let fileNames: string[] = [];
+      const fileOps = this.getBootstrapFileOps();
+
+      try {
+        const fileEntries = await fileOps.readdir(bootstrapPath, { withFileTypes: true });
+        fileNames = fileEntries
+          .filter(entry => entry.isFile() && entry.name.endsWith('.json'))
+          .map(entry => entry.name)
+          .sort((a, b) => a.localeCompare(b));
+      } catch (error) {
+        const ioError = error as NodeJS.ErrnoException;
+        if (ioError.code === 'ENOENT') {
+          this.input.log.verbose(`Vocabulary bootstrap data path not found: ${bootstrapPath}`);
+          return;
+        }
+        this.input.log.error(`Failed to read vocabulary bootstrap data path: ${bootstrapPath}`);
+        return;
+      }
+
+      const defaultBranding = this.resolveBrandingId(this.input.defaultBrand());
+      if (!defaultBranding) {
+        this.input.log.error('Unable to resolve default branding for vocabulary bootstrap data');
+        return;
+      }
+
+      for (const fileName of fileNames) {
+        if (fileName === RVA_IMPORTS_FILE) {
+          await this.processRvaImportsFile(bootstrapPath, fileName, defaultBranding);
+          continue;
+        }
+        if (fileName === FIGSHARE_IMPORTS_FILE) {
+          continue;
+        }
+        await this.processVocabularyBootstrapFile(bootstrapPath, fileName, defaultBranding);
+      }
+    }
+
+    public async update(id: string, input: Partial<VocabularyInput>): Promise<VocabularyAttributes> {
+      const existing = await this.input.repository.getVocabulary({ id });
+      if (!existing) {
+        throw new Error('Vocabulary not found');
+      }
+      await this.assertMutableVocabulary(id);
+
+      const updatePayload: Partial<VocabularyInput> = { ...input };
+      const entries = updatePayload.entries;
+      delete updatePayload.entries;
+
+      const modelUpdate: Partial<VocabularyAttributes> = {
+        name: updatePayload.name,
+        description: updatePayload.description,
+        type: updatePayload.type,
+        source: updatePayload.source,
+        sourceId: updatePayload.sourceId,
+        sourceVersionId: updatePayload.sourceVersionId,
+        lastSyncedAt: updatePayload.lastSyncedAt,
+        owner: updatePayload.owner,
+      };
+      if (typeof updatePayload.branding !== 'undefined') {
+        modelUpdate.branding = this.resolveBrandingId(updatePayload.branding);
+      }
+      if (typeof updatePayload.slug !== 'undefined') {
+        modelUpdate.slug = updatePayload.slug;
+      }
+
+      const updateQuery = this.input.repository.reviseVocabulary(id, modelUpdate);
+      await updateQuery;
+      const updatedQuery = this.input.repository.getVocabulary({ id });
+      const updated = await updatedQuery;
+      if (!updated) {
+        throw new Error('Vocabulary not found');
+      }
+
+      if (entries) {
+        await this.replaceEntries(id, updated.type === 'flat', entries);
+      }
+
+      const refreshedQuery = this.input.repository.getVocabulary({ id });
+      const refreshed = await refreshedQuery;
+      if (!refreshed) {
+        throw new Error('Vocabulary not found');
+      }
+      return refreshed;
+    }
+
+    public async reorderEntries(
+      vocabularyId: string,
+      entryOrders: Array<{ id: string; order: number }>
+    ): Promise<number> {
+      if (!Array.isArray(entryOrders) || entryOrders.length === 0) {
+        return 0;
+      }
+      await this.assertMutableVocabulary(vocabularyId);
+
+      const vocabularyQuery = this.input.repository.getVocabulary({ id: vocabularyId });
+      const vocabulary = await vocabularyQuery;
+      if (!vocabulary) {
+        throw new Error('Vocabulary not found');
+      }
+
+      const requestedIds = entryOrders.map(entry => String(entry.id));
+      const dedupedIds = new Set(requestedIds);
+      if (requestedIds.length !== dedupedIds.size) {
+        throw new Error('entryOrders contains duplicate ids');
+      }
+
+      const existingQuery = this.input.repository.listEntries({ id: Array.from(dedupedIds) });
+      const existingEntries = await existingQuery;
+      if (existingEntries.length !== dedupedIds.size) {
+        throw new Error('One or more entry ids were not found');
+      }
+
+      for (const entry of existingEntries) {
+        if (String(entry.vocabulary) !== String(vocabularyId)) {
+          throw new Error('All entries must belong to the target vocabulary');
+        }
+      }
+
+      let updated = 0;
+      for (const entryOrder of entryOrders) {
+        const updateQuery = this.input.repository.reviseEntry(entryOrder.id, { order: entryOrder.order });
+        const updatedEntry = await updateQuery;
+        if (updatedEntry) {
+          updated++;
+        }
+      }
+
+      return updated;
+    }
+
+    public async delete(id: string): Promise<void> {
+      await this.assertMutableVocabulary(id);
+      await this.input.repository.removeVocabularyEntries(id);
+      await this.input.repository.removeVocabulary(id);
+    }
+
+    public normalizeEntry(entry: VocabularyEntryInput): VocabularyEntryInput {
+      return {
+        ...entry,
+        label: String(entry.label ?? '').trim(),
+        value: String(entry.value ?? '').trim(),
+        historical: toBoolean(entry.historical),
+      };
+    }
+
+    public async validateParent(vocabularyId: string, entryId: string | null, parentId: string | null): Promise<void> {
+      if (!parentId) {
+        return;
+      }
+      if (entryId && parentId === entryId) {
+        throw new Error('VocabularyEntry cannot parent itself');
+      }
+
+      const parentQuery = this.input.repository.getEntry({ id: parentId });
+      const parent = await parentQuery;
+      if (!parent) {
+        throw new Error('VocabularyEntry.parent not found');
+      }
+      if (String(parent.vocabulary) !== String(vocabularyId)) {
+        throw new Error('VocabularyEntry.parent must belong to the same vocabulary');
+      }
+
+      if (!entryId) {
+        return;
+      }
+
+      let cursor: VocabularyEntryAttributes | null = parent;
+      while (cursor?.parent) {
+        if (String(cursor.parent) === entryId) {
+          throw new Error('VocabularyEntry cycle detected');
+        }
+        const cursorQuery = this.input.repository.getEntry({ id: String(cursor.parent) });
+        cursor = await cursorQuery;
+      }
+    }
+
+    public async getTree(vocabularyId: string): Promise<VocabularyTreeNode[]> {
+      const entries = await this.input.repository.listEntries(
+        { vocabulary: vocabularyId },
+        { sort: [{ order: 'ASC' }, { label: 'ASC' }] }
+      );
+      const nodes: Record<string, VocabularyTreeNode> = {};
+      const roots: VocabularyTreeNode[] = [];
+
+      for (const entry of entries) {
+        const node: VocabularyTreeNode = {
+          ...entry,
+          children: [],
+        };
+        nodes[String(entry.id)] = node;
+      }
+
+      for (const entry of entries) {
+        const node = nodes[String(entry.id)];
+        if (entry.parent && nodes[String(entry.parent)]) {
+          nodes[String(entry.parent)].children.push(node);
+        } else {
+          roots.push(node);
+        }
+      }
+
+      return roots;
+    }
+
+    public async upsertEntries(
+      vocabularyId: string,
+      entries: VocabularyEntryInput[]
+    ): Promise<{ created: number; updated: number; skipped: number }> {
+      await this.assertMutableVocabulary(vocabularyId);
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
+      const inputIdToEntryId: Record<string, string> = {};
+      const parentAssignments: Array<{ entryId: string; parent: string | null }> = [];
+
+      for (const rawEntry of entries) {
+        const entry = rawEntry;
+        if (!entry.label || entry.value === null || entry.value === undefined) {
+          skipped++;
+          continue;
+        }
+
+        let existing: VocabularyEntryAttributes | null = null;
+        if (entry.identifier) {
+          const byIdentifier = this.input.repository.getEntry({
+            vocabulary: vocabularyId,
+            identifier: entry.identifier,
+          });
+          existing = await byIdentifier;
+        }
+        if (!existing) {
+          const byValue = this.input.repository.getEntry({
+            vocabulary: vocabularyId,
+            valueLower: entry.value.toLowerCase(),
+          });
+          existing = await byValue;
+        }
+
+        if (!existing) {
+          const createQuery = this.input.repository.createEntry({
+            vocabulary: vocabularyId,
+            label: entry.label,
+            value: entry.value,
+            identifier: entry.identifier,
+            order: entry.order ?? 0,
+            historical: entry.historical ?? false,
+          });
+          const createdEntry = await createQuery;
+          const createdEntryId = String(createdEntry.id);
+          if (entry.id) {
+            inputIdToEntryId[String(entry.id)] = createdEntryId;
+          }
+          parentAssignments.push({ entryId: createdEntryId, parent: entry.parent ?? null });
+          created++;
+          continue;
+        }
+
+        const existingEntryId = String(existing.id);
+        if (entry.id) {
+          inputIdToEntryId[String(entry.id)] = existingEntryId;
+        }
+        parentAssignments.push({ entryId: existingEntryId, parent: entry.parent ?? null });
+        const updateQuery = this.input.repository.reviseEntry(existing.id, {
+          label: entry.label,
+          value: entry.value,
+          identifier: entry.identifier,
+          order: entry.order ?? existing.order ?? 0,
+          historical: entry.historical ?? existing.historical ?? false,
+        });
+        await updateQuery;
+        updated++;
+      }
+
+      for (const assignment of parentAssignments) {
+        const parentCandidate = assignment.parent ? (inputIdToEntryId[assignment.parent] ?? assignment.parent) : null;
+        await this.validateParent(vocabularyId, assignment.entryId, parentCandidate);
+        const parentUpdateQuery = this.input.repository.reviseEntry(assignment.entryId, {
+          parent: parentCandidate ?? null,
+        });
+        await parentUpdateQuery;
+      }
+
+      return { created, updated, skipped };
+    }
+
+    /**
+     * Replace vocabulary entries while preserving model validation and remapping parent IDs.
+     * Bulk creation requires distinct identifiers. Parent links stay serial for graphs
+     * that cannot be verified as internal forests.
+     */
+    private async replaceEntries(
+      vocabularyId: string,
+      isFlat: boolean,
+      entries: VocabularyEntryInput[]
+    ): Promise<void> {
+      const flatEntries = this.flattenEntries(entries);
+      if (isFlat && flatEntries.some(entry => entry.parent)) {
+        throw new Error('Vocabulary.type = flat does not support parent entries');
+      }
+
+      const destroyQuery = this.input.repository.removeVocabularyEntries(vocabularyId);
+      await destroyQuery;
+
+      const oldToNewIds: Record<string, string> = {};
+      const identifiers = flatEntries.map(entry => String(entry.identifier ?? '').trim());
+      // RVA concepts have distinct identifiers, so fetched rows can be matched
+      // without depending on the adapter's return order. Keep serial creation
+      // for other inputs, including duplicates that model callbacks must reject.
+      if (identifiers.every(Boolean) && new Set(identifiers).size === flatEntries.length) {
+        const records = flatEntries.map(entry => {
+          if (!entry.label || entry.value === null || entry.value === undefined) {
+            throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
+          }
+          return {
+            vocabulary: vocabularyId,
+            label: entry.label,
+            value: entry.value,
+            identifier: entry.identifier,
+            order: entry.order ?? 0,
+            historical: entry.historical ?? false,
+          };
+        });
+        const idsByIdentifier = new Map<string, string>();
+        // Waterline runs a model callback per row concurrently. Bound each
+        // batch so large vocabularies do not flood the database connection pool.
+        for (let start = 0; start < records.length; start += 500) {
+          const created = await this.input.repository.createEntries(records.slice(start, start + 500));
+          for (const entry of created) {
+            idsByIdentifier.set(String(entry.identifier).trim(), String(entry.id));
+          }
+        }
+        for (const [index, entry] of flatEntries.entries()) {
+          const id = idsByIdentifier.get(identifiers[index]);
+          if (!id) {
+            throw new Error('Vocabulary entry batch did not return every requested identifier');
+          }
+          oldToNewIds[String(entry.id)] = id;
+        }
+      } else {
+        for (const entry of flatEntries) {
+          const normalized = entry;
+          if (!normalized.label || normalized.value === null || normalized.value === undefined) {
+            throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
+          }
+
+          const createQuery = this.input.repository.createEntry({
+            vocabulary: vocabularyId,
+            label: normalized.label,
+            value: normalized.value,
+            identifier: normalized.identifier,
+            order: normalized.order ?? 0,
+            historical: normalized.historical ?? false,
+          });
+          const created = await createQuery;
+
+          oldToNewIds[String(normalized.id)] = String(created.id);
+        }
+      }
+
+      const entriesWithParents = flatEntries.filter((entry): entry is VocabularyEntryInput & { parent: string } =>
+        Boolean(entry.parent)
+      );
+      const parentsById = new Map(flatEntries.map(entry => [String(entry.id), entry.parent]));
+      let canLinkInParallel = parentsById.size === flatEntries.length;
+      const checked = new Set<string>();
+      for (const entry of entriesWithParents) {
+        if (!canLinkInParallel) break;
+        const path = new Set<string>();
+        let cursor: string | null | undefined = String(entry.id);
+        while (cursor && !checked.has(cursor)) {
+          if (path.has(cursor) || !parentsById.has(cursor)) {
+            canLinkInParallel = false;
+            break;
+          }
+          path.add(cursor);
+          cursor = parentsById.get(cursor);
+        }
+        path.forEach(id => checked.add(id));
+      }
+
+      const linkParent = async (entry: VocabularyEntryInput & { parent: string }): Promise<void> => {
+        const entryId = oldToNewIds[String(entry.id)];
+        const mappedParentId = oldToNewIds[entry.parent] ?? entry.parent;
+        if (!entryId) {
+          return;
+        }
+        await this.validateParent(vocabularyId, entryId, mappedParentId);
+        const updateQuery = this.input.repository.reviseEntry(entryId, {
+          parent: mappedParentId,
+        });
+        await updateQuery;
+      };
+
+      if (canLinkInParallel) {
+        // An internal forest cannot gain a cycle from concurrent parent writes.
+        // Keep model callbacks and validation, and settle each bounded batch
+        // before propagating failure so create() can clean up safely.
+        for (let start = 0; start < entriesWithParents.length; start += 10) {
+          const results = await Promise.allSettled(entriesWithParents.slice(start, start + 10).map(linkParent));
+          for (const result of results) {
+            if (result.status === 'rejected') throw result.reason;
+          }
+        }
+      } else {
+        for (const entry of entriesWithParents) {
+          await linkParent(entry);
+        }
+      }
+    }
+
+    private getBootstrapDataPath(): string {
+      const configuredPath = _.get(this.input.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
+      return path.resolve(String(configuredPath), 'vocabularies');
+    }
+
+    protected getBootstrapFileOps(): Pick<typeof fs, 'readdir' | 'readFile'> {
+      return fs;
+    }
+
+    private async processVocabularyBootstrapFile(
+      basePath: string,
+      fileName: string,
+      defaultBranding: string
+    ): Promise<void> {
+      const filePath = path.join(basePath, fileName);
+      const parsed = await this.readJsonFile<BootstrapVocabularyFile>(filePath);
+      if (!parsed) {
+        return;
+      }
+
+      const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
+      const slug = typeof parsed.slug === 'string' ? parsed.slug.trim() : '';
+      if (!name || !slug) {
+        this.input.log.error(`Skipping vocabulary bootstrap file with missing name or slug: ${fileName}`);
+        return;
+      }
+
+      const existing = await this.input.repository.getVocabulary({ slug, branding: defaultBranding });
+      if (existing) {
+        this.input.log.verbose(`Skipping existing vocabulary bootstrap data: ${slug}`);
+        return;
+      }
+
+      const createPayload: VocabularyInput = {
+        name,
+        slug,
+        branding: defaultBranding,
+      };
+
+      if (typeof parsed.description === 'string') {
+        createPayload.description = parsed.description;
+      }
+
+      if (typeof parsed.type === 'string' && VALID_TYPES.has(parsed.type as VocabType)) {
+        createPayload.type = parsed.type as VocabType;
+      }
+
+      const entries = this.toBootstrapEntries(parsed.entries);
+      if (entries.length > 0) {
+        createPayload.entries = entries;
+      }
+
+      try {
+        const created = await this.create(createPayload);
+        this.input.log.verbose(`Created vocabulary bootstrap data: ${slug} (${String(created.id)})`);
+      } catch (_error) {
+        this.input.log.error(`Failed to create vocabulary from bootstrap file: ${fileName}`);
+      }
+    }
+
+    private async processRvaImportsFile(basePath: string, fileName: string, defaultBranding: string): Promise<void> {
+      if (_.get(this.input.config, 'vocab.bootstrapRvaImports') === false) {
+        this.input.log.verbose(`Skipping RVA imports bootstrap file (disabled): ${fileName}`);
+        return;
+      }
+
+      const filePath = path.join(basePath, fileName);
+      const parsed = await this.readJsonFile<BootstrapRvaImportsFile>(filePath);
+      if (!parsed) {
+        return;
+      }
+
+      const imports = Array.isArray(parsed.imports) ? (parsed.imports as BootstrapRvaImportItem[]) : [];
+      if (!Array.isArray(parsed.imports)) {
+        this.input.log.error(`Invalid RVA imports format in bootstrap file: ${fileName}`);
+        return;
+      }
+
+      const rvaImportService = this.input.rva;
+      if (!rvaImportService?.importRvaVocabulary) {
+        this.input.log.error('RVA import service unavailable while processing vocabulary bootstrap data');
+        return;
+      }
+
+      for (const item of imports) {
+        const rvaId = typeof item?.rvaId === 'string' ? item.rvaId.trim() : String(item?.rvaId ?? '').trim();
+        if (!rvaId) {
+          this.input.log.error(`Skipping RVA bootstrap import with missing rvaId in ${fileName}`);
+          continue;
+        }
+
+        const sourceKey = `rva:${rvaId}`;
+        const existing = await this.input.repository.getVocabulary({ rvaSourceKey: sourceKey });
+        if (existing) {
+          this.input.log.verbose(`Skipping existing RVA bootstrap import: ${sourceKey}`);
+          continue;
+        }
+
+        const versionId = typeof item?.versionId === 'string' ? item.versionId.trim() : undefined;
+
+        try {
+          await this.importRvaBootstrapVocabulary(rvaImportService, rvaId, versionId, defaultBranding, sourceKey);
+          this.input.log.verbose(`Imported RVA bootstrap vocabulary: ${sourceKey}`);
+        } catch (_error) {
+          this.input.log.error(`Failed RVA bootstrap import: ${sourceKey}`);
+        }
+      }
+    }
+
+    private async importRvaBootstrapVocabulary(
+      rvaImportService: {
+        importRvaVocabulary: (rvaId: string, versionId?: string, branding?: string) => Promise<VocabularyAttributes>;
+      },
+      rvaId: string,
+      versionId: string | undefined,
+      branding: string,
+      sourceKey: string
+    ): Promise<VocabularyAttributes> {
+      let lastError: unknown;
+
+      for (let attempt = 1; attempt <= RVA_IMPORT_MAX_ATTEMPTS; attempt++) {
+        let importPromise: Promise<VocabularyAttributes> | undefined;
+        try {
+          importPromise = this.ownImport(() => rvaImportService.importRvaVocabulary(rvaId, versionId, branding));
+          return await promiseWithTimeout(importPromise, RVA_IMPORT_TIMEOUT_MS, `RVA import ${sourceKey}`);
+        } catch (error) {
+          lastError = error;
+          if (!this.isRetryableRvaImportError(error)) {
+            throw error;
+          }
+          if (!importPromise) {
+            throw error;
+          }
+
+          // A timeout does not cancel the import. Wait for the in-flight operation to
+          // settle before retrying, so it cannot overlap a second import.
+          await new Promise<void>(resolve => setTimeout(resolve, RVA_IMPORT_RETRY_DELAY_MS));
+
+          const imported = await this.input.repository.getVocabulary({ rvaSourceKey: sourceKey });
+          if (imported) {
+            this.input.log.verbose(`RVA bootstrap import completed after timeout: ${sourceKey}`);
+            return imported;
+          }
+
+          // Retrying while the original import is still pending could create a
+          // duplicate vocabulary. Fail this bootstrap item instead of overlapping it
+          // if it does not settle within the bounded reconciliation window.
+          const settled = await promiseWithTimeout(
+            importPromise,
+            RVA_IMPORT_SETTLEMENT_TIMEOUT_MS,
+            `RVA import ${sourceKey} settlement`
+          ).then(
+            value => ({ status: 'fulfilled' as const, value }),
+            reason => {
+              if (reason instanceof Error && reason.message.includes('settlement timed out')) {
+                throw reason;
+              }
+              return { status: 'rejected' as const, reason };
+            }
+          );
+          if (settled.status === 'fulfilled') {
+            return settled.value;
+          }
+          lastError = settled.reason;
+
+          // The original operation has settled, so this reconciliation cannot race with
+          // its database write before a retry is launched.
+          const settledImport = await this.input.repository.getVocabulary({ rvaSourceKey: sourceKey });
+          if (settledImport) {
+            this.input.log.verbose(`RVA bootstrap import completed after timeout: ${sourceKey}`);
+            return settledImport;
+          }
+
+          if (attempt === RVA_IMPORT_MAX_ATTEMPTS) {
+            throw lastError;
+          }
+
+          this.input.log.verbose(
+            `Retrying RVA bootstrap import ${sourceKey} (attempt ${attempt + 1}/${RVA_IMPORT_MAX_ATTEMPTS})`
+          );
+        }
+      }
+
+      throw lastError;
+    }
+
+    private isRetryableRvaImportError(error: unknown): boolean {
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      return /timed out|timeout|ETIMEDOUT|ECONNABORTED|ECONNRESET|ECONNREFUSED|EAI_AGAIN/i.test(message);
+    }
+
+    private async readJsonFile<T>(filePath: string): Promise<T | null> {
+      try {
+        const content = await this.getBootstrapFileOps().readFile(filePath, 'utf8');
+        return JSON.parse(content) as T;
+      } catch (_error) {
+        this.input.log.error(`Failed to read vocabulary bootstrap file: ${path.basename(filePath)}`);
+        return null;
+      }
+    }
+
+    private toBootstrapEntries(entries: unknown): VocabularyEntryInput[] {
+      if (!Array.isArray(entries)) {
+        return [];
+      }
+
+      return entries.map((entry, index) => this.toBootstrapEntry(entry, index, 'bootstrap'));
+    }
+
+    private toBootstrapEntry(rawEntry: unknown, index: number, branch: string): VocabularyEntryInput {
+      const entry = rawEntry && typeof rawEntry === 'object' ? (rawEntry as BootstrapVocabularyEntryInput) : {};
+
+      const generatedId = typeof entry.id !== 'undefined' ? String(entry.id) : `${branch}-${index}`;
+      const normalized: VocabularyEntryInput = {
+        id: generatedId,
+        label: String(entry.label ?? '').trim(),
+        value: String(entry.value ?? '').trim(),
+        order: typeof entry.order === 'number' ? entry.order : index,
+        historical: typeof entry.historical === 'undefined' ? false : toBoolean(entry.historical),
+      };
+
+      if (typeof entry.identifier === 'string' && entry.identifier.trim()) {
+        normalized.identifier = entry.identifier.trim();
+      }
+      if (typeof entry.parent !== 'undefined' && entry.parent !== null) {
+        normalized.parent = String(entry.parent);
+      }
+      if (Array.isArray(entry.children)) {
+        normalized.children = entry.children.map((child, childIndex) =>
+          this.toBootstrapEntry(child, childIndex, generatedId)
+        );
+      }
+      return normalized;
+    }
+
+    private flattenEntries(
+      entries: VocabularyEntryInput[],
+      parentId: string | null = null,
+      branch: string = 'n'
+    ): VocabularyEntryInput[] {
+      const flat: VocabularyEntryInput[] = [];
+      entries.forEach((entry, index) => {
+        const generatedId = entry.id ?? `${branch}-${index}`;
+        const normalized: VocabularyEntryInput = {
+          ...entry,
+          id: generatedId,
+          order: entry.order ?? index,
+          parent: parentId ?? entry.parent,
+        };
+        flat.push(normalized);
+        if (entry.children && entry.children.length > 0) {
+          flat.push(...this.flattenEntries(entry.children, generatedId, generatedId));
+        }
+      });
+      return flat;
+    }
+  }
+}

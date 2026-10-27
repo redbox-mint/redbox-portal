@@ -1,3 +1,6 @@
+import { figshareVocabularyInput } from '../helpers/figshareVocabularyInput';
+import { createDomainFixture } from './testHelper';
+let environment: any;
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
 let expect: Chai.ExpectStatic;
@@ -15,7 +18,7 @@ const MODEL_GLOBALS = [
  * `bootstrap-data/vocabularies/figshare-imports.json`.
  *
  * The contract this suite protects: a bootstrap importer must never be able to fail the
- * Sails lift, must be idempotent across restarts, and must leave behind an *approved*
+ * application initialization, must be idempotent across restarts, and must leave behind an *approved*
  * crosswalk - a draft one is useless to publishing, which refuses any crosswalk without an
  * approved revision.
  */
@@ -35,13 +38,12 @@ describe('FigshareVocabularyService bootstrap data', function () {
   let readFile: sinon.SinonStub;
   let logError: sinon.SinonStub;
 
-  const savedGlobals = new Map<string, unknown>();
+  const savedFixtures = new Map<string, unknown>();
   let savedVocabConfig: unknown;
   let savedBootstrapConfig: unknown;
   let savedServices: unknown;
   let savedLog: any;
-  /** True when this suite created the sails global and must therefore remove it. */
-  let createdSailsGlobal = false;
+  let createdEnvironment = false;
 
   const IMPORT_ITEM = {
     scope: 'public',
@@ -64,7 +66,7 @@ describe('FigshareVocabularyService bootstrap data', function () {
   beforeEach(function () {
     stubVocabularyPersistence();
     for (const name of MODEL_GLOBALS) {
-      savedGlobals.set(name, (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name]);
+      savedFixtures.set(name, repositoryFixtures[name]);
     }
 
     sourceFindOne = sinon.stub().resolves(null);
@@ -80,37 +82,32 @@ describe('FigshareVocabularyService bootstrap data', function () {
       updateOne: crosswalkUpdateOne
     };
 
-    // Don't depend on another spec file having installed the sails global first —
-    // suite ordering left this undefined when the whole suite runs.
-    createdSailsGlobal = (global as any).sails == null;
-    if (createdSailsGlobal) {
-      const { createMockSails } = require('./testHelper');
-      (global as any).sails = createMockSails();
-    }
+    // Each suite constructs its own explicit domain environment.
+    environment = createDomainFixture();
 
-    const sails = (global as any).sails;
-    savedVocabConfig = sails.config.vocab;
-    savedBootstrapConfig = sails.config.bootstrap;
-    savedServices = sails.services;
-    savedLog = sails.log;
 
-    sails.config.vocab = {};
-    sails.config.bootstrap = { bootstrapDataPath: '/app/bootstrap-data' };
-    sails.services = { brandingservice: { getDefault: () => ({ id: BRAND, name: 'default' }) } };
+    savedVocabConfig = environment.config.vocab;
+    savedBootstrapConfig = environment.config.bootstrap;
+    savedServices = environment.collaborators;
+    savedLog = environment.log;
+
+    environment.config.vocab = {};
+    environment.config.bootstrap = { bootstrapDataPath: '/app/bootstrap-data' };
+    environment.collaborators = { brandingservice: { getDefault: () => ({ id: BRAND, name: 'default' }) } };
     logError = sinon.stub();
-    sails.log = { ...savedLog, error: logError };
+    environment.log = { ...savedLog, error: logError };
 
     // The service calls resolveFigshareVocabularyConfig() at call time via the module
     // object, so stubbing the cached module reaches it without re-requiring.
     configModule = require('../../src/services/figshare-v2/config');
-    sinon.stub(configModule, 'resolveFigshareVocabularyConfig').returns({
+    environment.configuration = sinon.stub().returns({
       connection: { baseUrl: 'https://api.figshare.com/v2', token: 'tok' },
       runtime: { mode: 'fixture' }
     });
 
     delete require.cache[require.resolve('../../src/services/FigshareVocabularyService')];
     const { Services } = require('../../src/services/FigshareVocabularyService');
-    service = new Services.FigshareVocabularyService();
+    service = new Services.FigshareVocabularyService(figshareVocabularyInput(environment));
 
     readFile = sinon.stub().resolves(JSON.stringify({ imports: [IMPORT_ITEM] }));
     sinon.stub(service, 'getBootstrapFileOps').returns({ readFile });
@@ -128,25 +125,15 @@ describe('FigshareVocabularyService bootstrap data', function () {
 
   afterEach(function () {
     for (const name of MODEL_GLOBALS) {
-      const previous = savedGlobals.get(name);
+      const previous = savedFixtures.get(name);
       if (previous === undefined) {
-        delete (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name];
+        delete repositoryFixtures[name];
       } else {
-        (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name] = previous;
+        repositoryFixtures[name] = previous;
       }
     }
-    savedGlobals.clear();
+    savedFixtures.clear();
 
-    if (createdSailsGlobal) {
-      delete (global as any).sails;
-      createdSailsGlobal = false;
-    } else {
-      const sails = (global as any).sails;
-      sails.config.vocab = savedVocabConfig;
-      sails.config.bootstrap = savedBootstrapConfig;
-      sails.services = savedServices;
-      sails.log = savedLog;
-    }
 
     sinon.restore();
   });
@@ -223,7 +210,7 @@ describe('FigshareVocabularyService bootstrap data', function () {
   });
 
   it('does nothing when bootstrapFigshareImports is disabled', async function () {
-    (global as any).sails.config.vocab = { bootstrapFigshareImports: false };
+    environment.config.vocab = { bootstrapFigshareImports: false };
 
     await service.bootstrapData();
 
@@ -232,7 +219,7 @@ describe('FigshareVocabularyService bootstrap data', function () {
   });
 
   it('skips quietly when Figshare is not configured for the default brand', async function () {
-    configModule.resolveFigshareVocabularyConfig.returns(null);
+    environment.configuration.returns(null);
 
     await service.bootstrapData();
 

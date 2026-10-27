@@ -1,19 +1,24 @@
+import { preparePage } from '../../src/http/express/pages';
+import { createHttpPolicies } from '../../src/http/express/policies';
+import { PageArtifacts } from '../../src/pages/Artifacts';
+import { configurationFixtures } from '../helpers/serviceRepositories';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('TranslationService', function () {
-  let mockSails: any;
+  let fixture: any;
   let TranslationService: any;
   let mockI18nBundle: any;
   let mockI18nextInstance: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         i18n: {
@@ -46,9 +51,9 @@ describe('TranslationService', function () {
       }
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.I18nBundle = mockI18nBundle;
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandNameFromReq: sinon.stub().returns('default'),
       getAvailable: sinon.stub().returns(['default'])
@@ -63,13 +68,13 @@ describe('TranslationService', function () {
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/TranslationService');
-    TranslationService = new Services.Translation();
+    TranslationService = new Services.Translation({ repository: configurationFixtures(), log: fixture.log, config: fixture.config, getBrand: name => collaborators.BrandingService.getBrand(name), availableBrands: () => collaborators.BrandingService.getAvailable() });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.I18nBundle;
-    delete (global as any).BrandingService;
+    delete collaborators.BrandingService;
     const i18next = require('i18next');
     if (i18next.createInstance.restore) {
       i18next.createInstance.restore();
@@ -77,14 +82,31 @@ describe('TranslationService', function () {
     sinon.restore();
   });
 
+  async function prepareLanguage(req: any, res: any, next: sinon.SinonStub) {
+    res.set = sinon.stub().returns(res);
+    req.query = { lng: req.param('lng') };
+    req.originalUrl = '/default/rdmp'; req.path = req.originalUrl;
+    req.params.portal = 'rdmp';
+    const policies = createHttpPolicies({ branding: { getBrand: async name => collaborators.BrandingService.getBrand(name) }, portals: ['rdmp'], pathRules: {} as any, authenticate: async () => false, defaultUnauthenticatedRole: () => undefined, emitRequestFailure: async () => {} });
+    await policies.brandingandportal(req, res, error => { if (error) throw error; });
+    const page = await preparePage(req, res, {
+      settings: async () => ({}), languages: async brand => (await TranslationService.getAvailableLanguagesForBranding(brand)).map(code => ({ code, displayName: code })),
+      translate: (brand, language, key) => TranslationService.t(key, undefined, language, brand),
+      csrf: { generateToken: () => 'fixture-csrf' }, rootContext: '', origin: 'http://localhost', templateConfig: {}, typeface: () => null,
+      artifacts: new PageArtifacts(['/tmp'], ['/tmp']), log: fixture.log,
+    } as any);
+    req.options.locals = page.locals;
+    next();
+  }
+
   describe('initialization', function () {
     it('should initialize i18next when not cached', async function () {
       // Ensure no cached instance
       TranslationService.i18nextInstances = {};
 
       const branding = { id: 'brand-new', name: 'new' };
-      (global as any).BrandingService.getBrand.returns(branding);
-      (global as any).BrandingService.getBrandNameFromReq.returns('new');
+      collaborators.BrandingService.getBrand.returns(branding);
+      collaborators.BrandingService.getBrandNameFromReq.returns('new');
 
       const req = {
         param: sinon.stub().returns(null),
@@ -95,7 +117,7 @@ describe('TranslationService', function () {
       const res = { cookie: sinon.stub() };
       const next = sinon.stub();
 
-      await TranslationService.handle(req, res, next);
+      await TranslationService.getI18nextForBranding(branding);
 
       expect(mockI18nextInstance.init.called).to.be.true;
     });
@@ -188,13 +210,15 @@ describe('TranslationService', function () {
 
     it('should handle DB errors gracefully', async function () {
       const branding = { id: 'brand-1', name: 'default' };
-      mockI18nBundle.find.rejects(new Error('DB error'));
+      mockI18nBundle.find.rejects(new Error('private-translation-provider-secret'));
 
       const result = await TranslationService.getAvailableLanguagesForBranding(branding);
 
       // Should still return configured languages
       expect(result).to.be.an('array');
       expect(result.length).to.be.greaterThan(0);
+      const calls = ['warn', 'debug', 'verbose'].flatMap(level => fixture.log[level].getCalls());
+      expect(calls.some(call => call.args.some(arg => String(arg).includes('private-translation-provider-secret')))).to.equal(false);
     });
   });
 
@@ -218,18 +242,18 @@ describe('TranslationService', function () {
         }
       };
 
-      await TranslationService.handle(req, res, next);
+      await prepareLanguage(req, res, next);
 
-      expect(req.session).to.have.property('lang');
+      expect(req.session).to.have.property('langCode');
       expect(req.options.locals).to.have.property('lang');
-      expect(res.cookie.calledWith('lng')).to.be.true;
+      expect(req.options.locals.lang).to.equal(req.session.langCode);
       expect(next.calledOnce).to.be.true;
     });
 
     it('should use session language when param not provided', async function () {
       const req: any = {
         param: sinon.stub().returns(null),
-        session: { lang: 'de' },
+        session: { langCode: 'de' },
         options: { locals: {} },
         params: { branding: 'default' }
       };
@@ -244,9 +268,9 @@ describe('TranslationService', function () {
         }
       };
 
-      await TranslationService.handle(req, res, next);
+      await prepareLanguage(req, res, next);
 
-      expect(req.session.lang).to.equal('de');
+      expect(req.session.langCode).to.equal('de');
     });
 
     it('should fall back to default for unsupported language', async function () {
@@ -267,9 +291,9 @@ describe('TranslationService', function () {
         }
       };
 
-      await TranslationService.handle(req, res, next);
+      await prepareLanguage(req, res, next);
 
-      expect(req.session.lang).to.equal('en'); // Default language
+      expect(req.session.langCode).to.equal('en'); // Default language
     });
   });
 
