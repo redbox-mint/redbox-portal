@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 task_root=$PWD
-node --eval 'require("node:assert/strict").equal(process.version, "v26.11.1")'
+node --eval 'require("node:assert/strict").equal(process.version, "v26.12.1")'
 task_state=$(mktemp -d "${SR_P7_SCRATCH_ROOT:?Set a writable scratch directory with at least 6 GiB free}/sr-p7-recovery.XXXXXX")
 task_logs="${SR_P7_RECOVERY_LOGS:-$task_root/.tmp/sails-retirement/p7/recovery-$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$task_logs" "$task_state/state/attachments/primary" "$task_state/state/attachments/staging" "$task_state/state/configuration" "$task_state/checkpoint" "$task_state/tools"

@@ -7,7 +7,7 @@ const { execFileSync } = require('node:child_process');
 const { createRequire } = require('node:module');
 
 test('production image contains standalone exports, EJS views and every Angular application', async () => {
-  assert.equal(process.version, 'v26.11.1');
+  assert.equal(process.version, 'v26.12.1');
   const npm = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim();
   assert.equal(npm, '11.20.0');
   assert.equal(process.env.NODE_ENV, 'production');
