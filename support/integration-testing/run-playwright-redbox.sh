@@ -113,8 +113,8 @@ else
   verify_bundles
 fi
 
-# Redoc is needed only while building the browser bundle.
-rm -rf node_modules/redoc
+# Retain the installed dependency graph: v6 extension discovery verifies every
+# declared dependency before acquiring the production application.
 
 export RBPORTAL_COVERAGE_DIR="${RBPORTAL_COVERAGE_DIR:-/tmp/coverage/playwright}"
 export NYC_OUTPUT="${NYC_OUTPUT:-/tmp/nyc_output_playwright}"
