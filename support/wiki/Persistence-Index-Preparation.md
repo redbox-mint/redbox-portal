@@ -84,9 +84,9 @@ run the same command in a one-off application container with its existing config
 
 ```bash
 docker compose --profile mount -f support/development/docker-compose.yml run \
-  --rm --no-deps --entrypoint npm rbportal-mount run persistence:indexes -- --inspect
+  --rm --no-deps --entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:inspect
 docker compose --profile mount -f support/development/docker-compose.yml run \
-  --rm --no-deps --entrypoint npm rbportal-mount run persistence:indexes -- --ensure
+  --rm --no-deps --entrypoint node rbportal-mount app.express.cjs --maintenance=indexes:ensure
 ```
 
 Use the institution's actual Compose project/service and current installed core
