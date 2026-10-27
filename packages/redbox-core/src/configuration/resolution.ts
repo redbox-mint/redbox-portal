@@ -127,7 +127,16 @@ export function resolveStartupConfiguration<T extends Record<string, unknown>>(
       const value = location.join('.') === 'agendaQueue.jobs' ? jobs(raw, source) : raw;
       sources.set(location.join('.'), source);
       if (isConfigurationObject(value)) {
-        if (!isConfigurationObject(target[key])) target[key] = {};
+        const existing = target[key];
+        const changesDiskDriver =
+          path.length === 2 &&
+          path[0] === 'storage' &&
+          path[1] === 'disks' &&
+          typeof value.driver === 'string' &&
+          isConfigurationObject(existing) &&
+          value.driver !== existing.driver;
+        // Disk configs belong to their driver; filesystem roots cannot leak into GridFS or S3.
+        if (!isConfigurationObject(existing) || changesDiskDriver) target[key] = {};
         merge(target[key] as Record<string, unknown>, value, source, location);
       } else target[key] = value; // All ordinary arrays replace, including branding defaults.
     }
