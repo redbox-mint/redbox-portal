@@ -55,6 +55,8 @@ x-rbportal-env: &rbportal-env
   - 'BRUNO_POST_SLEEP_SECONDS=${BRUNO_POST_SLEEP_SECONDS:-30}'
 
 x-rbportal-depends: &rbportal-depends
+  bruno-stubs:
+    condition: 'service_healthy'
   keycloak:
     condition: 'service_healthy'
   mongodb:
@@ -103,6 +105,20 @@ x-rbportal-service: &rbportal-service
     - /opt/redbox-portal/support/integration-testing/run-bruno-general-redbox.sh
 
 services:
+  bruno-stubs:
+    image: node:24.22.1-bookworm@sha256:6449e19d8184d84062525b6a7524def03146c2cb04a7f08b076680d0e8e4240a
+    pull_policy: 'missing'
+    working_dir: /opt/bruno-stubs
+    command: ['node', 'server.cjs']
+    volumes:
+      - './bruno-stubs:/opt/bruno-stubs:ro'
+    networks:
+      main:
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:8787/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: '5s'
+      timeout: '3s'
+      retries: 10
   bruno:
     <<: *bruno-service
     profiles: [ci]
