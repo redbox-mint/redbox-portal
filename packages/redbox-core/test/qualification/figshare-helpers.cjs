@@ -20,7 +20,7 @@ test(
   'owned Figshare mappings, isolated license caches and streamed filesystem upload use real HTTP',
   { timeout: 30000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     assert.equal(global.sails, undefined);
     const directory = await mkdtemp(join(tmpdir(), 'sr-p7-figshare-helpers-'));
     const bytes = Buffer.from('qualified streamed Figshare attachment\n');
