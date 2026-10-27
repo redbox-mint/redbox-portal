@@ -18,7 +18,7 @@ test(
   'production Express host serves existing pages and authenticated APIs and stops without Sails',
   { timeout: 120000 },
   async () => {
-    assert.equal(process.version, 'v26.11.1');
+    assert.equal(process.version, 'v26.12.1');
     const rootContext = process.env.SR_PORTAL_ROOT_CONTEXT ?? '';
     assert(['', '/research'].includes(rootContext));
     const url = process.env.SR_PORTAL_MONGO_URL;

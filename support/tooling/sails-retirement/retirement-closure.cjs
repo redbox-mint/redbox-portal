@@ -185,7 +185,14 @@ for (const file of files) {
     continue;
   }
   if (!/\.(?:[cm]?js|tsx?)(?:\.hbs)?$/.test(file)) {
-    const executableText = source.replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*#.*$/gm, '');
+    let executableText = source;
+    let previous;
+    // Removing one comment can join fragments into another opening delimiter.
+    do {
+      previous = executableText;
+      executableText = executableText.replace(/<!--[\s\S]*?-->/g, '');
+    } while (executableText !== previous);
+    executableText = executableText.replace(/<!--[\s\S]*$/, '').replace(/^\s*#.*$/gm, '');
     if (/\bsails\.[A-Za-z]|\bSails\.[A-Za-z]|\bsails_[A-Za-z_]|sails lift|sails lower/.test(executableText)) {
       if (file === 'support/integration-testing/rehearse-sails-retirement-recovery.sh')
         classified.push({

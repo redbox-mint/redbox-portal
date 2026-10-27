@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-assert.equal(process.version,'v26.11.1');
+assert.equal(process.version,'v26.12.1');
 assert.equal(global.sails,undefined);
 const historical = new Set(['@researchdatabox/sails-ng-common','@researchdatabox/sails-hook-redbox-storage-mongo','@researchdatabox/sails-hook-redbox-pdfgen']);
 const forbidden = name => {
