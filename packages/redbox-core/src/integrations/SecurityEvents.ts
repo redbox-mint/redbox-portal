@@ -15,6 +15,8 @@ export interface SecurityEventCaptureInput {
   configuration(brandName: string): unknown;
   enqueue(name: string, data: Record<string, unknown>): Promise<unknown>;
   record(oid: string): Promise<unknown>;
+  hasAcceptedWork?(): boolean;
+  drainAcceptedWork?(): Promise<void>;
 }
 
 type AgendaJobLike = { attrs?: { data?: unknown } };
@@ -39,10 +41,12 @@ export namespace Services {
     /** Called before persistence cleanup so accepted work can persist its outcome. */
     public async drain(): Promise<void> {
       this.draining = true;
-      await Promise.allSettled(this.active);
+      await this.input.drainAcceptedWork?.();
+      while (this.active.size) await Promise.allSettled(this.active);
     }
     private accept(operation: () => Promise<void>): Promise<void> {
-      if (this.draining) return Promise.reject(new Error('SIEM workers are draining.'));
+      if (this.draining && !this.input.hasAcceptedWork?.())
+        return Promise.reject(new Error('SIEM workers are draining.'));
       const pending = Promise.resolve().then(operation);
       this.active.add(pending);
       void pending.then(
@@ -103,7 +107,6 @@ export namespace Services {
     }
 
     public emitSecurityEvent(input: SecurityEventInput): Promise<void> {
-      if (this.draining) return Promise.resolve();
       return this.accept(() => this.emitAccepted(input));
     }
     private async emitAccepted(input: SecurityEventInput): Promise<void> {
@@ -141,7 +144,6 @@ export namespace Services {
     }
 
     public emitFromRecordAudit(recordAudit: Record<string, unknown>): Promise<void> {
-      if (this.draining) return Promise.resolve();
       return this.accept(() => this.emitAcceptedRecordAudit(recordAudit));
     }
     private async emitAcceptedRecordAudit(recordAudit: Record<string, unknown>): Promise<void> {
@@ -195,7 +197,6 @@ export namespace Services {
     }
 
     public emitFromAttachmentAudit(attachmentAudit: Record<string, unknown>): Promise<void> {
-      if (this.draining) return Promise.resolve();
       return this.accept(() => this.emitAcceptedAttachmentAudit(attachmentAudit));
     }
     private async emitAcceptedAttachmentAudit(attachmentAudit: Record<string, unknown>): Promise<void> {
