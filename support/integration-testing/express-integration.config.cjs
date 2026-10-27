@@ -43,6 +43,9 @@ module.exports = {
   companion: fixtures.companion,
   vocab: {
     bootstrapRvaImports: false,
+    ...(process.env.BRUNO_DATACITE_BASE_URL
+      ? { services: { dataciteDois: { options: { baseUrl: process.env.BRUNO_DATACITE_BASE_URL } } } }
+      : {}),
     ...(process.env.PLAYWRIGHT_BROWSER_STUB_URL
       ? { rva: { baseUrl: `${process.env.PLAYWRIGHT_BROWSER_STUB_URL}/rva` } }
       : {}),
