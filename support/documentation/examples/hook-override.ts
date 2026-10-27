@@ -25,7 +25,7 @@ export function registerRedboxExtension(): RedboxExtension {
         create:
           (input: { example: Example }): RequestHandler =>
           (_req, res) => {
-            res.json({ ready: input.example - health() });
+            res.json({ ready: input.example.health() });
           },
       },
     ],
