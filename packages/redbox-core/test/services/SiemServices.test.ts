@@ -1,3 +1,5 @@
+import { securityCaptureInput, siemForwardingInput } from '../helpers/siemInputs';
+const collaborators: any = {};
 import { installSiemRepositoryStub } from './siemRepositoryStub';
 // @ts-nocheck
 const { Effect } = require('effect');
@@ -12,7 +14,7 @@ const { buildSiemPayload, SiemAdapterError } = require('../../src/services/siem/
 const { limitPayloadSize, redactForSiem } = require('../../src/services/siem/SiemPayloadRedactor');
 const { Services: SecurityEventServices } = require('../../src/services/SecurityEventService');
 const { Services: SiemForwardingServices } = require('../../src/services/SiemForwardingService');
-const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = require('./testHelper');
+const { restoreRepositoryFixtures, createDomainFixture, installRepositoryFixtures } = require('./testHelper');
 
 const expect: Chai.ExpectStatic = require('chai').expect;
 
@@ -27,12 +29,12 @@ describe('SIEM services and helpers', function () {
   };
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete global['AgendaQueueService'];
-    delete global['AppConfigService'];
-    delete global['BrandingService'];
-    delete global['SecurityEvent'];
-    delete global['SiemDeliveryAttempt'];
+    restoreRepositoryFixtures();
+    delete collaborators['AgendaQueueService'];
+    delete collaborators['AppConfigService'];
+    delete collaborators['BrandingService'];
+    delete collaborators['SecurityEvent'];
+    delete collaborators['SiemDeliveryAttempt'];
     sinon.restore();
   });
 
@@ -188,13 +190,14 @@ describe('SIEM services and helpers', function () {
 
   it('queues enabled security events after applying severity mapping and redaction', async function () {
     const queue = { now: sinon.stub().resolves(undefined) };
-    setupServiceTestGlobals(createMockSails());
-    global['AgendaQueueService'] = queue;
-    global['BrandingService'] = {
+    installRepositoryFixtures();
+    collaborators.environment = createDomainFixture();
+    collaborators['AgendaQueueService'] = queue;
+    collaborators['BrandingService'] = {
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
-    global['AppConfigService'] = {
+    collaborators['AppConfigService'] = {
       getAppConfigurationForBrand: sinon.stub().returns({
         siem: {
           ...enabledSiemConfig,
@@ -206,7 +209,7 @@ describe('SIEM services and helpers', function () {
       }),
     };
 
-    const service = new SecurityEventServices.SecurityEventService();
+    const service = new SecurityEventServices.SecurityEventService(securityCaptureInput(collaborators));
     await service.emitSecurityEvent({
       brandId: 'brand-1',
       eventType: 'authorization.failure',
@@ -225,13 +228,14 @@ describe('SIEM services and helpers', function () {
 
   it('does not queue events when SIEM is disabled or the category is excluded', async function () {
     const queue = { now: sinon.stub().resolves(undefined) };
-    setupServiceTestGlobals(createMockSails());
-    global['AgendaQueueService'] = queue;
-    global['BrandingService'] = {
+    installRepositoryFixtures();
+    collaborators.environment = createDomainFixture();
+    collaborators['AgendaQueueService'] = queue;
+    collaborators['BrandingService'] = {
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
-    global['AppConfigService'] = {
+    collaborators['AppConfigService'] = {
       getAppConfigurationForBrand: sinon.stub().returns({
         siem: {
           ...enabledSiemConfig,
@@ -243,7 +247,7 @@ describe('SIEM services and helpers', function () {
       }),
     };
 
-    const service = new SecurityEventServices.SecurityEventService();
+    const service = new SecurityEventServices.SecurityEventService(securityCaptureInput(collaborators));
     await service.emitSecurityEvent({
       brandId: 'brand-1',
       eventType: 'authorization.failure',

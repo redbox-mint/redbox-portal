@@ -1,7 +1,6 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
 import { fixtureRows, fixtureCreate, fixturePatchOne, fixtureRemove } from '../../helpers/persistenceFixtures';
-declare var DashboardConfigService: any;
 declare var DashboardConfiguration: any;
-declare var BrandingService: any;
 
 const dashboardMigration = require('@researchdatabox/redbox-core').DashboardConfigService;
 
@@ -15,12 +14,12 @@ describe('DashboardConfigService (datastore)', function () {
   let brand: any;
 
   before(async function () {
-    brand = BrandingService.getDefault();
-    expect(DashboardConfigService.isReady()).to.equal(true);
+    brand = fixture.services.BrandingService.getDefault();
+    expect(fixture.services.DashboardConfigService.isReady()).to.equal(true);
   });
 
   async function current() {
-    return DashboardConfigService.getTargetSettings(brand, target);
+    return fixture.services.DashboardConfigService.getTargetSettings(brand, target);
   }
 
   function withTitle(settings: any, title: string) {
@@ -44,8 +43,8 @@ describe('DashboardConfigService (datastore)', function () {
   it('lets only one of two concurrent saves based on the same revision succeed', async function () {
     const base = await current();
     const results = await Promise.allSettled([
-      DashboardConfigService.saveTargetSettings(brand, target, { expectedRevision: base.revision, settings: withTitle(base.settings, 'Writer A') }),
-      DashboardConfigService.saveTargetSettings(brand, target, { expectedRevision: base.revision, settings: withTitle(base.settings, 'Writer B') }),
+      fixture.services.DashboardConfigService.saveTargetSettings(brand, target, { expectedRevision: base.revision, settings: withTitle(base.settings, 'Writer A') }),
+      fixture.services.DashboardConfigService.saveTargetSettings(brand, target, { expectedRevision: base.revision, settings: withTitle(base.settings, 'Writer B') }),
     ]);
     const fulfilled = results.filter((r) => r.status === 'fulfilled');
     const rejected = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
@@ -63,16 +62,16 @@ describe('DashboardConfigService (datastore)', function () {
       { kind: 'workflow', recordType: 'dataRecord', stage: 'draft' },
       { kind: 'workflow', recordType: 'dataPublication', stage: 'draft' },
     ];
-    const preview = await DashboardConfigService.previewCopy(brand, { source: target, destinations, groups: ['columnsAndActions'] });
+    const preview = await fixture.services.DashboardConfigService.previewCopy(brand, { source: target, destinations, groups: ['columnsAndActions'] });
     const acknowledgedWarningIds = preview.warnings.map((w: any) => w.id);
-    const result = await DashboardConfigService.applyCopy(brand, { ...preview, groups: ['columnsAndActions'], acknowledgedWarningIds });
+    const result = await fixture.services.DashboardConfigService.applyCopy(brand, { ...preview, groups: ['columnsAndActions'], acknowledgedWarningIds });
     expect(result.updated).to.equal(2);
     expect(result.revision).to.equal(preview.expectedRevision + 1);
 
     // Replaying the same reviewed preview is stale and changes nothing.
     let code = '';
     try {
-      await DashboardConfigService.applyCopy(brand, { ...preview, groups: ['columnsAndActions'], acknowledgedWarningIds });
+      await fixture.services.DashboardConfigService.applyCopy(brand, { ...preview, groups: ['columnsAndActions'], acknowledgedWarningIds });
     } catch (error: any) {
       code = error.code;
     }
@@ -84,22 +83,22 @@ describe('DashboardConfigService (datastore)', function () {
     const suffix = Date.now().toString();
     const createdBrand = await fixtureCreate("BrandingConfig", { name: `dashboard-migration-${suffix}`, variables: {} });
     const brandId = String(createdBrand.id);
-    const previousDashboardViews = sails.config.dashboardview;
-    const previousDashboardTypes = sails.config.dashboardtype;
+    const previousDashboardViews = fixture.config.dashboardview;
+    const previousDashboardTypes = fixture.config.dashboardtype;
     let legacyOverride: any;
 
     try {
       // Keep this test focused on persistence: the new brand has no workflow
       // stages, views or profiles to migrate, but it has legacy AppConfig data.
-      sails.config.dashboardview = {};
-      sails.config.dashboardtype = {};
+      fixture.config.dashboardview = {};
+      fixture.config.dashboardtype = {};
       legacyOverride = await fixtureCreate("AppConfig", {
         branding: brandId,
         configKey: dashboardMigration.DASHBOARD_LEGACY_OVERRIDE_KEY,
         configData: { recordTypes: {}, views: {} },
       });
 
-      await sails.services.dashboardconfigservice.migrateLegacyConfiguration();
+      await fixture.services.DashboardConfigService.migrateLegacyConfiguration();
 
       const docs = await fixtureRows("DashboardConfiguration", { branding: brandId });
       expect(docs).to.have.length(1);
@@ -116,7 +115,7 @@ describe('DashboardConfigService (datastore)', function () {
       await fixturePatchOne("AppConfig", { id: legacyOverride.id }, {
         configData: { recordTypes: { changedAfterMigration: {} }, views: {} },
       });
-      await sails.services.dashboardconfigservice.migrateLegacyConfiguration();
+      await fixture.services.DashboardConfigService.migrateLegacyConfiguration();
 
       const rerunDocs = await fixtureRows("DashboardConfiguration", { branding: brandId });
       const rerunSnapshots = await fixtureRows("AppConfig", {
@@ -128,8 +127,8 @@ describe('DashboardConfigService (datastore)', function () {
       expect(rerunSnapshots).to.have.length(1);
       expect(rerunSnapshots[0].configData).to.deep.equal(firstSnapshot);
     } finally {
-      sails.config.dashboardview = previousDashboardViews;
-      sails.config.dashboardtype = previousDashboardTypes;
+      fixture.config.dashboardview = previousDashboardViews;
+      fixture.config.dashboardtype = previousDashboardTypes;
       await fixtureRemove("DashboardConfiguration", { branding: brandId });
       await fixtureRemove("AppConfig", { branding: brandId });
       await fixtureRemove("BrandingConfig", { id: brandId });

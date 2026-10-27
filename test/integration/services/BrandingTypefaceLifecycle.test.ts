@@ -1,3 +1,5 @@
+const { portalFixture: fixture } = require("../../helpers/portalFixture.cjs");
+import { csrf } from '../../helpers/csrf';
 import { fixtureRow, fixturePatch, fixtureRemove, fixtureCreate, fixtureRows } from '../../helpers/persistenceFixtures';
 /* eslint-disable no-unused-expressions */
 const { expect } = require('chai');
@@ -17,10 +19,12 @@ describe('Branding typeface lifecycle (mounted)', function () {
   let agent;
 
   before(async function () {
-    const app = sails.hooks.http.app;
+    const app = fixture.server;
     agent = supertest.agent(app);
+    const loginCsrf = await csrf(agent);
     await agent
       .post('/user/login_local')
+      .set('X-CSRF-Token', loginCsrf)
       .set('X-Source', 'jsclient')
       .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
       .expect(200);
@@ -57,12 +61,12 @@ describe('Branding typeface lifecycle (mounted)', function () {
     await fixturePatch("BrandingConfig", { id: brand.id }, { version: 2, hash: 'h2', css: 'c2', variables: {} });
     await fixtureCreate("BrandingConfigHistory", { branding: brand.id, version: 1, hash: 'h1', css: 'c1', variables: {} });
     await fixtureCreate("BrandingConfigHistory", { branding: brand.id, version: 2, hash: 'h2', css: 'c2', variables: {} });
-    await backfill.up({ context: sails });
+    await backfill.up({ context: fixture.owner });
     const histories = await fixtureRows("BrandingConfigHistory", { branding: brand.id }, {sort: 'version ASC'});
     expect(histories.map(h => h.version)).to.deep.equal([1, 2]);
     expect(histories.every(h => h.typeface === null)).to.equal(true);
     const before = JSON.stringify(histories.map(h => ({ version: h.version, typeface: h.typeface })));
-    await backfill.up({ context: sails });
+    await backfill.up({ context: fixture.owner });
     const after = await fixtureRows("BrandingConfigHistory", { branding: brand.id }, {sort: 'version ASC'});
     expect(JSON.stringify(after.map(h => ({ version: h.version, typeface: h.typeface })))).to.equal(before);
   });
@@ -70,7 +74,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
   it('covers a complete service lifecycle from upload through restore and default', async function () {
     const regularBytes = fs.readFileSync(REGULAR_FONT);
     const boldBytes = fs.readFileSync(BOLD_FONT);
-    const face = await BrandingTypefaceService.inspectAndStoreFace({
+    const face = await fixture.services.BrandingTypefaceService.inspectAndStoreFace({
       brandingId: (await fixtureRow("BrandingConfig", { name: 'default' })).id,
       slot: 'regular',
       bytes: regularBytes,
@@ -79,7 +83,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
     });
     expect(face.sha256).to.match(/^[0-9a-f]{64}$/);
 
-    await BrandingService.uploadTypefaceFace({
+    await fixture.services.BrandingService.uploadTypefaceFace({
       branding: 'default',
       slot: 'regular',
       bytes: regularBytes,
@@ -87,7 +91,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
       expectedDraftRevision: 0,
       actor: admin,
     });
-    await BrandingService.uploadTypefaceFace({
+    await fixture.services.BrandingService.uploadTypefaceFace({
       branding: 'default',
       slot: 'bold',
       bytes: boldBytes,
@@ -98,7 +102,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
 
     let rejected;
     try {
-      await BrandingService.uploadTypefaceFace({
+      await fixture.services.BrandingService.uploadTypefaceFace({
         branding: 'default',
         slot: 'italic',
         bytes: fs.readFileSync(VARIABLE_FONT),
@@ -112,7 +116,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
     expect(rejected.code).to.equal('typeface-variable-font');
 
     try {
-      await BrandingService.uploadTypefaceFace({
+      await fixture.services.BrandingService.uploadTypefaceFace({
         branding: 'default',
         slot: 'italic',
         bytes: fs.readFileSync(TRUNCATED_FONT),
@@ -124,22 +128,22 @@ describe('Branding typeface lifecycle (mounted)', function () {
       expect(e.code).to.equal('typeface-invalid-font');
     }
 
-    const preview = await BrandingService.preview('default', 'rdmp', 2);
+    const preview = await fixture.services.BrandingService.preview('default', 'rdmp', 2);
     expect(preview.token).to.match(/^[0-9a-f]{32}$/);
-    const fetched = await BrandingService.fetchPreview(preview.token);
+    const fetched = await fixture.services.BrandingService.fetchPreview(preview.token);
     expect(fetched.css).to.contain('ReDBox Brand Typeface');
 
-    const published = await BrandingService.publish('default', 'rdmp', admin, await counters());
+    const published = await fixture.services.BrandingService.publish('default', 'rdmp', admin, await counters());
     expect(published.version).to.equal(1);
 
     const brand = await fixtureRow("BrandingConfig", { name: 'default' });
-    const stored = await BrandingTypefaceService.readFace(brand.id, face.sha256);
+    const stored = await fixture.services.BrandingTypefaceService.readFace(brand.id, face.sha256);
     expect(Buffer.from(stored).equals(regularBytes)).to.equal(true);
 
     // Shared draft conflict across sessions.
     let conflict;
     try {
-      await BrandingService.saveDraft({
+      await fixture.services.BrandingService.saveDraft({
         branding: 'default',
         variables: { primary: '#ffffff' },
         expectedDraftRevision: 2,
@@ -151,9 +155,9 @@ describe('Branding typeface lifecycle (mounted)', function () {
     expect(conflict).to.exist;
     expect(conflict.code).to.equal('branding-conflict');
 
-    const versions = await BrandingService.listVersions('default');
+    const versions = await fixture.services.BrandingService.listVersions('default');
     expect(versions).to.have.length(1);
-    const restored = await BrandingService.restore({
+    const restored = await fixture.services.BrandingService.restore({
       branding: 'default',
       versionId: versions[0].id,
       ...(await counters()),
@@ -162,26 +166,26 @@ describe('Branding typeface lifecycle (mounted)', function () {
     expect(restored.version).to.equal(2);
 
     // Deprecated rollback alias keeps restore semantics.
-    const rolled = await BrandingService.rollback(versions[0].id, admin, {
+    const rolled = await fixture.services.BrandingService.rollback(versions[0].id, admin, {
       branding: 'default',
       ...(await counters()),
     });
     expect(rolled.version).to.equal(3);
 
-    await BrandingService.useDefaultTypography({
+    await fixture.services.BrandingService.useDefaultTypography({
       branding: 'default',
       expectedDraftRevision: (await counters()).expectedDraftRevision,
       actor: admin,
     });
-    const republished = await BrandingService.publish('default', 'rdmp', admin, await counters());
-    const state = await BrandingService.getAdminState('default');
+    const republished = await fixture.services.BrandingService.publish('default', 'rdmp', admin, await counters());
+    const state = await fixture.services.BrandingService.getAdminState('default');
     expect(state.active.typeface.mode).to.equal('default');
     expect(republished.version).to.be.greaterThan(3);
   });
 
   it('serves the published face over public GET and HEAD without a session', async function () {
     const regularBytes = fs.readFileSync(REGULAR_FONT);
-    await BrandingService.uploadTypefaceFace({
+    await fixture.services.BrandingService.uploadTypefaceFace({
       branding: 'default',
       slot: 'regular',
       bytes: regularBytes,
@@ -189,21 +193,21 @@ describe('Branding typeface lifecycle (mounted)', function () {
       expectedDraftRevision: 0,
       actor: admin,
     });
-    await BrandingService.publish('default', 'rdmp', admin, await counters());
-    const state = await BrandingService.getAdminState('default');
+    await fixture.services.BrandingService.publish('default', 'rdmp', admin, await counters());
+    const state = await fixture.services.BrandingService.getAdminState('default');
     const sha = state.active.typeface.faces.regular.sha256;
 
-    const getRes = await supertest(sails.hooks.http.app).get(`/fonts/branding/default/${sha}.woff2`);
+    const getRes = await supertest(fixture.server).get(`/fonts/branding/default/${sha}.woff2`);
     expect(getRes.status, `public font GET body: ${getRes.text}`).to.equal(200);
     expect(getRes.headers['content-type']).to.contain('font/woff2');
     expect(getRes.headers['cache-control']).to.contain('immutable');
     expect(getRes.headers.etag).to.equal(`"${sha}"`);
 
-    const headRes = await supertest(sails.hooks.http.app).head(`/fonts/branding/default/${sha}.woff2`).expect(200);
+    const headRes = await supertest(fixture.server).head(`/fonts/branding/default/${sha}.woff2`).expect(200);
     expect(headRes.headers.etag).to.equal(`"${sha}"`);
     expect(headRes.text ?? '').to.equal('');
 
-    await supertest(sails.hooks.http.app)
+    await supertest(fixture.server)
       .get(`/fonts/branding/default/${'0'.repeat(64)}.woff2`)
       .expect(404);
   });
@@ -216,16 +220,19 @@ describe('Branding typeface lifecycle (mounted)', function () {
 
     await agent
       .post('/default/rdmp/app/branding/draft')
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ variables: { primary: '#123123' }, expectedDraftRevision: 99 })
       .expect(409);
     const saved = await agent
       .post('/default/rdmp/app/branding/draft')
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ variables: { primary: '#123123' }, expectedDraftRevision: 0 })
       .expect(200);
     expect(saved.body.draft.revision).to.equal(1);
 
     const uploaded = await agent
       .put('/default/rdmp/app/branding/draft/typeface/faces/regular')
+      .set('X-CSRF-Token', await csrf(agent))
       .field('expectedDraftRevision', '1')
       .attach('face', REGULAR_FONT)
       .expect(200);
@@ -233,6 +240,7 @@ describe('Branding typeface lifecycle (mounted)', function () {
 
     const published = await agent
       .post('/default/rdmp/app/branding/publish')
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ expectedVersion: 0, expectedDraftRevision: 2 })
       .expect(200);
     expect(published.body.active.version).to.equal(1);
@@ -242,27 +250,30 @@ describe('Branding typeface lifecycle (mounted)', function () {
 
     const versionPreview = await agent
       .post(`/default/rdmp/app/branding/versions/${versions.body[0].id}/preview`)
+      .set('X-CSRF-Token', await csrf(agent))
       .send({})
       .expect(200);
     expect(versionPreview.body.token).to.exist;
 
     const restored = await agent
       .post(`/default/rdmp/app/branding/restore/${versions.body[0].id}`)
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ expectedVersion: 1, expectedDraftRevision: 3 })
       .expect(200);
     expect(restored.body.active.version).to.equal(2);
 
     const rolled = await agent
       .post(`/default/rdmp/app/branding/rollback/${versions.body[0].id}`)
+      .set('X-CSRF-Token', await csrf(agent))
       .send({ expectedVersion: 2, expectedDraftRevision: 4 })
       .expect(200);
     expect(rolled.headers.deprecation).to.equal('true');
     expect(rolled.body.active.version).to.equal(3);
 
-    // Non-admin policy denial (JSON content type yields 403, not a login redirect).
-    await supertest(sails.hooks.http.app)
+    // Anonymous JSON clients receive the v6 authentication-required status.
+    await supertest(fixture.server)
       .get('/default/rdmp/app/branding/config')
       .set('Content-Type', 'application/json')
-      .expect(403);
+      .expect(401);
   });
 });

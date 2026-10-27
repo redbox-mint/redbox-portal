@@ -109,11 +109,11 @@ class FakeCollection {
   }
 }
 
-function buildSails() {
+function buildOwner() {
   const brandingconfig = new FakeCollection();
   const brandingconfighistory = new FakeCollection(row => `${String(row.branding)}:${String(row.version)}`);
   const infos: string[] = [];
-  const sails = {
+  const owner = {
     fixtures: { brandingconfig, brandingconfighistory },
     config: { branding: { historyMaxVersions: 3 } },
     log: {
@@ -121,7 +121,7 @@ function buildSails() {
       verbose: (message: string) => infos.push(message),
     },
   };
-  return { sails, brandingconfig, brandingconfighistory, infos };
+  return { owner, brandingconfig, brandingconfighistory, infos };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -162,7 +162,7 @@ describe('Branding typeface backfill migration', function () {
   beforeEach(()=>{
     const runtime=require('@researchdatabox/redbox-core/dist/persistence/branding/runtime');
     repositoryStub=sinon.stub(runtime,'getBrandingRepository').callsFake((...args:unknown[])=>{
-      const app=args[0] as Sails.Application;
+      const app=args[0] as ReturnType<typeof buildOwner>['owner'];
       repositoryFixtures.BrandingConfig = (app as any).fixtures.brandingconfig;
       repositoryFixtures.BrandingConfigHistory = (app as any).fixtures.brandingconfighistory;
       return brandingFixtures();
@@ -175,31 +175,31 @@ describe('Branding typeface backfill migration', function () {
   afterEach(()=>repositoryStub.restore());
 
   it('keeps an independent blue draft out of published red history', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 2, variables: { primary: '#0000ff' } })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     expect(brandingconfig.rows[0].version).to.equal(2);
     expect(brandingconfig.rows[0].variables).to.deep.equal({ primary: '#0000ff' });
     expect(brandingconfighistory.rows).to.have.lengthOf(2);
   });
 
   it('preserves published colours on rollback without copying the draft', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 1, variables: { primary: '#0000ff' } })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     expect(brandingconfighistory.rows.find(row => row.version === 3)?.variables).to.deep.equal({ primary: '#112233' });
     expect(brandingconfig.rows[0].variables).to.deep.equal({ primary: '#0000ff' });
   });
 
   for (const limit of [0.5, 1.5, NaN, Infinity, 0, -1]) {
     it(`uses a logged safe retention default for ${limit}`, async function () {
-      const { sails, brandingconfig, brandingconfighistory, infos } = buildSails();
-      sails.config.branding.historyMaxVersions = limit;
+      const { owner, brandingconfig, brandingconfighistory, infos } = buildOwner();
+      owner.config.branding.historyMaxVersions = limit;
       brandingconfig.seed([brand({ version: 4 })]);
       brandingconfighistory.seed([1, 2, 3, 4].map(version => history('brand-1', version)));
-      await migration[0].up({ context: sails });
+      await migration[0].up({ context: owner });
       expect(brandingconfighistory.rows.map(row => row.version)).to.deep.equal([2, 3, 4]);
       expect(infos.some(message => message.includes('Invalid historyMaxVersions'))).to.equal(true);
     });
@@ -209,21 +209,21 @@ describe('Branding typeface backfill migration', function () {
     const { Services } = require('../../src/services/BrandingThemeCssService');
     const theme = new Services.BrandingThemeCss();
     const published = theme.generate({ primary: '#ff0000' });
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 5, ...published, variables: { primary: '#0000ff' } })]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     const variables = brandingconfighistory.rows[0].variables;
     expect(theme.generate(theme.validateVariables(variables)).css).to.equal(published.css);
     expect(brandingconfig.rows[0].variables).to.deep.equal({ primary: '#0000ff' });
   });
 
   it('fails before pruning unrecoverable published colours', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 5, css: 'unrecoverable', hash: 'different' })]);
     brandingconfighistory.seed([1, 2, 3, 4].map(version => history('brand-1', version)));
     let error: unknown;
     try {
-      await migration[0].up({ context: sails });
+      await migration[0].up({ context: owner });
     } catch (caught) {
       error = caught;
     }
@@ -239,9 +239,9 @@ describe('Branding typeface backfill migration', function () {
   });
 
   it('backfills a fresh brand with no history', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ typeface: undefined, draftTypeface: undefined, draftRevision: undefined })]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     const updated = await brandingconfig.findOne({ id: 'brand-1' });
     expect(updated?.typeface).to.equal(null);
     expect(updated?.draftTypeface).to.equal(null);
@@ -250,11 +250,11 @@ describe('Branding typeface backfill migration', function () {
   });
 
   it('leaves a normal brand untouched apart from backfill', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 2 })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
     const writesBefore = brandingconfig.writes + brandingconfighistory.writes;
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     expect(brandingconfighistory.rows.map(row => row.version).sort()).to.deep.equal([1, 2]);
     const updated = await brandingconfig.findOne({ id: 'brand-1' });
     expect(updated?.version).to.equal(2);
@@ -262,30 +262,30 @@ describe('Branding typeface backfill migration', function () {
   });
 
   it('preserves rewound active state before pruning', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 1 })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2), history('brand-1', 3)]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     const updated = await brandingconfig.findOne({ id: 'brand-1' });
     expect(updated?.version).to.equal(4);
     expect(brandingconfighistory.rows.map(row => row.version).sort()).to.deep.equal([2, 3, 4]);
   });
 
   it('snapshots active state with no matching history without moving the version backwards', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 5 })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     const updated = await brandingconfig.findOne({ id: 'brand-1' });
     expect(updated?.version).to.equal(6);
     expect(brandingconfighistory.rows.map(row => row.version).sort()).to.deep.equal([1, 2, 6]);
   });
 
   it('preserves divergent active colours over a same-number history', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 2, css: ':root { --rb-primary: #ff0000; }', hash: 'hash-diverged' })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     const updated = await brandingconfig.findOne({ id: 'brand-1' });
     expect(updated?.version).to.equal(3);
     const preserved = await brandingconfighistory.findOne({ branding: 'brand-1', version: 3 });
@@ -294,7 +294,7 @@ describe('Branding typeface backfill migration', function () {
   });
 
   it('prunes over-retained history to the newest three', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 5 })]);
     brandingconfighistory.seed([
       history('brand-1', 1),
@@ -303,16 +303,16 @@ describe('Branding typeface backfill migration', function () {
       history('brand-1', 4),
       { ...history('brand-1', 5), id: 'history-5' },
     ]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     expect(brandingconfighistory.rows.map(row => row.version).sort()).to.deep.equal([3, 4, 5]);
   });
 
   it('converges when a concurrent runner wins the preservation insert', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 1 })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2), history('brand-1', 3)]);
     brandingconfighistory.conflictOnce = true;
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     const updated = await brandingconfig.findOne({ id: 'brand-1' });
     expect(updated?.version).to.equal(4);
     expect(brandingconfighistory.rows.filter(row => row.version === 4)).to.have.lengthOf(1);
@@ -320,13 +320,13 @@ describe('Branding typeface backfill migration', function () {
   });
 
   it('performs zero writes on rerun', async function () {
-    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    const { owner, brandingconfig, brandingconfighistory } = buildOwner();
     brandingconfig.seed([brand({ version: 2 })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     brandingconfig.writes = 0;
     brandingconfighistory.writes = 0;
-    await migration[0].up({ context: sails });
+    await migration[0].up({ context: owner });
     expect(brandingconfig.writes).to.equal(0);
     expect(brandingconfighistory.writes).to.equal(0);
   });

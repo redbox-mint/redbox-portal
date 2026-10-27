@@ -1,8 +1,9 @@
+import { brandingInput } from '../helpers/brandingInputs';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import zlib from 'zlib';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
+import { createDomainFixture } from './testHelper';
 import { BrandingTypefaceError } from '../../src/services/BrandingTypefaceService';
 import type { BrandingTypefaceFace } from '../../src/model/BrandingTypeface';
 
@@ -88,6 +89,7 @@ class FakeDisk {
 
 describe('BrandingTypefaceService', function () {
   let disk: FakeDisk;
+  let fixture: any;
   let service: {
     slotDescriptor(slot: 'regular' | 'bold' | 'italic' | 'boldItalic'): { weight: number; style: string };
     storageKey(brandingId: string, sha256: string): string;
@@ -114,7 +116,7 @@ describe('BrandingTypefaceService', function () {
   };
 
   beforeEach(function () {
-    const sails = {
+    fixture = {
       config: { branding: {}, http: { rootContext: '' } },
       log: {
         verbose: () => undefined,
@@ -124,17 +126,15 @@ describe('BrandingTypefaceService', function () {
         error: () => undefined,
       },
     };
-    setupServiceTestGlobals(sails);
+
     disk = new FakeDisk();
-    (global as unknown as Record<string, unknown>).StorageManagerService = { primaryDisk: () => disk };
     repositoryFixtures.BrandingConfig = { find: async () => [], findOne: async () => null };
     repositoryFixtures.BrandingConfigHistory = { find: async () => [] };
     const { Services } = require('../../src/services/BrandingTypefaceService');
-    service = new Services.BrandingTypeface();
+    service = new Services.BrandingTypeface({ ...brandingInput(fixture, disk), disk: () => disk, get rootContext() { return fixture.config.http.rootContext; } });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
   });
 
   async function storeError(promise: Promise<unknown>): Promise<BrandingTypefaceError> {
@@ -151,7 +151,7 @@ describe('BrandingTypefaceService', function () {
     expect(service.storageKey('brand-1', sha)).to.equal(`branding-fonts/brand-1/${sha}.woff2`);
     expect(service.publicUrl('default', sha)).to.equal(`/fonts/branding/default/${sha}.woff2`);
     expect(service.publicUrl('my brand', sha)).to.equal('/fonts/branding/my%20brand/' + sha + '.woff2');
-    (global as unknown as { sails: { config: { http: { rootContext: string } } } }).sails.config.http.rootContext =
+    fixture.config.http.rootContext =
       'portal';
     expect(service.publicUrl('default', sha)).to.equal(`/portal/fonts/branding/default/${sha}.woff2`);
     expect(service.parseStorageKey(`branding-fonts/brand-1/${sha}.woff2`)).to.deep.equal({
@@ -234,18 +234,14 @@ describe('BrandingTypefaceService', function () {
   }
 
   it('enforces face and distinct-family compressed limits', async function () {
-    (
-      global as unknown as { sails: { config: { branding: Record<string, number> } } }
-    ).sails.config.branding.typefaceFaceMaxBytes = 10;
+    fixture.config.branding.typefaceFaceMaxBytes = 10;
     const bytes = buildWoff2(staticTables());
     expect((await storeError(service.inspectAndStoreFace({ brandingId: 'b', slot: 'regular', bytes }))).code).to.equal(
       'typeface-face-too-large'
     );
-    delete (global as unknown as { sails: { config: { branding: Record<string, number> } } }).sails.config.branding
+    delete fixture.config.branding
       .typefaceFaceMaxBytes;
-    (
-      global as unknown as { sails: { config: { branding: Record<string, number> } } }
-    ).sails.config.branding.typefaceFamilyMaxBytes = bytes.length + 1;
+    fixture.config.branding.typefaceFamilyMaxBytes = bytes.length + 1;
     const first = await service.inspectAndStoreFace({ brandingId: 'b', slot: 'regular', bytes });
     expect(
       (

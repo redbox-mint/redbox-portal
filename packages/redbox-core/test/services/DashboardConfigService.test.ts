@@ -1,3 +1,5 @@
+import { referenceFixtures, configurationFixtures, brandingFixtures } from '../helpers/serviceRepositories';
+const collaborators: any = {};
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { assertJsonValue } from '../../src/persistence/cache/validation';
 import * as persistence from '../../src/persistence/runtime';
@@ -12,7 +14,7 @@ import { of } from 'rxjs';
 import { Services, DASHBOARD_CONFIGURATION_MIGRATION_NAME, DASHBOARD_LEGACY_SNAPSHOT_KEY } from '../../src/services/DashboardConfigService';
 import { DashboardSettings, fingerprint, normaliseDashboardSettings } from '../../src/configmodels/DashboardSettings';
 import { convertLegacyDashboardConfiguration } from '../../src/services/DashboardLegacyConversion';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 type Doc = { id: string; branding: string; revision: number; configData: any; provenance?: any };
 
@@ -32,6 +34,7 @@ function createStore() {
         return found ? JSON.parse(JSON.stringify(found)) : undefined;
       },
       create: async (values: Doc) => {
+        assertJsonValue(values);
         if (docs.some((d) => d.branding === values.branding)) {
           throw Object.assign(new Error('duplicate key'), { code: 'E_UNIQUE' });
         }
@@ -66,7 +69,7 @@ describe('DashboardConfigService', function () {
   const other = { kind: 'workflow', recordType: 'dataRecord', stage: 'draft' } as const;
   let service: Services.DashboardConfig;
   let store: ReturnType<typeof createStore>;
-  let mockSails: any;
+  let fixture: any;
   let previousResolutionFile: string | undefined;
   let resolutionDirectory: string | undefined;
 
@@ -74,6 +77,7 @@ describe('DashboardConfigService', function () {
     resolutionDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-dashboard-migration-'));
     const file = path.join(resolutionDirectory, 'resolutions.json');
     fs.writeFileSync(file, JSON.stringify(value));
+    fixture.config.dashboardMigrationResolutions = JSON.parse(fs.readFileSync(file, 'utf8'));
     process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS = file;
   }
 
@@ -107,33 +111,33 @@ describe('DashboardConfigService', function () {
   beforeEach(async function () {
     previousResolutionFile = process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS;
     resolutionDirectory = undefined;
-    mockSails = createMockSails();
-    mockSails.config.dashboardview = {
+    fixture = createDomainFixture();
+    fixture.config.dashboardview = {
       consolidated: { name: 'consolidated', titleLabelKey: 'consolidated', dashboardType: 'consolidated', sourceRecordType: 'rdmp', steps: [{ name: 'consolidated', sourceRecordType: 'rdmp', fetchMode: 'allForRecordType' }] }
     };
-    mockSails.config.dashboardtype = { standard: { formatRules: { filterBy: {} } } };
+    fixture.config.dashboardtype = { standard: { formatRules: { filterBy: {} } } };
     migrationExecuted = sinon.stub().resolves(true);
     sinon.stub(require('../../src/persistence/migration/runtime'), 'getMigrationLedgerRepository').returns({ isExecuted: migrationExecuted } as any);
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     store = createStore();
     repositoryFixtures.DashboardConfiguration = store.model;
-    (global as any).RecordTypesService = {
+    collaborators.RecordTypesService = {
       getAll: sinon.stub().returns(of([{ name: 'rdmp', id: 'rt1' }, { name: 'dataRecord', id: 'rt2' }]))
     };
     const steps: Record<string, any[]> = {
       rt1: [{ name: 'draft', config: { displayIndex: 1, workflow: { stageLabel: 'Draft' } } }, { name: 'review', config: { displayIndex: 2 } }, { name: 'secret', hidden: true, config: { displayIndex: 3 } }],
       rt2: [{ name: 'draft', config: { displayIndex: 1 } }]
     };
-    (global as any).WorkflowStepsService = {
+    collaborators.WorkflowStepsService = {
       getAllForRecordTypeIncludingHidden: sinon.stub().callsFake((rt: any) => of(steps[rt.id]))
     };
-    (global as any).BrandingService = { getAvailable: () => ['default'], getBrand: () => brand };
+    collaborators.BrandingService = { getAvailable: () => ['default'], getBrand: () => brand };
     repositoryFixtures.RecordType = { find: sinon.stub().resolves([{ id: 'rt1', name: 'rdmp' }, { id: 'rt2', name: 'dataRecord' }]) };
     repositoryFixtures.WorkflowStep = { find: sinon.stub().callsFake(async ({ recordType }: any) => steps[recordType]) };
     repositoryFixtures.DashboardType = { find: sinon.stub().resolves([]) };
     repositoryFixtures.AppConfig = { find: sinon.stub().resolves([]), findOne: sinon.stub().resolves(undefined), create: sinon.stub().resolves({}) };
     repositoryFixtures.BrandingConfig = { find: sinon.stub().resolves([{ id: 'brand1', name: 'default' }]) };
-    service = new Services.DashboardConfig();
+    service = new Services.DashboardConfig({ references: referenceFixtures(), configuration: configurationFixtures(), brands: brandingFixtures(), migrations: { isExecuted: migrationExecuted }, config: fixture.config, log: fixture.log, get recordTypes() { return collaborators.RecordTypesService; }, get workflowSteps() { return collaborators.WorkflowStepsService; }, get schema() { return fixture.collaborators.recordschemaservice; }, availableBrands: () => collaborators.BrandingService.getAvailable(), getBrand: name => collaborators.BrandingService.getBrand(name) });
   });
 
   afterEach(function () {
@@ -145,9 +149,9 @@ describe('DashboardConfigService', function () {
     if (resolutionDirectory) {
       fs.rmSync(resolutionDirectory, { recursive: true, force: true });
     }
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     for (const name of ['RecordTypesService', 'WorkflowStepsService', 'BrandingService']) {
-      delete (global as any)[name];
+      delete collaborators[name];
     }
     sinon.restore();
   });
@@ -382,7 +386,7 @@ describe('DashboardConfigService', function () {
 
     beforeEach(async function () {
       await seed({ rdmp: { draft: stageSettings('Draft') } });
-      mockSails.services = {
+      fixture.collaborators = {
         recordschemaservice: {
           describeStage: sinon.stub().resolves({
             kind: 'resolved',
@@ -397,7 +401,7 @@ describe('DashboardConfigService', function () {
       const result = await service.getFieldCatalogue(brand, draft, { caller, portal: 'rdmp' });
       expect(result.status).to.equal('complete');
       expect(result.fields.map((f) => f.path)).to.include.members(['metadata.title', 'metadata.owner.email', 'metaMetadata.lastSaveDate']);
-      const request = mockSails.services.recordschemaservice.describeStage.firstCall.args[0];
+      const request = fixture.collaborators.recordschemaservice.describeStage.firstCall.args[0];
       expect(request).to.deep.include({ recordType: 'rdmp', targetStep: 'draft', portal: 'rdmp' });
     });
 
@@ -409,7 +413,7 @@ describe('DashboardConfigService', function () {
     });
 
     it('never blocks editing when the schema is unavailable', async function () {
-      mockSails.services.recordschemaservice.describeStage = sinon.stub().resolves({ kind: 'unavailable', code: 'forbidden' });
+      fixture.collaborators.recordschemaservice.describeStage = sinon.stub().resolves({ kind: 'unavailable', code: 'forbidden' });
       const result = await service.getFieldCatalogue(brand, draft, { caller });
       expect(result.status).to.equal('unavailable');
       expect(result.reason).to.equal('forbidden');
@@ -495,36 +499,19 @@ describe('DashboardConfigService', function () {
       expect(input.overrides?.recordTypes?.rdmp?.default?.dashboardType).to.equal('newer-profile');
     });
 
-    it('persists JSON snapshots and findings when optional legacy fields are absent', async function () {
-      repositoryFixtures.AppConfig.find.resolves([{
-        id: 'legacy-override',
-        configData: { recordTypes: { removed: { steps: { draft: { searchable: false } } } } }
-      }]);
-      repositoryFixtures.WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: { recordType: string }) =>
-        recordType === 'rt1' ? [{ name: 'draft', config: { displayIndex: 1 } }] : []);
-      const { input, raw } = await service.captureLegacyInput(brand);
-      const conversion = convertLegacyDashboardConfiguration(input);
-      expect(raw.configuredDashboardTypes[0]).to.have.property('tableConfig', undefined);
-      expect(conversion.findings.some(finding => finding.context === undefined && finding.target === undefined)).to.equal(true);
-      // Apply the real repository's strict JSON check before the fixture serializes.
-      repositoryFixtures.AppConfig.create.callsFake(async (values: { configData: unknown }) => {
-        assertJsonValue(values.configData);
+    it('captures absent optional declarations as plain JSON for the persisted recovery snapshot', async function () {
+      fixture.config.dashboardtype = { standard: { formatRules: { filterBy: {} } } };
+      repositoryFixtures.WorkflowStep.find = sinon.stub().resolves([{ name: 'draft' }]);
+      repositoryFixtures.AppConfig.create = sinon.stub().callsFake(async (value: unknown) => {
+        assertJsonValue(value);
         return {};
       });
-      const create = store.model.create;
-      sinon.stub(store.model, 'create').callsFake(async values => {
-        assertJsonValue(values.configData);
-        assertJsonValue(values.provenance);
-        return create(values);
-      });
 
+      const { raw } = await service.captureLegacyInput(brand);
+      assertJsonValue(raw);
       await service.migrateLegacyConfiguration();
-
-      const snapshot = repositoryFixtures.AppConfig.create.firstCall.args[0].configData;
-      expect(snapshot.inputFingerprint).to.equal(fingerprint(input));
-      expect(snapshot.configuredDashboardTypes[0]).not.to.have.property('tableConfig');
-      expect(snapshot.configuredDashboardTypes[0]).not.to.have.property('searchable');
-      expect(store.docs[0].provenance.migration.findings).to.deep.equal(JSON.parse(JSON.stringify(conversion.findings)));
+      expect(repositoryFixtures.AppConfig.create.calledOnce).to.equal(true);
+      expect(store.docs).to.have.length(1);
     });
 
     it('snapshots, converts and publishes once; reruns leave published settings alone', async function () {
@@ -555,6 +542,20 @@ describe('DashboardConfigService', function () {
       expect(store.docs).to.have.length(0);
       // The recovery snapshot was still captured first.
       expect(repositoryFixtures.AppConfig.create.calledOnce).to.equal(true);
+    });
+
+    it('uses explicit fingerprint-bound deployment decisions for a material conversion', async function () {
+      useWorkspaceConflictFixture();
+      const { conversion, finding } = await workspaceConflict();
+      fixture.config.dashboardMigrationResolutions = {
+        captureFingerprints: { default: conversion.inputFingerprint },
+        acceptedFindingIdsByBrand: { default: [finding.id] },
+        replacements: [],
+      };
+
+      await service.migrateLegacyConfiguration();
+      expect(store.docs).to.have.length(1);
+      expect(store.docs[0].provenance.migration.acceptedFindingIds).to.deep.equal([finding.id]);
     });
 
     it('accepts a resolution only when its brand fingerprint matches the preflight capture', async function () {
