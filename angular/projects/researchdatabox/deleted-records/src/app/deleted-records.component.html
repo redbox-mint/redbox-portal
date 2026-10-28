@@ -1,7 +1,7 @@
 @if (loadError) {
   <div class="alert alert-danger" role="alert">
     {{ loadError }}
-    <button type="button" class="btn btn-default" [disabled]="loadPending" (click)="retryLoad()">Retry</button>
+    <button type="button" class="btn btn-default" [disabled]="loadPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">Retry</button>
   </div>
 }
 @if (isReady) {
@@ -90,7 +90,7 @@
     </div>
   }
   <!-- Result details -->
-  <record-table
+  <record-table [paginationDisabled]="loadPending || !initTracker.resultsReturned"
     [columnConfig]="tableHeaders"
     [dataSource]="this"
     [optTemplateData]="optTemplateData"

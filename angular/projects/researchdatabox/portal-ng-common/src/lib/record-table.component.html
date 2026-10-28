@@ -56,9 +56,9 @@
     <!-- Pagination -->
     @if (currentPage.total > 0) {
       <div class="row">
-        <pagination [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
-          [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [(ngModel)]="currentPage.pageNum"
-        (pageChanged)="gotoPage($event)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>
+        <pagination #pageModel="ngModel" [disabled]="paginationPending || paginationDisabled" [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
+          [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [ngModel]="currentPage.pageNum"
+        (ngModelChange)="gotoPage($event, pageModel)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>
       </div>
     }
   }

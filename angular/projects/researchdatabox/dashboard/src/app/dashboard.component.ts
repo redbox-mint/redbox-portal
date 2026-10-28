@@ -1,3 +1,4 @@
+import { NgModel } from '@angular/forms';
 import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField, HandlebarsTemplateService, DashboardViewDefinitionResponse, DashboardViewStepDefinitionResponse } from '@researchdatabox/portal-ng-common';
@@ -894,9 +895,9 @@ export class DashboardComponent extends BaseComponent {
     };
   }
 
-  public async pageChanged(event: PageChangedEvent, step: string) {
+  public async pageChanged(event: PageChangedEvent, step: string, pageModel?: NgModel) {
 
-    if (this.isProcessingPageChange) {
+    if (this.isProcessingPageChange || event.page === this.records[step]?.currentPage) {
       return;
     }
 
@@ -931,8 +932,11 @@ export class DashboardComponent extends BaseComponent {
         await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
       }
     } catch (error) {
-      this.showLoadError(error, () => this.pageChanged(event, step));
+      this.showLoadError(error, () => this.pageChanged(event, step, pageModel));
     } finally {
+      // Keep the selected control page aligned with the rows after failure.
+      // Reset NgModel too, with the processing guard held while it emits.
+      pageModel?.reset(this.records[step]?.currentPage || 1);
       this.isProcessingPageChange = false;
     }
   }

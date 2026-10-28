@@ -38,6 +38,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   datePickerPlaceHolder: string = '';
   datePickerOpts: any;
   filterParams: any = {};
+  private pageLoadPending = false;
   initTracker: any = { reportLoaded: false, resultsReturned: false };
   report: ReportDto = null as any;
   reportResult: ReportResultDto = null as any;
@@ -73,6 +74,10 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   }
 
   async gotoPage(pageNum: number): Promise<RecordPageDto> {
+    if (this.pageLoadPending) {
+      return this.reportResult;
+    }
+    this.pageLoadPending = true;
     this.initTracker.resultsReturned = false;
     this.loadError = '';
     try {
@@ -86,6 +91,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
       this.showLoadError(error, () => this.gotoPage(pageNum));
       return this.reportResult;
     } finally {
+      this.pageLoadPending = false;
       this.initTracker.resultsReturned = true;
     }
   }
