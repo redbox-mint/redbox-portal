@@ -25,6 +25,8 @@ import {
   createSystemRoleRoute,
 } from '../../index';
 import { UserAttributes } from '../../waterline-models/User';
+import { RoleAttributes } from '../../waterline-models/Role';
+import { UserLinkAttributes } from '../../waterline-models/UserLink';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
 
@@ -55,20 +57,12 @@ export namespace Controllers {
       'enableUser',
     ];
 
-    private async enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
-      const links =
-        typeof UserLink !== 'undefined'
-          ? await UserLink.find(_.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' })
-          : [];
-      const linkCountByPrimary = _.countBy(
-        links as globalThis.Record<string, unknown>[],
-        (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')
-      );
-      const primaryIds = _.uniq(
-        _.map(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) =>
-          String(link.primaryUserId ?? '')
-        )
-      );
+    private async enrichUsersWithLinkMetadata(
+      users: UserAttributes[],
+      links: UserLinkAttributes[]
+    ): Promise<UserAttributes[]> {
+      const linkCountByPrimary = _.countBy(links, (link: UserLinkAttributes) => String(link.primaryUserId ?? ''));
+      const primaryIds = _.uniq(_.map(links, (link: UserLinkAttributes) => String(link.primaryUserId ?? '')));
       const primaryUsers =
         _.isEmpty(primaryIds) || typeof User === 'undefined' ? [] : await User.find({ id: primaryIds });
       const primaryUsernamesById = _.reduce(
@@ -106,10 +100,25 @@ export namespace Controllers {
       brandId: string | undefined,
       includeDisabled: boolean
     ): Promise<UserAttributes[]> {
+      // Match getUsersForBrand: a brand role or an active secondary link grants
+      // membership. Apply search to the associations, never to a global user list.
+      if (_.isEmpty(brandId)) return [];
       const dbQuery = includeDisabled ? queryObject : { ...queryObject, loginDisabled: { '!=': true } };
-
-      const users = await User.find({ where: dbQuery });
-      let userRecords = await this.enrichUsersWithLinkMetadata(users as UserAttributes[], brandId);
+      const roles = (await Role.find({ branding: brandId }).populate('users', { where: dbQuery })) as RoleAttributes[];
+      const links = (
+        typeof UserLink !== 'undefined' ? await UserLink.find({ brandId, status: 'active' }) : []
+      ) as UserLinkAttributes[];
+      const roleUsers = _.uniqBy(
+        roles.flatMap(role => (role.users ?? []) as UserAttributes[]),
+        user => String(user.id)
+      );
+      const roleUserIds = new Set(roleUsers.map(user => String(user.id)));
+      const secondaryIds = _.uniq(links.map(link => String(link.secondaryUserId))).filter(id => !roleUserIds.has(id));
+      const linkedUsers = _.isEmpty(secondaryIds)
+        ? []
+        : ((await User.find({ where: { and: [dbQuery, { id: secondaryIds }] } })) as UserAttributes[]);
+      const users = [...roleUsers, ...linkedUsers];
+      let userRecords = await this.enrichUsersWithLinkMetadata(users, links);
       userRecords = await UsersService.enrichUsersWithEffectiveDisabledState(userRecords);
 
       if (!includeDisabled) {
