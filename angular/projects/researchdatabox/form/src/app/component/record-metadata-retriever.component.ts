@@ -18,7 +18,13 @@ import {
 import { RecordService } from '@researchdatabox/portal-ng-common';
 import {getEventJSONPointerCondition} from "../form-state";
 
+interface MetadataCandidate {
+  isCurrent: () => boolean;
+  accept: () => MetadataRequest | undefined;
+}
+
 interface MetadataRequest {
+  sequence: number;
   expression?: FormExpressionsConfigFrame;
   oid: string;
   lastFetchedOid?: string;
@@ -33,7 +39,7 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
   constructor(
     eventBus: FormComponentEventBus,
     private readonly handler: (event: FormComponentEvent, expression: FormExpressionsConfigFrame, request: MetadataRequest) => Promise<void>,
-    private readonly begin: (event: FormComponentEvent, expression: FormExpressionsConfigFrame) => MetadataRequest | undefined,
+    private readonly candidate: (event: FormComponentEvent, expression: FormExpressionsConfigFrame) => MetadataCandidate | undefined,
     private readonly finish: (request: MetadataRequest) => void
   ) {
     super(eventBus);
@@ -59,8 +65,13 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
   }
 
   protected override async consumeEvent(event: FormComponentEvent, expression: FormExpressionsConfigFrame): Promise<void> {
-    const request = this.begin(event, expression);
-    if (request) await this.handler(event, expression, request);
+    const request = this.candidate(event, expression)?.accept();
+    if (!request?.isCurrent()) return;
+    try {
+      await this.handler(event, expression, request);
+    } finally {
+      this.finish(request);
+    }
   }
 
   public async evaluateTemplateExpression(
@@ -70,20 +81,33 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
     return this.evaluateExpressionJSONata(expression, event, 'template');
   }
 
+  protected override evaluateExpressionJSONata(
+    expression: FormExpressionsConfigFrame,
+    event: FormComponentEvent,
+    propertyName: string,
+    additionalData: object = {}
+  ): Promise<unknown> {
+    // Failed conditions must never become matches merely because an OID is truthy.
+    return super.evaluateExpressionJSONata(expression, event, propertyName, additionalData,
+      propertyName === 'condition' ? false : (event as { value?: unknown }).value);
+  }
+
   private handleConsumeError(err: unknown): void {
     console.error('RecordMetadataRetrieverExpressionConsumer: Error consuming matched expressions.', err);
   }
 
   private async consumeMatchedExpressions(event: FormComponentEvent): Promise<void> {
-    // Allocate each expression's lifecycle before asynchronous condition matching.
-    // Independent expressions may all publish; only newer work for the same expression supersedes it.
+    // Candidates do not replace accepted work until their condition matches. Compare
+    // arrival order with accepted requests so a late older match cannot take over.
     await Promise.all((this.expressions ?? []).map(async expression => {
-      const request = this.begin(event, expression);
-      if (!request) return;
+      const candidate = this.candidate(event, expression);
+      if (!candidate?.isCurrent()) return;
+      const matched = await this.getMatchedExpressions(event, [expression]);
+      if (!candidate.isCurrent() || !matched?.length) return;
+      const request = candidate.accept();
+      if (!request?.isCurrent()) return;
       try {
-        const matched = await this.getMatchedExpressions(event, [expression]);
-        if (!request.isCurrent()) return;
-        if (matched?.length) await this.handler(event, expression, request);
+        await this.handler(event, expression, request);
       } finally {
         this.finish(request);
       }
@@ -113,12 +137,23 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
   public metadataLoadWarning = false;
   public metadataLoading = false;
   private destroyed = false;
+  private requestSequence = 0;
   private readonly metadataRequests = new Map<FormExpressionsConfigFrame | undefined, MetadataRequest>();
 
-  private beginRequest(expression?: FormExpressionsConfigFrame): MetadataRequest {
+  private createCandidate(event: FormComponentEvent, expression: FormExpressionsConfigFrame): MetadataCandidate | undefined {
+    if (this.destroyed || !this.shouldHandleExpression(event, expression)) return undefined;
+    const sequence = ++this.requestSequence;
+    const isCurrent = () => !this.destroyed && (this.metadataRequests.get(expression)?.sequence ?? 0) < sequence;
+    return {
+      isCurrent,
+      accept: () => isCurrent() ? this.beginRequest(expression, sequence) : undefined,
+    };
+  }
+
+  private beginRequest(expression?: FormExpressionsConfigFrame, sequence = ++this.requestSequence): MetadataRequest {
     const previous = this.metadataRequests.get(expression);
     const request: MetadataRequest = {
-      expression, oid: previous?.oid ?? '', lastFetchedOid: previous?.lastFetchedOid,
+      sequence, expression, oid: previous?.oid ?? '', lastFetchedOid: previous?.lastFetchedOid,
       failed: previous?.failed ?? false, loading: true,
       isCurrent: () => !this.destroyed && this.metadataRequests.get(expression) === request,
     };
@@ -160,8 +195,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
         new RecordMetadataRetrieverExpressionConsumer(
           this.eventBus,
           async (event, expression, request) => this.handleExpression(event, expression, request),
-          (event, expression) => !this.destroyed && this.shouldHandleExpression(event, expression)
-            ? this.beginRequest(expression) : undefined,
+          (event, expression) => this.createCandidate(event, expression),
           request => this.finishRequest(request)
         )
     );

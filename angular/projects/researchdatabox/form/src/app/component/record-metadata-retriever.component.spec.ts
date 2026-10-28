@@ -79,8 +79,8 @@ describe('RecordMetadataRetrieverComponent', () => {
     bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
       if (event.fieldId === '/rdmpGetter') published.push(event.value);
     });
-    const select = (oid: string) => bus.publish<FieldValueChangedEvent>({
-      type: FormComponentEventType.FIELD_VALUE_CHANGED, fieldId: '/related', sourceId: '*', value: oid,
+    const select = (oid: string, fieldId = '/related') => bus.publish<FieldValueChangedEvent>({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED, fieldId, sourceId: '*', value: oid,
     });
     return { bus, fixture, component, published, select };
   }
@@ -92,6 +92,137 @@ describe('RecordMetadataRetrieverComponent', () => {
       hasTemplate: true, template: 'event.value',
     },
   } as FormExpressionsConfigFrame;
+
+  for (const outcome of ['success', 'failure'] as const) {
+    it(`preserves a pending accepted read across an unrelated broadcast (${outcome})`, async () => {
+      const evaluate = jasmine.createSpy('evaluate').and.callFake((key, context) => Promise.resolve(
+        key.at(-1) === 'condition' ? context.event.fieldId === '/related' : context.event.value
+      ));
+      const { select, published, component } = await bindRealBus([selectionExpression], evaluate);
+      fakeAsync(() => {
+        const read = deferred<Record<string, unknown>>();
+        recordService.getRecordMeta.and.returnValue(read.promise);
+        select('accepted');
+        flushMicrotasks();
+        select('unrelated', '/other');
+        flushMicrotasks();
+        expect(component.metadataLoading).toBeTrue();
+        expect(recordService.getRecordMeta.calls.allArgs()).toEqual([['accepted']]);
+        if (outcome === 'success') read.resolve({ title: 'Accepted' });
+        else read.reject(new Error('offline'));
+        flushMicrotasks();
+        expect(component.metadataLoading).toBeFalse();
+        expect(component.metadataLoadWarning).toBe(outcome === 'failure');
+        expect(published).toEqual(outcome === 'success' ? [{ title: 'Accepted', oid: 'accepted' }] : []);
+        if (outcome === 'failure') {
+          select('another unrelated', '/other');
+          flushMicrotasks();
+          expect(component.metadataLoadWarning).toBeTrue();
+          recordService.getRecordMeta.and.resolveTo({ title: 'Recovered' });
+          void component.retryMetadata();
+          flushMicrotasks();
+          expect(recordService.getRecordMeta.calls.allArgs()).toEqual([['accepted'], ['accepted']]);
+          expect(published).toEqual([{ title: 'Recovered', oid: 'accepted' }]);
+          expect(component.metadataLoadWarning).toBeFalse();
+        }
+      })();
+    });
+  }
+
+  it('accepts an older delayed match when the newer broadcast does not match', async () => {
+    const match = deferred<boolean>();
+    const evaluate = jasmine.createSpy('evaluate').and.callFake((key, context) => {
+      if (key.at(-1) === 'condition') return context.event.fieldId === '/related' ? match.promise : Promise.resolve(false);
+      return Promise.resolve(context.event.value);
+    });
+    const { select, published } = await bindRealBus([selectionExpression], evaluate);
+    fakeAsync(() => {
+      recordService.getRecordMeta.and.resolveTo({ title: 'Accepted' });
+      select('accepted');
+      flushMicrotasks();
+      select('unrelated', '/other');
+      flushMicrotasks();
+      match.resolve(true);
+      flushMicrotasks();
+      expect(recordService.getRecordMeta.calls.allArgs()).toEqual([['accepted']]);
+      expect(published).toEqual([{ title: 'Accepted', oid: 'accepted' }]);
+    })();
+  });
+
+  it('keeps the accepted read current during newer matching, then accepts the newer match', async () => {
+    const match = deferred<boolean>();
+    const evaluate = jasmine.createSpy('evaluate').and.callFake((key, context) => {
+      if (key.at(-1) === 'condition') return context.event.value === 'new' ? match.promise : Promise.resolve(context.event.fieldId === '/related');
+      return Promise.resolve(context.event.value);
+    });
+    const { select, published, component } = await bindRealBus([selectionExpression], evaluate);
+    fakeAsync(() => {
+      const read = deferred<Record<string, unknown>>();
+      recordService.getRecordMeta.and.returnValue(read.promise);
+      select('old');
+      flushMicrotasks();
+      select('new');
+      flushMicrotasks();
+      read.resolve({ title: 'Old' });
+      flushMicrotasks();
+      expect(published).toEqual([{ title: 'Old', oid: 'old' }]);
+      recordService.getRecordMeta.and.resolveTo({ title: 'New' });
+      match.resolve(true);
+      flushMicrotasks();
+      expect(published).toEqual([{ title: 'Old', oid: 'old' }, { title: 'New', oid: 'new' }]);
+      expect(component.metadataLoading).toBeFalse();
+    })();
+  });
+
+  it('does not fetch an older delayed template after a newer event is accepted', async () => {
+    const template = deferred<string>();
+    const evaluate = jasmine.createSpy('evaluate').and.callFake((key, context) => {
+      if (key.at(-1) === 'condition') return Promise.resolve(context.event.fieldId === '/related');
+      return context.event.value === 'old' ? template.promise : Promise.resolve(context.event.value);
+    });
+    const { select, published } = await bindRealBus([selectionExpression], evaluate);
+    fakeAsync(() => {
+      recordService.getRecordMeta.and.resolveTo({ title: 'New' });
+      select('old');
+      flushMicrotasks();
+      select('new');
+      flushMicrotasks();
+      template.resolve('old');
+      flushMicrotasks();
+      expect(recordService.getRecordMeta.calls.allArgs()).toEqual([['new']]);
+      expect(published).toEqual([{ title: 'New', oid: 'new' }]);
+    })();
+  });
+
+  for (const conditionKind of ['jsonata', 'jsonata_query'] as const) {
+    it(`fails closed on a rejected ${conditionKind} condition and preserves retry context`, async () => {
+      const rejectedCondition = deferred<boolean>();
+      const evaluate = jasmine.createSpy('evaluate').and.callFake((key, context) => {
+        if (key.at(-1) === 'condition') return context.event.value === 'bad-condition' ? rejectedCondition.promise : Promise.resolve(context.event.fieldId === '/related');
+        return Promise.resolve(context.event.value);
+      });
+      const expression = { ...selectionExpression, config: { ...selectionExpression.config, conditionKind } } as FormExpressionsConfigFrame;
+      const { select, published, component } = await bindRealBus([expression], evaluate);
+      fakeAsync(() => {
+        recordService.getRecordMeta.and.rejectWith(new Error('offline'));
+        select('accepted');
+        flushMicrotasks();
+        select('bad-condition', '/other');
+        flushMicrotasks();
+        rejectedCondition.reject(new Error('JSONata failure'));
+        flushMicrotasks();
+        expect(recordService.getRecordMeta.calls.allArgs()).toEqual([['accepted']]);
+        expect(component.metadataLoadWarning).toBeTrue();
+        expect(component.metadataLoading).toBeFalse();
+        recordService.getRecordMeta.and.resolveTo({ title: 'Recovered' });
+        void component.retryMetadata();
+        flushMicrotasks();
+        expect(recordService.getRecordMeta.calls.allArgs()).toEqual([['accepted'], ['accepted']]);
+        expect(published).toEqual([{ title: 'Recovered', oid: 'accepted' }]);
+        expect(component.metadataLoadWarning).toBeFalse();
+      })();
+    });
+  }
 
   it('supersedes delayed event-bus matching before evaluating templates or fetching old metadata', async () => {
     const oldMatch = deferred<boolean>();
