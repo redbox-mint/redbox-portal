@@ -21,6 +21,8 @@ export interface BrandAuthLocalConfig {
 }
 
 export interface BrandAuthAafConfig {
+    /** AAF authentication request URL rendered by the login page. */
+    loginUrl?: string;
     defaultRole: string;
     attributesField: string;
     usernameField: string;
@@ -36,6 +38,10 @@ export interface BrandAuthOidcConfig {
     defaultRole: string;
     postLoginRedir: string;
     claimMappings: Record<string, string>;
+    claimMappingOptions?: {
+        /** Lowercase the mapped username before looking up or creating the user. */
+        usernameToLowercase?: boolean;
+    };
     opts: {
         issuer: string;
         client: {

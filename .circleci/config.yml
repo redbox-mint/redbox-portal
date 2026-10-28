@@ -67,6 +67,9 @@ jobs:
             npm run compile:agenda-sqs
             npm run compile:core
       - run:
+          name: Typecheck public runtime configuration fixtures
+          command: npm run test:config-types
+      - run:
           name: Validate API route contracts
           command: npm run validate:api-routes
       - run:
