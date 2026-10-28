@@ -163,7 +163,7 @@ jobs:
             # Keep download options scoped to nvm and avoid a source build on network failure.
             (
               curl() {
-                command curl --http1.1 --connect-timeout 20 --max-time 180 \
+                command curl --http1.1 --connect-timeout 20 --max-time 60 \
                   --retry 2 --retry-delay 3 --retry-all-errors "$@"
               }
               nvm install -b
