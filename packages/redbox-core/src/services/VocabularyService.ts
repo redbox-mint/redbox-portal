@@ -654,6 +654,7 @@ export namespace Services {
       };
 
       const entries = payload.entries ?? [];
+      this.validateReplacementParents(entries);
       delete payload.entries;
 
       const createPayload: Partial<VocabularyAttributes> = {
@@ -758,6 +759,9 @@ export namespace Services {
         throw new Error('Vocabulary not found');
       }
       await this.assertMutableVocabulary(id);
+      if (input.entries) {
+        this.validateReplacementParents(input.entries);
+      }
 
       const updatePayload: Partial<VocabularyInput> = { ...input };
       const entries = updatePayload.entries;
@@ -1002,6 +1006,16 @@ export namespace Services {
       }
 
       return { created, updated, skipped };
+    }
+
+    // Replacement recreates every entry, so parents must resolve within this payload.
+    // Validate before any writes, including on datastores without transactions.
+    private validateReplacementParents(entries: VocabularyEntryInput[]): void {
+      const flat = this.flattenEntries(entries);
+      const ids = new Set(flat.map(entry => String(entry.id)));
+      if (flat.some(entry => entry.parent && !ids.has(String(entry.parent)))) {
+        throw new Error('VocabularyEntry.parent must belong to the replacement entries');
+      }
     }
 
     private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<void> {

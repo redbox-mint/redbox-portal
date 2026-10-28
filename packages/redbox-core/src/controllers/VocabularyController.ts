@@ -1,3 +1,4 @@
+import { assertVocabularyAdminAccess, vocabularyAdminBrand, VocabularyAdminAccessError } from '../utilities/VocabularyAdminAccess';
 import { Controllers as controllers } from '../CoreController';
 import { ListAPIResponse, ListAPISummary } from '../model';
 import { Services as VocabularyServiceModule } from '../services/VocabularyService';
@@ -7,17 +8,8 @@ const VALID_VOCAB_SOURCES = new Set(['local', 'rva', 'external']);
 
 export namespace Controllers {
   export class Vocabulary extends controllers.Core.Controller {
-    private get brandingService() {
-      return sails.services['brandingservice'] as Sails.DynamicService & {
-        getBrandNameFromReq: (req: Sails.Req) => string;
-        getBrand: (nameOrId: string) => { id?: string | number } | null;
-      };
-    }
-
     private resolveBrandingId(req: Sails.Req): string {
-      const brandingNameOrId = this.brandingService.getBrandNameFromReq(req);
-      const branding = this.brandingService.getBrand(brandingNameOrId);
-      return String(branding?.id ?? brandingNameOrId);
+      return vocabularyAdminBrand(req);
     }
 
     private asError(error: unknown): Error {
@@ -262,13 +254,14 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders()
         });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
       }
     }
 
     public async get(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
+        await assertVocabularyAdminAccess(req, id);
         const vocabulary = await VocabularyService.getById(id);
         if (!vocabulary) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ title: 'Vocabulary not found' }], headers: this.getNoCacheHeaders() });
@@ -276,7 +269,7 @@ export namespace Controllers {
         const entries = await VocabularyService.getTree(id);
         return this.sendResp(req, res, { data: { vocabulary, entries }, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -289,31 +282,33 @@ export namespace Controllers {
         const created = await VocabularyService.create(payload);
         return this.sendResp(req, res, { status: 201, data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
       }
     }
 
     public async update(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
+        await assertVocabularyAdminAccess(req, id);
         const { payload, errors } = this.sanitizeUpdatePayload(req);
         if (errors.length > 0 || !payload) {
           return this.sendResp(req, res, { status: 400, errors, headers: this.getNoCacheHeaders() });
         }
-        const updated = await VocabularyService.update(id, payload);
+        const updated = await VocabularyService.update(id, { ...payload, branding: vocabularyAdminBrand(req) });
         return this.sendResp(req, res, { data: updated, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
       }
     }
 
     public async delete(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
+        await assertVocabularyAdminAccess(req, id);
         await VocabularyService.delete(id);
         return this.sendResp(req, res, { status: 204, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -328,13 +323,14 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
     public async sync(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
+        await assertVocabularyAdminAccess(req, id);
         if (!id.trim()) {
           return this.sendResp(req, res, {
             status: 400,
@@ -347,7 +343,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
   }
