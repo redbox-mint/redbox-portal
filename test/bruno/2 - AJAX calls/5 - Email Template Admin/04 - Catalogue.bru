@@ -1,0 +1,30 @@
+meta {
+  name: Email templates - Catalogue
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/catalogue
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Lists supplied templates without requiring seeded overrides", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().templates.some(value => value.templateId === "test")).to.equal(true);
+  });
+}

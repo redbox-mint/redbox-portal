@@ -21,6 +21,7 @@ required_playwright_apps=(
   "admin-vocabulary"
   "app-config"
   "branding"
+  "email-templates"
   "translation"
   "deleted-records"
   "harvest-runs"

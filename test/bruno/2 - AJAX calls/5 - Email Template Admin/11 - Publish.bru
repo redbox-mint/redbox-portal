@@ -1,0 +1,38 @@
+meta {
+  name: Email templates - Publish
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test/publish
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  { "expectedDraftRevision": {{emailAdminDraftRevision}}, "expectedLiveToken": {{emailAdminLiveToken}} }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Publishes a live override and removes the published draft", () => {
+    expect(res.getStatus()).to.equal(200);
+    const result = res.getBody();
+    expect(result.state.live.subject).to.equal("Admin preview {{name}}");
+    expect(result.state.draft).to.equal(null);
+    bru.setVar("emailAdminLiveToken", JSON.stringify(result.state.live.token));
+    bru.setVar("emailAdminPublishedVersion", result.state.live.token.revision);
+  });
+}

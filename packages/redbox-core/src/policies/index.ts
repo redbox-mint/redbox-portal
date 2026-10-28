@@ -5,6 +5,7 @@
  * These policies are middleware functions that run before controller actions.
  */
 
+export { emailTemplateAdmin } from './emailTemplateAdmin';
 export { brandingAndPortal } from './brandingAndPortal';
 export { checkAuth, checkRecordSchemaAuth } from './checkAuth';
 export { checkBrandingValid } from './checkBrandingValid';
@@ -22,6 +23,7 @@ export { setLang } from './setLang';
 export { validateApiContractRequest } from './validateApiContractRequest';
 
 // Re-export as a namespace for convenient access
+import { emailTemplateAdmin } from './emailTemplateAdmin';
 import { brandingAndPortal } from './brandingAndPortal';
 import { checkAuth, checkRecordSchemaAuth } from './checkAuth';
 import { checkBrandingValid } from './checkBrandingValid';
@@ -39,6 +41,7 @@ import { setLang } from './setLang';
 import { validateApiContractRequest } from './validateApiContractRequest';
 
 export const Policies = {
+  emailTemplateAdmin,
   brandingAndPortal,
   checkAuth,
   checkRecordSchemaAuth,

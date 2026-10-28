@@ -2,8 +2,13 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import Module, { createRequire } from 'node:module';
+import { transpileModule, ModuleKind, ScriptTarget } from 'typescript';
 import { firstValueFrom } from 'rxjs';
 import { Services as EmailServices } from '../../src/services/EmailService';
+import { Services as AdminServices } from '../../src/services/EmailTemplateAdminService';
+import { Services as SanitizerServices } from '../../src/services/DomSanitizerService';
+import { dompurify } from '../../src/config/dompurify.config';
 import { validateEmailTemplate } from '../../src/services/EmailTemplateService';
 import { emailnotification } from '../../src/config/emailnotification.config';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
@@ -52,6 +57,9 @@ describe('Email template compatibility', () => {
     // their bootstrap global instead of making later config tests order-dependent.
     if (previousSails !== undefined) (global as any).sails = previousSails;
     delete (global as any).EmailTemplateService;
+    delete (global as any).EmailService;
+    delete (global as any).BrandingConfig;
+    delete (global as any).DomSanitizerService;
     rmSync(directory, { recursive: true, force: true });
   });
 
@@ -65,6 +73,12 @@ describe('Email template compatibility', () => {
     const files = readdirSync(sourceDir).filter(file => file.endsWith('.hbs'));
     assert.equal(files.length, 7, 'Update the compatibility expectation when adding templates.');
     const email = new EmailServices.Email();
+    (global as any).EmailService = email;
+    const admin = new AdminServices.EmailTemplateAdmin();
+    const sanitizer = new SanitizerServices.DomSanitizer();
+    mockSails.config.dompurify = dompurify;
+    (global as any).BrandingConfig = { findOne: async ({ id }: any) => ({ id }) };
+    (global as any).DomSanitizerService = sanitizer;
     for (const file of files) {
       const id = file.slice(0, -4);
       const body = readFileSync(join(sourceDir, file), 'utf8');
@@ -78,25 +92,42 @@ describe('Email template compatibility', () => {
       assert.equal(override.status, 200, `${file} override: ${override.ex}`);
       assert.equal(override.body, supplied.body);
       assert.equal(override.subject, supplied.subject);
+      const context = await email.buildPreviewContext(id, data, 'a');
+      const preview = await admin.preview('a', id, { subject, body, format: 'html' }, JSON.stringify(context));
+      assert.deepEqual(preview.diagnostics, []);
+      assert.equal(preview.subject, supplied.subject);
+      assert.equal(preview.html, sanitizer.sanitizeEmail(String(supplied.body)).sanitized);
     }
   });
 
   (scuRepo && scuFixture ? it : it.skip)('renders every SCU hook body and configured subject with hook-injected view data for both sources', async () => {
     const fixture = JSON.parse(readFileSync(scuFixture!, 'utf8'));
     const liveConfig = require(join(scuRepo!, 'src/config/emailnotification.ts')).emailnotification;
-    const viewData = require(join(scuRepo!, 'src/scu/notifications/view-data.ts')).buildScuEmailViewData;
+
     const templates = readdirSync(join(scuRepo!, 'views/emailTemplates')).filter(file => file.endsWith('.hbs')).map(file => ({
       id: file.slice(0, -4), body: readFileSync(join(scuRepo!, 'views/emailTemplates', file), 'utf8'),
       subject: liveConfig.templates[file.slice(0, -4)].subject,
     }));
     assert.ok(templates.length > 0);
-    class HookEmail extends EmailServices.Email {
-      override async buildFromTemplateAsync(name: string, data: Record<string, unknown> = {}, response: Record<string, unknown> = {}) {
-        return super.buildFromTemplateAsync(name, { ...data, scuEmail: viewData(data) }, response);
-      }
-    }
-    const email = new HookEmail();
+    // Execute SCU's actual source/exports. Substitute only its core base import
+    // so the private hook inherits this checkout's source rather than a stale installed dist.
+    const hookPath = join(scuRepo!, 'src/api/services/EmailService.ts');
+    const hookModule = new Module(hookPath, module);
+    const hookRequire = createRequire(hookPath);
+    hookModule.require = ((name: string) => name === '@researchdatabox/redbox-core/dist/services/EmailService'
+      ? { Services: EmailServices } : hookRequire(name)) as NodeJS.Require;
+    const compiled = transpileModule(readFileSync(hookPath, 'utf8'), { compilerOptions: {
+      module: ModuleKind.CommonJS, target: ScriptTarget.ES2024, esModuleInterop: true,
+    } });
+    (hookModule as any)._compile(compiled.outputText, hookPath);
+    const email = hookModule.exports;
     const data = { record: fixture.record, oid: fixture.record.oid };
+    (global as any).EmailService = email;
+    const admin = new AdminServices.EmailTemplateAdmin();
+    const sanitizer = new SanitizerServices.DomSanitizer();
+    mockSails.config.dompurify = dompurify;
+    (global as any).BrandingConfig = { findOne: async ({ id }: any) => ({ id }) };
+    (global as any).DomSanitizerService = sanitizer;
     mockSails.config.emailnotification.templates = Object.fromEntries(templates.map((template: any) =>
       [template.id, { subject: template.subject, template: template.id }]));
     for (const template of templates) {
@@ -111,6 +142,12 @@ describe('Email template compatibility', () => {
       assert.equal(override.status, 200, `${template.id} override: ${override.ex}`);
       assert.equal(override.body, supplied.body);
       assert.equal(override.subject, supplied.subject);
+      const context = await email.buildPreviewContext(template.id, data, 'a');
+      assert.ok(context.scuEmail, 'The real SCU display function must run through the async preview hook seam');
+      const preview = await admin.preview('a', template.id, { subject: template.subject, body: template.body, format: 'html' }, JSON.stringify(context));
+      assert.deepEqual(preview.diagnostics, []);
+      assert.equal(preview.subject, supplied.subject);
+      assert.equal(preview.html, sanitizer.sanitizeEmail(String(supplied.body)).sanitized);
     }
   });
 });
