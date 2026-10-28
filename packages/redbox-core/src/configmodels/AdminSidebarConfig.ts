@@ -259,6 +259,7 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
       requiredRoles: ['Admin'],
       items: [
         { id: 'system-msg', labelKey: 'admin-nav-system-msg', href: '/admin/appconfig/edit/systemMessage' },
+        { id: 'email-templates', labelKey: 'menu-email-templates', href: '/admin/email-templates' },
         { id: 'menu', labelKey: 'admin-nav-menu', href: '/admin/appconfig/edit/menu' },
         { id: 'homepanels', labelKey: 'admin-nav-homepanels', href: '/admin/appconfig/edit/homePanels' },
         { id: 'adminsidebar', labelKey: 'admin-nav-adminsidebar', href: '/admin/appconfig/edit/adminSidebar' },

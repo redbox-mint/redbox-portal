@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import type { EmailAdminCurrent, EmailAdminActor, EmailAdminConsistency } from '@researchdatabox/sails-ng-common';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Db, ObjectId } from 'mongodb';
@@ -6,6 +8,10 @@ import { Services as services } from '../CoreService';
 import type { EmailTemplateAttributes } from '../waterline-models/EmailTemplate';
 
 export type EmailTemplateErrorCode =
+  | 'FORBIDDEN'
+  | 'UNKNOWN_VERSION'
+  | 'INVALID_CONTEXT'
+  | 'INCOMPLETE_TRANSITION'
   | 'UNKNOWN_BRAND'
   | 'UNKNOWN_TEMPLATE'
   | 'MISSING_DEFAULT'
@@ -29,16 +35,15 @@ export class EmailTemplateError extends Error {
 }
 
 export class EmailTemplateConflictError extends EmailTemplateError {
-  constructor(brandId: string, templateId: string) {
+  constructor(brandId: string, templateId: string, public readonly current?: EmailAdminCurrent) {
     super('REVISION_CONFLICT', `Email template '${templateId}' for brand '${brandId}' changed; reload before editing.`);
     this.name = 'EmailTemplateConflictError';
   }
 }
 
 /**
- * Optimistic-concurrency token. Revisions restart when an override is reset and
- * recreated, so the row ID is part of the token: a stale token from an earlier
- * override lifetime can never match its replacement.
+ * Optimistic-concurrency token. Revisions are monotonic across resets; the row
+ * ID also protects against a replacement of the underlying live document.
  */
 export interface EmailTemplateVersion {
   id: string;
@@ -276,6 +281,43 @@ export function readEmailTemplateDefault(templateId: string): ResolvedEmailTempl
   return result;
 }
 
+
+/** Only source content participates; config aliases and file names do not. */
+export function emailDefaultHash(content: EmailTemplateContent): string {
+  return createHash('sha256').update(JSON.stringify([content.subject, content.body, content.format])).digest('hex');
+}
+
+export function emailAdminSetting(key: 'historyMaxVersions' | 'maxPreviewContextBytes'): number {
+  const value = sails.config.emailnotification?.settings?.[key] ?? (key === 'historyMaxVersions' ? 50 : 262144);
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new EmailTemplateError('INVALID_TEMPLATE', `emailnotification.settings.${key} must be a positive safe integer.`);
+  }
+  return value;
+}
+
+export interface EmailHistoryRow {
+  _id?: ObjectId;
+  brandId: string; templateId: string; version: number;
+  event: 'publish' | 'reset' | 'restore-published';
+  subject: string | null; body: string | null; format: 'html' | 'text' | null;
+  restoredFromVersion: number | null; defaultHash: string;
+  liveId: string | null; previousLiveToken: EmailTemplateVersion | null;
+  draftRevision: number | null; actorId: string; actorDisplayName: string; createdAt: string;
+}
+
+/** Private, unpruned lifecycle fence; no template content is stored here. */
+interface EmailLifecycleHead {
+  brandId: string; templateId: string;
+  version: number; committedVersion: number;
+  liveToken: EmailTemplateVersion | null;
+  reservation: number | null;
+}
+
+interface EmailReconciliation {
+  brandId: string; templateId: string; version: number;
+  outcome: 'completed' | 'rolled-back'; actorId: string; actorDisplayName: string; createdAt: string;
+}
+
 export namespace Services {
   export class EmailTemplates extends services.Core.Service {
     protected override _exportedMethods: string[] = [
@@ -283,6 +325,8 @@ export namespace Services {
       'get',
       'list',
       'reportInvalidOverrides',
+      'reportInconsistencies',
+      'reconcileTransition',
       'getDefault',
       'create',
       'update',
@@ -296,6 +340,8 @@ export namespace Services {
       // explicitly, before jobs can send or concurrent writers can create rows.
       // Other adapters (e.g. sails-disk in lightweight test apps) can still read
       // overrides through Waterline; atomic writes require native Mongo access.
+      emailAdminSetting('historyMaxVersions');
+      emailAdminSetting('maxPreviewContextBytes');
       const native = this.native();
       if (!native) {
         // A sails-mongo datastore without native handles is a misconfiguration,
@@ -312,9 +358,17 @@ export namespace Services {
       await this.persist(() =>
         db.collection(EmailTemplate.tableName).createIndex({ brandId: 1, templateId: 1 }, { unique: true })
       );
+      await this.persist(() => db.collection(EmailTemplateDraft.tableName)
+        .createIndex({ brandId: 1, templateId: 1 }, { unique: true }));
+      await this.persist(() => db.collection(EmailTemplateHistory.tableName)
+        .createIndex({ brandId: 1, templateId: 1, version: 1 }, { unique: true }));
+      await this.persist(() => this.heads().createIndex({ brandId: 1, templateId: 1 }, { unique: true }));
+      await this.persist(() => this.reconciliations().createIndex({ brandId: 1, templateId: 1, version: 1 }, { unique: true }));
+      // Mongo's built-in unique _id index protects this private revision ledger.
+      // It survives draft deletion so old autosave requests cannot match a new draft.
     }
 
-    private async validateBrand(brandId: string): Promise<void> {
+    protected async validateBrand(brandId: string): Promise<void> {
       if (typeof brandId !== 'string' || !brandId.trim()) {
         throw new EmailTemplateError('UNKNOWN_BRAND', 'An explicit, non-empty brand ID is required.');
       }
@@ -322,7 +376,7 @@ export namespace Services {
       if (!brand) throw new EmailTemplateError('UNKNOWN_BRAND', `Unknown email template brand '${brandId}'.`);
     }
 
-    private async persist<T>(operation: () => PromiseLike<T>): Promise<T> {
+    protected async persist<T>(operation: () => PromiseLike<T>): Promise<T> {
       try {
         return await operation();
       } catch (error) {
@@ -334,7 +388,7 @@ export namespace Services {
       }
     }
 
-    private validateStored(row: EmailTemplateAttributes, brandId: string, templateId: string): EmailTemplateAttributes {
+    protected validateStored(row: EmailTemplateAttributes, brandId: string, templateId: string): EmailTemplateAttributes {
       validateEmailTemplate(row);
       if (
         row.brandId !== brandId ||
@@ -410,89 +464,317 @@ export namespace Services {
       };
     }
 
-    public async create(
-      brandId: string,
-      templateId: string,
-      content: EmailTemplateContent,
-      updatedBy?: string
-    ): Promise<EmailTemplateAttributes> {
-      await this.getDefault(brandId, templateId);
-      validateEmailTemplate(content);
-      return this.persist(async () => {
-        try {
-          return await EmailTemplate.create({
-            brandId,
-            templateId,
-            uid: JSON.stringify([brandId, templateId]),
-            subject: content.subject,
-            body: content.body,
-            format: content.format,
-            revision: 1,
-            updatedBy,
-          }).fetch();
-        } catch (error) {
-          const code = (error as { code?: string | number }).code;
-          if (code === 'E_UNIQUE' || code === 11000) throw new EmailTemplateConflictError(brandId, templateId);
-          throw error;
-        }
-      });
+    public async create(brandId: string, templateId: string, content: EmailTemplateContent, updatedBy?: string): Promise<EmailTemplateAttributes> {
+      return (await this.commitLive(brandId, templateId, content, null, { id: updatedBy ?? '', name: '' }))!;
     }
 
-    public async update(
-      brandId: string,
-      templateId: string,
-      content: EmailTemplateContent,
-      expected: EmailTemplateVersion,
-      updatedBy?: string
-    ): Promise<EmailTemplateAttributes> {
-      await this.getDefault(brandId, templateId);
-      validateEmailTemplate(content);
-      const criteria = this.versionCriteria(brandId, templateId, expected);
-      const collection = this.collection();
-      // sails-mongo's fetched Waterline updateOne first selects IDs, then
-      // updates by ID alone, dropping the revision predicate. Use the native
-      // atomic operation so the comparison and write cannot be separated.
-      const row = await this.persist(() =>
-        collection.findOneAndUpdate(
-          criteria,
-          {
-            $set: {
-              subject: content.subject,
-              body: content.body,
-              format: content.format,
-              revision: expected.revision + 1,
-              updatedAt: new Date().toISOString(),
-              ...(updatedBy !== undefined ? { updatedBy } : {}),
-            },
-          },
-          { returnDocument: 'after', includeResultMetadata: false }
-        )
-      );
-      if (!row) throw new EmailTemplateConflictError(brandId, templateId);
-      const { _id, ...attributes } = row;
-      return this.validateStored({ ...attributes, id: String(_id) }, brandId, templateId);
+    public async update(brandId: string, templateId: string, content: EmailTemplateContent,
+      expected: EmailTemplateVersion, updatedBy?: string): Promise<EmailTemplateAttributes> {
+      return (await this.commitLive(brandId, templateId, content, expected, { id: updatedBy ?? '', name: '' }))!;
     }
 
-    /** expected=null creates (no override seen); a version token updates. Never blindly overwrites. */
-    public async upsert(
-      brandId: string,
-      templateId: string,
-      content: EmailTemplateContent,
-      expected: EmailTemplateVersion | null,
-      updatedBy?: string
-    ): Promise<EmailTemplateAttributes> {
-      return expected === null
-        ? this.create(brandId, templateId, content, updatedBy)
+    /** expected=null creates; a version token updates. Never blindly overwrites. */
+    public async upsert(brandId: string, templateId: string, content: EmailTemplateContent,
+      expected: EmailTemplateVersion | null, updatedBy?: string): Promise<EmailTemplateAttributes> {
+      return expected === null ? this.create(brandId, templateId, content, updatedBy)
         : this.update(brandId, templateId, content, expected, updatedBy);
     }
 
     public async reset(brandId: string, templateId: string, expected: EmailTemplateVersion): Promise<ResolvedEmailTemplate> {
       const suppliedDefault = await this.getDefault(brandId, templateId);
-      const criteria = this.versionCriteria(brandId, templateId, expected);
-      const collection = this.collection();
-      const deleted = await this.persist(() => collection.deleteOne(criteria));
-      if (deleted.deletedCount !== 1) throw new EmailTemplateConflictError(brandId, templateId);
+      await this.commitLive(brandId, templateId, null, expected, { id: '', name: '' });
       return suppliedDefault;
+    }
+
+    protected historyCollection() {
+      return this.requireNative().db.collection<EmailHistoryRow>(EmailTemplateHistory.tableName);
+    }
+
+    protected async latestHistory(brandId: string, templateId: string): Promise<EmailHistoryRow | null> {
+      return this.persist(() => this.historyCollection().findOne({ brandId, templateId }, { sort: { version: -1 } }));
+    }
+
+    protected async rawLive(brandId: string, templateId: string): Promise<EmailTemplateAttributes | null> {
+      return (await this.persist(() => EmailTemplate.findOne({ brandId, templateId }))) ?? null;
+    }
+
+    protected token(row: EmailTemplateAttributes | null): EmailTemplateVersion | null {
+      return row ? { id: String(row.id), revision: row.revision } : null;
+    }
+
+    protected transitionMatches(row: EmailTemplateAttributes | null, latest: EmailHistoryRow): boolean {
+      return latest.event === 'reset' ? row === null
+        : row !== null && String(row.id) === latest.liveId && row.revision === latest.version;
+    }
+
+    protected async conflict(brandId: string, templateId: string): Promise<never> {
+      const row = await this.rawLive(brandId, templateId);
+      const draft = await this.persist(() => this.requireNative().db.collection(EmailTemplateDraft.tableName).findOne({ brandId, templateId }));
+      const last = await this.latestHistory(brandId, templateId);
+      const change = (value: { updatedBy?: unknown; updatedByName?: unknown; updatedAt?: unknown }) => ({
+        updatedBy: typeof value.updatedBy === 'string' ? value.updatedBy : null,
+        updatedByName: typeof value.updatedByName === 'string' ? value.updatedByName : null,
+        updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : null,
+      });
+      throw new EmailTemplateConflictError(brandId, templateId, {
+        live: row ? { token: this.token(row)!, ...change(row) } : null,
+        draft: draft ? { draftRevision: draft.draftRevision, ...change({ updatedBy: draft.updatedBy, updatedByName: draft.updatedByName, updatedAt: draft.updatedAt }) } : null,
+        latestVersion: await this.latestVersion(brandId, templateId),
+        lastChange: last ? { updatedBy: last.actorId || null, updatedByName: last.actorDisplayName || null, updatedAt: last.createdAt } : null,
+      });
+    }
+
+    protected heads() {
+      return this.requireNative().db.collection<EmailLifecycleHead>('emailtemplatelifecyclehead');
+    }
+
+    protected reconciliations() {
+      return this.requireNative().db.collection<EmailReconciliation>('emailtemplatereconciliation');
+    }
+
+    protected sameToken(left: EmailTemplateVersion | null, right: EmailTemplateVersion | null): boolean {
+      return left === null || right === null ? left === right : left.id === right.id && left.revision === right.revision;
+    }
+
+    /** Read-only callers never initialize heads. The unique index arbitrates legacy initialization. */
+    protected async lifecycleHead(brandId: string, templateId: string): Promise<EmailLifecycleHead> {
+      const scope = { brandId, templateId };
+      const found = await this.persist(() => this.heads().findOne(scope));
+      if (found) return found;
+      const live = await this.rawLive(brandId, templateId);
+      const latest = await this.latestHistory(brandId, templateId);
+      const head = await this.deriveLifecycleHead(brandId, templateId, live, latest);
+      await this.persist(async () => {
+        try { await this.heads().insertOne(head); }
+        catch (error) { if ((error as { code?: number }).code !== 11000) throw error; }
+      });
+      return (await this.persist(() => this.heads().findOne(scope)))!;
+    }
+
+    protected async deriveLifecycleHead(brandId: string, templateId: string,
+      live: EmailTemplateAttributes | null, latest: EmailHistoryRow | null): Promise<EmailLifecycleHead> {
+      const incomplete = latest && !this.transitionMatches(live, latest);
+      const version = Math.max(live?.revision ?? 0, latest?.version ?? 0);
+      // A headless failed create may follow a committed reset. Preserve that
+      // default generation as well as legacy live rows that have no history.
+      const resets = incomplete && !live ? await this.persist(() => this.historyCollection()
+        .find({ brandId, templateId, event: 'reset' }).sort({ version: -1 }).toArray()) : [];
+      const committedVersion = incomplete ? (live?.revision ?? resets.find(row => row.version < latest.version)?.version ?? 0) : version;
+      return { brandId, templateId, version, committedVersion,
+        liveToken: this.token(live), reservation: incomplete ? latest.version : null };
+    }
+
+    protected async latestVersion(brandId: string, templateId: string): Promise<number> {
+      const head = await this.persist(() => this.heads().findOne({ brandId, templateId }));
+      const latest = await this.latestHistory(brandId, templateId);
+      const live = await this.rawLive(brandId, templateId);
+      return Math.max(head?.version ?? 0, latest?.version ?? 0, live?.revision ?? 0);
+    }
+
+    protected async assertReservation(brandId: string, templateId: string, version: number): Promise<void> {
+      const owned = await this.persist(() => this.heads().findOne({ brandId, templateId, version, reservation: version }));
+      if (!owned) return this.conflict(brandId, templateId);
+    }
+
+    protected async finishReservation(brandId: string, templateId: string, version: number,
+      liveToken: EmailTemplateVersion | null, committedVersion = version): Promise<void> {
+      const finished = await this.persist(() => this.heads().findOneAndUpdate(
+        { brandId, templateId, version, reservation: version },
+        { $set: { committedVersion, liveToken, reservation: null } },
+        { returnDocument: 'after', includeResultMetadata: false }));
+      if (!finished) return this.conflict(brandId, templateId);
+    }
+
+    /** Every writer reserves against an unpruned head before writing history or live. */
+    protected async commitLive(brandId: string, templateId: string, content: EmailTemplateContent | null,
+      expected: EmailTemplateVersion | null, actor: EmailAdminActor,
+      draft?: { draftRevision: number; restoredFromVersion?: number | null }): Promise<EmailTemplateAttributes | null> {
+      const supplied = await this.getDefault(brandId, templateId);
+      const criteria = expected === null ? null : this.versionCriteria(brandId, templateId, expected);
+      const head = await this.lifecycleHead(brandId, templateId);
+      const previous = await this.rawLive(brandId, templateId);
+      if (expected === undefined || head.reservation !== null || !this.sameToken(head.liveToken, expected) ||
+        !this.sameToken(this.token(previous), expected) || (!content && !previous)) return this.conflict(brandId, templateId);
+      if (content) validateEmailTemplate(content);
+      const version = head.version + 1;
+      if (!Number.isSafeInteger(version)) throw new EmailTemplateError('PERSISTENCE', 'Email version counter exhausted.');
+      const reserved = await this.persist(() => this.heads().findOneAndUpdate(
+        { brandId, templateId, version: head.version, reservation: null },
+        { $set: { version, reservation: version } }, { returnDocument: 'after', includeResultMetadata: false }));
+      if (!reserved) return this.conflict(brandId, templateId);
+      const { ObjectId: NativeObjectId } = this.requireNative();
+      const liveId = content ? (previous?.id ?? String(new NativeObjectId())) : null;
+      const now = new Date().toISOString();
+      const history: EmailHistoryRow = {
+        brandId, templateId, version, event: content ? (draft?.restoredFromVersion ? 'restore-published' : 'publish') : 'reset',
+        subject: content?.subject ?? null, body: content?.body ?? null, format: content?.format ?? null,
+        restoredFromVersion: draft?.restoredFromVersion ?? null, defaultHash: emailDefaultHash(supplied), liveId,
+        previousLiveToken: this.token(previous), draftRevision: draft?.draftRevision ?? null,
+        actorId: actor.id, actorDisplayName: actor.name, createdAt: now,
+      };
+      await this.assertReservation(brandId, templateId, version);
+      await this.persist(async () => {
+        try { await this.historyCollection().insertOne(history); }
+        catch (error) {
+          if ((error as { code?: number }).code === 11000) return this.conflict(brandId, templateId);
+          throw error;
+        }
+      });
+      await this.assertReservation(brandId, templateId, version);
+      const row = await this.applyHistory(history, criteria);
+      // Never release a reservation on an uncertain driver result. Reconciliation requires quiesced writers.
+      await this.finishReservation(brandId, templateId, version, this.token(row));
+      try { await this.pruneHistory(brandId, templateId, version); }
+      catch { this.updateChronicle({ emailHistoryPruningOutcome: 'failed' }, [], 'warn'); }
+      return row;
+    }
+
+    protected async applyHistory(history: EmailHistoryRow, criteria = history.previousLiveToken === null ? null
+      : this.versionCriteria(history.brandId, history.templateId, history.previousLiveToken)): Promise<EmailTemplateAttributes | null> {
+      const { brandId, templateId, version, liveId, createdAt: now } = history;
+      const collection = this.collection();
+      if (history.event === 'reset') {
+        if (!criteria) return this.conflict(brandId, templateId);
+        const removed = await this.persist(() => collection.deleteOne(criteria));
+        if (removed.deletedCount !== 1) return this.conflict(brandId, templateId);
+        return null;
+      }
+      const content = { subject: history.subject!, body: history.body!, format: history.format! };
+      validateEmailTemplate(content);
+      const values = { uid: JSON.stringify([brandId, templateId]), brandId, templateId, ...content,
+        revision: version, defaultHash: history.defaultHash,
+        updatedBy: history.actorId, updatedByName: history.actorDisplayName, updatedAt: now };
+      if (criteria) {
+        const updated = await this.persist(() => collection.findOneAndUpdate(criteria, { $set: values },
+          { returnDocument: 'after', includeResultMetadata: false }));
+        if (!updated) return this.conflict(brandId, templateId);
+        const { _id, ...attrs } = updated;
+        return { ...attrs, id: String(_id) };
+      }
+      const { ObjectId: NativeObjectId } = this.requireNative();
+      await this.persist(async () => {
+        try { await collection.insertOne({ ...values, _id: new NativeObjectId(liveId!), createdAt: now }); }
+        catch (error) {
+          if ((error as { code?: number }).code === 11000) return this.conflict(brandId, templateId);
+          throw error;
+        }
+      });
+      return { ...values, id: liveId!, createdAt: now };
+    }
+
+    /** A stale pruner can remove only versions older than its own committed transition.
+     * The permanent head bounds it further; reservations and newer live transitions are never candidates. */
+    protected async pruneHistory(brandId: string, templateId: string, committedVersion: number): Promise<void> {
+      const head = await this.persist(() => this.heads().findOne({ brandId, templateId }));
+      if (!head) return;
+      const bound = Math.min(committedVersion, head.committedVersion);
+      const rows = await this.persist(() => this.historyCollection().find({ brandId, templateId })
+        .sort({ version: -1 }).toArray());
+      const keep = new Set(rows.slice(0, emailAdminSetting('historyMaxVersions')).map(row => row.version));
+      if (head.liveToken) keep.add(head.liveToken.revision);
+      if (head.reservation !== null) keep.add(head.reservation);
+      const remove = rows.filter(row => row.version < bound && !keep.has(row.version)).map(row => row.version);
+      if (remove.length) await this.persist(() => this.historyCollection().deleteMany({ brandId, templateId, version: { $in: remove } }));
+    }
+
+    /** Operator-only console tool. Inspection is read-only; actions require all writers/requests drained.
+     * Rollback consumes the reserved version and keeps history plus a permanent content-free audit record.
+     * If live already matches an uncertain write, always complete it; never revert delivered content. */
+    public async reconcileTransition(brandId: string, templateId: string,
+      options: { action?: 'inspect' | 'complete' | 'rollback'; expectedVersion?: number;
+        writersQuiesced?: boolean; actor?: EmailAdminActor } = {}) {
+      await this.validateBrand(brandId);
+      emailTemplateDefinition(templateId);
+      const action = options.action ?? 'inspect';
+      if (!['inspect', 'complete', 'rollback'].includes(action)) throw new EmailTemplateError('INVALID_TEMPLATE', 'Invalid reconciliation action.');
+      if (action !== 'inspect' && (options.writersQuiesced !== true || !options.actor?.id || !options.actor?.name ||
+        !Number.isSafeInteger(options.expectedVersion))) {
+        throw new EmailTemplateError('INVALID_TEMPLATE', 'Reconciliation requires drained writers, an actor and the inspected version.');
+      }
+      let head: EmailLifecycleHead | null = await this.persist(() => this.heads().findOne({ brandId, templateId }));
+      const latest = await this.latestHistory(brandId, templateId);
+      let live = await this.rawLive(brandId, templateId);
+      const version = Math.max(head?.version ?? 0, latest?.version ?? 0, live?.revision ?? 0);
+      if (action !== 'inspect' && options.expectedVersion !== version) return this.conflict(brandId, templateId);
+      if (!head) head = action === 'inspect' ? await this.deriveLifecycleHead(brandId, templateId, live, latest)
+        : await this.lifecycleHead(brandId, templateId);
+      if (action !== 'inspect' && head.version !== options.expectedVersion) return this.conflict(brandId, templateId);
+      const pending = head ? head.reservation : (latest && !this.transitionMatches(live, latest) ? latest.version : null);
+      const historyVersion = pending ?? head.committedVersion;
+      const history = await this.persist(() => this.historyCollection().findOne({ brandId, templateId, version: historyVersion }));
+      const matches = Boolean(history && this.transitionMatches(live, history));
+      const priorMatches = head ? this.sameToken(this.token(live), head.liveToken)
+        : Boolean(history && this.sameToken(this.token(live), history.previousLiveToken));
+      const summary = (outcome: string, draftRetained = false) => ({ brandId, templateId, version,
+        committedVersion: head?.committedVersion ?? (matches ? version : live?.revision ?? 0),
+        pendingVersion: head ? head.reservation : pending, liveToken: this.token(live), historyPresent: Boolean(history),
+        liveMatchesTransition: Boolean(history && this.transitionMatches(live, history)), previousLiveMatches: priorMatches, outcome, draftRetained });
+      if (action === 'inspect') return summary(pending === null && (head ? priorMatches : !history || matches) ? 'consistent' : 'incomplete');
+      if (pending === null) {
+        if (!this.sameToken(this.token(live), head!.liveToken)) return this.conflict(brandId, templateId);
+        const retained = history && this.transitionMatches(live, history) ? await this.cleanupPublishedDraft(history) : false;
+        return summary('consistent', retained);
+      }
+      await this.assertReservation(brandId, templateId, pending);
+      const audited = await this.persist(() => this.reconciliations().findOne({ brandId, templateId, version: pending }));
+      const outcome = matches ? 'completed' : (audited?.outcome ?? (action === 'complete' ? 'completed' : 'rolled-back'));
+      if (audited && audited.outcome !== outcome) return this.conflict(brandId, templateId);
+      if (!matches && !priorMatches) return this.conflict(brandId, templateId);
+      if (!matches && outcome === 'completed') {
+        if (!history) throw new EmailTemplateError('INCOMPLETE_TRANSITION', 'Missing history; roll back the unused reservation.');
+        if (history.event !== 'reset') validateEmailTemplate({ subject: history.subject!, body: history.body!, format: history.format! });
+      }
+      // A unique audit decision selects recovery's direction BEFORE any live write.
+      // Concurrent console attempts cannot choose opposite outcomes; interruption resumes this decision.
+      if (!audited) await this.persist(async () => {
+        try {
+          await this.reconciliations().insertOne({ brandId, templateId, version: pending,
+            outcome, actorId: options.actor!.id, actorDisplayName: options.actor!.name, createdAt: new Date().toISOString() });
+        } catch (error) {
+          if ((error as { code?: number }).code === 11000) return this.conflict(brandId, templateId);
+          throw error;
+        }
+      });
+      if (!matches && outcome === 'completed') live = await this.applyHistory(history!);
+      await this.finishReservation(brandId, templateId, pending, this.token(live),
+        outcome === 'completed' ? pending : head!.committedVersion);
+      const draftRetained = outcome === 'completed' && history ? await this.cleanupPublishedDraft(history) : false;
+      head = (await this.persist(() => this.heads().findOne({ brandId, templateId })))!;
+      return summary(outcome, draftRetained);
+    }
+
+    protected async cleanupPublishedDraft(history: EmailHistoryRow): Promise<boolean> {
+      if (history.draftRevision === null) return false;
+      const { brandId, templateId, draftRevision } = history;
+      await this.persist(() => this.requireNative().db.collection(EmailTemplateDraft.tableName)
+        .deleteOne({ brandId, templateId, draftRevision }));
+      return Boolean(await this.persist(() => this.requireNative().db.collection(EmailTemplateDraft.tableName)
+        .findOne({ brandId, templateId })));
+    }
+
+    /** Includes reservations with no history, and successful live writes awaiting head finalization. */
+    public async reportInconsistencies(brandId: string, templateId?: string): Promise<Array<EmailAdminConsistency & { templateId: string }>> {
+      await this.validateBrand(brandId);
+      const scope = { brandId, ...(templateId ? { templateId } : {}) };
+      const rows = await this.persist(() => this.historyCollection().find(scope).sort({ version: -1 }).toArray());
+      const heads = await this.persist(() => this.heads().find(scope).toArray());
+      const ids = new Set([...rows.map(row => row.templateId), ...heads.map(head => head.templateId)]);
+      const result: Array<EmailAdminConsistency & { templateId: string }> = [];
+      for (const id of ids) {
+        const head = heads.find(value => value.templateId === id);
+        const last = head ? rows.find(value => value.templateId === id && value.version === head.committedVersion)
+          : rows.find(value => value.templateId === id);
+        const live = await this.rawLive(brandId, id);
+        if (head?.reservation != null || (head ? !this.sameToken(this.token(live), head.liveToken)
+          : last && !this.transitionMatches(live, last))) {
+          result.push({ templateId: id, code: 'INCOMPLETE_LIVE_TRANSITION', version: head?.version ?? last!.version });
+        } else if (last && this.transitionMatches(live, last) && last.draftRevision !== null) {
+          const draft = await this.persist(() => this.requireNative().db.collection(EmailTemplateDraft.tableName)
+            .findOne({ brandId, templateId: id, draftRevision: last.draftRevision }));
+          if (draft) result.push({ templateId: id, code: 'PUBLISHED_DRAFT_RETAINED', version: last.version });
+        }
+      }
+      return result;
     }
 
     /**
@@ -500,7 +782,7 @@ export namespace Services {
      * adapter's driver: sails-mongo bundles a different mongodb/bson major than
      * redbox-core, and the driver rejects foreign BSON types.
      */
-    private native(): { db: Db; ObjectId: typeof ObjectId } | undefined {
+    protected native(): { db: Db; ObjectId: typeof ObjectId } | undefined {
       const datastore = EmailTemplate.getDatastore() as unknown as
         | { manager?: Db; driver?: { mongodb?: { ObjectId?: typeof ObjectId } } }
         | undefined;
@@ -511,7 +793,7 @@ export namespace Services {
         : undefined;
     }
 
-    private requireNative() {
+    protected requireNative() {
       const native = this.native();
       if (!native) {
         throw new EmailTemplateError(
@@ -522,13 +804,13 @@ export namespace Services {
       return native;
     }
 
-    private collection() {
+    protected collection() {
       return this.requireNative().db.collection<Omit<EmailTemplateAttributes, 'id'> & { _id: ObjectId }>(
         EmailTemplate.tableName
       );
     }
 
-    private versionCriteria(brandId: string, templateId: string, expected: EmailTemplateVersion) {
+    protected versionCriteria(brandId: string, templateId: string, expected: EmailTemplateVersion) {
       const revision = expected?.revision;
       if (!Number.isSafeInteger(revision) || revision < 1 || revision >= Number.MAX_SAFE_INTEGER) {
         throw new EmailTemplateError('INVALID_TEMPLATE', 'expected.revision must be a positive safe integer.');

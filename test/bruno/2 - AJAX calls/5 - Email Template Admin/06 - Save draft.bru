@@ -1,0 +1,38 @@
+meta {
+  name: Email templates - Save draft
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test/draft
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  { "content": {"subject": "Admin preview {{name}}", "body": "<p onclick=\"unsafe()\">Hello {{name}}</p><script>unsafe()</script>", "format": "html"}, "expectedDraftRevision": {{emailAdminDraftRevision}}, "brandId": "ignored", "actor": { "id": "forged", "name": "Forged" } }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Saves a draft with the authenticated actor", () => {
+    expect(res.getStatus()).to.equal(200);
+    const result = res.getBody();
+    expect(result.draft.updatedByName).not.to.equal("Forged");
+    expect(result.diagnostics).to.deep.equal([]);
+    bru.setVar("emailAdminStaleDraftRevision", bru.getVar("emailAdminDraftRevision"));
+    bru.setVar("emailAdminDraftRevision", result.draft.draftRevision);
+  });
+}
