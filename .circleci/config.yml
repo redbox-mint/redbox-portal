@@ -160,7 +160,14 @@ jobs:
       - run: &usePatchedNode
           name: Use patched Node.js from .nvmrc
           command: |
-            nvm install
+            # Keep download options scoped to nvm and avoid a source build on network failure.
+            (
+              curl() {
+                command curl --http1.1 --connect-timeout 20 --max-time 180 \
+                  --retry 2 --retry-delay 3 --retry-all-errors "$@"
+              }
+              nvm install -b
+            )
             nvm use
             printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
       - attach_workspace:
@@ -190,7 +197,10 @@ jobs:
               local target="$2"
               local attempt
               for attempt in 1 2 3 4 5; do
-                if curl --fail --location --silent --show-error --retry 2 --retry-delay 3 --retry-all-errors --output "$target" "$url" && test -s "$target"; then
+                if curl --http1.1 --fail --location --silent --show-error \
+                  --connect-timeout 15 --max-time 60 --speed-time 30 --speed-limit 1024 \
+                  --retry 2 --retry-delay 3 --retry-all-errors --retry-max-time 120 \
+                  --output "$target" "$url" && test -s "$target"; then
                   return 0
                 fi
                 echo "Retrying Codecov download ($attempt/5): $url" >&2
