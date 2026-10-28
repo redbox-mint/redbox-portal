@@ -108,3 +108,31 @@ Email templates are located in the directory defined in the `settings/templateDi
 <p>This is a test email from ReDBox Portal</p>
 <p>Data: <%= data %></p>
 ```
+
+## Sending a template from a hook or service
+
+`EmailService.sendTemplate(to, subject, template, data)` returns a
+`Promise<{ success: boolean, msg: string }>` that resolves after template building
+and delivery complete, with the successful `sendMessage` result. It rejects for
+build or delivery errors, a non-200 template build status, or a delivery result
+with `success: false`. A template build's `ex` is propagated when present;
+otherwise the rejection describes the failed build status or delivery message.
+When email is disabled, the existing successful “Email services disabled.” result
+is preserved.
+
+```typescript
+try {
+  const result = await EmailService.sendTemplate(to, subject, 'my-template', data);
+  sails.log.info(result.msg);
+} catch (error) {
+  // Handle failed template building or delivery in the calling workflow.
+  sails.log.error(error);
+}
+```
+
+The return value was previously `void`. Sending still starts immediately and
+occurs once per call, including when older hooks ignore the return value.
+Failures are also logged by the service so ignored returns do not cause unhandled
+Promise rejections. Await or catch the returned Promise when the caller needs to
+react to completion or failure. This helper does not change the separate
+`sendRecordNotification` workflow.

@@ -6,7 +6,8 @@ import * as nodemailer from 'nodemailer';
 import * as fs from 'graceful-fs';
 import * as os from 'os';
 import * as path from 'path';
-import { of } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
+import { rejects } from 'node:assert/strict';
 
 describe('EmailService', function() {
   let mockSails: any;
@@ -89,6 +90,133 @@ describe('EmailService', function() {
     });
   });
 
+  describe('sendTemplate', function() {
+    it('waits for template and delivery completion and forwards the message', async function() {
+      const build = new Subject<Record<string, unknown>>();
+      const send = new Subject<{ success: boolean, msg: string }>();
+      const data = { name: 'World' };
+      const buildStub = sinon.stub(EmailService, 'buildFromTemplate').returns(build);
+      const sendStub = sinon.stub(EmailService, 'sendMessage').returns(send);
+      const result = { success: true, msg: 'sent' };
+      const delivery = EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', data);
+      let settled = false;
+      void delivery.then(() => { settled = true; });
+
+      expect(buildStub.calledOnceWithExactly('greeting', data)).to.be.true;
+      build.next({ status: 200, body: 'Hello World' });
+      await Promise.resolve();
+      expect(sendStub.called).to.be.false;
+      build.complete();
+      await Promise.resolve();
+      expect(sendStub.calledOnceWithExactly('to@example.com', 'Hello World', 'Subject')).to.be.true;
+      send.next(result);
+      await Promise.resolve();
+      expect(settled).to.be.false;
+      send.complete();
+
+      expect(await delivery).to.equal(result);
+      expect(await delivery).to.equal(result);
+      expect(sendStub.calledOnce).to.be.true;
+    });
+
+    it('delivers once even when a legacy caller ignores the return', async function() {
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      const send = sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+
+      EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {});
+      await new Promise<void>(resolve => setImmediate(resolve));
+
+      expect(send.calledOnceWithExactly('to@example.com', 'Body', 'Subject')).to.be.true;
+    });
+
+    it('rejects a build Observable error without delivering', async function() {
+      const error = new Error('build failed');
+      sinon.stub(EmailService, 'buildFromTemplate').returns(throwError(() => error));
+      const send = sinon.spy(EmailService, 'sendMessage');
+
+      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), e => e === error);
+      expect(send.called).to.be.false;
+    });
+
+    it('preserves the template exception from a non-200 build', async function() {
+      const error = new Error('render failed');
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 500, ex: error }));
+      const send = sinon.spy(EmailService, 'sendMessage');
+
+      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), e => e === error);
+      expect(send.called).to.be.false;
+    });
+
+    it('rejects non-200 builds without an exception instead of silently skipping', async function() {
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 503, body: 'unavailable' }));
+      const send = sinon.spy(EmailService, 'sendMessage');
+
+      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), /greeting.*503/);
+      expect(send.called).to.be.false;
+    });
+
+    it('rejects a delivery Observable error', async function() {
+      const error = new Error('delivery failed');
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'sendMessage').returns(throwError(() => error));
+
+      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), e => e === error);
+    });
+
+    it('rejects unsuccessful sendMessage results', async function() {
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'sendMessage').returns(of({ success: false, msg: 'SMTP unavailable' }));
+
+      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), /SMTP unavailable/);
+    });
+
+    for (const stage of ['buildFromTemplate', 'sendMessage']) {
+      it(`rejects synchronous ${stage} errors`, async function() {
+        const error = new Error('synchronous failure');
+        if (stage === 'sendMessage') {
+          sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+        }
+        sinon.stub(EmailService, stage).throws(error);
+
+        await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), e => e === error);
+      });
+    }
+
+    it('logs ignored failures without unhandled rejections', async function() {
+      const error = new Error('ignored failure');
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+      sinon.stub(EmailService, 'sendMessage').returns(throwError(() => error));
+      const unhandled = sinon.spy();
+      process.on('unhandledRejection', unhandled);
+      try {
+        EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {});
+        await new Promise<void>(resolve => setImmediate(resolve));
+        expect(mockSails.log.error.calledWith('EmailService.sendTemplate failed', error)).to.be.true;
+        expect(unhandled.called).to.be.false;
+      } finally {
+        process.off('unhandledRejection', unhandled);
+      }
+    });
+
+    it('preserves the disabled-email success result', async function() {
+      mockSails.config.emailnotification.settings.enabled = false;
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+
+      expect(await EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}))
+        .to.deep.equal({ success: true, msg: 'Email services disabled.' });
+    });
+
+    it('rejects SMTP failures converted to unsuccessful results by sendMessage', async function() {
+      const mailer: typeof nodemailer = require('nodemailer');
+      const transport = mailer.createTransport({ jsonTransport: true });
+      sinon.stub(transport, 'sendMail').rejects(new Error('SMTP failure'));
+      sinon.stub(mailer, 'createTransport').returns(transport);
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Body' }));
+
+      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'greeting', {}), /Email unable to be submitted/);
+    });
+  });
+
   describe('buildFromTemplate', function() {
     // graceful-fs makes fs.readFileSync non-configurable, so we exercise the real
     // file read against a temporary template directory instead of stubbing fs.
@@ -110,6 +238,24 @@ describe('EmailService', function() {
 
       expect(result.status).to.equal(200);
       expect(result.body).to.equal('<p>Hello World</p>');
+    });
+
+    it('builds and delivers a real template through the JSON mail transport', async function() {
+      fs.writeFileSync(path.join(tmpDir, 'delivery.hbs'), '<p>Hello {{name}}</p>');
+      mockSails.config.emailnotification.settings.serverOptions = { jsonTransport: true };
+      const send = sinon.spy(EmailService, 'sendMessage');
+
+      const result = await EmailService.sendTemplate('to@example.com', 'Subject', 'delivery', { name: 'World' });
+
+      expect(result.success).to.be.true;
+      expect(send.calledOnceWithExactly('to@example.com', '<p>Hello World</p>', 'Subject')).to.be.true;
+    });
+
+    it('rejects a real missing template without attempting delivery', async function() {
+      const send = sinon.spy(EmailService, 'sendMessage');
+
+      await rejects(EmailService.sendTemplate('to@example.com', 'Subject', 'missing', {}), /ENOENT/);
+      expect(send.called).to.be.false;
     });
 
     it('should render shared helpers (pluck + join)', async function() {
