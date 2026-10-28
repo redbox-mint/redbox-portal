@@ -121,6 +121,41 @@ module.exports.appmode = Config.appmode;
 
 Config shims also merge hook-provided configurations according to the installation's root `package.json` `hookLoadPriority` list. The first listed hook has the highest precedence, so generated config shims process lower-precedence hooks first and higher-precedence hooks later. If `hookLoadPriority` is missing, the loader keeps the previous package-name fallback behavior.
 
+#### Replacing hook configuration sections
+
+Config returned by `registerRedboxConfig()` may include `_dontMerge` at any
+object level. It lists **literal sibling property names** whose incoming values
+replace the accumulated core and lower-priority hook values, rather than deep
+merging them. For example:
+
+```javascript
+module.exports.registerRedboxConfig = () => ({
+    emailnotification: {
+        _dontMerge: ['templates'],
+        templates: { institutionNotice: { subject: 'Institution notice' } }
+    },
+    vocab: { _dontMerge: ['queries'], queries: {} }
+});
+```
+
+Here only the institution's email templates remain, and vocabulary queries are
+cleared. Nested objects can use their own `_dontMerge` lists. Replacement works
+for objects, arrays (including empty ones), scalars and `null`. An absent sibling
+is left unchanged; this directive is not a deletion operation. Dotted names are
+literal keys, not paths. Non-array directives and non-string list entries have
+no effect. The marker is consumed and does not appear in the merged config.
+
+Directives apply only to the incoming layer: later hooks can merge into a
+replaced section unless they also request replacement. Unlisted fields retain
+the existing merge rules, including index-based array merging for ordinary
+config, array replacement for `brandingConfigurationDefaults`, and Agenda jobs
+normalized and merged by name. Agenda directives can replace the whole `jobs`
+section or fields within named jobs. Core and hook registration objects remain
+unchanged, so repeated shim evaluation is safe. Generated config shims and the
+pre-lift debug snapshot use the same merge function. The dedicated `datastores`
+shim still exports adapter references directly; form configuration follows its
+separate registry path.
+
 ### Form-Config Shims (`api/form-config/`)
 
 Form-config shims expose typed form definitions from core-types and hooks. The
