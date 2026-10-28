@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of, from, throwError, firstValueFrom } from 'rxjs';
+import { Observable, of, from, throwError, firstValueFrom, lastValueFrom } from 'rxjs';
 import { mergeMap as flatMap, map, last } from 'rxjs/operators';
 
 import {
@@ -728,13 +728,13 @@ export namespace Services {
               }
 
               // Gate disabled users
-              that.assertAuthenticationAllowed(foundUserObj as UserAttributes).then(() => {
+              that.assertAuthenticationAllowed(foundUserObj as UserAttributes).then(async () => {
 
                 // foundUser.lastLogin = new Date();
 
                 const configLocal = _.get(defAuthConfig, 'local', {});
                 if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                  that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
+                  return that.triggerPreSaveTriggers(foundUserObj, configLocal).then(async (userAdditionalInfo: AnyRecord) => {
 
                     const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                     if (success) {
@@ -761,7 +761,7 @@ export namespace Services {
                         });
 
                       if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                        that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                        await that.triggerPostSaveTriggers(foundUserObj, configLocal);
                       }
 
                       if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
@@ -802,7 +802,7 @@ export namespace Services {
                   });
 
                   if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                    that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                    await that.triggerPostSaveTriggers(foundUserObj, configLocal);
                   }
 
                   if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
@@ -960,34 +960,41 @@ export namespace Services {
       return response;
     }
 
-    //Post login and post update/create user
-    public triggerPostSaveTriggers(user: AnyRecord, config: AnyRecord, mode: string = 'onUpdate'): void {
-      sails.log.verbose("Triggering post save triggers ");
-      sails.log.verbose(`hooks.${mode}.post`);
-      sails.log.verbose(JSON.stringify(config));
-      const postSaveCreateHooks = _.get(config, `hooks.${mode}.post`, null);
-      if (_.isArray(postSaveCreateHooks)) {
-        _.each(postSaveCreateHooks, (postSaveCreateHook: unknown) => {
-          sails.log.debug(postSaveCreateHook);
-          const postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
-          if (postSaveCreateHookFunctionString != null) {
-            const postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
-            const options = _.get(postSaveCreateHook, "options", {});
-            if (_.isFunction(postSaveCreateHookFunction)) {
-              const hookResponse = postSaveCreateHookFunction(user, options);
-              this.resolveHookResponse(hookResponse).then(_result => {
-                sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for user: ${_.get(user, 'username')}`)
-              }).catch(error => {
-                sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
-                sails.log.error(error)
-              });
-            } else {
-              sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);
-              sails.log.error(postSaveCreateHookFunction);
+    /**
+     * Run configured user post-save hooks concurrently and return their outcomes in
+     * configuration order. Failures are logged and returned as rejected entries;
+     * they do not reject the aggregate promise or prevent other hooks from running.
+     * Entries without a function are skipped. Observables settle on completion,
+     * yielding their last value (undefined for an empty Observable).
+     * Unlike postSync hooks, these hooks do not form a sequential response chain.
+     */
+    public triggerPostSaveTriggers(user: AnyRecord, config: AnyRecord, mode: string = 'onUpdate'): Promise<PromiseSettledResult<unknown>[]> {
+      const hooks = _.get(config, `hooks.${mode}.post`, null);
+      if (!Array.isArray(hooks)) {
+        return Promise.resolve([]);
+      }
+      const responses = hooks
+        .filter(hook => _.get(hook, 'function', null) != null)
+        .map(async hook => {
+          const functionString = _.get(hook, 'function');
+          try {
+            const hookFunction = eval(functionString);
+            if (!_.isFunction(hookFunction)) {
+              throw new TypeError(`Post save function: '${functionString}' did not resolve to a valid function`);
             }
+            const hookResponse = hookFunction(user, _.get(hook, 'options', {}));
+            const result = await (isObservable(hookResponse)
+              ? lastValueFrom(hookResponse, { defaultValue: undefined })
+              : this.resolveHookResponse(hookResponse));
+            sails.log.debug(`post-save trigger ${functionString} completed for user: ${_.get(user, 'username')}`);
+            return result;
+          } catch (error) {
+            sails.log.error(`post-save trigger ${functionString} failed to complete`);
+            sails.log.error(error);
+            throw error;
           }
         });
-      }
+      return Promise.allSettled(responses);
     }
 
     private resolveHookResponse(hookResponse: unknown) {
@@ -1077,7 +1084,7 @@ export namespace Services {
 
                         User.update({
                           username: _.get(userAdditionalInfo, 'username')
-                        }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
+                        }).set(userAdditionalInfo).exec(async function (err: unknown, user: unknown) {
                           if (err) {
                             sails.log.error("Error updating user:");
                             sails.log.error(err);
@@ -1089,7 +1096,7 @@ export namespace Services {
                           }
 
                           if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                            that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                            await that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
                           }
 
                           if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
@@ -1117,7 +1124,7 @@ export namespace Services {
 
                     User.update({
                       username: userObj.username
-                    }).set(userObj).exec(function (err: unknown, user: unknown) {
+                    }).set(userObj).exec(async function (err: unknown, user: unknown) {
                       if (err) {
                         sails.log.error("Error updating user:");
                         sails.log.error(err);
@@ -1129,7 +1136,7 @@ export namespace Services {
                       }
 
                       if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                        that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
+                        await that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
                       }
 
                       if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
@@ -1201,7 +1208,7 @@ export namespace Services {
                     const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                     if (success) {
                       userToCreate = userAdditionalInfo;
-                      User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+                      User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
                         if (err) {
                           sails.log.error("Error creating new user:");
                           sails.log.error(err);
@@ -1209,7 +1216,7 @@ export namespace Services {
                         }
 
                         if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
+                          await that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
                         }
 
                         if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
@@ -1231,7 +1238,7 @@ export namespace Services {
 
                 } else {
 
-                  User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+                  User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
                     if (err) {
                       sails.log.error("Error creating new user:");
                       sails.log.error(err);
@@ -1239,7 +1246,7 @@ export namespace Services {
                     }
 
                     if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                      that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
+                      await that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
                     }
 
                     if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
@@ -1505,7 +1512,7 @@ export namespace Services {
                 if (success) {
                   User.update({
                     username: _.get(userAdditionalInfo, 'username')
-                  }).set(userAdditionalInfo).exec(function (err: unknown, user: unknown) {
+                  }).set(userAdditionalInfo).exec(async function (err: unknown, user: unknown) {
                     if (err) {
                       sails.log.error("Error updating user:");
                       sails.log.error(err);
@@ -1517,7 +1524,7 @@ export namespace Services {
                     }
 
                     if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                      that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                      await that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
                     }
 
                     if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
@@ -1541,7 +1548,7 @@ export namespace Services {
 
               User.update({
                 username: userObj.username
-              }).set(userObj).exec(function (err: unknown, user: unknown) {
+              }).set(userObj).exec(async function (err: unknown, user: unknown) {
                 if (err) {
                   sails.log.error("Error updating user:");
                   sails.log.error(err);
@@ -1553,7 +1560,7 @@ export namespace Services {
                 }
 
                 if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                  that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
+                  await that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
                 }
 
                 if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
@@ -1621,7 +1628,7 @@ export namespace Services {
               const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
               if (success) {
 
-                User.create(userAdditionalInfo).exec(function (err: unknown, newUser: unknown) {
+                User.create(userAdditionalInfo).exec(async function (err: unknown, newUser: unknown) {
                   if (err) {
                     sails.log.error("Error creating new user:");
                     sails.log.error(err);
@@ -1629,7 +1636,7 @@ export namespace Services {
                   }
 
                   if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                    that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
+                    await that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord, 'onCreate');
                   }
 
                   if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
@@ -1650,7 +1657,7 @@ export namespace Services {
 
           } else {
 
-            User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+            User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
               if (err) {
                 sails.log.error("Error creating new user:");
                 sails.log.error(err);
@@ -1658,7 +1665,7 @@ export namespace Services {
               }
 
               if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
+                await that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord, 'onCreate');
               }
 
               if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {

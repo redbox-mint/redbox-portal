@@ -230,6 +230,49 @@ Recent user-management work extends `UsersService` beyond simple CRUD. It now al
 
 The corresponding admin-facing controller surface is documented on the **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)** page.
 
+### User post-save hook completion and errors
+
+`UsersService.triggerPostSaveTriggers(user, config, mode = 'onUpdate')` returns
+`Promise<PromiseSettledResult<unknown>[]>`. Await it to obtain all hook outcomes
+in configuration order. Every configured `hooks.<mode>.post` entry with a
+non-null `function` runs independently; entries without a function are skipped.
+An absent or non-array hook list produces `[]`.
+
+Hooks receive `(user, options)` and may return a plain value, `undefined`, a
+Promise/thenable, or an RxJS Observable. Observable hooks are awaited through
+completion and return their last emitted value, or `undefined` if empty.
+A rejected Promise, Observable error, synchronous throw, invalid function
+expression, or expression resolving to a non-function produces a
+`{ status: 'rejected', reason }` entry with the original error. Failures are
+also logged. Other hooks continue and the aggregate fulfills only after all
+hooks settle. Inspect rejected entries explicitly when failures matter:
+
+```typescript
+const outcomes = await users.triggerPostSaveTriggers(user, authConfig);
+for (const outcome of outcomes) {
+    if (outcome.status === 'rejected') {
+        // Apply the caller's failure policy; the user has already been saved.
+        handleHookFailure(outcome.reason);
+    }
+}
+```
+
+Previously this method returned `void` and discarded outcomes. Callers that
+ignore the new return value can still do so; hook failures are handled and
+logged without an unhandled rejection. Local, AAF, and OIDC login now await all
+post hooks before completing authentication, including when pre hooks run. OIDC
+account-creation calls now explicitly select `onCreate` when invoking the runner.
+Hook failures remain non-fatal to login and do not roll back a saved user.
+Hooks still run concurrently; their return values do not replace the user or
+feed the next hook. The separate sequential `postSync` response-chain contract
+is unchanged.
+
+Compatibility: login latency now includes post-hook execution. Observable hooks
+previously used their first emission; they now wait for completion so late
+errors are retained. Hooks must complete (or their Promise must settle); there
+is no implicit timeout or cancellation. Avoid infinite Observables and hooks
+that wait for the login callback itself.
+
 ## Overriding Services in Hooks
 
 Hooks can provide custom services that override core services. Hook services take precedence.

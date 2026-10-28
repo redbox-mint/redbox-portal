@@ -1,5 +1,5 @@
 import * as sinon from 'sinon';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject, EMPTY } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
 
 let expect: Chai.ExpectStatic;
@@ -1147,36 +1147,215 @@ describe('UsersService', function () {
   });
 
   describe('triggerPostSaveTriggers', function () {
-    it('should not throw when no hooks configured', function () {
-      const user = { username: 'test' };
-      const config = {};
-
-      expect(() => {
-        UsersService.triggerPostSaveTriggers(user, config, 'onUpdate');
-      }).to.not.throw();
+    const user = { username: 'test' };
+    const configFor = (...runs: Array<() => unknown>) => ({
+      hooks: { onUpdate: { post: runs.map(run => ({
+        function: '(_user, options) => options.run()', options: { run }
+      })) } }
     });
 
-    it('should execute hooks when configured', function () {
-      const user = { username: 'test' };
-      // Create a global function that the trigger can call
-      (global as any).testTriggerFunction = sinon.stub().returns(Promise.resolve({ success: true }));
+    it('returns an empty result when hooks are absent or have no function', async function () {
+      expect(await UsersService.triggerPostSaveTriggers(user, {})).to.deep.equal([]);
+      expect(await UsersService.triggerPostSaveTriggers(user, { hooks: { onUpdate: { post: [{}] } } })).to.deep.equal([]);
+    });
 
-      const config = {
-        hooks: {
-          onUpdate: {
-            post: [
-              { function: 'testTriggerFunction', options: { key: 'value' } }
-            ]
-          }
+    it('waits for delayed hooks and returns results in configuration order', async function () {
+      let finish!: (value: string) => void;
+      const delayed = new Promise<string>(resolve => { finish = resolve; });
+      const laterHook = sinon.stub().returns('immediate');
+      let settled = false;
+      const completion = UsersService.triggerPostSaveTriggers(user, configFor(() => delayed, laterHook))
+        .then((results: PromiseSettledResult<unknown>[]) => { settled = true; return results; });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(laterHook.calledOnce).to.be.true;
+      expect(settled).to.be.false;
+      finish('delayed');
+      expect(await completion).to.deep.equal([
+        { status: 'fulfilled', value: 'delayed' },
+        { status: 'fulfilled', value: 'immediate' }
+      ]);
+    });
+
+    it('collects rejected promises and synchronous throws while allowing every hook to settle', async function () {
+      const rejection = new Error('rejected');
+      const thrown = new Error('thrown');
+      let finish!: (value: string) => void;
+      const delayed = new Promise<string>(resolve => { finish = resolve; });
+      let settled = false;
+      const unhandled = sinon.spy();
+      process.on('unhandledRejection', unhandled);
+      try {
+        const completion = UsersService.triggerPostSaveTriggers(user, configFor(
+          () => Promise.reject(rejection),
+          () => { throw thrown; },
+          () => delayed
+        )).then((results: PromiseSettledResult<unknown>[]) => { settled = true; return results; });
+        await new Promise(resolve => setImmediate(resolve));
+        expect(settled).to.be.false;
+        finish('last');
+        expect(await completion).to.deep.equal([
+          { status: 'rejected', reason: rejection },
+          { status: 'rejected', reason: thrown },
+          { status: 'fulfilled', value: 'last' }
+        ]);
+        await new Promise(resolve => setImmediate(resolve));
+        expect(unhandled.called).to.be.false;
+        expect(mockSails.log.error.calledWith(rejection)).to.be.true;
+        expect(mockSails.log.error.calledWith(thrown)).to.be.true;
+      } finally {
+        process.removeListener('unhandledRejection', unhandled);
+      }
+    });
+
+    it('captures invalid function expressions without skipping later hooks', async function () {
+      const config = configFor(() => 'later');
+      config.hooks.onUpdate.post.unshift(
+        { function: 'missingUserPostSaveHook', options: { run: () => null } },
+        { function: '42', options: { run: () => null } }
+      );
+      const results = await UsersService.triggerPostSaveTriggers(user, config);
+      expect(results[0].status).to.equal('rejected');
+      expect(results[0].reason).to.be.instanceOf(ReferenceError);
+      expect(results[1].status).to.equal('rejected');
+      expect(results[1].reason).to.be.instanceOf(TypeError);
+      expect(results[2]).to.deep.equal({ status: 'fulfilled', value: 'later' });
+    });
+
+    it('waits for Observable completion, returning its last value and retaining late errors', async function () {
+      const success = new Subject<string>();
+      const failure = new Subject<string>();
+      const error = new Error('observable failed after emitting');
+      let settled = false;
+      const completion = UsersService.triggerPostSaveTriggers(user, configFor(() => success, () => failure))
+        .then((results: PromiseSettledResult<unknown>[]) => { settled = true; return results; });
+      success.next('first');
+      failure.next('before error');
+      await new Promise(resolve => setImmediate(resolve));
+      expect(settled).to.be.false;
+      failure.error(error);
+      success.next('last');
+      success.complete();
+      expect(await completion).to.deep.equal([
+        { status: 'fulfilled', value: 'last' },
+        { status: 'rejected', reason: error }
+      ]);
+    });
+
+    it('supports empty Observables, void, plain values, and thenables with the selected mode and options', async function () {
+      const run = sinon.stub().returns('created');
+      const results = await UsersService.triggerPostSaveTriggers(user, {
+        hooks: { onCreate: { post: [
+          { function: '(_user, options) => options.run(_user, options.key)', options: { run, key: 'value' } }
+        ] } }
+      }, 'onCreate');
+      expect(run.calledOnceWithExactly(user, 'value')).to.be.true;
+      expect(results).to.deep.equal([{ status: 'fulfilled', value: 'created' }]);
+      expect(await UsersService.triggerPostSaveTriggers(user, configFor(
+        () => EMPTY, () => undefined, () => ({ plain: true }),
+        () => ({ then: (resolve: (value: string) => void) => resolve('thenable') })
+      ))).to.deep.equal([
+        { status: 'fulfilled', value: undefined },
+        { status: 'fulfilled', value: undefined },
+        { status: 'fulfilled', value: { plain: true } },
+        { status: 'fulfilled', value: 'thenable' }
+      ]);
+    });
+  });
+
+  describe('login post-save hook completion', function () {
+    for (const existingUser of [true, false]) {
+      for (const preHook of [true, false]) {
+        it(`waits for OIDC ${existingUser ? 'update' : 'create'} hooks with pre hooks ${preHook ? 'enabled' : 'disabled'} and keeps failures nonfatal`, async function () {
+          const savedUser = { id: 'user-1', username: 'person', name: 'Person', email: 'person@uni.edu', roles: [] };
+          const mode = existingUser ? 'onUpdate' : 'onCreate';
+          let finish!: () => void;
+          const delayed = new Promise<void>(resolve => { finish = resolve; });
+          const error = new Error('nonfatal hook failure');
+          const config = {
+            opts: {},
+            claimMappings: { username: 'sub', name: 'name', email: 'email' },
+            hooks: { [mode]: {
+              pre: preHook ? [{ function: 'user => user', options: {} }] : [],
+              post: [
+                { function: '(_user, options) => options.run()', options: { run: () => delayed } },
+                { function: '(_user, options) => options.run()', options: { run: () => Promise.reject(error) } }
+              ]
+            } }
+          };
+          mockUser.findOne.callsFake((_query: unknown, callback: (err: unknown, user: unknown) => void) => {
+            callback(null, existingUser ? savedUser : null);
+          });
+          configureModelMethod(mockUser.update, [savedUser]);
+          configureModelMethod(mockUser.create, savedUser);
+          sinon.stub(UsersService, 'assertAuthenticationAllowed').resolves();
+          sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(savedUser);
+          const done = sinon.spy();
+          UsersService.openIdConnectAuthVerifyCallback(config, {}, {}, {}, {
+            sub: 'person', name: 'Person', email: 'person@uni.edu'
+          }, done);
+          await new Promise(resolve => setImmediate(resolve));
+          expect(done.called).to.be.false;
+          finish();
+          await new Promise(resolve => setImmediate(resolve));
+          expect(done.calledOnceWithExactly(null, savedUser)).to.be.true;
+          expect(mockSails.log.error.calledWith(error)).to.be.true;
+        });
+      }
+    }
+  });
+
+  describe('local and AAF login post-save hook completion', function () {
+    for (const provider of ['local', 'aaf']) {
+      for (const existingUser of provider === 'local' ? [true] : [true, false]) {
+        for (const preHook of [true, false]) {
+          it(`waits for ${provider} ${existingUser ? 'update' : 'create'} hooks with pre hooks ${preHook ? 'enabled' : 'disabled'}`, async function () {
+            const savedUser = { id: 'user-1', username: 'person', name: 'Person', email: 'person@example.edu.au', roles: [], password: 'hash' };
+            const mode = existingUser ? 'onUpdate' : 'onCreate';
+            let finish!: () => void;
+            const delayed = new Promise<void>(resolve => { finish = resolve; });
+            const config = {
+              opts: { secretOrKey: 'test-key' },
+              attributesField: 'attributes',
+              hooks: { [mode]: {
+                pre: preHook ? [{ function: 'user => user', options: {} }] : [],
+                post: [{ function: '(_user, options) => options.run()', options: { run: () => delayed } }]
+              } }
+            };
+            sinon.stub(UsersService, 'getAuthConfig').returns({ active: [provider], [provider]: config });
+            sinon.stub(UsersService, 'assertAuthenticationAllowed').resolves();
+            sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(savedUser);
+            configureModelMethod(mockUser.update, [savedUser]);
+            configureModelMethod(mockUser.create, savedUser);
+            const done = sinon.spy();
+            if (provider === 'local') {
+              configureModelMethod(mockUser.findOne, savedUser);
+              const passport = require('passport');
+              const use = sinon.stub(passport, 'use');
+              sinon.stub(passport, 'serializeUser');
+              sinon.stub(passport, 'deserializeUser');
+              let bcrypt;
+              try { bcrypt = require('bcrypt'); } catch { bcrypt = require('bcryptjs'); }
+              sinon.stub(bcrypt, 'compare').callsArgWith(2, null, true);
+              UsersService.localAuthInit();
+              use.firstCall.args[1]._verify('person', 'password', done);
+            } else {
+              mockUser.findOne.callsFake((_query: unknown, callback: (err: unknown, user: unknown) => void) => callback(null, existingUser ? savedUser : null));
+              const use = sinon.stub();
+              mockSails.config.passport = { use };
+              UsersService.aafAuthInit();
+              await mockSails.on.firstCall.args[1]();
+              use.firstCall.args[1]._verify({}, { sub: 'person', attributes: { cn: 'Person', mail: 'person@example.edu.au' } }, done);
+            }
+            await new Promise(resolve => setImmediate(resolve));
+            expect(done.called).to.be.false;
+            finish();
+            await new Promise(resolve => setImmediate(resolve));
+            expect(done.calledOnce).to.be.true;
+            expect(done.firstCall.args[0]).to.equal(null);
+          });
         }
-      };
-
-      expect(() => {
-        UsersService.triggerPostSaveTriggers(user, config, 'onUpdate');
-      }).to.not.throw();
-
-      delete (global as any).testTriggerFunction;
-    });
+      }
+    }
   });
 
   describe('triggerPostSaveSyncTriggers', function () {
