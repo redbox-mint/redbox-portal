@@ -1,4 +1,6 @@
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
+import sinon from 'sinon';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -54,6 +56,9 @@ describe('static asset cache policy over HTTP', function () {
     const server = express();
     // Model deployment under an Express mount/reverse proxy root context.
     const router = express.Router();
+    // Keep request-triggered filesystem work bounded in this standalone fixture.
+    // Each deployment instance needs at most two requests (GET and revalidation).
+    router.use(rateLimit({ windowMs: 60000, limit: 3 }));
     router.use(http.middleware.cacheControl as express.RequestHandler);
     router.use(http.middleware.redirectNoCacheHeaders as express.RequestHandler);
     router.get('/angular/local-auth/browser/main-REDIRECT.js', (_req, res) => res.redirect('/login'));
@@ -141,6 +146,22 @@ describe('static asset cache policy over HTTP', function () {
       (global as any).sails.config.session.cookie = { maxAge };
       const response = await request(app()).get('/brand/rdmp/images/checklist.png?deploy=2').expect(200);
       expect(response.headers['cache-control']).to.equal('no-cache');
+    }
+  });
+
+  it('rejects excess requests before the fixture performs branded filesystem lookups', async function () {
+    write(publicDir, '/default/default/images/checklist.png', 'fallback');
+    const brandedRouter = sinon.spy(http.middleware, 'brandingAndPortalAwareStaticRouter');
+    try {
+      const server = app();
+      for (let i = 0; i < 3; i++) {
+        await request(server).get('/brand/rdmp/images/checklist.png').expect(200);
+      }
+      expect(brandedRouter.callCount).to.equal(3);
+      await request(server).get('/brand/rdmp/images/checklist.png').expect(429);
+      expect(brandedRouter.callCount).to.equal(3);
+    } finally {
+      brandedRouter.restore();
     }
   });
 
