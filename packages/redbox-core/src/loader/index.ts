@@ -216,7 +216,13 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
     const _ = require('lodash') as typeof import('lodash');
     let merged: RedboxConfigMap = name === 'agendaQueue' ? { jobs: {} } : {};
     for (const config of configs) {
-        const source = _.cloneDeep(config);
+        // Copy configuration containers, but retain runtime objects (for example
+        // webpack plugins whose private fields cannot survive prototype cloning).
+        const source = _.cloneDeepWith(config, (value: unknown) => {
+            return value !== null && typeof value === 'object' && !_.isPlainObject(value) && !Array.isArray(value)
+                ? value
+                : undefined;
+        });
         if (name === 'agendaQueue' && Array.isArray(source.jobs)) {
             source.jobs = normalizeAgendaJobsConfig(source.jobs);
         }

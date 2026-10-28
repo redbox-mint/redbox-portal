@@ -102,6 +102,27 @@ describe('redbox-loader', function () {
     });
 
     describe('mergeRedboxConfig', function () {
+        it('preserves runtime plugin instances while cloning plain config containers', async function () {
+            class InstitutionPlugin {
+                #enabled = true;
+                apply(compiler: import('webpack').Compiler): void {
+                    if (this.#enabled) {
+                        compiler.hooks.done.tap('InstitutionPlugin', () => {});
+                    }
+                }
+            }
+            const plugin = new InstitutionPlugin();
+            const core = { config: [{ mode: 'none', plugins: [plugin] }] };
+            const merged = redboxLoader.mergeRedboxConfig('webpack', core, {});
+            const config = (merged.config as import('webpack').Configuration[])[0];
+            expect(config.plugins![0]).to.equal(plugin);
+            expect(merged.config).not.to.equal(core.config);
+            expect(config).not.to.equal(core.config[0]);
+            expect(config.plugins).not.to.equal(core.config[0].plugins);
+            const compiler = (require('webpack') as typeof import('webpack'))(config)!;
+            await new Promise<void>((resolve, reject) => compiler.close(error => error ? reject(error) : resolve()));
+        });
+
         it('replaces only declared siblings, including nested objects and array values', function () {
             const merged = redboxLoader.mergeRedboxConfig('vocab', {
                 queries: { core: true },
