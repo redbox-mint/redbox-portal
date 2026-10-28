@@ -87,8 +87,8 @@ describe('HTTP config security helpers', function () {
     });
 
     it('should only mark fingerprinted static asset paths as immutable', function () {
-      expect(isImmutableAssetPath('/default/default/angular/form/browser/main-ABC123DEF.js')).to.equal(true);
-      expect(isImmutableAssetPath('/default/default/angular/form/browser/styles-ABC123DEF.css')).to.equal(true);
+      expect(isImmutableAssetPath('/default/default/angular/form/browser/main-IJTXDIZ5.js')).to.equal(true);
+      expect(isImmutableAssetPath('/default/default/angular/form/browser/styles-5INURTSO.css')).to.equal(true);
       expect(isImmutableAssetPath('/default/default/js/index.bundle.js')).to.equal(false);
       expect(isImmutableAssetPath('/default/default/js/jquery.min.js')).to.equal(false);
       expect(isImmutableAssetPath('/default/default/images/logo.png')).to.equal(false);
@@ -133,7 +133,7 @@ describe('HTTP config security helpers', function () {
     }
 
     it('should keep immutable caching for fingerprinted Angular bundles', function () {
-      const headers = runCacheControl('/default/default/angular/form/browser/main-ABC123DEF.js');
+      const headers = runCacheControl('/default/default/angular/form/browser/main-IJTXDIZ5.js');
 
       expect(headers['Cache-Control']).to.equal('public, max-age=31536000, immutable');
       expect(headers['Pragma']).to.equal(undefined);
@@ -143,7 +143,7 @@ describe('HTTP config security helpers', function () {
     it('should fall back to non-immutable caching for unversioned js bundles', function () {
       const headers = runCacheControl('/default/default/js/index.bundle.js');
 
-      expect(headers['Cache-Control']).to.equal('max-age=600, private');
+      expect(headers['Cache-Control']).to.equal('no-cache');
       expect(headers['Pragma']).to.equal('no-cache');
       expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
     });

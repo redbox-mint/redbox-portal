@@ -26,6 +26,7 @@ import { resolveHookAssetFile } from '../hooks/hookResources';
 declare const sails: {
     config: {
         appPath: string;
+        http?: Pick<HttpConfig, 'rootContext'>;
         passport: PassportStatic; // The passport instance configured by UsersService
         companion?: CompanionConfig;
         appUrl?: string;
@@ -189,12 +190,12 @@ export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: s
 }
 
 export function isImmutableAssetPath(reqPath: string): boolean {
-    if (!isStaticAssetPath(reqPath)) {
-        return false;
-    }
-
-    const fileName = path.posix.basename(reqPath);
-    return /(?:^|[-.])[A-Za-z0-9]{8,}\.[^.]+$/.test(fileName);
+    // Production Angular application builds use [name]-[hash], with esbuild's
+    // eight-character uppercase base32 hash. Limit this convention to the known
+    // JS/CSS bundle names in Angular browser output directories. This recognizes
+    // a build naming convention; it does not verify a hash against file contents.
+    const pathname = reqPath.split('?')[0];
+    return /^\/(?:[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/)?angular\/[A-Za-z0-9_-]+\/browser\/(?:(?:main|polyfills|scripts|chunk)-[A-Z2-7]{8}\.js|styles-[A-Z2-7]{8}\.css)$/.test(pathname);
 }
 
 export interface CompanionAuthorizationDecision {
@@ -748,7 +749,12 @@ export const http: HttpConfig = {
             const sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
-            const isImmutableAsset = isImmutableAssetPath(req.path);
+            const rootContext = String(sails.config.http?.rootContext || '').replace(/^\/+|\/+$/g, '');
+            const contextPrefix = rootContext ? `/${rootContext}` : '';
+            const requestPath = contextPrefix && req.path.startsWith(`${contextPrefix}/`)
+                ? req.path.slice(contextPrefix.length)
+                : req.path;
+            const isImmutableAsset = isImmutableAssetPath(requestPath);
             if (isImmutableAsset) {
                 cacheControlHeaderVal = 'public, max-age=31536000, immutable';
                 expiresHeaderVal = new Date(new Date().getTime() + (31536000 * 1000)).toUTCString();
@@ -759,6 +765,14 @@ export const http: HttpConfig = {
                     }
                     return originalSetHeader(name, value);
                 } as typeof res.setHeader;
+            } else if (isStaticAssetPath(requestPath)) {
+                // Stable asset URLs can change between deployments. Pragma alone
+                // does not override a positive Cache-Control max-age in browsers.
+                const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
+                cacheControlHeaderVal = _.some(noCachePaths, suffix => _.endsWith(req.path, suffix))
+                    ? 'no-cache, no-store'
+                    : 'no-cache';
+                expiresHeaderVal = new Date(0).toUTCString();
             } else if (sessionTimeoutSeconds > 0) {
                 // Warning: sails.config.custom might differ at runtime verify structure
                 const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
