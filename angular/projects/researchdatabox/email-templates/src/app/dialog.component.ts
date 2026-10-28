@@ -34,7 +34,7 @@ let nextDialogId = 0;
       <div class="modal-content">
         <div class="modal-header">
           <h2 class="modal-title h5" [id]="titleId">{{ heading }}</h2>
-          <button type="button" class="btn-close" [attr.aria-label]="closeLabel" (click)="dismiss()"></button>
+          <button type="button" class="btn-close" [attr.aria-label]="closeLabel" [disabled]="locked" (click)="dismiss()"></button>
         </div>
         <div class="modal-body">
           <ng-content></ng-content>
@@ -121,6 +121,8 @@ export class DialogComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() closeLabel = 'Close';
   @Input() describedBy = '';
   @Input() wide = false;
+  @Input() locked = false;
+  private static returnTargets = new WeakMap<HTMLElement, HTMLElement>();
   /** Emitted when the user dismisses the dialog (Escape, close button). */
   @Output() dismissed = new EventEmitter<void>();
 
@@ -148,7 +150,7 @@ export class DialogComponent implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   dismiss(): void {
-    this.dismissed.emit();
+    if (!this.locked) this.dismissed.emit();
   }
 
   onCancel(event: Event): void {
@@ -160,16 +162,17 @@ export class DialogComponent implements OnChanges, AfterViewInit, OnDestroy {
   onNativeClose(): void {
     const target = this.returnFocus;
     this.returnFocus = null;
-    if (target && target.isConnected) {
-      target.focus();
-    }
+    if (target?.isConnected && target.getClientRects().length && !target.closest('[hidden], dialog:not([open])')) target.focus();
   }
 
   private sync(): void {
     const dialog = this.dialogRef.nativeElement;
     if (this.open && !dialog.open) {
       const active = document.activeElement;
-      this.returnFocus = active instanceof HTMLElement && active !== document.body ? active : null;
+      const parent = active instanceof HTMLElement ? active.closest('dialog') : null;
+      this.returnFocus = parent ? DialogComponent.returnTargets.get(parent) ?? null
+        : active instanceof HTMLElement && active !== document.body ? active : null;
+      if (this.returnFocus) DialogComponent.returnTargets.set(dialog, this.returnFocus);
       if (typeof dialog.showModal === 'function') {
         dialog.showModal();
       } else {
@@ -180,6 +183,7 @@ export class DialogComponent implements OnChanges, AfterViewInit, OnDestroy {
       preferred?.focus();
     } else if (!this.open && dialog.open) {
       dialog.close();
+      this.onNativeClose();
     }
   }
 }

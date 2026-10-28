@@ -410,6 +410,9 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/action/:action': 'ActionController.callService',
 
   // Email template administration: session/cookie authentication and default CSRF protection.
+  'get /:branding/:portal/app/email-templates/schema-targets': { controller: 'EmailTemplateAdminController', action: 'schemaTargets' },
+  'get /:branding/:portal/app/email-templates/context-schema': { controller: 'EmailTemplateAdminController', action: 'contextSchema' },
+  'get /:branding/:portal/app/email-templates/preview-frame/:token': { controller: 'EmailTemplateAdminController', action: 'previewFrame' },
   'get /:branding/:portal/app/email-templates/catalogue': { controller: 'EmailTemplateAdminController', action: 'catalogue' },
   'get /:branding/:portal/app/email-templates/templates/:templateId': { controller: 'EmailTemplateAdminController', action: 'editor' },
   'put /:branding/:portal/app/email-templates/templates/:templateId/draft': { controller: 'EmailTemplateAdminController', action: 'saveDraft' },

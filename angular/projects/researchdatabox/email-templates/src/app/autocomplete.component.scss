@@ -1,0 +1,121 @@
+:host {
+  display: contents;
+}
+
+// Fixed to the viewport so the editor's clipped surface never cuts it off.
+.et-ac {
+  position: fixed;
+  z-index: 1060;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  max-width: calc(100vw - 16px);
+  max-height: 300px;
+  overflow: hidden;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 6px;
+  background: var(--bs-body-bg);
+  box-shadow:
+    0 10px 28px -8px rgba(15, 23, 42, 0.22),
+    0 2px 6px rgba(15, 23, 42, 0.06);
+  font-family: var(--bs-body-font-family);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+
+  &.et-ac-above {
+    transform: translateY(-100%);
+  }
+}
+
+.et-ac-context {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+  font-family: var(--bs-font-monospace);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.et-ac-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.et-ac-option {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 12px;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+
+  &.active {
+    border-left-color: var(--bs-primary);
+    background: var(--bs-primary-bg-subtle);
+  }
+}
+
+.et-ac-label {
+  flex: 0 0 auto;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bs-emphasis-color);
+  font-family: var(--bs-font-monospace);
+}
+
+.et-ac-match {
+  font-weight: 700;
+}
+
+.et-ac-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+}
+
+.et-ac-type {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+  font-family: var(--bs-font-monospace);
+  font-size: 11px;
+  line-height: 18px;
+
+  &.et-ac-type-helper {
+    background: rgba(102, 16, 242, 0.08);
+    color: #520dc2;
+  }
+}
+
+.et-ac-more {
+  flex: 0 0 auto;
+  align-self: center;
+  color: var(--bs-secondary-color);
+  font-size: 10px;
+}
+
+.et-ac-hint {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border-top: 1px solid var(--bs-border-color-translucent);
+  color: var(--bs-secondary-color);
+  font-size: 11px;
+}

@@ -910,7 +910,8 @@ export namespace Services {
       branding?: string,
       contextVariablesMap?: Record<string, unknown>,
       recordAccessContext?: FormRecordAccessContext,
-      preserveDefaultValues = false
+      preserveDefaultValues = false,
+      options: { hydrateVocabulary?: boolean } = {}
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = await constructor.start({
@@ -921,10 +922,14 @@ export namespace Services {
         translate: this.buildFormConfigTranslator(branding),
         preserveDefaultValues,
       });
-      const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
-      await vocabVisitor.resolveVocabs(constructed, branding, {
-        includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
-      });
+      // Schema assistance needs effective names and nesting, without reading
+      // vocabulary pages. Normal record/client and contract builds still hydrate.
+      if (options.hydrateVocabulary !== false) {
+        const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
+        await vocabVisitor.resolveVocabs(constructed, branding, {
+          includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
+        });
+      }
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
       await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       if (recordMetadata && recordAccessContext) {

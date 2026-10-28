@@ -44,7 +44,81 @@
   max-width: 448px;
 }
 
+// Purpose first, then the supplied subject as a quieter reference line.
 .et-description {
-  margin-top: 2px;
+  margin-top: 4px;
+  color: var(--bs-body-color);
+  font-size: 13px;
+  line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.et-subject {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+  margin-top: 2px;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+
+  &.et-subject-only {
+    margin-top: 4px;
+    font-size: 13px;
+  }
+}
+
+.et-subject-label {
+  flex: 0 0 auto;
+  color: var(--bs-tertiary-color);
+}
+
+.et-subject-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.et-live-default {
+  color: var(--bs-secondary-color);
+  font-family: var(--bs-body-font-family);
+  font-size: 13px;
+  cursor: help;
+}
+
+.et-badges .et-badge[title] {
+  cursor: help;
+}
+
+// A quiet key under the table, so the badges explain themselves without a click.
+.et-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--bs-border-color-translucent);
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+}
+
+.et-legend-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+
+  dt {
+    flex: 0 0 auto;
+    font-weight: 600;
+    color: var(--bs-emphasis-color);
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.et-legend-wide {
+  flex-basis: 100%;
 }

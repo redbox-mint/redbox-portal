@@ -1,0 +1,21 @@
+meta {
+  name: Email templates - Context schema anonymous denied
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/context-schema?recordType=rdmp
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+
+tests {
+  test("Context schema requires brand Admin", () => { expect(res.getStatus()).to.equal(403); });
+}
