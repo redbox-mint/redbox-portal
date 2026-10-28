@@ -55,6 +55,67 @@ describe('RecordMetadataRetrieverComponent', () => {
     };
   }
 
+  it('warns without publishing a fallback and retries the original oid successfully', async () => {
+    const component = createComponent();
+    recordService.getRecordMeta.and.rejectWith(new Error('offline'));
+    await component.fetchMetadata(' related-123 ');
+    expect(component.metadataLoadWarning).toBeTrue();
+    expect(component.metadataLoading).toBeFalse();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+    recordService.getRecordMeta.and.resolveTo({ title: 'Recovered' });
+    await component.retryMetadata();
+    expect(recordService.getRecordMeta).toHaveBeenCalledWith('related-123');
+    expect(eventBus.publish).toHaveBeenCalledOnceWith(jasmine.objectContaining({ value: { title: 'Recovered', oid: 'related-123' } }));
+    expect(component.metadataLoadWarning).toBeFalse();
+    expect(component.metadataLoading).toBeFalse();
+  });
+
+  it('renders an accessible retry for the previously invisible retriever', async () => {
+    const fixture = TestBed.createComponent(RecordMetadataRetrieverComponent);
+    const component = fixture.componentInstance;
+    recordService.getRecordMeta.and.rejectWith(new Error('offline'));
+    await component.fetchMetadata('related');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('Existing field values');
+    recordService.getRecordMeta.and.resolveTo({ title: 'Recovered' });
+    fixture.nativeElement.querySelector('button').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull();
+    expect(recordService.getRecordMeta).toHaveBeenCalledWith('related');
+  });
+
+  it('does not publish stale metadata or revive a warning after selection changes', async () => {
+    const component = createComponent();
+    let resolveOld!: (value: Record<string, unknown>) => void;
+    recordService.getRecordMeta.and.returnValue(new Promise<Record<string, unknown>>(resolve => { resolveOld = resolve; }));
+    const old = component.fetchMetadata('old');
+    recordService.getRecordMeta.and.resolveTo({ title: 'Current' });
+    await component.fetchMetadata('current');
+    resolveOld({ title: 'Stale' });
+    await old;
+    expect(eventBus.publish).toHaveBeenCalledTimes(1);
+    expect(eventBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({ value: { title: 'Current', oid: 'current' } }));
+    expect(component.metadataLoadWarning).toBeFalse();
+    expect(component.metadataLoading).toBeFalse();
+  });
+
+  it('invalidates in-flight reads when selection is cleared or the component is destroyed', async () => {
+    const component = createComponent();
+    let resolveOld!: (value: Record<string, unknown>) => void;
+    recordService.getRecordMeta.and.returnValue(new Promise<Record<string, unknown>>(resolve => { resolveOld = resolve; }));
+    const old = component.fetchMetadata('old');
+    await component.fetchMetadata('');
+    resolveOld({ title: 'Stale' });
+    await old;
+    expect(eventBus.publish).not.toHaveBeenCalled();
+    const destroyed = component.fetchMetadata('other');
+    component.ngOnDestroy();
+    resolveOld({ title: 'Destroyed' });
+    await destroyed;
+    expect(eventBus.publish).not.toHaveBeenCalled();
+  });
+
   it('should create component', () => {
     expect(createComponent()).toBeDefined();
   });

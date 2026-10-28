@@ -39,6 +39,19 @@ describe("RecordService", () => {
     httpTestingController.verify();
   });
 
+  it("propagates failed attachment and metadata reads instead of reporting empty data", async () => {
+    const attachments = recordService.getAttachments("failed");
+    const attachmentAssertion = expectAsync(attachments).toBeRejected();
+    httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/failed/attachments`)
+      .flush("unavailable", { status: 503, statusText: "Unavailable" });
+    await attachmentAssertion;
+    const metadata = recordService.getRecordMeta("failed");
+    const metadataAssertion = expectAsync(metadata).toBeRejected();
+    httpTestingController.expectOne(request => request.url.includes("/record/metadata/failed"))
+      .flush("unavailable", { status: 503, statusText: "Unavailable" });
+    await metadataAssertion;
+  });
+
   it("unwraps attachment responses from the backend data envelope", async () => {
     const attachmentsPromise = recordService.getAttachments("oid-123");
 

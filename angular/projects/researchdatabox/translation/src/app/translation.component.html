@@ -3,6 +3,19 @@
   [attr.aria-hidden]="modalOpen() || languageModalOpen() || displayNameModalOpen() ? 'true' : null"
   [attr.inert]="modalOpen() || languageModalOpen() || displayNameModalOpen() ? '' : null"
 >
+  <div *ngIf="readWarnings().languages" class="alert alert-warning" role="status" aria-live="polite">
+    {{ readWarnings().languages }}
+    <button type="button" class="btn btn-default" (click)="retryLanguages()" [disabled]="readPending().languages || readPending().bundles">Retry loading languages</button>
+  </div>
+  <div *ngIf="readWarnings().bundles" class="alert alert-warning" role="status" aria-live="polite">
+    {{ readWarnings().bundles }}
+    <button type="button" class="btn btn-default" (click)="loadAvailableLanguagesFromBundles()" [disabled]="readPending().bundles">Retry loading availability</button>
+  </div>
+  <div *ngIf="readWarnings().entries" class="alert alert-warning" role="status" aria-live="polite">
+    {{ readWarnings().entries }}
+    <button type="button" class="btn btn-default" (click)="loadEntries()" [disabled]="readPending().entries">Retry loading entries</button>
+  </div>
+
   <!-- TOP STATS ROW -->
   <div class="row align-items-end mb-3">
     <div class="col-md-8"></div>
@@ -41,7 +54,7 @@
         </label>
       </div>
       <ng-template #noLanguages>
-        <p class="text-muted mb-0">
+        <p *ngIf="!readWarnings().languages && !readPending().languages" class="text-muted mb-0">
           No languages configured yet. Click <strong>Add language</strong> above to get started.
         </p>
       </ng-template>
@@ -85,7 +98,7 @@
           <label for="tx-lang-select" class="small text-uppercase text-muted mb-1 d-block"> Editing language </label>
           <div class="tx-editing-language">
             <select id="tx-lang-select" class="form-control" [(ngModel)]="selectedLang" (change)="onLangChange()">
-              <option *ngIf="!getFilteredLanguages().length" value="">No languages available</option>
+              <option *ngIf="!getFilteredLanguages().length" value="">{{ readWarnings().languages ? 'Languages unavailable' : 'No languages available' }}</option>
               <option *ngFor="let lang of getFilteredLanguages()" [value]="lang.code">
                 {{ lang.displayName }}{{ lang.code !== lang.displayName ? ' (' + lang.code + ')' : '' }}
               </option>
@@ -261,7 +274,7 @@
                 </button>
               </td>
             </tr>
-            <tr *ngIf="!viewEntries().length">
+            <tr *ngIf="!viewEntries().length && !readWarnings().entries && !readPending().entries">
               <td colspan="4" class="tx-empty-cell text-muted">
                 <ng-container *ngIf="filterText.trim() || selectedCategory; else noEntriesAtAll">
                   No entries match your filter.
@@ -576,6 +589,10 @@
         ></button>
       </div>
       <div class="modal-body">
+        <div *ngIf="readWarnings().displayName" class="alert alert-warning" role="status" aria-live="polite">
+          {{ readWarnings().displayName }}
+          <button type="button" class="btn btn-default" (click)="loadCurrentDisplayName()" [disabled]="readPending().displayName">Retry loading display name</button>
+        </div>
         <div *ngIf="displayNameUpdateSuccess()" class="alert alert-success" role="status">
           <i class="fa fa-check-circle mr-1" aria-hidden="true"></i>Display name updated
         </div>
@@ -590,6 +607,7 @@
             type="text"
             class="form-control form-control-sm"
             [(ngModel)]="editDisplayName"
+            (ngModelChange)="displayNameEdited = true"
             placeholder="Français, Deutsch, Español, 日本語"
             [disabled]="updatingDisplayName()"
           />

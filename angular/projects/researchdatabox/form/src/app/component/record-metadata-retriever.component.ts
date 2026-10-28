@@ -73,7 +73,11 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
 
 @Component({
   selector: 'redbox-record-metadata-retriever',
-  template: '',
+  template: `
+    <div *ngIf="metadataLoadWarning" class="alert alert-warning" role="status" aria-live="polite">
+      Related record metadata could not be loaded. Existing field values have been kept and may be incomplete.
+      <button type="button" class="btn btn-default" (click)="retryMetadata()" [disabled]="metadataLoading">Retry loading metadata</button>
+    </div>`,
   standalone: false,
 })
 export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<never> implements OnDestroy {
@@ -86,7 +90,15 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
   private readonly eventBus = inject(FormComponentEventBus);
   private expressionConsumer?: RecordMetadataRetrieverExpressionConsumer;
   private formReadyExpressionSubscription?: Subscription;
+  public metadataLoadWarning = false;
+  public metadataLoading = false;
+  private metadataRequest = 0;
+  private requestedOid = '';
   private lastFetchedOid?: string;
+
+  public async retryMetadata(): Promise<void> {
+    await this.fetchMetadata(this.requestedOid);
+  }
 
   protected override async initEventHandlers() {
     if (!this.formFieldCompMapEntry) {
@@ -115,6 +127,8 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
   }
 
   public ngOnDestroy(): void {
+    ++this.metadataRequest;
+    this.metadataLoading = false;
     this.expressionConsumer?.destroy();
     this.formReadyExpressionSubscription?.unsubscribe();
   }
@@ -125,12 +139,19 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
 
   public async fetchMetadata(oid: string): Promise<void> {
     const trimmedOid = oid.trim();
+    const request = ++this.metadataRequest;
+    this.requestedOid = trimmedOid;
+    this.metadataLoading = false;
     if (!trimmedOid || trimmedOid === this.lastFetchedOid) {
+      this.metadataLoadWarning = false;
       return;
     }
 
+    this.metadataLoading = true;
     try {
       const metadata = await this.recordService.getRecordMeta(trimmedOid);
+      if (request !== this.metadataRequest) return;
+      this.metadataLoadWarning = false;
       this.lastFetchedOid = trimmedOid;
       const payload =
         typeof metadata === 'object' && metadata !== null
@@ -146,6 +167,9 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       );
     } catch (error) {
       this.loggerService.error(`${this.logName}: Failed to fetch metadata for oid '${trimmedOid}'.`, error);
+      if (request === this.metadataRequest) this.metadataLoadWarning = true;
+    } finally {
+      if (request === this.metadataRequest) this.metadataLoading = false;
     }
   }
 
@@ -171,6 +195,10 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       }
     }
 
+    const expressionRequest = ++this.metadataRequest;
+    this.metadataLoading = false;
+    this.metadataLoadWarning = false;
+    this.requestedOid = '';
     let oidValue: unknown = (event as { value?: unknown }).value;
     if (expression.config.hasTemplate) {
       const expressionConsumer = this.expressionConsumer;
@@ -184,7 +212,9 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       }
     }
 
+    if (expressionRequest !== this.metadataRequest) return;
     if (oidValue === undefined || oidValue === null) {
+      await this.fetchMetadata('');
       return;
     }
 
@@ -219,7 +249,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       .pipe(take(1))
       .subscribe({
         next: () => {
-          void this.runFormReadyExpressions();
+          void this.runFormReadyExpressions().catch(error => this.loggerService.error(`${this.logName}: Failed to evaluate form-ready metadata expressions.`, error));
         },
       });
   }
