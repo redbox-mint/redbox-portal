@@ -220,6 +220,34 @@ describe('DeletedRecordsComponent', () => {
     fixture.destroy();
   });
 
+  it('does not let filtering skip a page retry while configuration refresh is pending', async () => {
+    let refresh!: (value: any) => void;
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.returnValue(
+      new Promise(resolve => { refresh = resolve; })
+    );
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+    const previous = component.deletedRecordsResult;
+    const read = spyOn(recordService, 'getDeletedRecords').and.rejectWith({ status: 500 });
+    await component.gotoPage(2);
+    const retry = component.retryLoad();
+    expect(component.loadPending).toBeTrue();
+    await component.filter();
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(component.deletedRecordsResult).toBe(previous);
+    read.and.resolveTo({ items: [{ title: 'Page two' }], totalItems: 30, currentPage: 2 });
+    refresh({});
+    await retry;
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(read.calls.mostRecent().args[2]).toBe(2);
+    expect(component.currentPageNumber).toBe(2);
+    expect(component.loadError).toBe('');
+    expect(component.loadPending).toBeFalse();
+    fixture.destroy();
+  });
+
   it('should create the app', () => {
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
     const app = fixture.componentInstance;

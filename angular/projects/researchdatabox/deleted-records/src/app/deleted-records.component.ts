@@ -188,6 +188,9 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
    * @param event The click event data.
    */
   public async filter(event?: any) {
+    if (this.loadPending) {
+      return;
+    }
     await this.gotoPage(1);
   }
 
