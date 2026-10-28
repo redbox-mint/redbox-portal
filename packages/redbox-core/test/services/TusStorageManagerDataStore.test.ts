@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream';
 import { createRequire } from 'node:module';
 import * as sinon from 'sinon';
-import { Upload, ERRORS } from '@tus/server';
+import { Server, Upload, ERRORS, StreamLimiter } from '@tus/server';
 
 const testRequire = createRequire(__filename);
 const { TusStorageManagerDataStore } = testRequire(
@@ -153,6 +153,239 @@ describe('TusStorageManagerDataStore', function () {
       metadata: { filename: 'ZmlsZS50eHQ=' },
     });
   }
+
+  it('rejects invalid limits instead of disabling upload bounds', function () {
+    for (const value of [0, -1, NaN, Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(() => createStore({ maxSize: value })).to.throw('positive safe integers');
+      expect(() => createStore({ maxChunkSize: value })).to.throw('positive safe integers');
+    }
+  });
+
+  for (const size of [undefined, 100]) {
+    it(`stops an oversized ${size === undefined ? 'deferred' : 'fixed'} PATCH before consuming the whole body`, async function () {
+      const { store, disk } = createStore({ maxSize: 100, maxChunkSize: 8 });
+      await store.create(createUpload('bounded', size));
+      let produced = 0;
+      const body = Readable.from((async function* () {
+        for (let index = 0; index < 100; index += 1) {
+          produced += 1;
+          yield Buffer.alloc(1);
+        }
+      })(), { highWaterMark: 1 });
+
+      let failure: unknown;
+      try {
+        await store.write(body, 'bounded', 0);
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).to.equal(ERRORS.ERR_MAX_SIZE_EXCEEDED);
+      expect(produced).to.be.lessThan(100);
+      expect((await store.getUpload('bounded')).offset).to.equal(0);
+      expect(Array.from((await disk.listAll('.tus/bounded/parts/')).objects)).to.have.length(0);
+      expect(await store.write(Readable.from([Buffer.from('ok')]), 'bounded', 0)).to.equal(2);
+    });
+  }
+
+  it('enforces the cumulative limit on deferred uploads and rejects oversized declarations', async function () {
+    const { store } = createStore({ maxSize: 5 });
+    await store.create(createUpload('deferred-limit'));
+    await store.write(Readable.from([Buffer.from('1234')]), 'deferred-limit', 0);
+
+    for (const operation of [
+      () => store.create(createUpload('too-large', 6)),
+      () => store.declareUploadLength('deferred-limit', 6),
+      () => store.write(Readable.from([Buffer.from('56')]), 'deferred-limit', 4),
+    ]) {
+      let failure: unknown;
+      try {
+        await operation();
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).to.equal(ERRORS.ERR_MAX_SIZE_EXCEEDED);
+    }
+
+    expect((await store.getUpload('deferred-limit')).offset).to.equal(4);
+    await store.declareUploadLength('deferred-limit', 5);
+    expect(await store.write(Readable.from([Buffer.from('5')]), 'deferred-limit', 4)).to.equal(5);
+  });
+
+  it('bounds part buffers and applies storage backpressure before reading the rest of a PATCH', async function () {
+    const partSize = 8 * 1024 * 1024;
+    const { store, disk } = createStore();
+    await store.create(createUpload('streamed', partSize * 2));
+    let produced = 0;
+    const body = Readable.from((async function* () {
+      for (let index = 0; index < 256; index += 1) {
+        produced += 1;
+        yield Buffer.alloc(64 * 1024, index);
+      }
+    })(), { highWaterMark: 1 });
+    const originalPut = disk.put.bind(disk);
+    const put = sinon.stub(disk, 'put').callsFake(async (key, contents) => {
+      if (key.includes('/parts/')) {
+        expect(contents.length).to.be.at.most(partSize);
+        const before = produced;
+        await new Promise<void>(resolve => setImmediate(resolve));
+        // At most one source chunk may be prefetched while the disk is busy.
+        expect(produced - before).to.be.at.most(1);
+        if (key.endsWith('00000000000000000000')) {
+          expect(produced).to.be.lessThan(256);
+        }
+      }
+      await originalPut(key, contents);
+    });
+
+    expect(await store.write(body, 'streamed', 0)).to.equal(partSize * 2);
+    expect(put.getCalls().filter(call => call.args[0].includes('/parts/'))).to.have.length(2);
+    const bytes = disk.bytes('streamed');
+    expect(bytes.length).to.equal(partSize * 2);
+    for (let index = 0; index < 256; index += 1) {
+      expect(bytes.subarray(index * 64 * 1024, (index + 1) * 64 * 1024)
+        .equals(Buffer.alloc(64 * 1024, index))).to.equal(true);
+    }
+  });
+
+  it('returns TUS 413 for oversized creation, PATCH and creation-with-upload while bounded uploads finish', async function () {
+    const { store, disk } = createStore({ maxSize: 10, maxChunkSize: 4 });
+    const server = new Server({ path: '/attach', datastore: store, maxSize: 10 });
+    const request = (method: string, path: string, headers: Record<string, string>, body?: string) =>
+      server.handleWeb(new Request(`http://localhost/attach${path}`, {
+        method, headers: { 'Tus-Resumable': '1.0.0', ...headers }, body,
+      }));
+
+    expect((await request('POST', '', { 'Upload-Length': '11' })).status).to.equal(413);
+    const creationHeaders: Record<string, string>[] = [{ 'Upload-Length': '10' }, { 'Upload-Defer-Length': '1' }];
+    for (const headers of creationHeaders) {
+      const created = await request('POST', '', headers);
+      expect(created.status).to.equal(201);
+      const location = new URL(created.headers.get('Location')!);
+      const path = location.pathname.slice('/attach'.length);
+      const id = path.slice(1);
+      const patchHeaders = { 'Upload-Offset': '0', 'Content-Type': 'application/offset+octet-stream' };
+      expect((await request('PATCH', path, patchHeaders, '12345')).status).to.equal(413);
+      expect((await store.getUpload(id)).offset).to.equal(0);
+      expect((await request('PATCH', path, patchHeaders, '1234')).status).to.equal(204);
+      const finishHeaders = { ...patchHeaders, 'Upload-Offset': '4',
+        ...(headers['Upload-Defer-Length'] ? { 'Upload-Length': '8' } : {}) };
+      expect((await request('PATCH', path, finishHeaders, '5678')).status).to.equal(204);
+      if (headers['Upload-Defer-Length']) {
+        expect(disk.bytes(id).toString()).to.equal('12345678');
+      } else {
+        expect((await request('PATCH', path, { ...patchHeaders, 'Upload-Offset': '8' }, '90')).status).to.equal(204);
+        expect(disk.bytes(id).toString()).to.equal('1234567890');
+      }
+    }
+    expect((await request('POST', '', { 'Upload-Defer-Length': '1',
+      'Content-Type': 'application/offset+octet-stream' }, '12345')).status).to.equal(413);
+  });
+
+  it('preserves TUS 413 when the dependency detects fixed or deferred overflow without Content-Length', async function () {
+    const { store } = createStore({ maxSize: 5 });
+    const server = new Server({ path: '/attach', datastore: store, maxSize: 5 });
+    for (const size of [undefined, 4]) {
+      const uploadId = size === undefined ? 'deferred-overflow' : 'fixed-overflow';
+      await store.create(createUpload(uploadId, size));
+      const response = await server.handleWeb(new Request(`http://localhost/attach/${uploadId}`, {
+        method: 'PATCH',
+        headers: { 'Tus-Resumable': '1.0.0', 'Upload-Offset': '0',
+          'Content-Type': 'application/offset+octet-stream' },
+        body: '123456',
+      }));
+      expect(response.status).to.equal(413);
+      expect((await store.getUpload(uploadId)).offset).to.equal(0);
+    }
+  });
+
+  it('preserves input stream errors, including the TUS limiter error', async function () {
+    const limiterError = await new Promise<Error>(resolve => {
+      const limiter = new StreamLimiter(1);
+      limiter.once('error', resolve);
+      limiter.end(Buffer.alloc(2));
+    });
+    for (const inputError of [limiterError, new Error('source interrupted')]) {
+      const { store } = createStore();
+      await store.create(createUpload('input-error'));
+      const body = Readable.from((async function* () {
+        yield Buffer.from('partial');
+        throw inputError;
+      })());
+      let failure: unknown;
+      try {
+        await store.write(body, 'input-error', 0);
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).to.equal(inputError);
+      expect((await store.getUpload('input-error')).offset).to.equal(0);
+    }
+  });
+
+  it('counts multibyte strings in bytes and accepts fragmented bounded input', async function () {
+    const { store, disk } = createStore({ maxSize: 6, maxChunkSize: 3 });
+    await store.create(createUpload('utf8', 6));
+    let failure: unknown;
+    try {
+      await store.write(Readable.from(['€€']), 'utf8', 0);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).to.equal(ERRORS.ERR_MAX_SIZE_EXCEEDED);
+    expect(await store.write(Readable.from(['€']), 'utf8', 0)).to.equal(3);
+    expect(await store.write(Readable.from([new Uint8Array([1]), Buffer.from([2]), Buffer.from([3])]), 'utf8', 3)).to.equal(6);
+    expect(disk.bytes('utf8')).to.deep.equal(Buffer.concat([Buffer.from('€'), Buffer.from([1, 2, 3])]));
+  });
+
+  it('rolls back streamed parts after a late limit violation and keeps committed bytes resumable', async function () {
+    const partSize = 8 * 1024 * 1024;
+    const { store, disk } = createStore({ maxSize: partSize * 2, maxChunkSize: partSize + 1 });
+    await store.create(createUpload('rollback'));
+    await store.write(Readable.from([Buffer.from('ok')]), 'rollback', 0);
+    let failure: unknown;
+    try {
+      await store.write(Readable.from([Buffer.alloc(partSize), Buffer.from('XX')]), 'rollback', 2);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).to.equal(ERRORS.ERR_MAX_SIZE_EXCEEDED);
+    expect((await store.getUpload('rollback')).offset).to.equal(2);
+    expect(Array.from((await disk.listAll('.tus/rollback/parts/')).objects)).to.have.length(1);
+    await store.write(Readable.from([Buffer.from('!')]), 'rollback', 2);
+    await store.declareUploadLength('rollback', 3);
+    expect(disk.bytes('rollback').toString()).to.equal('ok!');
+  });
+
+  it('discards uncommitted compose parts when a retry uses different request boundaries', async function () {
+    const partSize = 8 * 1024 * 1024;
+    const { store, disk } = createStore();
+    const size = partSize + 4;
+    await store.create(createUpload('compose-retry', size));
+    const originalPutStream = disk.putStream.bind(disk);
+    const putStream = sinon.stub(disk, 'putStream');
+    putStream.onFirstCall().rejects(new Error('compose failed'));
+    putStream.onSecondCall().callsFake(originalPutStream);
+    let failure: unknown;
+    try {
+      await store.write(Readable.from([Buffer.alloc(size, 1)]), 'compose-retry', 0);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).to.equal(ERRORS.FILE_WRITE_ERROR);
+    expect((await store.getUpload('compose-retry')).offset).to.equal(0);
+    await store.write(Readable.from([Buffer.from('ok')]), 'compose-retry', 0);
+    await store.write(Readable.from([Buffer.alloc(size - 2, 2)]), 'compose-retry', 2);
+    expect(disk.bytes('compose-retry')).to.deep.equal(Buffer.concat([Buffer.from('ok'), Buffer.alloc(size - 2, 2)]));
+  });
+
+  it('completes an empty upload without allocating or storing a part', async function () {
+    const { store, disk } = createStore();
+    await store.create(createUpload('empty', 0));
+    expect(await store.write(Readable.from([]), 'empty', 0)).to.equal(0);
+    expect(disk.bytes('empty').length).to.equal(0);
+    expect(Array.from((await disk.listAll('.tus/empty/parts/')).objects)).to.have.length(0);
+  });
 
   it('creates upload metadata and returns a storage-manager upload', async function () {
     const { store, disk } = createStore();

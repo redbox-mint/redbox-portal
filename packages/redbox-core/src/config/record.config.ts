@@ -42,6 +42,8 @@ export interface RecordSearchConfig {
 
 export interface RecordAttachmentsConfig {
   path: string;
+  /** Maximum bytes per TUS request; defaults to record.maxUploadSize. Must be a positive safe integer. */
+  maxChunkSize?: number;
   store?: 'file' | 's3';
   file?: {
     directory: string;

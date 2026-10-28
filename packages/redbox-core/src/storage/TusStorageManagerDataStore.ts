@@ -1,6 +1,9 @@
 import { Readable } from 'node:stream';
 import { DataStore, Upload, ERRORS } from '@tus/server';
+import { record as defaultRecordConfig } from '../config/record.config';
 import type { Services } from '../services/StorageManagerService';
+
+const MAX_BUFFERED_PART_SIZE = 8 * 1024 * 1024;
 
 type TusLogger = Pick<typeof sails.log, 'verbose' | 'warn' | 'error'>;
 
@@ -21,6 +24,8 @@ type TusOptions = {
   prefix?: string;
   logger?: TusLogger;
   expirationPeriodInMilliseconds?: number;
+  maxSize?: number;
+  maxChunkSize?: number;
 };
 
 type ListedDiskObject = {
@@ -30,6 +35,8 @@ type ListedDiskObject = {
 };
 
 export class TusStorageManagerDataStore extends DataStore {
+  public readonly maxSize: number;
+  private readonly maxChunkSize: number;
   private readonly disk: Services.IDisk;
   private readonly prefix: string;
   private readonly logger?: TusLogger;
@@ -38,6 +45,13 @@ export class TusStorageManagerDataStore extends DataStore {
 
   public constructor(options: TusOptions) {
     super();
+    this.maxSize = options.maxSize ?? defaultRecordConfig.maxUploadSize;
+    this.maxChunkSize = options.maxChunkSize ?? this.maxSize;
+    for (const limit of [this.maxSize, this.maxChunkSize]) {
+      if (!Number.isSafeInteger(limit) || limit <= 0) {
+        throw new Error('TUS upload and chunk limits must be positive safe integers');
+      }
+    }
     this.disk = options.disk;
     this.prefix = this.normalizePrefix(options.prefix);
     this.logger = options.logger;
@@ -52,6 +66,9 @@ export class TusStorageManagerDataStore extends DataStore {
   }
 
   public override async create(file: Upload): Promise<Upload> {
+    if (file.size !== undefined) {
+      this.validateUploadLength(file.size);
+    }
     const storedUpload = this.toStoredUpload(file);
     await this.writeUploadInfo(file.id, storedUpload);
     file.storage = { type: 'storage-manager', path: this.finalKey(file.id) };
@@ -70,11 +87,7 @@ export class TusStorageManagerDataStore extends DataStore {
   }
 
   public override async write(readable: Readable, id: string, offset: number): Promise<number> {
-    const collected = await this.readStream(readable);
-    this.validateWriteInputs(offset, collected.length);
-    this.logger?.verbose(
-      `TusStorageManagerDataStore: write received id='${id}' requestOffset=${offset} bytes=${collected.length}`
-    );
+    this.validateWriteInputs(offset);
 
     return this.withUploadLock(id, async () => {
       const upload = await this.readStoredUpload(id);
@@ -84,29 +97,62 @@ export class TusStorageManagerDataStore extends DataStore {
       if (upload.offset !== offset) {
         throw ERRORS.INVALID_OFFSET;
       }
-
-      const newOffset = offset + collected.length;
-      if (!Number.isSafeInteger(newOffset) || newOffset < 0) {
-        throw ERRORS.FILE_WRITE_ERROR;
+      if (upload.size !== undefined) {
+        this.validateUploadLength(upload.size);
       }
-      if (upload.size !== undefined && newOffset > upload.size) {
+      if (upload.size !== undefined && offset > upload.size) {
         throw ERRORS.INVALID_OFFSET;
       }
+      if (offset > this.maxSize) {
+        throw ERRORS.ERR_MAX_SIZE_EXCEEDED;
+      }
 
-      const partKey = this.partKey(id, offset);
+      // A failed final compose leaves parts beyond the committed offset for
+      // retry. Remove that uncommitted tail before accepting new part boundaries.
+      for (const key of await this.listPartKeys(id)) {
+        if (key >= this.partKey(id, offset)) {
+          await this.disk.delete(key);
+        }
+      }
+
+      const writtenParts: string[] = [];
+      let newOffset = offset;
       try {
-        this.logger?.verbose(
-          `TusStorageManagerDataStore: writing part id='${id}' partKey='${partKey}' bytes=${collected.length}`
-        );
-        await this.disk.put(partKey, collected, { contentLength: collected.length });
+        // Await each bounded part write before reading more request bytes. This
+        // provides backpressure and known content lengths for every disk driver.
+        for await (const part of this.readParts(readable, offset, upload.size)) {
+          const partKey = this.partKey(id, newOffset);
+          writtenParts.push(partKey);
+          try {
+            await this.disk.put(partKey, part, { contentLength: part.length });
+          } catch (error) {
+            this.logger?.error(`TusStorageManagerDataStore: failed writing part '${partKey}'`, error);
+            throw ERRORS.FILE_WRITE_ERROR;
+          }
+          newOffset += part.length;
+        }
         upload.offset = newOffset;
-        await this.writeUploadInfo(id, upload);
+        try {
+          await this.writeUploadInfo(id, upload);
+        } catch (error) {
+          this.logger?.error(`TusStorageManagerDataStore: failed updating upload '${id}'`, error);
+          throw ERRORS.FILE_WRITE_ERROR;
+        }
         this.logger?.verbose(
           `TusStorageManagerDataStore: wrote part id='${id}' newOffset=${newOffset} infoKey='${this.infoKey(id)}'`
         );
       } catch (error) {
+        for (const key of writtenParts) {
+          try {
+            if (await this.disk.exists(key)) {
+              await this.disk.delete(key);
+            }
+          } catch (cleanupError) {
+            this.logger?.error(`TusStorageManagerDataStore: failed cleaning up part '${key}'`, cleanupError);
+          }
+        }
         this.logger?.error(`TusStorageManagerDataStore: failed writing upload '${id}'`, error);
-        throw ERRORS.FILE_WRITE_ERROR;
+        throw error;
       }
 
       if (upload.size !== undefined && newOffset === upload.size) {
@@ -142,7 +188,11 @@ export class TusStorageManagerDataStore extends DataStore {
   }
 
   public override async declareUploadLength(id: string, uploadLength: number): Promise<void> {
+    this.validateUploadLength(uploadLength);
     const upload = await this.readStoredUpload(id);
+    if (uploadLength < upload.offset) {
+      throw ERRORS.INVALID_LENGTH;
+    }
     upload.size = uploadLength;
     await this.writeUploadInfo(id, upload);
     this.logger?.verbose(
@@ -278,12 +328,18 @@ export class TusStorageManagerDataStore extends DataStore {
     }
   }
 
-  private validateWriteInputs(offset: number, collectedLength: number): void {
+  private validateUploadLength(size: number): void {
+    if (!Number.isSafeInteger(size) || size < 0) {
+      throw ERRORS.INVALID_LENGTH;
+    }
+    if (size > this.maxSize) {
+      throw ERRORS.ERR_MAX_SIZE_EXCEEDED;
+    }
+  }
+
+  private validateWriteInputs(offset: number): void {
     if (!Number.isSafeInteger(offset) || offset < 0) {
       throw ERRORS.INVALID_OFFSET;
-    }
-    if (!Number.isSafeInteger(collectedLength) || collectedLength < 0) {
-      throw ERRORS.FILE_WRITE_ERROR;
     }
   }
 
@@ -308,12 +364,44 @@ export class TusStorageManagerDataStore extends DataStore {
     }
   }
 
-  private async readStream(readable: Readable): Promise<Uint8Array> {
-    const chunks: Buffer[] = [];
+  private async *readParts(readable: Readable, offset: number, size?: number): AsyncGenerator<Buffer> {
+    const partSize = Math.min(
+      MAX_BUFFERED_PART_SIZE,
+      this.maxChunkSize,
+      this.maxSize - offset,
+      size === undefined ? this.maxSize : size - offset
+    );
+    let part: Buffer | undefined;
+    let buffered = 0;
+    let received = 0;
     for await (const chunk of readable) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      const length = typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.byteLength;
+      received += length;
+      if (!Number.isSafeInteger(received) || received > this.maxChunkSize || offset + received > this.maxSize) {
+        throw ERRORS.ERR_MAX_SIZE_EXCEEDED;
+      }
+      if (size !== undefined && offset + received > size) {
+        throw ERRORS.INVALID_OFFSET;
+      }
+      const data = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      let position = 0;
+      while (position < data.length) {
+        part ??= Buffer.allocUnsafe(partSize);
+        const end = Math.min(data.length, position + part.length - buffered);
+        data.copy(part, buffered, position, end);
+        buffered += end - position;
+        position = end;
+        if (buffered === part.length) {
+          const completed = part;
+          part = undefined;
+          buffered = 0;
+          yield completed;
+        }
+      }
     }
-    return new Uint8Array(Buffer.concat(chunks));
+    if (part && buffered > 0) {
+      yield part.subarray(0, buffered);
+    }
   }
 
   private async listUploadIds(): Promise<string[]> {

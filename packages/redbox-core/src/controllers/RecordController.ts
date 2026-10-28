@@ -1951,11 +1951,14 @@ export namespace Controllers {
       const datastore = new TusStorageManagerDataStore({
         disk: StorageManagerService.stagingDisk(),
         logger: sails.log,
+        maxSize: sails.config.record.maxUploadSize,
+        maxChunkSize: attachConfig.maxChunkSize,
       });
 
       this.tusServer = new TusServer({
         path: attachConfig.path,
         datastore,
+        maxSize: datastore.maxSize,
         respectForwardedHeaders: true,
         disableTerminationForFinishedUploads: true,
         generateUrl(req, { host, id }) {
