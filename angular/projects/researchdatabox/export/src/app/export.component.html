@@ -1,3 +1,9 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-default" [disabled]="loadPending" (click)="retryLoad()">Retry</button>
+  </div>
+}
 <!-- ngIf is needed so init completes and view has all the information it needs -->
 @if (isReady) {
   <div class="row">

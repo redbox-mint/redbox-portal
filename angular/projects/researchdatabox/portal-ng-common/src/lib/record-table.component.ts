@@ -25,6 +25,7 @@ import { isEmpty as _isEmpty, get as _get, merge as _merge } from 'lodash-es';
 import { RecordSource } from './record.model';
 import { RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
 import { HandlebarsTemplateService } from './handlebars-template.service';
+import { NgModel } from '@angular/forms';
 import {HeaderSortComponent} from "./header-sort.component";
 
 /**
@@ -62,6 +63,8 @@ export class RecordTableComponent extends BaseComponent {
   @Input() paginationClass: string = 'pagination-sm';
   @Input() paginationMaxSize:number = 10;
   @Input() paginationRotate: boolean = true;
+  @Input() paginationDisabled: boolean = false;
+  paginationPending = false;
   // which actions to show in the table
   @Input() showActions: {name:string, classes: string, label:string}[] = [];
   // whether to enable table sorting
@@ -150,8 +153,19 @@ export class RecordTableComponent extends BaseComponent {
     return retVal;
   }
 
-  async gotoPage(event: any) {
-    await this.dataSource.gotoPage(event.page);
+  async gotoPage(page: number, pageModel: NgModel) {
+    if (this.paginationPending || this.paginationDisabled || page === this.dataSource.getCurrentPage().pageNum) {
+      return;
+    }
+    this.paginationPending = true;
+    try {
+      await this.dataSource.gotoPage(page);
+    } finally {
+      // Reset both NgModel's cached value and the control, even when the loaded
+      // page is unchanged. Keep the guard set while reset emits ngModelChange.
+      pageModel.reset(this.dataSource.getCurrentPage().pageNum);
+      this.paginationPending = false;
+    }
   }
 
   async headerSortChanged(event: any, data: any) {

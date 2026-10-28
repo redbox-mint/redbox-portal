@@ -42,6 +42,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   protected sysConfig: any;
 
   // State tracking
+  private pageLoadPending = false;
   initTracker: any = {resultsReturned: false};
 
   // Record filter properties
@@ -147,11 +148,27 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
    * @param pageNum Load the data for this page nnumber.
    */
   public async gotoPage(pageNum: number): Promise<RecordPageDto> {
-    this.currentPageNumber = pageNum;
+    if (this.pageLoadPending) {
+      return this.deletedRecordsResult;
+    }
+    this.pageLoadPending = true;
     this.initTracker.resultsReturned = false;
-    this.deletedRecordsResult = await this.getDeletedRecords();
-    this.initTracker.resultsReturned = true;
-    return this.deletedRecordsResult;
+    this.loadError = '';
+    try {
+      this.deletedRecordsResult = await this.getDeletedRecords(pageNum);
+      this.currentPageNumber = this.deletedRecordsResult.pageNum;
+      return this.deletedRecordsResult;
+    } catch (error) {
+      // Initial load failures must reach BaseComponent's bootstrap error subject.
+      if (!this.isReady) {
+        throw error;
+      }
+      this.showLoadError(error, () => this.gotoPage(pageNum));
+      return this.deletedRecordsResult;
+    } finally {
+      this.pageLoadPending = false;
+      this.initTracker.resultsReturned = true;
+    }
   }
 
   /**
@@ -323,6 +340,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       searchFilters: [];
       searchable: boolean
     }[] = await this.recordService.getAllTypes();
+    this.dropDownProperties['recordType'] = [{title: 'All', value: ''}];
     recordTypes.forEach(recordType => {
       this.dropDownProperties['recordType'].push({
         title: recordType.name,
@@ -335,7 +353,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     this.loggerService.debug(`'${this.appName}' ready!`);
   }
 
-  private async getDeletedRecords(): Promise<ReportResultDto> {
+  private async getDeletedRecords(pageNum: number): Promise<ReportResultDto> {
     const params = this.getParams();
     const paramText: string = _get(params, 'title', '')?.toString().trim();
     const paramRecordType: string = _get(params, 'recordType', '');
@@ -349,13 +367,13 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const filterFields = 'title';
 
     const records: RecordResponseTable = await this.recordService.getDeletedRecords(
-      recordType, workflowState, this.currentPageNumber, packageType, this.sort, filterFields, filterString, filterMode);
+      recordType, workflowState, pageNum, packageType, this.sort, filterFields, filterString, filterMode);
 
     return {
       recordsPerPage: this.recordsPerPage,
       records: records.items.map(record => this.formatDeletedRecord(record)),
       total: records.totalItems,
-      pageNum: this.currentPageNumber,
+      pageNum,
     };
   }
 

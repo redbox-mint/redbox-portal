@@ -212,6 +212,34 @@ describe('RecordAuditComponent', () => {
     fixture.detectChanges();
   }
 
+  it('hides translated content until initialization succeeds and offers retry after failure', async () => {
+    const translation = TestBed.inject(TranslationService);
+    let rejectInit!: (error: unknown) => void;
+    const init = spyOn(translation, 'waitForInit').and.returnValue(new Promise((_, reject) => { rejectInit = reject; }));
+    const config = TestBed.inject(ConfigService);
+    (config as any).refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    fixture = TestBed.createComponent(RecordAuditComponent);
+    component = fixture.componentInstance;
+    component.oid.set('oid-1');
+    const waiting = expectAsync(component.waitForInit()).toBeRejected();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.record-audit-app')).toBeNull();
+    rejectInit({ status: 403 });
+    await waiting;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Sign in again');
+    expect(fixture.nativeElement.querySelector('.record-audit-app')).toBeNull();
+    expect(recordService.getRecordAuditTab).not.toHaveBeenCalled();
+
+    init.and.resolveTo(translation);
+    await component.retryLoad();
+    await component.waitForInit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.record-audit-app')).toBeTruthy();
+    expect(recordService.getRecordAuditTab).toHaveBeenCalled();
+  });
+
   it('boots from host attributes and loads the audit tab', async () => {
     await createComponent({ oid: 'oid-1', branding: 'default', portal: 'rdmp', 'is-admin': 'false' });
 

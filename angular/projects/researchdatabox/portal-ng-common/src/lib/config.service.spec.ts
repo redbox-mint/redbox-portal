@@ -95,6 +95,87 @@ describe('ConfigService testing', () => {
 
   });
 
+  for (const endpoint of ['csrf', 'config']) {
+    it(`rejects early and late waiters after a ${endpoint} failure and recovers`, async () => {
+      const waiting = expectAsync(configService.waitForInit()).toBeRejected();
+      const csrf = httpTestingController.expectOne(configService.csrfTokenUrl);
+      if (endpoint === 'csrf') {
+        csrf.error(new ProgressEvent('error'));
+      } else {
+        csrf.flush({ _csrf: 'old' });
+        httpTestingController.expectOne(configService.configUrl).flush('denied', { status: 403, statusText: 'Forbidden' });
+      }
+      await waiting;
+      await expectAsync(configService.waitForInit()).toBeRejected();
+      const recovered = configService.refreshConfig();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'rotated' });
+      httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+      expect((await recovered).csrfToken).toBe('rotated');
+      expect((await configService.waitForInit()).csrfToken).toBe('rotated');
+    });
+  }
+
+  it('loads and refreshes configuration when Sails returns an empty token with CSRF disabled', async () => {
+    const waiting = configService.waitForInit();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+    httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+    expect((await waiting).csrfToken).toBe('');
+
+    const enabled = configService.refreshConfig();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'enabled' });
+    httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+    expect((await enabled).csrfToken).toBe('enabled');
+
+    const disabled = configService.refreshConfig();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+    httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+    expect((await disabled).csrfToken).toBe('');
+    expect(configService.csrfToken).toBe('');
+  });
+
+  for (const response of ['<html>Sign in</html>', null, [], {}, { _csrf: null }, { _csrf: 123 }, { message: 'Sign in' }]) {
+    it(`rejects malformed CSRF response ${JSON.stringify(response)} and permits explicit recovery`, async () => {
+      const waiting = expectAsync(configService.waitForInit()).toBeRejected();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush(response);
+      await waiting;
+      await expectAsync(configService.waitForInit()).toBeRejected();
+      httpTestingController.expectNone(configService.configUrl);
+
+      const retry = configService.refreshConfig();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'recovered' });
+      httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+      expect((await retry).csrfToken).toBe('recovered');
+    });
+  }
+
+  for (const response of ['<html>Sign in</html>', null, []]) {
+    it(`rejects malformed configuration ${JSON.stringify(response)} and recovers with a fresh session token`, async () => {
+      const waiting = expectAsync(configService.waitForInit()).toBeRejectedWithError('Invalid configuration response. Sign in again and retry.');
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'old' });
+      httpTestingController.expectOne(configService.configUrl).flush(response);
+      await waiting;
+      await expectAsync(configService.getConfig()).toBeRejected();
+      expect(configService.isInitializing()).toBeTrue();
+
+      const retry = configService.refreshConfig();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'new-session' });
+      httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+      expect((await retry).csrfToken).toBe('new-session');
+      expect(configService.isInitializing()).toBeFalse();
+    });
+  }
+
+  it('shares an in-flight configuration refresh across concurrent retries', async () => {
+    const waiting = configService.waitForInit();
+    const concurrent = configService.refreshConfig();
+    const another = configService.refreshConfig();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'shared-session' });
+    httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+    const configs = await Promise.all([waiting, concurrent, another]);
+    expect(configs.every(config => config === configs[0])).toBeTrue();
+    expect(configs[0].csrfToken).toBe('shared-session');
+  });
+
   afterEach(() => {
     // After every test, assert that there are no more pending requests.
     httpTestingController.verify();

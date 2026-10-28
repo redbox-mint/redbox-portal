@@ -1,4 +1,4 @@
-import { NgModule, inject, provideAppInitializer } from '@angular/core';
+import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
@@ -50,8 +50,10 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     },
     UserService,
     RecordService,
-    ReportService,
-    provideAppInitializer(() => inject(TranslationService).waitForInit())
+    // Root components wait for TranslationService through their dependencies.
+    // A module initializer would prevent those roots from rendering recovery UI
+    // when config or translation bootstrap rejects.
+    ReportService
   ],
   imports: [
     BrowserModule,
