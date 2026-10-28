@@ -21,6 +21,22 @@ export interface EmailPreviewRecord {
   title: string;
 }
 
+/** Page-lifetime preview workspace. Never part of draft requests or browser storage. */
+export interface EmailPreviewWorkspace {
+  record: EmailPreviewRecord | null;
+  recordContextText: string | null;
+  contextText: string;
+  contextConverted: boolean;
+}
+
+export interface PublishSummary {
+  nextVersion: number;
+  oldSubject: string;
+  newSubject: string;
+  changedLines: number;
+  formatChanged: { oldFormat: EmailTemplateFormat; newFormat: EmailTemplateFormat } | null;
+}
+
 /**
  * Normalised API failure. Every non-2xx response becomes one of these so
  * components never inspect raw HttpErrorResponse shapes.
@@ -60,6 +76,8 @@ export function copyContent(content: EmailAdminContent): EmailAdminContent {
  * line after it.
  */
 export function changedLineCount(before: string, after: string): number {
+  before = before.replace(/\r\n?/g, '\n');
+  after = after.replace(/\r\n?/g, '\n');
   if (before === after) {
     return 0;
   }

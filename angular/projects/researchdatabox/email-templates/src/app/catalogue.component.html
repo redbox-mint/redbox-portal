@@ -8,7 +8,7 @@
       id="et-catalogue-filter"
       type="search"
       class="form-control form-control-sm"
-      [placeholder]="'email-templates-filter-placeholder' | i18next"
+      [placeholder]="'email-templates-filter-placeholder-purpose' | i18next"
       [(ngModel)]="query"
     />
   </div>
@@ -23,6 +23,8 @@
         class="btn btn-outline-secondary"
         [class.active]="filter === key"
         [attr.aria-pressed]="filter === key"
+        [attr.title]="key === 'attention' ? ('email-templates-legend-attention' | i18next) : null"
+        [attr.aria-describedby]="key === 'attention' ? 'et-legend-attention' : null"
         (click)="filter = key"
       >
         {{ 'email-templates-filter-' + key | i18next }}
@@ -68,17 +70,33 @@
           <tr [attr.data-template-id]="entry.templateId">
             <td class="et-cell-template">
               <div class="et-template-id">{{ entry.templateId }}</div>
-              <div class="et-sub et-description">{{ entry.description }}</div>
+              @if (entry.description) {
+                <div class="et-description">{{ entry.description }}</div>
+              }
+              @if (entry.subject) {
+                <div class="et-subject" [class.et-subject-only]="!entry.description">
+                  <span class="et-subject-label">{{ 'email-templates-catalogue-subject' | i18next }}</span>
+                  <span class="et-subject-text">{{ entry.subject }}</span>
+                </div>
+              }
             </td>
             <td>
               <div class="et-badges">
                 @if (entry.source === 'override') {
-                  <span class="et-badge et-badge-override">{{ 'email-templates-badge-overridden' | i18next }}</span>
+                  <span
+                    class="et-badge et-badge-override"
+                    [attr.title]="'email-templates-legend-overridden' | i18next"
+                    >{{ 'email-templates-badge-overridden' | i18next }}</span
+                  >
                 } @else {
-                  <span class="et-badge et-badge-default">{{ 'email-templates-badge-default' | i18next }}</span>
+                  <span class="et-badge et-badge-default" [attr.title]="'email-templates-legend-default' | i18next">{{
+                    'email-templates-badge-default' | i18next
+                  }}</span>
                 }
                 @if (entry.hasDraft) {
-                  <span class="et-badge et-badge-draft">{{ 'email-templates-badge-draft' | i18next }}</span>
+                  <span class="et-badge et-badge-draft" [attr.title]="'email-templates-legend-draft' | i18next">{{
+                    'email-templates-badge-draft' | i18next
+                  }}</span>
                 }
                 @if (entry.invalid) {
                   <span class="et-badge et-badge-invalid">{{ 'email-templates-badge-invalid' | i18next }}</span>
@@ -87,11 +105,12 @@
                   <button
                     type="button"
                     class="et-badge et-badge-updated et-badge-button"
+                    data-template-action="default-updated"
                     [attr.aria-label]="
                       'email-templates-badge-default-updated-open'
                         | i18next: { templateId: entry.templateId, interpolation: raw }
                     "
-                    (click)="open(entry)"
+                    (click)="open(entry, $event)"
                   >
                     {{ 'email-templates-badge-default-updated' | i18next }}
                   </button>
@@ -105,7 +124,9 @@
               @if (entry.liveVersion !== null) {
                 v{{ entry.liveVersion }}
               } @else {
-                <span class="et-sub" [attr.aria-label]="'email-templates-no-live-version' | i18next">—</span>
+                <span class="et-live-default" [attr.title]="'email-templates-live-default-title' | i18next">{{
+                  'email-templates-live-default' | i18next
+                }}</span>
               }
             </td>
             <td>
@@ -118,12 +139,22 @@
             </td>
             <td class="text-end text-nowrap">
               @if (entry.source === 'override' || entry.hasDraft) {
-                <button type="button" class="btn btn-sm btn-primary" (click)="open(entry)">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary"
+                  data-template-action="open"
+                  (click)="open(entry, $event)"
+                >
                   {{ 'email-templates-action-edit' | i18next }}
                   <span class="visually-hidden">{{ entry.templateId }}</span>
                 </button>
               } @else {
-                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="open(entry)">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  data-template-action="open"
+                  (click)="open(entry, $event)"
+                >
                   {{ 'email-templates-action-customise' | i18next }}
                   <span class="visually-hidden">{{ entry.templateId }}</span>
                 </button>
@@ -144,4 +175,28 @@
       </tbody>
     </table>
   </div>
+  <dl class="et-legend" [attr.aria-label]="'email-templates-legend-label' | i18next">
+    <div class="et-legend-item">
+      <dt>
+        <span class="et-badge et-badge-default">{{ 'email-templates-badge-default' | i18next }}</span>
+      </dt>
+      <dd>{{ 'email-templates-legend-default' | i18next }}</dd>
+    </div>
+    <div class="et-legend-item">
+      <dt>
+        <span class="et-badge et-badge-override">{{ 'email-templates-badge-overridden' | i18next }}</span>
+      </dt>
+      <dd>{{ 'email-templates-legend-overridden' | i18next }}</dd>
+    </div>
+    <div class="et-legend-item">
+      <dt>
+        <span class="et-badge et-badge-draft">{{ 'email-templates-badge-draft' | i18next }}</span>
+      </dt>
+      <dd>{{ 'email-templates-legend-draft' | i18next }}</dd>
+    </div>
+    <div class="et-legend-item et-legend-wide">
+      <dt>{{ 'email-templates-filter-attention' | i18next }}</dt>
+      <dd id="et-legend-attention">{{ 'email-templates-legend-attention' | i18next }}</dd>
+    </div>
+  </dl>
 }

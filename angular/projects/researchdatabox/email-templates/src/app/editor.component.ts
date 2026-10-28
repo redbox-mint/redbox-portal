@@ -1,5 +1,8 @@
+import { diagnosticExpressionAt } from './diagnostic-expression';
+import { blockHelperScaffold, helperInsertion, helperUsage } from './helper-usage';
 import {
   Component,
+  AfterViewInit,
   ElementRef,
   EventEmitter,
   HostListener,
@@ -8,10 +11,20 @@ import {
   OnDestroy,
   OnInit,
   Output,
-  SimpleChanges,
-  OnChanges,
   ViewChild,
 } from '@angular/core';
+import type { EmailSchemaTarget, EmailContextSchemaResponse } from '@researchdatabox/sails-ng-common';
+import { defaultSchemaSelection, SchemaSelection } from './schema-selection';
+import { validateContextJson, ContextPathError } from './context-validation';
+import { parseEmailContextJson } from './relaxed-context-json';
+import { ContextSchemaField, flattenContextFields } from './schema-fields';
+import { generateSampleContext, SampleContextError } from './context-sample';
+import { SourceEdit, pathAt, suggestionEdit } from './diagnostic-fix';
+import type { CompletionSource } from './template-completion';
+import { AutocompleteComponent } from './autocomplete.component';
+import { FieldTreeComponent } from './field-tree.component';
+import { SchemaTargetComponent } from './schema-target.component';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { CodeEditorComponent } from './code-editor.component';
@@ -27,6 +40,7 @@ import {
   EmailPreviewRecord,
   EmailTemplateApiError,
   EmailTemplateFormat,
+  PublishSummary,
   RAW_INTERPOLATION,
   changedLineCount,
   copyContent,
@@ -41,6 +55,14 @@ import { RecordPickerComponent } from './record-picker.component';
 import { WhenPipe } from './when.pipe';
 
 export const VALIDATE_DEBOUNCE_MS = 400;
+const SYNTAX_HELPERS: string[] = ['each', 'if', 'unless', 'with'];
+
+/** A run of message text; code runs are local names or Handlebars tokens shown as code. */
+export interface MessageSegment {
+  text: string;
+  code: boolean;
+}
+
 export const PREVIEW_DEBOUNCE_MS = 600;
 export const AUTOSAVE_DEBOUNCE_MS = 1500;
 
@@ -53,25 +75,31 @@ export type EditorDialog =
   | 'from-default'
   | 'restore'
   | 'view'
-  | 'conflict';
-
-interface PublishSummary {
-  nextVersion: number;
-  oldSubject: string;
-  newSubject: string;
-  changedLines: number;
-}
+  | 'conflict'
+  | 'sample';
 
 interface Message {
   key: string;
   params?: Record<string, unknown>;
 }
 
+/** A "did you mean" replacement, split so the suggested name can be styled as code. */
+export interface DiagnosticFix {
+  edit: SourceEdit;
+  name: string;
+  before: string;
+  after: string;
+}
+
+/** Context JSON schema differences shown before "Show all". */
+export const CONTEXT_ERRORS_SHOWN = 5;
+
 @Component({
   selector: 'email-templates-editor',
   standalone: true,
   imports: [
     FormsModule,
+    NgTemplateOutlet,
     I18NextPipe,
     WhenPipe,
     CodeEditorComponent,
@@ -79,11 +107,14 @@ interface Message {
     HistoryPanelComponent,
     PreviewFrameComponent,
     RecordPickerComponent,
+    SchemaTargetComponent,
+    FieldTreeComponent,
+    AutocompleteComponent,
   ],
   templateUrl: './editor.component.html',
   styleUrls: ['./email-templates.shared.scss', './editor.component.scss'],
 })
-export class EditorComponent implements OnInit, OnChanges, OnDestroy {
+export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input({ required: true }) templateId = '';
   @Input() brandName = '';
   /** Record picked in an earlier editor, so moving between templates keeps the preview data. */
@@ -91,6 +122,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   @Output() back = new EventEmitter<void>();
   @Output() recordChange = new EventEmitter<EmailPreviewRecord | null>();
 
+  @ViewChild('editorHeading') private editorHeading?: ElementRef<HTMLHeadingElement>;
   @ViewChild('bodyEditor') private bodyEditor?: CodeEditorComponent;
   @ViewChild('subjectInput') private subjectInput?: ElementRef<HTMLInputElement>;
 
@@ -158,6 +190,25 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   private savePromise: Promise<void> | null = null;
   private saveAgain = false;
   private destroyed = false;
+  private loadSeq = 0;
+  private schemaSeq = 0;
+  private contextEditSeq = 0;
+  private leavePromise: Promise<boolean> | null = null;
+
+  schemaTargets: EmailSchemaTarget[] = [];
+  schemaSelection: SchemaSelection | null = null;
+  contextSchema: EmailContextSchemaResponse | null = null;
+  schemaLoading = false;
+  schemaError = false;
+  contextErrors: ContextPathError[] = [];
+  contextConverted = false;
+  showAllContextErrors = false;
+  /** Schema the pending "Generate sample data" confirmation was asked against. */
+  private sampleSchema: EmailContextSchemaResponse | null = null;
+  /** The source the current diagnostics describe; fixes apply only while it is unchanged. */
+  private diagnosticSource: EmailAdminContent | null = null;
+  private fieldsMemo: { schema: EmailContextSchemaResponse | null; fields: ContextSchemaField[] } | null = null;
+  private completionMemo: { fields: ContextSchemaField[]; help: unknown; source: CompletionSource } | null = null;
 
   constructor(
     private api: EmailTemplateAdminService,
@@ -165,35 +216,51 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     @Inject(LoggerService) private logger: LoggerService
   ) {}
 
+  ngAfterViewInit(): void {
+    this.editorHeading?.nativeElement.focus();
+  }
+
   ngOnInit(): void {
     void this.init();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    const change = changes['templateId'];
-    if (change && !change.firstChange && change.currentValue !== change.previousValue) {
-      this.clearTimers();
-      this.state = null;
-      this.tab = 'edit';
-      this.history = [];
-      this.preview = null;
-      this.record = null;
-      this.recordContextText = null;
-      this.contextText = '';
-      this.closeDialog();
-      void this.init();
-    }
+  ngOnDestroy(): void {
+    if (this.state)
+      this.api.previewWorkspaces.set(this.templateId, {
+        record: this.record ? { ...this.record } : null,
+        recordContextText: this.recordContextText,
+        contextText: this.contextText,
+        contextConverted: this.contextConverted,
+      });
+    // Navigation normally settles first. Retain a rescue copy for unexpected teardown.
+    if (this.dirty && this.state)
+      this.api.heldEdits.set(this.templateId, {
+        content: copyContent(this.content),
+        conflict: this.conflictError,
+      });
+    this.destroyed = true;
+    ++this.loadSeq;
+    ++this.validateSeq;
+    ++this.previewSeq;
+    ++this.contextSeq;
+    ++this.schemaSeq;
+    this.clearTimers();
   }
 
-  ngOnDestroy(): void {
-    // Leaving with unsaved edits (for example via the browser Back button):
-    // flush them rather than dropping the pending autosave.
-    const flush = this.dirty && !this.conflictContent && !!this.state;
-    this.clearTimers();
-    if (flush) {
-      void this.save();
+  /** All hash/history/in-app transitions use this same boundary before destroying this keyed editor. */
+  prepareToLeave(): Promise<boolean> {
+    if (this.leavePromise) return this.leavePromise;
+    if (this.busy) return Promise.resolve(false);
+    if (this.conflictContent) {
+      this.api.heldEdits.set(this.templateId, { content: copyContent(this.content), conflict: this.conflictError });
+      return Promise.resolve(true);
     }
-    this.destroyed = true;
+    this.busy = 'leave';
+    this.leavePromise = this.settleSave().finally(() => {
+      this.busy = null;
+      this.leavePromise = null;
+    });
+    return this.leavePromise;
   }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -204,6 +271,10 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   // ---- Derived state -------------------------------------------------------
+
+  get integrationContext(): boolean {
+    return this.state?.contextKind === 'integration';
+  }
 
   get dirty(): boolean {
     return !sameContent(this.content, this.baseline);
@@ -233,12 +304,61 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     return this.diagnostics.filter(item => item.field === 'subject');
   }
 
+  get subjectInvalid(): boolean {
+    return this.subjectDiagnostics.some(item => item.severity !== 'warning');
+  }
+
   get bodyDiagnostics(): EmailAdminDiagnostic[] {
     return this.diagnostics.filter(item => item.field !== 'subject');
   }
 
   get bodyErrorLines(): number[] {
-    return [...new Set(this.bodyDiagnostics.map(item => item.line))];
+    return [...new Set(this.bodyDiagnostics.filter(item => item.severity !== 'warning').map(item => item.line))];
+  }
+
+  get bodyWarningLines(): number[] {
+    return [...new Set(this.bodyDiagnostics.filter(item => item.severity === 'warning').map(item => item.line))];
+  }
+
+  get errorCount(): number {
+    return this.diagnostics.filter(item => item.severity !== 'warning').length;
+  }
+
+  get warningCount(): number {
+    return this.diagnostics.filter(item => item.severity === 'warning').length;
+  }
+
+  /** Flattened schema fields for the field tree and suggestions, cached per schema response. */
+  get schemaFields(): ContextSchemaField[] {
+    if (this.fieldsMemo?.schema !== this.contextSchema) {
+      this.fieldsMemo = {
+        schema: this.contextSchema,
+        fields: this.contextSchema ? flattenContextFields(this.contextSchema.schema) : [],
+      };
+    }
+    return this.fieldsMemo.fields;
+  }
+
+  /** Stable between schema/help changes so the autocomplete inputs don't churn. */
+  get completionSource(): CompletionSource | null {
+    const help = this.state?.help;
+    if (!help) return null;
+    const fields = this.schemaFields;
+    if (this.completionMemo?.fields !== fields || this.completionMemo.help !== help) {
+      this.completionMemo = { fields, help, source: { fields, roots: help.contextRoots, helpers: help.helpers } };
+    }
+    return this.completionMemo.source;
+  }
+
+  /** Record type label for the schema in use, for messages about it. */
+  get contextSchemaLabel(): string {
+    if (this.integrationContext) return this.i18n.t('email-templates-schema-precision-integration');
+    const id = this.contextSchema?.recordType ?? this.schemaSelection?.recordType ?? '';
+    return this.schemaTargets.find(target => target.id === id)?.label ?? id;
+  }
+
+  get visibleContextErrors(): ContextPathError[] {
+    return this.showAllContextErrors ? this.contextErrors : this.contextErrors.slice(0, CONTEXT_ERRORS_SHOWN);
   }
 
   get contextEdited(): boolean {
@@ -262,7 +382,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     if (this.conflictContent) {
       return 'email-templates-publish-blocked-conflict';
     }
-    if (this.diagnostics.length) {
+    if (this.diagnostics.some(item => item.severity !== 'warning')) {
       return 'email-templates-publish-blocked-diagnostics';
     }
     if (!this.hasDraft && !this.dirty) {
@@ -282,26 +402,51 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
 
   private async init(): Promise<void> {
     await this.load();
-    if (this.state && this.initialRecord) {
+    if (this.destroyed) return;
+    const held = this.api.heldEdits.get(this.templateId);
+    if (held && this.state) {
+      this.content = copyContent(held.content);
+      this.rescuedContent = copyContent(held.content);
+      if (held.conflict) this.openConflict(held.conflict);
+      this.scheduleValidate(0);
+    }
+    if (this.integrationContext) void this.loadIntegrationSchema();
+    else void this.loadSchemaTargets();
+    const workspace = this.api.previewWorkspaces.get(this.templateId);
+    if (this.state && workspace && (!this.integrationContext || !workspace.record)) {
+      this.record = workspace.record ? { ...workspace.record } : null;
+      this.recordContextText = workspace.recordContextText;
+      this.contextText = workspace.contextText;
+      this.contextConverted = workspace.contextConverted;
+      this.recordChange.emit(this.record);
+      this.schedulePreview(0);
+    } else if (this.state && this.initialRecord && !this.integrationContext) {
       void this.loadRecord(this.initialRecord);
     }
   }
 
-  async load(): Promise<void> {
+  async load(): Promise<boolean> {
+    const seq = ++this.loadSeq;
     this.loading = true;
     this.loadError = null;
     try {
-      this.applyState(await this.api.editorState(this.templateId));
+      const state = await this.api.editorState(this.templateId);
+      if (!this.destroyed && seq === this.loadSeq) {
+        this.applyState(state);
+        return true;
+      }
     } catch (error) {
-      this.loadError = this.errorKey(error);
-      this.logger.error('Email template editor failed to load', error);
+      if (!this.destroyed && seq === this.loadSeq) this.loadError = this.errorKey(error);
+      this.logger.error('Email template editor failed to load');
     } finally {
-      this.loading = false;
+      if (!this.destroyed && seq === this.loadSeq) this.loading = false;
     }
+    return false;
   }
 
   /** Replace server state wholesale and reset the working copy from it. */
   private applyState(state: EmailAdminEditorState): void {
+    if (this.destroyed) return;
     this.clearTimer('save');
     this.state = state;
     const source = state.draft ?? state.live ?? state.suppliedDefault;
@@ -311,6 +456,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     this.lastSavedAt = state.draft?.updatedAt ?? null;
     this.saveFailed = false;
     this.diagnostics = [];
+    this.diagnosticSource = null;
     this.previewSource = 'working';
     this.historyLoaded = false;
     this.scheduleValidate(0);
@@ -322,6 +468,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
 
   /** Adopt a draft returned by a draft mutation (from-default, restore). */
   private applyDraft(draft: EmailAdminDraft, diagnostics: EmailAdminDiagnostic[]): void {
+    if (this.destroyed) return;
     if (this.state) {
       this.state = { ...this.state, draft };
     }
@@ -330,6 +477,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     this.draftRevision = draft.draftRevision;
     this.lastSavedAt = draft.updatedAt;
     this.diagnostics = diagnostics;
+    this.diagnosticSource = copyContent(draft);
     this.saveFailed = false;
     this.previewSource = 'working';
     this.scheduleValidate(0);
@@ -339,16 +487,19 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   // ---- Editing -------------------------------------------------------------
 
   onSubjectChange(value: string): void {
+    if (this.busy || this.destroyed) return;
     this.content = { ...this.content, subject: value };
     this.onContentChange();
   }
 
   onBodyChange(value: string): void {
+    if (this.busy || this.destroyed) return;
     this.content = { ...this.content, body: value };
     this.onContentChange();
   }
 
   onFormatChange(format: EmailTemplateFormat): void {
+    if (this.busy || this.destroyed) return;
     if (format === this.content.format) {
       return;
     }
@@ -358,6 +509,8 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
 
   private onContentChange(): void {
     this.infoMessage = null;
+    this.previewDiagnostics = [];
+    this.previewErrorCode = null;
     this.previewSource = 'working';
     this.scheduleValidate(VALIDATE_DEBOUNCE_MS);
     this.schedulePreview(PREVIEW_DEBOUNCE_MS);
@@ -367,15 +520,49 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   insertToken(text: string): void {
+    if (this.busy) return;
     this.bodyEditor?.insertAtCursor(text);
   }
 
-  variableToken(root: string): string {
-    return `{{${root}}}`;
+  helperToken(helper: string): string {
+    return helperInsertion(helper);
   }
 
-  helperToken(helper: string): string {
-    return `{{${helper} }}`;
+  /** Block helpers insert a balanced scaffold and select its first placeholder for typing over. */
+  insertHelper(helper: string): void {
+    if (this.busy) return;
+    const text = helperInsertion(helper);
+    const placeholder = blockHelperScaffold(helper) ? /YOUR_[A-Z]+/.exec(text) : null;
+    this.bodyEditor?.insertAtCursor(
+      text,
+      placeholder ? { start: placeholder.index, end: placeholder.index + placeholder[0].length } : undefined
+    );
+  }
+
+  get blockHelpers(): string[] {
+    return (this.state?.help.helpers ?? []).filter(helper => blockHelperScaffold(helper) !== null);
+  }
+
+  get inlineHelpers(): string[] {
+    return (this.state?.help.helpers ?? []).filter(helper => blockHelperScaffold(helper) === null);
+  }
+
+  /** The inline helper whose usage is shown under the chips: hovered or focused, else none. */
+  activeHelper: string | null = null;
+
+  readonly helperUsage = helperUsage;
+
+  /** Source text is resolved locally for part B's recovery messages. */
+  diagnosticExpression(diagnostic: EmailAdminDiagnostic): string | null {
+    const content = this.previewSource === 'default' && this.state ? this.state.suppliedDefault : this.content;
+    if (diagnostic.field === 'context') return null;
+    return diagnosticExpressionAt(content[diagnostic.field], diagnostic.line, diagnostic.column);
+  }
+
+  readonly importsMirror = { alias: 'imports.record', record: 'record' };
+
+  formatLabel(format: EmailTemplateFormat): string {
+    return format === 'text' ? 'email-templates-format-text' : 'email-templates-format-html';
   }
 
   formatBytes(bytes: number): string {
@@ -408,27 +595,151 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  /** Preview diagnostics point into the editor only while it shows the working copy. */
+  get previewDiagnosticsNavigable(): boolean {
+    return this.previewSource === 'working';
+  }
+
   /** Human message for a diagnostic, naming the identifier from local source when possible. */
   diagnosticMessage(diagnostic: EmailAdminDiagnostic): string {
+    const { key, params } = this.diagnosticText(diagnostic);
+    return params ? this.i18n.t(key, { ...params, interpolation: RAW_INTERPOLATION }) : this.i18n.t(key);
+  }
+
+  /** The same message split so local names and Handlebars tokens can be shown as code. */
+  diagnosticSegments(diagnostic: EmailAdminDiagnostic): MessageSegment[] {
+    const { key, params } = this.diagnosticText(diagnostic);
+    return this.segments(key, params);
+  }
+
+  /** Translate `key`, returning its `params` as separate code runs rather than interpolated text. */
+  segments(key: string, params?: Record<string, string>): MessageSegment[] {
+    if (!params) return [{ text: this.i18n.t(key), code: false }];
+    const markers = Object.fromEntries(Object.keys(params).map(name => [name, `\u0001${name}\u0002`]));
+    const text = String(this.i18n.t(key, { ...markers, interpolation: RAW_INTERPOLATION }));
+    return text
+      .split(/\u0001(\w+)\u0002/)
+      .map((part, index) => (index % 2 ? { text: params[part] ?? '', code: true } : { text: part, code: false }))
+      .filter(segment => segment.text);
+  }
+
+  private diagnosticText(diagnostic: EmailAdminDiagnostic): { key: string; params?: Record<string, string> } {
     const source = diagnostic.field === 'subject' ? this.content.subject : this.content.body;
     const name = identifierAt(source, diagnostic.line, diagnostic.column);
     const reason = diagnostic.reason || diagnostic.code;
+    if (diagnostic.severity === 'warning') {
+      if (diagnostic.code === 'SCHEMA_LINT_TRUNCATED') return { key: 'email-templates-warning-SCHEMA_LINT_TRUNCATED' };
+      const path = pathAt(source, diagnostic.line, diagnostic.column);
+      const warnings = [
+        'UNKNOWN_FIELD',
+        'EACH_NOT_ARRAY',
+        'PRINTS_OBJECT',
+        'OPTIONAL_UNGUARDED',
+        'SCHEMA_LINT_TRUNCATED',
+      ];
+      if (!warnings.includes(diagnostic.code)) return { key: 'email-templates-warning-other' };
+      return path
+        ? { key: `email-templates-warning-${diagnostic.code}-named`, params: { name: path } }
+        : { key: `email-templates-warning-${diagnostic.code}` };
+    }
+    if (reason === 'UNCLOSED_BLOCK' || reason === 'MISMATCHED_CLOSE') {
+      // Only the server's fixed allow-list names a helper; anything else gets the generic wording.
+      const helper = diagnostic.helper && SYNTAX_HELPERS.includes(diagnostic.helper) ? diagnostic.helper : null;
+      return helper
+        ? {
+            key: `email-templates-diagnostic-${reason}-helper`,
+            params: { open: `{{#${helper}}}`, close: `{{/${helper}}}` },
+          }
+        : { key: `email-templates-diagnostic-${reason}` };
+    }
+    if (reason === 'UNEXPECTED_TOKEN') return { key: 'email-templates-diagnostic-UNEXPECTED_TOKEN' };
+    if (reason === 'RENDER_FAILED') {
+      const expression = this.diagnosticExpression(diagnostic);
+      return expression
+        ? { key: 'email-templates-diagnostic-RENDER_FAILED-named', params: { name: expression } }
+        : { key: 'email-templates-diagnostic-RENDER_FAILED' };
+    }
     const known = [
       'UNKNOWN_CONTEXT_ROOT',
       'UNKNOWN_HELPER',
       'UNSUPPORTED_CONSTRUCT',
       'INVALID_SYNTAX',
+      'TOO_COMPLEX',
       'EMPTY_CONTENT',
-      'RENDER_FAILED',
       'LENGTH_LIMIT',
     ];
     if (!known.includes(reason)) {
-      return this.i18n.t('email-templates-diagnostic-other');
+      return { key: 'email-templates-diagnostic-other' };
     }
     if ((reason === 'UNKNOWN_CONTEXT_ROOT' || reason === 'UNKNOWN_HELPER') && name) {
-      return this.i18n.t(`email-templates-diagnostic-${reason}-named`, { name, interpolation: RAW_INTERPOLATION });
+      return { key: `email-templates-diagnostic-${reason}-named`, params: { name } };
     }
-    return this.i18n.t(`email-templates-diagnostic-${reason}`);
+    return { key: `email-templates-diagnostic-${reason}` };
+  }
+
+  isWarning(diagnostic: EmailAdminDiagnostic): boolean {
+    return diagnostic.severity === 'warning';
+  }
+
+  /**
+   * A one-click "did you mean" replacement, only while the source still matches
+   * what was validated, so the diagnostic's position is exact.
+   */
+  diagnosticFix(diagnostic: EmailAdminDiagnostic): DiagnosticFix | null {
+    if (!diagnostic.suggestion || diagnostic.field === 'context' || !this.diagnosticSource) return null;
+    const field = diagnostic.field;
+    const source = this.content[field];
+    if (this.diagnosticSource[field] !== source) return null;
+    const edit = suggestionEdit(source, diagnostic, diagnostic.suggestion, this.contextSchema?.schema);
+    if (!edit) return null;
+    const marker = '\u0000';
+    const [before, after = ''] = String(
+      this.i18n.t('email-templates-did-you-mean', { name: marker, interpolation: RAW_INTERPOLATION })
+    ).split(marker);
+    return { edit, name: diagnostic.suggestion, before, after };
+  }
+
+  /** Replace just that occurrence; the normal edit path then revalidates and autosaves. */
+  applySuggestion(diagnostic: EmailAdminDiagnostic): void {
+    if (this.busy || this.destroyed) return;
+    const fix = this.diagnosticFix(diagnostic);
+    if (!fix) return;
+    const { start, end, text } = fix.edit;
+    if (diagnostic.field === 'subject') {
+      const input = this.subjectInput?.nativeElement;
+      if (!input || input.readOnly) return;
+      input.focus();
+      input.setRangeText(text, start, end, 'end');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      this.bodyEditor?.replaceRange(start, end, text);
+    }
+    this.announce('email-templates-suggestion-applied', { name: text, interpolation: RAW_INTERPOLATION });
+  }
+
+  contextErrorMessage(error: ContextPathError): string {
+    const known = [
+      'required',
+      'type',
+      'enum',
+      'const',
+      'minLength',
+      'maxLength',
+      'minimum',
+      'maximum',
+      'minItems',
+      'maxItems',
+      'additionalProperties',
+      'readOnly',
+      'anyOf',
+      'oneOf',
+      'limit',
+    ];
+    if (!known.includes(error.code)) return this.i18n.t('email-templates-context-error-other');
+    return this.i18n.t(`email-templates-context-error-${error.code}`, {
+      expected: (error.expected ?? []).join(' | '),
+      interpolation: RAW_INTERPOLATION,
+    });
   }
 
   diagnosticPosition(diagnostic: EmailAdminDiagnostic): string {
@@ -438,6 +749,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   // ---- Validation ----------------------------------------------------------
 
   private scheduleValidate(delay: number): void {
+    if (this.destroyed) return;
     this.clearTimer('validate');
     // An older response must not validate a newer working copy during debounce.
     ++this.validateSeq;
@@ -469,13 +781,15 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     if (limits.length) {
       this.validating = false;
       this.diagnostics = limits;
+      this.diagnosticSource = content;
       return;
     }
     this.validating = true;
     try {
-      const diagnostics = await this.api.validate(this.templateId, content);
+      const diagnostics = await this.api.validate(this.templateId, content, this.schemaSelection);
       if (seq === this.validateSeq) {
         this.diagnostics = diagnostics;
+        this.diagnosticSource = content;
       }
     } catch (error) {
       if (seq === this.validateSeq) {
@@ -543,15 +857,20 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     this.saving = true;
     try {
       const response = await this.api.saveDraft(this.templateId, sent, this.draftRevision);
+      // Saving an untouched default makes it an override, including its subject semantics.
+      if (this.integrationContext && !this.state?.live && !this.state?.draft && this.previewSource === 'working')
+        this.schedulePreview(0);
       if (this.state) {
         this.state = { ...this.state, draft: response.draft };
       }
+      this.api.heldEdits.delete(this.templateId);
       this.draftRevision = response.draft.draftRevision;
       this.baseline = sent;
       this.lastSavedAt = response.draft.updatedAt;
       this.saveFailed = false;
       if (sameContent(sent, this.content) && !this.validatePending) {
-        this.diagnostics = response.diagnostics;
+        this.diagnostics = [...response.diagnostics, ...this.diagnostics.filter(item => item.severity === 'warning')];
+        this.diagnosticSource = sent;
       }
       if (manual) {
         this.announce('email-templates-draft-saved');
@@ -574,8 +893,9 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     if (this.savePromise) {
       await this.savePromise;
     }
-    if (this.dirty && !this.conflictContent) {
+    while (this.dirty && !this.conflictContent && !this.destroyed) {
       await this.save();
+      if (this.saveFailed) break;
     }
     return !this.conflictContent && !this.saveFailed && !this.dirty;
   }
@@ -638,12 +958,24 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   async reloadAfterConflict(): Promise<void> {
-    this.rescuedContent = this.conflictContent;
-    this.conflictContent = null;
-    this.conflictError = null;
-    this.dialog = null;
-    this.errorMessage = null;
-    await this.load();
+    if (this.busy || this.destroyed) return;
+    this.busy = 'reload';
+    this.clearTimer('save');
+    try {
+      // Keep the rejected snapshot protected until the new working copy is adopted.
+      if (await this.load()) {
+        this.api.heldEdits.delete(this.templateId);
+        this.rescuedContent = this.conflictContent;
+        this.conflictContent = null;
+        this.conflictError = null;
+        this.dialog = null;
+        this.errorMessage = null;
+      } else if (!this.destroyed && this.loadError) {
+        this.errorMessage = { key: this.loadError };
+      }
+    } finally {
+      this.busy = null;
+    }
   }
 
   async copyText(text: string): Promise<void> {
@@ -676,6 +1008,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   // ---- Preview -------------------------------------------------------------
 
   private schedulePreview(delay: number): void {
+    if (this.destroyed) return;
     this.clearTimer('preview');
     ++this.previewSeq;
     this.previewing = !!this.contextText.trim();
@@ -686,7 +1019,12 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onContextChange(value: string): void {
+    if (this.busy) return;
+    ++this.contextEditSeq;
+    this.contextConverted = false;
     this.contextText = value;
+    this.previewDiagnostics = [];
+    this.previewErrorCode = null;
     this.schedulePreview(PREVIEW_DEBOUNCE_MS);
   }
 
@@ -694,6 +1032,9 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     const seq = ++this.previewSeq;
     const contextText = this.contextText;
     this.contextProblem = null;
+    this.contextErrors = [];
+    this.previewDiagnostics = [];
+    this.previewErrorCode = null;
     this.previewing = false;
     if (!this.state || !contextText.trim()) {
       this.preview = null;
@@ -706,8 +1047,16 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
       this.preview = null;
       return;
     }
+    let strictContext: string;
     try {
-      const parsed: unknown = JSON.parse(contextText);
+      const parsed = parseEmailContextJson(contextText, this.state.help.maxContextBytes);
+      strictContext = JSON.stringify(parsed);
+      if (utf8Bytes(strictContext) > this.state.help.maxContextBytes) {
+        this.contextProblem = 'size';
+        this.preview = null;
+        return;
+      }
+      this.contextErrors = this.contextSchema ? validateContextJson(parsed, this.contextSchema.schema) : [];
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         this.contextProblem = 'json';
         this.preview = null;
@@ -722,7 +1071,14 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
       this.previewSource === 'default' ? copyContent(this.state.suppliedDefault) : copyContent(this.content);
     this.previewing = true;
     try {
-      const preview = await this.api.preview(this.templateId, content, contextText);
+      const source =
+        this.previewSource === 'default' ||
+        (!this.state.live && !this.state.draft && sameContent(content, this.state.suppliedDefault))
+          ? 'default'
+          : 'override';
+      const preview = this.integrationContext
+        ? await this.api.preview(this.templateId, content, strictContext, source)
+        : await this.api.preview(this.templateId, content, strictContext);
       if (seq === this.previewSeq) {
         this.preview = preview;
         this.previewDiagnostics = [];
@@ -742,6 +1098,11 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
         this.previewing = false;
       }
     }
+  }
+
+  /** The preview failed for the current source, even though validation may have passed. */
+  get previewFailing(): boolean {
+    return !this.preview && this.previewErrorCode !== null;
   }
 
   get previewErrorKey(): string {
@@ -771,6 +1132,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
 
   setPreviewMode(mode: PreviewMode): void {
     this.previewMode = mode;
+    if (mode === 'rendered' && this.preview?.html !== undefined) this.schedulePreview(0);
   }
 
   previewNewDefault(): void {
@@ -805,33 +1167,171 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
 
   async loadRecord(record: EmailPreviewRecord): Promise<void> {
     const seq = ++this.contextSeq;
-    this.record = record;
-    this.recordChange.emit(record);
+    const editSeq = this.contextEditSeq;
+    this.clearTimer('preview');
+    ++this.previewSeq;
+    this.preview = null;
+    this.previewDiagnostics = [];
+    this.previewErrorCode = null;
+    this.record = null;
+    this.recordContextText = null;
+    this.contextText = '';
+    this.recordChange.emit(null);
     this.loadingContext = true;
     this.contextLoadError = null;
     try {
       const context = await this.api.recordContext(record.oid, this.templateId);
-      if (seq !== this.contextSeq) {
-        return;
-      }
+      if (this.destroyed || seq !== this.contextSeq) return;
+      if (editSeq !== this.contextEditSeq) return; // Typed JSON wins over an in-flight record fetch.
+      this.record = record;
+      this.recordChange.emit(record);
       const text = JSON.stringify(context, null, 2);
       this.recordContextText = text;
       this.contextText = text;
+      this.contextConverted = false;
+      const selection = defaultSchemaSelection(
+        this.schemaTargets,
+        context,
+        this.api.schemaSelections.get(this.templateId)
+      );
+      if (selection) void this.selectSchemaTarget(selection, false);
       this.schedulePreview(0);
     } catch (error) {
-      if (seq === this.contextSeq) {
+      if (!this.destroyed && seq === this.contextSeq)
         this.contextLoadError =
           isApiError(error) && error.code === 'FORBIDDEN' ? 'email-templates-record-unavailable' : this.errorKey(error);
-      }
     } finally {
-      if (seq === this.contextSeq) {
-        this.loadingContext = false;
-      }
+      if (!this.destroyed && seq === this.contextSeq) this.loadingContext = false;
     }
+  }
+
+  /** Normalize on blur without disrupting typing/caret. Preview always sends strict JSON. */
+  normaliseContext(): void {
+    if (!this.contextText.trim() || this.busy) return;
+    try {
+      const normal = JSON.stringify(parseEmailContextJson(this.contextText, this.state?.help.maxContextBytes), null, 2);
+      if (utf8Bytes(normal) > (this.state?.help.maxContextBytes ?? 262144)) return;
+      if (normal !== this.contextText) {
+        const uneditedRecord = !this.contextEdited;
+        this.contextText = normal;
+        if (uneditedRecord) this.recordContextText = normal;
+        this.contextConverted = true;
+      }
+    } catch {
+      /* runPreview owns parse/size feedback. */
+    }
+  }
+
+  private async loadIntegrationSchema(): Promise<void> {
+    const seq = ++this.schemaSeq;
+    const editSeq = this.contextEditSeq;
+    this.schemaLoading = true;
+    this.schemaError = false;
+    try {
+      const schema = await this.api.contextSchema(undefined, undefined, this.templateId);
+      if (this.destroyed || seq !== this.schemaSeq) return;
+      this.contextSchema = schema;
+      if (!this.contextText.trim() && editSeq === this.contextEditSeq) this.applySample(schema);
+      this.scheduleValidate(0);
+      this.schedulePreview(0);
+    } catch {
+      if (!this.destroyed && seq === this.schemaSeq) this.schemaError = true;
+    } finally {
+      if (!this.destroyed && seq === this.schemaSeq) this.schemaLoading = false;
+    }
+  }
+
+  async loadSchemaTargets(): Promise<void> {
+    try {
+      const response = await this.api.schemaTargets();
+      if (this.destroyed) return;
+      this.schemaTargets = response.recordTypes;
+      let context: Record<string, unknown> | null = null;
+      try {
+        context = this.contextText ? parseEmailContextJson(this.contextText) : null;
+      } catch {
+        /* No usable record yet. */
+      }
+      const selection = defaultSchemaSelection(
+        this.schemaTargets,
+        context,
+        this.api.schemaSelections.get(this.templateId)
+      );
+      if (selection) await this.selectSchemaTarget(selection, false);
+    } catch {
+      if (!this.destroyed) this.schemaError = true;
+    }
+  }
+
+  /** UI selector calls this; persistence is explicit so inferred defaults can follow the record. */
+  async selectSchemaTarget(selection: SchemaSelection, persist = true): Promise<void> {
+    const seq = ++this.schemaSeq;
+    this.schemaSelection = selection;
+    if (persist) this.api.schemaSelections.set(this.templateId, selection);
+    this.schemaLoading = true;
+    this.schemaError = false;
+    this.contextSchema = null;
+    ++this.validateSeq;
+    this.validating = false;
+    this.diagnostics = this.diagnostics.filter(item => item.severity !== 'warning');
+    try {
+      const response = await this.api.contextSchema(selection.recordType, selection.stage, this.templateId);
+      if (this.destroyed || seq !== this.schemaSeq) return;
+      this.contextSchema = response;
+      this.scheduleValidate(0);
+      this.schedulePreview(0);
+    } catch {
+      if (!this.destroyed && seq === this.schemaSeq) this.schemaError = true;
+    } finally {
+      if (!this.destroyed && seq === this.schemaSeq) this.schemaLoading = false;
+    }
+  }
+
+  /** Selector controls; explicit choices are remembered for this template. */
+  chooseSchemaTarget(selection: SchemaSelection): void {
+    if (this.busy || this.destroyed) return;
+    void this.selectSchemaTarget(selection);
+  }
+
+  requestSample(): void {
+    if (this.busy || !this.contextSchema) return;
+    if (this.contextEdited) {
+      this.sampleSchema = this.contextSchema;
+      this.dialog = 'sample';
+      return;
+    }
+    this.applySample(this.contextSchema);
+  }
+
+  confirmSample(): void {
+    const schema = this.sampleSchema;
+    this.closeDialog();
+    // The schema may have changed while the dialog was open; never apply a stale sample.
+    if (schema && schema === this.contextSchema) this.applySample(schema);
+  }
+
+  private applySample(schema: EmailContextSchemaResponse): void {
+    if (this.busy || this.destroyed) return;
+    let sample: Record<string, unknown>;
+    try {
+      sample = generateSampleContext(schema.schema);
+    } catch (error) {
+      if (!(error instanceof SampleContextError)) throw error;
+      this.errorMessage = { key: 'email-templates-sample-failed' };
+      return;
+    }
+    const text = JSON.stringify(sample, null, 2);
+    this.onContextChange(text);
+    if (this.integrationContext) {
+      this.record = null;
+      this.recordContextText = text;
+    }
+    this.announce('email-templates-sample-applied');
   }
 
   resetContext(): void {
     if (this.recordContextText !== null) {
+      ++this.contextEditSeq;
       this.contextText = this.recordContextText;
       this.schedulePreview(0);
     }
@@ -872,11 +1372,13 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     this.historyLoading = true;
     this.historyFailed = false;
     try {
-      this.history = await this.api.history(this.templateId);
+      const history = await this.api.history(this.templateId);
+      if (this.destroyed) return;
+      this.history = history;
       this.historyLoaded = true;
     } catch (error) {
       this.historyFailed = true;
-      this.logger.error('Email template history failed to load', error);
+      this.logger.error('Email template history failed to load');
     } finally {
       this.historyLoading = false;
     }
@@ -891,7 +1393,12 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     this.busy = 'prepare-publish';
     const saved = await this.settleSave();
     this.busy = null;
-    if (!saved || this.diagnostics.length || !this.state || this.draftRevision === null) {
+    if (
+      !saved ||
+      this.diagnostics.some(item => item.severity !== 'warning') ||
+      !this.state ||
+      this.draftRevision === null
+    ) {
       return;
     }
     const before = this.state.live ?? this.state.suppliedDefault;
@@ -900,6 +1407,8 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
       oldSubject: before.subject,
       newSubject: this.content.subject,
       changedLines: changedLineCount(before.body, this.content.body),
+      formatChanged:
+        before.format === this.content.format ? null : { oldFormat: before.format, newFormat: this.content.format },
     };
     this.dialog = 'publish';
   }
@@ -910,7 +1419,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     }
     await this.mutate('publish', async () => {
       const response = await this.api.publish(this.templateId, this.draftRevision!, this.state!.live?.token ?? null);
-      this.closeDialog();
+      this.closeDialog(true);
       this.applyState(response.state);
       const version = response.state.live?.token.revision ?? response.state.latestVersion;
       this.announce('email-templates-published', { version });
@@ -933,11 +1442,11 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
     await this.mutate('reset', async () => {
-      if (!(await this.settleSave()) && this.conflictContent) {
+      if (!(await this.settleSave())) {
         return;
       }
       const response = await this.api.reset(this.templateId, token);
-      this.closeDialog();
+      this.closeDialog(true);
       this.applyState(response.state);
       this.announce('email-templates-reset-done');
       this.infoMessage = { key: 'email-templates-reset-done' };
@@ -959,7 +1468,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
       if (this.draftRevision !== null) {
         await this.api.discardDraft(this.templateId, this.draftRevision);
       }
-      this.closeDialog();
+      this.closeDialog(true);
       await this.load();
       this.announce('email-templates-draft-discarded');
     });
@@ -980,7 +1489,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
         return;
       }
       const response = await this.api.draftFromDefault(this.templateId, this.draftRevision);
-      this.closeDialog();
+      this.closeDialog(true);
       this.applyDraft(response.draft, response.diagnostics);
       this.tab = 'edit';
       this.announce('email-templates-draft-from-default-done');
@@ -1015,7 +1524,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
         return;
       }
       const response = await this.api.restore(this.templateId, entry.version, this.draftRevision);
-      this.closeDialog();
+      this.closeDialog(true);
       this.applyDraft(response.draft, response.diagnostics);
       this.selectTab('edit', true);
       this.infoMessage = { key: 'email-templates-restored', params: { version: entry.version } };
@@ -1023,24 +1532,26 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  closeDialog(): void {
+  closeDialog(force = false): void {
+    if (this.busy && !force) return;
     this.dialog = null;
     this.pendingRecord = null;
     this.pendingRestore = null;
     this.publishSummary = null;
     this.viewing = null;
+    this.sampleSchema = null;
   }
 
   /** Escape on the conflict dialog must not silently drop the held content. */
   dismissDialog(): void {
-    if (this.dialog === 'conflict') {
+    if (this.busy || this.dialog === 'conflict') {
       return;
     }
     this.closeDialog();
   }
 
   async goBack(): Promise<void> {
-    if (await this.settleSave()) {
+    if (await this.prepareToLeave()) {
       this.back.emit();
     }
   }
@@ -1057,7 +1568,7 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
       if (isApiError(error) && error.isConflict) {
         this.openConflict(error);
       } else {
-        this.closeDialog();
+        this.closeDialog(true);
         this.showError(error);
       }
     } finally {
@@ -1086,13 +1597,15 @@ export class EditorComponent implements OnInit, OnChanges, OnDestroy {
 
   private showError(error: unknown): void {
     this.errorMessage = { key: this.errorKey(error) };
-    this.logger.error('Email template operation failed', isApiError(error) ? error.code : error);
+    this.logger.error('Email template operation failed', isApiError(error) ? error.code : 'UNAVAILABLE');
   }
 
   private announce(key: string, params?: Record<string, unknown>): void {
+    if (this.destroyed) return;
     // Clear first so repeating the same message is announced again.
     this.announcement = '';
     setTimeout(() => {
+      if (this.destroyed) return;
       this.announcement = this.i18n.t(key, params as never);
     }, 50);
   }

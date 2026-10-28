@@ -1,15 +1,20 @@
+import { emailSyntaxDiagnostic, emailSyntaxSourcePosition, type EmailSyntaxHelper } from '../utilities/EmailTemplateSyntax';
+import { scanEmailTemplateComplexity, defaultEmailTemplateComplexityLimits } from '../utilities/EmailTemplateComplexity';
 import { createHash } from 'node:crypto';
 import type { EmailAdminCurrent, EmailAdminActor, EmailAdminConsistency } from '@researchdatabox/sails-ng-common';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Db, ObjectId } from 'mongodb';
-import { handlebarsInstance, handlebarsPrecompile } from '@researchdatabox/sails-ng-common';
+import { handlebarsInstance, handlebarsPrecompile, normaliseVisual } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import type { EmailTemplateAttributes } from '../waterline-models/EmailTemplate';
 
 export type EmailTemplateErrorCode =
   | 'FORBIDDEN'
   | 'UNKNOWN_VERSION'
+  | 'UNKNOWN_RECORD_TYPE'
+  | 'INVALID_SCHEMA_TARGET'
+  | 'PREVIEW_FRAME_UNAVAILABLE'
   | 'INVALID_CONTEXT'
   | 'INCOMPLETE_TRANSITION'
   | 'UNKNOWN_BRAND'
@@ -20,7 +25,8 @@ export type EmailTemplateErrorCode =
   | 'PERSISTENCE'
   | 'RENDER_FAILED'
   | 'SANITISATION_FAILED'
-  | 'LENGTH_LIMIT';
+  | 'LENGTH_LIMIT'
+  | 'TOO_COMPLEX';
 
 export class EmailTemplateError extends Error {
   constructor(
@@ -91,6 +97,7 @@ export function emailTemplateDefinition(templateId: string): {
   fileName: string;
   subject: string;
   format: 'html' | 'text';
+  description?: string;
 } {
   if (typeof templateId !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(templateId)) {
     throw new EmailTemplateError('UNKNOWN_TEMPLATE', `Unknown email template '${templateId}'.`);
@@ -103,6 +110,7 @@ export function emailTemplateDefinition(templateId: string): {
   }
   return {
     fileName,
+    ...(entry?.description !== undefined ? { description: entry.description } : {}),
     subject: entry?.subject ?? config.defaults.subject,
     format: entry?.format ?? config.defaults.format,
   };
@@ -110,7 +118,8 @@ export function emailTemplateDefinition(templateId: string): {
 
 export interface EmailTemplateDiagnostic {
   field: 'subject' | 'body';
-  reason: 'UNKNOWN_CONTEXT_ROOT' | 'UNKNOWN_HELPER' | 'UNSUPPORTED_CONSTRUCT' | 'INVALID_SYNTAX';
+  reason: 'UNKNOWN_CONTEXT_ROOT' | 'UNKNOWN_HELPER' | 'UNSUPPORTED_CONSTRUCT' | 'INVALID_SYNTAX' | 'TOO_COMPLEX' | 'UNCLOSED_BLOCK' | 'MISMATCHED_CLOSE' | 'UNEXPECTED_TOKEN';
+  helper?: EmailSyntaxHelper;
   line: number;
   column: number;
 }
@@ -147,6 +156,19 @@ export function validateEmailLength(value: string, field: 'subject' | 'body'): v
   }
 }
 
+/** Shared policy/lint limits; checked at startup even when no template is rendered. */
+export function emailTemplateComplexityLimits() {
+  const settings = sails.config.emailnotification?.settings;
+  const maxNesting = settings?.maxTemplateNesting === undefined ? defaultEmailTemplateComplexityLimits.maxNesting : settings.maxTemplateNesting;
+  const maxExpressions = settings?.maxTemplateExpressions === undefined ? defaultEmailTemplateComplexityLimits.maxExpressions : settings.maxTemplateExpressions;
+  for (const [key, value] of Object.entries({ maxTemplateNesting: maxNesting, maxTemplateExpressions: maxExpressions })) {
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw new EmailTemplateError('INVALID_TEMPLATE', `emailnotification.settings.${key} must be a positive safe integer.`);
+    }
+  }
+  return { maxNesting, maxExpressions };
+}
+
 export function hardenEmailSubject(subject: string): string {
   validateEmailLength(subject, 'subject');
   // C0/C1 controls, CR/LF, DEL and Unicode line/paragraph separators.
@@ -156,7 +178,10 @@ export function hardenEmailSubject(subject: string): string {
   }).join('');
 }
 
-function validateExpressions(source: string, field: 'subject' | 'body'): void {
+/** Request-local policy ASTs, reused by advisory schema lint without reparsing. */
+export type EmailTemplateAsts = Partial<Record<'subject' | 'body', hbs.AST.Program>>;
+
+function validateExpressions(source: string, field: 'subject' | 'body'): hbs.AST.Program {
   const handlebars = handlebarsInstance();
   const roots = emailTemplateContextRoots();
   const fail = (node: hbs.AST.Node, reason: EmailTemplateDiagnostic['reason']): never => {
@@ -234,29 +259,47 @@ function validateExpressions(source: string, field: 'subject' | 'body'): void {
       }
     }
   };
-  visit(handlebars.parse(source), [{ certainRoot: true }], new Set());
+  const ast = handlebars.parse(source);
+  visit(ast, [{ certainRoot: true }], new Set());
+  return ast;
 }
 
 /** DB content is schema-checked; supplied files retain hook-specific display roots. */
-export function validateEmailTemplate(content: EmailTemplateContent, validateContext = true): void {
+export function validateEmailTemplate(
+  content: EmailTemplateContent,
+  validateContext = true,
+  parsed?: EmailTemplateAsts
+): void {
   if (!content || typeof content.subject !== 'string' || !content.subject.trim() ||
     typeof content.body !== 'string' || !content.body.trim() || !['html', 'text'].includes(content.format)) {
     throw new EmailTemplateError('INVALID_TEMPLATE', 'Email templates require non-empty subject/body and html or text format.');
   }
+  // Scan both fields before the first precompile/parse, including supplied files.
+  const limits = emailTemplateComplexityLimits();
+  const source = { subject: content.subject, body: content.body };
   for (const field of ['subject', 'body'] as const) {
     validateEmailLength(content[field], field);
+    source[field] = normaliseVisual(content[field]);
+    if (scanEmailTemplateComplexity(source[field], limits).exceeded) {
+      throw new EmailTemplateError('TOO_COMPLEX',
+        'Email template exceeds the configured expression or nesting limit.', undefined,
+        { field, reason: 'TOO_COMPLEX', line: 1, column: 1 });
+    }
+  }
+  for (const field of ['subject', 'body'] as const) {
     try {
-      handlebarsPrecompile(content[field], { strict: true });
-      if (validateContext) validateExpressions(content[field], field);
+      handlebarsPrecompile(source[field], { strict: true });
+      if (validateContext) {
+        const ast = validateExpressions(source[field], field);
+        if (parsed) parsed[field] = ast;
+      }
     } catch (error) {
       if (error instanceof EmailTemplateError) throw error;
-      // Parser errors can include source excerpts. Keep only the location in public diagnostics.
-      const location = (error as { hash?: { loc?: { first_line?: number; first_column?: number } } }).hash?.loc;
-      const line = location?.first_line ?? 1;
-      const column = (location?.first_column ?? 0) + 1;
+      const syntax = emailSyntaxDiagnostic(source[field]);
+      const diagnostic = { field, ...syntax, ...emailSyntaxSourcePosition(content[field], syntax) };
       throw new EmailTemplateError('INVALID_TEMPLATE',
-        `Email ${field}: INVALID_SYNTAX at line ${line}, column ${column}.`, undefined,
-        { field, reason: 'INVALID_SYNTAX', line, column });
+        `Email ${field}: ${diagnostic.reason} at line ${diagnostic.line}, column ${diagnostic.column}.`,
+        undefined, diagnostic);
     }
   }
 }
@@ -340,6 +383,11 @@ export namespace Services {
       // explicitly, before jobs can send or concurrent writers can create rows.
       // Other adapters (e.g. sails-disk in lightweight test apps) can still read
       // overrides through Waterline; atomic writes require native Mongo access.
+      for (const entry of Object.values(sails.config.emailnotification?.templates ?? {})) {
+        if (entry.description !== undefined && typeof entry.description !== 'string')
+          throw new EmailTemplateError('INVALID_TEMPLATE', 'Email template description must be a string.');
+      }
+      emailTemplateComplexityLimits();
       emailAdminSetting('historyMaxVersions');
       emailAdminSetting('maxPreviewContextBytes');
       const native = this.native();
