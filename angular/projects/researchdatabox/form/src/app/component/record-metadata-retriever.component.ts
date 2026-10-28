@@ -280,7 +280,9 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       && event.sourceId !== '*' && !isFormReadyEvent) {
       return false;
     }
-    if (conditionKind === ExpressionsConditionKind.JSONPointer) {
+    // Explicit JSON Pointer fetches require the selected field itself. When the
+    // kind is omitted, retain the shared matcher's descendant-field semantics.
+    if (expression.config.conditionKind === ExpressionsConditionKind.JSONPointer) {
       const {jsonPointer: targetFieldId} = getEventJSONPointerCondition(expression.config.condition ?? '');
       if (targetFieldId && event.fieldId !== targetFieldId && event.sourceId !== targetFieldId) {
         return false;

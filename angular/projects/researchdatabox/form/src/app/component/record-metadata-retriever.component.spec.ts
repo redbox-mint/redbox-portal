@@ -93,6 +93,24 @@ describe('RecordMetadataRetrieverComponent', () => {
     },
   } as FormExpressionsConfigFrame;
 
+  it('accepts descendant broadcasts through the shared matcher when conditionKind is omitted', async () => {
+    const expression = {
+      name: 'related', config: {
+        operation: 'fetchMetadata', runOnFormReady: false,
+        condition: '/related::field.value.changed',
+      },
+    } as FormExpressionsConfigFrame;
+    const { fixture, published, select } = await bindRealBus([expression], jasmine.createSpy('evaluate'));
+    recordService.getRecordMeta.and.resolveTo({ title: 'Related record' });
+
+    select('record-123', '/related/selection');
+    await fixture.whenStable();
+
+    expect(recordService.getRecordMeta).toHaveBeenCalledOnceWith('record-123');
+    expect(published).toEqual([{ title: 'Related record', oid: 'record-123' }]);
+    fixture.destroy();
+  });
+
   for (const outcome of ['success', 'failure'] as const) {
     it(`preserves a pending accepted read across an unrelated broadcast (${outcome})`, async () => {
       const evaluate = jasmine.createSpy('evaluate').and.callFake((key, context) => Promise.resolve(
