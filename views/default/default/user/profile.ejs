@@ -11,7 +11,8 @@
         </div>
         <div class="mb-3">
           <label for="profile-email" class="form-label">Email</label>
-          <input id="profile-email" name="email" class="form-control" type="email" value="<%= req.user.email %>" autocomplete="email">
+          <input id="profile-email" name="email" class="form-control" type="email" value="<%= req.user.email %>" autocomplete="email" aria-describedby="profile-email-help">
+          <p id="profile-email-help" class="form-text">Leave blank to keep your current email address.</p>
         </div>
         <div class="mb-3">
           <label for="profile-password" class="form-label">New password</label>
