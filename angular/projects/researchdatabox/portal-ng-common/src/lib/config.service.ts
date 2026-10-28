@@ -89,7 +89,10 @@ export class ConfigService implements Service {
     .pipe(
       mergeMap((csrfRes:any) => {
         const token = _get(csrfRes, '_csrf');
-        if (typeof token !== 'string' || !token) {
+        // Sails returns { _csrf: '' } when CSRF protection is disabled.
+        // Require a string payload so login HTML and malformed responses still
+        // fail initialization and remain recoverable through an explicit retry.
+        if (typeof token !== 'string') {
           throw new Error('Invalid CSRF response. Sign in again and retry.');
         }
         this.csrfToken = token;

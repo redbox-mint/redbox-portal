@@ -115,6 +115,39 @@ describe('ConfigService testing', () => {
     });
   }
 
+  it('loads and refreshes configuration when Sails returns an empty token with CSRF disabled', async () => {
+    const waiting = configService.waitForInit();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+    httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+    expect((await waiting).csrfToken).toBe('');
+
+    const enabled = configService.refreshConfig();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'enabled' });
+    httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+    expect((await enabled).csrfToken).toBe('enabled');
+
+    const disabled = configService.refreshConfig();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+    httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+    expect((await disabled).csrfToken).toBe('');
+    expect(configService.csrfToken).toBe('');
+  });
+
+  for (const response of ['<html>Sign in</html>', null, [], {}, { _csrf: null }, { _csrf: 123 }, { message: 'Sign in' }]) {
+    it(`rejects malformed CSRF response ${JSON.stringify(response)} and permits explicit recovery`, async () => {
+      const waiting = expectAsync(configService.waitForInit()).toBeRejected();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush(response);
+      await waiting;
+      await expectAsync(configService.waitForInit()).toBeRejected();
+      httpTestingController.expectNone(configService.configUrl);
+
+      const retry = configService.refreshConfig();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'recovered' });
+      httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+      expect((await retry).csrfToken).toBe('recovered');
+    });
+  }
+
   afterEach(() => {
     // After every test, assert that there are no more pending requests.
     httpTestingController.verify();

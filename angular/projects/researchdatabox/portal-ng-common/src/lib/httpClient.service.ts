@@ -91,7 +91,9 @@ export class HttpClientService implements Service {
     this.baseUrl = this.config.baseUrl;
     this.brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${this.config.branding}/${this.config.portal}`;
     this.baseUrlWithContext = `${this.baseUrl}${this.rootContext}`;
-    this.httpContext = new HttpContext();
+    // Retain CSRF opt-in and other request context across configuration reloads.
+    // The interceptor resolves opted-in requests against the current token.
+    this.httpContext ??= new HttpContext();
     return this;
   }
   /**
