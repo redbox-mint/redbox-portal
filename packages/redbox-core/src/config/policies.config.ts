@@ -90,6 +90,9 @@ const contractApiPolicies = buildContractApiPolicies();
 const recordSchemaControllerPolicies = contractApiPolicies['webservice/RecordSchemaController'] as ControllerPolicies;
 
 export const policies: PoliciesConfig = {
+  EmailTemplateAdminController: {
+    '*': ['noCache', 'emailTemplateAdmin', ...defaultPolicies],
+  },
   UserController: {
     '*': noCachePlusDefaultPolicies,
     localLogin: noCachePlusCspNoncePolicy,

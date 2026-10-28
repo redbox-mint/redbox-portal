@@ -34,6 +34,8 @@ export interface EmailSettings {
     /** Maximum UTF-8 bytes for source and rendered subjects/bodies. */
     maxSubjectBytes?: number;
     maxBodyBytes?: number;
+    historyMaxVersions?: number;
+    maxPreviewContextBytes?: number;
     serverOptions: EmailServerOptions;
 }
 
@@ -73,6 +75,8 @@ export const emailnotification: EmailNotificationConfig = {
         additionalContextRoots: [],
         maxSubjectBytes: 998,
         maxBodyBytes: 1048576,
+        historyMaxVersions: 50,
+        maxPreviewContextBytes: 262144,
         serverOptions: {
             host: 'integration-testing-email-1',
             port: 1025,

@@ -1,0 +1,50 @@
+.et-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.et-search {
+  position: relative;
+  flex: 0 1 288px;
+
+  .form-control {
+    padding-left: 32px;
+  }
+}
+
+.et-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.et-count {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 4px;
+  padding: 0 4.8px;
+  border-radius: 999px;
+  background: rgba(var(--bs-emphasis-color-rgb), 0.08);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.active .et-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.et-cell-template {
+  max-width: 448px;
+}
+
+.et-description {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}

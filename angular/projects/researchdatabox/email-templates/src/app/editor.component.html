@@ -1,0 +1,799 @@
+<div class="et-editor card panel-style panel-default et-card">
+  <div class="card-header et-card-header">
+    <h1 class="card-title et-card-title">
+      <i class="fa-regular fa-envelope me-2" aria-hidden="true"></i><span class="et-template-id">{{ templateId }}</span>
+    </h1>
+    <nav class="et-crumbs" [attr.aria-label]="'email-templates-breadcrumb-label' | i18next">
+      <button type="button" class="btn btn-sm et-header-button" (click)="goBack()">
+        <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>{{ 'email-templates-heading' | i18next }}
+      </button>
+    </nav>
+  </div>
+
+  <div class="card-body et-card-body">
+    <div class="et-title-row">
+      @if (state) {
+        <div class="et-badges">
+          @if (liveVersion !== null) {
+            <span class="et-badge et-badge-live">{{
+              'email-templates-badge-live-version' | i18next: { version: liveVersion }
+            }}</span>
+          } @else {
+            <span class="et-badge et-badge-default">{{ 'email-templates-badge-default' | i18next }}</span>
+          }
+          @if (hasDraft) {
+            <span class="et-badge et-badge-draft">{{
+              'email-templates-badge-draft-revision' | i18next: { revision: draftRevision }
+            }}</span>
+          }
+          @if (dirty) {
+            <span class="et-badge et-badge-muted">{{ 'email-templates-badge-unsaved' | i18next }}</span>
+          }
+          @if (state.draft?.restoredFromVersion) {
+            <span class="et-badge et-badge-muted">{{
+              'email-templates-badge-restored-from' | i18next: { version: state.draft?.restoredFromVersion }
+            }}</span>
+          }
+          @if (state.defaultUpdated) {
+            <span class="et-badge et-badge-updated">{{ 'email-templates-badge-default-updated' | i18next }}</span>
+          }
+          @if (state.invalid) {
+            <span class="et-badge et-badge-invalid">{{ 'email-templates-badge-invalid' | i18next }}</span>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="visually-hidden" role="status" aria-live="polite">{{ announcement }}</div>
+
+    @if (loading && !state) {
+      <div class="et-empty" role="status">
+        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span
+        >{{ 'email-templates-loading' | i18next }}
+      </div>
+    } @else if (loadError && !state) {
+      <div class="alert alert-danger d-flex align-items-center gap-3" role="alert">
+        <span class="flex-grow-1">{{ loadError | i18next }}</span>
+        <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">
+          {{ 'email-templates-retry' | i18next }}
+        </button>
+      </div>
+    } @else if (state) {
+      <!-- Notices -->
+      @if (errorMessage) {
+        <div class="alert alert-danger alert-dismissible et-alert" role="alert">
+          {{ errorMessage.key | i18next: errorMessage.params }}
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'email-templates-dismiss' | i18next"
+            (click)="errorMessage = null"
+          ></button>
+        </div>
+      }
+      @if (infoMessage) {
+        <div class="alert alert-success alert-dismissible et-alert" role="status">
+          {{ infoMessage.key | i18next: infoMessage.params }}
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'email-templates-dismiss' | i18next"
+            (click)="infoMessage = null"
+          ></button>
+        </div>
+      }
+      @if (rescuedContent) {
+        <div class="alert alert-warning et-alert et-alert-actions" role="status">
+          <span class="flex-grow-1">{{ 'email-templates-rescued' | i18next }}</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="copyText(rescuedContent.subject)">
+            {{ 'email-templates-copy-subject' | i18next }}
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="copyText(rescuedContent.body)">
+            {{ 'email-templates-copy-body' | i18next }}
+          </button>
+          <button type="button" class="btn btn-sm btn-link" (click)="dismissRescued()">
+            {{ 'email-templates-dismiss' | i18next }}
+          </button>
+        </div>
+      }
+      @if (incompleteTransition !== null) {
+        <div class="alert alert-danger et-alert" role="alert">
+          {{ 'email-templates-consistency-incomplete' | i18next: { version: incompleteTransition } }}
+        </div>
+      }
+      @if (retainedDraftVersion !== null) {
+        <div class="alert alert-info et-alert" role="status">
+          {{ 'email-templates-consistency-retained' | i18next: { version: retainedDraftVersion } }}
+        </div>
+      }
+      @if (state.invalid) {
+        <div class="alert alert-danger et-alert" role="alert">
+          {{ 'email-templates-live-invalid' | i18next }}
+        </div>
+      }
+      @if (state.defaultUpdated) {
+        <div
+          class="alert alert-warning et-alert et-alert-actions et-default-updated"
+          role="region"
+          [attr.aria-label]="'email-templates-badge-default-updated' | i18next"
+        >
+          <i class="fa-solid fa-code-branch" aria-hidden="true"></i>
+          <span class="flex-grow-1">{{
+            'email-templates-default-updated-banner' | i18next: { version: liveVersion }
+          }}</span>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            [attr.aria-pressed]="previewSource === 'default'"
+            (click)="previewNewDefault()"
+          >
+            {{ 'email-templates-preview-new-default' | i18next }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            [disabled]="busy !== null"
+            (click)="requestDraftFromDefault()"
+          >
+            {{ 'email-templates-start-from-new-default' | i18next }}
+          </button>
+        </div>
+      }
+
+      <!-- Tabs -->
+      <div
+        class="et-tabs"
+        role="tablist"
+        [attr.aria-label]="'email-templates-tabs-label' | i18next"
+        (keydown)="onTabKeydown($event)"
+      >
+        <button
+          type="button"
+          role="tab"
+          id="et-tab-edit"
+          class="et-tab"
+          aria-controls="et-panel-edit"
+          [class.active]="tab === 'edit'"
+          [attr.aria-selected]="tab === 'edit'"
+          [attr.tabindex]="tab === 'edit' ? 0 : -1"
+          (click)="selectTab('edit')"
+        >
+          {{ 'email-templates-tab-edit' | i18next }}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="et-tab-history"
+          class="et-tab"
+          aria-controls="et-panel-history"
+          [class.active]="tab === 'history'"
+          [attr.aria-selected]="tab === 'history'"
+          [attr.tabindex]="tab === 'history' ? 0 : -1"
+          (click)="selectTab('history')"
+        >
+          {{ 'email-templates-tab-history' | i18next }}
+        </button>
+      </div>
+
+      <!-- Edit & preview -->
+      <div id="et-panel-edit" role="tabpanel" aria-labelledby="et-tab-edit" [hidden]="tab !== 'edit'">
+        <div class="et-split">
+          <div class="et-split-col">
+            <section class="card et-pane" aria-labelledby="et-pane-template">
+              <div class="card-header et-pane-header">
+                <h2 id="et-pane-template" class="et-pane-title">
+                  <i class="fa-solid fa-pen-to-square me-2" aria-hidden="true"></i
+                  >{{ 'email-templates-template-pane' | i18next }}
+                </h2>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="et-section-label" for="et-subject">{{
+                    'email-templates-subject-label' | i18next
+                  }}</label>
+                  <input
+                    #subjectInput
+                    id="et-subject"
+                    type="text"
+                    class="form-control et-subject-input"
+                    autocomplete="off"
+                    spellcheck="false"
+                    [class.is-invalid]="subjectDiagnostics.length"
+                    [attr.aria-describedby]="subjectDiagnostics.length ? 'et-subject-diagnostics' : null"
+                    [attr.aria-invalid]="subjectDiagnostics.length ? 'true' : null"
+                    [ngModel]="content.subject"
+                    (ngModelChange)="onSubjectChange($event)"
+                  />
+                  @if (subjectDiagnostics.length) {
+                    <div id="et-subject-diagnostics" class="invalid-feedback d-block">
+                      @for (diagnostic of subjectDiagnostics; track $index) {
+                        <div>{{ diagnosticPosition(diagnostic) }}: {{ diagnosticMessage(diagnostic) }}</div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <fieldset class="et-fieldset mb-3">
+                  <legend class="et-section-label et-legend">{{ 'email-templates-format-label' | i18next }}</legend>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <input
+                      type="radio"
+                      class="btn-check"
+                      name="et-format"
+                      id="et-format-html"
+                      value="html"
+                      [checked]="content.format === 'html'"
+                      (change)="onFormatChange('html')"
+                    />
+                    <label class="btn btn-outline-secondary" for="et-format-html">{{
+                      'email-templates-format-html' | i18next
+                    }}</label>
+                    <input
+                      type="radio"
+                      class="btn-check"
+                      name="et-format"
+                      id="et-format-text"
+                      value="text"
+                      [checked]="content.format === 'text'"
+                      (change)="onFormatChange('text')"
+                    />
+                    <label class="btn btn-outline-secondary" for="et-format-text">{{
+                      'email-templates-format-text' | i18next
+                    }}</label>
+                  </div>
+                </fieldset>
+
+                <label class="et-section-label" for="et-body">{{ 'email-templates-body-label' | i18next }}</label>
+                <email-templates-code-editor
+                  #bodyEditor
+                  inputId="et-body"
+                  describedBy="et-body-diagnostics"
+                  [rows]="20"
+                  [value]="content.body"
+                  [invalid]="bodyDiagnostics.length > 0"
+                  [highlightLines]="bodyErrorLines"
+                  (valueChange)="onBodyChange($event)"
+                ></email-templates-code-editor>
+
+                <div id="et-body-diagnostics" class="et-diagnostics" role="status" aria-live="polite">
+                  @if (bodyDiagnostics.length) {
+                    <ul class="et-diagnostic-list">
+                      @for (diagnostic of bodyDiagnostics; track $index) {
+                        <li>
+                          <button type="button" class="et-diagnostic" (click)="revealDiagnostic(diagnostic)">
+                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                            <span class="et-diagnostic-pos">{{ diagnosticPosition(diagnostic) }}</span>
+                            <span>{{ diagnosticMessage(diagnostic) }}</span>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  } @else if (!validatePending && !subjectDiagnostics.length) {
+                    <span class="et-ok"
+                      ><i class="fa-solid fa-check me-1" aria-hidden="true"></i
+                      >{{ 'email-templates-no-problems' | i18next }}</span
+                    >
+                  }
+                </div>
+
+                <details class="et-help">
+                  <summary>{{ 'email-templates-help-summary' | i18next }}</summary>
+                  <p class="et-sub mb-2">{{ 'email-templates-help-insert-hint' | i18next }}</p>
+                  <div class="et-help-group">
+                    <span class="et-help-label">{{ 'email-templates-help-variables' | i18next }}</span>
+                    <div class="et-chips">
+                      @for (root of state.help.contextRoots; track root) {
+                        <button type="button" class="et-chip" (click)="insertToken(variableToken(root))">
+                          {{ root }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                  <div class="et-help-group">
+                    <span class="et-help-label">{{ 'email-templates-help-helpers' | i18next }}</span>
+                    <div class="et-chips">
+                      @for (helper of state.help.helpers; track helper) {
+                        <button type="button" class="et-chip" (click)="insertToken(helperToken(helper))">
+                          {{ helper }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                  <p class="et-sub mb-0 mt-2">
+                    {{
+                      'email-templates-help-limits'
+                        | i18next
+                          : {
+                              subject: state.help.maxSubjectBytes,
+                              body: formatBytes(state.help.maxBodyBytes),
+                              context: formatBytes(state.help.maxContextBytes),
+                            }
+                    }}
+                  </p>
+                </details>
+              </div>
+            </section>
+          </div>
+
+          <div class="et-split-col">
+            <section class="card et-pane et-preview-pane" aria-labelledby="et-pane-preview">
+              <div class="card-header et-pane-header">
+                <h2 id="et-pane-preview" class="et-pane-title">
+                  <i class="fa-regular fa-eye me-2" aria-hidden="true"></i
+                  >{{ 'email-templates-preview-pane' | i18next }}
+                </h2>
+              </div>
+              <div class="card-body">
+                <span class="et-section-label">{{ 'email-templates-preview-data-label' | i18next }}</span>
+                <email-templates-record-picker
+                  [selected]="record"
+                  [loadingContext]="loadingContext"
+                  (choose)="requestRecord($event)"
+                ></email-templates-record-picker>
+                @if (contextLoadError) {
+                  <div class="alert alert-warning et-alert mt-2 mb-0" role="alert">
+                    {{ contextLoadError | i18next }}
+                  </div>
+                }
+
+                <div class="et-context mt-3">
+                  <div class="et-row">
+                    <label class="et-section-label mb-0" for="et-context">{{
+                      'email-templates-context-label' | i18next
+                    }}</label>
+                    @if (contextEdited) {
+                      <span class="et-badge et-badge-muted et-context-edited">{{
+                        'email-templates-context-edited' | i18next
+                      }}</span>
+                    }
+                    <span class="flex-grow-1"></span>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link px-0"
+                      [disabled]="recordContextText === null || !contextEdited"
+                      (click)="resetContext()"
+                    >
+                      {{ 'email-templates-context-reset' | i18next }}
+                    </button>
+                  </div>
+                  <email-templates-code-editor
+                    inputId="et-context"
+                    describedBy="et-context-help"
+                    [rows]="9"
+                    [value]="contextText"
+                    [invalid]="contextProblem !== null"
+                    (valueChange)="onContextChange($event)"
+                  ></email-templates-code-editor>
+                  <div id="et-context-help" class="et-sub mt-1">
+                    @if (contextProblem === 'json') {
+                      <span class="text-danger">{{ 'email-templates-context-invalid-json' | i18next }}</span>
+                    } @else if (contextProblem === 'size') {
+                      <span class="text-danger">{{
+                        'email-templates-context-too-large' | i18next: { size: formatBytes(state.help.maxContextBytes) }
+                      }}</span>
+                    } @else {
+                      {{ 'email-templates-context-help' | i18next }}
+                    }
+                  </div>
+                </div>
+
+                <div class="et-row mt-3 mb-2">
+                  <span class="et-section-label mb-0" id="et-preview-label">{{
+                    'email-templates-preview-label' | i18next
+                  }}</span>
+                  @if (previewing) {
+                    <span class="et-sub" role="status">
+                      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span
+                      >{{ 'email-templates-preview-updating' | i18next }}
+                    </span>
+                  }
+                  <span class="flex-grow-1"></span>
+                  @if (content.format === 'html' || previewSource === 'default') {
+                    <div
+                      class="btn-group btn-group-sm"
+                      role="group"
+                      [attr.aria-label]="'email-templates-preview-mode-label' | i18next"
+                    >
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        [class.active]="previewMode === 'rendered'"
+                        [attr.aria-pressed]="previewMode === 'rendered'"
+                        (click)="setPreviewMode('rendered')"
+                      >
+                        {{ 'email-templates-preview-mode-rendered' | i18next }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        [class.active]="previewMode === 'text'"
+                        [attr.aria-pressed]="previewMode === 'text'"
+                        (click)="setPreviewMode('text')"
+                      >
+                        {{ 'email-templates-preview-mode-text' | i18next }}
+                      </button>
+                    </div>
+                  }
+                </div>
+
+                @if (previewSource === 'default') {
+                  <div class="alert alert-secondary et-alert et-alert-actions py-2" role="status">
+                    <span class="flex-grow-1">{{ 'email-templates-previewing-default' | i18next }}</span>
+                    <button type="button" class="btn btn-sm btn-link" (click)="previewWorkingCopy()">
+                      {{ 'email-templates-preview-back-to-working' | i18next }}
+                    </button>
+                  </div>
+                }
+
+                <div aria-labelledby="et-preview-label" role="group">
+                  @if (preview) {
+                    <email-templates-preview-frame
+                      [preview]="preview"
+                      [mode]="previewMode"
+                      [stale]="previewing"
+                    ></email-templates-preview-frame>
+                    @if (sanitiserRemovals.length) {
+                      <p class="et-sanitiser-note">
+                        <i class="fa-solid fa-broom me-1" aria-hidden="true"></i>
+                        {{
+                          'email-templates-sanitiser-removed'
+                            | i18next
+                              : {
+                                  count: sanitiserRemovals.length,
+                                  items: sanitiserRemovals.join(', '),
+                                  interpolation: raw,
+                                }
+                        }}
+                      </p>
+                    }
+                  } @else if (previewErrorCode) {
+                    <div class="et-preview-placeholder et-preview-error" role="alert">
+                      <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                      <div>
+                        <div>{{ previewErrorKey | i18next }}</div>
+                        @for (diagnostic of previewDiagnostics; track $index) {
+                          <div class="et-sub">
+                            {{ diagnosticPosition(diagnostic) }} ({{ diagnostic.field }}):
+                            {{ diagnosticMessage(diagnostic) }}
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  } @else if (!contextProblem) {
+                    <div class="et-preview-placeholder">
+                      <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                      <div>{{ 'email-templates-preview-empty' | i18next }}</div>
+                    </div>
+                  }
+                </div>
+                <p class="et-sub mt-2 mb-0">
+                  <i class="fa-solid fa-lock me-1" aria-hidden="true"></i
+                  >{{ 'email-templates-preview-nothing-sent' | i18next }}
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="et-footer">
+          <div class="et-footer-status">
+            @if (saving) {
+              <span
+                ><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span
+                >{{ 'email-templates-status-saving' | i18next }}</span
+              >
+            } @else if (saveFailed) {
+              <span class="text-danger">{{ 'email-templates-status-save-failed' | i18next }}</span>
+            } @else if (dirty) {
+              <span>{{ 'email-templates-status-unsaved' | i18next }}</span>
+            } @else if (hasDraft) {
+              <span>{{ 'email-templates-status-saved' | i18next: { when: lastSavedAt | emailWhen } }}</span>
+            } @else if (liveVersion !== null) {
+              <span>{{ 'email-templates-status-editing-live' | i18next: { version: liveVersion } }}</span>
+            } @else {
+              <span>{{ 'email-templates-status-editing-default' | i18next }}</span>
+            }
+            @if (hasDraft) {
+              <span class="et-footer-sep" aria-hidden="true">·</span>
+              @if (basedOnVersion !== null) {
+                <span>{{ 'email-templates-status-based-on' | i18next: { version: basedOnVersion } }}</span>
+              } @else {
+                <span>{{ 'email-templates-status-based-on-default' | i18next }}</span>
+              }
+            }
+          </div>
+          @if (publishBlocker && publishBlocker !== 'email-templates-publish-blocked-loading') {
+            <div id="et-publish-reason" class="et-footer-reason">
+              <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>{{ publishBlocker | i18next }}
+            </div>
+          }
+          <div class="et-footer-actions">
+            @if (hasDraft || dirty) {
+              <button
+                type="button"
+                class="btn btn-outline-danger btn-sm"
+                [disabled]="busy !== null"
+                (click)="openDiscard()"
+              >
+                {{ 'email-templates-action-discard' | i18next }}
+              </button>
+            }
+            @if (state.live) {
+              <button
+                type="button"
+                class="btn btn-outline-danger btn-sm"
+                [disabled]="busy !== null || incompleteTransition !== null"
+                (click)="openReset()"
+              >
+                {{ 'email-templates-action-reset' | i18next }}
+              </button>
+            }
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              [disabled]="busy !== null || saving || !!conflictContent"
+              (click)="saveNow()"
+            >
+              {{ 'email-templates-action-save' | i18next }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm et-publish"
+              [disabled]="publishDisabled"
+              [attr.aria-describedby]="publishBlocker ? 'et-publish-reason' : null"
+              (click)="openPublish()"
+            >
+              @if (busy === 'prepare-publish') {
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+              }
+              {{ 'email-templates-action-publish' | i18next }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div id="et-panel-history" role="tabpanel" aria-labelledby="et-tab-history" [hidden]="tab !== 'history'">
+        <email-templates-history
+          [versions]="history"
+          [loading]="historyLoading"
+          [failed]="historyFailed"
+          [busy]="busy !== null"
+          [retention]="state.historyMaxVersions"
+          (view)="viewVersion($event)"
+          (restore)="requestRestore($event)"
+        ></email-templates-history>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Dialogs -->
+<email-templates-dialog
+  [open]="dialog === 'publish'"
+  [heading]="'email-templates-publish-title' | i18next: { templateId: templateId, interpolation: raw }"
+  [closeLabel]="'email-templates-close' | i18next"
+  (dismissed)="dismissDialog()"
+>
+  @if (publishSummary) {
+    <p>
+      {{
+        'email-templates-publish-body'
+          | i18next
+            : { revision: draftRevision, version: publishSummary.nextVersion, brand: brandName, interpolation: raw }
+      }}
+    </p>
+    <dl class="et-summary">
+      @if (publishSummary.oldSubject === publishSummary.newSubject) {
+        <dt>{{ 'email-templates-publish-subject' | i18next }}</dt>
+        <dd>{{ 'email-templates-publish-subject-unchanged' | i18next }}</dd>
+      } @else {
+        <dt>{{ 'email-templates-publish-old-subject' | i18next }}</dt>
+        <dd class="et-summary-old">{{ publishSummary.oldSubject }}</dd>
+        <dt>{{ 'email-templates-publish-new-subject' | i18next }}</dt>
+        <dd class="et-summary-new">{{ publishSummary.newSubject }}</dd>
+      }
+      <dt>{{ 'email-templates-publish-body-label' | i18next }}</dt>
+      <dd>
+        @if (publishSummary.changedLines === 0) {
+          {{ 'email-templates-publish-body-unchanged' | i18next }}
+        } @else {
+          {{ 'email-templates-publish-lines-changed' | i18next: { count: publishSummary.changedLines } }}
+        }
+      </dd>
+    </dl>
+  }
+  <ng-container dialog-footer>
+    <button type="button" class="btn btn-outline-secondary" (click)="closeDialog()">
+      {{ 'email-templates-cancel' | i18next }}
+    </button>
+    <button type="button" class="btn btn-primary" data-autofocus [disabled]="busy !== null" (click)="confirmPublish()">
+      @if (busy === 'publish') {
+        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+      }
+      {{ 'email-templates-publish-confirm' | i18next: { version: publishSummary?.nextVersion } }}
+    </button>
+  </ng-container>
+</email-templates-dialog>
+
+<email-templates-dialog
+  [open]="dialog === 'reset'"
+  [heading]="'email-templates-reset-title' | i18next"
+  [closeLabel]="'email-templates-close' | i18next"
+  (dismissed)="dismissDialog()"
+>
+  <p class="mb-0">
+    {{ 'email-templates-reset-body' | i18next: { brand: brandName, version: liveVersion, interpolation: raw } }}
+  </p>
+  <ng-container dialog-footer>
+    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+      {{ 'email-templates-cancel' | i18next }}
+    </button>
+    <button type="button" class="btn btn-danger" [disabled]="busy !== null" (click)="confirmReset()">
+      {{ 'email-templates-reset-confirm' | i18next }}
+    </button>
+  </ng-container>
+</email-templates-dialog>
+
+<email-templates-dialog
+  [open]="dialog === 'discard'"
+  [heading]="'email-templates-discard-title' | i18next"
+  [closeLabel]="'email-templates-close' | i18next"
+  (dismissed)="dismissDialog()"
+>
+  <p class="mb-0">{{ 'email-templates-discard-body' | i18next }}</p>
+  <ng-container dialog-footer>
+    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+      {{ 'email-templates-cancel' | i18next }}
+    </button>
+    <button type="button" class="btn btn-danger" [disabled]="busy !== null" (click)="confirmDiscard()">
+      {{ 'email-templates-action-discard' | i18next }}
+    </button>
+  </ng-container>
+</email-templates-dialog>
+
+<email-templates-dialog
+  [open]="dialog === 'change-record'"
+  [heading]="'email-templates-change-record-title' | i18next"
+  [closeLabel]="'email-templates-close' | i18next"
+  (dismissed)="dismissDialog()"
+>
+  <p class="mb-0">
+    {{
+      'email-templates-change-record-body'
+        | i18next: { title: pendingRecord?.title || pendingRecord?.oid, interpolation: raw }
+    }}
+  </p>
+  <ng-container dialog-footer>
+    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+      {{ 'email-templates-keep-json' | i18next }}
+    </button>
+    <button type="button" class="btn btn-primary" (click)="confirmRecordChange()">
+      {{ 'email-templates-change-record-confirm' | i18next }}
+    </button>
+  </ng-container>
+</email-templates-dialog>
+
+<email-templates-dialog
+  [open]="dialog === 'from-default'"
+  [heading]="'email-templates-from-default-title' | i18next"
+  [closeLabel]="'email-templates-close' | i18next"
+  (dismissed)="dismissDialog()"
+>
+  <p class="mb-0">{{ 'email-templates-from-default-body' | i18next }}</p>
+  <ng-container dialog-footer>
+    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+      {{ 'email-templates-cancel' | i18next }}
+    </button>
+    <button type="button" class="btn btn-primary" [disabled]="busy !== null" (click)="confirmDraftFromDefault()">
+      {{ 'email-templates-start-from-new-default' | i18next }}
+    </button>
+  </ng-container>
+</email-templates-dialog>
+
+<email-templates-dialog
+  [open]="dialog === 'restore'"
+  [heading]="'email-templates-restore-title' | i18next: { version: pendingRestore?.version }"
+  [closeLabel]="'email-templates-close' | i18next"
+  (dismissed)="dismissDialog()"
+>
+  <p class="mb-0">{{ 'email-templates-restore-body' | i18next }}</p>
+  <ng-container dialog-footer>
+    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+      {{ 'email-templates-cancel' | i18next }}
+    </button>
+    <button type="button" class="btn btn-primary" [disabled]="busy !== null" (click)="confirmRestore()">
+      {{ 'email-templates-action-restore' | i18next }}
+    </button>
+  </ng-container>
+</email-templates-dialog>
+
+<email-templates-dialog
+  [open]="dialog === 'view'"
+  [wide]="true"
+  [heading]="'email-templates-view-title' | i18next: { version: viewing?.version }"
+  [closeLabel]="'email-templates-close' | i18next"
+  (dismissed)="dismissDialog()"
+>
+  @if (viewing) {
+    <p class="et-sub">
+      {{ eventLabel(viewing) }} · {{ viewing.actorDisplayName || ('email-templates-unknown-actor' | i18next) }} ·
+      {{ viewing.createdAt | emailWhen }}
+    </p>
+    @if (viewing.event === 'reset') {
+      <p>{{ 'email-templates-view-reset' | i18next }}</p>
+      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="closeDialog(); requestDraftFromDefault()">
+        {{ 'email-templates-start-from-default' | i18next }}
+      </button>
+    } @else {
+      <dl class="et-summary">
+        <dt>{{ 'email-templates-subject-label' | i18next }}</dt>
+        <dd>{{ viewing.subject }}</dd>
+        <dt>{{ 'email-templates-format-label' | i18next }}</dt>
+        <dd>
+          {{ (viewing.format === 'text' ? 'email-templates-format-text' : 'email-templates-format-html') | i18next }}
+        </dd>
+      </dl>
+      <label class="et-section-label" for="et-view-body">{{ 'email-templates-body-label' | i18next }}</label>
+      <email-templates-code-editor
+        inputId="et-view-body"
+        [rows]="16"
+        [readonly]="true"
+        [value]="viewing.body ?? ''"
+      ></email-templates-code-editor>
+    }
+  }
+  <ng-container dialog-footer>
+    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+      {{ 'email-templates-close' | i18next }}
+    </button>
+    @if (viewing && viewing.event !== 'reset' && viewing.applied) {
+      <button type="button" class="btn btn-primary" [disabled]="busy !== null" (click)="requestRestore(viewing)">
+        {{ 'email-templates-action-restore' | i18next }}
+      </button>
+    }
+  </ng-container>
+</email-templates-dialog>
+
+<email-templates-dialog
+  [open]="dialog === 'conflict'"
+  [wide]="true"
+  [heading]="'email-templates-conflict-title' | i18next"
+  [closeLabel]="'email-templates-close' | i18next"
+  describedBy="et-conflict-message"
+  (dismissed)="dismissDialog()"
+>
+  <div id="et-conflict-message" class="alert alert-danger et-alert">
+    {{ conflictMessage.key | i18next: conflictMessage.params }}
+    @if (basedOnVersion !== null) {
+      {{ 'email-templates-conflict-based-on' | i18next: { version: basedOnVersion } }}
+    }
+  </div>
+  <p class="et-sub">{{ 'email-templates-conflict-kept' | i18next }}</p>
+  @if (conflictContent) {
+    <dl class="et-summary">
+      <dt>{{ 'email-templates-conflict-your-subject' | i18next }}</dt>
+      <dd>{{ conflictContent.subject }}</dd>
+    </dl>
+    <label class="et-section-label" for="et-conflict-body">{{ 'email-templates-conflict-your-body' | i18next }}</label>
+    <email-templates-code-editor
+      inputId="et-conflict-body"
+      [rows]="8"
+      [readonly]="true"
+      [value]="conflictContent.body"
+    ></email-templates-code-editor>
+  }
+  <ng-container dialog-footer>
+    @if (conflictContent) {
+      <button type="button" class="btn btn-outline-secondary" (click)="copyText(conflictContent.subject)">
+        {{ 'email-templates-copy-subject' | i18next }}
+      </button>
+      <button type="button" class="btn btn-outline-secondary" (click)="copyText(conflictContent.body)">
+        {{ 'email-templates-copy-body' | i18next }}
+      </button>
+    }
+    <button type="button" class="btn btn-primary" data-autofocus (click)="reloadAfterConflict()">
+      {{ 'email-templates-reload' | i18next }}
+    </button>
+  </ng-container>
+</email-templates-dialog>
