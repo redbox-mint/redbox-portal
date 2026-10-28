@@ -174,7 +174,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   // Only resolves after a fresh read. Navigation's retained-page fallback and
   // queued criteria must never certify a successful post-mutation refresh.
-  private async loadPage(pageNum: number, params = this.getParams(), sort = this.sort): Promise<RecordPageDto> {
+  private async loadPage(pageNum: number, params = this.getParams(), sort = this.sort, recoverLastPage = false): Promise<RecordPageDto> {
     if (this.pageLoadPending) {
       throw new Error('A page read is already pending.');
     }
@@ -182,7 +182,19 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     this.initTracker.resultsReturned = false;
     this.loadError = '';
     try {
-      this.deletedRecordsResult = await this.getDeletedRecords(pageNum, params, sort);
+      let result = await this.getDeletedRecords(pageNum, params, sort);
+      if (recoverLastPage && result.records.length === 0) {
+        const lastPage = Math.max(1, Math.ceil(result.total / this.recordsPerPage));
+        if (pageNum > lastPage) {
+          // One bounded fallback, committed atomically with the initial read.
+          // A failure leaves the retained rows and mutation refresh lock intact.
+          result = await this.getDeletedRecords(lastPage, params, sort);
+          if (lastPage > Math.max(1, Math.ceil(result.total / this.recordsPerPage))) {
+            throw new Error('The last page changed again. Refresh the list again.');
+          }
+        }
+      }
+      this.deletedRecordsResult = result;
       this.currentPageNumber = this.deletedRecordsResult.pageNum;
       this.appliedSort = sort;
       return this.deletedRecordsResult;
@@ -306,7 +318,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
           this.actionMessage = `${label} was refused for record ${oid}. Check the request and your permissions, and sign in again or refresh the page before retrying.`;
           this.retryRestoreOid = action === 'restore' ? oid : undefined;
         } else {
-          this.unknownActionOutcome(label, oid);
+          this.unknownActionOutcome(label, oid, this.actionErrorDiagnostic(error));
         }
         return;
       }
@@ -335,9 +347,30 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     }
   }
 
-  private unknownActionOutcome(label: string, oid: string): void {
+  private unknownActionOutcome(label: string, oid: string, diagnostic = ''): void {
     this.actionNeedsRefresh = true;
     this.actionMessage = `${label} outcome is unknown for record ${oid}. The action may have completed. Refresh the list and verify the record state before choosing another action.`;
+    if (diagnostic) {
+      this.actionMessage += ` Server reported: ${diagnostic}`;
+    }
+  }
+
+  private actionErrorDiagnostic(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse) || error.status < 500) {
+      return '';
+    }
+    // CoreController.handleV1Response builds APIErrorResponse {message, details}
+    // from displayErrors. Do not serialize arbitrary errors, HTML response bodies,
+    // nested objects or raw exception messages. The template interpolates text.
+    const body = error.error;
+    if (!body || typeof body !== 'object' || Array.isArray(body)
+        || typeof body.message !== 'string' || typeof body.details !== 'string') {
+      return '';
+    }
+    const message = body.message.slice(0, 500).trim();
+    const details = body.details.slice(0, 500).trim();
+    const generic = /^(an error (has occurred|occurred)|internal server error)[.!]?$/i;
+    return [generic.test(message) ? '' : message, details].filter(Boolean).join(': ');
   }
 
   public async refreshActionList(): Promise<void> {
@@ -354,7 +387,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   private async refreshAfterAction(): Promise<void> {
     try {
-      await this.loadPage(this.currentPageNumber);
+      await this.loadPage(this.currentPageNumber, this.getParams(), this.sort, true);
       this.actionNeedsRefresh = false;
       this.closeDestroyRecordModal();
       this.actionRefreshError = '';

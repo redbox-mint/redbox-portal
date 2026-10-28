@@ -558,6 +558,165 @@ describe('DeletedRecordsComponent', () => {
       return { fixture, app, mutation, reload, run };
     }
 
+    it(`${action}: retains escaped v1 display diagnostics after HTTP 500 and locks writes across read retries`, async () => {
+      const { fixture, app } = await setupAction();
+      configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+      const service = new RecordService(TestBed.inject(HttpClient), 'base', TestBed.inject(UtilityService), configService, TestBed.inject(LoggerService));
+      await service.waitForInit();
+      service.brandingAndPortalUrl = 'https://portal.example/base/default/rdmp';
+      (app as any).recordService = service;
+      const http = TestBed.inject(HttpTestingController);
+      const settle = async () => { for (let i = 0; i < 15; i++) { await Promise.resolve(); } };
+      const previous = app.deletedRecordsResult;
+      if (action === 'destroy') {
+        await app.recordTableAction(null, { oid: 'rdmp-record-1' }, action);
+        fixture.detectChanges();
+        (fixture.nativeElement.querySelector('.modal-footer .btn-primary') as HTMLButtonElement).click();
+      } else {
+        (fixture.nativeElement.querySelector('record-table .btn-primary') as HTMLButtonElement).click();
+      }
+      const write = http.expectOne(req => req.method === (action === 'restore' ? 'PUT' : 'DELETE'));
+      expect(write.request.headers.get('X-CSRF-Token')).toBe('testCsrfValue');
+      write.flush({ message: 'Action failed', details: 'Storage rejected <img src=x onerror=alert(1)> & ownership check' },
+        { status: 500, statusText: 'Server Error' });
+      await settle();
+      fixture.detectChanges();
+      const feedback = fixture.nativeElement.querySelector('.action-feedback');
+      expect(feedback.textContent).toContain('Action failed');
+      expect(feedback.textContent).toContain('Storage rejected <img src=x onerror=alert(1)> & ownership check');
+      expect(feedback.querySelector('img')).toBeNull();
+      expect(feedback.textContent).toContain('may have completed');
+      expect(app.actionNeedsRefresh).toBeTrue();
+      expect(app.canRetryRestore).toBeFalse();
+      expect(app.deletedRecordsResult).toBe(previous);
+      if (action === 'destroy') {
+        expect(app.currentDestroyRecordModalOid).toBe('rdmp-record-1');
+        expect(app.isDestroyRecordModalShown).toBeTrue();
+      }
+      for (const succeeds of [false, true]) {
+        (fixture.nativeElement.querySelector('.refresh-actions') as HTMLButtonElement).click();
+        await settle();
+        const read = http.expectOne(req => req.url.includes('listDeletedRecords'));
+        await app.recordTableAction(null, { oid: 'another' }, 'restore');
+        await app.confirmDestroyRecordModal(null);
+        await app.retryRestore();
+        await app.filter();
+        await app.headerSortChanged({ variable: 'title', sort: 'desc' }, null);
+        http.expectNone(req => req.method !== 'GET');
+        if (succeeds) {
+          read.flush({ items: [], totalItems: 30, currentPage: 2 });
+        } else {
+          read.flush({ message: 'read failed' }, { status: 500, statusText: 'Server Error' });
+        }
+        await settle();
+        fixture.detectChanges();
+        expect(app.actionNeedsRefresh).toBe(!succeeds);
+        expect(app.actionMessage).toContain('Storage rejected');
+        if (!succeeds) {
+          expect(app.deletedRecordsResult).toBe(previous);
+          expect(app.actionRefreshError).toContain('Unable to refresh');
+        }
+      }
+      http.verify();
+      fixture.destroy();
+    });
+
+    it(`${action}: ignores unrecognized error bodies and bounds known display text`, async () => {
+      const { fixture, app, mutation, reload, run } = await setupAction();
+      for (const body of [
+        '<html><body>Proxy stack trace</body></html>',
+        { message: 'Private raw exception' },
+        { error: { message: 'Nested private error' }, details: { stack: 'Private stack' } },
+        { message: 'Internal Server Error', details: '' },
+        { message: { stack: 'Private stack' }, details: ['Private array'] },
+      ]) {
+        mutation.and.rejectWith(new HttpErrorResponse({ status: 500, error: body }));
+        await run();
+        expect(app.actionNeedsRefresh).toBeTrue();
+        expect(app.actionMessage).toContain('may have completed');
+        expect(app.actionMessage).not.toMatch(/Private|Proxy|Internal Server Error|object Object/);
+        await app.refreshActionList();
+      }
+      mutation.and.rejectWith(new HttpErrorResponse({ status: 500,
+        error: { message: 'Display failure', details: 'x'.repeat(5000) } }));
+      await run();
+      expect(app.actionMessage).toContain('Display failure');
+      expect(app.actionMessage.length).toBeLessThan(1400);
+      expect(app.actionNeedsRefresh).toBeTrue();
+      fixture.destroy();
+    });
+
+    for (const total of [20, 0]) {
+      it(`${action}: refreshes an empty out-of-range page once to the last valid page (total ${total})`, async () => {
+        const { fixture, app, mutation, reload, run } = await setupAction();
+        await app.gotoPage(3);
+        reload.calls.reset();
+        const previous = app.deletedRecordsResult;
+        mutation.and.resolveTo({ success: true });
+        let finishFallback!: (value: any) => void;
+        reload.and.returnValues(Promise.resolve({ items: [], totalItems: total }),
+          new Promise(resolve => { finishFallback = resolve; }));
+        const running = run();
+        for (let i = 0; i < 15; i++) { await Promise.resolve(); }
+        expect(reload.calls.count()).toBe(2);
+        expect(reload.calls.mostRecent().args[2]).toBe(total === 0 ? 1 : 2);
+        expect(app.actionNeedsRefresh).toBeTrue();
+        expect(app.actionPending).toBeTrue();
+        expect(app.deletedRecordsResult).toBe(previous);
+        await app.recordTableAction(null, { oid: 'another' }, 'restore');
+        await app.filter();
+        finishFallback({ items: total ? [{ title: 'Last valid page' }] : [], totalItems: total });
+        await running;
+        fixture.detectChanges();
+        expect(app.currentPageNumber).toBe(total === 0 ? 1 : 2);
+        expect(app.actionNeedsRefresh).toBeFalse();
+        expect(mutation).toHaveBeenCalledTimes(1);
+        fixture.destroy();
+      });
+    }
+
+    it(`${action}: does not loop when the fallback page also becomes out of range`, async () => {
+      const { fixture, app, mutation, reload, run } = await setupAction();
+      await app.gotoPage(3);
+      reload.calls.reset();
+      const previous = app.deletedRecordsResult;
+      mutation.and.resolveTo({ success: true });
+      reload.and.returnValues(Promise.resolve({ items: [], totalItems: 20 }),
+        Promise.resolve({ items: [], totalItems: 0 }));
+      await run();
+      expect(reload).toHaveBeenCalledTimes(2);
+      expect(app.deletedRecordsResult).toBe(previous);
+      expect(app.actionNeedsRefresh).toBeTrue();
+      expect(app.actionRefreshError).toContain('Unable to refresh');
+      expect(mutation).toHaveBeenCalledTimes(1);
+      fixture.destroy();
+    });
+
+    it(`${action}: retains rows and the refresh lock when the bounded last-page fallback fails`, async () => {
+      const { fixture, app, mutation, reload, run } = await setupAction();
+      await app.gotoPage(3);
+      reload.calls.reset();
+      const previous = app.deletedRecordsResult;
+      mutation.and.resolveTo({ success: true });
+      reload.and.callFake(async (...args: any[]) => {
+        if (args[2] === 3) { return { items: [], totalItems: 20 }; }
+        throw new HttpErrorResponse({ status: 500 });
+      });
+      await run();
+      expect(reload).toHaveBeenCalledTimes(2);
+      expect(app.deletedRecordsResult).toBe(previous);
+      expect(app.currentPageNumber).toBe(3);
+      expect(app.actionNeedsRefresh).toBeTrue();
+      expect(app.actionRefreshError).toContain('Unable to refresh');
+      reload.and.resolveTo({ items: [], totalItems: 20 });
+      await app.refreshActionList();
+      expect(reload).toHaveBeenCalledTimes(4);
+      expect(app.currentPageNumber).toBe(2);
+      expect(app.actionNeedsRefresh).toBeFalse();
+      expect(mutation).toHaveBeenCalledTimes(1);
+      fixture.destroy();
+    });
+
     it(`${action}: shows refusal, retains rows/context, and retries through the DOM`, async () => {
       const { fixture, app, mutation, reload, run } = await setupAction();
       const previous = app.deletedRecordsResult;
@@ -770,6 +929,8 @@ describe('DeletedRecordsComponent', () => {
       pageThree.click();
       await app.gotoPage(3);
       await app.filter();
+      await app.headerSortChanged({ variable: 'title', sort: 'desc' }, null);
+      expect(app.sort).toBeUndefined();
       expect(reload).not.toHaveBeenCalled();
       let refresh!: (result: any) => void;
       reload.and.returnValue(new Promise(resolve => { refresh = resolve; }));
