@@ -1,3 +1,5 @@
+import { HttpClient } from '@angular/common/http';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
@@ -64,6 +66,7 @@ describe('ReportComponent', () => {
         ReportComponent
       ],
       imports: [
+        HttpClientTestingModule,
         FormsModule,
         BsDatepickerModule.forRoot(),
         PaginationModule.forRoot(),
@@ -92,6 +95,74 @@ describe('ReportComponent', () => {
     });
     await testModule.compileComponents();
   });
+
+  for (const paginationFails of [false, true]) {
+    it(`runs only the latest submitted filter after a pending page ${paginationFails ? 'fails' : 'succeeds'}, and retries its exact criteria`, async () => {
+      configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+      const fixture = TestBed.createComponent(ReportComponent);
+      const component = fixture.componentInstance;
+      component.reportName = 'mock-report';
+      fixture.detectChanges();
+      await component.waitForInit();
+      component.tableHeaders = [{ property: 'title', label: 'Title' }] as any;
+      component.reportResult = { records: [{ title: 'Original' }], total: 30, pageNum: 1, recordsPerPage: 10 };
+      const realService = new ReportService(TestBed.inject(HttpClient), 'base', TestBed.inject(UtilityService), configService, TestBed.inject(LoggerService));
+      await realService.waitForInit();
+      realService.brandingAndPortalUrl = 'https://portal.example/base/default/rdmp';
+      (component as any).reportService = realService;
+      const http = TestBed.inject(HttpTestingController);
+      const settle = async () => { for (let i = 0; i < 15; i++) { await Promise.resolve(); } };
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+        .find(link => link.textContent?.trim() === '2')!;
+      pageTwo.click();
+      fixture.detectChanges();
+      const page = http.expectOne(req => req.url.includes('getReportResults'));
+      const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
+      const submit = fixture.nativeElement.querySelector('a.btn-primary') as HTMLAnchorElement;
+      for (const title of ['discarded', 'latest']) {
+        input.value = title;
+        input.dispatchEvent(new Event('input'));
+        submit.click();
+      }
+      // Editing without submitting must not alter the queued or retry criteria.
+      input.value = 'unsubmitted';
+      input.dispatchEvent(new Event('input'));
+      http.expectNone(req => req.url.includes('getReportResults'));
+      if (paginationFails) {
+        page.flush('failed', { status: 500, statusText: 'Server Error' });
+      } else {
+        page.flush({ records: [{ title: 'Page two' }], total: 30, pageNum: 2, recordsPerPage: 10 });
+      }
+      await settle();
+      const latest = http.expectOne(req => req.url.includes('getReportResults'));
+      expect(latest.request.urlWithParams).toContain('latest');
+      expect(latest.request.urlWithParams).not.toContain('discarded');
+      expect(latest.request.urlWithParams).not.toContain('unsubmitted');
+      expect(latest.request.method).toBe('GET');
+      latest.flush('failed', { status: 500, statusText: 'Server Error' });
+      await settle();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(component.reportResult.pageNum).toBe(paginationFails ? 1 : 2);
+      expect(component.loadError).toContain('Unable to load');
+      (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+      await settle();
+      const retry = http.expectOne(req => req.url.includes('getReportResults'));
+      expect(retry.request.urlWithParams).toBe(latest.request.urlWithParams);
+      retry.flush({ records: [{ title: 'Latest rows' }], total: 1, pageNum: 1, recordsPerPage: 10 });
+      await settle();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(component.reportResult.pageNum).toBe(1);
+      expect(fixture.nativeElement.textContent).toContain('Latest rows');
+      expect(component.loadError).toBe('');
+      http.verify();
+      fixture.destroy();
+    });
+  }
 
   it('propagates an initial page failure to bootstrap waiters and recovers through Retry', async () => {
     configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});

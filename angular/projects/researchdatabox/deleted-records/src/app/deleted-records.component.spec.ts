@@ -1,3 +1,5 @@
+import { HttpClient } from '@angular/common/http';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -73,6 +75,7 @@ describe('DeletedRecordsComponent', () => {
         DeletedRecordsComponent,
       ],
       imports: [
+        HttpClientTestingModule,
         FormsModule,
         BsDatepickerModule.forRoot(),
         PaginationModule.forRoot(),
@@ -101,6 +104,171 @@ describe('DeletedRecordsComponent', () => {
       ]
     });
     await testModule.compileComponents();
+  });
+
+  for (const paginationFails of [false, true]) {
+    it(`runs only the latest submitted filter after a pending page ${paginationFails ? 'fails' : 'succeeds'}, and retries its exact criteria`, async () => {
+      configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+      const fixture = TestBed.createComponent(DeletedRecordsComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      await component.waitForInit();
+      component.tableHeaders = [{ property: 'title', label: 'Title' }] as any;
+      component.deletedRecordsResult = { records: [{ title: 'Original' }], total: 30, pageNum: 1, recordsPerPage: 10 };
+      const realService = new RecordService(TestBed.inject(HttpClient), 'base', TestBed.inject(UtilityService), configService, TestBed.inject(LoggerService));
+      await realService.waitForInit();
+      realService.brandingAndPortalUrl = 'https://portal.example/base/default/rdmp';
+      (component as any).recordService = realService;
+      const http = TestBed.inject(HttpTestingController);
+      const settle = async () => { for (let i = 0; i < 15; i++) { await Promise.resolve(); } };
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+        .find(link => link.textContent?.trim() === '2')!;
+      pageTwo.click();
+      fixture.detectChanges();
+      const page = http.expectOne(req => req.url.includes('listDeleted'));
+      const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
+      const submit = fixture.nativeElement.querySelector('a.btn-primary') as HTMLAnchorElement;
+      for (const title of ['discarded', 'latest']) {
+        input.value = title;
+        input.dispatchEvent(new Event('input'));
+        submit.click();
+      }
+      // Editing without submitting must not alter the queued or retry criteria.
+      input.value = 'unsubmitted';
+      input.dispatchEvent(new Event('input'));
+      http.expectNone(req => req.url.includes('listDeleted'));
+      if (paginationFails) {
+        page.flush('failed', { status: 500, statusText: 'Server Error' });
+      } else {
+        page.flush({ items: [{ title: 'Page two' }], totalItems: 30, currentPage: 2 });
+      }
+      await settle();
+      const latest = http.expectOne(req => req.url.includes('listDeleted'));
+      expect(latest.request.urlWithParams).toContain('latest');
+      expect(latest.request.urlWithParams).not.toContain('discarded');
+      expect(latest.request.urlWithParams).not.toContain('unsubmitted');
+      expect(latest.request.method).toBe('GET');
+      latest.flush('failed', { status: 500, statusText: 'Server Error' });
+      await settle();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(component.deletedRecordsResult.pageNum).toBe(paginationFails ? 1 : 2);
+      expect(component.loadError).toContain('Unable to load');
+      (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+      await settle();
+      const retry = http.expectOne(req => req.url.includes('listDeleted'));
+      expect(retry.request.urlWithParams).toBe(latest.request.urlWithParams);
+      retry.flush({ items: [{ title: 'Latest rows' }], totalItems: 1, currentPage: 1 });
+      await settle();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(component.deletedRecordsResult.pageNum).toBe(1);
+      expect(fixture.nativeElement.textContent).toContain('Latest rows');
+      expect(component.loadError).toBe('');
+      http.verify();
+      fixture.destroy();
+    });
+  }
+
+  it('queues the latest DOM sort and filter, restores the applied sort on failure and retries without writes', async () => {
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+    component.tableHeaders = [{ property: 'title', label: 'Title' }] as any;
+    component.deletedRecordsResult = { records: [{ title: 'Original' }], total: 30, pageNum: 1, recordsPerPage: 10 };
+    const realService = new RecordService(TestBed.inject(HttpClient), 'base', TestBed.inject(UtilityService), configService, TestBed.inject(LoggerService));
+    await realService.waitForInit();
+    realService.brandingAndPortalUrl = 'https://portal.example/base/default/rdmp';
+    (component as any).recordService = realService;
+    const http = TestBed.inject(HttpTestingController);
+    const settle = async () => { for (let i = 0; i < 15; i++) { await Promise.resolve(); } };
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const header = fixture.nativeElement.querySelector('header-sort button') as HTMLButtonElement;
+    header.click();
+    const ascending = http.expectOne(req => req.url.includes('listDeletedRecords'));
+    expect(new URL(ascending.request.url).searchParams.get('sort')).toBe('title:1');
+    ascending.flush({ items: [{ title: 'Ascending' }], totalItems: 30, currentPage: 1 });
+    await settle();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.sort).toBe('title:1');
+    expect(header.getAttribute('aria-sort')).toBe('ascending');
+    const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      .find(link => link.textContent?.trim() === '2')!;
+    pageTwo.click();
+    fixture.detectChanges();
+    const page = http.expectOne(req => req.url.includes('listDeletedRecords'));
+    header.click(); // descending
+    header.click(); // ascending supersedes descending
+    const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
+    input.value = 'latest';
+    input.dispatchEvent(new Event('input'));
+    (fixture.nativeElement.querySelector('a.btn-primary') as HTMLAnchorElement).click();
+    header.click(); // latest criteria: latest filter, descending sort
+    http.expectNone(req => req.url.includes('listDeletedRecords'));
+    page.flush('failed', { status: 500, statusText: 'Server Error' });
+    await settle();
+    const latest = http.expectOne(req => req.url.includes('listDeletedRecords'));
+    const criteria = new URL(latest.request.url).searchParams;
+    expect(criteria.get('sort')).toBe('title:-1');
+    expect(criteria.get('filter')).toBe('latest');
+    expect(criteria.get('start')).toBe('0');
+    latest.flush('failed', { status: 500, statusText: 'Server Error' });
+    await settle();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.sort).toBe('title:1');
+    expect(header.getAttribute('aria-sort')).toBe('ascending');
+    expect(fixture.nativeElement.textContent).toContain('Ascending');
+    expect(component.currentPageNumber).toBe(1);
+    (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+    await settle();
+    const retry = http.expectOne(req => req.url.includes('listDeletedRecords'));
+    expect(retry.request.url).toBe(latest.request.url);
+    retry.flush({ items: [{ title: 'Descending latest' }], totalItems: 1, currentPage: 1 });
+    await settle();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.sort).toBe('title:-1');
+    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(fixture.nativeElement.textContent).toContain('Descending latest');
+    expect(component.loadError).toBe('');
+
+    // A rejected configuration retry never reaches gotoPage. An ignored header
+    // click must still leave its indicator aligned with the retained rows.
+    const failedPage = component.gotoPage(2);
+    http.expectOne(req => req.url.includes('listDeletedRecords'))
+      .flush('failed', { status: 500, statusText: 'Server Error' });
+    await failedPage;
+    let rejectConfig!: (reason: unknown) => void;
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.returnValue(
+      new Promise((_resolve, reject) => { rejectConfig = reject; }));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+    expect(component.loadPending).toBeTrue();
+    header.click();
+    await settle();
+    fixture.detectChanges();
+    expect(header.getAttribute('aria-sort')).toBe('descending');
+    rejectConfig({ status: 403 });
+    await settle();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.loadPending).toBeFalse();
+    expect(component.sort).toBe('title:-1');
+    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(fixture.nativeElement.textContent).toContain('Descending latest');
+    expect(component.loadError).toContain('Sign in again');
+    http.expectNone(req => req.url.includes('listDeletedRecords'));
+    http.verify();
+    fixture.destroy();
   });
 
   it('propagates an initial page failure to bootstrap waiters and recovers through Retry', async () => {

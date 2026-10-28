@@ -60,7 +60,7 @@ describe('UserService testing', () => {
     userService = TestBed.inject(UserService);
 
     const mockCsrfData = { _csrf: 'testCsrfValue' };
-    const mockConfigData = { csrfToken: mockCsrfData._csrf, rootContext: '', someRandomKey: 'someRandomValue', portal: 'rdmp', branding: 'default' };
+    const mockConfigData = { baseUrl: '', csrfToken: mockCsrfData._csrf, rootContext: '', someRandomKey: 'someRandomValue', portal: 'rdmp', branding: 'default' };
 
     const csrfReq = httpTestingController.expectOne(configService.csrfTokenUrl);
     csrfReq.flush(mockCsrfData);
