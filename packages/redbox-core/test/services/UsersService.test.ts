@@ -1,5 +1,5 @@
 import * as sinon from 'sinon';
-import { of, throwError, Subject, EMPTY } from 'rxjs';
+import { of, throwError, Subject, EMPTY, Observable } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
 
 let expect: Chai.ExpectStatic;
@@ -1154,6 +1154,73 @@ describe('UsersService', function () {
       })) } }
     });
 
+    it('bounds never-settling Promises and emitting infinite Observables with ordered nonfatal outcomes', async function () {
+      const clock = sinon.useFakeTimers();
+      const teardown = sinon.spy();
+      try {
+        const infinite = new Observable<string>(subscriber => {
+          const interval = setInterval(() => subscriber.next('still running'), 5);
+          return () => { clearInterval(interval); teardown(); };
+        });
+        const completion = UsersService.triggerPostSaveTriggers(user, {
+          ...configFor(() => new Promise(() => {}), () => infinite, () => 'success'),
+          postHookTimeoutMs: 20
+        });
+        await clock.tickAsync(19);
+        expect(teardown.called).to.be.false;
+        await clock.tickAsync(1);
+        const results = await completion;
+        expect(results.map((result: PromiseSettledResult<unknown>) => result.status)).to.deep.equal(['rejected', 'rejected', 'fulfilled']);
+        expect(results[0].reason.message).to.equal('User post-save hook timed out after 20ms');
+        expect(results[1].reason.message).to.equal('User post-save hook timed out after 20ms');
+        expect(results[2].value).to.equal('success');
+        expect(teardown.calledOnce).to.be.true;
+        expect(clock.countTimers()).to.equal(0);
+      } finally { clock.restore(); }
+    });
+
+    it('clears deadlines after success, rejection and Observable errors', async function () {
+      const clock = sinon.useFakeTimers();
+      try {
+        const failure = new Error('failure');
+        await UsersService.triggerPostSaveTriggers(user, configFor(
+          () => of('done'), () => Promise.reject(failure), () => throwError(() => failure), () => EMPTY
+        ));
+        expect(clock.countTimers()).to.equal(0);
+      } finally { clock.restore(); }
+    });
+
+    it('handles a Promise rejection after its timeout without an unhandled rejection', async function () {
+      let reject!: (error: Error) => void;
+      const late = new Promise((_resolve, fail) => { reject = fail; });
+      const unhandled = sinon.spy();
+      process.on('unhandledRejection', unhandled);
+      try {
+        await UsersService.triggerPostSaveTriggers(user, { ...configFor(() => late), postHookTimeoutMs: 1 });
+        reject(new Error('late rejection'));
+        await new Promise(resolve => setImmediate(resolve));
+        expect(unhandled.called).to.be.false;
+      } finally { process.removeListener('unhandledRejection', unhandled); }
+    });
+
+    for (const postHookTimeoutMs of [undefined, 0, -1, NaN, Infinity, 1.5, 2147483648, '20']) {
+      it(`uses the bounded default for invalid timeout ${postHookTimeoutMs}`, async function () {
+        const clock = sinon.useFakeTimers();
+        try {
+          let completed = false;
+          const completion = UsersService.triggerPostSaveTriggers(user, {
+            ...configFor(() => new Promise(() => {})), postHookTimeoutMs
+          }).then((results: unknown) => { completed = true; return results; });
+          await clock.tickAsync(29999);
+          expect(completed).to.be.false;
+          await clock.tickAsync(1);
+          const results = await completion;
+          expect(results[0].reason.message).to.include('30000ms');
+          expect(clock.countTimers()).to.equal(0);
+        } finally { clock.restore(); }
+      });
+    }
+
     it('returns an empty result when hooks are absent or have no function', async function () {
       expect(await UsersService.triggerPostSaveTriggers(user, {})).to.deep.equal([]);
       expect(await UsersService.triggerPostSaveTriggers(user, { hooks: { onUpdate: { post: [{}] } } })).to.deep.equal([]);
@@ -1264,42 +1331,89 @@ describe('UsersService', function () {
 
   describe('login post-save hook completion', function () {
     for (const existingUser of [true, false]) {
-      for (const preHook of [true, false]) {
-        it(`waits for OIDC ${existingUser ? 'update' : 'create'} hooks with pre hooks ${preHook ? 'enabled' : 'disabled'} and keeps failures nonfatal`, async function () {
-          const savedUser = { id: 'user-1', username: 'person', name: 'Person', email: 'person@uni.edu', roles: [] };
-          const mode = existingUser ? 'onUpdate' : 'onCreate';
-          let finish!: () => void;
-          const delayed = new Promise<void>(resolve => { finish = resolve; });
-          const error = new Error('nonfatal hook failure');
-          const config = {
-            opts: {},
-            claimMappings: { username: 'sub', name: 'name', email: 'email' },
-            hooks: { [mode]: {
-              pre: preHook ? [{ function: 'user => user', options: {} }] : [],
-              post: [
-                { function: '(_user, options) => options.run()', options: { run: () => delayed } },
-                { function: '(_user, options) => options.run()', options: { run: () => Promise.reject(error) } }
-              ]
-            } }
-          };
-          mockUser.findOne.callsFake((_query: unknown, callback: (err: unknown, user: unknown) => void) => {
-            callback(null, existingUser ? savedUser : null);
+      for (const hookScenario of [
+        'normal',
+        'dependency',
+        'timeout',
+        'timeoutObservable',
+        ...(existingUser ? ['denied'] : []),
+      ]) {
+        for (const preHook of [true, false]) {
+          it(`waits for OIDC ${existingUser ? 'update' : 'create'} hooks with pre hooks ${preHook ? 'enabled' : 'disabled'} and keeps failures nonfatal (${hookScenario})`, async function () {
+            const savedUser = { id: 'user-1', username: 'person', name: 'Person', email: 'person@uni.edu', roles: [] };
+            const mode = existingUser ? 'onUpdate' : 'onCreate';
+            let finish!: () => void;
+            const delayed = new Promise<void>(resolve => {
+              finish = resolve;
+            });
+            const teardown = sinon.spy();
+            const error = new Error('nonfatal hook failure');
+            const config = {
+              postHookTimeoutMs: hookScenario.startsWith('timeout') ? 100 : 1000,
+              opts: {},
+              claimMappings: { username: 'sub', name: 'name', email: 'email' },
+              hooks: {
+                [mode]: {
+                  pre: preHook ? [{ function: 'user => user', options: {} }] : [],
+                  postSync:
+                    hookScenario === 'dependency'
+                      ? [{ function: '(_user, options) => options.finish()', options: { finish } }]
+                      : [],
+                  post: [
+                    {
+                      function: '(_user, options) => options.run()',
+                      options: {
+                        run: () => (hookScenario === 'timeoutObservable' ? new Observable(() => teardown) : delayed),
+                      },
+                    },
+                    { function: '(_user, options) => options.run()', options: { run: () => Promise.reject(error) } },
+                  ],
+                },
+              },
+            };
+            mockUser.findOne.callsFake((_query: unknown, callback: (err: unknown, user: unknown) => void) => {
+              callback(null, existingUser ? savedUser : null);
+            });
+            configureModelMethod(mockUser.update, [savedUser]);
+            configureModelMethod(mockUser.create, savedUser);
+            const authGate = sinon.stub(UsersService, 'assertAuthenticationAllowed');
+            if (hookScenario === 'denied') authGate.rejects(new Error('Account is disabled'));
+            else authGate.resolves();
+            const regularHooks = sinon.spy(UsersService, 'triggerPostSaveTriggers');
+            const syncHooks = sinon.spy(UsersService, 'triggerPostSaveSyncTriggers');
+            sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(savedUser);
+            const done = sinon.spy();
+            UsersService.openIdConnectAuthVerifyCallback(
+              config,
+              {},
+              {},
+              {},
+              {
+                sub: 'person',
+                name: 'Person',
+                email: 'person@uni.edu',
+              },
+              done
+            );
+            await new Promise(resolve => setImmediate(resolve));
+            if (hookScenario === 'denied') {
+              expect(done.calledOnceWithExactly(null, false, { message: 'Account is disabled' })).to.be.true;
+              expect(regularHooks.called).to.be.false;
+              expect(syncHooks.called).to.be.false;
+              return;
+            }
+            if (hookScenario !== 'dependency') expect(done.called).to.be.false;
+            if (hookScenario === 'normal') finish();
+            if (hookScenario.startsWith('timeout')) await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise(resolve => setImmediate(resolve));
+            expect(done.calledOnceWithExactly(null, savedUser)).to.be.true;
+            if (hookScenario === 'timeoutObservable') expect(teardown.calledOnce).to.be.true;
+            expect(mockSails.log.error.calledWith(error)).to.be.true;
+            finish();
+            await new Promise(resolve => setImmediate(resolve));
+            expect(done.calledOnce).to.be.true;
           });
-          configureModelMethod(mockUser.update, [savedUser]);
-          configureModelMethod(mockUser.create, savedUser);
-          sinon.stub(UsersService, 'assertAuthenticationAllowed').resolves();
-          sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(savedUser);
-          const done = sinon.spy();
-          UsersService.openIdConnectAuthVerifyCallback(config, {}, {}, {}, {
-            sub: 'person', name: 'Person', email: 'person@uni.edu'
-          }, done);
-          await new Promise(resolve => setImmediate(resolve));
-          expect(done.called).to.be.false;
-          finish();
-          await new Promise(resolve => setImmediate(resolve));
-          expect(done.calledOnceWithExactly(null, savedUser)).to.be.true;
-          expect(mockSails.log.error.calledWith(error)).to.be.true;
-        });
+        }
       }
     }
   });
@@ -1307,58 +1421,145 @@ describe('UsersService', function () {
   describe('local and AAF login post-save hook completion', function () {
     for (const provider of ['local', 'aaf']) {
       for (const existingUser of provider === 'local' ? [true] : [true, false]) {
-        for (const preHook of [true, false]) {
-          it(`waits for ${provider} ${existingUser ? 'update' : 'create'} hooks with pre hooks ${preHook ? 'enabled' : 'disabled'}`, async function () {
-            const savedUser = { id: 'user-1', username: 'person', name: 'Person', email: 'person@example.edu.au', roles: [], password: 'hash' };
-            const mode = existingUser ? 'onUpdate' : 'onCreate';
-            let finish!: () => void;
-            const delayed = new Promise<void>(resolve => { finish = resolve; });
-            const config = {
-              opts: { secretOrKey: 'test-key' },
-              attributesField: 'attributes',
-              hooks: { [mode]: {
-                pre: preHook ? [{ function: 'user => user', options: {} }] : [],
-                post: [{ function: '(_user, options) => options.run()', options: { run: () => delayed } }]
-              } }
-            };
-            sinon.stub(UsersService, 'getAuthConfig').returns({ active: [provider], [provider]: config });
-            sinon.stub(UsersService, 'assertAuthenticationAllowed').resolves();
-            sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(savedUser);
-            configureModelMethod(mockUser.update, [savedUser]);
-            configureModelMethod(mockUser.create, savedUser);
-            const done = sinon.spy();
-            if (provider === 'local') {
-              configureModelMethod(mockUser.findOne, savedUser);
-              const passport = require('passport');
-              const use = sinon.stub(passport, 'use');
-              sinon.stub(passport, 'serializeUser');
-              sinon.stub(passport, 'deserializeUser');
-              let bcrypt;
-              try { bcrypt = require('bcrypt'); } catch { bcrypt = require('bcryptjs'); }
-              sinon.stub(bcrypt, 'compare').callsArgWith(2, null, true);
-              UsersService.localAuthInit();
-              use.firstCall.args[1]._verify('person', 'password', done);
-            } else {
-              mockUser.findOne.callsFake((_query: unknown, callback: (err: unknown, user: unknown) => void) => callback(null, existingUser ? savedUser : null));
-              const use = sinon.stub();
-              mockSails.config.passport = { use };
-              UsersService.aafAuthInit();
-              await mockSails.on.firstCall.args[1]();
-              use.firstCall.args[1]._verify({}, { sub: 'person', attributes: { cn: 'Person', mail: 'person@example.edu.au' } }, done);
-            }
-            await new Promise(resolve => setImmediate(resolve));
-            expect(done.called).to.be.false;
-            finish();
-            await new Promise(resolve => setImmediate(resolve));
-            expect(done.calledOnce).to.be.true;
-            expect(done.firstCall.args[0]).to.equal(null);
-          });
+        for (const hookScenario of [
+          'normal',
+          'dependency',
+          'timeout',
+          'timeoutObservable',
+          ...(existingUser ? ['denied'] : []),
+        ]) {
+          for (const preHook of [true, false]) {
+            it(`waits for ${provider} ${existingUser ? 'update' : 'create'} hooks with pre hooks ${preHook ? 'enabled' : 'disabled'} (${hookScenario})`, async function () {
+              const savedUser = {
+                id: 'user-1',
+                username: 'person',
+                name: 'Person',
+                email: 'person@example.edu.au',
+                roles: [],
+                password: 'hash',
+              };
+              const mode = existingUser ? 'onUpdate' : 'onCreate';
+              let finish!: () => void;
+              const delayed = new Promise<void>(resolve => {
+                finish = resolve;
+              });
+              const teardown = sinon.spy();
+              const config = {
+                postHookTimeoutMs: hookScenario.startsWith('timeout') ? 100 : 1000,
+                opts: { secretOrKey: 'test-key' },
+                attributesField: 'attributes',
+                hooks: {
+                  [mode]: {
+                    pre: preHook ? [{ function: 'user => user', options: {} }] : [],
+                    postSync:
+                      hookScenario === 'dependency'
+                        ? [{ function: '(_user, options) => options.finish()', options: { finish } }]
+                        : [],
+                    post: [
+                      {
+                        function: '(_user, options) => options.run()',
+                        options: {
+                          run: () => (hookScenario === 'timeoutObservable' ? new Observable(() => teardown) : delayed),
+                        },
+                      },
+                    ],
+                  },
+                },
+              };
+              sinon.stub(UsersService, 'getAuthConfig').returns({ active: [provider], [provider]: config });
+              const authGate = sinon.stub(UsersService, 'assertAuthenticationAllowed');
+              if (hookScenario === 'denied') authGate.rejects(new Error('Account is disabled'));
+              else authGate.resolves();
+              const regularHooks = sinon.spy(UsersService, 'triggerPostSaveTriggers');
+              const syncHooks = sinon.spy(UsersService, 'triggerPostSaveSyncTriggers');
+              sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(savedUser);
+              configureModelMethod(mockUser.update, [savedUser]);
+              configureModelMethod(mockUser.create, savedUser);
+              const done = sinon.spy();
+              if (provider === 'local') {
+                configureModelMethod(mockUser.findOne, savedUser);
+                const passport = require('passport');
+                const use = sinon.stub(passport, 'use');
+                sinon.stub(passport, 'serializeUser');
+                sinon.stub(passport, 'deserializeUser');
+                let bcrypt;
+                try {
+                  bcrypt = require('bcrypt');
+                } catch {
+                  bcrypt = require('bcryptjs');
+                }
+                sinon.stub(bcrypt, 'compare').callsArgWith(2, null, true);
+                UsersService.localAuthInit();
+                use.firstCall.args[1]._verify('person', 'password', done);
+              } else {
+                mockUser.findOne.callsFake((_query: unknown, callback: (err: unknown, user: unknown) => void) =>
+                  callback(null, existingUser ? savedUser : null)
+                );
+                const use = sinon.stub();
+                mockSails.config.passport = { use };
+                UsersService.aafAuthInit();
+                await mockSails.on.firstCall.args[1]();
+                use.firstCall.args[1]._verify(
+                  {},
+                  { sub: 'person', attributes: { cn: 'Person', mail: 'person@example.edu.au' } },
+                  done
+                );
+              }
+              await new Promise(resolve => setImmediate(resolve));
+              if (hookScenario === 'denied') {
+                expect(done.calledOnceWithExactly(null, false, { message: 'Account is disabled' })).to.be.true;
+                expect(regularHooks.called).to.be.false;
+                expect(syncHooks.called).to.be.false;
+                return;
+              }
+              if (hookScenario !== 'dependency') expect(done.called).to.be.false;
+              if (hookScenario === 'normal') finish();
+              if (hookScenario.startsWith('timeout')) await new Promise(resolve => setTimeout(resolve, 150));
+              await new Promise(resolve => setImmediate(resolve));
+              expect(done.calledOnce).to.be.true;
+              expect(done.firstCall.args[0]).to.equal(null);
+              if (hookScenario === 'timeoutObservable') expect(teardown.calledOnce).to.be.true;
+              finish();
+              await new Promise(resolve => setImmediate(resolve));
+              expect(done.calledOnce).to.be.true;
+            });
+          }
         }
       }
     }
   });
 
   describe('triggerPostSaveSyncTriggers', function () {
+    it('preserves the sequential response chain while login does not wait for it', async function () {
+      let finish!: (value: string) => void;
+      const response = new Promise<string>(resolve => { finish = resolve; });
+      const second = sinon.spy((_user, _options, value) => value + '-second');
+      const config = { hooks: { onUpdate: { postSync: [
+        { function: '(_user, options) => options.run()', options: { run: () => response } },
+        { function: '(_user, options, response) => options.run(_user, options, response)', options: { run: second } }
+      ] } } };
+      await UsersService.runLoginPostSaveTriggers({ username: 'test' }, config, 'onUpdate');
+      expect(second.called).to.be.false;
+      finish('first');
+      await new Promise(resolve => setImmediate(resolve));
+      expect(second.calledOnce).to.be.true;
+      expect(second.firstCall.args[2]).to.equal('first');
+    });
+
+    it('handles background postSync failures without rejecting login or leaking rejections', async function () {
+      const failure = new Error('background failure');
+      const unhandled = sinon.spy();
+      process.on('unhandledRejection', unhandled);
+      try {
+        await UsersService.runLoginPostSaveTriggers({ username: 'test' }, { hooks: { onUpdate: { postSync: [
+          { function: '(_user, options) => options.run()', options: { run: () => Promise.reject(failure) } }
+        ] } } }, 'onUpdate');
+        await new Promise(resolve => setImmediate(resolve));
+        expect(mockSails.log.error.calledWith(failure)).to.be.true;
+        expect(unhandled.called).to.be.false;
+      } finally { process.removeListener('unhandledRejection', unhandled); }
+    });
+
     it('should return response when no hooks configured', async function () {
       const user = { username: 'test' };
       const config = {};

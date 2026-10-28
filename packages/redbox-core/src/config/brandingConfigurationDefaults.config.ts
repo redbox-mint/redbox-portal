@@ -7,7 +7,15 @@
 
 import type { DoiPublishingConfigData } from '../configmodels/DoiPublishing';
 
-export interface BrandAuthLocalConfig {
+export interface UserPostHookConfig {
+    /** Per regular post hook absolute deadline in milliseconds, across onCreate/onUpdate.
+     * Positive integer <= 2147483647; omitted/invalid values use 30000.
+     * Does not apply to pre hooks or the background sequential postSync chain.
+     */
+    postHookTimeoutMs?: number;
+}
+
+export interface BrandAuthLocalConfig extends UserPostHookConfig {
     usernameField: string;
     passwordField: string;
     default?: {
@@ -20,7 +28,7 @@ export interface BrandAuthLocalConfig {
     hooks?: Record<string, unknown>;
 }
 
-export interface BrandAuthAafConfig {
+export interface BrandAuthAafConfig extends UserPostHookConfig {
     defaultRole: string;
     attributesField: string;
     usernameField: string;
@@ -29,7 +37,7 @@ export interface BrandAuthAafConfig {
     templatePath: string;
 }
 
-export interface BrandAuthOidcConfig {
+export interface BrandAuthOidcConfig extends UserPostHookConfig {
     debugMode: boolean;
     discoverAttemptsMax: number;
     discoverFailureSleep: number;
