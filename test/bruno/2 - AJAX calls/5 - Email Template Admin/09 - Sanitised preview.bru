@@ -38,6 +38,7 @@ tests {
     expect(res.getStatus()).to.equal(200);
     expect(res.getBody().subject).to.equal("Admin preview Reader");
     expect(res.getBody().html).to.equal("<p>Hello Reader</p>");
+    bru.setVar("emailFrameUrl", res.getBody().frameUrl);
     expect(res.getBody().sanitiserRemovals.length).to.be.greaterThan(0);
   });
 }

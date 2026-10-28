@@ -1,0 +1,21 @@
+meta {
+  name: Email templates - Schema anonymous denied
+  type: http
+  seq: 0
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/schema-targets
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+
+tests {
+  test("Schema targets require brand Admin", () => { expect(res.getStatus()).to.equal(403); });
+}

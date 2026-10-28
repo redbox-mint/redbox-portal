@@ -138,3 +138,5 @@ export * from './validation/validators-support';
 export * from './translation-html';
 
 export * from './email-template-admin.model';
+
+export * from './email-context-json';

@@ -1,0 +1,30 @@
+meta {
+  name: Email templates - Schema targets
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/schema-targets
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Lists brand record types and stages", () => {
+    expect(res.getStatus()).to.equal(200);
+    const types = res.getBody().recordTypes;
+    expect(types.length).to.be.greaterThan(0);
+    bru.setVar("emailSchemaType", types[0].id);
+    bru.setVar("emailSchemaStage", types[0].stages[0].id);
+  });
+}

@@ -1,6 +1,6 @@
 <div class="et-editor card panel-style panel-default et-card">
   <div class="card-header et-card-header">
-    <h1 class="card-title et-card-title">
+    <h1 #editorHeading tabindex="-1" class="card-title et-card-title">
       <i class="fa-regular fa-envelope me-2" aria-hidden="true"></i><span class="et-template-id">{{ templateId }}</span>
     </h1>
     <nav class="et-crumbs" [attr.aria-label]="'email-templates-breadcrumb-label' | i18next">
@@ -191,29 +191,38 @@
                   <label class="et-section-label" for="et-subject">{{
                     'email-templates-subject-label' | i18next
                   }}</label>
-                  <input
-                    #subjectInput
-                    id="et-subject"
-                    type="text"
-                    class="form-control et-subject-input"
-                    autocomplete="off"
-                    spellcheck="false"
-                    [class.is-invalid]="subjectDiagnostics.length"
-                    [attr.aria-describedby]="subjectDiagnostics.length ? 'et-subject-diagnostics' : null"
-                    [attr.aria-invalid]="subjectDiagnostics.length ? 'true' : null"
-                    [ngModel]="content.subject"
-                    (ngModelChange)="onSubjectChange($event)"
-                  />
+                  <div class="et-subject-field">
+                    <input
+                      #subjectInput
+                      id="et-subject"
+                      type="text"
+                      class="form-control et-subject-input"
+                      autocomplete="off"
+                      spellcheck="false"
+                      [class.is-invalid]="subjectInvalid"
+                      [attr.aria-describedby]="subjectDiagnostics.length ? 'et-subject-diagnostics' : null"
+                      [attr.aria-invalid]="subjectInvalid ? 'true' : null"
+                      [readOnly]="busy !== null"
+                      [ngModel]="content.subject"
+                      (ngModelChange)="onSubjectChange($event)"
+                    />
+                    <email-templates-autocomplete
+                      [target]="subjectInput"
+                      [source]="completionSource"
+                    ></email-templates-autocomplete>
+                  </div>
                   @if (subjectDiagnostics.length) {
-                    <div id="et-subject-diagnostics" class="invalid-feedback d-block">
+                    <ul id="et-subject-diagnostics" class="et-diagnostic-list et-diagnostic-list-compact">
                       @for (diagnostic of subjectDiagnostics; track $index) {
-                        <div>{{ diagnosticPosition(diagnostic) }}: {{ diagnosticMessage(diagnostic) }}</div>
+                        <ng-container
+                          *ngTemplateOutlet="diagnosticItem; context: { $implicit: diagnostic }"
+                        ></ng-container>
                       }
-                    </div>
+                    </ul>
                   }
                 </div>
 
-                <fieldset class="et-fieldset mb-3">
+                <fieldset class="et-fieldset mb-3" [disabled]="busy !== null">
                   <legend class="et-section-label et-legend">{{ 'email-templates-format-label' | i18next }}</legend>
                   <div class="btn-group btn-group-sm" role="group">
                     <input
@@ -249,9 +258,12 @@
                   inputId="et-body"
                   describedBy="et-body-diagnostics"
                   [rows]="20"
+                  [readonly]="busy !== null"
                   [value]="content.body"
-                  [invalid]="bodyDiagnostics.length > 0"
+                  [invalid]="bodyErrorLines.length > 0"
                   [highlightLines]="bodyErrorLines"
+                  [warningLines]="bodyWarningLines"
+                  [completions]="completionSource"
                   (valueChange)="onBodyChange($event)"
                 ></email-templates-code-editor>
 
@@ -259,20 +271,25 @@
                   @if (bodyDiagnostics.length) {
                     <ul class="et-diagnostic-list">
                       @for (diagnostic of bodyDiagnostics; track $index) {
-                        <li>
-                          <button type="button" class="et-diagnostic" (click)="revealDiagnostic(diagnostic)">
-                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-                            <span class="et-diagnostic-pos">{{ diagnosticPosition(diagnostic) }}</span>
-                            <span>{{ diagnosticMessage(diagnostic) }}</span>
-                          </button>
-                        </li>
+                        <ng-container
+                          *ngTemplateOutlet="diagnosticItem; context: { $implicit: diagnostic }"
+                        ></ng-container>
                       }
                     </ul>
                   } @else if (!validatePending && !subjectDiagnostics.length) {
                     <span class="et-ok"
                       ><i class="fa-solid fa-check me-1" aria-hidden="true"></i
-                      >{{ 'email-templates-no-problems' | i18next }}</span
+                      >{{
+                        (previewFailing ? 'email-templates-no-syntax-policy-errors' : 'email-templates-no-problems')
+                          | i18next
+                      }}</span
                     >
+                  }
+                  @if (warningCount && !errorCount) {
+                    <p class="et-advisory">
+                      <i class="fa-solid fa-circle-info" aria-hidden="true"></i
+                      >{{ 'email-templates-warnings-advisory' | i18next }}
+                    </p>
                   }
                 </div>
 
@@ -281,21 +298,89 @@
                   <p class="et-sub mb-2">{{ 'email-templates-help-insert-hint' | i18next }}</p>
                   <div class="et-help-group">
                     <span class="et-help-label">{{ 'email-templates-help-variables' | i18next }}</span>
-                    <div class="et-chips">
-                      @for (root of state.help.contextRoots; track root) {
-                        <button type="button" class="et-chip" (click)="insertToken(variableToken(root))">
-                          {{ root }}
+                    <email-templates-field-tree
+                      [fields]="schemaFields"
+                      [roots]="state.help.contextRoots"
+                      [disabled]="busy !== null"
+                      (insert)="insertToken($event)"
+                    ></email-templates-field-tree>
+                    @if (contextSchema?.precision === 'form-config') {
+                      <p class="et-help-note et-help-precision">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <span>{{ 'email-templates-help-form-config-incomplete' | i18next }}</span>
+                      </p>
+                    }
+                  </div>
+                  @if (blockHelpers.length) {
+                    <div class="et-help-group">
+                      <span class="et-help-label" id="et-help-blocks">{{
+                        'email-templates-help-blocks' | i18next
+                      }}</span>
+                      <ul class="et-helper-rows" aria-labelledby="et-help-blocks">
+                        @for (helper of blockHelpers; track helper) {
+                          @let usage = helperUsage(helper);
+                          <li class="et-helper-row">
+                            <button
+                              type="button"
+                              class="et-chip et-chip-block"
+                              [disabled]="busy !== null"
+                              [attr.aria-describedby]="usage ? 'et-helper-usage-' + helper : null"
+                              (click)="insertHelper(helper)"
+                            >
+                              #{{ helper }}
+                            </button>
+                            @if (usage) {
+                              <div class="et-helper-usage" [id]="'et-helper-usage-' + helper">
+                                <span class="et-helper-syntax">{{ usage.syntaxKey | i18next }}</span>
+                                <code class="et-helper-example">{{ usage.exampleKey | i18next }}</code>
+                              </div>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                  <div class="et-help-group">
+                    <span class="et-help-label" id="et-help-helpers">{{
+                      'email-templates-help-helpers' | i18next
+                    }}</span>
+                    <div
+                      class="et-chips"
+                      role="group"
+                      aria-labelledby="et-help-helpers"
+                      (mouseleave)="activeHelper = null"
+                    >
+                      @for (helper of inlineHelpers; track helper) {
+                        @let usage = helperUsage(helper);
+                        <button
+                          type="button"
+                          class="et-chip"
+                          [class.active]="activeHelper === helper"
+                          [disabled]="busy !== null"
+                          [attr.aria-describedby]="usage ? 'et-helper-usage-' + helper : null"
+                          (mouseenter)="activeHelper = helper"
+                          (focus)="activeHelper = helper"
+                          (blur)="activeHelper = null"
+                          (click)="insertHelper(helper)"
+                        >
+                          {{ helper }}
                         </button>
                       }
                     </div>
-                  </div>
-                  <div class="et-help-group">
-                    <span class="et-help-label">{{ 'email-templates-help-helpers' | i18next }}</span>
-                    <div class="et-chips">
-                      @for (helper of state.help.helpers; track helper) {
-                        <button type="button" class="et-chip" (click)="insertToken(helperToken(helper))">
-                          {{ helper }}
-                        </button>
+                    <!-- Each chip is described by its own hidden usage; the visible card follows hover and focus. -->
+                    @for (helper of inlineHelpers; track helper) {
+                      @if (helperUsage(helper); as usage) {
+                        <span class="visually-hidden" [id]="'et-helper-usage-' + helper"
+                          >{{ usage.syntaxKey | i18next }} {{ usage.exampleKey | i18next }}</span
+                        >
+                      }
+                    }
+                    <div class="et-helper-card" aria-hidden="true">
+                      @if (activeHelper && helperUsage(activeHelper); as usage) {
+                        <span class="et-helper-syntax">{{ usage.syntaxKey | i18next }}</span>
+                        <code class="et-helper-example">{{ usage.exampleKey | i18next }}</code>
+                      } @else {
+                        <span class="et-helper-card-hint">{{ 'email-templates-help-helper-hint' | i18next }}</span>
                       }
                     </div>
                   </div>
@@ -325,16 +410,41 @@
               </div>
               <div class="card-body">
                 <span class="et-section-label">{{ 'email-templates-preview-data-label' | i18next }}</span>
-                <email-templates-record-picker
-                  [selected]="record"
-                  [loadingContext]="loadingContext"
-                  (choose)="requestRecord($event)"
-                ></email-templates-record-picker>
+                @if (integrationContext) {
+                  <div class="et-row et-integration-sample">
+                    <span>{{ 'email-templates-preview-integration-sample' | i18next }}</span>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link et-context-action"
+                      [disabled]="!contextSchema || busy !== null"
+                      (click)="requestSample()"
+                    >
+                      {{ 'email-templates-integration-reset-sample' | i18next }}
+                    </button>
+                  </div>
+                } @else {
+                  <email-templates-record-picker
+                    [selected]="record"
+                    [loadingContext]="loadingContext"
+                    (choose)="requestRecord($event)"
+                  ></email-templates-record-picker>
+                }
                 @if (contextLoadError) {
                   <div class="alert alert-warning et-alert mt-2 mb-0" role="alert">
                     {{ contextLoadError | i18next }}
                   </div>
                 }
+
+                <email-templates-schema-target
+                  class="mt-3"
+                  [targets]="schemaTargets"
+                  [selection]="schemaSelection"
+                  [schema]="contextSchema"
+                  [loading]="schemaLoading"
+                  [error]="schemaError"
+                  [disabled]="busy !== null"
+                  (choose)="chooseSchemaTarget($event)"
+                ></email-templates-schema-target>
 
                 <div class="et-context mt-3">
                   <div class="et-row">
@@ -347,23 +457,89 @@
                       }}</span>
                     }
                     <span class="flex-grow-1"></span>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-link px-0"
-                      [disabled]="recordContextText === null || !contextEdited"
-                      (click)="resetContext()"
-                    >
-                      {{ 'email-templates-context-reset' | i18next }}
-                    </button>
+                    @if (!integrationContext) {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link px-0 et-context-action"
+                        [disabled]="!contextSchema || busy !== null"
+                        [attr.title]="contextSchema ? null : ('email-templates-sample-unavailable' | i18next)"
+                        (click)="requestSample()"
+                      >
+                        <i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i
+                        >{{ 'email-templates-sample-action' | i18next }}
+                      </button>
+                      <span class="et-context-sep" aria-hidden="true"></span>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link px-0 et-context-action"
+                        [disabled]="recordContextText === null || !contextEdited || busy !== null"
+                        (click)="resetContext()"
+                      >
+                        {{ 'email-templates-context-reset' | i18next }}
+                      </button>
+                    }
                   </div>
+                  <p id="et-context-scope" class="et-context-scope">
+                    <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                    <span>{{ 'email-templates-context-temporary' | i18next }}</span>
+                  </p>
                   <email-templates-code-editor
                     inputId="et-context"
-                    describedBy="et-context-help"
+                    [describedBy]="
+                      integrationContext
+                        ? 'et-context-scope et-context-help'
+                        : 'et-context-scope et-context-help et-context-imports'
+                    "
                     [rows]="9"
+                    [readonly]="busy !== null"
+                    (blurred)="normaliseContext()"
                     [value]="contextText"
                     [invalid]="contextProblem !== null"
                     (valueChange)="onContextChange($event)"
                   ></email-templates-code-editor>
+                  <div class="visually-hidden" role="status">
+                    {{ contextConverted ? ('email-templates-context-converted' | i18next) : '' }}
+                  </div>
+                  @if (contextConverted) {
+                    <p class="et-context-note" aria-hidden="true">
+                      <i class="fa-solid fa-check" aria-hidden="true"></i>
+                      <span>{{ 'email-templates-context-converted' | i18next }}</span>
+                      <span class="et-context-note-detail">{{
+                        'email-templates-context-converted-detail' | i18next
+                      }}</span>
+                    </p>
+                  }
+                  @if (contextErrors.length) {
+                    <div
+                      class="et-context-issues"
+                      role="region"
+                      [attr.aria-label]="'email-templates-context-issues-label' | i18next"
+                    >
+                      <p class="et-context-issues-head">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <span>{{
+                          'email-templates-context-issues'
+                            | i18next: { count: contextErrors.length, type: contextSchemaLabel, interpolation: raw }
+                        }}</span>
+                      </p>
+                      <ul class="et-context-issue-list">
+                        @for (error of visibleContextErrors; track $index) {
+                          <li>
+                            <code class="et-context-path">{{ error.path }}</code>
+                            <span>{{ contextErrorMessage(error) }}</span>
+                          </li>
+                        }
+                      </ul>
+                      @if (contextErrors.length > visibleContextErrors.length) {
+                        <button type="button" class="btn btn-sm btn-link px-0" (click)="showAllContextErrors = true">
+                          {{
+                            'email-templates-context-issues-more'
+                              | i18next: { count: contextErrors.length - visibleContextErrors.length }
+                          }}
+                        </button>
+                      }
+                    </div>
+                  }
                   <div id="et-context-help" class="et-sub mt-1">
                     @if (contextProblem === 'json') {
                       <span class="text-danger">{{ 'email-templates-context-invalid-json' | i18next }}</span>
@@ -375,6 +551,13 @@
                       {{ 'email-templates-context-help' | i18next }}
                     }
                   </div>
+                  @if (!integrationContext) {
+                    <p id="et-context-imports" class="et-help-note et-context-imports">
+                      <i class="fa-solid fa-link" aria-hidden="true"></i>
+                      <!-- prettier-ignore -->
+                      <span>@for (segment of segments('email-templates-context-imports-note', importsMirror); track $index) {@if (segment.code) {<code>{{ segment.text }}</code>} @else {<ng-container>{{ segment.text }}</ng-container>}}</span>
+                    </p>
+                  }
                 </div>
 
                 <div class="et-row mt-3 mb-2">
@@ -451,18 +634,44 @@
                       <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
                       <div>
                         <div>{{ previewErrorKey | i18next }}</div>
-                        @for (diagnostic of previewDiagnostics; track $index) {
-                          <div class="et-sub">
-                            {{ diagnosticPosition(diagnostic) }} ({{ diagnostic.field }}):
-                            {{ diagnosticMessage(diagnostic) }}
-                          </div>
+                        @if (previewDiagnostics.length) {
+                          <ul class="et-preview-diagnostics">
+                            @for (diagnostic of previewDiagnostics; track $index) {
+                              <li>
+                                @if (previewDiagnosticsNavigable) {
+                                  <button
+                                    type="button"
+                                    class="et-preview-diagnostic"
+                                    (click)="revealDiagnostic(diagnostic)"
+                                  >
+                                    <ng-container
+                                      *ngTemplateOutlet="previewDiagnosticBody; context: { $implicit: diagnostic }"
+                                    ></ng-container>
+                                  </button>
+                                } @else {
+                                  <span class="et-preview-diagnostic">
+                                    <ng-container
+                                      *ngTemplateOutlet="previewDiagnosticBody; context: { $implicit: diagnostic }"
+                                    ></ng-container>
+                                  </span>
+                                }
+                              </li>
+                            }
+                          </ul>
                         }
                       </div>
                     </div>
                   } @else if (!contextProblem) {
                     <div class="et-preview-placeholder">
                       <i class="fa-regular fa-envelope" aria-hidden="true"></i>
-                      <div>{{ 'email-templates-preview-empty' | i18next }}</div>
+                      <div>
+                        {{
+                          (integrationContext
+                            ? 'email-templates-preview-empty-integration'
+                            : 'email-templates-preview-empty'
+                          ) | i18next
+                        }}
+                      </div>
                     </div>
                   }
                 </div>
@@ -487,7 +696,7 @@
             } @else if (dirty) {
               <span>{{ 'email-templates-status-unsaved' | i18next }}</span>
             } @else if (hasDraft) {
-              <span>{{ 'email-templates-status-saved' | i18next: { when: lastSavedAt | emailWhen } }}</span>
+              <span>{{ 'email-templates-status-template-saved' | i18next: { when: lastSavedAt | emailWhen } }}</span>
             } @else if (liveVersion !== null) {
               <span>{{ 'email-templates-status-editing-live' | i18next: { version: liveVersion } }}</span>
             } @else {
@@ -570,6 +779,7 @@
 
 <!-- Dialogs -->
 <email-templates-dialog
+  [locked]="busy !== null"
   [open]="dialog === 'publish'"
   [heading]="'email-templates-publish-title' | i18next: { templateId: templateId, interpolation: raw }"
   [closeLabel]="'email-templates-close' | i18next"
@@ -593,6 +803,15 @@
         <dt>{{ 'email-templates-publish-new-subject' | i18next }}</dt>
         <dd class="et-summary-new">{{ publishSummary.newSubject }}</dd>
       }
+      @if (publishSummary.formatChanged; as format) {
+        <dt>{{ 'email-templates-format-label' | i18next }}</dt>
+        <dd class="et-summary-format">
+          <span>{{ formatLabel(format.oldFormat) | i18next }}</span>
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          <span class="visually-hidden">{{ 'email-templates-publish-format-to' | i18next }}</span>
+          <strong>{{ formatLabel(format.newFormat) | i18next }}</strong>
+        </dd>
+      }
       <dt>{{ 'email-templates-publish-body-label' | i18next }}</dt>
       <dd>
         @if (publishSummary.changedLines === 0) {
@@ -602,9 +821,20 @@
         }
       </dd>
     </dl>
+    @if (publishSummary.formatChanged; as format) {
+      <p class="et-format-warning" role="note">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <span>{{
+          (format.newFormat === 'text'
+            ? 'email-templates-publish-format-to-text-warning'
+            : 'email-templates-publish-format-to-html-warning'
+          ) | i18next
+        }}</span>
+      </p>
+    }
   }
   <ng-container dialog-footer>
-    <button type="button" class="btn btn-outline-secondary" (click)="closeDialog()">
+    <button type="button" class="btn btn-outline-secondary" [disabled]="busy !== null" (click)="closeDialog()">
       {{ 'email-templates-cancel' | i18next }}
     </button>
     <button type="button" class="btn btn-primary" data-autofocus [disabled]="busy !== null" (click)="confirmPublish()">
@@ -617,6 +847,7 @@
 </email-templates-dialog>
 
 <email-templates-dialog
+  [locked]="busy !== null"
   [open]="dialog === 'reset'"
   [heading]="'email-templates-reset-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
@@ -626,7 +857,13 @@
     {{ 'email-templates-reset-body' | i18next: { brand: brandName, version: liveVersion, interpolation: raw } }}
   </p>
   <ng-container dialog-footer>
-    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      data-autofocus
+      [disabled]="busy !== null"
+      (click)="closeDialog()"
+    >
       {{ 'email-templates-cancel' | i18next }}
     </button>
     <button type="button" class="btn btn-danger" [disabled]="busy !== null" (click)="confirmReset()">
@@ -636,6 +873,7 @@
 </email-templates-dialog>
 
 <email-templates-dialog
+  [locked]="busy !== null"
   [open]="dialog === 'discard'"
   [heading]="'email-templates-discard-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
@@ -643,7 +881,13 @@
 >
   <p class="mb-0">{{ 'email-templates-discard-body' | i18next }}</p>
   <ng-container dialog-footer>
-    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      data-autofocus
+      [disabled]="busy !== null"
+      (click)="closeDialog()"
+    >
       {{ 'email-templates-cancel' | i18next }}
     </button>
     <button type="button" class="btn btn-danger" [disabled]="busy !== null" (click)="confirmDiscard()">
@@ -653,6 +897,7 @@
 </email-templates-dialog>
 
 <email-templates-dialog
+  [locked]="busy !== null"
   [open]="dialog === 'change-record'"
   [heading]="'email-templates-change-record-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
@@ -665,7 +910,13 @@
     }}
   </p>
   <ng-container dialog-footer>
-    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      data-autofocus
+      [disabled]="busy !== null"
+      (click)="closeDialog()"
+    >
       {{ 'email-templates-keep-json' | i18next }}
     </button>
     <button type="button" class="btn btn-primary" (click)="confirmRecordChange()">
@@ -675,6 +926,7 @@
 </email-templates-dialog>
 
 <email-templates-dialog
+  [locked]="busy !== null"
   [open]="dialog === 'from-default'"
   [heading]="'email-templates-from-default-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
@@ -682,7 +934,13 @@
 >
   <p class="mb-0">{{ 'email-templates-from-default-body' | i18next }}</p>
   <ng-container dialog-footer>
-    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      data-autofocus
+      [disabled]="busy !== null"
+      (click)="closeDialog()"
+    >
       {{ 'email-templates-cancel' | i18next }}
     </button>
     <button type="button" class="btn btn-primary" [disabled]="busy !== null" (click)="confirmDraftFromDefault()">
@@ -692,6 +950,7 @@
 </email-templates-dialog>
 
 <email-templates-dialog
+  [locked]="busy !== null"
   [open]="dialog === 'restore'"
   [heading]="'email-templates-restore-title' | i18next: { version: pendingRestore?.version }"
   [closeLabel]="'email-templates-close' | i18next"
@@ -699,7 +958,13 @@
 >
   <p class="mb-0">{{ 'email-templates-restore-body' | i18next }}</p>
   <ng-container dialog-footer>
-    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      data-autofocus
+      [disabled]="busy !== null"
+      (click)="closeDialog()"
+    >
       {{ 'email-templates-cancel' | i18next }}
     </button>
     <button type="button" class="btn btn-primary" [disabled]="busy !== null" (click)="confirmRestore()">
@@ -709,6 +974,7 @@
 </email-templates-dialog>
 
 <email-templates-dialog
+  [locked]="busy !== null"
   [open]="dialog === 'view'"
   [wide]="true"
   [heading]="'email-templates-view-title' | i18next: { version: viewing?.version }"
@@ -744,7 +1010,13 @@
     }
   }
   <ng-container dialog-footer>
-    <button type="button" class="btn btn-outline-secondary" data-autofocus (click)="closeDialog()">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      data-autofocus
+      [disabled]="busy !== null"
+      (click)="closeDialog()"
+    >
       {{ 'email-templates-close' | i18next }}
     </button>
     @if (viewing && viewing.event !== 'reset' && viewing.applied) {
@@ -756,6 +1028,33 @@
 </email-templates-dialog>
 
 <email-templates-dialog
+  [locked]="busy !== null"
+  [open]="dialog === 'sample'"
+  [heading]="'email-templates-sample-title' | i18next"
+  [closeLabel]="'email-templates-close' | i18next"
+  (dismissed)="dismissDialog()"
+>
+  <p class="mb-0">
+    {{ 'email-templates-sample-body' | i18next: { type: contextSchemaLabel, interpolation: raw } }}
+  </p>
+  <ng-container dialog-footer>
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      data-autofocus
+      [disabled]="busy !== null"
+      (click)="closeDialog()"
+    >
+      {{ 'email-templates-keep-json' | i18next }}
+    </button>
+    <button type="button" class="btn btn-primary" [disabled]="busy !== null" (click)="confirmSample()">
+      {{ 'email-templates-sample-confirm' | i18next }}
+    </button>
+  </ng-container>
+</email-templates-dialog>
+
+<email-templates-dialog
+  [locked]="busy !== null"
   [open]="dialog === 'conflict'"
   [wide]="true"
   [heading]="'email-templates-conflict-title' | i18next"
@@ -792,8 +1091,63 @@
         {{ 'email-templates-copy-body' | i18next }}
       </button>
     }
-    <button type="button" class="btn btn-primary" data-autofocus (click)="reloadAfterConflict()">
+    <button
+      type="button"
+      class="btn btn-primary"
+      data-autofocus
+      [disabled]="busy !== null"
+      (click)="reloadAfterConflict()"
+    >
       {{ 'email-templates-reload' | i18next }}
     </button>
   </ng-container>
 </email-templates-dialog>
+
+<ng-template #previewDiagnosticBody let-diagnostic>
+  <span class="et-diagnostic-pos"
+    >{{ (diagnostic.field === 'subject' ? 'email-templates-subject-label' : 'email-templates-body-label') | i18next }} ·
+    {{ diagnosticPosition(diagnostic) }}</span
+  >
+  <ng-container *ngTemplateOutlet="diagnosticText; context: { $implicit: diagnostic }"></ng-container>
+</ng-template>
+
+<ng-template #diagnosticText let-diagnostic>
+  <!-- prettier-ignore -->
+  <span class="et-diagnostic-text">@for (segment of diagnosticSegments(diagnostic); track $index) {@if (segment.code) {<code>{{ segment.text }}</code>} @else {<ng-container>{{ segment.text }}</ng-container>}}</span>
+</ng-template>
+
+<ng-template #diagnosticItem let-diagnostic>
+  <li class="et-diagnostic-item" [class.et-diagnostic-warning]="isWarning(diagnostic)">
+    <button type="button" class="et-diagnostic" (click)="revealDiagnostic(diagnostic)">
+      <i
+        class="fa-solid"
+        [class.fa-circle-exclamation]="!isWarning(diagnostic)"
+        [class.fa-triangle-exclamation]="isWarning(diagnostic)"
+        aria-hidden="true"
+      ></i>
+      <span class="visually-hidden">{{
+        (isWarning(diagnostic) ? 'email-templates-severity-warning' : 'email-templates-severity-error') | i18next
+      }}</span>
+      <span class="et-diagnostic-pos">{{ diagnosticPosition(diagnostic) }}</span>
+      <ng-container *ngTemplateOutlet="diagnosticText; context: { $implicit: diagnostic }"></ng-container>
+    </button>
+    @if (diagnosticFix(diagnostic); as fix) {
+      <button
+        type="button"
+        class="et-diagnostic-fix"
+        [disabled]="busy !== null"
+        [attr.aria-label]="
+          'email-templates-did-you-mean-label'
+            | i18next: { name: fix.name, line: diagnostic.line, column: diagnostic.column, interpolation: raw }
+        "
+        (click)="applySuggestion(diagnostic)"
+      >
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+        <span
+          >{{ fix.before }}<code>{{ fix.name }}</code
+          >{{ fix.after }}</span
+        >
+      </button>
+    }
+  </li>
+</ng-template>

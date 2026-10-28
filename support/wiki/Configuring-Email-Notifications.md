@@ -25,6 +25,7 @@ settings
 |
 |- additionalContextRoots
 |
+|- maxTemplateNesting / maxTemplateExpressions
 |- maxSubjectBytes / maxBodyBytes
 |
 defaults
@@ -57,6 +58,8 @@ Where <> are property labels that are variables.
 | settings/additionalContextRoots | Extra hook display roots permitted in DB overrides; defaults to `[]`. | No | `['scuEmail']` |
 | settings/maxSubjectBytes | UTF-8 byte cap on source and rendered subject; defaults to `998`. | No | `998` |
 | settings/maxBodyBytes | UTF-8 byte cap on source and rendered body; defaults to `1048576` (1 MiB). | No | `1048576` |
+| settings/maxTemplateNesting | Maximum combined block and subexpression nesting, including chained `else if`. Checked before parsing; defaults to `64`. | No | `64` |
+| settings/maxTemplateExpressions | Maximum expression statements plus subexpressions per subject or body. Checked before parsing; defaults to `1024`. | No | `1024` |
 | defaults   | Section used to capture default properties for emails (when not otherwise set) | Yes      | N/A          |
 | defaults/from    | The default from address | Yes      | redbox@redboxresearchdata.com.au             |
 | defaults/subject    | The default from email subject | Yes      | A notification from ReDBox         |
@@ -92,6 +95,8 @@ The templates section of the `config/emailnotification.js` file contains configu
 |
 |- subject
 |
+|- description (optional)
+|
 |- template
 |
 ```
@@ -99,15 +104,43 @@ The templates section of the `config/emailnotification.js` file contains configu
 | Field            | Description                                                                                                                                                                              | Required | Example        |
 |------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|----------------|
 | < email-code >    | The email code used by the application to find the configuration to trigger an email | Yes      | transferOwnerTo           |
-| < email-code >/subject    | The email's subject | Yes      | Ownership of DMP record/s has been transferred to you |
+| < email-code >/subject    | The email's subject; omitted entries use `defaults.subject` | No | Ownership of DMP record/s has been transferred to you |
+| < email-code >/description | Plain-string purpose and trigger description for administrators; never rendered as Handlebars or sent | No | Sent to the new custodian when an ownership transfer uses this template. |
 | < email-code >/template    | The template file (located in the directory specified in the settings/templateDir property) to use to render the contents | Yes      | transferOwnerTo |
 
 ### Example
 ```
 templates: {
-  transferOwnerTo: {subject: 'Ownership of DMP record/s has been transferred to you', template: 'transferOwnerTo'}
+  transferOwnerTo: {
+    subject: 'Ownership of DMP record/s has been transferred to you',
+    template: 'transferOwnerTo',
+    description: 'Sent to the new custodian when an ownership transfer uses this template.'
+  }
 }
 ```
+
+Descriptions appear as optional `description` values in both catalogue and editor-state
+API responses. The catalogue's `subject` remains the supplied default subject, separate
+from the purpose description. File-only/hook templates can omit a description; the
+editor must not invent a trigger. Startup rejects non-string descriptions, including
+`null`. An empty string is allowed. These values belong to supplied configuration;
+draft, publish and reset only change subject, body and format.
+
+The seven bundled templates have these purposes:
+
+| Template | When it is used | Source of the description |
+| --- | --- | --- |
+| `integrationFailure` | Sent to configured recipients when an integration fails and failure notifications are enabled. | `IntegrationNotificationService.dispatch` status/config/throttle gates and `EmailChannel.send` default template selection. |
+| `integrationRecovery` | Sent after a previously notified integration failure succeeds, if recovery alerts are enabled. | The same service's success branch requires a cached prior notified failure and `recoveryAlerts`. |
+| `publicationStaged` | Sent to the chief investigator, data manager and supervisor when a draft publication is queued for publishing. | Dev-hook `recordtype.ts` dataPublication create/update post-save trigger: notification state `draft`, workflow stage `queued`. |
+| `publicationReview` | Sent to the configured reviewer after the staged notification succeeds, to review the queued publication. | The staged trigger's `onNotifySuccess` chain. |
+| `publicationPublished` | Sent to contributors, creators and the reviewer when a reviewed publication becomes published. | Dev-hook create/update trigger: notification state `emailed-reviewing`, workflow stage `published`. |
+| `transferOwnerTo` | Notifies the new custodian when an RDMP ownership transfer uses this template; core config has no automatic trigger. | Supplied subject/body and email service integration fixture; no core service or workflow caller is configured. |
+| `test` | Example for explicitly requested test notifications; core config has no automatic trigger. | Supplied subject/body and template rendering examples; no automatic core caller. |
+
+Publication descriptions describe the bundled demo workflow. Hooks with different
+triggers or recipients should override the description alongside their template config.
+Adding a description does not enable a notification or change any recipient/trigger rule.
 
 ### Email Templates
 
@@ -155,6 +188,8 @@ Bodies and subjects receive a **constructed record**, for supplied files and DB 
 | Path | Purpose |
 |---|---|
 | `record.oid` and top-level `oid` | Record link/identifier; explicit top-level OID takes precedence, otherwise `record.oid`/`record.redboxOid`. |
+| `record.redboxOid` | Legacy alias of the curated `record.oid`, including via `imports.record.redboxOid`; no other stored-record internals are restored. |
+| `record.viewUrl`, `record.editUrl` | Optional portal links to view or edit this record, using the curated OID. |
 | `record.metadata` | All record metadata for display. |
 | `record.dateCreated`, `record.lastSaveDate` | Creation and modification display dates. |
 | `record.workflow.stage`, `record.workflow.stageLabel` | Workflow status and human-readable label. |
@@ -164,6 +199,49 @@ Bodies and subjects receive a **constructed record**, for supplied files and DB 
 | `record.metaMetadata.createdOn`, `record.metaMetadata.lastSaveDate` | Compatibility date aliases used for record provenance displays. |
 
 No other record fields cross this boundary: authorization lists, stored authorization, internal IDs/revisions, lifecycle/harvest fields, search core, form/package configuration and attachment-field lists are excluded. The legacy `imports` object is unused by the seven core and 19 SCU `.hbs` templates inspected, but is retained for other hooks as **only** `{ record, oid }`, with the same curated record; it cannot retain a second raw record. Caller data is not mutated. Integration payload fields and explicit hook display roots retain their existing values. `to`, `cc`, `bcc` and `from` templates still receive the **full record and original imports** for recipient resolution, with the restricted `portal`/`sailsConfig` values. Definitive subject rendering for template sends happens after hook injection so hook values are available for supplied subjects too. `sendMessage` continues accepting already-rendered strings, subject to the output protections below.
+
+When a record is present, the optional root `title` copies `record.metadata.title`
+when it is a string, unless the caller supplied `title`. The optional
+`record.viewUrl` and `record.editUrl` values are
+`${portal.brandUrl}/record/view/${encodeURIComponent(oid)}` and
+`${portal.brandUrl}/record/edit/${encodeURIComponent(oid)}`, using the curated OID.
+URLs are derived only when the brand URL and OID are non-empty strings; otherwise
+they are omitted. Existing string values on the incoming record, including empty
+strings and edits in preview Context JSON, take precedence over derivation.
+The legacy `imports.record` alias contains the same URLs. No values are derived
+without a record. The root `recordUrl` is supplied only by integration payloads
+or callers; core does not derive it for record emails. Integration payload values
+retain their existing behavior.
+
+### Record and integration preview contexts
+
+The Admin editor exposes a server-selected context kind. `record` is the default.
+`integrationFailure` and `integrationRecovery` always use `integration`; other IDs
+use it when named by an email channel's `template` in the brand's resolved
+`integrationNotification` app config, including `perIntegration.*.channels`.
+Disabled channels/configurations still count. Core reads only that brand's
+app config using the integration dispatch resolver (DB configuration or global
+defaults); it does not inspect other brands, guess from template content, or
+cache classifications. If resolution fails, only the two core defaults qualify.
+Minimal apps without an app-config resolver use the global defaults.
+
+Integration previews offer a schema-generated sample alert and **Reset sample**,
+with editable Context JSON and no record type/stage selector or record lookup.
+The field tree and autocomplete describe the flat `IntegrationNotificationPayload`
+contract, including required/optional fields and `kind`/`severity` enums, plus the
+same restricted `portal` and `sailsConfig` objects used by sends. There is no
+`record` or `imports` object. Core samples match failure/recovery to the template;
+custom channel templates start with failure data. Sample `recordUrl` uses the
+brand's portal view URL and an encoded sample OID, with ISO timestamps for date
+fields. Optional payload fields can be removed or edited for preview.
+
+Preview follows the integration `buildFromTemplate` path with trusted route
+`brandId` and payload `title` as the runtime default subject. Unchanged supplied
+defaults use that title; override subjects take precedence. The payload is not
+curated as a record. Integration schema lint reports unknown fields with safe
+suggestions and warns about unguarded optional fields such as `recordUrl`.
+Use `{{#if recordUrl}}...{{/if}}` or `{{#if (isDefined durationMs)}}...{{/if}}` to
+guard optional values. Both bundled integration templates have zero warnings.
 
 ### Persisted-template expression validation
 
@@ -185,7 +263,7 @@ settings: {
 
 Entries must be simple identifiers, without dots, whitespace or prototype names. This setting allows names; it does not populate their values or expose additional record/config internals. SCU deployments using DB overrides must add `scuEmail`. Supplied files retain their trusted hook-specific root vocabulary without this setting; they still use curated records, syntax/length validation and delivery sanitisation. A stored override is checked again against current configuration/helpers on every read/render, even if a caller replaces its subject. Removing a root can therefore invalidate existing overrides.
 
-AST and syntax failures use `EmailTemplateError` with `code: 'INVALID_TEMPLATE'`, a content-free message and structured `diagnostic: { field, reason, line, column }`. Reason categories are `UNKNOWN_CONTEXT_ROOT`, `UNKNOWN_HELPER`, `UNSUPPORTED_CONSTRUCT` and `INVALID_SYNTAX`; lines and columns are one-based. There is no `diagnostic.expression`, even for plain identifier paths or management calls. Template text, subjects, bodies and exception-provided names/codes are never copied into diagnostics, chronicles, logs or audit reports. Editors can use the location to highlight their separately authorised source. Missing data remains `RENDER_FAILED`.
+AST and syntax failures use `EmailTemplateError` with `code: 'INVALID_TEMPLATE'`, a content-free message and structured `diagnostic: { field, reason, line, column }`. Reason categories include `UNKNOWN_CONTEXT_ROOT`, `UNKNOWN_HELPER`, `UNSUPPORTED_CONSTRUCT`, `TOO_COMPLEX` and the syntax reasons `UNCLOSED_BLOCK`, `MISMATCHED_CLOSE`, `UNEXPECTED_TOKEN` (older clients/servers may use `INVALID_SYNTAX`); lines and columns are one-based. Unclosed blocks point at their opening; mismatched closes point at the closing tag. Syntax diagnostics may include `helper`, restricted to the fixed names `each`, `if`, `unless`, `with`; arbitrary helper/path names are never returned. There is no `diagnostic.expression`, even for plain identifier paths or management calls. Template text, subjects, bodies and exception-provided names/codes are never copied into diagnostics, chronicles, logs or audit reports. Editors can use the location to highlight their separately authorised source. Missing data remains `RENDER_FAILED`.
 
 Audit stored overrides without aborting on the first invalid row:
 
@@ -209,6 +287,8 @@ Unsafe markup is stripped and the email still sends. The request chronicle recor
 Final rendered subjects lose CR/LF, C0/C1 controls, DEL and Unicode line/paragraph separators before delivery. Subjects are not HTML-sanitised. Length checks count **UTF-8 bytes** and apply to both source and rendered subject/body, for files, stored overrides and caller overrides, plus already-rendered direct sends. Rendered body length is checked before sanitisation and again afterwards; the subject cap is checked before controls are removed. Oversized content fails with typed `LENGTH_LIMIT`; it is never silently truncated. Invalid cap settings fail bootstrap/render with `INVALID_TEMPLATE`.
 
 `settings.maxSubjectBytes` defaults to **998**, the SMTP header line limit (transport folding/encoding still applies); this comfortably accommodates ordinary notification subjects while rejecting runaway metadata expansion. `settings.maxBodyBytes` defaults to **1048576 (1 MiB)**, leaving room for detailed institutional HTML tables while bounding parsing, compilation and delivery work. Both must be positive safe integers. Source limits apply to unrendered Handlebars too, so raise a limit deliberately if a large template expression needs more room. These are content budgets, not total MIME message/attachment limits.
+
+`settings.maxTemplateNesting` (default **64**) and `settings.maxTemplateExpressions` (default **1024**) bound synchronous parser work for every subject and body, including supplied defaults. Both must be positive safe integers and are validated at startup. The shared pre-parse scan counts block statements, printed/helper expressions and subexpressions; combined block/subexpression depth includes each chained `else if` as another level. Closing tags, plain `else`, comments, escaped mustaches, quoted/segment literals and raw-block contents do not add expressions. Exceeding either bound returns a content-free, blocking `TOO_COMPLEX` validation diagnostic before Handlebars parses. Validate, preview, draft save and publish all use this policy; invalid drafts remain editable, but cannot publish. Schema lint uses the same counter and its warnings remain advisory.
 
 ### Deferred work
 

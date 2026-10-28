@@ -7249,11 +7249,6 @@
     "description": "Email templates admin page heading and breadcrumb root",
     "contentFormat": "plain"
   },
-  "email-templates-brand": {
-    "category": "email-templates",
-    "description": "Badge showing which brand the templates belong to; brand is the brand name",
-    "contentFormat": "plain"
-  },
   "email-templates-catalogue-intro": {
     "category": "email-templates",
     "description": "Introductory text above the email template catalogue",
@@ -7279,9 +7274,9 @@
     "description": "Accessible label for the catalogue filter box",
     "contentFormat": "plain"
   },
-  "email-templates-filter-placeholder": {
+  "email-templates-filter-placeholder-purpose": {
     "category": "email-templates",
-    "description": "Placeholder for the catalogue filter box",
+    "description": "Placeholder for the catalogue filter box, which matches ID, purpose description or subject",
     "contentFormat": "plain"
   },
   "email-templates-quick-filters-label": {
@@ -7422,11 +7417,6 @@
   "email-templates-badge-restored-from": {
     "category": "email-templates",
     "description": "Editor badge: the draft was copied from a history version",
-    "contentFormat": "plain"
-  },
-  "email-templates-no-live-version": {
-    "category": "email-templates",
-    "description": "Accessible text for the empty live version cell",
     "contentFormat": "plain"
   },
   "email-templates-unknown-actor": {
@@ -7592,6 +7582,11 @@
   "email-templates-diagnostic-position": {
     "category": "email-templates",
     "description": "Diagnostic position",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-TOO_COMPLEX": {
+    "category": "email-templates",
+    "description": "Blocking diagnostic: the template exceeds the configured nesting or expression limit",
     "contentFormat": "plain"
   },
   "email-templates-diagnostic-UNKNOWN_CONTEXT_ROOT": {
@@ -7874,9 +7869,9 @@
     "description": "Footer status",
     "contentFormat": "plain"
   },
-  "email-templates-status-saved": {
+  "email-templates-status-template-saved": {
     "category": "email-templates",
-    "description": "Footer status; when is a date and time",
+    "description": "Footer status: the template draft (not preview data) was saved; when is a date and time",
     "contentFormat": "plain"
   },
   "email-templates-status-editing-live": {
@@ -8287,6 +8282,916 @@
   "email-templates-error-UNAVAILABLE": {
     "category": "email-templates",
     "description": "Error message fallback",
+    "contentFormat": "plain"
+  },
+  "email-templates-ac-label": {
+    "category": "email-templates",
+    "description": "Accessible name of the autocomplete suggestion list",
+    "contentFormat": "plain"
+  },
+  "email-templates-ac-hint": {
+    "category": "email-templates",
+    "description": "Keyboard hint at the foot of the autocomplete popover",
+    "contentFormat": "plain"
+  },
+  "email-templates-ac-count_one": {
+    "category": "email-templates",
+    "description": "Screen reader announcement of the autocomplete result count (one)",
+    "contentFormat": "plain"
+  },
+  "email-templates-ac-count_other": {
+    "category": "email-templates",
+    "description": "Screen reader announcement of the autocomplete result count (many)",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-label": {
+    "category": "email-templates",
+    "description": "Label for the record type and workflow stage that drive schema assistance",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-type": {
+    "category": "email-templates",
+    "description": "Accessible label of the record type selector",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-stage": {
+    "category": "email-templates",
+    "description": "Accessible label of the workflow stage selector",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-loading": {
+    "category": "email-templates",
+    "description": "Shown while the context schema loads",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-error": {
+    "category": "email-templates",
+    "description": "Shown when schema targets or the context schema could not be loaded",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-no-types": {
+    "category": "email-templates",
+    "description": "Shown when the brand has no record types",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-precision-record-schema": {
+    "category": "email-templates",
+    "description": "Schema precision: full record schema; type and stage are labels",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-precision-form-config": {
+    "category": "email-templates",
+    "description": "Schema precision: field names only, from form config; type is a record type label",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-precision-none": {
+    "category": "email-templates",
+    "description": "Schema precision: no record metadata schema",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-search-label": {
+    "category": "email-templates",
+    "description": "Accessible label of the field tree search box",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-search-placeholder": {
+    "category": "email-templates",
+    "description": "Placeholder of the field tree search box",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-count_one": {
+    "category": "email-templates",
+    "description": "Number of variables in the field tree (one)",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-count_other": {
+    "category": "email-templates",
+    "description": "Number of variables in the field tree (many)",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-matches_one": {
+    "category": "email-templates",
+    "description": "Number of field tree search matches (one)",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-matches_other": {
+    "category": "email-templates",
+    "description": "Number of field tree search matches (many)",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-expand": {
+    "category": "email-templates",
+    "description": "Accessible label of the expand button for a list in the field tree",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-collapse": {
+    "category": "email-templates",
+    "description": "Accessible label of the collapse button for a list in the field tree",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-required": {
+    "category": "email-templates",
+    "description": "Field tree marker for a required field",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-optional": {
+    "category": "email-templates",
+    "description": "Field tree marker for an optional field",
+    "contentFormat": "plain"
+  },
+  "email-templates-fields-none": {
+    "category": "email-templates",
+    "description": "Field tree search with no results; query is the typed text",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-UNKNOWN_FIELD": {
+    "category": "email-templates",
+    "description": "Schema warning: unknown field",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-UNKNOWN_FIELD-named": {
+    "category": "email-templates",
+    "description": "Schema warning: unknown field; name is the template path",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-EACH_NOT_ARRAY": {
+    "category": "email-templates",
+    "description": "Schema warning: #each over a non-list",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-EACH_NOT_ARRAY-named": {
+    "category": "email-templates",
+    "description": "Schema warning: #each over a non-list; name is the template path",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-PRINTS_OBJECT": {
+    "category": "email-templates",
+    "description": "Schema warning: printing an object or list",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-PRINTS_OBJECT-named": {
+    "category": "email-templates",
+    "description": "Schema warning: printing an object or list; name is the template path",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-OPTIONAL_UNGUARDED": {
+    "category": "email-templates",
+    "description": "Schema hint: optional field printed without a guard",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-OPTIONAL_UNGUARDED-named": {
+    "category": "email-templates",
+    "description": "Schema hint: optional field printed without a guard; name is the template path",
+    "contentFormat": "plain"
+  },
+  "email-templates-warning-other": {
+    "category": "email-templates",
+    "description": "Fallback schema warning",
+    "contentFormat": "plain"
+  },
+  "email-templates-did-you-mean": {
+    "category": "email-templates",
+    "description": "One-click replacement offered on a schema warning; name is the suggested field name",
+    "contentFormat": "plain"
+  },
+  "email-templates-did-you-mean-label": {
+    "category": "email-templates",
+    "description": "Accessible label of the one-click replacement",
+    "contentFormat": "plain"
+  },
+  "email-templates-suggestion-applied": {
+    "category": "email-templates",
+    "description": "Announced after a one-click replacement",
+    "contentFormat": "plain"
+  },
+  "email-templates-severity-error": {
+    "category": "email-templates",
+    "description": "Hidden prefix read before an error diagnostic",
+    "contentFormat": "plain"
+  },
+  "email-templates-severity-warning": {
+    "category": "email-templates",
+    "description": "Hidden prefix read before a warning diagnostic",
+    "contentFormat": "plain"
+  },
+  "email-templates-warnings-advisory": {
+    "category": "email-templates",
+    "description": "Note under the diagnostics when there are only warnings",
+    "contentFormat": "plain"
+  },
+  "email-templates-sample-action": {
+    "category": "email-templates",
+    "description": "Context JSON action that builds sample data from the schema",
+    "contentFormat": "plain"
+  },
+  "email-templates-sample-unavailable": {
+    "category": "email-templates",
+    "description": "Tooltip when sample data can't be generated yet",
+    "contentFormat": "plain"
+  },
+  "email-templates-sample-title": {
+    "category": "email-templates",
+    "description": "Heading of the sample data confirmation",
+    "contentFormat": "plain"
+  },
+  "email-templates-sample-body": {
+    "category": "email-templates",
+    "description": "Body of the sample data confirmation; type is a record type label",
+    "contentFormat": "plain"
+  },
+  "email-templates-sample-confirm": {
+    "category": "email-templates",
+    "description": "Confirm button of the sample data confirmation",
+    "contentFormat": "plain"
+  },
+  "email-templates-sample-applied": {
+    "category": "email-templates",
+    "description": "Announced after sample data is generated",
+    "contentFormat": "plain"
+  },
+  "email-templates-sample-failed": {
+    "category": "email-templates",
+    "description": "Shown when sample generation reaches its limit or cannot satisfy the schema",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-converted": {
+    "category": "email-templates",
+    "description": "Note after relaxed Context JSON is normalised",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-converted-detail": {
+    "category": "email-templates",
+    "description": "Detail after relaxed Context JSON is normalised",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-issues-label": {
+    "category": "email-templates",
+    "description": "Accessible name of the Context JSON schema differences",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-issues_one": {
+    "category": "email-templates",
+    "description": "Context JSON schema differences heading (one); type is a record type label",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-issues_other": {
+    "category": "email-templates",
+    "description": "Context JSON schema differences heading (many); type is a record type label",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-issues-more_one": {
+    "category": "email-templates",
+    "description": "Reveal further Context JSON differences (one)",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-issues-more_other": {
+    "category": "email-templates",
+    "description": "Reveal further Context JSON differences (many)",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-required": {
+    "category": "email-templates",
+    "description": "Context JSON difference: required field missing",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-type": {
+    "category": "email-templates",
+    "description": "Context JSON difference: wrong type; expected is a list of JSON types",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-enum": {
+    "category": "email-templates",
+    "description": "Context JSON difference: enum",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-const": {
+    "category": "email-templates",
+    "description": "Context JSON difference: const",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-minLength": {
+    "category": "email-templates",
+    "description": "Context JSON difference: string too short",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-maxLength": {
+    "category": "email-templates",
+    "description": "Context JSON difference: string too long",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-minimum": {
+    "category": "email-templates",
+    "description": "Context JSON difference: number too small",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-maximum": {
+    "category": "email-templates",
+    "description": "Context JSON difference: number too large",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-minItems": {
+    "category": "email-templates",
+    "description": "Context JSON difference: list too short",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-maxItems": {
+    "category": "email-templates",
+    "description": "Context JSON difference: list too long",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-readOnly": {
+    "category": "email-templates",
+    "description": "Context JSON difference: a derived field (the legacy imports alias) that the server rebuilds from record",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-additionalProperties": {
+    "category": "email-templates",
+    "description": "Context JSON difference: unexpected field",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-anyOf": {
+    "category": "email-templates",
+    "description": "Context JSON difference: anyOf",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-oneOf": {
+    "category": "email-templates",
+    "description": "Context JSON difference: oneOf",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-limit": {
+    "category": "email-templates",
+    "description": "Context JSON difference: validation limit reached",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-error-other": {
+    "category": "email-templates",
+    "description": "Fallback Context JSON difference",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-each-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the each helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-each-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the each helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-if-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the if helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-if-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the if helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-unless-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the unless helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-unless-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the unless helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-with-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the with helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-with-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the with helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-formatDate-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the formatDate helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-formatDate-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the formatDate helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-formatDateLocale-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the formatDateLocale helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-formatDateLocale-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the formatDateLocale helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-parseDateString-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the parseDateString helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-parseDateString-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the parseDateString helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-default-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the default helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-default-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the default helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-join-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the join helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-join-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the join helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-pluck-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the pluck helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-pluck-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the pluck helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-get-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the get helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-get-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the get helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-t-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the t helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-t-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the t helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-markdownToHtml-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the markdownToHtml helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-markdownToHtml-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the markdownToHtml helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-plaintextToHtml-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the plaintextToHtml helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-plaintextToHtml-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the plaintextToHtml helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-json-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the json helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-json-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the json helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-renderMetadataValue-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the renderMetadataValue helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-renderMetadataValue-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the renderMetadataValue helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-attachmentDownloadUrl-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the attachmentDownloadUrl helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-attachmentDownloadUrl-example-brand-name": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the attachmentDownloadUrl helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-lookup-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the lookup helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-lookup-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the lookup helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-log-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the log helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-log-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the log helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-helperMissing-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the helperMissing helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-helperMissing-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the helperMissing helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-blockHelperMissing-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the blockHelperMissing helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-blockHelperMissing-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the blockHelperMissing helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isEmpty-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the isEmpty helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isEmpty-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the isEmpty helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isUndefined-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the isUndefined helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isUndefined-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the isUndefined helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isNull-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the isNull helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isNull-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the isNull helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isDefined-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the isDefined helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isDefined-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the isDefined helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isArray-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the isArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isArray-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the isArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isObject-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the isObject helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-isObject-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the isObject helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-eq-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the eq helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-eq-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the eq helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-ne-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the ne helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-ne-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the ne helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-gt-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the gt helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-gt-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the gt helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-gte-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the gte helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-gte-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the gte helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-lt-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the lt helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-lt-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the lt helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-lte-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the lte helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-lte-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the lte helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-and-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the and helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-and-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the and helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-or-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the or helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-or-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the or helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-not-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the not helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-not-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the not helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-substring-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the substring helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-substring-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the substring helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-split-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the split helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-split-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the split helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-urlEncode-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the urlEncode helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-urlEncode-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the urlEncode helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-concat-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the concat helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-concat-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the concat helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-trim-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the trim helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-trim-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the trim helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-toLower-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the toLower helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-toLower-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the toLower helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-toUpper-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the toUpper helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-toUpper-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the toUpper helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-no-syntax-policy-errors": {
+    "category": "email-templates",
+    "description": "Email editor: shown instead of 'No problems found' while the preview fails to render, so validation success isn't read as a successful render",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-UNCLOSED_BLOCK-helper": {
+    "category": "email-templates",
+    "description": "Diagnostic: a known block helper is never closed. {{open}} and {{close}} are literal Handlebars tags such as {{#each}} and {{/each}}, shown as code",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-UNCLOSED_BLOCK": {
+    "category": "email-templates",
+    "description": "Diagnostic: a custom block is never closed",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-MISMATCHED_CLOSE-helper": {
+    "category": "email-templates",
+    "description": "Diagnostic: a closing tag doesn't match the open block. {{open}} and {{close}} are literal Handlebars tags, shown as code",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-MISMATCHED_CLOSE": {
+    "category": "email-templates",
+    "description": "Diagnostic: an orphan or mismatched closing tag",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-UNEXPECTED_TOKEN": {
+    "category": "email-templates",
+    "description": "Diagnostic: unexpected token while parsing a template",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-RENDER_FAILED-named": {
+    "category": "email-templates",
+    "description": "Preview render failure naming the expression at the failing position. {{name}} is a template path from the editor, shown as code",
+    "contentFormat": "plain"
+  },
+  "email-templates-help-blocks": {
+    "category": "email-templates",
+    "description": "Email editor help: heading for block helpers (each, if, unless, with)",
+    "contentFormat": "plain"
+  },
+  "email-templates-help-helper-hint": {
+    "category": "email-templates",
+    "description": "Email editor help: placeholder in the helper usage card",
+    "contentFormat": "plain"
+  },
+  "email-templates-help-form-config-incomplete": {
+    "category": "email-templates",
+    "description": "Email editor help: shown when the field list is derived from the form config rather than a record schema",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-temporary": {
+    "category": "email-templates",
+    "description": "Email editor: caption under Context JSON explaining it is only kept while this page is open",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-imports-note": {
+    "category": "email-templates",
+    "description": "Email editor: note beside Context JSON. {{alias}} is imports.record and {{record}} is record, both shown as code",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-format-to": {
+    "category": "email-templates",
+    "description": "Publish dialog: screen-reader text for the arrow between the old and new format",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-format-to-text-warning": {
+    "category": "email-templates",
+    "description": "Publish dialog warning when the format changes from HTML to plain text",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-format-to-html-warning": {
+    "category": "email-templates",
+    "description": "Publish dialog warning when the format changes from plain text to HTML",
+    "contentFormat": "plain"
+  },
+  "email-templates-catalogue-subject": {
+    "category": "email-templates",
+    "description": "Email catalogue: label before a template's supplied default subject",
+    "contentFormat": "plain"
+  },
+  "email-templates-live-default": {
+    "category": "email-templates",
+    "description": "Email catalogue Live column when nothing is published",
+    "contentFormat": "plain"
+  },
+  "email-templates-live-default-title": {
+    "category": "email-templates",
+    "description": "Email catalogue tooltip for the Live column's Default value",
+    "contentFormat": "plain"
+  },
+  "email-templates-legend-label": {
+    "category": "email-templates",
+    "description": "Email catalogue: accessible name of the badge key",
+    "contentFormat": "plain"
+  },
+  "email-templates-legend-default": {
+    "category": "email-templates",
+    "description": "Email catalogue badge key: Default",
+    "contentFormat": "plain"
+  },
+  "email-templates-legend-overridden": {
+    "category": "email-templates",
+    "description": "Email catalogue badge key: Overridden",
+    "contentFormat": "plain"
+  },
+  "email-templates-legend-draft": {
+    "category": "email-templates",
+    "description": "Email catalogue badge key: Draft",
+    "contentFormat": "plain"
+  },
+  "email-templates-legend-attention": {
+    "category": "email-templates",
+    "description": "Email catalogue: what the Needs attention filter covers",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-integration-sample": {
+    "category": "email-templates",
+    "description": "Preview data source label for integration templates",
+    "contentFormat": "plain"
+  },
+  "email-templates-integration-reset-sample": {
+    "category": "email-templates",
+    "description": "Reset edited preview JSON to a sample integration alert",
+    "contentFormat": "plain"
+  },
+  "email-templates-schema-precision-integration": {
+    "category": "email-templates",
+    "description": "Schema precision label for integration payload fields",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-empty-integration": {
+    "category": "email-templates",
+    "description": "Empty preview hint for integration templates without record selection",
     "contentFormat": "plain"
   }
 }

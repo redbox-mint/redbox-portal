@@ -59,7 +59,7 @@
               <li>
                 <button
                   type="button"
-                  class="et-picker-option"
+                  class="et-picker-option" [disabled]="!canPick"
                   [class.et-picker-option-current]="record.oid === selected?.oid"
                   (click)="pick(record)"
                 >
