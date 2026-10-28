@@ -541,9 +541,9 @@ export class RecordService extends HttpClientService {
     sort: string = '',
     filterFields: string = '',
     filterString: string = '',
-    filterMode: string = ''
+    filterMode: string = '',
+    rows: number = 10
   ): Promise<RecordResponseTable> {
-    let rows = 10;
     let start = (pageNumber - 1) * rows;
 
     const items = {

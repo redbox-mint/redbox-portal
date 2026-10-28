@@ -444,7 +444,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const filterFields = 'title';
 
     const records: RecordResponseTable = await this.recordService.getDeletedRecords(
-      recordType, workflowState, pageNum, packageType, sort, filterFields, filterString, filterMode);
+      recordType, workflowState, pageNum, packageType, sort, filterFields, filterString, filterMode, this.recordsPerPage);
 
     return {
       recordsPerPage: this.recordsPerPage,

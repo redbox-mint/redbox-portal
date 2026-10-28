@@ -39,6 +39,21 @@ describe("RecordService", () => {
     httpTestingController.verify();
   });
 
+  for (const rows of [undefined, 5, 20]) {
+    it(`requests deleted records with consistent offset and page size ${rows ?? 'default'}`, async () => {
+      recordService.brandingAndPortalUrl = 'https://portal.example/default/rdmp';
+      const result = recordService.getDeletedRecords('rdmp', 'deleted', 3, '', '', '', '', '', rows);
+      const request = httpTestingController.expectOne(req => req.url.includes('listDeletedRecords'));
+      const query = new URL(request.request.url).searchParams;
+      expect(request.request.method).toBe('GET');
+      expect(query.get('rows')).toBe(String(rows ?? 10));
+      expect(query.get('start')).toBe(String(2 * (rows ?? 10)));
+      const response = { items: [], totalItems: 0, currentPage: 3, noItems: 0 };
+      request.flush(response);
+      await expectAsync(result).toBeResolvedTo(response);
+    });
+  }
+
   it("unwraps attachment responses from the backend data envelope", async () => {
     const attachmentsPromise = recordService.getAttachments("oid-123");
 

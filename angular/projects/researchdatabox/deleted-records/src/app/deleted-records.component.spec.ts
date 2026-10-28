@@ -646,6 +646,52 @@ describe('DeletedRecordsComponent', () => {
       fixture.destroy();
     });
 
+    it(`${action}: uses the configured page size for requests, fallback and paginator metadata`, async () => {
+      const fixture = TestBed.createComponent(DeletedRecordsComponent);
+      const app = fixture.componentInstance;
+      // Exercise the real component/service request contract without bootstrapping
+      // a paginator whose prior page belongs to the default-size fixture.
+      (app as any).isReady = true;
+      app.recordsPerPage = 5;
+      app.currentPageNumber = 5;
+      app.deletedRecordsResult = { records: [{ oid: 'last', title: 'Last record' }],
+        total: 21, pageNum: 5, recordsPerPage: 5 };
+      const previous = app.deletedRecordsResult;
+      const service = new RecordService(TestBed.inject(HttpClient), 'base', TestBed.inject(UtilityService), configService, TestBed.inject(LoggerService));
+      await service.waitForInit();
+      service.brandingAndPortalUrl = 'https://portal.example/base/default/rdmp';
+      (app as any).recordService = service;
+      const http = TestBed.inject(HttpTestingController);
+      const settle = async () => { for (let i = 0; i < 15; i++) { await Promise.resolve(); } };
+      let running: Promise<unknown>;
+      if (action === 'destroy') {
+        await app.recordTableAction(null, { oid: 'last' }, action);
+        running = app.confirmDestroyRecordModal(null);
+      } else {
+        running = app.recordTableAction(null, { oid: 'last' }, action);
+      }
+      http.expectOne(req => req.method === (action === 'restore' ? 'PUT' : 'DELETE')).flush({ success: true });
+      await settle();
+      const stale = http.expectOne(req => req.url.includes('listDeletedRecords'));
+      expect(new URL(stale.request.url).searchParams.get('rows')).toBe('5');
+      expect(new URL(stale.request.url).searchParams.get('start')).toBe('20');
+      stale.flush({ items: [], totalItems: 20 });
+      await settle();
+      const last = http.expectOne(req => req.url.includes('listDeletedRecords'));
+      expect(new URL(last.request.url).searchParams.get('rows')).toBe('5');
+      expect(new URL(last.request.url).searchParams.get('start')).toBe('15');
+      expect(app.deletedRecordsResult).toBe(previous);
+      expect(app.actionNeedsRefresh).toBeTrue();
+      last.flush({ items: [{ oid: 'remaining', title: 'Remaining row' }], totalItems: 20 });
+      await running;
+      expect(app.currentPageNumber).toBe(4);
+      expect(app.deletedRecordsResult.recordsPerPage).toBe(5);
+      expect(app.deletedRecordsResult.records[0]).toEqual(jasmine.objectContaining({ title: 'Remaining row' }));
+      expect(app.actionNeedsRefresh).toBeFalse();
+      http.verify();
+      fixture.destroy();
+    });
+
     for (const total of [20, 0]) {
       it(`${action}: refreshes an empty out-of-range page once to the last valid page (total ${total})`, async () => {
         const { fixture, app, mutation, reload, run } = await setupAction();
