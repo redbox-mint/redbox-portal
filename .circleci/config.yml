@@ -160,7 +160,14 @@ jobs:
       - run: &usePatchedNode
           name: Use patched Node.js from .nvmrc
           command: |
-            nvm install
+            # Keep download options scoped to nvm and avoid a source build on network failure.
+            (
+              curl() {
+                command curl --http1.1 --connect-timeout 20 --max-time 60 \
+                  --retry 2 --retry-delay 3 --retry-all-errors "$@"
+              }
+              nvm install -b
+            )
             nvm use
             printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
       - attach_workspace:
