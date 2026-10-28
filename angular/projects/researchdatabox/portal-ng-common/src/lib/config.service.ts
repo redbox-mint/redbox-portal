@@ -99,7 +99,13 @@ export class ConfigService implements Service {
         return this.http.get(this.configUrl);
       }),
       map((config: any) => {
-        if (!config || typeof config !== 'object' || Array.isArray(config)) {
+        // apiClientConfig.ejs supplies these URL components to HttpClientService,
+        // translations and template loaders. An empty base URL is valid for
+        // same-origin requests; branding and portal must name route segments.
+        if (!config || typeof config !== 'object' || Array.isArray(config)
+          || typeof config.baseUrl !== 'string'
+          || typeof config.branding !== 'string' || !config.branding.trim()
+          || typeof config.portal !== 'string' || !config.portal.trim()) {
           throw new Error('Invalid configuration response. Sign in again and retry.');
         }
         return config;
