@@ -128,6 +128,7 @@ describe('DashboardComponent standard', () => {
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
+            waitForInit: Promise.resolve(),
             loadDashboardTemplates: Promise.resolve(),
             loadDashboardViewTemplates: Promise.resolve(),
             runTemplate: 'Template Result',
@@ -138,6 +139,50 @@ describe('DashboardComponent standard', () => {
     });
     TestBed.inject(RecordService);
     await testModule.compileComponents();
+  });
+
+  it('shows paging failure, retains data, and retries after refreshing config', async () => {
+    const config = TestBed.inject(ConfigService) as any;
+    config.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const records = TestBed.inject(RecordService);
+    const read = spyOn(records, 'getRecords').and.rejectWith({ status: 500 });
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const component = fixture.componentInstance;
+    // Exercise a page request independently of dashboard bootstrap fixtures.
+    component.dashboardTypeSelected = 'standard';
+    component.sortMap = { draft: {} };
+    const previous = { items: [{ title: 'Retained' }], totalItems: 1, currentPage: 1 };
+    component.records = { draft: previous } as any;
+    await component.pageChanged({ page: 2, itemsPerPage: 10 }, 'draft');
+    expect(component.records['draft']).toBe(previous as any);
+    expect(component.isProcessingPageChange).toBeFalse();
+    expect(component.loadError).toContain('Unable to load');
+    read.and.resolveTo({ items: [], totalItems: 0, currentPage: 2 } as any);
+    spyOn<any>(component, 'evaluatePlanTableColumns').and.returnValue({ currentPage: 2 });
+    await component.retryLoad();
+    expect(component.loadError).toBe('');
+    expect(component.isProcessingPageChange).toBeFalse();
+    expect(component.records['draft'].currentPage).toBe(2);
+    fixture.destroy();
+  });
+
+  it('propagates initial dashboard failure and retries bootstrap', async () => {
+    const config = TestBed.inject(ConfigService) as any;
+    config.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const component = fixture.componentInstance;
+    const waiting = expectAsync(component.waitForInit()).toBeRejected();
+    fixture.detectChanges();
+    const init = spyOn<any>(component, 'initComponent').and.rejectWith({ status: 403 });
+    await waiting;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Sign in again');
+    expect(component.loadPending).toBeFalse();
+    init.and.resolveTo();
+    await component.retryLoad();
+    await component.waitForInit();
+    expect(component.loadError).toBe('');
+    fixture.destroy();
   });
 
   it('should create the app', () => {
@@ -908,6 +953,7 @@ describe('DashboardComponent workspace', () => {
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
+            waitForInit: Promise.resolve(),
             loadDashboardTemplates: Promise.resolve(),
             runTemplate: 'Template Result',
             compileAndRunTemplate: 'Template Result',
@@ -1141,6 +1187,7 @@ describe('DashboardComponent consolidated group by record type', () => {
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
+            waitForInit: Promise.resolve(),
             loadDashboardTemplates: Promise.resolve(),
             runTemplate: 'Template Result',
             compileAndRunTemplate: 'Template Result',
@@ -1476,6 +1523,7 @@ describe('DashboardComponent consolidated group by relationships', () => {
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
+            waitForInit: Promise.resolve(),
             loadDashboardTemplates: Promise.resolve(),
             runTemplate: 'Template Result',
             compileAndRunTemplate: 'Template Result',

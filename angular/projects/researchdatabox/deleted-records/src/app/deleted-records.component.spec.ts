@@ -102,6 +102,28 @@ describe('DeletedRecordsComponent', () => {
     await testModule.compileComponents();
   });
 
+  it('retains the previous page on failure and retries the requested page', async () => {
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+    const previous = component.deletedRecordsResult;
+    const original = recordService.getDeletedRecords.bind(recordService);
+    const read = spyOn(recordService, 'getDeletedRecords').and.rejectWith({ status: 0 });
+    await component.gotoPage(2);
+    expect(component.initTracker.resultsReturned).toBeTrue();
+    expect(component.deletedRecordsResult).toBe(previous);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Check your connection');
+    read.and.callFake(original);
+    await component.retryLoad();
+    expect(component.loadError).toBe('');
+    expect(component.initTracker.resultsReturned).toBeTrue();
+    expect(read).toHaveBeenCalledTimes(2);
+    fixture.destroy();
+  });
+
   it('should create the app', () => {
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
     const app = fixture.componentInstance;

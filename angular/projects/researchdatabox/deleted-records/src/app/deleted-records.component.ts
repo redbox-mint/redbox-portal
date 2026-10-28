@@ -142,9 +142,20 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   public async gotoPage(pageNum: number): Promise<RecordPageDto> {
     this.currentPageNumber = pageNum;
     this.initTracker.resultsReturned = false;
-    this.deletedRecordsResult = await this.getDeletedRecords();
-    this.initTracker.resultsReturned = true;
-    return this.deletedRecordsResult;
+    this.loadError = '';
+    try {
+      this.deletedRecordsResult = await this.getDeletedRecords();
+      return this.deletedRecordsResult;
+    } catch (error) {
+      // Initial load failures must reach BaseComponent's bootstrap error subject.
+      if (!this.isReady) {
+        throw error;
+      }
+      this.showLoadError(error, () => this.gotoPage(pageNum));
+      return this.deletedRecordsResult;
+    } finally {
+      this.initTracker.resultsReturned = true;
+    }
   }
 
   /**
@@ -224,6 +235,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       searchFilters: [];
       searchable: boolean
     }[] = await this.recordService.getAllTypes();
+    this.dropDownProperties['recordType'] = [{title: 'All', value: ''}];
     recordTypes.forEach(recordType => {
       this.dropDownProperties['recordType'].push({
         title: recordType.name,

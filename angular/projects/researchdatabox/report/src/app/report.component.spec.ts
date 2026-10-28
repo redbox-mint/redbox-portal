@@ -93,6 +93,28 @@ describe('ReportComponent', () => {
     await testModule.compileComponents();
   });
 
+  it('retains the previous page on failure and retries the requested page', async () => {
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const fixture = TestBed.createComponent(ReportComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+    const previous = component.reportResult;
+    const original = reportService.getReportResult.bind(reportService);
+    const read = spyOn(reportService, 'getReportResult').and.rejectWith({ status: 0 });
+    await component.gotoPage(2);
+    expect(component.initTracker.resultsReturned).toBeTrue();
+    expect(component.reportResult).toBe(previous);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Check your connection');
+    read.and.callFake(original);
+    await component.retryLoad();
+    expect(component.loadError).toBe('');
+    expect(component.initTracker.resultsReturned).toBeTrue();
+    expect(read).toHaveBeenCalledTimes(2);
+    fixture.destroy();
+  });
+
   it('should create the app, and apply report filters', async function() {
     const fixture = TestBed.createComponent(ReportComponent);
     fixture.debugElement.nativeElement.setAttribute('reportName', mockReportData.reportConfig.name);

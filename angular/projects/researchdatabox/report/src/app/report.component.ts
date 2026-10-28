@@ -74,9 +74,20 @@ export class ReportComponent extends BaseComponent implements RecordSource {
 
   async gotoPage(pageNum: number): Promise<RecordPageDto> {
     this.initTracker.resultsReturned = false;
-    this.reportResult =  await this.reportService.getReportResult(this.reportName, pageNum, this.getParams(), this.recordsPerPage);
-    this.initTracker.resultsReturned = true;
-    return this.reportResult;
+    this.loadError = '';
+    try {
+      this.reportResult = await this.reportService.getReportResult(this.reportName, pageNum, this.getParams(), this.recordsPerPage);
+      return this.reportResult;
+    } catch (error) {
+      // Initial load failures must reach BaseComponent's bootstrap error subject.
+      if (!this.isReady) {
+        throw error;
+      }
+      this.showLoadError(error, () => this.gotoPage(pageNum));
+      return this.reportResult;
+    } finally {
+      this.initTracker.resultsReturned = true;
+    }
   }
 
   protected async initComponent(): Promise<void> {

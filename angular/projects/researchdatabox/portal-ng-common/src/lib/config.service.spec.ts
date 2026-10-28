@@ -95,6 +95,26 @@ describe('ConfigService testing', () => {
 
   });
 
+  for (const endpoint of ['csrf', 'config']) {
+    it(`rejects early and late waiters after a ${endpoint} failure and recovers`, async () => {
+      const waiting = expectAsync(configService.waitForInit()).toBeRejected();
+      const csrf = httpTestingController.expectOne(configService.csrfTokenUrl);
+      if (endpoint === 'csrf') {
+        csrf.error(new ProgressEvent('error'));
+      } else {
+        csrf.flush({ _csrf: 'old' });
+        httpTestingController.expectOne(configService.configUrl).flush('denied', { status: 403, statusText: 'Forbidden' });
+      }
+      await waiting;
+      await expectAsync(configService.waitForInit()).toBeRejected();
+      const recovered = configService.refreshConfig();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'rotated' });
+      httpTestingController.expectOne(configService.configUrl).flush({ branding: 'default', portal: 'rdmp' });
+      expect((await recovered).csrfToken).toBe('rotated');
+      expect((await configService.waitForInit()).csrfToken).toBe('rotated');
+    });
+  }
+
   afterEach(() => {
     // After every test, assert that there are no more pending requests.
     httpTestingController.verify();

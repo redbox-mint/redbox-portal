@@ -85,9 +85,7 @@ export class HttpClientService implements Service {
    * @returns itself
    */
   public async waitForInit(): Promise<any> {
-    if (!this.isInitializing()) {
-      return this;
-    }
+    // Re-read config after explicit recovery instead of retaining a stale session.
     await this.utilService.waitForDependencies([this.configService]);
     this.config = await this.configService.getConfig();
     this.baseUrl = this.config.baseUrl;
