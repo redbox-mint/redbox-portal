@@ -1,4 +1,6 @@
 import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild } from '@angular/core';
+import { AutocompleteComponent } from './autocomplete.component';
+import type { CompletionSource } from './template-completion';
 
 /** Must match the line-height in the component styles. */
 const LINE_HEIGHT_PX = 20;
@@ -12,17 +14,27 @@ const LINE_HEIGHT_PX = 20;
 @Component({
   selector: 'email-templates-code-editor',
   standalone: true,
+  imports: [AutocompleteComponent],
   template: `
     <div class="et-code" [class.is-invalid]="invalid" [class.et-code-readonly]="readonly">
       <div class="et-code-gutter" aria-hidden="true">
         <div class="et-code-gutter-inner" [style.transform]="'translateY(' + -scrollTop + 'px)'">
           @for (n of lineNumbers; track n) {
-            <div class="et-code-ln" [class.et-code-ln-flag]="highlighted.has(n)">{{ n }}</div>
+            <div
+              class="et-code-ln"
+              [class.et-code-ln-flag]="highlighted.has(n)"
+              [class.et-code-ln-warning]="warned.has(n) && !highlighted.has(n)"
+            >
+              {{ n }}
+            </div>
           }
         </div>
       </div>
       <div class="et-code-surface">
         <div class="et-code-marks" aria-hidden="true" [style.transform]="'translateY(' + -scrollTop + 'px)'">
+          @for (n of warningMarks; track n) {
+            <div class="et-code-mark et-code-mark-warning" [style.top.px]="(n - 1) * lineHeight"></div>
+          }
           @for (n of highlightLines; track n) {
             <div class="et-code-mark" [style.top.px]="(n - 1) * lineHeight"></div>
           }
@@ -40,9 +52,13 @@ const LINE_HEIGHT_PX = 20;
           spellcheck="false"
           autocapitalize="off"
           autocomplete="off"
+          (blur)="blurred.emit()"
           (input)="onInput()"
           (scroll)="onScroll()"
         ></textarea>
+        @if (completions) {
+          <email-templates-autocomplete [target]="area" [source]="completions"></email-templates-autocomplete>
+        }
       </div>
     </div>
   `,
@@ -55,15 +71,22 @@ export class CodeEditorComponent implements OnChanges {
   @Input() describedBy = '';
   @Input() invalid = false;
   @Input() readonly = false;
-  /** One-based line numbers to flag (for example, lines with diagnostics). */
+  /** One-based line numbers to flag as errors (for example, lines with diagnostics). */
   @Input() highlightLines: number[] = [];
+  /** One-based line numbers with advisory warnings; an error on the same line wins. */
+  @Input() warningLines: number[] = [];
+  /** Enables Handlebars path suggestions while typing. */
+  @Input() completions: CompletionSource | null = null;
   @Output() valueChange = new EventEmitter<string>();
+  @Output() blurred = new EventEmitter<void>();
 
   @ViewChild('area', { static: true }) private area!: ElementRef<HTMLTextAreaElement>;
 
   readonly lineHeight = LINE_HEIGHT_PX;
   lineNumbers: number[] = [1];
   highlighted = new Set<number>();
+  warned = new Set<number>();
+  warningMarks: number[] = [];
   scrollTop = 0;
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -72,6 +95,10 @@ export class CodeEditorComponent implements OnChanges {
     }
     if (changes['highlightLines']) {
       this.highlighted = new Set(this.highlightLines);
+    }
+    if (changes['highlightLines'] || changes['warningLines']) {
+      this.warned = new Set(this.warningLines);
+      this.warningMarks = this.warningLines.filter(n => !this.highlighted.has(n));
     }
   }
 
@@ -104,14 +131,32 @@ export class CodeEditorComponent implements OnChanges {
     this.onScroll();
   }
 
-  /** Insert text at the caret (replacing any selection) and emit the new value. */
-  insertAtCursor(text: string): void {
+  /**
+   * Insert text at the caret (replacing any selection) and emit the new value.
+   * `select` is a range within `text` to leave selected, such as a placeholder.
+   */
+  insertAtCursor(text: string, select?: { start: number; end: number }): void {
     const area = this.area.nativeElement;
     if (this.readonly) {
       return;
     }
     area.focus();
-    area.setRangeText(text, area.selectionStart, area.selectionEnd, 'end');
+    const at = area.selectionStart;
+    area.setRangeText(text, at, area.selectionEnd, 'end');
+    if (select) {
+      area.setSelectionRange(at + select.start, at + select.end);
+    }
+    this.onInput();
+  }
+
+  /** Replace one source range (for example, a suggested field name) and emit the new value. */
+  replaceRange(start: number, end: number, text: string): void {
+    const area = this.area.nativeElement;
+    if (this.readonly) {
+      return;
+    }
+    area.focus();
+    area.setRangeText(text, start, end, 'end');
     this.onInput();
   }
 

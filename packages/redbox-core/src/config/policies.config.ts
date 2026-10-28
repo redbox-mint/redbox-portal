@@ -92,6 +92,9 @@ const recordSchemaControllerPolicies = contractApiPolicies['webservice/RecordSch
 export const policies: PoliciesConfig = {
   EmailTemplateAdminController: {
     '*': ['noCache', 'emailTemplateAdmin', ...defaultPolicies],
+    // The page follows the portal's normal sign-in flow (checkAuth redirects to login);
+    // the Admin check still runs afterwards. JSON endpoints keep the early typed 403.
+    page: ['noCache', ...defaultPolicies, 'emailTemplateAdmin'],
   },
   UserController: {
     '*': noCachePlusDefaultPolicies,

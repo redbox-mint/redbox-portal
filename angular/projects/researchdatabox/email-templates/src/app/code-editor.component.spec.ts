@@ -1,6 +1,9 @@
 import { Component, ViewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { CodeEditorComponent } from './code-editor.component';
+import { TranslationStub } from './email-templates.testing';
+import type { CompletionSource } from './template-completion';
 
 @Component({
   standalone: true,
@@ -12,6 +15,8 @@ import { CodeEditorComponent } from './code-editor.component';
       inputId="body"
       [value]="value"
       [highlightLines]="lines"
+      [warningLines]="warnings"
+      [completions]="completions"
       (valueChange)="value = $event; changes = changes + 1"
     ></email-templates-code-editor>
   `,
@@ -20,6 +25,8 @@ class HostComponent {
   @ViewChild('editor') editor!: CodeEditorComponent;
   value = 'one\ntwo\nthree';
   lines: number[] = [];
+  warnings: number[] = [];
+  completions: CompletionSource | null = null;
   changes = 0;
 }
 
@@ -28,7 +35,10 @@ describe('CodeEditorComponent', () => {
   let host: HostComponent;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [HostComponent] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [HostComponent],
+      providers: [{ provide: TranslationService, useClass: TranslationStub }],
+    }).compileComponents();
     fixture = TestBed.createComponent(HostComponent);
     host = fixture.componentInstance;
     fixture.detectChanges();
@@ -86,5 +96,43 @@ describe('CodeEditorComponent', () => {
     fixture.detectChanges();
     expect(host.value).toBe('one{{oid}}\ntwo\nthree');
     expect(host.changes).toBe(1);
+  });
+
+  it('selects a requested range of the inserted text, such as a placeholder', () => {
+    textarea().setSelectionRange(4, 4);
+    host.editor.insertAtCursor('{{#if YOUR_FIELD}}{{/if}}', { start: 6, end: 16 });
+    fixture.detectChanges();
+    expect(host.value).toBe('one\n{{#if YOUR_FIELD}}{{/if}}two\nthree');
+    expect(textarea().value.slice(textarea().selectionStart, textarea().selectionEnd)).toBe('YOUR_FIELD');
+  });
+
+  it('marks warning lines distinctly from errors, letting an error on the same line win', () => {
+    host.lines = [1];
+    host.warnings = [1, 3];
+    fixture.detectChanges();
+    const warningMarks = fixture.nativeElement.querySelectorAll('.et-code-mark-warning');
+    expect(warningMarks.length).toBe(1);
+    expect((warningMarks[0] as HTMLElement).style.top).toBe('40px');
+    expect(fixture.nativeElement.querySelectorAll('.et-code-mark:not(.et-code-mark-warning)').length).toBe(1);
+    const warned = Array.from(fixture.nativeElement.querySelectorAll('.et-code-ln-warning')).map((el: any) =>
+      el.textContent.trim()
+    );
+    expect(warned).toEqual(['3']);
+  });
+
+  it('replaces one range, leaving the caret after it, with a single change', () => {
+    host.editor.replaceRange(4, 7, 'TWO');
+    fixture.detectChanges();
+    expect(host.value).toBe('one\nTWO\nthree');
+    expect(textarea().selectionStart).toBe(7);
+    expect(host.changes).toBe(1);
+  });
+
+  it('adds suggestions only when completions are supplied', () => {
+    expect(fixture.nativeElement.querySelector('email-templates-autocomplete')).toBeNull();
+    host.completions = { fields: [], roots: ['oid'], helpers: [] };
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('email-templates-autocomplete')).not.toBeNull();
+    expect(textarea().getAttribute('aria-autocomplete')).toBe('list');
   });
 });

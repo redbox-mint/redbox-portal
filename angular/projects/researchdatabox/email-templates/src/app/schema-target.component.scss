@@ -1,0 +1,43 @@
+:host {
+  display: block;
+}
+
+.et-schema-selects {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 8px;
+
+  .form-select {
+    font-size: 14px;
+  }
+}
+
+.et-schema-status {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: var(--bs-secondary-color);
+  font-size: 13px;
+
+  > .fa-solid,
+  > .fa-regular {
+    flex: 0 0 auto;
+    font-size: 12px;
+  }
+
+  > .spinner-border {
+    align-self: center;
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+  }
+}
+
+.et-schema-precise {
+  color: var(--bs-success);
+}
+
+.et-schema-status-problem {
+  color: var(--bs-warning-text-emphasis);
+}

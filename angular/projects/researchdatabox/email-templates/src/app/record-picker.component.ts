@@ -33,6 +33,11 @@ export class RecordPickerComponent implements OnDestroy {
   failed = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private requestSeq = 0;
+  private resultsQuery: string | null = null;
+
+  get canPick(): boolean {
+    return !this.busy && !this.failed && this.resultsQuery === this.query.trim();
+  }
 
   constructor(private api: EmailTemplateAdminService) {}
 
@@ -41,12 +46,13 @@ export class RecordPickerComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    ++this.requestSeq;
     this.clearTimer();
   }
 
   startSearch(): void {
     this.searching = true;
-    if (!this.results.length) {
+    if (!this.results.length || this.resultsQuery !== this.query.trim()) {
       void this.runSearch(1);
     }
     setTimeout(() => this.searchInput?.nativeElement.focus());
@@ -54,12 +60,22 @@ export class RecordPickerComponent implements OnDestroy {
 
   cancelSearch(): void {
     this.searching = false;
+    ++this.requestSeq;
+    this.busy = false;
     this.clearTimer();
   }
 
   onQueryChange(): void {
+    ++this.requestSeq; // Invalidate responses immediately, including during debounce.
+    this.resultsQuery = null;
+    this.busy = true;
+    this.failed = false;
+    this.hasMore = false;
     this.clearTimer();
-    this.timer = setTimeout(() => void this.runSearch(1), SEARCH_DEBOUNCE_MS);
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      void this.runSearch(1);
+    }, SEARCH_DEBOUNCE_MS);
   }
 
   ensureResults(): void {
@@ -69,24 +85,28 @@ export class RecordPickerComponent implements OnDestroy {
   }
 
   loadMore(): void {
+    if (!this.canPick || !this.hasMore) return;
     void this.runSearch(this.page + 1);
   }
 
   pick(record: EmailPreviewRecord): void {
+    if (!this.canPick || !this.results.includes(record)) return;
     this.searching = false;
     this.choose.emit(record);
   }
 
   async runSearch(page: number): Promise<void> {
     const seq = ++this.requestSeq;
+    const query = this.query.trim();
     this.busy = true;
     this.failed = false;
     try {
-      const response = await this.api.searchRecords(this.query.trim(), page);
-      if (seq !== this.requestSeq) {
+      const response = await this.api.searchRecords(query, page);
+      if (seq !== this.requestSeq || query !== this.query.trim()) {
         return;
       }
       this.results = page === 1 ? response.records : [...this.results, ...response.records];
+      this.resultsQuery = query;
       this.page = response.page;
       this.hasMore = response.hasMore;
     } catch {

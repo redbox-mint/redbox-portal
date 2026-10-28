@@ -29,6 +29,8 @@ import { EmailTemplateError, readEmailTemplateDefault, safeEmailTemplateError, v
 import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+import { compileEmailTemplatePreview } from '../utilities/EmailTemplatePreview';
+import { emailSyntaxSourcePosition } from '../utilities/EmailTemplateSyntax';
 
 
 /** Trusted delivery context; never inferred from template data or request bodies. */
@@ -39,6 +41,11 @@ export interface EmailRenderContext {
   /** Runtime default for integration notifications; DB subjects still take priority. */
   defaultSubject?: string;
   format?: string;
+}
+
+export function emailRecordUrl(brandUrl: unknown, oid: unknown, action: 'view' | 'edit'): string | undefined {
+  return typeof brandUrl === 'string' && brandUrl && typeof oid === 'string' && oid
+    ? `${brandUrl}/record/${action}/${encodeURIComponent(oid)}` : undefined;
 }
 
 export function curateEmailRecordData(data: Record<string, unknown>): Record<string, unknown> {
@@ -56,7 +63,21 @@ export function curateEmailRecordData(data: Record<string, unknown>): Record<str
       workflow: _.pick(workflow, ['stage', 'stageLabel']),
       metaMetadata: _.pick(meta, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']),
     };
-    prepared['oid'] = (prepared['record'] as Record<string, unknown>).oid;
+    const record = prepared['record'] as Record<string, unknown>;
+    record.redboxOid = record.oid;
+    prepared['oid'] = record.oid;
+    // Conventional display values are defaults, not aliases: caller edits always win.
+    const title = _.get(prepared, 'record.metadata.title');
+    if (!Object.hasOwn(data, 'title') && typeof title === 'string') prepared['title'] = title;
+    const brandUrl = _.get(data, 'portal.brandUrl');
+    const oid = prepared['oid'];
+    for (const [key, action] of [['viewUrl', 'view'], ['editUrl', 'edit']] as const) {
+      if (typeof raw[key] === 'string') record[key] = raw[key];
+      else {
+        const url = emailRecordUrl(brandUrl, oid, action);
+        if (url !== undefined) record[key] = url;
+      }
+    }
   }
   // Retain the legacy alias without leaving a second copy of the full record reachable.
   if (data.imports) prepared['imports'] = { record: prepared['record'], oid: prepared['oid'] };
@@ -65,34 +86,62 @@ export function curateEmailRecordData(data: Record<string, unknown>): Record<str
 
 // Content/context overrides exist only for response objects created by this internal
 // admin helper. No data/context property, send argument or notification input can select them.
-const adminPreviewRequests = new WeakMap<Record<string, unknown>, {
+interface EmailAdminPreviewRequest {
   content: { subject: string; body: string; format: 'html' | 'text' }; data: Record<string, unknown>;
-  // Content-free marker of which field was rendering when a preview failed.
+  suppliedDefault?: boolean;
+  failure?: Pick<EmailTemplateError, 'code' | 'message' | 'diagnostic'>;
+  // Content-free markers of which field, and where in it, rendering failed.
   failedField?: 'subject' | 'body';
-}>();
+  failedLine?: number;
+  failedColumn?: number;
+}
+// Mounted hooks can import core through a different package path, just as source
+// and compiled copies can coexist. The admin helper and hook's base class must
+// share the same response-object registry across those module instances.
+const adminPreviewKey = Symbol.for('@researchdatabox/redbox-core/emailAdminPreviewRequests');
+const previewState = globalThis as typeof globalThis & {
+  [adminPreviewKey]?: WeakMap<Record<string, unknown>, EmailAdminPreviewRequest>;
+};
+const adminPreviewRequests = (previewState[adminPreviewKey] ??= new WeakMap<Record<string, unknown>, EmailAdminPreviewRequest>());
+
+const adminPreviewBuildKey = Symbol.for('@researchdatabox/redbox-core/emailAdminPreviewBuildRequests');
+const previewBuildState = globalThis as typeof globalThis & {
+  [adminPreviewBuildKey]?: WeakMap<Record<string, unknown>, EmailAdminPreviewRequest>;
+};
+const adminPreviewBuildRequests = (previewBuildState[adminPreviewBuildKey] ??= new WeakMap<Record<string, unknown>, EmailAdminPreviewRequest>());
 
 /** Internal service-to-service preview seam, deliberately absent from EmailService.exports(). */
-export async function renderEmailAdminPreview(email: Pick<Services.Email, 'buildFromTemplateAsync'>,
-  templateId: string, content: { subject: string; body: string; format: 'html' | 'text' }, data: Record<string, unknown>) {
+export async function renderEmailAdminPreview(email: Pick<Services.Email, 'buildFromTemplateAsync' | 'buildFromTemplate'>,
+  templateId: string, content: { subject: string; body: string; format: 'html' | 'text' }, data: Record<string, unknown>,
+  integration?: { context: EmailRenderContext; suppliedDefault: boolean }) {
   const response: Record<string, unknown> = {};
-  const request: { content: typeof content; data: Record<string, unknown>; failedField?: 'subject' | 'body' } =
-    { content: { ...content }, data };
-  adminPreviewRequests.set(response, request);
+  // Preserve the filtered null-prototype context and use preview-local helpers.
+  const request: EmailAdminPreviewRequest = { content: { ...content }, data, suppliedDefault: integration?.suppliedDefault };
+  if (integration) adminPreviewBuildRequests.set(data, request);
+  else adminPreviewRequests.set(response, request);
   try {
     // Hooks still run, including post-render processing. Their pre-render additions
     // cannot replace edited display values or widen the filtered submitted context.
-    const result = await email.buildFromTemplateAsync(templateId, structuredClone(data), response);
+    const result = integration
+      ? await firstValueFrom(email.buildFromTemplate(templateId, data, integration.context))
+      : await email.buildFromTemplateAsync(templateId, structuredClone(data), response);
     if (result['status'] !== 200 || typeof result['subject'] !== 'string' || typeof result['body'] !== 'string') {
-      const failure = result['ex'] instanceof EmailTemplateError ? result['ex']
+      // Recreate safe typed failures locally: the hook's core module can have a
+      // distinct EmailTemplateError constructor. Only our private registry can
+      // supply this marker, never caller-controlled data or an arbitrary error.
+      const failure = request.failure
+        ? new EmailTemplateError(request.failure.code, request.failure.message, undefined, request.failure.diagnostic)
+        : result['ex'] instanceof EmailTemplateError ? result['ex']
         : new EmailTemplateError('RENDER_FAILED', 'Unable to render email preview.');
       if (failure.code === 'RENDER_FAILED' && request.failedField) {
         throw new EmailTemplateError('RENDER_FAILED', failure.message, undefined,
-          { field: request.failedField, reason: 'INVALID_SYNTAX', line: 1, column: 1 });
+          { field: request.failedField, reason: 'INVALID_SYNTAX',
+            line: request.failedLine ?? 1, column: request.failedColumn ?? 1 });
       }
       throw failure;
     }
     return result;
-  } finally { adminPreviewRequests.delete(response); }
+  } finally { adminPreviewRequests.delete(response); adminPreviewBuildRequests.delete(data); }
 }
 
 export namespace Services {
@@ -404,7 +453,7 @@ export namespace Services {
           res['status'] = 200;
           return res;
         }
-        const template = preview ? { ...preview.content, source: 'override' as const, fileName: undefined, revision: undefined } : context?.brandId !== undefined
+        const template = preview ? { ...preview.content, source: preview.suppliedDefault ? 'default' as const : 'override' as const, fileName: undefined, revision: undefined } : context?.brandId !== undefined
           ? await EmailTemplateService.resolve(templateName, context.brandId)
           : readEmailTemplateDefault(templateName);
         const selected = {
@@ -416,7 +465,7 @@ export namespace Services {
         // DB compilation is deliberately uncached. Every send queries storage;
         // revision updates and delete/recreate cycles are visible on all workers.
         if (preview) preview.failedField = 'body';
-        const body = template.source === 'override'
+        const body = preview ? compileEmailTemplatePreview(template.body)(data) : template.source === 'override'
           ? handlebarsCompile(template.body, { strict: true })(data)
           : this.getCompiledTemplate(template.fileName ?? templateName)(data);
 
@@ -425,16 +474,27 @@ export namespace Services {
         res['body'] = body;
         // Direct legacy body-only calls need not supply subject display values.
         if (preview) preview.failedField = 'subject';
-        if (context || preview) res['subject'] = hardenEmailSubject(preview ? handlebarsCompile(selected.subject, { strict: true })(data) : this.runTemplate(selected.subject, data));
+        if (context || preview) res['subject'] = hardenEmailSubject(preview ? compileEmailTemplatePreview(selected.subject)(data) : this.runTemplate(selected.subject, data));
         if (preview) preview.failedField = undefined;
         res['format'] = selected.format;
         res['source'] = template.source;
         res['revision'] = template.revision;
         return res;
       } catch (err) {
+        const preview = adminPreviewRequests.get(res);
+        if (preview?.failedField) {
+          const at = (err ?? {}) as { lineNumber?: unknown; column?: unknown };
+          const position = emailSyntaxSourcePosition(preview.content[preview.failedField], {
+            line: Number.isSafeInteger(at.lineNumber) && Number(at.lineNumber) >= 1 ? Number(at.lineNumber) : 1,
+            column: Number.isSafeInteger(at.column) && Number(at.column) >= 0 ? Number(at.column) + 1 : 1,
+          });
+          preview.failedLine = position.line;
+          preview.failedColumn = position.column;
+        }
         // Record and propagate one safe typed instance; render errors may quote template text.
         const failure = err instanceof EmailTemplateError ? err
           : safeEmailTemplateError('RENDER_FAILED', `Unable to render email template '${templateName}'.`, err);
+        if (preview) preview.failure = { code: failure.code, message: failure.message, diagnostic: failure.diagnostic };
         this.updateChronicle({ emailTemplate: templateName, emailTemplateOutcome: 'failed', emailErrorCode: failure.code },
           [failure]);
         res['status'] = 500;
@@ -469,7 +529,15 @@ export namespace Services {
         // Legacy two-argument callers get body-only rendering (defaults only), as
         // before; supplying a context opts into coherent subject/body/format output.
         if (context !== undefined) this.renderContexts.set(response, { ...context });
-        return this.buildFromTemplateAsync(template, this.createRenderData(data, context), response);
+        const prepared = this.createRenderData(data, context);
+        const preview = adminPreviewBuildRequests.get(data);
+        if (preview) {
+          preview.data = prepared;
+          adminPreviewRequests.set(response, preview);
+        }
+        // Hooks may mutate their input in place. Keep the submitted preview snapshot independent.
+        return this.buildFromTemplateAsync(template, preview ? structuredClone(prepared) : prepared, response)
+          .finally(() => adminPreviewRequests.delete(response));
       });
     }
 

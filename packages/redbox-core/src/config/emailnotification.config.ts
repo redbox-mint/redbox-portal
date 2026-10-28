@@ -34,6 +34,9 @@ export interface EmailSettings {
     /** Maximum UTF-8 bytes for source and rendered subjects/bodies. */
     maxSubjectBytes?: number;
     maxBodyBytes?: number;
+    /** Pre-parse bounds for combined block/subexpression depth and expression count. */
+    maxTemplateNesting?: number;
+    maxTemplateExpressions?: number;
     historyMaxVersions?: number;
     maxPreviewContextBytes?: number;
     serverOptions: EmailServerOptions;
@@ -46,7 +49,9 @@ export interface EmailDefaults {
 }
 
 export interface EmailTemplate {
-    subject: string;
+    /** Optional plain-text purpose for administrators; never rendered or sent. */
+    description?: string;
+    subject?: string;
     template: string;
     format?: 'html' | 'text';
 }
@@ -75,6 +80,8 @@ export const emailnotification: EmailNotificationConfig = {
         additionalContextRoots: [],
         maxSubjectBytes: 998,
         maxBodyBytes: 1048576,
+        maxTemplateNesting: 64,
+        maxTemplateExpressions: 1024,
         historyMaxVersions: 50,
         maxPreviewContextBytes: 262144,
         serverOptions: {
@@ -92,9 +99,19 @@ export const emailnotification: EmailNotificationConfig = {
         format: 'html',
     },
     templates: {
-        integrationFailure: { subject: '{{title}}', template: 'integrationFailure' },
-        integrationRecovery: { subject: '{{title}}', template: 'integrationRecovery' },
-        transferOwnerTo: { subject: 'Ownership of DMP record/s has been transferred to you', template: 'transferOwnerTo' },
-        test: { subject: 'Test Email Message', template: 'test' },
+        integrationFailure: { subject: '{{title}}', template: 'integrationFailure',
+            description: 'Sent to configured recipients when an integration fails and failure notifications are enabled.' },
+        integrationRecovery: { subject: '{{title}}', template: 'integrationRecovery',
+            description: 'Sent to configured recipients when an integration succeeds after a notified failure, if recovery alerts are enabled.' },
+        transferOwnerTo: { subject: 'Ownership of DMP record/s has been transferred to you', template: 'transferOwnerTo',
+            description: 'Notifies the new custodian when an RDMP ownership transfer uses this template; no automatic trigger is configured in core.' },
+        test: { subject: 'Test Email Message', template: 'test',
+            description: 'Example email for explicitly requested test notifications; no automatic trigger is configured in core.' },
+        publicationStaged: { template: 'publicationStaged',
+            description: 'Sent to the chief investigator, data manager and supervisor when a draft publication is queued for publishing.' },
+        publicationReview: { template: 'publicationReview',
+            description: 'Sent to the configured reviewer after the publication-staged notification succeeds, asking them to review the queued publication.' },
+        publicationPublished: { template: 'publicationPublished',
+            description: 'Sent to contributors, creators and the configured reviewer when a reviewed publication reaches the published stage.' },
     },
 };

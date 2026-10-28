@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Module, { createRequire } from 'node:module';
@@ -103,6 +103,12 @@ describe('Email template compatibility', () => {
   (scuRepo && scuFixture ? it : it.skip)('renders every SCU hook body and configured subject with hook-injected view data for both sources', async () => {
     const fixture = JSON.parse(readFileSync(scuFixture!, 'utf8'));
     const liveConfig = require(join(scuRepo!, 'src/config/emailnotification.ts')).emailnotification;
+    // Newer hook versions keep their template registry in scu/notifications/defaults.ts and
+    // leave the config map empty; use whichever is populated (in memory only).
+    const registryPath = join(scuRepo!, 'src/scu/notifications/defaults.ts');
+    if (!Object.keys(liveConfig.templates ?? {}).length && existsSync(registryPath)) {
+      liveConfig.templates = require(registryPath).knownEmailTemplates;
+    }
 
     const templates = readdirSync(join(scuRepo!, 'views/emailTemplates')).filter(file => file.endsWith('.hbs')).map(file => ({
       id: file.slice(0, -4), body: readFileSync(join(scuRepo!, 'views/emailTemplates', file), 'utf8'),
