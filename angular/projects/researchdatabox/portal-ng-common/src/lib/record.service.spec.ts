@@ -1,6 +1,6 @@
 import { APP_BASE_HREF } from "@angular/common";
 import { HttpClientTestingModule, HttpTestingController } from "@angular/common/http/testing";
-import { TestBed } from "@angular/core/testing";
+import { fakeAsync, flushMicrotasks, tick, TestBed } from "@angular/core/testing";
 import { ConfigService } from "./config.service";
 import { getStubConfigService } from "./helper.spec";
 import { LoggerService } from "./logger.service";
@@ -52,6 +52,25 @@ describe("RecordService", () => {
       request.flush(response);
       await expectAsync(result).toBeResolvedTo(response);
     });
+  }
+
+  for (const operation of ['restore', 'destroy', 'refresh']) {
+    it(`cancels a stalled deleted-record ${operation} request after 30 seconds`, fakeAsync(() => {
+      recordService.brandingAndPortalUrl = 'https://portal.example/default/rdmp';
+      const result = operation === 'restore' ? recordService.restoreDeletedRecord('oid')
+        : operation === 'destroy' ? recordService.destroyDeletedRecord('oid')
+        : recordService.getDeletedRecords('', '', 1);
+      let failure: any;
+      result.catch(error => { failure = error; });
+      const request = httpTestingController.expectOne(() => true);
+      tick(29_999);
+      expect(request.cancelled).toBeFalse();
+      expect(failure).toBeUndefined();
+      tick(1);
+      flushMicrotasks();
+      expect(request.cancelled).toBeTrue();
+      expect(failure.name).toBe('TimeoutError');
+    }));
   }
 
   it("unwraps attachment responses from the backend data envelope", async () => {

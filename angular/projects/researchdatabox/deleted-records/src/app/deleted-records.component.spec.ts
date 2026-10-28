@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, flushMicrotasks, tick, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 import {
@@ -645,6 +645,73 @@ describe('DeletedRecordsComponent', () => {
       expect(app.actionNeedsRefresh).toBeTrue();
       fixture.destroy();
     });
+
+    for (const stall of ['mutation', 'refresh', 'uncertain refresh']) {
+      it(`${action}: recovers controls after a stalled ${stall} while keeping mutations locked`, fakeAsync(() => {
+        const fixture = TestBed.createComponent(DeletedRecordsComponent);
+        const app = fixture.componentInstance;
+        (app as any).isReady = true;
+        app.currentPageNumber = 1;
+        app.deletedRecordsResult = { records: [{ oid: 'last', title: 'Retained row' }],
+          total: 1, pageNum: 1, recordsPerPage: 10 };
+        const previous = app.deletedRecordsResult;
+        const service = new RecordService(TestBed.inject(HttpClient), 'base', TestBed.inject(UtilityService), configService, TestBed.inject(LoggerService));
+        void service.waitForInit();
+        flushMicrotasks();
+        service.brandingAndPortalUrl = 'https://portal.example/base/default/rdmp';
+        (app as any).recordService = service;
+        const http = TestBed.inject(HttpTestingController);
+        if (action === 'destroy') {
+          void app.recordTableAction(null, { oid: 'last' }, action);
+          void app.confirmDestroyRecordModal(null);
+        } else {
+          void app.recordTableAction(null, { oid: 'last' }, action);
+        }
+        const mutation = http.expectOne(req => req.method === (action === 'restore' ? 'PUT' : 'DELETE'));
+        let stalled = mutation;
+        if (stall !== 'mutation') {
+          mutation.flush(stall === 'refresh' ? { success: true } : {});
+          flushMicrotasks();
+          if (stall === 'uncertain refresh') {
+            void app.refreshActionList();
+          }
+          stalled = http.expectOne(req => req.url.includes('listDeletedRecords'));
+        }
+        tick(29_999);
+        expect(app.actionPending).toBeTrue();
+        app.hideDestroyRecordModal();
+        if (action === 'destroy' && stall !== 'refresh') {
+          expect(app.isDestroyRecordModalShown).toBeTrue();
+        }
+        tick(1);
+        flushMicrotasks();
+        expect(stalled.cancelled).toBeTrue();
+        expect(app.actionPending).toBeFalse();
+        expect(app.actionNeedsRefresh).toBeTrue();
+        expect(app.deletedRecordsResult).toBe(previous);
+        expect(app.canRetryRestore).toBeFalse();
+        if (stall !== 'refresh') {
+          expect(app.actionMessage).toContain('outcome is unknown');
+          if (stall === 'uncertain refresh') {
+            expect(app.actionRefreshError).toContain('Unable to refresh');
+          }
+        } else {
+          expect(app.actionMessage).toContain('succeeded');
+          expect(app.actionRefreshError).toContain('Unable to refresh');
+        }
+        app.hideDestroyRecordModal();
+        expect(app.isDestroyRecordModalShown).toBeFalse();
+        void app.recordTableAction(null, { oid: 'last' }, action);
+        http.expectNone(req => req.method !== 'GET');
+        void app.refreshActionList();
+        http.expectOne(req => req.url.includes('listDeletedRecords')).flush({ items: [], totalItems: 0 });
+        flushMicrotasks();
+        expect(app.actionNeedsRefresh).toBeFalse();
+        expect(app.actionPending).toBeFalse();
+        http.verify();
+        fixture.destroy();
+      }));
+    }
 
     it(`${action}: uses the configured page size for requests, fallback and paginator metadata`, async () => {
       const fixture = TestBed.createComponent(DeletedRecordsComponent);
