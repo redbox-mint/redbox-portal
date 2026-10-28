@@ -186,7 +186,7 @@ export namespace Controllers {
       const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
 
       try {
-        const includeDisabled = query.includeDisabled === 'true';
+        const includeDisabled = query.includeDisabled === true;
         const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
         const userRecords = await this.getFilteredUserRecords(queryObject, brandId, includeDisabled);
         const count = userRecords.length;
