@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EmailMongoFake } from '../helpers/EmailMongoFake';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -74,29 +75,12 @@ describe('Email template overrides', () => {
           return row;
         },
       }),
-      getDatastore: () => ({
-        driver: { mongodb: { ObjectId } },
-        manager: {
-          collection: () => ({
-            findOneAndUpdate: async (criteria: any, update: any) => {
-              const identity = key(criteria.brandId, criteria.templateId);
-              const row = rows.get(identity);
-              if (!matches(row, criteria)) return null;
-              const { id, ...updated } = { ...row, ...update.$set };
-              rows.set(identity, { ...updated, id });
-              return { ...updated, _id: new ObjectId(id) };
-            },
-            deleteOne: async (criteria: any) => {
-              const identity = key(criteria.brandId, criteria.templateId);
-              if (!matches(rows.get(identity), criteria)) return { deletedCount: 0 };
-              rows.delete(identity);
-              return { deletedCount: 1 };
-            },
-          }),
-        },
-      }),
+      getDatastore: new EmailMongoFake(rows).datastore,
     };
+    model.tableName = 'emailtemplate';
     (global as any).EmailTemplate = model;
+    (global as any).EmailTemplateDraft = { tableName: 'emailtemplatedraft' };
+    (global as any).EmailTemplateHistory = { tableName: 'emailtemplatehistory' };
     (global as any).BrandingConfig = { findOne: async ({ id }: any) => (['a', 'b'].includes(id) ? { id } : undefined) };
     service = new TemplateServices.EmailTemplates();
     email = new EmailServices.Email();
@@ -109,6 +93,8 @@ describe('Email template overrides', () => {
     cleanupServiceTestGlobals();
     for (const name of [
       'EmailTemplate',
+      'EmailTemplateDraft',
+      'EmailTemplateHistory',
       'EmailTemplateService',
       'EmailService',
       'BrandingConfig',
@@ -151,6 +137,7 @@ describe('Email template overrides', () => {
   it('keeps legacy two-argument body-only rendering independent of subject data', async () => {
     mockSails.config.emailnotification.templates.notice.subject = 'Subject {{subjectOnly}}';
     await service.create('a', 'notice', content('Override'));
+    model.findOne.resetHistory();
     const result = await firstValueFrom(
       email.buildFromTemplate('notice', { name: 'Reader' })
     );
@@ -163,6 +150,7 @@ describe('Email template overrides', () => {
   it('renders two brands without leakage and queries DB on every send', async () => {
     await service.create('a', 'notice', content('A'));
     await service.create('b', 'notice', content('B'));
+    model.findOne.resetHistory();
     for (const brand of ['a', 'b', 'a']) {
       const result = await render(brand);
       assert.equal(result.body, `<p>${brand.toUpperCase()} Reader</p>`);
@@ -190,6 +178,7 @@ describe('Email template overrides', () => {
 
   it('uses only defaults for legacy calls even when data contains another brand', async () => {
     await service.create('a', 'notice', content('A'));
+    model.findOne.resetHistory();
     const result = await render(undefined, { name: 'Reader', brandId: 'a' });
     assert.equal(result.body, 'Default Reader https://portal.example');
     assert.equal(model.findOne.callCount, 0);
@@ -240,7 +229,7 @@ describe('Email template overrides', () => {
     const original = await service.create('a', 'notice', content('Original'));
     await service.reset('a', 'notice', version(original));
     const replacement = await service.create('a', 'notice', content('Replacement'));
-    assert.equal(replacement.revision, original.revision);
+    assert.equal(replacement.revision, original.revision + 2);
     await assert.rejects(service.update('a', 'notice', content('Stale'), version(original)), EmailTemplateConflictError);
     await assert.rejects(service.reset('a', 'notice', version(original)), EmailTemplateConflictError);
     assert.equal((await service.get('a', 'notice'))?.subject, 'Replacement {{name}}');
@@ -295,6 +284,7 @@ describe('Email template overrides', () => {
 
   it('rejects unknown/empty/null brands without consulting another brand', async () => {
     await service.create('a', 'notice', content('A'));
+    model.findOne.resetHistory();
     for (const brand of ['missing', '', null]) {
       const result = await render(brand as any);
       assert.equal(result.status, 500);

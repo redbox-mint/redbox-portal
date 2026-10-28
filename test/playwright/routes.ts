@@ -181,6 +181,19 @@ export const smokeRoutes: SmokeRoute[] = [
     ]
   },
   {
+    path: '/default/rdmp/admin/email-templates',
+    auth: 'admin',
+    type: 'angular',
+    rootSelector: 'email-templates-root',
+    requiredSelectors: ['email-templates-root .et-table'],
+    fallbackSelectors: [],
+    requiredAssetIncludes: [
+      '/angular/email-templates/browser/polyfills',
+      '/angular/email-templates/browser/main',
+      '/angular/email-templates/browser/styles'
+    ]
+  },
+  {
     path: '/default/rdmp/admin/translation',
     auth: 'admin',
     type: 'angular',

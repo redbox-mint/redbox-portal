@@ -6,7 +6,7 @@
  * Only applies to HTTP requests (not WebSockets)
  */
 
-import { RequestHandler, Request, Response, NextFunction } from 'express';
+import { RequestHandler, Request, Response, NextFunction, json } from 'express';
 import { AsyncResource } from 'node:async_hooks';
 import * as _ from 'lodash';
 import * as fs from 'fs';
@@ -754,9 +754,24 @@ export const http: HttpConfig = {
         myBodyParser: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const requestPath = req.originalUrl ?? req.url;
             const normalizedRequestPath = normalizeBodyParserPath(requestPath);
+            const root = normalizeBodyParserPath(sails.config.http?.rootContext ?? '').replace(/\/$/, '');
+            const relativePath = root && normalizedRequestPath.startsWith(`${root}/`)
+                ? normalizedRequestPath.slice(root.length) : root ? '' : normalizedRequestPath;
+            // Full route structure: root / brand / portal / app / email-templates.
+            const emailAdminPath = /^\/[^/]+\/[^/]+\/app\/email-templates(?:\/|$)/i.test(relativePath);
             const skipMatchers = resolveBodyParserSkipMatchers(sails.config.custom);
-            if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) {
-                return next();
+            if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) return next();
+            if (emailAdminPath) {
+                const parser = json({ limit: 8 * 1024 * 1024, strict: true });
+                return parser(req, res, AsyncResource.bind((error?: unknown) => {
+                    if (!error) return next();
+                    const limit = (error as { type?: string }).type === 'entity.too.large';
+                    res.set('Cache-Control', 'no-store');
+                    return res.status(limit ? 413 : 400).json({
+                        error: { code: limit ? 'LENGTH_LIMIT' : 'INVALID_TEMPLATE', message: limit ? 'Request body exceeds 8388608 bytes.' : 'A valid JSON request body is required.' },
+                        diagnostics: [],
+                    });
+                }));
             }
             const skipperMiddleware = skipper({
                 // strict: true,

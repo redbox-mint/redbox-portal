@@ -1,0 +1,88 @@
+<div class="et-picker">
+  @if (selected && !showSearch) {
+    <div class="et-picker-selected">
+      <i class="fa-regular fa-file-lines et-picker-icon" aria-hidden="true"></i>
+      <div class="et-picker-record">
+        <div class="et-picker-title">{{ selected.title || ('email-templates-record-untitled' | i18next) }}</div>
+        <div class="et-sub et-mono">{{ selected.oid }}</div>
+      </div>
+      @if (loadingContext) {
+        <span class="spinner-border spinner-border-sm text-secondary" role="status">
+          <span class="visually-hidden">{{ 'email-templates-record-loading-context' | i18next }}</span>
+        </span>
+      }
+      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="startSearch()">
+        {{ 'email-templates-record-change' | i18next }}
+      </button>
+    </div>
+  } @else {
+    <div class="et-picker-search">
+      <label class="visually-hidden" for="et-record-search">{{
+        'email-templates-record-search-label' | i18next
+      }}</label>
+      <div class="et-picker-bar">
+        <div class="et-picker-field">
+          <i class="fa-solid fa-magnifying-glass et-picker-field-icon" aria-hidden="true"></i>
+          <input
+            #searchInput
+            id="et-record-search"
+            type="search"
+            class="form-control form-control-sm"
+            autocomplete="off"
+            [placeholder]="'email-templates-record-search-placeholder' | i18next"
+            [(ngModel)]="query"
+            (ngModelChange)="onQueryChange()"
+            (focus)="ensureResults()"
+            aria-controls="et-record-results"
+          />
+        </div>
+        @if (selected) {
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancelSearch()">
+            {{ 'email-templates-cancel' | i18next }}
+          </button>
+        }
+      </div>
+      <div class="et-picker-results" id="et-record-results">
+        <div class="visually-hidden" role="status" aria-live="polite">
+          @if (!busy && !failed) {
+            {{ 'email-templates-record-results' | i18next: { count: results.length } }}
+          }
+        </div>
+        @if (failed) {
+          <div class="et-picker-note text-danger">{{ 'email-templates-record-search-failed' | i18next }}</div>
+        } @else if (!busy && !results.length) {
+          <div class="et-picker-note">{{ 'email-templates-record-none' | i18next }}</div>
+        }
+        @if (results.length) {
+          <ul class="et-picker-list">
+            @for (record of results; track record.oid) {
+              <li>
+                <button
+                  type="button"
+                  class="et-picker-option"
+                  [class.et-picker-option-current]="record.oid === selected?.oid"
+                  (click)="pick(record)"
+                >
+                  <span class="et-picker-title">{{
+                    record.title || ('email-templates-record-untitled' | i18next)
+                  }}</span>
+                  <span class="et-sub et-mono">{{ record.oid }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+        @if (busy) {
+          <div class="et-picker-note" aria-hidden="true">
+            <span class="spinner-border spinner-border-sm me-1"></span
+            >{{ 'email-templates-record-searching' | i18next }}
+          </div>
+        } @else if (hasMore) {
+          <button type="button" class="btn btn-link btn-sm px-0" (click)="loadMore()">
+            {{ 'email-templates-record-more' | i18next }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>

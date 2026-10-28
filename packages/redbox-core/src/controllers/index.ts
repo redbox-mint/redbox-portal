@@ -7,6 +7,7 @@ import * as ActionControllerModule from './ActionController';
 import * as AdminControllerModule from './AdminController';
 import * as AppConfigControllerModule from './AppConfigController';
 import * as AsynchControllerModule from './AsynchController';
+import * as EmailTemplateAdminControllerModule from './EmailTemplateAdminController';
 import * as BrandingAppControllerModule from './BrandingAppController';
 import * as BrandingControllerModule from './BrandingController';
 import * as DynamicAssetControllerModule from './DynamicAssetController';
@@ -60,6 +61,7 @@ export const ControllerExports: Record<string, unknown> = {
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports()); },
     get AsynchController() { return getOrCreate('AsynchController', () => new AsynchControllerModule.Controllers.Asynch().exports()); },
+    get EmailTemplateAdminController() { return getOrCreate('EmailTemplateAdminController', () => new EmailTemplateAdminControllerModule.Controllers.EmailTemplateAdmin().exports()); },
     get BrandingAppController() { return getOrCreate('BrandingAppController', () => new BrandingAppControllerModule.Controllers.BrandingApp().exports()); },
     get BrandingController() { return getOrCreate('BrandingController', () => new BrandingControllerModule.Controllers.Branding().exports()); },
     get DynamicAssetController() { return getOrCreate('DynamicAssetController', () => new DynamicAssetControllerModule.Controllers.DynamicAsset().exports()); },
@@ -110,6 +112,7 @@ export const ControllerNames = [
     'AppConfigController',
     'AsynchController',
     'BrandingAppController',
+    'EmailTemplateAdminController',
     'BrandingController',
     'DashboardConfigController',
     'DynamicAssetController',

@@ -1,0 +1,43 @@
+meta {
+  name: Email templates - Sanitised preview
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test/preview
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  {
+    "content": {
+      "subject": "Admin preview {{name}}",
+      "body": "<p onclick=\"unsafe()\">Hello {{name}}</p><script>unsafe()</script>",
+      "format": "html"
+    },
+    "context": "{\"name\": \"Reader\", \"sails\": {\"private\": \"not exposed\"}}"
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Renders edited JSON through the send sanitizer without delivery", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().subject).to.equal("Admin preview Reader");
+    expect(res.getBody().html).to.equal("<p>Hello Reader</p>");
+    expect(res.getBody().sanitiserRemovals.length).to.be.greaterThan(0);
+  });
+}
