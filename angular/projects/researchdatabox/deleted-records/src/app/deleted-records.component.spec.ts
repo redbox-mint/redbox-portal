@@ -239,6 +239,33 @@ describe('DeletedRecordsComponent', () => {
     expect(header.getAttribute('aria-sort')).toBe('descending');
     expect(fixture.nativeElement.textContent).toContain('Descending latest');
     expect(component.loadError).toBe('');
+
+    // A rejected configuration retry never reaches gotoPage. An ignored header
+    // click must still leave its indicator aligned with the retained rows.
+    const failedPage = component.gotoPage(2);
+    http.expectOne(req => req.url.includes('listDeletedRecords'))
+      .flush('failed', { status: 500, statusText: 'Server Error' });
+    await failedPage;
+    let rejectConfig!: (reason: unknown) => void;
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.returnValue(
+      new Promise((_resolve, reject) => { rejectConfig = reject; }));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+    expect(component.loadPending).toBeTrue();
+    header.click();
+    await settle();
+    fixture.detectChanges();
+    expect(header.getAttribute('aria-sort')).toBe('descending');
+    rejectConfig({ status: 403 });
+    await settle();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.loadPending).toBeFalse();
+    expect(component.sort).toBe('title:-1');
+    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(fixture.nativeElement.textContent).toContain('Descending latest');
+    expect(component.loadError).toContain('Sign in again');
+    http.expectNone(req => req.url.includes('listDeletedRecords'));
     http.verify();
     fixture.destroy();
   });

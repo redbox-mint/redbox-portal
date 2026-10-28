@@ -169,13 +169,17 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     if (pending) {
       return this.gotoPage(1, pending.params, pending.sort);
     }
+    this.restoreAppliedSort();
+    return this.deletedRecordsResult;
+  }
+
+  private restoreAppliedSort(): void {
     this.sort = this.appliedSort;
     // Retained rows must retain their sort indicator after a failed read.
     this.recordTable?.headerSortItems?.forEach(header => {
       const [variable, direction] = this.appliedSort?.split(':') ?? [];
       header.sort = header.variable === variable ? (direction === '-1' ? 'desc' : 'asc') : '';
     });
-    return this.deletedRecordsResult;
   }
 
   /**
@@ -196,6 +200,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   public async headerSortChanged(event: any, data: any) {
     if (this.loadPending) {
+      this.restoreAppliedSort();
       return;
     }
     this.sort = `${event.variable}:${event.sort === 'desc' ? '-1' : '1'}`;
