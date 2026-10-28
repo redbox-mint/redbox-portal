@@ -100,6 +100,29 @@ describe('BaseComponent', () => {
     expect(component.loadError).toBe('');
   });
 
+  it('shares one pending retry until refresh completes', async () => {
+    const refresh = spyOn(TestBed.inject(ConfigService), 'refreshConfig');
+    const failure = { status: 500 };
+    const waiting = expectAsync(component.waitForInit()).toBeRejectedWith(failure);
+    fixture.detectChanges();
+    const init = spyOn<any>(component, 'initComponent').and.rejectWith(failure);
+    await waiting;
+    let finish!: (config: any) => void;
+    refresh.and.returnValue(new Promise(resolve => { finish = resolve; }));
+    init.and.resolveTo();
+    const retry = component.retryLoad();
+    await component.retryLoad();
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(init).toHaveBeenCalledTimes(1);
+    expect(component.loadPending).toBeTrue();
+    finish({});
+    await retry;
+    await component.waitForInit();
+    expect(init).toHaveBeenCalledTimes(2);
+    expect(component.loadPending).toBeFalse();
+    expect(component.loadError).toBe('');
+  });
+
   it('should request a render for async method updates triggered outside Angular', async () => {
     fixture.detectChanges();
     await component.waitForInit();

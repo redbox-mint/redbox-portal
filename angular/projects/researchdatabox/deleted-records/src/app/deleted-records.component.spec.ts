@@ -102,6 +102,33 @@ describe('DeletedRecordsComponent', () => {
     await testModule.compileComponents();
   });
 
+  it('propagates an initial page failure to bootstrap waiters and recovers through Retry', async () => {
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const original = recordService.getDeletedRecords.bind(recordService);
+    const read = spyOn(recordService, 'getDeletedRecords').and.rejectWith({ status: 403 });
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    const waiting = expectAsync(component.waitForInit()).toBeRejectedWith(jasmine.objectContaining({ status: 403 }));
+    fixture.detectChanges();
+    await waiting;
+    await expectAsync(component.waitForInit()).toBeRejected();
+    fixture.detectChanges();
+    expect(component.loadPending).toBeFalse();
+    expect(component.initTracker.resultsReturned).toBeTrue();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Sign in again');
+    read.and.callFake(original);
+    (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    await component.waitForInit();
+    fixture.detectChanges();
+    expect(configService.refreshConfig).toHaveBeenCalledTimes(1);
+    expect(component.loadError).toBe('');
+    expect(component.deletedRecordsResult.pageNum).toBe(1);
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    fixture.destroy();
+  });
+
   it('keeps actual paginator selection and loaded rows consistent after failure, retry and success', async () => {
     configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
