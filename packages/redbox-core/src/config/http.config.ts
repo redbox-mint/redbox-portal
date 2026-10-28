@@ -758,7 +758,9 @@ export const http: HttpConfig = {
             const requestPath = contextPrefix && req.path.startsWith(`${contextPrefix}/`)
                 ? req.path.slice(contextPrefix.length)
                 : req.path;
-            const isImmutableAsset = isImmutableAssetPath(requestPath);
+            const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
+            const hasNoStoreOverride = _.some(noCachePaths, suffix => _.endsWith(req.path, suffix));
+            const isImmutableAsset = isImmutableAssetPath(requestPath) && !hasNoStoreOverride;
             if (isImmutableAsset) {
                 cacheControlHeaderVal = 'public, max-age=31536000, immutable';
                 expiresHeaderVal = new Date(new Date().getTime() + (31536000 * 1000)).toUTCString();
@@ -772,14 +774,12 @@ export const http: HttpConfig = {
             } else if (isStaticAssetPath(requestPath)) {
                 // Stable asset URLs can change between deployments. Pragma alone
                 // does not override a positive Cache-Control max-age in browsers.
-                const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
-                cacheControlHeaderVal = _.some(noCachePaths, suffix => _.endsWith(req.path, suffix))
+                cacheControlHeaderVal = hasNoStoreOverride
                     ? 'no-cache, no-store'
                     : 'no-cache';
                 expiresHeaderVal = new Date(0).toUTCString();
             } else if (sessionTimeoutSeconds > 0) {
                 // Warning: sails.config.custom might differ at runtime verify structure
-                const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
                 const isMatch = _.find(noCachePaths, (path => {
                     return _.endsWith(req.path, path);
                 }));

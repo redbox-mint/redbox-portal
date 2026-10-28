@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { http, isImmutableAssetPath } from '../../src/config/http.config';
+import { notFound } from '../../src/responses/notFound';
 
 const request = require('supertest');
 // Use the same serve-static dependency and configuration as Sails' www middleware.
@@ -55,9 +56,13 @@ describe('static asset cache policy over HTTP', function () {
     fs.writeFileSync(target, bytes);
   }
 
-  function app(rootContext = ''): express.Express {
+  function app(rootContext = '', missingResponse?: 'json' | 'html' | 'fallback' | 'views-disabled'): express.Express {
     (global as any).sails.config.http.rootContext = rootContext;
     const server = express();
+    server.set('views', path.join(appPath, 'views'));
+    server.set('view engine', 'ejs');
+    // Sails runs cacheControl before its root-context-aware static handlers.
+    server.use(http.middleware.cacheControl as express.RequestHandler);
     // Model deployment under an Express mount/reverse proxy root context.
     const router = express.Router();
     // CodeQL js/missing-rate-limiting flagged the real branded router filesystem
@@ -67,12 +72,28 @@ describe('static asset cache policy over HTTP', function () {
     // Each deployment instance needs at most two requests (GET and revalidation).
     // Root dependencies include Express 4 types; this fixture uses core Express 5.
     router.use(rateLimit({ windowMs: 60000, limit: 3 }) as unknown as express.RequestHandler);
-    router.use(http.middleware.cacheControl as express.RequestHandler);
+    router.use((_req, res, next) => {
+      res.cookie('cache-test', 'session');
+      next();
+    });
     router.use(http.middleware.redirectNoCacheHeaders as express.RequestHandler);
     router.get('/angular/local-auth/browser/main-REDIRECT.js', (_req, res) => res.redirect('/login'));
     router.use(http.middleware.hookStaticAssets as express.RequestHandler);
     router.use(http.middleware.brandingAndPortalAwareStaticRouter as express.RequestHandler);
     router.use(serveStatic(publicDir, { maxAge: 31557600000 }));
+    if (missingResponse) {
+      router.use((req, res) => {
+        const sailsReq = req as unknown as Sails.Req;
+        sailsReq._sails = (global as any).sails;
+        sailsReq.wantsJSON = missingResponse === 'json';
+        sailsReq.options = {};
+        // Adapt Sails' view API to Express/EJS, retaining the real repository
+        // notFound -> sendView -> terminal fallback implementation.
+        const sailsRes = res as unknown as Sails.Res;
+        sailsRes.view = ((view: string, locals: object) => res.render(view, locals)) as typeof sailsRes.view;
+        notFound.call({ req: sailsReq, res: sailsRes }, 'missing bundle');
+      });
+    }
     server.use(rootContext || '/', router);
     return server;
   }
@@ -93,6 +114,7 @@ describe('static asset cache policy over HTTP', function () {
     write(appPath, '/node_modules/redbox-hook-cache/index.js', 'module.exports = {};');
     (global as any).sails.config = {
       ...originalConfig, appPath, http: { rootContext: '' },
+      hooks: { views: true }, ng2: { use_bundled: false, apps: {} },
       session: { cookie: { maxAge: 600000 } }, custom: { cacheControl: { noCache: [] } },
     };
   });
@@ -144,6 +166,49 @@ describe('static asset cache policy over HTTP', function () {
           expect(response.headers.pragma, url).to.equal(undefined);
           expect(Date.parse(response.headers.expires)).to.be.greaterThan(Date.now() + 31535000000);
         }
+      });
+    }
+  }
+
+  for (const rootContext of ['', '/redbox', '/service/redbox']) {
+    for (const assetRoot of ['core', 'hook']) {
+      it(`honors configured no-store for fingerprinted bundles (${assetRoot}, context '${rootContext}')`, async function () {
+        const url = bundles[0];
+        write(assetRoot === 'core' ? publicDir : hookDir, url, 'explicitly private bundle');
+        // Match the original request path, including a configured root context.
+        (global as any).sails.config.custom.cacheControl.noCache = [`${rootContext}${url}`];
+        const response = await request(app(rootContext)).get(`${rootContext}${url}?v=2`).expect(200);
+        expect(response.headers['cache-control']).to.equal('no-cache, no-store');
+        expect(response.headers.expires).to.equal(new Date(0).toUTCString());
+        expect(response.headers.pragma).to.equal('no-cache');
+        expect(response.headers['set-cookie']).to.include('cache-test=session; Path=/');
+      });
+    }
+
+    for (const mode of ['json', 'html', 'fallback', 'views-disabled'] as const) {
+      it(`does not cache a missing bundle and serves it when available (${mode}, context '${rootContext}')`, async function () {
+        if (mode === 'html') {
+          write(appPath, '/views/default/default/404.ejs', '<h1>Missing bundle</h1>');
+        }
+        if (mode === 'views-disabled') {
+          (global as any).sails.config.hooks.views = false;
+        }
+        const server = app(rootContext, mode);
+        const url = `${rootContext}${bundles[0]}?deploy=2`;
+        const missing = await request(server).get(url).expect(404);
+        expect(missing.headers['cache-control']).to.equal('no-cache, no-store, must-revalidate');
+        expect(missing.headers.pragma).to.equal('no-cache');
+        expect(missing.headers.expires).to.equal('0');
+        expect(missing.text).to.equal(mode === 'html' ? '<h1>Missing bundle</h1>'
+          : mode === 'fallback' ? '404 Not Found' : '"missing bundle"');
+
+        write(publicDir, bundles[0], 'newly available bundle');
+        const available = await request(server).get(url).expect(200);
+        expect(available.text).to.equal('newly available bundle');
+        expect(available.headers['cache-control']).to.equal('public, max-age=31536000, immutable');
+        expect(available.headers.pragma).to.equal(undefined);
+        expect(available.headers['set-cookie']).to.equal(undefined);
+        expect(Date.parse(available.headers.expires)).to.be.greaterThan(Date.now() + 31535000000);
       });
     }
   }

@@ -40,6 +40,7 @@ describe('Responses', function () {
     };
 
     res = {
+      set: sinon.stub().returnsThis(),
       status: sinon.stub().returnsThis(),
       json: sinon.stub(),
       view: sinon.stub(),
@@ -190,6 +191,17 @@ describe('Responses', function () {
   });
 
   describe('notFound', function () {
+    for (const wantsJSON of [true, false]) {
+      it(`replaces upstream cache headers before sending ${wantsJSON ? 'JSON' : 'HTML'}`, function () {
+        req.wantsJSON = wantsJSON;
+        notFound.call({ req, res }, 'missing');
+        expect(res.set.calledWith('Cache-Control', 'no-cache, no-store, must-revalidate')).to.be.true;
+        expect(res.set.calledWith('Pragma', 'no-cache')).to.be.true;
+        expect(res.set.calledWith('Expires', '0')).to.be.true;
+        expect(res.set.calledBefore(res.status)).to.be.true;
+      });
+    }
+
     it('should preserve the JSON 404 response', function () {
       notFound.call({ req, res }, 'missing');
 
