@@ -138,7 +138,7 @@ describe('TusStorageManagerDataStore', function () {
     const disk = new MemoryDisk();
     const logger = createSinonStubLogger(sinon);
     const store = new TusStorageManagerDataStore({
-      disk: disk as any,
+      disk,
       logger,
       ...overrides,
     });
@@ -379,9 +379,225 @@ describe('TusStorageManagerDataStore', function () {
     expect(disk.bytes('compose-retry')).to.deep.equal(Buffer.concat([Buffer.from('ok'), Buffer.alloc(size - 2, 2)]));
   });
 
+  it('keeps the durable offset incomplete during composition and needs no rollback when metadata is unavailable', async function () {
+    const { store, disk } = createStore();
+    const id = 'compose-metadata-outage';
+    await store.create(createUpload(id, 4));
+    await store.write(Readable.from(['ab']), id, 0);
+    const infoPut = sinon.stub(disk, 'put').callThrough();
+    infoPut.withArgs(`.tus/${id}/info.json`).rejects(new Error('metadata unavailable'));
+    const server = new Server({ path: '/attach', datastore: store });
+    const compose = sinon.stub(disk, 'putStream').callsFake(async () => {
+      const head = await server.handleWeb(new Request(`http://localhost/attach/${id}`, {
+        method: 'HEAD', headers: { 'Tus-Resumable': '1.0.0' },
+      }));
+      expect(head.status).to.equal(200);
+      expect(head.headers.get('Upload-Offset')).to.equal('2');
+      expect(disk.has(id)).to.equal(false);
+      throw new Error('compose failed');
+    });
+
+    let failure: unknown;
+    try {
+      await store.write(Readable.from(['cd']), id, 2);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).to.equal(ERRORS.FILE_WRITE_ERROR);
+    expect(infoPut.getCalls().filter(call => call.args[0].endsWith('info.json'))).to.have.length(0);
+    expect(JSON.parse(await disk.get(`.tus/${id}/info.json`)).offset).to.equal(2);
+    compose.restore();
+    infoPut.restore();
+    // A new datastore simulates restart; retry with different bytes and boundaries.
+    const restarted = new TusStorageManagerDataStore({ disk });
+    await restarted.write(Readable.from(['X']), id, 2);
+    await restarted.write(Readable.from(['Y']), id, 3);
+    expect(disk.bytes(id).toString()).to.equal('abXY');
+  });
+
+  for (const complete of [false, true]) {
+    for (const committed of [false, true]) {
+      it(`retains recoverable bytes when ${complete ? 'final' : 'intermediate'} metadata PUT fails ${committed ? 'after' : 'before'} commit`, async function () {
+        const { store, disk } = createStore();
+        const id = 'metadata-failure';
+        const size = complete ? 4 : 6;
+        await store.create(createUpload(id, size));
+        await store.write(Readable.from(['ab']), id, 0);
+        const originalPut = disk.put.bind(disk);
+        const put = sinon.stub(disk, 'put').callsFake(async (key, contents) => {
+          if (!key.endsWith('info.json') || committed) {
+            await originalPut(key, contents);
+          }
+          if (key.endsWith('info.json')) {
+            throw new Error('lost metadata response');
+          }
+        });
+        let failure: unknown;
+        try {
+          await store.write(Readable.from(['cd']), id, 2);
+        } catch (error) {
+          failure = error;
+        }
+        expect(failure).to.equal(ERRORS.FILE_WRITE_ERROR);
+        expect(disk.has(`.tus/${id}/parts/00000000000000000002`)).to.equal(true);
+        put.restore();
+        const restarted = new TusStorageManagerDataStore({ disk });
+        const upload = await restarted.getUpload(id);
+        expect(upload.offset).to.equal(committed ? 4 : 2);
+        if (upload.offset === size) {
+          expect(disk.bytes(id).toString()).to.equal('abcd');
+          expect(await restarted.write(Readable.from([]), id, size)).to.equal(size);
+        } else {
+          await restarted.write(Readable.from([(complete ? 'abcd' : 'abcdef').slice(upload.offset)]), id, upload.offset);
+        }
+        expect(disk.bytes(id).toString()).to.equal(complete ? 'abcd' : 'abcdef');
+      });
+    }
+  }
+
+  it('keeps completion committed when part cleanup fails after deleting some committed parts', async function () {
+    const { store, disk } = createStore();
+    const id = 'partial-cleanup';
+    await store.create(createUpload(id, 4));
+    await store.write(Readable.from(['ab']), id, 0);
+    sinon.stub(disk, 'deleteAll').callsFake(async () => {
+      await disk.delete(`.tus/${id}/parts/00000000000000000000`);
+      throw new Error('cleanup interrupted');
+    });
+    expect(await store.write(Readable.from(['cd']), id, 2)).to.equal(4);
+    expect((await store.getUpload(id)).offset).to.equal(4);
+    expect(disk.bytes(id).toString()).to.equal('abcd');
+    expect(await store.write(Readable.from([]), id, 4)).to.equal(4);
+    await store.declareUploadLength(id, 4);
+    expect(disk.bytes(id).toString()).to.equal('abcd');
+  });
+
+  it('does not publish a completing deferred length if composition fails', async function () {
+    const { store, disk } = createStore();
+    const id = 'declaration-failure';
+    await store.create(createUpload(id));
+    await store.write(Readable.from(['ab']), id, 0);
+    const compose = sinon.stub(disk, 'putStream').rejects(new Error('compose failed'));
+    let failure: unknown;
+    try {
+      await store.declareUploadLength(id, 2);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).to.equal(ERRORS.FILE_WRITE_ERROR);
+    expect((await store.getUpload(id)).size).to.equal(undefined);
+    expect((await store.getUpload(id)).offset).to.equal(2);
+    compose.restore();
+    await store.declareUploadLength(id, 2);
+    expect(disk.bytes(id).toString()).to.equal('ab');
+  });
+
+  it('serializes length declaration behind an in-flight write', async function () {
+    const { store, disk } = createStore();
+    const id = 'declaration-locked';
+    await store.create(createUpload(id));
+    let started!: () => void;
+    let release!: () => void;
+    const writing = new Promise<void>(resolve => { started = resolve; });
+    const released = new Promise<void>(resolve => { release = resolve; });
+    const originalPut = disk.put.bind(disk);
+    sinon.stub(disk, 'put').callsFake(async (key, contents) => {
+      if (key.includes('/parts/')) {
+        started();
+        await released;
+      }
+      await originalPut(key, contents);
+    });
+    const write = store.write(Readable.from(['ab']), id, 0);
+    await writing;
+    const declaration = store.declareUploadLength(id, 2);
+    release();
+    await write;
+    await declaration;
+    expect((await store.getUpload(id)).offset).to.equal(2);
+    expect(disk.bytes(id).toString()).to.equal('ab');
+  });
+
+  it('bounds stale-part deletion concurrency and preserves the committed prefix', async function () {
+    const { store, disk } = createStore();
+    const id = 'bounded-cleanup';
+    await store.create(createUpload(id, 2));
+    await store.write(Readable.from(['a']), id, 0);
+    for (let offset = 1; offset <= 19; offset += 1) {
+      await disk.put(`.tus/${id}/parts/${String(offset).padStart(20, '0')}`, '!');
+    }
+    const originalDelete = disk.delete.bind(disk);
+    let active = 0;
+    let peak = 0;
+    sinon.stub(disk, 'delete').callsFake(async key => {
+      active += 1;
+      peak = Math.max(peak, active);
+      await new Promise<void>(resolve => setImmediate(resolve));
+      await originalDelete(key);
+      active -= 1;
+    });
+    await store.write(Readable.from(['b']), id, 1);
+    expect(peak).to.equal(8);
+    expect(active).to.equal(0);
+    expect(disk.bytes(id).toString()).to.equal('ab');
+  });
+
+  it('waits for the entire stale deletion batch before a failed request releases its lock', async function () {
+    const { store, disk } = createStore();
+    const id = 'failed-cleanup-batch';
+    await store.create(createUpload(id, 20));
+    for (let offset = 0; offset < 8; offset += 1) {
+      await disk.put(`.tus/${id}/parts/${String(offset).padStart(20, '0')}`, '!');
+    }
+    let active = 0;
+    let completed = 0;
+    const originalDelete = disk.delete.bind(disk);
+    const deletion = sinon.stub(disk, 'delete').callsFake(async key => {
+      active += 1;
+      try {
+        if (key.endsWith('00000000000000000000')) throw new Error('delete failed');
+        await new Promise<void>(resolve => setImmediate(resolve));
+        await originalDelete(key);
+      } finally {
+        active -= 1;
+        completed += 1;
+      }
+    });
+    let failure: unknown;
+    try { await store.write(Readable.from(['ok']), id, 0); } catch (error) { failure = error; }
+    expect(failure).to.be.instanceOf(Error);
+    expect(active).to.equal(0);
+    expect(completed).to.equal(8);
+    expect((await store.getUpload(id)).offset).to.equal(0);
+    deletion.restore();
+    await store.write(Readable.from(['ok']), id, 0);
+    await store.declareUploadLength(id, 2);
+    expect(disk.bytes(id).toString()).to.equal('ok');
+  });
+
+  it('preserves the prior offset after a part source fails during final composition', async function () {
+    const { store, disk } = createStore();
+    const id = 'part-read-failure';
+    await store.create(createUpload(id, 4));
+    await store.write(Readable.from(['ab']), id, 0);
+    const read = sinon.stub(disk, 'getStream').callsFake(async () => Readable.from((async function* () {
+      yield Buffer.from('a');
+      throw new Error('part read interrupted');
+    })()));
+    let failure: unknown;
+    try { await store.write(Readable.from(['cd']), id, 2); } catch (error) { failure = error; }
+    expect(failure).to.equal(ERRORS.FILE_WRITE_ERROR);
+    expect((await store.getUpload(id)).offset).to.equal(2);
+    expect(disk.has(id)).to.equal(false);
+    read.restore();
+    await store.write(Readable.from(['XY']), id, 2);
+    expect(disk.bytes(id).toString()).to.equal('abXY');
+  });
+
   it('completes an empty upload without allocating or storing a part', async function () {
     const { store, disk } = createStore();
     await store.create(createUpload('empty', 0));
+    expect(disk.has('empty')).to.equal(true);
     expect(await store.write(Readable.from([]), 'empty', 0)).to.equal(0);
     expect(disk.bytes('empty').length).to.equal(0);
     expect(Array.from((await disk.listAll('.tus/empty/parts/')).objects)).to.have.length(0);
