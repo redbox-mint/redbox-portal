@@ -140,6 +140,41 @@ describe('VocabularyService', () => {
     expect(result.data).to.have.length(1);
   });
 
+  it('normalizes names, association IDs and brand objects for both queries', async () => {
+    g.BrandingService.getBrand = sinon.stub().callsFake((name: string) =>
+      name === 'brand-1' ? { id: '507f1f77bcf86cd799439011' } : null);
+    for (const branding of [' brand-1 ', '507f1f77bcf86cd799439011',
+      { id: '507f1f77bcf86cd799439011', name: 'brand-1' },
+      { _id: '507f1f77bcf86cd799439011' }, { name: 'brand-1' }]) {
+      (g.Vocabulary.count as sinon.SinonStub).resetHistory();
+      (g.Vocabulary.find as sinon.SinonStub).resetHistory();
+      await service.list({ branding, q: 'science', type: 'tree', source: 'local', limit: 2, offset: 1 });
+      const where = {
+        branding: '507f1f77bcf86cd799439011', type: 'tree', source: 'local',
+        or: [{ name: { contains: 'science' } }, { slug: { contains: 'science' } }]
+      };
+      sinon.assert.calledWith(g.Vocabulary.count as sinon.SinonStub, where);
+      sinon.assert.calledWith(g.Vocabulary.find as sinon.SinonStub, where);
+    }
+  });
+
+  it('uses the configured default only for omitted branding', async () => {
+    g.sails.config.auth.defaultBrand = 'brand-1';
+    g.BrandingService.getBrand = sinon.stub().withArgs('brand-1').returns({ id: 'brand-id' });
+    await service.list({});
+    sinon.assert.calledWithExactly(g.Vocabulary.count as sinon.SinonStub, { branding: 'brand-id' });
+    sinon.assert.calledWithExactly(g.Vocabulary.find as sinon.SinonStub, { branding: 'brand-id' });
+  });
+
+  it('returns an empty page without an unscoped query for empty branding', async () => {
+    for (const branding of ['', ' ', {}]) {
+      const result = await service.list({ branding, limit: 3, offset: 2 });
+      expect(result).to.deep.equal({ data: [], meta: { total: 0, limit: 3, offset: 2 } });
+    }
+    sinon.assert.notCalled(g.Vocabulary.count as sinon.SinonStub);
+    sinon.assert.notCalled(g.Vocabulary.find as sinon.SinonStub);
+  });
+
   describe('assertMutableVocabulary', () => {
     let figshareSourceFindOne: sinon.SinonStub;
 
