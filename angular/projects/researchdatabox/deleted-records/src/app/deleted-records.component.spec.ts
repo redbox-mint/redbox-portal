@@ -165,11 +165,7 @@ describe('DeletedRecordsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Page one');
     expect(component.loadError).toContain('Unable to load');
     expect(component.currentPageNumber).toBe(1);
-    const restore = recordService.restoreDeletedRecord = jasmine.createSpy('restoreDeletedRecord').and.resolveTo({});
-    const goto = spyOn(component, 'gotoPage').and.resolveTo(previous);
-    await component.recordTableAction(undefined, { oid: 'restored' }, 'restore');
-    expect(goto).toHaveBeenCalledWith(1);
-    goto.and.callThrough();
+    const restore = recordService.restoreDeletedRecord = jasmine.createSpy('restoreDeletedRecord').and.resolveTo({ success: true });
     let resolve!: (value: any) => void;
     read.and.returnValue(new Promise(resolveRequest => { resolve = resolveRequest; }));
     (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
@@ -340,10 +336,14 @@ describe('DeletedRecordsComponent', () => {
   });
   for (const action of ['restore', 'destroy'] as const) {
     async function setupAction() {
+      mockData.deletedRecords.totalItems = 30;
       const fixture = TestBed.createComponent(DeletedRecordsComponent);
       fixture.detectChanges();
       const app = fixture.componentInstance;
       await app.waitForInit();
+      await fixture.whenStable();
+      await app.gotoPage(2);
+      fixture.detectChanges();
       await fixture.whenStable();
       const method = action === 'restore' ? 'restoreDeletedRecord' : 'destroyDeletedRecord';
       const mutation = jasmine.createSpy(method);
@@ -441,27 +441,106 @@ describe('DeletedRecordsComponent', () => {
       });
     }
 
-    it(`${action}: keeps confirmed success distinct from refresh failure and only retries the read`, async () => {
-      const { fixture, app, mutation, reload, run } = await setupAction();
-      mutation.and.resolveTo({ success: true });
-      reload.and.rejectWith(new Error('refresh failed'));
-      await run();
-      expect(app.actionMessage).toContain('succeeded');
-      expect(fixture.nativeElement.textContent).toContain('Unable to refresh');
-      expect(app.actionMessage).not.toContain('unknown');
-      expect(app.actionNeedsRefresh).toBeTrue();
-      expect(app.actionPending).toBeFalse();
-      expect(app.initTracker.resultsReturned).toBeTrue();
-      expect(app.currentDestroyRecordModalOid).toBeUndefined();
-      await run();
-      expect(mutation).toHaveBeenCalledTimes(1);
-      reload.and.resolveTo(mockData.deletedRecords);
-      (fixture.nativeElement.querySelector('.refresh-actions') as HTMLButtonElement).click();
+    for (const outcome of ['success', 'unknown'] as const) {
+      it(`${action}: ${outcome} with failed refresh retains the real page and retries only the read`, async () => {
+        const { fixture, app, mutation, reload, run } = await setupAction();
+        const previous = app.deletedRecordsResult;
+        const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
+        const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+          .find(link => link.textContent?.trim() === String(page))!;
+        expect(activePage()).toBe('2');
+        if (outcome === 'success') {
+          mutation.and.resolveTo({ success: true });
+        } else {
+          mutation.and.rejectWith(new HttpErrorResponse({ status: 0 }));
+        }
+        reload.and.rejectWith(new HttpErrorResponse({ status: 500 }));
+        await run();
+        if (outcome === 'unknown') {
+          // Unknown writes require an explicit read before state can be verified.
+          expect(reload).not.toHaveBeenCalled();
+          (fixture.nativeElement.querySelector('.refresh-actions') as HTMLButtonElement).click();
+          await fixture.whenStable();
+          fixture.detectChanges();
+        }
+        expect(app.actionMessage).toContain(outcome === 'success' ? 'succeeded' : 'unknown');
+        expect(fixture.nativeElement.textContent).toContain('Unable to refresh');
+        expect(app.actionNeedsRefresh).toBeTrue();
+        expect(app.actionPending).toBeFalse();
+        expect(app.initTracker.resultsReturned).toBeTrue();
+        expect(app.deletedRecordsResult).toBe(previous);
+        expect(app.currentPageNumber).toBe(2);
+        expect(activePage()).toBe('2');
+        expect(fixture.nativeElement.textContent).toContain('rdmp record 1');
+        expect(fixture.nativeElement.querySelector('record-table .btn-primary')).toBeNull();
+        expect(fixture.nativeElement.querySelector('.retry-restore')).toBeNull();
+        await run();
+        await app.retryRestore();
+        await app.confirmDestroyRecordModal(null);
+        expect(mutation).toHaveBeenCalledTimes(1);
+
+        let finishRead!: (result: any) => void;
+        reload.and.returnValue(new Promise(resolve => { finishRead = resolve; }));
+        const retry = fixture.nativeElement.querySelector('.refresh-actions') as HTMLButtonElement;
+        retry.click();
+        retry.click();
+        fixture.detectChanges();
+        expect(retry.disabled).toBeTrue();
+        expect(app.actionPending).toBeTrue();
+        pageLink(3).click();
+        await app.gotoPage(3);
+        await app.filter();
+        await app.headerSortChanged({ variable: 'title', sort: 'asc' }, null);
+        await app.refreshActionList();
+        await app.recordTableAction(null, { oid: 'other' }, 'restore');
+        expect(reload).toHaveBeenCalledTimes(2);
+        expect(reload.calls.mostRecent().args[2]).toBe(2);
+        expect(mutation).toHaveBeenCalledTimes(1);
+        expect(app.actionNeedsRefresh).toBeTrue();
+        expect(app.deletedRecordsResult).toBe(previous);
+        finishRead({ items: [{ oid: 'remaining', title: 'Verified page two' }], totalItems: 21, currentPage: 2 });
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(app.actionNeedsRefresh).toBeFalse();
+        expect(app.actionPending).toBeFalse();
+        expect(app.actionRefreshError).toBe('');
+        expect(app.currentDestroyRecordModalOid).toBeUndefined();
+        expect(fixture.nativeElement.textContent).toContain('Verify the record state');
+        expect(fixture.nativeElement.textContent).toContain('Verified page two');
+        expect(fixture.nativeElement.querySelector('record-table .btn-primary')).toBeTruthy();
+        expect(activePage()).toBe('2');
+        expect(mutation).toHaveBeenCalledTimes(1);
+        fixture.destroy();
+      });
+    }
+
+    it(`${action}: refuses a mutation while a paginator read is pending`, async () => {
+      const { fixture, app, mutation, reload } = await setupAction();
+      if (action === 'destroy') {
+        await app.recordTableAction(null, { oid: 'rdmp-record-1' }, action);
+        fixture.detectChanges();
+      }
+      let finishRead!: (result: any) => void;
+      reload.and.returnValue(new Promise(resolve => { finishRead = resolve; }));
+      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+        .find(link => link.textContent?.trim() === '3')!;
+      pageThree.click();
+      // Exercise method guards before Angular updates disabled/hidden controls.
+      await app.recordTableAction(null, { oid: 'rdmp-record-1' }, action);
+      await app.confirmDestroyRecordModal(null);
+      await app.retryRestore();
+      fixture.detectChanges();
+      expect(mutation).not.toHaveBeenCalled();
+      expect(reload).toHaveBeenCalledTimes(1);
+      expect(fixture.nativeElement.querySelector('record-table .btn-primary')).toBeNull();
+      if (action === 'destroy') {
+        expect(fixture.nativeElement.querySelector('.modal-footer .btn-primary').disabled).toBeTrue();
+      }
+      finishRead({ items: [], totalItems: 30, currentPage: 3 });
       await fixture.whenStable();
       fixture.detectChanges();
-      expect(reload).toHaveBeenCalledTimes(2);
-      expect(mutation).toHaveBeenCalledTimes(1);
-      expect(app.actionNeedsRefresh).toBeFalse();
+      expect(app.currentPageNumber).toBe(3);
+      expect(app.initTracker.resultsReturned).toBeTrue();
       fixture.destroy();
     });
 
@@ -489,6 +568,13 @@ describe('DeletedRecordsComponent', () => {
       await app.recordTableAction(null, { oid: 'another-record' }, 'destroy');
       await app.confirmDestroyRecordModal(null);
       expect(mutation).toHaveBeenCalledTimes(1);
+      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+        .find(link => link.textContent?.trim() === '3')!;
+      fixture.detectChanges();
+      pageThree.click();
+      await app.gotoPage(3);
+      await app.filter();
+      expect(reload).not.toHaveBeenCalled();
       let refresh!: (result: any) => void;
       reload.and.returnValue(new Promise(resolve => { refresh = resolve; }));
       complete({ success: true });

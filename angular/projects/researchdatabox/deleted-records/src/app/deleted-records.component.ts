@@ -148,8 +148,27 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
    * @param pageNum Load the data for this page nnumber.
    */
   public async gotoPage(pageNum: number): Promise<RecordPageDto> {
-    if (this.pageLoadPending) {
+    if (this.pageLoadPending || this.actionPending) {
       return this.deletedRecordsResult;
+    }
+    try {
+      return await this.loadPage(pageNum);
+    } catch (error) {
+      // Initial load failures must reach BaseComponent's bootstrap error subject.
+      if (!this.isReady) {
+        throw error;
+      }
+      this.showLoadError(error, () => this.gotoPage(pageNum));
+      return this.deletedRecordsResult;
+    }
+  }
+
+  // Unlike navigation's retained-page fallback, this promise only resolves after
+  // a fresh read. Mutation recovery must never mistake retained rows for proof
+  // that the post-action list has been loaded.
+  private async loadPage(pageNum: number): Promise<RecordPageDto> {
+    if (this.pageLoadPending) {
+      throw new Error('A page read is already pending.');
     }
     this.pageLoadPending = true;
     this.initTracker.resultsReturned = false;
@@ -157,13 +176,6 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     try {
       this.deletedRecordsResult = await this.getDeletedRecords(pageNum);
       this.currentPageNumber = this.deletedRecordsResult.pageNum;
-      return this.deletedRecordsResult;
-    } catch (error) {
-      // Initial load failures must reach BaseComponent's bootstrap error subject.
-      if (!this.isReady) {
-        throw error;
-      }
-      this.showLoadError(error, () => this.gotoPage(pageNum));
       return this.deletedRecordsResult;
     } finally {
       this.pageLoadPending = false;
@@ -180,12 +192,15 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public async headerSortChanged(event: any, data: any) {
+    if (this.pageLoadPending || this.actionPending || this.loadPending) {
+      return;
+    }
     this.sort = `${event.variable}:${event.sort === 'desc' ? '-1' : '1'}`;
     await this.gotoPage(1);
   }
 
   public async recordTableAction(event: any, data: any, actionName: string) {
-    if (this.actionPending || this.actionNeedsRefresh || this.isDestroyRecordModalShown) {
+    if (this.actionPending || this.actionNeedsRefresh || this.pageLoadPending || this.loadPending || this.isDestroyRecordModalShown) {
       return;
     }
     this.actionMessage = '';
@@ -240,7 +255,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   private async mutateDeletedRecord(action: 'restore' | 'destroy', oid: string): Promise<void> {
-    if (this.actionPending || this.actionNeedsRefresh) {
+    if (this.actionPending || this.actionNeedsRefresh || this.pageLoadPending || this.loadPending) {
       return;
     }
     this.actionPending = true;
@@ -296,7 +311,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public async refreshActionList(): Promise<void> {
-    if (this.actionPending || !this.actionNeedsRefresh) {
+    if (this.actionPending || this.pageLoadPending || this.loadPending || !this.actionNeedsRefresh) {
       return;
     }
     this.actionPending = true;
@@ -309,7 +324,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   private async refreshAfterAction(): Promise<void> {
     try {
-      await this.gotoPage(this.currentPageNumber);
+      await this.loadPage(this.currentPageNumber);
       this.actionNeedsRefresh = false;
       this.closeDestroyRecordModal();
       this.actionRefreshError = '';

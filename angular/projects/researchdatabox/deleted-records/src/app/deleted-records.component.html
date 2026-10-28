@@ -1,7 +1,7 @@
 @if (loadError) {
   <div class="alert alert-danger" role="alert">
     {{ loadError }}
-    <button type="button" class="btn btn-default" [disabled]="loadPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">Retry</button>
+    <button type="button" class="btn btn-default" [disabled]="loadPending || actionPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">Retry</button>
   </div>
 }
 @if (isReady) {
@@ -16,10 +16,10 @@
     <div class="alert alert-warning action-feedback" role="alert">
       {{ actionMessage }} {{ actionRefreshError }}
       @if (canRetryRestore) {
-        <button type="button" class="btn btn-default retry-restore" [disabled]="actionPending" (click)="retryRestore()">Retry restore</button>
+        <button type="button" class="btn btn-default retry-restore" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="retryRestore()">Retry restore</button>
       }
       @if (actionNeedsRefresh) {
-        <button type="button" class="btn btn-default refresh-actions" [disabled]="actionPending" (click)="refreshActionList()">Refresh list</button>
+        <button type="button" class="btn btn-default refresh-actions" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="refreshActionList()">Refresh list</button>
       }
     </div>
   }
@@ -101,7 +101,7 @@
     </div>
   }
   <!-- Result details -->
-  <record-table [paginationDisabled]="loadPending || !initTracker.resultsReturned"
+  <record-table [paginationDisabled]="loadPending || actionPending || !initTracker.resultsReturned"
     [columnConfig]="tableHeaders"
     [dataSource]="this"
     [optTemplateData]="optTemplateData"
@@ -109,7 +109,7 @@
     [paginationMaxSize]="paginationMaxSize"
     [showActions]="showActions"
     [enableSort]="true"
-    [enableActions]="!actionPending && !actionNeedsRefresh && !isDestroyRecordModalShown">
+    [enableActions]="!loadPending && initTracker.resultsReturned && !actionPending && !actionNeedsRefresh && !isDestroyRecordModalShown">
   </record-table>
   <!-- Modal -->
   @if (isDestroyRecordModalShown) {
@@ -136,10 +136,10 @@
             <div class="alert alert-warning action-feedback" role="alert">
               {{ actionMessage }} {{ actionRefreshError }}
               @if (canRetryRestore) {
-                <button type="button" class="btn btn-default retry-restore" [disabled]="actionPending" (click)="retryRestore()">Retry restore</button>
+                <button type="button" class="btn btn-default retry-restore" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="retryRestore()">Retry restore</button>
               }
               @if (actionNeedsRefresh) {
-                <button type="button" class="btn btn-default refresh-actions" [disabled]="actionPending" (click)="refreshActionList()">Refresh list</button>
+                <button type="button" class="btn btn-default refresh-actions" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="refreshActionList()">Refresh list</button>
               }
             </div>
           }
@@ -148,7 +148,7 @@
               [disabled]="actionPending" (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
             </button>
             <button type="button" class="btn btn-primary"
-              [disabled]="actionPending || actionNeedsRefresh" (click)="confirmDestroyRecordModal($event)">{{ actionMessage && !actionNeedsRefresh ? 'Retry destroy' : ('deleted-records-item-confirm-delete-confirm' | i18next) }}
+              [disabled]="actionPending || actionNeedsRefresh || loadPending || !initTracker.resultsReturned" (click)="confirmDestroyRecordModal($event)">{{ actionMessage && !actionNeedsRefresh ? 'Retry destroy' : ('deleted-records-item-confirm-delete-confirm' | i18next) }}
             </button>
           </div>
         </div>
