@@ -82,7 +82,20 @@ export namespace Controllers {
     }
 
     public profile(req: Sails.Req, res: Sails.Res) {
-      this.sendView(req, res, "user/profile");
+      if (!req.isAuthenticated() || !req.user?.id) {
+        return res.status(403).send();
+      }
+      const brand = BrandingService.getBrand(BrandingService.getBrandNameFromReq(req));
+      const basePath = `/${brand.name}/${BrandingService.getPortalFromReq(req)}`;
+      const canWrite = (action: string): boolean => {
+        const rules = PathRulesService.getRulesFromPath(`${basePath}/user/${action}`, brand);
+        return !!rules && PathRulesService.canWrite(rules, Array.isArray(req.user!.roles) ? req.user!.roles : [], brand.name);
+      };
+      this.sendView(req, res, "user/profile", {
+        canUpdateProfile: req.user.type === 'local' && canWrite('update'),
+        canGenerateKey: canWrite('genKey'),
+        canRevokeKey: canWrite('revokeKey')
+      });
     }
 
     public redirLogin(req: Sails.Req, res: Sails.Res) {
@@ -197,7 +210,7 @@ export namespace Controllers {
       if (req.isAuthenticated()) {
         userid = req.user!.id as string;
       } else {
-        this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
 
       if (userid) {
@@ -220,7 +233,7 @@ export namespace Controllers {
       if (req.isAuthenticated()) {
         userid = req.user!.id as string;
       } else {
-        this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { data: { status: false, message: "No current user session. Please login." }, headers: this.getNoCacheHeaders() });
       }
 
       if (userid) {

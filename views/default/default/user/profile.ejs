@@ -1,13 +1,48 @@
-<div class="row" id="loading">
-        <div class="col-xs-1">
+<section id="user-profile" class="row" data-base-path="<%= BrandingService.getBrandAndPortalPath(req) %>" data-csrf-url="<%= BrandingService.getRootContext() %>/csrfToken">
+  <div class="col-lg-8">
+    <h1>User profile</h1>
+    <p><strong>Username:</strong> <%= req.user.username %></p>
+    <p><strong>Account type:</strong> <%= req.user.type %></p>
+    <% if (canUpdateProfile) { %>
+      <form id="profile-details" method="post" action="<%= BrandingService.getBrandAndPortalPath(req) %>/user/update">
+        <div class="mb-3">
+          <label for="profile-name" class="form-label">Name</label>
+          <input id="profile-name" name="name" class="form-control" required value="<%= req.user.name %>" autocomplete="name">
         </div>
-        <div class="col-xs-10">
-          <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+        <div class="mb-3">
+          <label for="profile-email" class="form-label">Email</label>
+          <input id="profile-email" name="email" class="form-control" type="email" value="<%= req.user.email %>" autocomplete="email">
         </div>
-        <div class="col-xs-1">
+        <div class="mb-3">
+          <label for="profile-password" class="form-label">New password</label>
+          <input id="profile-password" name="password" class="form-control" type="password" autocomplete="new-password" aria-describedby="profile-password-help">
+          <p id="profile-password-help" class="form-text">Leave blank to keep your current password.</p>
         </div>
+        <div class="mb-3">
+          <label for="profile-password-confirm" class="form-label">Confirm new password</label>
+          <input id="profile-password-confirm" name="confirmPassword" class="form-control" type="password" autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary" type="submit">Save profile</button>
+      </form>
+    <% } else { %>
+      <p><strong>Name:</strong> <%= req.user.name %></p>
+      <p><strong>Email:</strong> <%= req.user.email %></p>
+      <p>Contact your account administrator or identity provider to change these details.</p>
+    <% } %>
+    <% if (canGenerateKey || canRevokeKey) { %>
+      <hr>
+      <h2>API token</h2>
+      <p>Generating a token replaces your existing token. Copy the new token now; it will not be shown again.</p>
+      <% if (canGenerateKey) { %><button id="profile-generate-key" class="btn btn-primary" type="button">Generate API token</button><% } %>
+      <% if (canRevokeKey) { %><button id="profile-revoke-key" class="btn btn-outline-danger" type="button">Revoke API token</button><% } %>
+      <div id="profile-token-result" class="mt-3" hidden>
+        <label for="profile-token" class="form-label">New API token</label>
+        <input id="profile-token" class="form-control" readonly autocomplete="off" spellcheck="false">
+        <button id="profile-hide-token" class="btn btn-link" type="button">Hide token</button>
       </div>
-      <div class="row">
-        <user-profile <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>></user-profile>
-      </div>
-    <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/inline.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/polyfills.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/scripts.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/styles.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/vendor.bundle.js"></script><script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/userProfile/main.bundle.js"></script>
+    <% } %>
+    <p id="profile-status" class="mt-3" role="status" aria-live="polite"></p>
+    <noscript>JavaScript is required to save profile changes or manage API tokens.</noscript>
+  </div>
+</section>
+<script src="<%= BrandingService.getRootContext() %>/default/default/js/user-profile.js" defer></script>
