@@ -27,6 +27,10 @@ const unversioned = [
   '/default/rdmp/images/checklist.png',
   '/js/redbox-progress.js',
   '/styles/bootstrap.css',
+  '/locales/en/translation-core.json',
+  '/android-chrome-192x192.png',
+  '/favicon.ico',
+  '/robots.txt',
   '/angular/local-auth/browser/main.js',
   '/angular/local-auth/browser/main-abcdefgh.js',
   '/angular/local-auth/browser/main-ijtxdiz5.js',
@@ -56,9 +60,13 @@ describe('static asset cache policy over HTTP', function () {
     const server = express();
     // Model deployment under an Express mount/reverse proxy root context.
     const router = express.Router();
-    // Keep request-triggered filesystem work bounded in this standalone fixture.
+    // CodeQL js/missing-rate-limiting flagged the real branded router filesystem
+    // lookups here (PR #5095, alert #154). Retain this modeled boundary and its
+    // 429 test rather than suppressing analysis or replacing production routing.
+    // This limiter belongs only to the standalone HTTP fixture.
     // Each deployment instance needs at most two requests (GET and revalidation).
-    router.use(rateLimit({ windowMs: 60000, limit: 3 }));
+    // Root dependencies include Express 4 types; this fixture uses core Express 5.
+    router.use(rateLimit({ windowMs: 60000, limit: 3 }) as unknown as express.RequestHandler);
     router.use(http.middleware.cacheControl as express.RequestHandler);
     router.use(http.middleware.redirectNoCacheHeaders as express.RequestHandler);
     router.get('/angular/local-auth/browser/main-REDIRECT.js', (_req, res) => res.redirect('/login'));
@@ -140,6 +148,25 @@ describe('static asset cache policy over HTTP', function () {
     }
   }
 
+  // Opt in after a real production build; no copied filename/hash fixtures.
+  (process.env.REDBOX_ANGULAR_BROWSER_OUTPUT ? it : it.skip)('serves actual production build output with immutable bundle headers', async function () {
+    const output = path.resolve(process.env.REDBOX_ANGULAR_BROWSER_OUTPUT!);
+    const index = fs.readFileSync(path.join(output, 'index.html'), 'utf8');
+    const entrypoints = Array.from(index.matchAll(/(?:src|href)="([^"/]+\.(?:js|css))"/g), match => match[1]);
+    expect(entrypoints.length, 'production index entrypoints').to.be.greaterThan(0);
+    const emittedBundles = fs.readdirSync(output).filter(file => ['.js', '.css'].includes(path.extname(file)));
+    expect(emittedBundles, 'include entrypoints and lazy/shared chunks').to.include.members(entrypoints);
+    expect(emittedBundles.length).to.be.greaterThan(entrypoints.length);
+    for (const file of emittedBundles) {
+      const bytes = fs.readFileSync(path.join(output, file));
+      const url = `/angular/local-auth/browser/${file}`;
+      write(publicDir, url, bytes.toString());
+      const response = await request(app('/redbox')).get(`/redbox${url}`).expect(200);
+      expect(response.headers['cache-control'], file).to.equal('public, max-age=31536000, immutable');
+      expect(response.text, file).to.equal(bytes.toString());
+    }
+  });
+
   it('preserves revalidation through branded core fallback and ignores session lifetime for assets', async function () {
     write(publicDir, '/default/default/images/checklist.png', 'fallback');
     for (const maxAge of [0, undefined, 600000]) {
@@ -147,6 +174,27 @@ describe('static asset cache policy over HTTP', function () {
       const response = await request(app()).get('/brand/rdmp/images/checklist.png?deploy=2').expect(200);
       expect(response.headers['cache-control']).to.equal('no-cache');
     }
+  });
+
+  for (const assetRoot of ['core', 'hook']) {
+    for (const fallback of ['default/rdmp', 'default/default']) {
+      it(`revalidates branded fallback (${assetRoot}, ${fallback}, nested context)`, async function () {
+        write(assetRoot === 'core' ? publicDir : hookDir, `/${fallback}/images/checklist.png`, 'fallback bytes');
+        const url = '/service/redbox/brand/rdmp/images/checklist.png?deploy=2';
+        const first = await request(app('/service/redbox')).get(url).expect(200);
+        expect(first.headers['cache-control']).to.equal('no-cache');
+        expect(first.body.toString()).to.equal('fallback bytes');
+        await request(app('/service/redbox')).get(url).set('If-None-Match', first.headers.etag).expect(304);
+      });
+    }
+  }
+
+  it('supports explicit no-store policy for custom core static directories without treating extensions as static', async function () {
+    write(publicDir, '/downloads/help.pdf', 'custom static file');
+    (global as any).sails.config.custom.cacheControl.noCache = ['/downloads/help.pdf'];
+    const response = await request(app('/redbox')).get('/redbox/downloads/help.pdf').expect(200);
+    expect(response.headers['cache-control']).to.equal('no-cache, no-store');
+    expect(response.body.toString()).to.equal('custom static file');
   });
 
   it('rejects excess requests before the fixture performs branded filesystem lookups', async function () {
@@ -190,8 +238,12 @@ describe('static asset cache policy over HTTP', function () {
 
   it('retains the existing private cache policy for dynamic routes', async function () {
     const server = app();
-    server.get('/default/rdmp/record', (_req, res) => res.send('record'));
-    const response = await request(server).get('/default/rdmp/record').expect(200);
-    expect(response.headers['cache-control']).to.equal('max-age=600, private');
+    // TranslationController and custom controller routes must not be classified
+    // as static just because their URLs have a filename extension.
+    for (const url of ['/default/rdmp/record', '/default/rdmp/locales/en/translation.json', '/reports/latest.csv']) {
+      server.get(url, (_req, res) => res.send('dynamic response'));
+      const response = await request(server).get(url).expect(200);
+      expect(response.headers['cache-control'], url).to.equal('max-age=600, private');
+    }
   });
 });

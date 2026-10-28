@@ -116,8 +116,12 @@ let _cachedBodyParserSkipPathConfig: CustomConfig['bodyParser']['skipPaths'] | u
 let _cachedBodyParserSkipPathMatchers: RegExp[] = [];
 
 function isStaticAssetPath(reqPath: string): boolean {
+    // Branded locales are dynamic TranslationController routes. Only the direct
+    // locale files and root metadata below belong to the static asset namespace.
     return /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(reqPath) ||
-        /^\/(?:apple-touch-icon|favicon-|site\.webmanifest)/.test(reqPath);
+        /^\/locales\//.test(reqPath) ||
+        /^\/(?:android-chrome-|apple-touch-icon|favicon-|site\.webmanifest)/.test(reqPath) ||
+        /^\/(?:favicon\.ico|robots\.txt)$/.test(reqPath);
 }
 
 function normalizeBodyParserPath(value: string): string {
