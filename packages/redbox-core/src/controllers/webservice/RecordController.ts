@@ -860,6 +860,7 @@ export namespace Controllers {
     public async getRecordAudit(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const dateFrom = validated.query.dateFrom as string | undefined;
       const dateTo = validated.query.dateTo as string | undefined;
       const params: { oid: string; dateFrom: Date | null; dateTo: Date | null } = { oid, dateFrom: null, dateTo: null };
@@ -872,6 +873,14 @@ export namespace Controllers {
       }
 
       try {
+        // Audit history alone cannot establish access to a missing or purged record.
+        const record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+          return this.sendResp(req, res, { status: 403 });
+        }
         const audit = await this.RecordsService.getRecordAudit(params);
         const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
         response.summary.numFound = _.size(audit);

@@ -7,12 +7,14 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
+import { ListAPIResponse } from '../../../src/model/ListAPIResponse';
 import type { RecordSchemaService } from '../../../src';
 import type { BuildResponseType } from '../../../src/model';
 import { isRecordSaveContext, type RecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
 import {
   createRecordRoute,
+  getRecordAuditRoute,
   RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   transitionWorkflowRoute,
   updateMetaRoute,
@@ -237,6 +239,7 @@ describe('Webservice RecordController body source', () => {
   let originalHarvestRunService: any;
   let recordsService: {
     getMeta: sinon.SinonStub;
+    getRecordAudit: sinon.SinonStub;
     getDeletedRecord: sinon.SinonStub;
     getDeletedRecordMeta: sinon.SinonStub;
     updateMeta: sinon.SinonStub;
@@ -307,6 +310,7 @@ describe('Webservice RecordController body source', () => {
     controller = new Controllers.Record();
     recordsService = {
       getMeta: sinon.stub(),
+      getRecordAudit: sinon.stub().resolves([]),
       getDeletedRecord: sinon.stub(),
       getDeletedRecordMeta: sinon.stub(),
       updateMeta: sinon.stub(),
@@ -325,6 +329,117 @@ describe('Webservice RecordController body source', () => {
     controller.DatastreamService = {
       addDatastreams: sinon.stub(),
     } as never;
+  });
+
+  describe('getRecordAudit authorization', () => {
+    function auditRequest(query: Record<string, unknown> = {}): Sails.Req {
+      return makeValidatedRequest(
+        getRecordAuditRoute,
+        {
+          params: { branding: 'default', portal: 'default', oid: 'record-1' },
+          query,
+          headers: {},
+          body: {},
+        },
+        { user: { username: 'tester', roles: [{ name: 'Admin', branding: 'brand-1' }] } }
+      );
+    }
+
+    const inaccessibleRecords = [
+      { name: 'a foreign-brand record for a local Admin', record: { metaMetadata: { brandId: 'brand-2' } } },
+      { name: 'a record without an authoritative brand', record: { metaMetadata: {} } },
+      { name: 'a missing record', record: null },
+      { name: 'a purged record with retained history', record: undefined },
+    ];
+
+    for (const { name, record } of inaccessibleRecords) {
+      it(`denies audit access to ${name} before reading history`, async () => {
+        recordsService.getMeta.resolves(record);
+        recordsService.getRecordAudit.resolves([
+          { redboxOid: 'record-1', record: { metadata: { secret: 'history' } } },
+        ]);
+        const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+        await controller.getRecordAudit(auditRequest(), {} as Sails.Res);
+
+        sinon.assert.notCalled(recordsService.getRecordAudit);
+        sinon.assert.calledOnceWithExactly(recordsService.getMeta, 'record-1');
+        sinon.assert.notCalled(recordsService.hasViewAccess);
+        sinon.assert.notCalled(recordsService.getDeletedRecordMeta);
+        assert.deepEqual(sendResp.firstCall.args[2], { status: 404 });
+      });
+    }
+
+    it('denies a same-brand caller without record view permission before reading history', async () => {
+      recordsService.getMeta.resolves({ metaMetadata: { brandId: 'brand-1' } });
+      recordsService.hasViewAccess.returns(false);
+      const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.getRecordAudit(auditRequest(), {} as Sails.Res);
+
+      sinon.assert.calledOnce(recordsService.hasViewAccess);
+      sinon.assert.notCalled(recordsService.getRecordAudit);
+      assert.deepEqual(sendResp.firstCall.args[2], { status: 403 });
+    });
+
+    it('fails closed when the active brand cannot establish ownership', async () => {
+      (global as { BrandingService?: unknown }).BrandingService = { getBrand: () => undefined };
+      recordsService.getMeta.resolves({ metaMetadata: { brandId: 'brand-1' } });
+      const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.getRecordAudit(auditRequest(), {} as Sails.Res);
+
+      sinon.assert.notCalled(recordsService.getRecordAudit);
+      assert.deepEqual(sendResp.firstCall.args[2], { status: 404 });
+    });
+
+    it('fails closed when the authoritative record lookup fails', async () => {
+      recordsService.getMeta.rejects(new Error('Storage unavailable'));
+      const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.getRecordAudit(auditRequest(), {} as Sails.Res);
+
+      sinon.assert.notCalled(recordsService.getRecordAudit);
+      assert.deepEqual(sendResp.firstCall.args[2], { status: 404 });
+    });
+
+    const dateFilters = [
+      {},
+      { dateFrom: '2026-01-01' },
+      { dateTo: '2026-02-01' },
+      { dateFrom: '2026-01-01', dateTo: '2026-02-01' },
+    ];
+    for (const query of dateFilters) {
+      it(`preserves authorized audit results and date filters ${JSON.stringify(query)}`, async () => {
+        const record = { redboxOid: 'record-1', metaMetadata: { brandId: 'brand-1' } };
+        const audit = [{ redboxOid: 'record-1', action: 'updated', record: { metadata: { title: 'Earlier title' } } }];
+        recordsService.getMeta.resolves(record);
+        recordsService.getRecordAudit.resolves(audit);
+        const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+        const req = auditRequest(query);
+
+        await controller.getRecordAudit(req, {} as Sails.Res);
+
+        sinon.assert.calledOnceWithExactly(
+          recordsService.hasViewAccess,
+          { id: 'brand-1', name: 'default' },
+          req.user,
+          req.user?.roles,
+          record
+        );
+        sinon.assert.callOrder(recordsService.getMeta, recordsService.hasViewAccess, recordsService.getRecordAudit);
+        sinon.assert.calledOnceWithExactly(recordsService.getRecordAudit, {
+          oid: 'record-1',
+          dateFrom: query.dateFrom ? new Date(query.dateFrom) : null,
+          dateTo: query.dateTo ? new Date(query.dateTo) : null,
+        });
+        const response = sendResp.firstCall.args[2]?.data;
+        assert.ok(response instanceof ListAPIResponse);
+        assert.equal(response.summary.numFound, 1);
+        assert.equal(response.summary.page, 1);
+        assert.deepEqual(response.records, audit);
+      });
+    }
   });
 
   describe('save response schema discovery', function () {
