@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+let expect: Chai.ExpectStatic;
 import { cloneDeep, get } from 'lodash';
 import {
   FormConfigFrame,
@@ -12,6 +12,9 @@ import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor'
 import { logger } from './helpers';
 
 describe('Construct Visitor question tree optional config', () => {
+  before(async () => {
+    ({ expect } = await import('chai'));
+  });
   const locations = ['root', 'tab', 'accordion'] as const;
   const modes: FormModesConfig[] = ['edit', 'view'];
 
