@@ -1,3 +1,4 @@
+import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
 import { FormsModule } from '@angular/forms';
@@ -101,7 +102,7 @@ describe('DashboardComponent standard', () => {
 
     const testModule = TestBed.configureTestingModule({
       declarations: [DashboardComponent],
-      imports: [FormsModule, I18NextPipe],
+      imports: [FormsModule, I18NextPipe, PaginationModule.forRoot()],
       providers: [
         {
           provide: APP_BASE_HREF,
@@ -128,6 +129,7 @@ describe('DashboardComponent standard', () => {
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
+            waitForInit: Promise.resolve(),
             loadDashboardTemplates: Promise.resolve(),
             loadDashboardViewTemplates: Promise.resolve(),
             runTemplate: 'Template Result',
@@ -138,6 +140,121 @@ describe('DashboardComponent standard', () => {
     });
     TestBed.inject(RecordService);
     await testModule.compileComponents();
+  });
+
+  it('keeps actual paginator selection and loaded rows consistent after failure, retry and success', async () => {
+    const configService = TestBed.inject(ConfigService) as any;
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const service = TestBed.inject(RecordService);
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    spyOn<any>(component, 'initComponent').and.resolveTo();
+    await component.waitForInit();
+    component.dashboardTypeSelected = 'standard';
+    component.recordType = 'rdmp';
+    component.workflowSteps = [{ name: 'draft', config: { workflow: { stage: 'draft' } } }];
+    component.sortMap = { draft: {} };
+    component.formatRules = recordDataStandard.dashboardType.formatRules as any;
+    component.tableConfig = { draft: [{ title: 'Title', variable: 'title' }] };
+    component.enableSort = false;
+    spyOn(component, 'evaluatePlanTableColumns').and.callFake((_a, _b, _c, _step, records) => records as any);
+    component.records['draft'] = { items: [{ title: 'Page one' }], totalItems: 30, currentPage: 1 };
+    const previous = component.records['draft'];
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      .find(link => link.textContent?.trim() === String(page))!;
+    const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
+    let reject!: (reason: unknown) => void;
+    const read = spyOn(service, 'getRecords').and.returnValue(new Promise((_resolve, rejectRequest) => { reject = rejectRequest; }));
+    expect(activePage()).toBe('1');
+    pageLink(2).click();
+    fixture.detectChanges();
+    // Exercise both disabled DOM clicks and the request guard.
+    pageLink(3).click();
+    await component.pageChanged({ page: 3, itemsPerPage: 10 }, 'draft');
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(previous.currentPage).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('Page one');
+    reject({ status: 500 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.records['draft']).toBe(previous);
+    expect(previous.currentPage).toBe(1);
+    expect(activePage()).toBe('1');
+    expect(fixture.nativeElement.textContent).toContain('Page one');
+    expect(component.loadError).toContain('Unable to load');
+    let resolve!: (value: any) => void;
+    read.and.returnValue(new Promise(resolveRequest => { resolve = resolveRequest; }));
+    (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+    pageLink(3).click();
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(read.calls.mostRecent().args[2]).toBe(2);
+    resolve({ items: [{ title: 'Page two' }], totalItems: 30, currentPage: 2 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.records['draft'].currentPage).toBe(2);
+    expect(activePage()).toBe('2');
+    expect(fixture.nativeElement.textContent).toContain('Page two');
+    expect(component.loadError).toBe('');
+    expect(read).toHaveBeenCalledTimes(2);
+    read.and.resolveTo({ items: [{ title: 'Page three' }], totalItems: 30, currentPage: 3 } as any);
+    pageLink(3).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(component.records['draft'].currentPage).toBe(3);
+    expect(activePage()).toBe('3');
+    expect(fixture.nativeElement.textContent).toContain('Page three');
+    fixture.destroy();
+  });
+
+  it('shows paging failure, retains data, and retries after refreshing config', async () => {
+    const config = TestBed.inject(ConfigService) as any;
+    config.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const records = TestBed.inject(RecordService);
+    const read = spyOn(records, 'getRecords').and.rejectWith({ status: 500 });
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const component = fixture.componentInstance;
+    // Exercise a page request independently of dashboard bootstrap fixtures.
+    component.dashboardTypeSelected = 'standard';
+    component.sortMap = { draft: {} };
+    const previous = { items: [{ title: 'Retained' }], totalItems: 1, currentPage: 1 };
+    component.records = { draft: previous } as any;
+    await component.pageChanged({ page: 2, itemsPerPage: 10 }, 'draft');
+    expect(component.records['draft']).toBe(previous as any);
+    expect(component.isProcessingPageChange).toBeFalse();
+    expect(component.loadError).toContain('Unable to load');
+    read.and.resolveTo({ items: [], totalItems: 0, currentPage: 2 } as any);
+    spyOn<any>(component, 'evaluatePlanTableColumns').and.returnValue({ currentPage: 2 });
+    await component.retryLoad();
+    expect(component.loadError).toBe('');
+    expect(component.isProcessingPageChange).toBeFalse();
+    expect(component.records['draft'].currentPage).toBe(2);
+    fixture.destroy();
+  });
+
+  it('propagates initial dashboard failure and retries bootstrap', async () => {
+    const config = TestBed.inject(ConfigService) as any;
+    config.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const component = fixture.componentInstance;
+    const waiting = expectAsync(component.waitForInit()).toBeRejected();
+    fixture.detectChanges();
+    const init = spyOn<any>(component, 'initComponent').and.rejectWith({ status: 403 });
+    await waiting;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Sign in again');
+    expect(component.loadPending).toBeFalse();
+    init.and.resolveTo();
+    await component.retryLoad();
+    await component.waitForInit();
+    expect(component.loadError).toBe('');
+    fixture.destroy();
   });
 
   it('should create the app', () => {
@@ -881,7 +998,7 @@ describe('DashboardComponent workspace', () => {
 
     const testModule = TestBed.configureTestingModule({
       declarations: [DashboardComponent],
-      imports: [FormsModule, I18NextPipe],
+      imports: [FormsModule, I18NextPipe, PaginationModule.forRoot()],
       providers: [
         {
           provide: APP_BASE_HREF,
@@ -908,6 +1025,7 @@ describe('DashboardComponent workspace', () => {
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
+            waitForInit: Promise.resolve(),
             loadDashboardTemplates: Promise.resolve(),
             runTemplate: 'Template Result',
             compileAndRunTemplate: 'Template Result',
@@ -1114,7 +1232,7 @@ describe('DashboardComponent consolidated group by record type', () => {
 
     const testModule = TestBed.configureTestingModule({
       declarations: [DashboardComponent],
-      imports: [FormsModule, I18NextPipe],
+      imports: [FormsModule, I18NextPipe, PaginationModule.forRoot()],
       providers: [
         {
           provide: APP_BASE_HREF,
@@ -1141,6 +1259,7 @@ describe('DashboardComponent consolidated group by record type', () => {
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
+            waitForInit: Promise.resolve(),
             loadDashboardTemplates: Promise.resolve(),
             runTemplate: 'Template Result',
             compileAndRunTemplate: 'Template Result',
@@ -1449,7 +1568,7 @@ describe('DashboardComponent consolidated group by relationships', () => {
 
     const testModule = TestBed.configureTestingModule({
       declarations: [DashboardComponent],
-      imports: [FormsModule, I18NextPipe],
+      imports: [FormsModule, I18NextPipe, PaginationModule.forRoot()],
       providers: [
         {
           provide: APP_BASE_HREF,
@@ -1476,6 +1595,7 @@ describe('DashboardComponent consolidated group by relationships', () => {
         {
           provide: HandlebarsTemplateService,
           useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
+            waitForInit: Promise.resolve(),
             loadDashboardTemplates: Promise.resolve(),
             runTemplate: 'Template Result',
             compileAndRunTemplate: 'Template Result',

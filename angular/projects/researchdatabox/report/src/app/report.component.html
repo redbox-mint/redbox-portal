@@ -1,3 +1,9 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-default" [disabled]="loadPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">Retry</button>
+  </div>
+}
 @if (isReady) {
   <!-- The report title -->
   <div class="row">
@@ -103,6 +109,6 @@
     </div>
   }
   <!-- Result details -->
-  <record-table [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [reportName]="reportName" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize">
+  <record-table [paginationDisabled]="loadPending || !initTracker.resultsReturned" [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [reportName]="reportName" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize">
   </record-table>
 }

@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, ElementRef, ViewChild } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable, RecordTableComponent } from '@researchdatabox/portal-ng-common';
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { ModalDirective } from "ngx-bootstrap/modal";
@@ -41,6 +41,10 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   protected sysConfig: any;
 
   // State tracking
+  private pageLoadPending = false;
+  private pendingCriteria: { params: any; sort: string | undefined } | undefined;
+  private appliedSort: string | undefined;
+  @ViewChild(RecordTableComponent) private recordTable?: RecordTableComponent;
   initTracker: any = {resultsReturned: false};
 
   // Record filter properties
@@ -139,12 +143,43 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
    * Used by RecordTableComponent.
    * @param pageNum Load the data for this page nnumber.
    */
-  public async gotoPage(pageNum: number): Promise<RecordPageDto> {
-    this.currentPageNumber = pageNum;
+  public async gotoPage(pageNum: number, params = this.getParams(), sort = this.sort): Promise<RecordPageDto> {
+    if (this.pageLoadPending) {
+      return this.deletedRecordsResult;
+    }
+    this.pageLoadPending = true;
     this.initTracker.resultsReturned = false;
-    this.deletedRecordsResult = await this.getDeletedRecords();
-    this.initTracker.resultsReturned = true;
+    this.loadError = '';
+    try {
+      this.deletedRecordsResult = await this.getDeletedRecords(pageNum, params, sort);
+      this.currentPageNumber = this.deletedRecordsResult.pageNum;
+      this.appliedSort = sort;
+    } catch (error) {
+      // Initial load failures must reach BaseComponent's bootstrap error subject.
+      if (!this.isReady) {
+        throw error;
+      }
+      this.showLoadError(error, () => this.gotoPage(pageNum, params, sort));
+    } finally {
+      this.pageLoadPending = false;
+      this.initTracker.resultsReturned = true;
+    }
+    const pending = this.pendingCriteria;
+    this.pendingCriteria = undefined;
+    if (pending) {
+      return this.gotoPage(1, pending.params, pending.sort);
+    }
+    this.restoreAppliedSort();
     return this.deletedRecordsResult;
+  }
+
+  private restoreAppliedSort(): void {
+    this.sort = this.appliedSort;
+    // Retained rows must retain their sort indicator after a failed read.
+    this.recordTable?.headerSortItems?.forEach(header => {
+      const [variable, direction] = this.appliedSort?.split(':') ?? [];
+      header.sort = header.variable === variable ? (direction === '-1' ? 'desc' : 'asc') : '';
+    });
   }
 
   /**
@@ -152,12 +187,24 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
    * @param event The click event data.
    */
   public async filter(event?: any) {
-    await this.gotoPage(1);
+    if (this.loadPending) {
+      return;
+    }
+    const params = this.getParams();
+    if (this.pageLoadPending) {
+      this.pendingCriteria = { params, sort: this.sort };
+      return;
+    }
+    await this.gotoPage(1, params);
   }
 
   public async headerSortChanged(event: any, data: any) {
+    if (this.loadPending) {
+      this.restoreAppliedSort();
+      return;
+    }
     this.sort = `${event.variable}:${event.sort === 'desc' ? '-1' : '1'}`;
-    await this.gotoPage(1);
+    await this.filter();
   }
 
   public async recordTableAction(event: any, data: any, actionName: string) {
@@ -224,6 +271,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       searchFilters: [];
       searchable: boolean
     }[] = await this.recordService.getAllTypes();
+    this.dropDownProperties['recordType'] = [{title: 'All', value: ''}];
     recordTypes.forEach(recordType => {
       this.dropDownProperties['recordType'].push({
         title: recordType.name,
@@ -236,8 +284,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     this.loggerService.debug(`'${this.appName}' ready!`);
   }
 
-  private async getDeletedRecords(): Promise<ReportResultDto> {
-    const params = this.getParams();
+  private async getDeletedRecords(pageNum: number, params = this.getParams(), sort = this.sort): Promise<ReportResultDto> {
     const paramText: string = _get(params, 'title', '')?.toString().trim();
     const paramRecordType: string = _get(params, 'recordType', '');
 
@@ -250,13 +297,13 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const filterFields = 'title';
 
     const records: RecordResponseTable = await this.recordService.getDeletedRecords(
-      recordType, workflowState, this.currentPageNumber, packageType, this.sort, filterFields, filterString, filterMode);
+      recordType, workflowState, pageNum, packageType, sort, filterFields, filterString, filterMode);
 
     return {
       recordsPerPage: this.recordsPerPage,
       records: records.items.map(record => this.formatDeletedRecord(record)),
       total: records.totalItems,
-      pageNum: this.currentPageNumber,
+      pageNum,
     };
   }
 
