@@ -124,10 +124,17 @@ export namespace Services {
       return compatTokens
         .flatMap(token => [
           `.btn-${token.key} {`,
-          `  --bs-btn-color: var(--rb-${token.key}-text-color);`,
-          `  --bs-btn-hover-color: var(--rb-${token.key}-text-color);`,
-          `  --bs-btn-active-color: var(--rb-${token.key}-text-color);`,
-          `  --bs-btn-disabled-color: var(--rb-${token.key}-text-color);`,
+          // Preserve Sass-customised contrast colours until the brand opts in.
+          ...(normalized[`${token.key}-text-color`]
+            ? [
+                `  --bs-btn-color: var(--rb-${token.key}-text-color);`,
+                `  --bs-btn-hover-color: var(--rb-${token.key}-text-color);`,
+                `  --bs-btn-active-color: var(--rb-${token.key}-text-color);`,
+                `  --bs-btn-disabled-color: var(--rb-${token.key}-text-color);`,
+                // The compiled theme sets secondary's normal colour directly.
+                ...(token.key === 'secondary' ? ['  color: var(--rb-secondary-text-color);'] : []),
+              ]
+            : []),
           `  --bs-btn-bg: var(--rb-${token.key});`,
           `  --bs-btn-border-color: var(--rb-${token.key});`,
           `  --bs-btn-hover-bg: var(--rb-${token.key});`,

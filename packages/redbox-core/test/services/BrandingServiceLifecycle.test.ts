@@ -309,7 +309,12 @@ describe('BrandingService lifecycle', function () {
   });
 
   it('saves, previews, publishes and restores contextual text colours and older drafts', async function () {
+    const oldPreview = await service.preview('default', 'portal', 0);
+    const oldSnapshot = await service.fetchPreview(String(oldPreview.token));
+    expect(oldSnapshot.css).to.not.contain('--bs-btn-color:');
+    expect(oldSnapshot.css).to.not.contain('--bs-btn-disabled-');
     await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
+    expect(brands[0].css).to.equal(oldSnapshot.css);
     const oldVersion = histories[0].id;
     await service.saveDraft({
       branding: 'default',
@@ -320,12 +325,20 @@ describe('BrandingService lifecycle', function () {
     const preview = await service.preview('default', 'portal', 2);
     const snapshot = await service.fetchPreview(String(preview.token));
     expect(snapshot.css).to.contain('--rb-info-text-color: #ffffff;');
+    for (const state of ['color', 'hover-color', 'active-color', 'disabled-color']) {
+      expect(snapshot.css).to.contain(`--bs-btn-${state}: var(--rb-info-text-color);`);
+    }
+    expect(snapshot.css).to.contain('--bs-btn-disabled-bg: var(--rb-info);');
+    expect(snapshot.css).to.contain('--bs-btn-disabled-border-color: var(--rb-info);');
+    expect(snapshot.css).to.not.contain('--bs-btn-color: var(--rb-secondary-text-color);');
     await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 2 });
     expect(histories[1].variables).to.deep.equal(brands[0].variables);
     expect(brands[0].css).to.contain('--rb-info-text-color: #ffffff;');
+    expect(brands[0].css).to.equal(snapshot.css);
     await service.restore({ branding: 'default', versionId: oldVersion, expectedVersion: 2, expectedDraftRevision: 3 });
     expect(brands[0].variables).to.deep.equal({ primary: '#112233' });
     expect(brands[0].css).to.contain('--rb-info-text-color: #000000;');
+    expect(brands[0].css).to.equal(oldSnapshot.css);
   });
 
   it('treats equivalent generated colour CSS as unchanged and aligns the draft', async function () {

@@ -89,14 +89,36 @@ describe('BrandingThemeCssService', function () {
       for (const state of ['bg', 'border-color', 'hover-bg', 'active-bg', 'disabled-bg', 'disabled-border-color']) {
         expect(rule).to.contain(`--bs-btn-${state}: var(--rb-${key});`);
       }
-      // Without it, existing publications keep Bootstrap's disabled background.
-      const defaultRule = service.generate({ [key]: '#ffffff' }).css.split(`.btn-${key} {`)[1].split('}')[0];
-      expect(defaultRule).to.contain(`--bs-btn-bg: var(--rb-${key});`);
-      expect(defaultRule).to.not.contain('--bs-btn-disabled-bg');
-      expect(defaultRule).to.not.contain('--bs-btn-disabled-border-color');
+      if (key === 'secondary') {
+        expect(rule).to.contain('\n  color: var(--rb-secondary-text-color);');
+      }
+      // Unset contexts keep the exact pre-text-setting rule, even with a background
+      // override or a different context's text colour set.
+      const legacyRule = [
+        '',
+        `  --bs-btn-bg: var(--rb-${key});`,
+        `  --bs-btn-border-color: var(--rb-${key});`,
+        `  --bs-btn-hover-bg: var(--rb-${key});`,
+        `  --bs-btn-hover-border-color: var(--rb-${key});`,
+        `  --bs-btn-active-bg: var(--rb-${key});`,
+        `  --bs-btn-active-border-color: var(--rb-${key});`,
+        '',
+      ].join('\n');
+      for (const variables of [
+        {},
+        { [key]: '#ffffff' },
+        { [`${key === 'info' ? 'primary' : 'info'}-text-color`]: '#fff' },
+      ]) {
+        const defaultRule = service.generate(variables).css.split(`.btn-${key} {`)[1].split('}')[0];
+        expect(defaultRule).to.equal(legacyRule);
+        expect(defaultRule).to.not.match(/--bs-btn-(?:color|hover-color|active-color|disabled-[\w-]+):/);
+        expect(defaultRule).to.not.contain('\n  color:');
+      }
       expect(service.generate({ [token]: 'invalid' }).hash).to.equal(service.generate({}).hash);
       expect(result.hash).to.not.equal(service.generate({}).hash);
       expect(result.hash).to.equal(service.generate({ [token]: '#aabbcc' }).hash);
+      // Opting in to the exposed default still changes CSS and its content hash.
+      expect(service.generate({ [token]: defaultColour }).hash).to.not.equal(service.generate({}).hash);
     });
   }
 

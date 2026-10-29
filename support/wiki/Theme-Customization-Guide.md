@@ -79,23 +79,43 @@ a button text colour. Set `primary-text-color`, `secondary-text-color`,
 be three- or six-digit hexadecimal colours; saved drafts normalise them to
 lowercase six-digit hex. Older drafts may omit these settings.
 
-Defaults match Bootstrap 5.3.8: white (`#ffffff`) for primary, secondary, success,
-danger and dark; black (`#000000`) for info, warning and light. Backgrounds do
-not determine text colours automatically. For example, a dark blue informational
-button can use `{ "info": "#003087", "info-text-color": "#ffffff" }`.
+Button text colours are opt-in for each context. Until a brand explicitly sets
+one, existing Sass-customised button text colours (including Bootstrap's
+computed contrast colours) remain untouched. Setting only a background does not
+opt in. The exposed variable defaults match Bootstrap 5.3.8: white (`#ffffff`)
+for primary, secondary, success, danger and dark; black (`#000000`) for info,
+warning and light. These defaults are not applied to buttons automatically.
+For example, a dark blue informational button can use
+`{ "info": "#003087", "info-text-color": "#ffffff" }`.
 
-Generated CSS exposes `--rb-<context>-text-color` on `:root` and `:host` and uses
-it for `--bs-btn-color`, `--bs-btn-hover-color`, `--bs-btn-active-color` and
-`--bs-btn-disabled-color` on `.btn-<context>`. When a brand sets a context's
-text colour, its disabled buttons also use the brand background and border
+Generated CSS always exposes `--rb-<context>-text-color` on `:root` and `:host`.
+Only when a brand explicitly sets that context's text colour does it use the
+variable for `--bs-btn-color`, `--bs-btn-hover-color`, `--bs-btn-active-color` and
+`--bs-btn-disabled-color` on `.btn-<context>`. Its disabled buttons also use the
+brand background and border
 (`--bs-btn-disabled-bg`, `--bs-btn-disabled-border-color`), so the text sits on the
 same colour as the other states. Brands that do not set it keep Bootstrap's
-disabled pairing. The default theme's
-`.btn-secondary` rule takes its text colour from `--rb-secondary-text-color`; its
-normal-state background and border remain the theme's Sass values.
+disabled pairing. The default theme's `.btn-secondary` rule keeps its Sass text,
+background and border colours. An explicit `secondary-text-color` adds a
+generated `.btn-secondary` colour declaration, loaded after the compiled theme,
+to override the normal-state Sass text colour. Its normal-state background and
+border remain the theme's Sass values. Clear the text colour setting to return
+to the Sass behaviour.
 These settings do not change outline buttons, alerts or badges.
 
-Generate Preview saves the draft and shows the button text colours in the
-preview, as for the other colours. Save draft and Publish use the existing shared colour/typeface revision and
+Two existing default-theme rules keep their own branding and take precedence over
+these settings:
+
+- Submit buttons (`input[type="submit"]`, `button[type="submit"]`) use the
+  submit-button colours (`submit-button-background-color`,
+  `submit-button-text-color`) in their normal state, including contextual submit
+  buttons such as the local login button. Their hover, focus, active and disabled
+  text follows the contextual setting.
+- Any `.btn` inside a `.panel-default > .panel-heading` uses the panel heading
+  text colour (`panel-branding-color`) so it matches its heading.
+
+Generate Preview saves the draft and uses the same opt-in CSS generator as
+Publish, preserving Sass button colours for unset contexts in both. Save draft
+and Publish use the existing shared colour/typeface revision and
 version workflow; Restore also includes these colours. Check text contrast
 against the chosen background, including hover, before publishing.
