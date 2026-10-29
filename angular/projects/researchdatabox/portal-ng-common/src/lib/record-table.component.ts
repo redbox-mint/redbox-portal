@@ -98,8 +98,11 @@ export class RecordTableComponent extends BaseComponent {
   getColValue(row: any, col: RecordPropViewMetaDto) {
     if (col.multivalue) {
       let retVal = [];
-      for (let val of _get(row, col.property)) {
-        retVal.push(this.getEntryValue(row, col, val));
+      const values = _get(row, col.property);
+      if (Array.isArray(values) || typeof values === 'string') {
+        for (let val of values) {
+          retVal.push(this.getEntryValue(row, col, val));
+        }
       }
       return retVal.join('');
     } else {
