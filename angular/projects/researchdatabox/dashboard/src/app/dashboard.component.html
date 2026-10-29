@@ -34,7 +34,7 @@
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(getStepKey(workflowStep), $event)">{{ 'record-search-reset' | i18next }}</a></li>
                   </ul>
-                  <input type="text" class="form-control" [ngModel]="filterSearchString[getStepKey(workflowStep)]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(getStepKey(workflowStep))" aria-describedby="basic-search-addon" autofocus>
+                  <input type="text" class="form-control" [(ngModel)]="filterSearchString[getStepKey(workflowStep)]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(getStepKey(workflowStep))" aria-describedby="basic-search-addon" autofocus>
                   <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="getIsSearching(getStepKey(workflowStep)) || getFilterSearchString(getStepKey(workflowStep)) == ''" (click)="filterChanged(getStepKey(workflowStep))">{{ 'record-search-basic-search' | i18next }}</button>
                 </div>
               </div>
