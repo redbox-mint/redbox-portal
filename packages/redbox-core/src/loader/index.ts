@@ -216,6 +216,7 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
     const _ = require('lodash') as typeof import('lodash');
     let merged: RedboxConfigMap = name === 'agendaQueue' ? { jobs: {} } : {};
     for (const config of configs) {
+        if (config == null) continue;
         // Copy configuration containers, but retain runtime objects (for example
         // webpack plugins whose private fields cannot survive prototype cloning).
         const source = _.cloneDeepWith(config, (value: unknown) => {

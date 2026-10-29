@@ -102,6 +102,14 @@ describe('redbox-loader', function () {
     });
 
     describe('mergeRedboxConfig', function () {
+        it('ignores optional nullish configuration layers for each merge mode', () => {
+            for (const name of ['vocab', 'agendaQueue', 'brandingConfigurationDefaults']) {
+                const layers = [{ queries: { core: true } }, undefined, null, { queries: { hook: true } }];
+                const merged = redboxLoader.mergeRedboxConfig(name, ...layers as any[]);
+                expect(merged.queries).to.deep.equal({ core: true, hook: true });
+            }
+        });
+
         it('preserves runtime plugin instances while cloning plain config containers', async function () {
             class InstitutionPlugin {
                 #enabled = true;
