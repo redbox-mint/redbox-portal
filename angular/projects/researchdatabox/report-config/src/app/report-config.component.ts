@@ -1,47 +1,113 @@
-import { Component, ElementRef, Inject } from '@angular/core';
-import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
-import { ReportConfigDto, ReportConfigFilterDto, ReportConfigPreviewDto } from '@researchdatabox/sails-ng-common';
+import { Component, ElementRef, HostListener, Inject } from '@angular/core';
+import {
+  BaseComponent,
+  LatestRequest,
+  LoggerService,
+  TranslationService,
+  type CompletionSource,
+} from '@researchdatabox/portal-ng-common';
+import {
+  type ContextSchemaField,
+  type EditorDiagnostic,
+  type NamedQueryParameterDescription,
+  type ReportConfigDto,
+  type ReportConfigFilterDto,
+  type ReportConfigColumnDto,
+  type ReportConfigPreviewDto,
+  type ReportNamedQueryDescription,
+  lookupPath,
+} from '@researchdatabox/sails-ng-common';
 import { ReportConfigService } from './report-config.service';
 
 @Component({
   selector: 'report-config',
   templateUrl: './report-config.component.html',
   styleUrls: ['./report-config.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class ReportConfigComponent extends BaseComponent {
-  readonly sources = ['all', 'database', 'solr'] as const;
-  pendingDelete: ReportConfigDto | null = null;
-  private modalTrigger: HTMLElement | null = null;
-  get hasNamedQueries(): boolean { return this.reports.some(report => !!report.databaseQuery?.queryName); }
   reports: ReportConfigDto[] = [];
   filteredReports: ReportConfigDto[] = [];
   selectedReport: ReportConfigDto | null = null;
   previewResult: ReportConfigPreviewDto | null = null;
   previewFilterValues: Record<string, string> = {};
   namedQueries: { name: string }[] = [];
+  queryChoicesUnavailable = false;
+  description: ReportNamedQueryDescription | null = null;
+  diagnostics: EditorDiagnostic[] = [];
+  selectedOutputs = new Set<string>();
+  outputSearch = '';
+  helpOpen = true;
   searchText = '';
   sourceFilter: 'all' | 'database' | 'solr' = 'all';
   errorMessage = '';
+  assistanceError = '';
+  validationError = '';
   isSaving = false;
-  isDeleting = false;
   isPreviewing = false;
+  describing = false;
+  validating = false;
   isAdmin = false;
+  canManageQueries = false;
   isNewReport = false;
-  confirmDiscard = false;
-  private initialDraft = '';
-  get editDirty(): boolean { return !!this.selectedReport && JSON.stringify(this.selectedReport) !== this.initialDraft; }
+  private baseline = '';
+  private validationBlocking = false;
+  private itemRequests = new LatestRequest();
+  private descriptionRequests = new LatestRequest();
+  private validationRequests = new LatestRequest();
+  private previewRequests = new LatestRequest();
+  private listRequests = new LatestRequest();
+  private validationTimer: ReturnType<typeof setTimeout> | null = null;
 
   get totalReports(): number {
     return this.reports.length;
   }
-
   get databaseReports(): number {
-    return this.reports.filter(report => report.reportSource === 'database').length;
+    return this.reports.filter(r => r.reportSource === 'database').length;
   }
-
   get solrReports(): number {
-    return this.reports.filter(report => report.reportSource === 'solr').length;
+    return this.reports.filter(r => r.reportSource === 'solr').length;
+  }
+  get editable(): boolean {
+    return (
+      !!this.selectedReport &&
+      this.selectedReport.reportSource === 'database' &&
+      !this.selectedReport.readOnly &&
+      this.selectedReport.canEdit
+    );
+  }
+  get dirty(): boolean {
+    return this.editable && this.fingerprint() !== this.baseline;
+  }
+  get parameters(): NamedQueryParameterDescription[] {
+    return this.description?.parameters ?? [];
+  }
+  get fields(): ContextSchemaField[] {
+    return this.description?.result.fields ?? [];
+  }
+  get outputs(): ContextSchemaField[] {
+    const search = this.outputSearch.toLowerCase();
+    return this.fields.filter(
+      f => lookupPath(f.path) !== null && (f.title + ' ' + f.path).toLowerCase().includes(search)
+    );
+  }
+  get queryOptions(): string[] {
+    return [
+      ...new Set([this.selectedReport?.databaseQuery?.queryName ?? '', ...this.namedQueries.map(q => q.name)]),
+    ].filter(Boolean);
+  }
+  get outputSource(): CompletionSource {
+    return {
+      fields: this.fields.flatMap(f => {
+        const path = lookupPath(f.path);
+        return path === null ? [] : [{ ...f, path }];
+      }),
+      roots: [],
+      helpers: [],
+    };
+  }
+  get visiblePreviewColumns(): ReportConfigColumnDto[] {
+    return this.selectedReport?.columns.filter(c => !c.hide) ?? [];
   }
 
   constructor(
@@ -53,6 +119,7 @@ export class ReportConfigComponent extends BaseComponent {
     super();
     this.initDependencies = [this.translationService, this.reportConfigService];
     this.isAdmin = elementRef.nativeElement.getAttribute('is-admin') === 'true';
+    this.canManageQueries = elementRef.nativeElement.getAttribute('can-manage-named-queries') === 'true';
   }
 
   protected async initComponent(): Promise<void> {
@@ -61,217 +128,376 @@ export class ReportConfigComponent extends BaseComponent {
     await this.loadNamedQueries();
   }
 
+  override ngOnDestroy(): void {
+    this.itemRequests.invalidate();
+    this.listRequests.invalidate();
+    this.invalidateAssistance();
+    super.ngOnDestroy();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if (this.dirty) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  guardNavigation(event: MouseEvent): void {
+    const anchor = (event.target as Element)?.closest?.('a[href]');
+    if (anchor && anchor.getAttribute('href') !== '#' && !this.confirmDiscard()) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }
+
+  @HostListener('window:focus')
+  onWindowFocus(): void {
+    if (this.editable) void this.refreshAssistance();
+  }
+
   async loadReports(): Promise<void> {
-    this.reports = await this.reportConfigService.list();
-    this.applyFilter();
+    const token = this.listRequests.next();
+    const reports = await this.reportConfigService.list();
+    if (this.listRequests.isCurrent(token)) {
+      this.reports = reports;
+      this.applyFilter();
+    }
   }
 
   async loadNamedQueries(): Promise<void> {
     try {
       this.namedQueries = await this.reportConfigService.listNamedQueries();
+      this.queryChoicesUnavailable = false;
     } catch (error: unknown) {
       this.loggerService.warn('Failed to load named queries for report config', error);
       this.namedQueries = [];
+      this.queryChoicesUnavailable = true;
     }
   }
 
   applyFilter(): void {
     const search = this.searchText.toLowerCase();
-    this.filteredReports = this.reports.filter(report => {
-      const matchesSource = this.sourceFilter === 'all' || report.reportSource === this.sourceFilter;
-      const matchesSearch =
-        report.title.toLowerCase().includes(search) ||
-        report.name.toLowerCase().includes(search) ||
-        report.reportSource.toLowerCase().includes(search);
-      return matchesSource && matchesSearch;
-    });
+    this.filteredReports = this.reports.filter(
+      report =>
+        (this.sourceFilter === 'all' || report.reportSource === this.sourceFilter) &&
+        [report.title, report.name, report.reportSource].some(value => value.toLowerCase().includes(search))
+    );
   }
-
   setSourceFilter(source: 'all' | 'database' | 'solr'): void {
     this.sourceFilter = source;
     this.applyFilter();
   }
-
   openReport(report: ReportConfigDto): string {
-    return `${this.brandingAndPortalUrl}/admin/report/${report.name}`;
+    return `${this.brandingAndPortalUrl}/admin/report/${encodeURIComponent(report.name)}`;
   }
 
   createReport(): void {
-    if (this.isSaving || this.isDeleting) return;
-    this.modalTrigger = document.activeElement as HTMLElement;
-    this.errorMessage = '';
-    this.previewResult = null;
-    this.previewFilterValues = {};
-    this.selectedReport = this.newReport();
-    this.isNewReport = true;
-    this.initialDraft = JSON.stringify(this.selectedReport);
+    if (!this.confirmDiscard()) return;
+    this.startDraft(
+      {
+        name: '',
+        title: '',
+        reportSource: 'database',
+        databaseQuery: { queryName: '' },
+        solrQuery: null,
+        filter: [],
+        columns: [],
+        readOnly: false,
+        canEdit: true,
+        canDelete: true,
+        canPreview: true,
+      },
+      true
+    );
   }
-
   editReport(report: ReportConfigDto): void {
-    if (this.isSaving || this.isDeleting) return;
-    const trigger = document.activeElement as HTMLElement;
-    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
-    this.errorMessage = '';
-    this.previewResult = null;
-    this.previewFilterValues = {};
-    this.selectedReport = JSON.parse(JSON.stringify(report)) as ReportConfigDto;
-    this.isNewReport = false;
-    this.initialDraft = JSON.stringify(this.selectedReport);
+    if (report.readOnly || report.reportSource !== 'database' || !report.canEdit || !this.confirmDiscard()) return;
+    this.startDraft(this.clone(report), false);
   }
-
-  cancelEdit(discard = false): void {
-    if (this.isSaving) return;
-    if (this.editDirty && !discard) { this.confirmDiscard = true; return; }
-    this.confirmDiscard = false;
+  private startDraft(report: ReportConfigDto, isNew: boolean): void {
+    this.itemRequests.next();
+    this.invalidateAssistance();
+    this.selectedReport = report;
+    this.isNewReport = isNew;
+    this.isSaving = false;
+    this.errorMessage = '';
+    this.previewFilterValues = {};
+    this.outputSearch = '';
+    this.selectedOutputs = new Set();
+    this.baseline = this.fingerprint();
+    void this.refreshAssistance();
+    setTimeout(() => this.elementRef.nativeElement.querySelector('#report-workspace-title')?.focus(), 0);
+  }
+  cancelEdit(): void {
+    if (this.confirmDiscard()) this.closeDraft();
+  }
+  private closeDraft(): void {
+    this.itemRequests.invalidate();
+    this.invalidateAssistance();
     this.selectedReport = null;
-    this.previewResult = null;
     this.previewFilterValues = {};
     this.errorMessage = '';
     this.isNewReport = false;
-    this.restoreModalFocus();
+    this.isSaving = false;
+    setTimeout(() => this.elementRef.nativeElement.querySelector('#report-create')?.focus(), 0);
+  }
+  private confirmDiscard(): boolean {
+    return !this.dirty || window.confirm(this.t('report-discard-confirm'));
+  }
+  private fingerprint(): string {
+    return JSON.stringify(this.selectedReport);
+  }
+  private clone<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value)) as T;
+  }
+  private t(key: string): string {
+    return String(this.translationService.t(key));
   }
 
-  async saveReport(): Promise<void> {
-    if (!this.selectedReport || this.isSaving || this.isDeleting) {
-      return;
+  private cancelValidation(): void {
+    if (this.validationTimer) clearTimeout(this.validationTimer);
+    this.validationTimer = null;
+    this.validationRequests.invalidate();
+    this.validating = false;
+  }
+  private invalidateAssistance(): void {
+    this.descriptionRequests.invalidate();
+    this.cancelValidation();
+    this.previewChanged();
+    this.description = null;
+    this.describing = false;
+    this.diagnostics = [];
+    this.validationBlocking = false;
+    this.validationError = '';
+    this.assistanceError = '';
+  }
+  draftChanged(): void {
+    this.cancelValidation();
+    this.previewChanged();
+    this.diagnostics = [];
+    this.validationBlocking = false;
+    this.validationError = '';
+    if (this.editable)
+      this.validationTimer = setTimeout(() => {
+        this.validationTimer = null;
+        void this.validateDraft();
+      }, 400);
+  }
+  previewChanged(): void {
+    this.previewRequests.invalidate();
+    this.previewResult = null;
+    this.isPreviewing = false;
+  }
+  queryChanged(): void {
+    this.selectedOutputs = new Set();
+    void this.refreshAssistance();
+  }
+  selectQuery(name: string): void {
+    if (!this.editable || !this.selectedReport) return;
+    this.selectedReport.databaseQuery = { ...this.selectedReport.databaseQuery, queryName: name };
+    this.queryChanged();
+  }
+  async refreshAssistance(): Promise<void> {
+    this.invalidateAssistance();
+    const name = this.selectedReport?.databaseQuery?.queryName;
+    if (!this.editable || !name) return;
+    const token = this.descriptionRequests.next();
+    this.describing = true;
+    // Validation is independent of field discovery and never executes the query.
+    void this.validateDraft();
+    try {
+      const description = await this.reportConfigService.describeQuery(name);
+      if (this.descriptionRequests.isCurrent(token)) {
+        this.description = description;
+        this.selectedOutputs = new Set(
+          [...this.selectedOutputs].filter(path => description.result.fields.some(f => f.path === path))
+        );
+      }
+    } catch {
+      if (this.descriptionRequests.isCurrent(token)) this.assistanceError = this.t('report-assistance-unavailable');
+    } finally {
+      if (this.descriptionRequests.isCurrent(token)) this.describing = false;
     }
-    const report = this.selectedReport;
+  }
+  async validateDraft(): Promise<boolean> {
+    this.cancelValidation();
+    if (!this.editable || !this.selectedReport) return true;
+    const token = this.validationRequests.next();
+    const fingerprint = this.fingerprint();
+    this.validating = true;
+    try {
+      const result = await this.reportConfigService.validate(this.clone(this.selectedReport));
+      if (!this.validationRequests.isCurrent(token) || fingerprint !== this.fingerprint()) return false;
+      this.diagnostics = result.diagnostics;
+      this.validationBlocking = !result.valid;
+      this.validationError = '';
+      return result.valid;
+    } catch {
+      if (!this.validationRequests.isCurrent(token) || fingerprint !== this.fingerprint()) return false;
+      this.validationError = this.t('report-validation-unavailable');
+      this.validationBlocking = false;
+      return true; // Guidance failures must not remove legacy editing/saving.
+    } finally {
+      if (this.validationRequests.isCurrent(token)) this.validating = false;
+    }
+  }
+  async saveReport(): Promise<void> {
+    if (!this.editable || !this.selectedReport || this.isSaving) return;
+    const item = this.itemRequests.next();
+    const fingerprint = this.fingerprint();
+    const report = this.clone(this.selectedReport);
+    const isNew = this.isNewReport;
     this.isSaving = true;
     this.errorMessage = '';
     try {
-      if (this.isNewReport) {
-        await this.reportConfigService.create(report);
-      } else {
-        await this.reportConfigService.update(report);
-      }
+      if (!(await this.validateDraft()) || !this.itemRequests.isCurrent(item) || fingerprint !== this.fingerprint())
+        return;
+      if (isNew) await this.reportConfigService.create(report);
+      else await this.reportConfigService.update(report);
+      if (!this.itemRequests.isCurrent(item)) return;
+      this.baseline = fingerprint;
+      this.isNewReport = false;
+      // Preserve edits made while the save was in flight.
+      if (fingerprint === this.fingerprint()) this.closeDraft();
       await this.loadReports();
-      if (this.selectedReport === report) {
-        this.isSaving = false;
-        this.cancelEdit(true);
-      }
     } catch (error: unknown) {
-      if (this.selectedReport === report) this.errorMessage = this.getErrorMessage(error);
-      this.loggerService.error('Failed to save report config', error);
+      if (this.itemRequests.isCurrent(item)) {
+        this.errorMessage = this.getErrorMessage(error);
+        this.loggerService.error('Failed to save report config', error);
+      }
     } finally {
-      this.isSaving = false;
+      if (this.itemRequests.isCurrent(item)) this.isSaving = false;
     }
   }
-
-  requestDelete(report: ReportConfigDto): void {
-    if (this.isSaving || this.isDeleting) return;
-    const trigger = document.activeElement as HTMLElement;
-    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
-    this.errorMessage = '';
-    this.pendingDelete = report;
-  }
-
-  cancelDelete(): void {
-    if (this.isDeleting) return;
-    this.pendingDelete = null;
-    this.errorMessage = '';
-    this.restoreModalFocus();
-  }
-
   async deleteReport(report: ReportConfigDto): Promise<void> {
-    if (this.isDeleting || this.isSaving || report.readOnly || !report.canDelete || this.pendingDelete !== report) return;
-    this.isDeleting = true;
-    this.errorMessage = '';
+    if (
+      report.readOnly ||
+      report.reportSource !== 'database' ||
+      !report.canDelete ||
+      !window.confirm(this.t('report-delete-confirm') + ' ' + report.title)
+    )
+      return;
     try {
       await this.reportConfigService.delete(report.name);
       await this.loadReports();
-      if (this.pendingDelete === report) {
-        this.isDeleting = false;
-        this.cancelDelete();
-      }
     } catch (error: unknown) {
-      if (this.pendingDelete === report) this.errorMessage = this.getErrorMessage(error);
-    } finally {
-      this.isDeleting = false;
+      this.errorMessage = this.getErrorMessage(error);
     }
   }
-
   async previewReport(): Promise<void> {
-    if (!this.selectedReport || this.isSaving || this.isDeleting) {
-      return;
-    }
+    if (!this.editable || !this.selectedReport?.canPreview) return;
+    this.cancelValidation();
+    const token = this.previewRequests.next();
+    const fingerprint = this.fingerprint();
     this.isPreviewing = true;
     this.errorMessage = '';
     this.previewResult = null;
     try {
-      this.previewResult = await this.reportConfigService.preview(this.selectedReport, this.previewFilterValues);
+      const result = await this.reportConfigService.preview(this.clone(this.selectedReport), {
+        ...this.previewFilterValues,
+      });
+      if (!this.previewRequests.isCurrent(token) || fingerprint !== this.fingerprint()) return;
+      this.previewResult = result;
+      this.diagnostics = result.diagnostics ?? [];
+      // A preview-only refusal does not tighten the existing save contract.
     } catch (error: unknown) {
-      this.errorMessage = this.getErrorMessage(error);
+      if (this.previewRequests.isCurrent(token)) this.errorMessage = this.getErrorMessage(error);
     } finally {
-      this.isPreviewing = false;
+      if (this.previewRequests.isCurrent(token)) this.isPreviewing = false;
     }
   }
 
+  toggleOutput(path: string, selected: boolean): void {
+    if (selected) this.selectedOutputs.add(path);
+    else this.selectedOutputs.delete(path);
+  }
+  addSelectedColumns(): void {
+    if (!this.editable || !this.selectedReport) return;
+    for (const field of this.fields.filter(f => this.selectedOutputs.has(f.path))) {
+      const property = lookupPath(field.path);
+      if (property !== null)
+        this.selectedReport.columns.push({ label: field.title || property.split('.').pop() || property, property });
+    }
+    this.selectedOutputs = new Set();
+    this.draftChanged();
+  }
   addColumn(): void {
-    this.selectedReport?.columns.push({ label: '', property: '', hide: false, exportTemplate: '', template: '', multivalue: false });
+    if (this.editable) {
+      this.selectedReport!.columns.push({ label: '', property: '' });
+      this.draftChanged();
+    }
   }
-
   removeColumn(index: number): void {
-    this.selectedReport?.columns.splice(index, 1);
-    this.focusAfterRemoval('column', index);
+    if (this.editable) {
+      this.selectedReport!.columns.splice(index, 1);
+      this.draftChanged();
+    }
   }
-
+  moveColumn(index: number, offset: number): void {
+    const columns = this.selectedReport?.columns;
+    if (!this.editable || !columns || index + offset < 0 || index + offset >= columns.length) return;
+    const [column] = columns.splice(index, 1);
+    columns.splice(index + offset, 0, column);
+    this.draftChanged();
+  }
   addFilter(): void {
-    this.selectedReport?.filter.push({ type: 'text', paramName: '', property: '', message: '', database: null });
+    if (this.editable) {
+      this.selectedReport!.filter.push({ type: 'text', paramName: '', property: '', message: '' });
+      this.draftChanged();
+    }
   }
-
   removeFilter(index: number): void {
-    this.selectedReport?.filter.splice(index, 1);
-    this.focusAfterRemoval('filter', index);
+    if (this.editable) {
+      this.selectedReport!.filter.splice(index, 1);
+      this.draftChanged();
+    }
   }
-
-  private focusAfterRemoval(kind: 'filter' | 'column', index: number): void {
-    setTimeout(() => {
-      const root: HTMLElement = this.elementRef.nativeElement;
-      const rows = root.querySelectorAll<HTMLElement>(`[data-report-row="${kind}"]`);
-      const row = rows[Math.min(index, rows.length - 1)];
-      (row?.querySelector<HTMLElement>('input, select, textarea, button') ?? root.querySelector<HTMLElement>(`#report-add-${kind}`))?.focus();
-    });
-  }
-
   filterTypeChanged(filter: ReportConfigFilterDto): void {
-    filter.database = filter.type === 'date-range' ? { fromProperty: '', toProperty: '' } : null;
+    if (filter.type === 'date-range' && !filter.database) filter.database = { fromProperty: '', toProperty: '' };
+    this.draftChanged();
   }
-
-  isExistingReport(): boolean {
-    return this.reports.some(report => report.name === this.selectedReport?.name);
+  setDateBinding(filter: ReportConfigFilterDto, bound: 'fromProperty' | 'toProperty', key: string): void {
+    filter.database = { fromProperty: '', toProperty: '', ...filter.database, [bound]: key };
+    this.draftChanged();
   }
-
-  trackByIndex(index: number): number {
-    return index;
+  get dateParameters(): NamedQueryParameterDescription[] {
+    return this.parameters.filter(
+      p => ['date', 'string', 'unknown'].includes(p.type) && !(p.type === 'date' && p.format === 'days' && p.queryType)
+    );
   }
-
-  private restoreModalFocus(): void {
-    const trigger = this.modalTrigger;
-    setTimeout(() => {
-      const target = trigger && document.contains(trigger) ? trigger :
-        this.elementRef.nativeElement.querySelector('.rb-admin-page-actions button');
-      target?.focus();
-    }, 0);
+  datePair(): { from: NamedQueryParameterDescription; to: NamedQueryParameterDescription } | null {
+    // Suggest only a unique, known date pair with the same target and opposite bounds.
+    const dates = this.dateParameters.filter(p => p.type === 'date');
+    const pairs = dates
+      .filter(p => ['$gt', '$gte'].includes(p.queryType ?? ''))
+      .flatMap(from =>
+        dates
+          .filter(to => to.path === from.path && ['$lt', '$lte'].includes(to.queryType ?? ''))
+          .map(to => ({ from, to }))
+      );
+    return pairs.length === 1 ? pairs[0] : null;
   }
-
-  private newReport(): ReportConfigDto {
-    return {
-      name: '',
-      title: '',
-      reportSource: 'database',
-      databaseQuery: { queryName: '' },
-      solrQuery: null,
-      filter: [],
-      columns: [],
-      readOnly: false,
-      canEdit: true,
-      canDelete: true,
-      canPreview: true
-    };
+  suggestDatePair(filter: ReportConfigFilterDto): void {
+    const pair = this.datePair();
+    if (
+      !this.editable ||
+      !pair ||
+      !window.confirm(this.t('report-confirm-date-pair') + ` ${pair.from.key} → ${pair.to.key} (${pair.from.path})`)
+    )
+      return;
+    filter.database = { ...filter.database, fromProperty: pair.from.key, toProperty: pair.to.key };
+    this.draftChanged();
   }
-
+  columnIsArray(column: ReportConfigColumnDto): boolean {
+    return this.fields.some(f => f.isArray && lookupPath(f.path) === column.property);
+  }
+  get saveBlocked(): boolean {
+    return this.validationBlocking;
+  }
   private getErrorMessage(error: unknown): string {
     const response = error as { error?: { message?: string } };
-    return response.error?.message ?? (error instanceof Error ? error.message : 'An unexpected error occurred');
+    return response.error?.message ?? this.t('report-request-failed');
   }
 }
