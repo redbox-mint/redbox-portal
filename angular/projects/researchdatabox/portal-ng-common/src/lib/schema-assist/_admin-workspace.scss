@@ -84,6 +84,32 @@
   }
 }
 
+// The theme keeps a 10px root and a 14px .form-control, so Bootstrap's rem-sized
+// selects and small controls come out too large or far too small. Match the theme.
+.rb-ws {
+  .form-select {
+    min-height: 34px;
+    padding: 6px 36px 6px 12px;
+    background-position: right 12px center;
+    font-size: 14px;
+    line-height: 1.43;
+  }
+
+  .form-select-sm {
+    min-height: 30px;
+    padding: 4px 30px 4px 8px;
+    background-position: right 8px center;
+    font-size: 13px;
+  }
+
+  .form-control-sm {
+    height: auto;
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+}
+
 .rb-ws-alert {
   margin-bottom: 16px;
 }
@@ -109,29 +135,34 @@
   min-width: 0;
 }
 
-// Inner panels: neutral header so the brand colour stays on the page card.
+// Inner panels: neutral header so the brand colour stays on the page card. The
+// theme colours every `.card.panel-style .card-header`, nested ones included, so
+// these rules are scoped to outrank it.
 .rb-ws-pane {
   margin-bottom: 0;
   border-color: var(--bs-border-color);
   border-radius: 6px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 
-  > .card-header {
+  .card.panel-style & > .card-header {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
     padding: 10px 16px;
-    background: var(--bs-tertiary-bg);
     border-bottom: 1px solid var(--bs-border-color);
+    border-radius: 5px 5px 0 0;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
   }
 
-  > .card-body {
+  .card.panel-style & > .card-body {
     padding: 16px;
   }
 
-  & + & {
+  // `~` rather than `+`: non-visual siblings such as datalists can sit between panes.
+  & ~ & {
     margin-top: 20px;
   }
 }
