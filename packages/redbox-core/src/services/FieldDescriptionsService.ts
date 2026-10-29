@@ -260,7 +260,7 @@ export namespace Services {
               );
               metadataSchema = formMetadataSchema(effective,
                 typeof TranslationService !== 'undefined' && typeof TranslationService.t === 'function'
-                  ? key => String(TranslationService.t(key, undefined, 'en', brand.name))
+                  ? key => String(TranslationService.t(key, { nsSeparator: false, keySeparator: false }, 'en', brand.name))
                   : undefined);
               if (Object.keys(metadataSchema.properties ?? {}).length) {
                 precision = 'form-config';
