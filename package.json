@@ -73,6 +73,7 @@
     "test:translations": "node scripts/verify-translations.js",
     "test:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm run test && cd ../../",
     "test:sails-ng-common": "cd ./packages/sails-ng-common && npm run test:full && cd ../../",
+    "test:config-types": "tsc --noEmit -p support/typecheck/runtime-config/tsconfig.json",
     "test:core": "cd ./packages/redbox-core && npm run test && cd ../../",
     "test:record-contracts": "npm --prefix packages/redbox-core run test:record-contracts",
     "test:record-schema-rollout": "npm --prefix packages/redbox-core run test:record-schema-rollout",
@@ -106,7 +107,8 @@
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node packages/redbox-dev-tools/bin/wrapper-webpack.js",
     "dev:prepare": "./support/development/prepareLocalDev.sh",
     "compile:jsonSchema": "./support/development/compileJsonSchema.sh",
-    "nvm:install-all": "bash ./support/development/installAllNvmrc.sh"
+    "nvm:install-all": "bash ./support/development/installAllNvmrc.sh",
+    "test:agenda-watchdog": "node --test packages/agenda-patched/test/*.test.mjs"
   },
   "main": "app.js",
   "repository": {

@@ -7,14 +7,17 @@ import { Controllers } from '../../../src/controllers/webservice/VocabularyContr
 
 function makeReq(req: Record<string, unknown>): Sails.Req {
   return {
+    method: 'GET',
+    isAuthenticated: () => true,
     ...req,
+    params: { branding: 'default', portal: 'rdmp', ...(req.params as Record<string, unknown> ?? {}) },
     apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
       params: (req.params ?? {}) as Record<string, unknown>,
       query: (req.query ?? {}) as Record<string, unknown>,
       body: req.body,
       files: (req.files as Record<string, unknown[]>) ?? {},
     },
-  } as Sails.Req;
+  } as unknown as Sails.Req;
 }
 
 describe('Webservice VocabularyController', () => {
@@ -43,6 +46,12 @@ describe('Webservice VocabularyController', () => {
       },
       log: createSinonStubLogger(sinon),
     };
+    (global as any).PathRulesService = {
+      getRulesFromPath: sinon.stub().returns([{}]),
+      canRead: sinon.stub().returns(true),
+      canWrite: sinon.stub().returns(true),
+    };
+    (global as any).Vocabulary = { findOne: sinon.stub().resolves({ id: 'v1', branding: 'default' }) };
     controller = new Controllers.Vocabulary();
     (global as any).BrandingService = (global as any).sails.services.brandingservice;
     (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
@@ -55,6 +64,8 @@ describe('Webservice VocabularyController', () => {
     delete (global as any).VocabularyService;
     delete (global as any).RvaImportService;
     delete (global as any).sails;
+    delete (global as any).Vocabulary;
+    delete (global as any).PathRulesService;
   });
 
   it('lists vocabularies', async () => {

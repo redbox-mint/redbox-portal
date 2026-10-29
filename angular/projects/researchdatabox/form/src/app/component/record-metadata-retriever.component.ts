@@ -18,12 +18,29 @@ import {
 import { RecordService } from '@researchdatabox/portal-ng-common';
 import {getEventJSONPointerCondition} from "../form-state";
 
+interface MetadataCandidate {
+  isCurrent: () => boolean;
+  accept: () => MetadataRequest | undefined;
+}
+
+interface MetadataRequest {
+  sequence: number;
+  expression?: FormExpressionsConfigFrame;
+  oid: string;
+  lastFetchedOid?: string;
+  failed: boolean;
+  loading: boolean;
+  isCurrent: () => boolean;
+}
+
 class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseConsumer {
   protected override readonly consumedEventType = FormComponentEventType.FIELD_VALUE_CHANGED;
 
   constructor(
     eventBus: FormComponentEventBus,
-    private readonly handler: (event: FormComponentEvent, expression: FormExpressionsConfigFrame) => Promise<void>
+    private readonly handler: (event: FormComponentEvent, expression: FormExpressionsConfigFrame, request: MetadataRequest) => Promise<void>,
+    private readonly candidate: (event: FormComponentEvent, expression: FormExpressionsConfigFrame) => MetadataCandidate | undefined,
+    private readonly finish: (request: MetadataRequest) => void
   ) {
     super(eventBus);
   }
@@ -48,7 +65,13 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
   }
 
   protected override async consumeEvent(event: FormComponentEvent, expression: FormExpressionsConfigFrame): Promise<void> {
-    await this.handler(event, expression);
+    const request = this.candidate(event, expression)?.accept();
+    if (!request?.isCurrent()) return;
+    try {
+      await this.handler(event, expression, request);
+    } finally {
+      this.finish(request);
+    }
   }
 
   public async evaluateTemplateExpression(
@@ -58,22 +81,47 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
     return this.evaluateExpressionJSONata(expression, event, 'template');
   }
 
+  protected override evaluateExpressionJSONata(
+    expression: FormExpressionsConfigFrame,
+    event: FormComponentEvent,
+    propertyName: string,
+    additionalData: object = {}
+  ): Promise<unknown> {
+    // Failed conditions must never become matches merely because an OID is truthy.
+    return super.evaluateExpressionJSONata(expression, event, propertyName, additionalData,
+      propertyName === 'condition' ? false : (event as { value?: unknown }).value);
+  }
+
   private handleConsumeError(err: unknown): void {
     console.error('RecordMetadataRetrieverExpressionConsumer: Error consuming matched expressions.', err);
   }
 
   private async consumeMatchedExpressions(event: FormComponentEvent): Promise<void> {
-    const expressions = this.expressions ?? [];
-    const matchedExpressions = await this.getMatchedExpressions(event, expressions);
-    for (const expression of matchedExpressions ?? []) {
-      await this.consumeEvent(event, expression);
-    }
+    // Candidates do not replace accepted work until their condition matches. Compare
+    // arrival order with accepted requests so a late older match cannot take over.
+    await Promise.all((this.expressions ?? []).map(async expression => {
+      const candidate = this.candidate(event, expression);
+      if (!candidate?.isCurrent()) return;
+      const matched = await this.getMatchedExpressions(event, [expression]);
+      if (!candidate.isCurrent() || !matched?.length) return;
+      const request = candidate.accept();
+      if (!request?.isCurrent()) return;
+      try {
+        await this.handler(event, expression, request);
+      } finally {
+        this.finish(request);
+      }
+    }));
   }
 }
 
 @Component({
   selector: 'redbox-record-metadata-retriever',
-  template: '',
+  template: `
+    <div *ngIf="metadataLoadWarning" class="alert alert-warning" role="status" aria-live="polite">
+      Related record metadata could not be loaded. Existing field values have been kept and may be incomplete.
+      <button type="button" class="btn btn-default" (click)="retryMetadata()" [disabled]="metadataLoading">Retry loading metadata</button>
+    </div>`,
   standalone: false,
 })
 export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<never> implements OnDestroy {
@@ -86,7 +134,51 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
   private readonly eventBus = inject(FormComponentEventBus);
   private expressionConsumer?: RecordMetadataRetrieverExpressionConsumer;
   private formReadyExpressionSubscription?: Subscription;
-  private lastFetchedOid?: string;
+  public metadataLoadWarning = false;
+  public metadataLoading = false;
+  private destroyed = false;
+  private requestSequence = 0;
+  private readonly metadataRequests = new Map<FormExpressionsConfigFrame | undefined, MetadataRequest>();
+
+  private createCandidate(event: FormComponentEvent, expression: FormExpressionsConfigFrame): MetadataCandidate | undefined {
+    if (this.destroyed || !this.shouldHandleExpression(event, expression)) return undefined;
+    const sequence = ++this.requestSequence;
+    const isCurrent = () => !this.destroyed && (this.metadataRequests.get(expression)?.sequence ?? 0) < sequence;
+    return {
+      isCurrent,
+      accept: () => isCurrent() ? this.beginRequest(expression, sequence) : undefined,
+    };
+  }
+
+  private beginRequest(expression?: FormExpressionsConfigFrame, sequence = ++this.requestSequence): MetadataRequest {
+    const previous = this.metadataRequests.get(expression);
+    const request: MetadataRequest = {
+      sequence, expression, oid: previous?.oid ?? '', lastFetchedOid: previous?.lastFetchedOid,
+      failed: previous?.failed ?? false, loading: true,
+      isCurrent: () => !this.destroyed && this.metadataRequests.get(expression) === request,
+    };
+    this.metadataRequests.set(expression, request);
+    this.updateMetadataStatus();
+    return request;
+  }
+
+  private finishRequest(request: MetadataRequest): void {
+    if (!request.isCurrent()) return;
+    request.loading = false;
+    this.updateMetadataStatus();
+  }
+
+  private updateMetadataStatus(): void {
+    this.metadataLoadWarning = [...this.metadataRequests.values()].some(request => request.failed);
+    this.metadataLoading = [...this.metadataRequests.values()].some(request => request.loading);
+  }
+
+  public async retryMetadata(): Promise<void> {
+    if (this.destroyed) return;
+    await Promise.all([...this.metadataRequests.values()].filter(request => request.failed).map(request =>
+      this.fetchMetadata(request.oid, this.beginRequest(request.expression))
+    ));
+  }
 
   protected override async initEventHandlers() {
     if (!this.formFieldCompMapEntry) {
@@ -102,7 +194,9 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       () =>
         new RecordMetadataRetrieverExpressionConsumer(
           this.eventBus,
-          async (event, expression) => this.handleExpression(event, expression)
+          async (event, expression, request) => this.handleExpression(event, expression, request),
+          (event, expression) => this.createCandidate(event, expression),
+          request => this.finishRequest(request)
         )
     );
 
@@ -115,6 +209,9 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
   }
 
   public ngOnDestroy(): void {
+    this.destroyed = true;
+    this.metadataRequests.clear();
+    this.metadataLoading = false;
     this.expressionConsumer?.destroy();
     this.formReadyExpressionSubscription?.unsubscribe();
   }
@@ -123,15 +220,25 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
     return this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer || this.formFieldConfigName();
   }
 
-  public async fetchMetadata(oid: string): Promise<void> {
+  public async fetchMetadata(oid: string, request?: MetadataRequest): Promise<void> {
+    if (this.destroyed) return;
+    request ??= this.beginRequest();
+    if (!request.isCurrent()) return;
     const trimmedOid = oid.trim();
-    if (!trimmedOid || trimmedOid === this.lastFetchedOid) {
+    if (request.oid !== trimmedOid) request.failed = false;
+    request.oid = trimmedOid;
+    if (!trimmedOid || trimmedOid === request.lastFetchedOid) {
+      request.failed = false;
+      this.finishRequest(request);
       return;
     }
-
+    request.loading = true;
+    this.updateMetadataStatus();
     try {
       const metadata = await this.recordService.getRecordMeta(trimmedOid);
-      this.lastFetchedOid = trimmedOid;
+      if (!request.isCurrent()) return;
+      request.failed = false;
+      request.lastFetchedOid = trimmedOid;
       const payload =
         typeof metadata === 'object' && metadata !== null
           ? { ...(metadata as Record<string, unknown>), oid: trimmedOid }
@@ -145,32 +252,51 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
         })
       );
     } catch (error) {
+      if (!request.isCurrent()) return;
       this.loggerService.error(`${this.logName}: Failed to fetch metadata for oid '${trimmedOid}'.`, error);
+      request.failed = true;
+    } finally {
+      this.finishRequest(request);
     }
   }
 
-  private async handleExpression(event: FormComponentEvent, expression: FormExpressionsConfigFrame): Promise<void> {
+  private shouldHandleExpression(event: FormComponentEvent, expression: FormExpressionsConfigFrame): boolean {
     if (expression.config.operation !== 'fetchMetadata') {
       this.loggerService.warn(`${this.logName}: Unsupported operation '${expression.config.operation ?? ''}'.`, expression);
-      return;
+      return false;
     }
     const isFormReadyEvent = event.sourceId === FormComponentEventType.FORM_DEFINITION_READY;
     if (expression.config.runOnFormReady === true && !isFormReadyEvent) {
-      return;
+      return false;
     }
     if (expression.config.runOnFormReady === false && isFormReadyEvent) {
-      return;
+      return false;
     }
     if (expression.config.runOnFormReady === true && event.fieldId !== this.getEventFieldId()) {
-      return;
+      return false;
     }
+    const conditionKind = expression.config.conditionKind ?? ExpressionsConditionKind.JSONPointer;
+    if ((conditionKind === ExpressionsConditionKind.JSONata || conditionKind === ExpressionsConditionKind.JSONataQuery)
+      && event.sourceId !== '*' && !isFormReadyEvent) {
+      return false;
+    }
+    // Explicit JSON Pointer fetches require the selected field itself. When the
+    // kind is omitted, retain the shared matcher's descendant-field semantics.
     if (expression.config.conditionKind === ExpressionsConditionKind.JSONPointer) {
       const {jsonPointer: targetFieldId} = getEventJSONPointerCondition(expression.config.condition ?? '');
       if (targetFieldId && event.fieldId !== targetFieldId && event.sourceId !== targetFieldId) {
-        return;
+        return false;
       }
     }
 
+    return true;
+  }
+
+  private async handleExpression(event: FormComponentEvent, expression: FormExpressionsConfigFrame, request?: MetadataRequest): Promise<void> {
+    if (this.destroyed || !this.shouldHandleExpression(event, expression)) return;
+    request ??= this.beginRequest(expression);
+    if (!request.isCurrent()) return;
+    const isFormReadyEvent = event.sourceId === FormComponentEventType.FORM_DEFINITION_READY;
     let oidValue: unknown = (event as { value?: unknown }).value;
     if (expression.config.hasTemplate) {
       const expressionConsumer = this.expressionConsumer;
@@ -179,17 +305,20 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
         return;
       }
       oidValue = await expressionConsumer.evaluateTemplateExpression(expression, event);
+      if (!request.isCurrent()) return;
       if ((oidValue === undefined || oidValue === null || oidValue === '') && isFormReadyEvent) {
         oidValue = this.resolveRequestParamTemplate(expression.config.template);
       }
     }
 
+    if (!request.isCurrent()) return;
     if (oidValue === undefined || oidValue === null) {
+      await this.fetchMetadata('', request);
       return;
     }
 
     const oidString = typeof oidValue === 'string' ? oidValue : String(oidValue);
-    await this.fetchMetadata(oidString);
+    await this.fetchMetadata(oidString, request);
   }
 
   private async runFormReadyExpressions(): Promise<void> {
@@ -202,11 +331,15 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       timestamp: Date.now(),
     };
 
-    for (const expression of expressions) {
-      if (expression.config.runOnFormReady === true) {
-        await this.handleExpression(syntheticEvent, expression);
+    if (this.destroyed) return;
+    await Promise.all(expressions.filter(expression => expression.config.runOnFormReady === true).map(async expression => {
+      const request = this.beginRequest(expression);
+      try {
+        await this.handleExpression(syntheticEvent, expression, request);
+      } finally {
+        this.finishRequest(request);
       }
-    }
+    }));
   }
 
   private scheduleFormReadyExpressions(): void {
@@ -219,7 +352,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
       .pipe(take(1))
       .subscribe({
         next: () => {
-          void this.runFormReadyExpressions();
+          void this.runFormReadyExpressions().catch(error => this.loggerService.error(`${this.logName}: Failed to evaluate form-ready metadata expressions.`, error));
         },
       });
   }

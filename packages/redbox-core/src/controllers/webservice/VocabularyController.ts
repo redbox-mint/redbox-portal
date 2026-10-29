@@ -1,3 +1,4 @@
+import { assertVocabularyAdminAccess, vocabularyAdminBrand, VocabularyAdminAccessError } from '../../utilities/VocabularyAdminAccess';
 import { Controllers as controllers } from '../../CoreController';
 import { ListAPIResponse, ListAPISummary } from '../../model';
 import { Services as VocabularyServiceModule } from '../../services/VocabularyService';
@@ -58,7 +59,7 @@ export namespace Controllers {
           limit,
           offset,
           sort: query.sort as string | undefined,
-          branding: BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)).id,
+          branding: vocabularyAdminBrand(req),
         });
         const response = new ListAPIResponse<unknown>();
         const summary = new ListAPISummary();
@@ -73,7 +74,7 @@ export namespace Controllers {
         });
       } catch (error) {
         return this.sendResp(req, res, {
-          status: 500,
+          status: error instanceof VocabularyAdminAccessError ? error.status : 500,
           errors: [this.asError(error)],
           headers: this.getNoCacheHeaders(),
         });
@@ -85,6 +86,7 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const id = String(params.id || '');
+        await assertVocabularyAdminAccess(req, id);
         const vocabulary = await VocabularyService.getById(id);
         if (!vocabulary) {
           return this.sendResp(req, res, {
@@ -97,7 +99,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: { vocabulary, entries }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendResp(req, res, {
-          status: 500,
+          status: error instanceof VocabularyAdminAccessError ? error.status : 500,
           errors: [this.asError(error)],
           headers: this.getNoCacheHeaders(),
         });
@@ -110,13 +112,13 @@ export namespace Controllers {
         const { body } = validated;
         const payload = {
           ...(body as Record<string, unknown>),
-          branding: BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)).id,
+          branding: vocabularyAdminBrand(req),
         } as VocabularyServiceModule.VocabularyInput;
         const created = await VocabularyService.create(payload);
         return this.sendResp(req, res, { status: 201, data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -125,11 +127,12 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const id = String(params.id || '');
-        const updated = await VocabularyService.update(id, body as Partial<VocabularyServiceModule.VocabularyInput>);
+        await assertVocabularyAdminAccess(req, id);
+        const updated = await VocabularyService.update(id, { ...body as Partial<VocabularyServiceModule.VocabularyInput>, branding: vocabularyAdminBrand(req) });
         return this.sendResp(req, res, { data: updated, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -138,6 +141,7 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const id = String(params.id || '').trim();
+        await assertVocabularyAdminAccess(req, id);
         const bodyObj = body as Record<string, unknown>;
         const entryOrders = Array.isArray(bodyObj?.entryOrders) ? bodyObj.entryOrders : null;
         if (!id) {
@@ -174,7 +178,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: { updated }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -183,11 +187,12 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const { params } = validated;
         const id = String(params.id || '');
+        await assertVocabularyAdminAccess(req, id);
         await VocabularyService.delete(id);
         return this.sendResp(req, res, { status: 204, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -208,12 +213,12 @@ export namespace Controllers {
         const created = await RvaImportService.importRvaVocabulary(
           rvaId,
           versionId,
-          BrandingService.getBrandFromReq(req).id
+          vocabularyAdminBrand(req)
         );
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -222,13 +227,14 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
         const id = String(params.id || '');
+        await assertVocabularyAdminAccess(req, id);
         const bodyObj = body as Record<string, unknown>;
         const versionId = bodyObj?.versionId ? String(bodyObj.versionId) : undefined;
         const result = await RvaImportService.syncRvaVocabulary(id, versionId);
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: error instanceof VocabularyAdminAccessError ? error.status : 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
     }
   }

@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { map, firstValueFrom } from 'rxjs';
+import { map, firstValueFrom, timeout, TimeoutError } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import {
@@ -671,9 +671,9 @@ export class RecordService extends HttpClientService {
     sort: string = '',
     filterFields: string = '',
     filterString: string = '',
-    filterMode: string = ''
+    filterMode: string = '',
+    rows: number = 10
   ): Promise<RecordResponseTable> {
-    let rows = 10;
     let start = (pageNumber - 1) * rows;
 
     const items = {
@@ -701,7 +701,9 @@ export class RecordService extends HttpClientService {
       }
     }
 
-    const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(map(res => res));
+    // Bound verification reads so stalled requests release the UI for recovery.
+    // Unsubscription cancels the client request; mutation timeouts remain uncertain.
+    const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(timeout(30_000), map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
   }
@@ -936,11 +938,23 @@ export class RecordService extends HttpClientService {
       const httpOptions = this.getSaveHttpOptions(requestId, '', undefined, resolved, true);
       const response =
         method === 'PUT'
-          ? await firstValueFrom(this.http.put<unknown>(url, undefined, httpOptions))
-          : await firstValueFrom(this.http.delete<unknown>(url, httpOptions));
+          ? await firstValueFrom(this.http.put<unknown>(url, undefined, httpOptions).pipe(timeout(30_000)))
+          : await firstValueFrom(this.http.delete<unknown>(url, httpOptions).pipe(timeout(30_000)));
       return RecordActionResult.fromHttpResponse(response, requestId);
     } catch (error) {
-      return RecordActionResult.fromHttpError(error, requestId);
+      const result = RecordActionResult.fromHttpError(error instanceof TimeoutError ? new HttpErrorResponse({ status: 0, error }) : error, requestId);
+      // v1 display errors remain useful when an older endpoint returns a 500.
+      // Preserve bounded plain text without turning an uncertain write into a refusal.
+      if (error instanceof HttpErrorResponse && error.status >= 500) {
+        const body = error.error;
+        if (body && typeof body === 'object' && !Array.isArray(body)
+            && typeof body.message === 'string' && typeof body.details === 'string') {
+          const message = body.message.slice(0, 500).trim();
+          const generic = /^(an error (has occurred|occurred)|internal server error)[.!]?$/i;
+          result.message = [generic.test(message) ? '' : message, body.details.slice(0, 500).trim()].filter(Boolean).join(': ');
+        }
+      }
+      return result;
     }
   }
 
@@ -977,7 +991,7 @@ export class RecordService extends HttpClientService {
         context: base.context,
         observe: 'response',
         responseType: 'json',
-      })
+      }).pipe(timeout(30_000))
     );
     const current = RecordActionResult.readConcurrency(response.body, response.headers);
     if (

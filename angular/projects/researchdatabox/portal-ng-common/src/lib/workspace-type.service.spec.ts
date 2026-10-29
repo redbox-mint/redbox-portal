@@ -1,6 +1,6 @@
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, flushMicrotasks, TestBed } from '@angular/core/testing';
 import { ConfigService } from './config.service';
 import { getStubConfigService } from './helper.spec';
 import { LoggerService } from './logger.service';
@@ -29,23 +29,29 @@ describe('WorkspaceTypeService', () => {
 
   afterEach(() => http.verify());
 
-  it('loads and filters workspace types from the data envelope', async () => {
+  it('loads and filters workspace types from the data envelope', fakeAsync(() => {
     const promise = service.getWorkspaceTypes();
-    await Promise.resolve();
+    flushMicrotasks();
     const request = http.expectOne(`${service.brandingAndPortalUrl}/workspaces/types`);
     expect(request.request.method).toBe('GET');
     request.flush({
       data: { status: true, workspaceTypes: [{ name: 'gitlab', label: 'GitLab' }, { label: 'invalid' }] },
     });
-    await expectAsync(promise).toBeResolvedTo({ status: true, workspaceTypes: [{ name: 'gitlab', label: 'GitLab' }] });
-  });
+    let actual: unknown;
+    promise.then(value => actual = value);
+    flushMicrotasks();
+    expect(actual).toEqual({ status: true, workspaceTypes: [{ name: 'gitlab', label: 'GitLab' }] });
+  }));
 
-  it('encodes a workspace name and unwraps a single workspace type', async () => {
+  it('encodes a workspace name and unwraps a single workspace type', fakeAsync(() => {
     const promise = service.getWorkspaceType('cloud space');
-    await Promise.resolve();
+    flushMicrotasks();
     const request = http.expectOne(`${service.brandingAndPortalUrl}/workspaces/types/cloud%20space`);
     expect(request.request.method).toBe('GET');
     request.flush({ data: { status: true, workspaceType: { name: 'cloud space' } } });
-    await expectAsync(promise).toBeResolvedTo({ name: 'cloud space' });
-  });
+    let actual: unknown;
+    promise.then(value => actual = value);
+    flushMicrotasks();
+    expect(actual).toEqual({ name: 'cloud space' });
+  }));
 });

@@ -3,6 +3,8 @@
  * Auto-generated from config/i18n.js
  */
 
+import type { InitOptions } from 'i18next';
+
 export interface I18nDetectionConfig {
     order?: string[];
     lookupCookie?: string;
@@ -24,6 +26,8 @@ export interface I18nNextInitConfig {
     skipOnVariables: boolean;
     returnEmptyString: boolean;
     ns: string[];
+    /** Passed through to i18next, including namespace lists and false. */
+    defaultNS?: InitOptions['defaultNS'];
     detection: I18nDetectionConfig;
 }
 

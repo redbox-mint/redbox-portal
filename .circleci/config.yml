@@ -68,6 +68,9 @@ jobs:
             npm run compile:agenda-sqs
             npm run compile:core
       - run:
+          name: Typecheck public runtime configuration fixtures
+          command: npm run test:config-types
+      - run:
           name: Validate API route contracts
           command: npm run validate:api-routes
       - run:
@@ -794,6 +797,9 @@ jobs:
             npm run compile:sails-ng-common
             npm run compile:agenda-sqs
             npm run compile:core
+      - run:
+          name: Test Agenda watchdog cleanup with real MongoDB and SQS repository jobs
+          command: AGENDA_TEST_MONGO_URL="$MONGO_TEST_URL/agenda_watchdog" npm run test:agenda-watchdog
       - run:
           name: Run storage-mongo package tests with coverage
           command: |

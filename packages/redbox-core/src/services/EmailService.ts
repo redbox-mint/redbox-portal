@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable, from, firstValueFrom
+  Observable, from, firstValueFrom, lastValueFrom
 } from 'rxjs';
 import { Services as services } from '../CoreService';
 // removed deprecated rxjs/add/operator imports; use firstValueFrom instead
@@ -212,28 +212,38 @@ export namespace Services {
      * Send Email from Template.
      * Templates are defined in sails config.
      *
-     * No return. The email is sent after the built template promise is evaluated.
+     * Starts immediately, even when the returned Promise is ignored. Failures are
+     * logged for legacy fire-and-forget callers and still reject the Promise.
+     * Await or catch the returned Promise to handle failures in hooks/extensions.
      *
      * @param to Email address(es) of recipients for 'to' field.
      * @param subject The email subject.
      * @param template The file name without extension.
      * @param data The variables to use when rendering the template.
+     * @return A Promise resolving to the sendMessage result after build and delivery
+     * complete. Rejects on build/delivery errors, non-200 build status, or an
+     * unsuccessful delivery result. Disabled email retains sendMessage's success result.
      */
-    public sendTemplate(to: string, subject: string, template: string, data: Record<string, unknown>) {
+    public sendTemplate(to: string, subject: string, template: string, data: Record<string, unknown>): Promise<{ success: boolean, msg: string }> {
       this.updateChronicle({ emailTemplate: template });
-      const buildResponse = this.buildFromTemplate(template, data);
-
-      buildResponse.subscribe((buildResult: Record<string, unknown>) => {
-        if (buildResult['status'] != 200) {
-          return;
-        } else {
-          const sendResponse = this.sendMessage(to, buildResult['body'] as string, subject);
-
-          sendResponse.subscribe(sendResult => {
-            return sendResult;
-          });
+      const delivery = (async () => {
+        const buildResult = await lastValueFrom(this.buildFromTemplate(template, data));
+        if (buildResult['status'] !== 200) {
+          throw buildResult['ex'] ?? new Error(`Unable to build email template '${template}' (status ${buildResult['status']}).`);
         }
+
+        const sendResult = await lastValueFrom(this.sendMessage(to, buildResult['body'] as string, subject));
+        if (!sendResult.success) {
+          throw new Error(sendResult.msg);
+        }
+        return sendResult;
+      })();
+
+      // Handle ignored returns without replacing the rejecting Promise callers receive.
+      void delivery.catch(error => {
+        sails.log.error('EmailService.sendTemplate failed', error);
       });
+      return delivery;
     }
 
     /**

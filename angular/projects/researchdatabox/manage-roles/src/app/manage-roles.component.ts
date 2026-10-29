@@ -50,6 +50,8 @@ export class ManageRolesComponent extends BaseComponent {
   protected override async initComponent():Promise<void> {
     let roles: any = await this.userService.getBrandRoles();
     this.roles = roles;
+    this.users = [];
+    this.searchFilter.roles = [{value: null, label: 'Any', checked: true}];
     _.forEach(roles, (role:any) => {
       this.searchFilter.roles.push({value:role.name, label:role.name, checked:false});
       _.forEach(role.users, (user:any) => {

@@ -209,7 +209,10 @@ export class TranslationService extends HttpClientService implements Service {
       }
 
       return this;
-    })();
+    })().catch((error) => {
+      this.initPromise = undefined;
+      throw error;
+    });
 
     return this.initPromise;
   }

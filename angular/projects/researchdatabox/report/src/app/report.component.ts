@@ -38,6 +38,8 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   datePickerPlaceHolder: string = '';
   datePickerOpts: any;
   filterParams: any = {};
+  private pageLoadPending = false;
+  private pendingFilter: { params: any } | undefined;
   initTracker: any = { reportLoaded: false, resultsReturned: false };
   report: ReportDto = null as any;
   reportResult: ReportResultDto = null as any;
@@ -73,14 +75,31 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     return this.reportResult;
   }
 
-  async gotoPage(pageNum: number): Promise<RecordPageDto> {
-    const params = this.getParams();
-    if (params === null) {
+  async gotoPage(pageNum: number, params = this.getParams()): Promise<RecordPageDto> {
+    if (params === null || this.pageLoadPending) {
       return this.reportResult;
     }
+    this.pageLoadPending = true;
     this.initTracker.resultsReturned = false;
-    this.reportResult =  await this.reportService.getReportResult(this.reportName, pageNum, params, this.recordsPerPage);
-    this.initTracker.resultsReturned = true;
+    this.loadError = '';
+    try {
+      this.reportResult = await this.reportService.getReportResult(this.reportName, pageNum, params, this.recordsPerPage);
+    } catch (error) {
+      // Initial load failures must reach BaseComponent's bootstrap error subject.
+      if (!this.isReady) {
+        throw error;
+      }
+      this.showLoadError(error, () => this.gotoPage(pageNum, params));
+    } finally {
+      this.pageLoadPending = false;
+      this.initTracker.resultsReturned = true;
+    }
+    // A submitted filter supersedes earlier submissions, even if the active read failed.
+    const pending = this.pendingFilter;
+    this.pendingFilter = undefined;
+    if (pending) {
+      return this.gotoPage(1, pending.params);
+    }
     return this.reportResult;
   }
 
@@ -117,7 +136,15 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   }
 
   public async filter(event?: any) {
-    await this.gotoPage(1);
+    if (this.loadPending) {
+      return;
+    }
+    const params = this.getParams();
+    if (this.pageLoadPending) {
+      this.pendingFilter = { params };
+      return;
+    }
+    await this.gotoPage(1, params);
   }
 
   public getDownloadCSVUrl() {

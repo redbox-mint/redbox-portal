@@ -1,3 +1,4 @@
+import { NgModel } from '@angular/forms';
 import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import {
@@ -611,11 +612,12 @@ export class DashboardComponent extends BaseComponent {
     };
   }
 
-  public async pageChanged(event: PageChangedEvent, step: string) {
-    if (this.isProcessingPageChange) {
+  public async pageChanged(event: PageChangedEvent, step: string, pageModel?: NgModel) {
+    if (this.isProcessingPageChange || event.page === this.records[step]?.currentPage) {
       return;
     }
     this.isProcessingPageChange = true;
+    this.loadError = '';
     try {
       if (this.isViewPage) {
         const currentStep = _find(this.workflowSteps, (workflowStep) => this.getStepKey(workflowStep) == step) || this.workflowSteps[0];
@@ -629,7 +631,10 @@ export class DashboardComponent extends BaseComponent {
       } else {
         await this.reloadStep(step, event.page);
       }
+    } catch (error) {
+      this.showLoadError(error, () => this.pageChanged(event, step, pageModel));
     } finally {
+      pageModel?.reset(this.records[step]?.currentPage || 1);
       this.isProcessingPageChange = false;
     }
   }

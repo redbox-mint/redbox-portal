@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of, from, throwError, firstValueFrom } from 'rxjs';
+import { Observable, of, from, throwError, firstValueFrom, Subscription } from 'rxjs';
 import { mergeMap as flatMap, map, last } from 'rxjs/operators';
 
 import { isObservable } from 'rxjs';
@@ -733,7 +733,7 @@ export namespace Services {
           id: id,
         })
           .populate('roles')
-          .exec(function (err: unknown, user: unknown) {
+          .exec(async function (err: unknown, user: unknown) {
             if (err != null || _.isEmpty(user)) {
               done(err, user as AnyRecord);
               return;
@@ -782,61 +782,57 @@ export namespace Services {
                   // Gate disabled users
                   that
                     .assertAuthenticationAllowed(foundUserObj as UserAttributes)
-                    .then(() => {
+                    .then(async () => {
                       // foundUser.lastLogin = new Date();
 
                       const configLocal = _.get(defAuthConfig, 'local', {});
                       if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                        that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
-                          const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                          if (success) {
-                            User.update({
-                              username: username,
-                            })
-                              .set({
-                                lastLogin: new Date(),
-                                additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes'),
+                        that
+                          .triggerPreSaveTriggers(foundUserObj, configLocal)
+                          .then(async (userAdditionalInfo: AnyRecord) => {
+                            const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                            if (success) {
+                              User.update({
+                                username: username,
                               })
-                              .exec(function (err: unknown, user: unknown) {
-                                if (err) {
-                                  that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
-                                    err,
-                                  ]);
-                                  return;
-                                }
-                                if (_.isEmpty(user)) {
-                                  that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
-                                    'No user found',
-                                  ]);
-                                  return;
-                                }
+                                .set({
+                                  lastLogin: new Date(),
+                                  additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes'),
+                                })
+                                .exec(async function (err: unknown, user: unknown) {
+                                  if (err) {
+                                    that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
+                                      err,
+                                    ]);
+                                    return;
+                                  }
+                                  if (_.isEmpty(user)) {
+                                    that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
+                                      'No user found',
+                                    ]);
+                                    return;
+                                  }
 
-                                return;
+                                  return;
+                                });
+
+                              await that.runLoginPostSaveTriggers(foundUserObj, configLocal, 'onUpdate');
+
+                              return done(null, userAdditionalInfo, {
+                                message: 'Logged In Successfully',
                               });
-
-                            if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                              that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                            } else {
+                              return done(null, false, {
+                                message: 'All required conditions for login not met',
+                              });
                             }
-
-                            if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                              that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
-                            }
-
-                            return done(null, userAdditionalInfo, {
-                              message: 'Logged In Successfully',
-                            });
-                          } else {
-                            return done(null, false, {
-                              message: 'All required conditions for login not met',
-                            });
-                          }
-                        });
+                          });
                       } else {
                         User.update({
                           username: username,
                         })
                           .set({ lastLogin: new Date() })
-                          .exec(function (err: unknown, user: unknown) {
+                          .exec(async function (err: unknown, user: unknown) {
                             if (err) {
                               that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [err]);
                               return;
@@ -851,13 +847,7 @@ export namespace Services {
                             return;
                           });
 
-                        if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                          that.triggerPostSaveTriggers(foundUserObj, configLocal);
-                        }
-
-                        if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                          that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
-                        }
+                        await that.runLoginPostSaveTriggers(foundUserObj, configLocal, 'onUpdate');
 
                         return done(null, foundUserObj, {
                           message: 'Logged In Successfully',
@@ -1002,35 +992,97 @@ export namespace Services {
       return response;
     }
 
-    //Post login and post update/create user
-    public triggerPostSaveTriggers(user: AnyRecord, config: AnyRecord, mode: string = 'onUpdate'): void {
-      const postSaveCreateHooks = _.get(config, `hooks.${mode}.post`, null);
+    /**
+     * Run configured user post-save hooks concurrently and return their outcomes in
+     * configuration order. Failures are logged and returned as rejected entries;
+     * they do not reject the aggregate promise or prevent other hooks from running.
+     * Entries without a function are skipped. Observables settle on completion,
+     * yielding their last value (undefined for an empty Observable).
+     * Each hook has an absolute deadline (postHookTimeoutMs, default 30000ms).
+     * Timeout is a rejected outcome; Observable subscriptions are disposed.
+     * Unlike postSync hooks, these hooks do not form a sequential response chain.
+     */
+    public triggerPostSaveTriggers(
+      user: AnyRecord,
+      config: AnyRecord,
+      mode: string = 'onUpdate'
+    ): Promise<PromiseSettledResult<unknown>[]> {
+      const hooks = _.get(config, `hooks.${mode}.post`, null);
       this.updateChronicle({
         usersPostSaveMode: mode,
-        usersPostSaveHookCount: Array.isArray(postSaveCreateHooks) ? postSaveCreateHooks.length : 0,
+        usersPostSaveHookCount: Array.isArray(hooks) ? hooks.length : 0,
       });
-      if (_.isArray(postSaveCreateHooks)) {
-        _.each(postSaveCreateHooks, (postSaveCreateHook: unknown) => {
-          const postSaveCreateHookFunctionString = _.get(postSaveCreateHook, 'function', null);
-          if (postSaveCreateHookFunctionString != null) {
-            const postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
-            const options = _.get(postSaveCreateHook, 'options', {});
-            if (_.isFunction(postSaveCreateHookFunction)) {
-              const hookResponse = postSaveCreateHookFunction(user, options);
-              this.resolveHookResponse(hookResponse)
-                .then(() => {
-                  this.updateChronicle({ usersPostSaveOutcome: 'success' });
-                })
-                .catch(error => {
-                  this.updateChronicle({ usersOperation: 'triggerPostSaveTriggers', usersOutcome: 'failed' }, [error]);
-                });
-            } else {
-              this.updateChronicle({ usersPostSaveOutcome: 'invalid-hook' }, [
-                new Error('Invalid user post-save hook.'),
-              ]);
+      if (!Array.isArray(hooks)) {
+        return Promise.resolve([]);
+      }
+      const configuredTimeout = config.postHookTimeoutMs;
+      const timeoutMs =
+        typeof configuredTimeout === 'number' &&
+        Number.isInteger(configuredTimeout) &&
+        configuredTimeout > 0 &&
+        configuredTimeout <= 2147483647
+          ? configuredTimeout
+          : 30000;
+      const responses = hooks
+        .filter(hook => _.get(hook, 'function', null) != null)
+        .map(async hook => {
+          const functionString = _.get(hook, 'function');
+          try {
+            const hookFunction = eval(functionString);
+            if (!_.isFunction(hookFunction)) {
+              throw new TypeError(`Post save function: '${functionString}' did not resolve to a valid function`);
             }
+            const hookResponse = hookFunction(user, _.get(hook, 'options', {}));
+            const result = await this.resolvePostHookResponse(hookResponse, timeoutMs);
+            this.updateChronicle({ usersPostSaveOutcome: 'success' });
+            return result;
+          } catch (error) {
+            this.updateChronicle({ usersOperation: 'triggerPostSaveTriggers', usersOutcome: 'failed' }, [error]);
+            throw error;
           }
         });
+      return Promise.allSettled(responses);
+    }
+
+    // Start both groups before awaiting regular hooks. postSync retains its
+    // sequential response chain and background login timing.
+    private async runLoginPostSaveTriggers(user: AnyRecord, config: AnyRecord, mode: string): Promise<void> {
+      const completion = this.triggerPostSaveTriggers(user, config, mode);
+      if (this.hasPostSaveSyncTriggerConfigured(config, mode)) {
+        void this.triggerPostSaveSyncTriggers(user, config, mode).catch(error => {
+          sails.log.error('Login postSync hooks failed to complete');
+          sails.log.error(error);
+        });
+      }
+      await completion;
+    }
+
+    private async resolvePostHookResponse(response: unknown, timeoutMs: number): Promise<unknown> {
+      const subscription = new Subscription();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const deadline = new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error(`User post-save hook timed out after ${timeoutMs}ms`)), timeoutMs);
+        });
+        const completion = isObservable(response)
+          ? new Promise<unknown>((resolve, reject) => {
+              let value: unknown;
+              subscription.add(
+                response.subscribe({
+                  next: next => {
+                    value = next;
+                  },
+                  error: reject,
+                  complete: () => resolve(value),
+                })
+              );
+            })
+          : Promise.resolve(response);
+        // race attaches rejection handlers even when a Promise rejects after timeout.
+        return await Promise.race([completion, deadline]);
+      } finally {
+        clearTimeout(timer);
+        subscription.unsubscribe();
       }
     }
 
@@ -1103,7 +1155,7 @@ export namespace Services {
                     // Gate disabled users
                     that
                       .assertAuthenticationAllowed(userObj)
-                      .then(() => {
+                      .then(async () => {
                         const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
                         userObj.lastLogin = new Date();
                         userObj.name = String(attrs.cn ?? '');
@@ -1124,56 +1176,56 @@ export namespace Services {
 
                         const configAAF = _.get(defAuthConfig, 'aaf', {});
                         if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                          that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
-                            const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                            if (success) {
-                              User.update({
-                                username: _.get(userAdditionalInfo, 'username'),
-                              })
-                                .set(userAdditionalInfo)
-                                .exec(function (err: unknown, user: unknown) {
-                                  if (err) {
-                                    that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [
-                                      err,
-                                    ]);
-                                    return done(err, false, { message: 'Error updating user' });
-                                  }
-                                  if (_.isEmpty(user)) {
-                                    that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' });
-                                    return done('No user found', false, { message: 'No user found' });
-                                  }
+                          that
+                            .triggerPreSaveTriggers(userObj, configAAF)
+                            .then(async (userAdditionalInfo: AnyRecord) => {
+                              const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                              if (success) {
+                                User.update({
+                                  username: _.get(userAdditionalInfo, 'username'),
+                                })
+                                  .set(userAdditionalInfo)
+                                  .exec(async function (err: unknown, user: unknown) {
+                                    if (err) {
+                                      that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [
+                                        err,
+                                      ]);
+                                      return done(err, false, { message: 'Error updating user' });
+                                    }
+                                    if (_.isEmpty(user)) {
+                                      that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' });
+                                      return done('No user found', false, { message: 'No user found' });
+                                    }
 
-                                  if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                                    that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                                  }
+                                    await that.runLoginPostSaveTriggers(
+                                      user as unknown as AnyRecord,
+                                      configAAF,
+                                      'onUpdate'
+                                    );
 
-                                  if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                                    that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                                  }
-
-                                  const updatedUsers = user as AnyRecord[];
-                                  that
-                                    .resolveLinkedUserCandidate(updatedUsers[0])
-                                    .then(resolvedUser =>
-                                      done(null, resolvedUser as AnyRecord, {
-                                        message: 'Logged In Successfully',
-                                      })
-                                    )
-                                    .catch((resolveErr: unknown) => done(resolveErr, false));
-                                  return;
+                                    const updatedUsers = user as AnyRecord[];
+                                    that
+                                      .resolveLinkedUserCandidate(updatedUsers[0])
+                                      .then(resolvedUser =>
+                                        done(null, resolvedUser as AnyRecord, {
+                                          message: 'Logged In Successfully',
+                                        })
+                                      )
+                                      .catch((resolveErr: unknown) => done(resolveErr, false));
+                                    return;
+                                  });
+                              } else {
+                                return done('All required conditions for login not met', false, {
+                                  message: 'All required conditions for login not met',
                                 });
-                            } else {
-                              return done('All required conditions for login not met', false, {
-                                message: 'All required conditions for login not met',
-                              });
-                            }
-                          });
+                              }
+                            });
                         } else {
                           User.update({
                             username: userObj.username,
                           })
                             .set(userObj)
-                            .exec(function (err: unknown, user: unknown) {
+                            .exec(async function (err: unknown, user: unknown) {
                               if (err) {
                                 that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                                 return done(err, false, { message: 'Error updating user' });
@@ -1183,13 +1235,7 @@ export namespace Services {
                                 return done('No user found', false, { message: 'No user found' });
                               }
 
-                              if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                                that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                              }
-
-                              if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                                that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                              }
+                              await that.runLoginPostSaveTriggers(user as unknown as AnyRecord, configAAF, 'onUpdate');
 
                               const updatedUsers = user as AnyRecord[];
                               that
@@ -1265,23 +1311,17 @@ export namespace Services {
                     if (that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
                       that
                         .triggerPreSaveTriggers(userToCreate, configAAF, 'onCreate')
-                        .then((userAdditionalInfo: AnyRecord) => {
+                        .then(async (userAdditionalInfo: AnyRecord) => {
                           const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                           if (success) {
                             userToCreate = userAdditionalInfo;
-                            User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+                            User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
                               if (err) {
                                 that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                                 return done(err, false);
                               }
 
-                              if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                                that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                              }
-
-                              if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                                that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                              }
+                              await that.runLoginPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
 
                               that
                                 .resolveLinkedUserCandidate(newUser)
@@ -1294,19 +1334,13 @@ export namespace Services {
                           }
                         });
                     } else {
-                      User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+                      User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
                         if (err) {
                           that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                           return done(err, false);
                         }
 
-                        if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                        }
-
-                        if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                        }
+                        await that.runLoginPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
 
                         that
                           .resolveLinkedUserCandidate(newUser)
@@ -1539,7 +1573,7 @@ export namespace Services {
             // Gate disabled users
             that
               .assertAuthenticationAllowed(userObj)
-              .then(() => {
+              .then(async () => {
                 that.updateChronicle({ usersUserUpdate: 'processing' });
                 userObj.lastLogin = new Date();
                 const additionalAttributesMapping = claimsMappings['additionalAttributes'];
@@ -1563,14 +1597,14 @@ export namespace Services {
                 if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
                   that
                     .triggerPreSaveTriggers(userObj, oidcConfig as AnyRecord)
-                    .then((userAdditionalInfo: AnyRecord) => {
+                    .then(async (userAdditionalInfo: AnyRecord) => {
                       const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                       if (success) {
                         User.update({
                           username: _.get(userAdditionalInfo, 'username'),
                         })
                           .set(userAdditionalInfo)
-                          .exec(function (err: unknown, user: unknown) {
+                          .exec(async function (err: unknown, user: unknown) {
                             if (err) {
                               that.updateChronicle(
                                 { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
@@ -1586,13 +1620,11 @@ export namespace Services {
                               return done('No user found', false);
                             }
 
-                            if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                              that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                            }
-
-                            if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                              that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                            }
+                            await that.runLoginPostSaveTriggers(
+                              user as unknown as AnyRecord,
+                              oidcConfig as AnyRecord,
+                              'onUpdate'
+                            );
 
                             const updatedUsers = user as AnyRecord[];
 
@@ -1611,7 +1643,7 @@ export namespace Services {
                     username: userObj.username,
                   })
                     .set(userObj)
-                    .exec(function (err: unknown, user: unknown) {
+                    .exec(async function (err: unknown, user: unknown) {
                       if (err) {
                         that.updateChronicle(
                           { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
@@ -1627,13 +1659,11 @@ export namespace Services {
                         return done('No user found', false);
                       }
 
-                      if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                        that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                        that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                      }
+                      await that.runLoginPostSaveTriggers(
+                        user as unknown as AnyRecord,
+                        oidcConfig as AnyRecord,
+                        'onUpdate'
+                      );
 
                       const updatedUsers = user as AnyRecord[];
                       that
@@ -1687,10 +1717,10 @@ export namespace Services {
             if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onCreate')) {
               that
                 .triggerPreSaveTriggers(userToCreate, oidcConfig as AnyRecord)
-                .then((userAdditionalInfo: AnyRecord) => {
+                .then(async (userAdditionalInfo: AnyRecord) => {
                   const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                   if (success) {
-                    User.create(userAdditionalInfo).exec(function (err: unknown, newUser: unknown) {
+                    User.create(userAdditionalInfo).exec(async function (err: unknown, newUser: unknown) {
                       if (err) {
                         that.updateChronicle(
                           { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
@@ -1699,13 +1729,7 @@ export namespace Services {
                         return done(err, false);
                       }
 
-                      if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                        that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
-                        that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                      }
+                      await that.runLoginPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord, 'onCreate');
 
                       that
                         .resolveLinkedUserCandidate(newUser)
@@ -1718,7 +1742,7 @@ export namespace Services {
                   }
                 });
             } else {
-              User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+              User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
                 if (err) {
                   that.updateChronicle({ usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' }, [
                     err,
@@ -1726,13 +1750,7 @@ export namespace Services {
                   return done(err, false);
                 }
 
-                if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                  that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                }
-
-                if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
-                  that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                }
+                await that.runLoginPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord, 'onCreate');
 
                 that
                   .resolveLinkedUserCandidate(newUser)
@@ -1758,7 +1776,7 @@ export namespace Services {
               token: tokenHash,
             })
               .populate('roles')
-              .exec(function (err: unknown, user: unknown) {
+              .exec(async function (err: unknown, user: unknown) {
                 if (err) {
                   return done(err);
                 }
@@ -1768,7 +1786,7 @@ export namespace Services {
                 // Gate disabled users
                 that
                   .assertAuthenticationAllowed(user as UserAttributes)
-                  .then(() => {
+                  .then(async () => {
                     that
                       .resolveLinkedUserCandidate(user)
                       .then(resolvedUser =>

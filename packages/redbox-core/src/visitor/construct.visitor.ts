@@ -2219,7 +2219,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         `Invalid ${QuestionTreeComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
       );
     }
-    const configFrame = currentData?.config ?? { availableOutcomes: [], questions: [], componentDefinitions: [] };
+    // Keep generated children reachable through the form paths on the visitor-owned clone.
+    const configFrame = (currentData.config ??= { availableOutcomes: [], questions: [], componentDefinitions: [] });
 
     item.config = new QuestionTreeFieldComponentConfig();
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, configFrame);

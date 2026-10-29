@@ -18,11 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, ElementRef, ViewChild } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable, RecordActionResult, RecordTableComponent } from '@researchdatabox/portal-ng-common';
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { ModalDirective } from "ngx-bootstrap/modal";
 import { DateTime } from 'luxon';
+import { HttpErrorResponse } from '@angular/common/http';
 
 interface DeletedRecordTableHeader extends RecordPropViewMetaDto {
   sortProperty: string;
@@ -45,6 +46,10 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   protected sysConfig: any;
 
   // State tracking
+  private pageLoadPending = false;
+  private pendingCriteria: { params: any; sort: string | undefined } | undefined;
+  private appliedSort: string | undefined;
+  @ViewChild(RecordTableComponent) private recordTable?: RecordTableComponent;
   initTracker: any = {resultsReturned: false};
 
   // Record filter properties
@@ -117,6 +122,13 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   // Record list data
   deletedRecordsResult: ReportResultDto = null as any;
 
+  actionPending = false;
+  actionMessage = '';
+  actionRefreshError = '';
+  actionNeedsRefresh = false;
+  private retryRestoreOid?: string;
+  private retryRestoreRevision?: number;
+
   // destroy record confirm modal
   currentDestroyRecordModalOid: string | undefined;
   currentDestroyRecordModalRevision: number | undefined;
@@ -148,12 +160,68 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
    * Used by RecordTableComponent.
    * @param pageNum Load the data for this page nnumber.
    */
-  public async gotoPage(pageNum: number): Promise<RecordPageDto> {
-    this.currentPageNumber = pageNum;
-    this.initTracker.resultsReturned = false;
-    this.deletedRecordsResult = await this.getDeletedRecords();
-    this.initTracker.resultsReturned = true;
+  public async gotoPage(pageNum: number, params = this.getParams(), sort = this.sort): Promise<RecordPageDto> {
+    if (this.pageLoadPending || this.actionPending) {
+      return this.deletedRecordsResult;
+    }
+    try {
+      await this.loadPage(pageNum, params, sort);
+    } catch (error) {
+      // Initial load failures must reach BaseComponent's bootstrap error subject.
+      if (!this.isReady) {
+        throw error;
+      }
+      this.showLoadError(error, () => this.gotoPage(pageNum, params, sort));
+    }
+    const pending = this.pendingCriteria;
+    this.pendingCriteria = undefined;
+    if (pending) {
+      return this.gotoPage(1, pending.params, pending.sort);
+    }
+    this.restoreAppliedSort();
     return this.deletedRecordsResult;
+  }
+
+  // Only resolves after a fresh read. Navigation's retained-page fallback and
+  // queued criteria must never certify a successful post-mutation refresh.
+  private async loadPage(pageNum: number, params = this.getParams(), sort = this.sort, recoverLastPage = false): Promise<RecordPageDto> {
+    if (this.pageLoadPending) {
+      throw new Error('A page read is already pending.');
+    }
+    this.pageLoadPending = true;
+    this.initTracker.resultsReturned = false;
+    this.loadError = '';
+    try {
+      let result = await this.getDeletedRecords(pageNum, params, sort);
+      if (recoverLastPage && result.records.length === 0) {
+        const lastPage = Math.max(1, Math.ceil(result.total / this.recordsPerPage));
+        if (pageNum > lastPage) {
+          // One bounded fallback, committed atomically with the initial read.
+          // A failure leaves the retained rows and mutation refresh lock intact.
+          result = await this.getDeletedRecords(lastPage, params, sort);
+          if (lastPage > Math.max(1, Math.ceil(result.total / this.recordsPerPage))) {
+            throw new Error('The last page changed again. Refresh the list again.');
+          }
+        }
+      }
+      this.deletedRecordsResult = result;
+      this.currentPageNumber = this.deletedRecordsResult.pageNum;
+      this.appliedSort = sort;
+      return this.deletedRecordsResult;
+    } finally {
+      this.pageLoadPending = false;
+      this.initTracker.resultsReturned = true;
+    }
+  }
+
+  private restoreAppliedSort(): void {
+    this.sort = this.appliedSort;
+    // Retained rows must retain their sort indicator after a failed read.
+    this.recordTable?.headerSortItems?.forEach(header => {
+      const [variable, direction] = this.appliedSort?.split(':') ?? [];
+      const sortProperty = this.tableHeaders.find(column => column.property === header.variable)?.sortProperty ?? header.variable;
+      header.sort = sortProperty === variable ? (direction === '-1' ? 'desc' : 'asc') : '';
+    });
   }
 
   /**
@@ -161,30 +229,45 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
    * @param event The click event data.
    */
   public async filter(event?: any) {
-    await this.gotoPage(1);
+    if (this.loadPending) {
+      return;
+    }
+    if (this.actionPending) {
+      return;
+    }
+    const params = this.getParams();
+    if (this.pageLoadPending) {
+      this.pendingCriteria = { params, sort: this.sort };
+      return;
+    }
+    await this.gotoPage(1, params);
   }
 
   public async headerSortChanged(event: any, data: DeletedRecordTableHeader) {
+    if (this.loadPending || this.actionPending) {
+      this.restoreAppliedSort();
+      return;
+    }
     this.sort = `${data.sortProperty}:${event.sort === 'desc' ? '-1' : '1'}`;
-    await this.gotoPage(1);
+    await this.filter();
   }
 
   public async recordTableAction(event: any, data: any, actionName: string) {
-    const oid = data.oid;
-    const revision = data.revision;
-    if (actionName === 'restore') {
-      const result = await this.recordService.restoreDeletedRecord(oid, revision);
-      this.loggerService.debug(`Record table action ${actionName} data ${JSON.stringify(data)} result ${JSON.stringify(result)}.`);
-      await this.gotoPage(this.currentPageNumber);
-
-    } else if (actionName === 'destroy') {
-      this.currentDestroyRecordModalOid = oid;
-      this.currentDestroyRecordModalRevision = revision;
-      this.showDestroyRecordModal();
-
-    } else {
-      this.loggerService.error(`Unknown record table action name '${actionName}' data ${JSON.stringify(data)}.`);
+    if (this.actionPending || this.actionNeedsRefresh || this.pageLoadPending || this.loadPending || this.isDestroyRecordModalShown) {
       return;
+    }
+    this.actionMessage = '';
+    this.actionRefreshError = '';
+    this.retryRestoreOid = undefined;
+    if (actionName === 'restore') {
+      this.retryRestoreRevision = data.revision;
+      await this.mutateDeletedRecord('restore', data.oid, data.revision);
+    } else if (actionName === 'destroy') {
+      this.currentDestroyRecordModalOid = data.oid;
+      this.currentDestroyRecordModalRevision = data.revision;
+      this.showDestroyRecordModal();
+    } else {
+      this.loggerService.error(`Unknown record table action name '${actionName}'.`);
     }
   }
 
@@ -194,9 +277,17 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public hideDestroyRecordModal(): void {
+    if (this.actionPending) {
+      return;
+    }
+    this.closeDestroyRecordModal();
+  }
+
+  private closeDestroyRecordModal(): void {
     this.destroyRecordModal?.hide();
     this.currentDestroyRecordModalOid = undefined;
     this.currentDestroyRecordModalRevision = undefined;
+    this.isDestroyRecordModalShown = false;
   }
 
   public onDestroyRecordModalHidden(): void {
@@ -204,20 +295,127 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public async confirmDestroyRecordModal(event: any) {
-    if (_isUndefined(this.currentDestroyRecordModalOid)) {
-      this.loggerService.error("Record oid was not set so cannot destroy record.");
+    if (!_isUndefined(this.currentDestroyRecordModalOid)) {
+      await this.mutateDeletedRecord('destroy', this.currentDestroyRecordModalOid, this.currentDestroyRecordModalRevision);
+    }
+  }
+
+  public get canRetryRestore(): boolean {
+    return !!this.retryRestoreOid && !this.actionNeedsRefresh;
+  }
+
+  public async retryRestore(): Promise<void> {
+    if (this.retryRestoreOid) {
+      await this.mutateDeletedRecord('restore', this.retryRestoreOid, this.retryRestoreRevision);
+    }
+  }
+
+  private async mutateDeletedRecord(action: 'restore' | 'destroy', oid: string, revision?: number): Promise<void> {
+    if (this.actionPending || this.actionNeedsRefresh || this.pageLoadPending || this.loadPending) {
       return;
     }
-    const oid = this.currentDestroyRecordModalOid;
-    const revision = this.currentDestroyRecordModalRevision;
-    const result = await this.recordService.destroyDeletedRecord(oid, revision ?? {});
-    this.loggerService.debug(`Record table action destroy result ${JSON.stringify(result)}.`);
+    this.actionPending = true;
+    this.actionMessage = '';
+    this.actionRefreshError = '';
+    this.retryRestoreOid = undefined;
+    const label = action === 'restore' ? 'Restore' : 'Destroy';
+    try {
+      let result: RecordActionResult;
+      try {
+        result = action === 'restore'
+          ? await this.recordService.restoreDeletedRecord(oid, revision ?? {})
+          : await this.recordService.destroyDeletedRecord(oid, revision ?? {});
+      } catch (error) {
+        // Auth/CSRF policies reject before mutation. Server/transport failures
+        // can happen after a write; never interpret them as a rollback.
+        if (error instanceof HttpErrorResponse && [400, 401, 403].includes(error.status)) {
+          this.actionMessage = `${label} was refused for record ${oid}. Check the request and your permissions, and sign in again or refresh the page before retrying.`;
+          this.retryRestoreOid = action === 'restore' ? oid : undefined;
+        } else {
+          this.unknownActionOutcome(label, oid, this.actionErrorDiagnostic(error));
+        }
+        return;
+      }
 
-    this.destroyRecordModal?.hide();
-    this.currentDestroyRecordModalOid = undefined;
-    this.currentDestroyRecordModalRevision = undefined;
+      // Only an explicit result can certify success. A missing/malformed body
+      // is uncertain even when the HTTP request itself completed.
+      if (result?.outcome === 'unknown' || result?.concurrencyOutcome === 'unknown') {
+        this.unknownActionOutcome(label, oid, result.message);
+        return;
+      }
+      if (result?.success !== true) {
+        if (result?.success === false) {
+          this.actionMessage = `${label} was unsuccessful for record ${oid}. ${typeof result.message === 'string' ? result.message : ''} Check the record state and resolve the problem before retrying.`;
+          this.retryRestoreOid = action === 'restore' ? oid : undefined;
+        } else {
+          this.unknownActionOutcome(label, oid);
+        }
+        return;
+      }
 
-    await this.gotoPage(this.currentPageNumber);
+      if (action === 'destroy') {
+        this.closeDestroyRecordModal();
+      }
+      // Mutation succeeded. Refresh failure must not offer another mutation.
+      this.actionNeedsRefresh = true;
+      this.actionMessage = `${label} succeeded for record ${oid}.`;
+      await this.refreshAfterAction();
+    } finally {
+      this.actionPending = false;
+    }
+  }
+
+  private unknownActionOutcome(label: string, oid: string, diagnostic = ''): void {
+    this.actionNeedsRefresh = true;
+    this.actionMessage = `${label} outcome is unknown for record ${oid}. The action may have completed. Refresh the list and verify the record state before choosing another action.`;
+    if (diagnostic) {
+      this.actionMessage += ` Server reported: ${diagnostic}`;
+    }
+  }
+
+  private actionErrorDiagnostic(error: unknown): string {
+    if (!(error instanceof HttpErrorResponse) || error.status < 500) {
+      return '';
+    }
+    // CoreController.handleV1Response builds APIErrorResponse {message, details}
+    // from displayErrors. Do not serialize arbitrary errors, HTML response bodies,
+    // nested objects or raw exception messages. The template interpolates text.
+    const body = error.error;
+    if (!body || typeof body !== 'object' || Array.isArray(body)
+        || typeof body.message !== 'string' || typeof body.details !== 'string') {
+      return '';
+    }
+    const message = body.message.slice(0, 500).trim();
+    const details = body.details.slice(0, 500).trim();
+    const generic = /^(an error (has occurred|occurred)|internal server error)[.!]?$/i;
+    return [generic.test(message) ? '' : message, details].filter(Boolean).join(': ');
+  }
+
+  public async refreshActionList(): Promise<void> {
+    if (this.actionPending || this.pageLoadPending || this.loadPending || !this.actionNeedsRefresh) {
+      return;
+    }
+    this.actionPending = true;
+    try {
+      await this.refreshAfterAction();
+    } finally {
+      this.actionPending = false;
+    }
+  }
+
+  private async refreshAfterAction(): Promise<void> {
+    try {
+      await this.loadPage(this.currentPageNumber, this.getParams(), this.sort, true);
+      this.actionNeedsRefresh = false;
+      this.closeDestroyRecordModal();
+      this.actionRefreshError = '';
+      this.actionMessage += ' List refreshed. Verify the record state before choosing another action.';
+    } catch (error) {
+      // Preserve the successful/unknown mutation message across refresh retries.
+      this.actionRefreshError = 'Unable to refresh the list. Refresh the list before choosing another action.';
+    } finally {
+      this.initTracker.resultsReturned = true;
+    }
   }
 
   protected async initComponent(): Promise<void> {
@@ -238,6 +436,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       searchFilters: [];
       searchable: boolean
     }[] = await this.recordService.getAllTypes();
+    this.dropDownProperties['recordType'] = [{title: 'All', value: ''}];
     recordTypes.forEach(recordType => {
       this.dropDownProperties['recordType'].push({
         title: recordType.name,
@@ -250,8 +449,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     this.loggerService.debug(`'${this.appName}' ready!`);
   }
 
-  private async getDeletedRecords(): Promise<ReportResultDto> {
-    const params = this.getParams();
+  private async getDeletedRecords(pageNum: number, params = this.getParams(), sort = this.sort): Promise<ReportResultDto> {
     const paramText: string = _get(params, 'title', '')?.toString().trim();
     const paramRecordType: string = _get(params, 'recordType', '');
 
@@ -264,13 +462,13 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const filterFields = 'title';
 
     const records: RecordResponseTable = await this.recordService.getDeletedRecords(
-      recordType, workflowState, this.currentPageNumber, packageType, this.sort, filterFields, filterString, filterMode);
+      recordType, workflowState, pageNum, packageType, sort, filterFields, filterString, filterMode, this.recordsPerPage);
 
     return {
       recordsPerPage: this.recordsPerPage,
       records: records.items.map(record => this.formatDeletedRecord(record)),
       total: records.totalItems,
-      pageNum: this.currentPageNumber,
+      pageNum,
     };
   }
 
