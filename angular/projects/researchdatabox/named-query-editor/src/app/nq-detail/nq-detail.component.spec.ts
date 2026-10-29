@@ -1,3 +1,10 @@
+import { QueryAssistanceModule } from '../query-assistance.module';
+import {
+  TranslationService as AssistanceTranslationService,
+  FieldTreeComponent,
+  SchemaTargetSelectorComponent,
+} from '@researchdatabox/portal-ng-common';
+import { of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Pipe, PipeTransform, NO_ERRORS_SCHEMA } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -18,8 +25,14 @@ describe('NqDetailComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [NqDetailComponent, I18NextPipeStub],
-      imports: [FormsModule],
-      schemas: [NO_ERRORS_SCHEMA]
+      providers: [
+        {
+          provide: AssistanceTranslationService,
+          useValue: { t: (v: string) => v, isInitializing: () => false, translationChanges$: of(undefined) },
+        },
+      ],
+      imports: [QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NqDetailComponent);
@@ -31,7 +44,7 @@ describe('NqDetailComponent', () => {
       queryParams: { p: { type: 'string', path: 'path', whenUndefined: 'ignore' } },
       resultObjectMapping: { r: 'v' },
       sort: [{ field: 'ASC' }],
-      relatedRecordFilters: [{ collectionName: 'c', mongoQuery: {}, localField: 'l', foreignField: 'f' }]
+      relatedRecordFilters: [{ collectionName: 'c', mongoQuery: {}, localField: 'l', foreignField: 'f' }],
     } as NamedQueryDefinition;
   });
 
@@ -72,12 +85,26 @@ describe('NqDetailComponent', () => {
   });
 
   it('handles missing draft properties', () => {
-    component.draft = { name: 'q', collectionName: 'c', mongoQuery: {}, queryParams: undefined as any, resultObjectMapping: undefined as any };
+    component.draft = {
+      name: 'q',
+      collectionName: 'c',
+      mongoQuery: {},
+      queryParams: undefined as any,
+      resultObjectMapping: undefined as any,
+    };
     expect(component.paramCount).toBe(0);
     expect(component.mappingCount).toBe(0);
     expect(component.mongoKeyCount).toBe(0);
 
-    component.draft = { name: 'q', collectionName: 'c', mongoQuery: {}, queryParams: {}, resultObjectMapping: {}, sort: undefined, relatedRecordFilters: undefined };
+    component.draft = {
+      name: 'q',
+      collectionName: 'c',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+      sort: undefined,
+      relatedRecordFilters: undefined,
+    };
     expect(component.sortCount).toBe(0);
     expect(component.filterCount).toBe(0);
   });
