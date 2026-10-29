@@ -180,6 +180,43 @@ describe('NamedQueryService', function() {
   });
 
   describe('legacy authoring contract', function() {
+    it('preserves the legacy user scope field on a no-op save', async function() {
+      const existing = {
+        name: 'listUsers', collectionName: 'user', brandIdFieldPath: 'branding',
+        mongoQuery: '{}', queryParams: '{}', resultObjectMapping: '{}',
+        sort: '', relatedRecordFilters: '', expandRelations: false,
+      };
+      mockNamedQuery.find.returns(createQueryObject([existing]));
+      mockNamedQuery.findOne.resolves(existing);
+      const [definition] = await NamedQueryService.list({ id: 'brand-1' });
+      await NamedQueryService.update({ id: 'brand-1' }, existing.name, definition);
+      const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      expect(saved.brandIdFieldPath).to.equal('branding');
+      // Execution continues to resolve user access through roles, not this legacy field.
+      expect(NamedQueryService.resolveBrandScope('user')).to.deep.equal({ type: 'userRoles', fieldPath: '' });
+    });
+
+    for (const collectionName of ['user', 'record'])
+      it(`ignores an edited legacy scope field when saving ${collectionName}`, async function() {
+        mockNamedQuery.findOne.resolves({ collectionName: 'user', brandIdFieldPath: 'branding' });
+        await NamedQueryService.update({ id: 'brand-1' }, 'listUsers', {
+          collectionName, mongoQuery: {}, queryParams: {}, resultObjectMapping: {},
+          brandIdFieldPath: 'attackerSuppliedPath',
+        });
+        const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+        expect(saved.brandIdFieldPath).to.equal(collectionName === 'user' ? '' : 'metaMetadata.brandId');
+      });
+
+    it('resolves the scope again when the collection changes with an unchanged legacy path', async function() {
+      mockNamedQuery.findOne.resolves({ collectionName: 'user', brandIdFieldPath: 'branding' });
+      await NamedQueryService.update({ id: 'brand-1' }, 'listUsers', {
+        collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {},
+        brandIdFieldPath: 'branding',
+      });
+      const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      expect(saved.brandIdFieldPath).to.equal('metaMetadata.brandId');
+    });
+
     for (const omitEmpty of [false, true]) it(`preserves stored JSON bytes on no-op save (omit empty arrays: ${omitEmpty})`, async function() {
       const existing = {
         name: 'scu-rdmps', collectionName: 'record', brandIdFieldPath: 'metaMetadata.brandId',
