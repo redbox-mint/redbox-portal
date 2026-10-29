@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordAuditController';
+import { Services as BrandingServices } from '../../src/services/BrandingService';
 
 describe('RecordAuditController', () => {
   let controller: Controllers.RecordAudit;
@@ -24,6 +25,7 @@ describe('RecordAuditController', () => {
 
     (global as any).sails = {
       config: {
+        http: { rootContext: '' },
         brandingAware: sinon.stub().callsFake(() => ({
           doiPublishing: {
             writeBack: {
@@ -77,6 +79,7 @@ describe('RecordAuditController', () => {
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getRootContext: BrandingServices.Branding.prototype.getRootContext,
     };
     (global as any).FormsService = {
       getFormByName: sinon.stub().returns(of({
@@ -197,6 +200,46 @@ describe('RecordAuditController', () => {
     assert.equal(payload?.data?.records?.[0]?.actor?.displayName, 'Editor');
     assert.equal(payload?.data?.records?.[1]?.changeSummary?.note, '@record-audit-note-update-only');
   });
+
+  for (const { rootContext, expectedPrefix } of [
+    { rootContext: '', expectedPrefix: '' },
+    { rootContext: '/', expectedPrefix: '' },
+    { rootContext: 'research', expectedPrefix: '/research' },
+    { rootContext: '/research/', expectedPrefix: '/research' },
+    { rootContext: 'research/portal/', expectedPrefix: '/research/portal' },
+    { rootContext: '/research/portal', expectedPrefix: '/research/portal' },
+  ]) {
+    it(`serializes the raw audit URL with configured root ${JSON.stringify(rootContext)}`, async () => {
+      sails.config.http.rootContext = rootContext;
+      const oid = 'ark:/123/a b?query#fragment%2F/\u00e9';
+      const param = sinon.stub();
+      param.withArgs('oid').returns(oid);
+      param.withArgs('branding').returns('test-brand_2');
+      param.withArgs('portal').returns('data_portal-2');
+      const req = {
+        param,
+        options: { locals: {} },
+        session: { branding: 'default', portal: 'rdmp' },
+        user: { roles: [] },
+      } as unknown as Sails.Req;
+      const res = {
+        set: sinon.stub().returnsThis(),
+        status: sinon.stub().returnsThis(),
+        json: sinon.stub().returnsThis(),
+      };
+
+      await controller.getAuditData(req, res as unknown as Sails.Res);
+
+      sinon.assert.calledOnceWithExactly(res.status, 200);
+      sinon.assert.calledOnce(res.json);
+      const url = res.json.firstCall.args[0].rawAuditUrl;
+      assert.equal(
+        url,
+        `${expectedPrefix}/test-brand_2/data_portal-2/api/records/audit/ark%3A%2F123%2Fa%20b%3Fquery%23fragment%252F%2F%C3%A9`,
+      );
+      assert.equal(decodeURIComponent(url.slice(url.lastIndexOf('/') + 1)), oid);
+    });
+  }
 
   it('passes action and workflow filters through without insertion date bounds', async () => {
     const param = sinon.stub();
