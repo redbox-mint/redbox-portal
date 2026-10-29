@@ -116,18 +116,18 @@ export class QueryPathInputComponent implements OnChanges {
 @Component({
   selector: 'nq-typed-value',
   standalone: false,
-  template: `<div class="input-group input-group-sm">
-      <input
+  template: `<div class="nq-typed-value-row"><label class="visually-hidden" [for]="controlId">{{ label }}</label>
+      <input [id]="controlId"
         *ngIf="inputType !== 'boolean' && inputType !== 'object' && inputType !== 'array'"
-        class="form-control"
+        class="form-control form-control-sm"
         [attr.aria-label]="label"
         [type]="inputType === 'number' ? 'number' : 'text'"
         [ngModel]="value"
         (ngModelChange)="change($event)"
       />
-      <select
+      <select [id]="controlId"
         *ngIf="inputType === 'boolean'"
-        class="form-select"
+        class="form-select form-select-sm"
         [attr.aria-label]="label"
         [ngModel]="value"
         (ngModelChange)="change($event)"
@@ -136,16 +136,16 @@ export class QueryPathInputComponent implements OnChanges {
         <option [ngValue]="true">true</option>
         <option [ngValue]="false">false</option>
       </select>
-      <textarea
+      <textarea [id]="controlId"
         *ngIf="inputType === 'object' || inputType === 'array'"
-        class="form-control font-monospace"
+        class="form-control form-control-sm font-monospace"
         [attr.aria-label]="label"
         [ngModel]="jsonValue"
         (ngModelChange)="changeJson($event)"
       ></textarea>
       <button
         type="button"
-        class="btn btn-outline-secondary nq-unset-value"
+        class="btn btn-sm btn-outline-secondary nq-unset-value"
         [attr.aria-label]="(unsetLabel | i18next) + ': ' + label"
         (click)="unset()"
       >
