@@ -1121,6 +1121,7 @@
   "named-query-actions-aria-label": "Named query actions",
   "named-query-create-button": "Create named query",
   "named-query-row-help": "Select a row to edit.",
+  "named-query-list-intro": "Saved database queries that reports and other portal features run by name.",
   "named-query-list-title": "Named queries",
   "named-query-list-shown_one": "{{count}} shown",
   "named-query-list-shown_other": "{{count}} shown",

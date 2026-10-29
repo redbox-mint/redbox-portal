@@ -5,22 +5,6 @@
     [attr.aria-hidden]="isDeleteModalOpen ? 'true' : null"
     [attr.inert]="isDeleteModalOpen ? '' : null"
   >
-    <div class="nq-toolbar">
-      <div class="nq-action-group" role="group" [attr.aria-label]="'named-query-actions-aria-label' | i18next">
-        <button id="named-query-create" class="btn btn-primary nq-action-button" type="button" (click)="newQuery()">
-          <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'named-query-create-button' | i18next }}
-        </button>
-      </div>
-      <span class="nq-toolbar-help">{{ 'named-query-row-help' | i18next }}</span>
-      <div class="nq-toolbar-counts">
-        <span class="nq-count-pill">{{ 'named-query-count-total' | i18next: { count: totalQueries } }}</span>
-        <span class="nq-count-pill">{{ 'named-query-count-collections' | i18next: { count: uniqueCollections } }}</span>
-      </div>
-    </div>
-
-    <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
-    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-
     <nq-list
       [queries]="filteredQueries"
       [selectedName]="selectedQuery?.name || null"
@@ -29,6 +13,24 @@
       (selected)="openQuery($event)"
       (deleted)="requestDelete($event)"
     >
+      <div nqListAlerts>
+        <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
+        <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+      </div>
+      <div
+        nqListActions
+        class="nq-action-group"
+        role="group"
+        [attr.aria-label]="'named-query-actions-aria-label' | i18next"
+      >
+        <button id="named-query-create" class="btn btn-sm btn-primary nq-action-button" type="button" (click)="newQuery()">
+          <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'named-query-create-button' | i18next }}
+        </button>
+      </div>
+      <span nqListSummary class="nq-list-summary">
+        <span>{{ 'named-query-count-total' | i18next: { count: totalQueries } }}</span>
+        <span>{{ 'named-query-count-collections' | i18next: { count: uniqueCollections } }}</span>
+      </span>
     </nq-list>
   </div>
 </ng-container>
@@ -98,6 +100,9 @@
       (click)="helpOpen = !helpOpen"
     >
       <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>{{ 'named-query-fields-help' | i18next }}
+    </button>
+    <button type="button" class="btn btn-sm rb-ws-header-button" (click)="closeEditModal()" [disabled]="saving">
+      <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>{{ 'named-query-list-title' | i18next }}
     </button>
   </div>
 
