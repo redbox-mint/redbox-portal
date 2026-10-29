@@ -88,7 +88,11 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
   cell(row: unknown, key: string): string {
     const value = (row as Record<string, unknown>)?.[key];
-    return typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+    return value !== null && typeof value === 'object' ? JSON.stringify(value, null, 1) : String(value ?? '');
+  }
+  isStructured(row: unknown, key: string): boolean {
+    const value = (row as Record<string, unknown>)?.[key];
+    return value !== null && typeof value === 'object';
   }
 
   @HostListener('window:beforeunload', ['$event'])
