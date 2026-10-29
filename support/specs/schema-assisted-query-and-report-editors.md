@@ -127,14 +127,14 @@ Exit: an administrator can create and preview a record query, choose fields and 
 
 - [x] Derive parameter and output descriptions from the selected query (backend, PR 4).
 - [x] Validate unsaved report bindings, columns and display/export templates without mutation (backend, PR 4).
-- [ ] Add column selection, parameter-bound text/date filters and assisted template editing.
+- [x] Add column selection, parameter-bound text/date filters and assisted template editing.
 - [x] Return configured preview rows and export-value samples using the existing runtime semantics (backend, PR 4).
-- [ ] Present the rendered preview rows and export-value samples in the report editor (PR 5).
+- [x] Present the rendered preview rows and export-value samples in the report editor (PR 5).
 - [x] Diagnose changed/deleted query parameters and mappings without rewriting report configuration (backend, PR 4).
-- [ ] Handle changed/deleted query parameters and mappings without losing report edits.
+- [x] Handle changed/deleted query parameters and mappings without losing report edits.
 
 Backend parts are implemented in PR 4; see [report backend handoff](schema-assist-04-report-backend.md).
-The remaining editor controls, preview presentation and draft-state reconciliation are shared with PR 5 and remain unchecked.
+The editor controls, preview presentation and draft-state reconciliation are implemented in PR 5; see [report editor handoff](schema-assist-05-report-editor.md).
 
 Exit: an authorized report author can select a query, add columns, bind filters and verify display/export values before saving.
 
