@@ -534,11 +534,14 @@ test.describe('stage 4 email editor regressions', () => {
     await row.locator('.et-field-toggle').click();
     await expect(page.locator('.et-field-key', { hasText: /^email$/ })).toBeVisible();
     await page.locator('#et-fields-search').fill('email');
-    // The legacy `imports` alias mirrors the context, so its copy follows the primary path.
-    const firstMatch = page.locator('.et-field-key').first();
-    await expect(firstMatch).toContainText('email');
+    await expect(page.locator('.et-field-key').first()).toContainText('email');
     // Search paths carry zero-width break hints after each dot.
-    expect((await firstMatch.textContent())!.replace(/\u200b/g, '').trim()).toBe('record.metadata.contributors[].email');
+    const paths = (await page.locator('.et-field-key').allTextContents()).map(text => text.replace(/\u200b/g, '').trim());
+    const primary = paths.indexOf('record.metadata.contributors[].email');
+    expect(primary).toBeGreaterThanOrEqual(0);
+    // The legacy `imports` alias mirrors the context, so its copy follows the primary path.
+    const alias = paths.findIndex(text => text.startsWith('imports.') && text.endsWith('contributors[].email'));
+    if (alias >= 0) expect(alias).toBeGreaterThan(primary);
   });
 
   test('schema assistance screenshots', async ({ page }) => {

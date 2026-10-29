@@ -616,8 +616,9 @@ describe('EmailTemplateService persistence', function () {
       ['get', `/templates/${templateId}/history`],
       ['get', `/templates/${templateId}/history/1`],
       ['post', `/templates/${templateId}/history/1/restore`],
-      ['get', '/default/rdmp/admin/email-templates'],
     ];
+    // The page follows the portal's normal sign-in chain (checkAuth before emailTemplateAdmin).
+    const pagePath = '/default/rdmp/admin/email-templates';
     const request = (agent: any, method: string, path: string, token?: string) => {
       const target = path.startsWith('/default/') ? path : `${prefix}${path}`;
       const result = agent[method](target).set('X-Source', 'jsclient').set('Accept', 'application/json');
@@ -688,7 +689,12 @@ describe('EmailTemplateService persistence', function () {
           assert.equal(response.status, 403, `${method} ${path}: ${response.status}`);
           assert.equal(response.body.error.code, 'FORBIDDEN');
         }
+        const page = await request(agent, 'get', pagePath, anonymousToken).send({});
+        assert.equal(page.status, 403, `page: ${page.status}`);
+        assert.ok(!page.text.includes('<email-templates-root'));
       }
+      const signedOut = await anonymousAgent.get(pagePath).set('Accept', 'text/html').expect(302);
+      assert.match(signedOut.headers.location, /\/default\/rdmp\/user\/login$/);
     });
 
     it('denies a foreign route brand on every endpoint and ignores body/query brand and actor identifiers', async function () {
@@ -702,6 +708,10 @@ describe('EmailTemplateService persistence', function () {
           .send({});
         assert.equal(response.status, 403, `${method} ${target}`);
       }
+      // A foreign brand on the page route is rejected by the standard branding policies before the admin check.
+      const foreignPage = await adminAgent.get(pagePath.replace('/default/', `/${brands[1].name}/`)).set('Accept', 'text/html');
+      assert.ok([403, 404].includes(foreignPage.status), `page: ${foreignPage.status}`);
+      assert.ok(!foreignPage.text.includes('<email-templates-root'));
       const result = await request(adminAgent, 'put', `/templates/${templateId}/draft?brandId=${brands[1].id}`, csrf)
         .send({
           content: content('Route scoped'),
