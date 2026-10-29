@@ -52,6 +52,11 @@ const publicTranslationPolicies: PolicyName[] = [
 
 const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
 
+// Check browser authentication before bearer middleware assigns req.user.
+const namedQueryMutationPolicies = noCachePlusApiValidationPolicies.flatMap(policy =>
+  policy === 'isWebServiceAuthenticated' ? ['namedQueryMutationCsrf', policy] : [policy]
+);
+
 export function buildContractApiPolicies(
   apiRoutes: readonly ApiRouteDefinition[] = registerCoreApiRoutes()
 ): PoliciesConfig {
@@ -60,7 +65,11 @@ export function buildContractApiPolicies(
     acc[route.controller] = {
       '*': noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
-      [route.action]: noCachePlusApiValidationPolicies,
+      [route.action]:
+        route.controller === 'webservice/NamedQueryController' &&
+        ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
+          ? namedQueryMutationPolicies
+          : noCachePlusApiValidationPolicies,
     };
     return acc;
   }, {} as PoliciesConfig);

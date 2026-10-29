@@ -29,6 +29,7 @@ import { RecordModel } from '../model/storage/RecordModel';
 import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
+import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError } from '../utilities/NamedQueryPreview';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
@@ -38,8 +39,8 @@ type BrandScope =
   | { type: 'field'; fieldPath: string }
   | { type: 'userRoles'; fieldPath: '' };
 type NativeRecordCollection = {
-  countDocuments: (criteria: Record<string, unknown>) => Promise<number>;
-  find: (criteria: Record<string, unknown>) => {
+  countDocuments: (criteria: Record<string, unknown>, options?: { maxTimeMS: number }) => Promise<number>;
+  find: (criteria: Record<string, unknown>, options?: { maxTimeMS: number }) => {
     sort: (sort: Record<string, 1 | -1>) => NativeRecordCursor;
     skip: (skip: number) => NativeRecordCursor;
     limit: (limit: number) => NativeRecordCursor;
@@ -130,6 +131,7 @@ export namespace Services {
       "bootstrapData",
       "getNamedQueryConfig",
       "getSupportedCollections",
+      "resolveBrandScope",
       "performNamedQuery",
       "performNamedQueryFromConfig",
       "performNamedQueryFromConfigResults",
@@ -211,7 +213,7 @@ export namespace Services {
       return sails.models?.[collectionName] as AnyRecord | undefined;
     }
 
-    private resolveBrandScope(collectionName: string): BrandScope {
+    public resolveBrandScope(collectionName: string): BrandScope {
       if (_.isEmpty(collectionName)) {
         throw new Error('collectionName is required');
       }
@@ -246,11 +248,13 @@ export namespace Services {
       });
     }
 
-    private async getLinkedSecondaryUserIds(brandId: string): Promise<Set<string>> {
+    private async getLinkedSecondaryUserIds(brandId: string, budget?: NamedQueryExecutionBudget): Promise<Set<string>> {
       if (typeof UserLink === 'undefined') {
         return new Set<string>();
       }
-      const activeLinks = await UserLink.find({ brandId, status: 'active' }) as unknown as AnyRecord[];
+      const links = UserLink.find(budget ? { where: { brandId, status: 'active' }, limit: NAMED_QUERY_PREVIEW_LIMITS.scanRows + 1 } : { brandId, status: 'active' });
+      const activeLinks = (budget ? await budget.wait(links) : await links) as unknown as AnyRecord[];
+      budget?.scan(activeLinks.length);
       return new Set(
         _.map(activeLinks, (link: AnyRecord) => String(link.secondaryUserId ?? '')).filter((id: string) => id !== '')
       );
@@ -528,10 +532,12 @@ export namespace Services {
       _user: unknown = undefined,
       sort: NamedQuerySortConfig | undefined = undefined,
       expandRelations: boolean = false,
-      relatedRecordFilters: RelatedRecordFilter[] = []
+      relatedRecordFilters: RelatedRecordFilter[] = [],
+      budget?: NamedQueryExecutionBudget
     ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
-      const criteriaMeta = { enableExperimentalDeepTargets: true };
-      this.setParamsInQuery(mongoQuery, queryParams, paramMap);
+      const criteriaMeta = { enableExperimentalDeepTargets: true, ...(budget ? { maxTimeMS: budget.remaining() } : {}) };
+      if (budget) budget.run(() => this.setParamsInQuery(mongoQuery, queryParams, paramMap));
+      else this.setParamsInQuery(mongoQuery, queryParams, paramMap);
 
       if (relatedRecordFilters && relatedRecordFilters.length > 0) {
         for (const filter of relatedRecordFilters) {
@@ -546,8 +552,21 @@ export namespace Services {
           }
           const filterMongoQuery = _.cloneDeep(filter.mongoQuery);
           const filterQueryParams = _.pickBy(queryParams, (queryParam) => _.has(filterMongoQuery, queryParam.path));
-          this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap);
-          const relatedRecords = await filterModel.find({ where: filterMongoQuery, select: [filter.foreignField] }).meta(criteriaMeta) as unknown as AnyRecord[];
+          if (budget) budget.run(() => this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap));
+          else this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap);
+          if (budget) budget.run(() => budget.query(filterMongoQuery));
+          const scope = budget ? this.resolveBrandScope(filter.collectionName) : undefined;
+          const filterCriteria = budget ? this.flattenDeepTargetCriteria(filterMongoQuery) : filterMongoQuery;
+          if (scope?.type === 'field') this.setMongoQueryValue(filterCriteria, scope.fieldPath, brand.id);
+          let relatedRecords: AnyRecord[];
+          if (budget && scope?.type === 'userRoles') {
+            relatedRecords = await this.scopedUsers(filterCriteria, brand, undefined, budget);
+          } else {
+            const relatedOperation = filterModel.find({ where: filterCriteria, select: [filter.foreignField],
+              ...(budget ? { limit: NAMED_QUERY_PREVIEW_LIMITS.scanRows + 1 } : {}) }).meta(criteriaMeta);
+            relatedRecords = (budget ? await budget.wait(relatedOperation) : await relatedOperation) as unknown as AnyRecord[];
+          }
+          budget?.scan(relatedRecords.length);
           const relatedIds = _.uniq(relatedRecords.map((relatedRecord) => _.get(relatedRecord, filter.foreignField)).filter((id) => id != null && id !== ''));
           const existingLocalFieldFilter = this.getMongoQueryValue(mongoQuery, filter.localField);
           const existingRelatedIds = _.isPlainObject(existingLocalFieldFilter) ? _.get(existingLocalFieldFilter, '$in') : undefined;
@@ -561,14 +580,17 @@ export namespace Services {
         }
       }
 
+      if (budget) budget.run(() => budget.query(mongoQuery));
       const brandScope = this.resolveBrandScope(collectionName);
       const that = this;
       if (brandScope.type === 'userRoles') {
-        return this.performUserNamedQuery(resultObjectMapping, mongoQuery, brand, start, rows, sort);
+        return this.performUserNamedQuery(resultObjectMapping, mongoQuery, brand, start, rows, sort, budget);
       }
 
       this.setMongoQueryValue(mongoQuery, brandScope.fieldPath, brand.id);
       const waterlineQuery = this.flattenDeepTargetCriteria(mongoQuery);
+      // Nested and dotted forms can collide during flattening. The final criterion is authoritative.
+      waterlineQuery[brandScope.fieldPath] = brand.id;
       this.updateChronicle({ namedQueryCollection: collectionName, namedQueryStart: start, namedQueryRows: rows });
 
       // Get the total count of matching records
@@ -579,16 +601,19 @@ export namespace Services {
       }
       let results: Array<RecordLike | UserLike> = [];
       if (collectionName === 'record') {
-        const nativeCollection = await this.getNativeRecordCollection(model);
+        const collectionOperation = this.getNativeRecordCollection(model);
+        const nativeCollection = budget ? await budget.wait(collectionOperation) : await collectionOperation;
         const nativeCriteria = this.toNativeMongoCriteria(waterlineQuery, queryParams);
-        totalItems = await nativeCollection.countDocuments(nativeCriteria);
+        const countOperation = nativeCollection.countDocuments(nativeCriteria, budget ? { maxTimeMS: budget.remaining() } : undefined);
+        totalItems = budget ? await budget.wait(countOperation) : await countOperation;
         if (totalItems > 0) {
-          let nativeQuery = nativeCollection.find(nativeCriteria);
+          let nativeQuery = nativeCollection.find(nativeCriteria, budget ? { maxTimeMS: budget.remaining() } : undefined);
           const nativeSort = this.toNativeMongoSort(sort);
           if (!_.isEmpty(nativeSort)) {
             nativeQuery = nativeQuery.sort(nativeSort);
           }
-          results = await nativeQuery.skip(start).limit(rows).toArray() as Array<RecordLike | UserLike>;
+          const resultsOperation = nativeQuery.skip(start).limit(rows).toArray();
+          results = (budget ? await budget.wait(resultsOperation) : await resultsOperation) as Array<RecordLike | UserLike>;
         }
       } else {
         const count = model.count;
@@ -596,7 +621,8 @@ export namespace Services {
           throw new Error(`Model ${collectionName} does not expose count`);
         }
         const countFn = count as (criteria: Record<string, unknown>) => { meta: (criteriaMeta: Record<string, unknown>) => Promise<number> };
-        totalItems = await countFn(waterlineQuery).meta(criteriaMeta);
+        const countOperation = countFn(waterlineQuery).meta(criteriaMeta);
+        totalItems = budget ? await budget.wait(countOperation) : await countOperation;
       }
 
       // Build query criteria
@@ -620,7 +646,8 @@ export namespace Services {
           throw new Error(`Model ${collectionName} does not expose find`);
         }
         const findFn = find as (findCriteria: { where: Record<string, unknown>; skip: number; limit: number; sort?: NamedQuerySortConfig }) => { meta: (criteriaMeta: Record<string, unknown>) => Promise<Array<RecordLike | UserLike>> };
-        results = await findFn(criteria).meta(criteriaMeta);
+        const resultsOperation = findFn(criteria).meta(criteriaMeta);
+        results = budget ? await budget.wait(resultsOperation) : await resultsOperation;
       }
 
       const responseRecords: NamedQueryResponseRecord[] = []
@@ -632,14 +659,18 @@ export namespace Services {
 
       // 'user' collections are scoped and rendered separately via performUserNamedQuery,
       // so anything reaching this loop is a record-like (record or scoped dynamic) model.
-      for (const record of results) {
+      budget?.scan(results.length);
+      for (const record of (budget ? results.slice(0, rows) : results)) {
+        budget?.remaining();
         const recordItem = record as RecordLike;
 
         if (expandRelationsActual && recordsService && recordItem.redboxOid) {
           try {
-            const relationships = await recordsService.getRelatedRecords(recordItem.redboxOid, brand);
+            const relationOperation = recordsService.getRelatedRecords(recordItem.redboxOid, brand);
+            const relationships = budget ? await budget.wait(relationOperation) : await relationOperation;
             recordItem.relationships = relationships;
           } catch (err) {
+            if (budget && err instanceof NamedQueryAssistanceError) throw err;
             this.updateChronicle(
               { namedQueryRelationshipOid: recordItem.redboxOid, namedQueryRelationshipOutcome: 'failed' },
               [err]
@@ -652,7 +683,7 @@ export namespace Services {
         if (!_.isEmpty(resultObjectMapping)) {
           const resultMetadata = _.cloneDeep(resultObjectMapping);
           _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
-            _.set(resultMetadata, key, that.runTemplate(value as string, variables));
+            _.set(resultMetadata, key, budget ? budget.run(() => that.runTemplate(value as string, variables)) : that.runTemplate(value as string, variables));
           });
           defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
         } else {
@@ -684,22 +715,20 @@ export namespace Services {
       return response;
     }
 
-    private async performUserNamedQuery(
-      resultObjectMapping: Record<string, unknown>,
-      mongoQuery: Record<string, unknown>,
-      brand: BrandingModel,
-      start: number,
-      rows: number,
-      sort: NamedQuerySortConfig | undefined = undefined
-    ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
-      const criteriaMeta = { enableExperimentalDeepTargets: true };
+    private async scopedUsers(
+      mongoQuery: Record<string, unknown>, brand: BrandingModel,
+      sort?: NamedQuerySortConfig, budget?: NamedQueryExecutionBudget
+    ): Promise<UserLike[]> {
+      const criteriaMeta = { enableExperimentalDeepTargets: true, ...(budget ? { maxTimeMS: budget.remaining() } : {}) };
       const model = this.getModel('user');
       if (!model) {
         throw new Error(`Invalid collectionName 'user': model not found`);
       }
       const userModel = model as { find: (criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig }) => unknown };
 
-      const criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig } = { where: mongoQuery };
+      const criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig; limit?: number } = {
+        where: mongoQuery, ...(budget ? { limit: NAMED_QUERY_PREVIEW_LIMITS.scanRows + 1 } : {})
+      };
       if (sort !== undefined && Array.isArray(sort) && (sort?.length ?? 0) > 0) {
         criteria.sort = sort;
       }
@@ -708,25 +737,38 @@ export namespace Services {
       if (query && typeof query.populate === 'function') {
         query = query.populate('roles');
       }
-      const allUsers = query && typeof query.meta === 'function'
-        ? (await query.meta(criteriaMeta) as unknown as UserLike[])
-        : (await query as unknown as UserLike[]);
+      const usersOperation = query && typeof query.meta === 'function' ? query.meta(criteriaMeta) : query;
+      const allUsers = (budget ? await budget.wait(Promise.resolve(usersOperation)) : await usersOperation) as unknown as UserLike[];
+      budget?.scan(allUsers.length);
 
       const brandId = String(brand.id);
-      const linkedSecondaryUserIds = await this.getLinkedSecondaryUserIds(brandId);
-      const scopedUsers = allUsers
+      const linkedSecondaryUserIds = await this.getLinkedSecondaryUserIds(brandId, budget);
+      return allUsers
         .filter((user) => this.hasRoleInBrand(user, brandId) || linkedSecondaryUserIds.has(String(user.id ?? '')))
         .map((user) => this.sanitizeUserForNamedQuery(user));
+    }
+
+    private async performUserNamedQuery(
+      resultObjectMapping: Record<string, unknown>,
+      mongoQuery: Record<string, unknown>,
+      brand: BrandingModel,
+      start: number,
+      rows: number,
+      sort: NamedQuerySortConfig | undefined = undefined,
+      budget?: NamedQueryExecutionBudget
+    ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+      const scopedUsers = await this.scopedUsers(mongoQuery, brand, sort, budget);
       const pagedUsers = scopedUsers.slice(start, start + rows);
       const responseRecords: NamedQueryResponseRecord[] = [];
 
       for (const userRecord of pagedUsers) {
+        budget?.remaining();
         let defaultMetadata: NamedQueryResponseMetadata = {};
         const variables: Record<string, unknown> = { record: userRecord };
         if (!_.isEmpty(resultObjectMapping)) {
           const resultMetadata = _.cloneDeep(resultObjectMapping);
           _.forOwn(resultObjectMapping, (value: unknown, key: string) => {
-            _.set(resultMetadata, key, this.runTemplate(value as string, variables));
+            _.set(resultMetadata, key, budget ? budget.run(() => this.runTemplate(value as string, variables)) : this.runTemplate(value as string, variables));
           });
           defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
         } else {
@@ -880,7 +922,7 @@ export namespace Services {
       return _.get(templateVars, templateOrPath);
     }
 
-    public async performNamedQueryFromConfig(config: NamedQueryDefinition | NamedQueryConfig, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown) {
+    public async performNamedQueryFromConfig(config: NamedQueryDefinition | NamedQueryConfig, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown, budget?: NamedQueryExecutionBudget) {
       this.updateChronicle({ namedQueryBrandId: brand.id, namedQueryParameterCount: _.size(paramMap) });
       const collectionName = _.get(config, 'collectionName', '') ?? '';
       const resultObjectMapping = _.get(config, 'resultObjectMapping', {}) ?? {};
@@ -889,7 +931,7 @@ export namespace Services {
       const sort = _.cloneDeep(_.get(config, 'sort', []) ?? []);
       const expandRelations = _.get(config, 'expandRelations', false) as boolean;
       const relatedRecordFilters = _.cloneDeep(_.get(config, 'relatedRecordFilters', []) ?? []) as RelatedRecordFilter[];
-      return await this.performNamedQuery('', resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort, expandRelations, relatedRecordFilters);
+      return await this.performNamedQuery('', resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort, expandRelations, relatedRecordFilters, budget);
     }
 
     public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0, rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {

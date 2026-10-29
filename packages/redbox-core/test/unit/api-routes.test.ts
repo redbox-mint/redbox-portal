@@ -737,7 +737,14 @@ describe('API routes contract layer', function () {
       if (route.controller === 'webservice/RecordSchemaController') continue;
 
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
-      expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);
+      const expected =
+        route.controller === 'webservice/NamedQueryController' &&
+        ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
+          ? expectedPolicies.flatMap(policy =>
+              policy === 'isWebServiceAuthenticated' ? ['namedQueryMutationCsrf', policy] : [policy]
+            )
+          : expectedPolicies;
+      expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expected);
     }
   });
 

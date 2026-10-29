@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "./services/NamedQueryEditorService.test.ts",
+    "./controllers/webservice/NamedQueryAssistance.test.ts",
+    "./setup.ts"
+  ],
+  "exclude": []
+}

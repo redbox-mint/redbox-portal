@@ -98,7 +98,76 @@ export const deleteNamedQueryRoute = apiRoute(
   }
 );
 
+// Keep editor operations below a namespace so existing URL-safe query names remain valid.
+const assistanceQuery = objectField(
+  {
+    collectionName: stringField('Collection name').optional(),
+    recordType: stringField('Optional record type for guidance').optional(),
+    stage: stringField('Optional workflow stage for guidance').optional(),
+  },
+  [],
+  'Ephemeral field guidance',
+  true
+);
+
+export const namedQueryEditorRoutes = [
+  apiRoute(
+    'get',
+    '/:branding/:portal/api/named-query/editor/schema-targets',
+    'webservice/NamedQueryController',
+    'schemaTargets',
+    {},
+    {
+      tags: ['NamedQuery'],
+      summary: 'Discover caller-authorized record schema targets',
+      responses: { 200: namedQueryResponse },
+    }
+  ),
+  apiRoute(
+    'get',
+    '/:branding/:portal/api/named-query/editor/fields',
+    'webservice/NamedQueryController',
+    'describeFields',
+    { query: assistanceQuery },
+    {
+      tags: ['NamedQuery'],
+      summary: 'Describe stored query fields and mapping context',
+      responses: { 200: namedQueryResponse },
+    }
+  ),
+  ...(['validate', 'describe', 'preview'] as const).map(operation => ({
+    ...apiRoute(
+      'post',
+      `/:branding/:portal/api/named-query/editor/${operation}`,
+      'webservice/NamedQueryController',
+      `${operation}Draft`,
+      {
+        body: { required: true, content: { 'application/json': { schema: namedQueryBody } } },
+      },
+      {
+        tags: ['NamedQuery'],
+        summary: `${operation} an unsaved named query`,
+        responses: { 200: namedQueryResponse, 400: namedQueryResponse },
+      }
+    ),
+    csrf: true,
+  })),
+  apiRoute(
+    'get',
+    '/:branding/:portal/api/named-query/:name/description',
+    'webservice/NamedQueryController',
+    'describeSaved',
+    { params: nameParam, query: assistanceQuery },
+    {
+      tags: ['NamedQuery'],
+      summary: 'Describe the brand-effective saved named query',
+      responses: { 200: namedQueryResponse },
+    }
+  ),
+];
+
 export const namedQueryApiRoutes = [
+  ...namedQueryEditorRoutes,
   listNamedQueriesRoute,
   getNamedQueryCollectionsRoute,
   getNamedQueryRoute,
