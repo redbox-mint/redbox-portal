@@ -783,6 +783,36 @@ describe('EditorComponent', () => {
       return event;
     };
 
+    it('ignores late schema successes and failures after a stage change or editor teardown', fakeAsync(() => {
+      start();
+      let resolveOld!: (value: unknown) => void;
+      api['contextSchema'].and.returnValue(new Promise(resolve => (resolveOld = resolve)));
+      void component.selectSchemaTarget({ recordType: 'rdmp', stage: 'draft' });
+      const current = {
+        recordType: 'rdmp',
+        stage: 'review',
+        precision: 'record-schema',
+        completeness: 'partial',
+        schema: { properties: { current: { type: 'string' } } },
+      };
+      api['contextSchema'].and.resolveTo(current);
+      void component.selectSchemaTarget({ recordType: 'rdmp', stage: 'review' });
+      tick();
+      resolveOld({ ...current, stage: 'draft', schema: { properties: { stale: {} } } });
+      tick();
+      expect(component.contextSchema?.stage).toBe('review');
+      expect(component.schemaFields.some(field => field.path === 'current')).toBeTrue();
+      expect(component.schemaFields.some(field => field.path === 'stale')).toBeFalse();
+      let rejectOld!: (reason: Error) => void;
+      api['contextSchema'].and.returnValue(new Promise((_resolve, reject) => (rejectOld = reject)));
+      void component.selectSchemaTarget({ recordType: 'rdmp', stage: 'draft' });
+      component.ngOnDestroy();
+      rejectOld(new Error('old editor'));
+      tick();
+      expect(component.schemaError).toBeFalse();
+      flush();
+    }));
+
     it('defaults the record type / stage selector, states precision and persists explicit choices', fakeAsync(() => {
       start();
       expect((el('#et-schema-type') as HTMLSelectElement).value).toBe('rdmp');

@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { TranslationStub } from './email-templates.testing';
 import { FieldTreeComponent } from './field-tree.component';
+import { fieldInsertion } from './field-tree';
 import { flattenContextFields } from './schema-fields';
 import { contextSchemaFixture } from './schema.fixture';
 
@@ -19,6 +20,11 @@ describe('FieldTreeComponent', () => {
     component = fixture.componentInstance;
     inserted = [];
     component.insert.subscribe(text => inserted.push(text));
+    fixture.componentRef.setInput('idPrefix', 'et-fields');
+    fixture.componentRef.setInput('translationPrefix', 'email-templates');
+    fixture.componentRef.setInput('initialExpanded', ['record', 'record.metadata']);
+    fixture.componentRef.setInput('aliasRoots', ['imports']);
+    fixture.componentRef.setInput('insertion', fieldInsertion);
     fixture.componentRef.setInput('fields', flattenContextFields(contextSchemaFixture()));
     fixture.componentRef.setInput('roots', ['oid', 'record', 'scuEmail']);
     fixture.detectChanges();

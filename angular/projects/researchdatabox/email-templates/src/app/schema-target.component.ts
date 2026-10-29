@@ -1,3 +1,4 @@
+import { SchemaTargetSelectorComponent } from '@researchdatabox/portal-ng-common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import type { EmailContextSchemaResponse, EmailSchemaTarget } from '@researchdatabox/sails-ng-common';
 import { I18NextPipe } from '@researchdatabox/portal-ng-common';
@@ -12,35 +13,20 @@ import type { SchemaSelection } from './schema-selection';
 @Component({
   selector: 'email-templates-schema-target',
   standalone: true,
-  imports: [I18NextPipe],
+  imports: [I18NextPipe, SchemaTargetSelectorComponent],
   template: `
     <div class="et-schema" role="group" aria-labelledby="et-schema-label" aria-describedby="et-schema-status">
       <span class="et-section-label" id="et-schema-label">{{ 'email-templates-schema-label' | i18next }}</span>
       @if (targets.length && schema?.precision !== 'integration') {
-        <div class="et-schema-selects">
-          <select
-            id="et-schema-type"
-            class="form-select form-select-sm"
-            [attr.aria-label]="'email-templates-schema-type' | i18next"
-            [disabled]="disabled"
-            (change)="chooseType($any($event.target).value)"
-          >
-            @for (target of targets; track target.id) {
-              <option [value]="target.id" [selected]="target.id === selection?.recordType">{{ target.label }}</option>
-            }
-          </select>
-          <select
-            id="et-schema-stage"
-            class="form-select form-select-sm"
-            [attr.aria-label]="'email-templates-schema-stage' | i18next"
-            [disabled]="disabled || !currentType?.stages?.length"
-            (change)="chooseStage($any($event.target).value)"
-          >
-            @for (stage of currentType?.stages ?? []; track stage.id) {
-              <option [value]="stage.id" [selected]="stage.id === selection?.stage">{{ stage.label }}</option>
-            }
-          </select>
-        </div>
+        <rb-schema-target-selector
+          idPrefix="et-schema"
+          [targets]="targets"
+          [selection]="selection"
+          [disabled]="disabled"
+          [typeLabel]="'email-templates-schema-type' | i18next"
+          [stageLabel]="'email-templates-schema-stage' | i18next"
+          (choose)="choose.emit($event)"
+        ></rb-schema-target-selector>
       }
       <p id="et-schema-status" class="et-schema-status" [class.et-schema-status-problem]="error" role="status">
         @if (loading) {
@@ -99,15 +85,5 @@ export class SchemaTargetComponent {
     const type = this.targets.find(target => target.id === (this.schema?.recordType ?? this.selection?.recordType));
     const id = this.schema?.stage ?? this.selection?.stage;
     return type?.stages.find(stage => stage.id === id)?.label ?? id ?? '';
-  }
-
-  chooseType(id: string): void {
-    const type = this.targets.find(target => target.id === id);
-    const stage = type?.stages.find(item => item.starting) ?? type?.stages[0];
-    if (type && stage) this.choose.emit({ recordType: type.id, stage: stage.id });
-  }
-
-  chooseStage(id: string): void {
-    if (this.selection) this.choose.emit({ recordType: this.selection.recordType, stage: id });
   }
 }
