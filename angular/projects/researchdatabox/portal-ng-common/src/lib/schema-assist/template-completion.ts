@@ -6,6 +6,8 @@ export interface CompletionSource {
   fields: ContextSchemaField[];
   roots: string[];
   helpers: string[];
+  /** Convert presentation paths only when accepted in a plain path input. */
+  pathInsertion?: (path: string) => string | null;
   /** Feature-owned scaffolds; an optional YOUR_ marker selects the initial placeholder. */
   blockScaffold?: (helper: string) => string | null;
 }
@@ -107,7 +109,8 @@ export function completionItems(query: CompletionQuery, source: CompletionSource
   const parents = new Set(source.fields.map(field => pathParent(field.path)));
   for (const field of source.fields) {
     if (field.path.includes('[]')) continue;
-    if (pathParent(field.path) !== parent) continue;
+    const fieldParent = pathParent(field.path);
+    if (fieldParent !== parent && source.pathInsertion?.(fieldParent) !== parent) continue;
     const label = pathSegments(field.path).pop()!.name;
     items.push({
       kind: 'field',
@@ -206,6 +209,11 @@ export function pathCompletionQuery(text: string, caret: number): CompletionQuer
     ? { start: 0, end, prefix: text.slice(0, caret), head: false, block: false, triple: false }
     : null;
 }
-export function pathCompletionEdit(query: CompletionQuery, item: CompletionItem): CompletionEdit {
-  return { start: query.start, end: query.end, text: item.value + (item.container ? '.' : '') };
+export function pathCompletionEdit(
+  query: CompletionQuery,
+  item: CompletionItem,
+  insertion?: (path: string) => string | null
+): CompletionEdit {
+  const path = insertion ? insertion(item.value) : item.value;
+  return { start: query.start, end: query.end, text: (path ?? item.value) + (item.container ? '.' : '') };
 }

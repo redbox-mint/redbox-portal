@@ -3,7 +3,8 @@ import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { AutocompleteComponent, RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { ReportDiagnosticsComponent, ReportTemplateInputComponent } from './report-assistance.component';
 import { ReportConfigComponent } from './report-config.component';
 import { ReportConfigService } from './report-config.service';
 
@@ -13,16 +14,19 @@ import { ReportConfigService } from './report-config.service';
     BrowserModule,
     FormsModule,
     HttpClientModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreModule,
+    AutocompleteComponent,
+    ReportDiagnosticsComponent,
+    ReportTemplateInputComponent,
   ],
   providers: [
     ReportConfigService,
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),
-      deps: [PlatformLocation]
-    }
+      deps: [PlatformLocation],
+    },
   ],
-  bootstrap: [ReportConfigComponent]
+  bootstrap: [ReportConfigComponent],
 })
-export class ReportConfigModule { }
+export class ReportConfigModule {}
