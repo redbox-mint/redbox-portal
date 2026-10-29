@@ -308,6 +308,26 @@ describe('BrandingService lifecycle', function () {
     expect(missing.code).to.equal('branding-conflict');
   });
 
+  it('saves, previews, publishes and restores contextual text colours and older drafts', async function () {
+    await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
+    const oldVersion = histories[0].id;
+    await service.saveDraft({
+      branding: 'default',
+      variables: { info: '#003087', 'info-text-colour': '#FFF' },
+      expectedDraftRevision: 1,
+    });
+    expect(brands[0].variables).to.deep.equal({ info: '#003087', 'info-text-color': '#ffffff' });
+    const preview = await service.preview('default', 'portal', 2);
+    const snapshot = await service.fetchPreview(String(preview.token));
+    expect(snapshot.css).to.contain('--rb-info-text-color: #ffffff;');
+    await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 2 });
+    expect(histories[1].variables).to.deep.equal(brands[0].variables);
+    expect(brands[0].css).to.contain('--rb-info-text-color: #ffffff;');
+    await service.restore({ branding: 'default', versionId: oldVersion, expectedVersion: 2, expectedDraftRevision: 3 });
+    expect(brands[0].variables).to.deep.equal({ primary: '#112233' });
+    expect(brands[0].css).to.contain('--rb-info-text-color: #000000;');
+  });
+
   it('treats equivalent generated colour CSS as unchanged and aligns the draft', async function () {
     await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
     await service.saveDraft({
