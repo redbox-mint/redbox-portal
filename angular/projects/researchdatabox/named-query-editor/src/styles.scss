@@ -255,3 +255,57 @@ nq-diagnostics {
     white-space: nowrap;
   }
 }
+
+// Named query list (catalogue layout, as in the email template list). Kept
+// global to stay within the component style budget.
+.nq-lede {
+  max-width: 768px;
+  margin-bottom: 20px;
+  color: var(--bs-secondary-color);
+}
+
+.nq-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.nq-search {
+  position: relative;
+  flex: 0 1 288px;
+
+  .form-control {
+    padding-left: 30px;
+    font-size: 13px;
+  }
+}
+
+.nq-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.nq-empty {
+  padding: 24px 12px;
+  color: var(--bs-secondary-color);
+  text-align: center;
+}
+
+.nq-list-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bs-border-color-translucent);
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+}
