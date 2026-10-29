@@ -127,22 +127,44 @@ export const deleteReportConfigRoute = apiRoute(
   }
 );
 
-export const previewReportConfigRoute = apiRoute(
-  'post',
-  '/:branding/:portal/api/report-config/preview',
-  'webservice/ReportController',
-  'previewConfig',
-  { body: reportConfigRequestBody },
-  {
-    tags: ['Reports'],
-    summary: 'Preview report configuration',
-    responses: { 200: reportConfigResponse, 400: badRequestResponse, 500: internalServerErrorResponse },
-  }
-);
+export const previewReportConfigRoute = {
+  ...apiRoute(
+    'post',
+    '/:branding/:portal/api/report-config/preview',
+    'webservice/ReportController',
+    'previewConfig',
+    { body: reportConfigRequestBody },
+    {
+      tags: ['Reports'],
+      summary: 'Preview report configuration',
+      description:
+        'Executes the unsaved database report using its brand-effective saved query. Retains total, pageNum, recordsPerPage, records and success; adds valid, diagnostics, renderedRows (configured cells with sanitized display HTML and CSV export values), truncated, truncationReasons and server-owned limits. At most 100 rows and 524288 response bytes. Uncancellable custom collections, joins and relation expansion return valid:false. Export samples are data values before CSV quoting, with formula protection.',
+      responses: { 200: reportConfigResponse, 400: badRequestResponse, 500: internalServerErrorResponse },
+    }
+  ),
+  csrf: true,
+};
+
+export const validateReportConfigRoute = {
+  ...apiRoute(
+    'post',
+    '/:branding/:portal/api/report-config/validate',
+    'webservice/ReportController',
+    'validateConfig',
+    { body: { required: true, content: { 'application/json': { schema: anyField('Unsaved report configuration') } } } },
+    {
+      tags: ['Reports'],
+      summary: 'Validate report bindings, columns and templates without executing or saving',
+      responses: { 200: reportConfigResponse, 400: badRequestResponse },
+    }
+  ),
+  csrf: true,
+};
 
 reportsApiRoutes.push(
   listReportConfigsRoute,
   previewReportConfigRoute,
+  validateReportConfigRoute,
   getReportConfigRoute,
   createReportConfigRoute,
   updateReportConfigRoute,

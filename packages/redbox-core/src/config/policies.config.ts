@@ -69,7 +69,10 @@ export function buildContractApiPolicies(
         route.controller === 'webservice/NamedQueryController' &&
         ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
           ? namedQueryMutationPolicies
-          : noCachePlusApiValidationPolicies,
+          : route.controller === 'webservice/ReportController' &&
+              ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action)
+            ? namedQueryMutationPolicies
+            : noCachePlusApiValidationPolicies,
     };
     return acc;
   }, {} as PoliciesConfig);
