@@ -1,0 +1,36 @@
+meta {
+  name: Editor Malformed Draft
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/validate
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "definition": []
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Request succeeds", () => expect(res.getStatus()).to.equal(200));
+  test("Structured invalid response", () => {
+    expect(res.getBody().data.valid).to.equal(false);
+    expect(res.getBody().data.diagnostics[0].code).to.equal("INVALID_DEFINITION");
+  });
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Editor Saved Description
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/listRDMPRecords/description
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Accept: application/json
+}
+
+tests {
+  test("Request succeeds", () => expect(res.getStatus()).to.equal(200));
+  test("Saved output retains the result metadata wrapper", () => {
+    expect(JSON.stringify(res.getBody().data)).to.include("metadata.title");
+  });
+}
