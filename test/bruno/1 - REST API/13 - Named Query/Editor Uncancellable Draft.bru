@@ -1,0 +1,46 @@
+meta {
+  name: Editor Uncancellable Draft
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/preview
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "definition": {
+      "collectionName": "user",
+      "mongoQuery": {
+        "metaMetadata.type": "rdmp"
+      },
+      "queryParams": {},
+      "resultObjectMapping": {
+        "projectTitle": "record.metadata.title"
+      }
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Request succeeds", () => expect(res.getStatus()).to.equal(200));
+  test("Uncancellable draft is refused", () => {
+    const data = res.getBody().data;
+    expect(data.valid).to.equal(false);
+    expect(data.diagnostics.some(d => d.code === "PREVIEW_DEADLINE_UNSUPPORTED")).to.equal(true);
+  });
+}

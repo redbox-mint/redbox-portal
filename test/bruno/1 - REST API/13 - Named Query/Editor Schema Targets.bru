@@ -1,0 +1,22 @@
+meta {
+  name: Editor Schema Targets
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/editor/schema-targets
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Accept: application/json
+}
+
+tests {
+  test("Request succeeds", () => expect(res.getStatus()).to.equal(200));
+  test("Authorized targets are returned", () => expect(res.getBody().data.recordTypes).to.be.an("array"));
+}

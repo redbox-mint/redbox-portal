@@ -7354,6 +7354,24 @@ img[src$="images/loading.svg"],
     }
 }
 
+@media (max-width: 767.98px) {
+    .admin-layout {
+        flex-wrap: wrap;
+    }
+
+    .admin-layout > .admin-main-content {
+        min-width: 0;
+        padding: 0 1rem;
+    }
+
+    .admin-sidebar {
+        position: static;
+        margin: 0;
+        height: auto;
+        min-height: 0;
+    }
+}
+
 .search-action-row {
     margin-bottom: 15px;
 }

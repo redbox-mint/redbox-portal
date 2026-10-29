@@ -137,7 +137,14 @@ export const previewReportConfigRoute = {
       summary: 'Preview report configuration',
       description:
         'Executes the unsaved database report using its brand-effective saved query. Retains total, pageNum, recordsPerPage, records and success; adds valid, diagnostics, renderedRows (cells with untrustedDisplayHtml and export text), truncated, truncationReasons, deadlineEnforced and server-owned limits. At most 100 rows and 524288 response bytes. Bind untrustedDisplayHtml through Angular [innerHTML] exactly like the live report, without any trust bypass. User/custom collections, related filters and relation expansion retain legacy execution with deadlineEnforced:false; rendering and response limits still apply. Export samples use actual CSV value casts after formula protection and before quoting; CSV templates receive native values.',
-      responses: { 200: reportConfigResponse, 400: badRequestResponse, 500: internalServerErrorResponse },
+      responses: {
+        200: reportConfigResponse,
+        400: badRequestResponse,
+        403: badRequestResponse,
+        408: badRequestResponse,
+        413: badRequestResponse,
+        500: internalServerErrorResponse,
+      },
     }
   ),
   csrf: true,
@@ -153,7 +160,14 @@ export const validateReportConfigRoute = {
     {
       tags: ['Reports'],
       summary: 'Validate report bindings, columns and templates without executing or saving',
-      responses: { 200: reportConfigResponse, 400: badRequestResponse },
+      description:
+        'Uses current brand report-config roles, without requiring named-query administration. Requires CSRF and an unsaved report JSON body. Guidance is advisory: unknown bindings, output fields and template references return warnings without rewriting edits. Structural errors return valid:false and diagnostics at HTTP 200. Date database.fromProperty/toProperty values are query parameter keys, not stored record paths. No execution or persistence; responses are no-store. API v1 returns the DTO; v2 wraps data/meta.',
+      responses: {
+        200: reportConfigResponse,
+        400: badRequestResponse,
+        403: badRequestResponse,
+        413: badRequestResponse,
+      },
     }
   ),
   csrf: true,
