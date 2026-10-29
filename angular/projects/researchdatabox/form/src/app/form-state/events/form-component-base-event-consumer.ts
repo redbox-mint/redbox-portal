@@ -152,22 +152,24 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * @param expression - The expression config frame containing the template.
    * @param event - The event that triggered the evaluation.
    * @param propertyName - The property name in the expression config to evaluate (e.g., 'template', 'condition').
+   * @param fallbackValue - Value returned when evaluation is unavailable or fails; defaults to the event value.
    * @returns The result of the evaluated expression.
    */
   protected async evaluateExpressionJSONata(
     expression: FormExpressionsConfigFrame,
     event: FormComponentEvent,
     propertyName: string,
-    additionalData: object = {}
+    additionalData: object = {},
+    fallbackValue: unknown = (event as { value?: unknown }).value
   ): Promise<unknown> {
     const compiledItems = await this.getCompiledItems();
     if (!compiledItems) {
-      return (event as { value?: unknown }).value;
+      return fallbackValue;
     }
 
     const templateKey = this.buildExpressionPropertyKey(expression, propertyName);
     if (!templateKey) {
-      return (event as { value?: unknown }).value;
+      return fallbackValue;
     }
 
     try {
@@ -206,7 +208,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return await compiledItems.evaluate(templateKey, context, { libraries: {jsonata: jsonataDecodeCompile} });
     } catch (error) {
       this.loggerService.error(`${this.constructor.name}: Error evaluating expression template.`, error);
-      return (event as { value?: unknown }).value;
+      return fallbackValue;
     }
   }
 
