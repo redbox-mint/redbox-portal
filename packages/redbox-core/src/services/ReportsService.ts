@@ -286,6 +286,10 @@ export namespace Services {
       if (config.name && config.name !== name) {
         throw new ReportConfigServiceError(400, 'Report name cannot be changed');
       }
+      // List DTOs supply defaults for optional controls. A no-op save must not
+      // materialize those defaults (or discard hook properties) in stored JSON.
+      const current = this.getReportConfigDto(existing as unknown as ReportModel);
+      if (_.isEqual(normalized, current)) return current;
       const reportModel = this.getReportModel();
       const updated = await reportModel.updateOne({ key: `${brand.id}_${name}` }).set({
         title: normalized.title,

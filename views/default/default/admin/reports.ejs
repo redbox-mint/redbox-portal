@@ -3,6 +3,8 @@
 <%
 const queryEditorBrand = BrandingService.getBrand(req.session.branding);
 const queryEditorRules = PathRulesService.getRulesFromPath(BrandingService.getBrandAndPortalPath(req) + '/admin/named-query', queryEditorBrand);
+const reportEditorRules = PathRulesService.getRulesFromPath(BrandingService.getBrandAndPortalPath(req) + '/api/report-config', queryEditorBrand);
+const canManageReports = req.isAuthenticated() && (!reportEditorRules || PathRulesService.canRead(reportEditorRules, req.user.roles || [], queryEditorBrand.name));
 const canManageNamedQueries = req.isAuthenticated() && (!queryEditorRules || PathRulesService.canRead(queryEditorRules, req.user.roles || [], queryEditorBrand.name));
 %>
 <div class="row admin-layout">
@@ -10,8 +12,8 @@ const canManageNamedQueries = req.isAuthenticated() && (!queryEditorRules || Pat
     <%- include('layout/sidebar.ejs') %>
   </div>
   <div class="col-md-9 col-lg-10 admin-main-content">
-    <% if (userIsAdmin) { %>
-      <report-config branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" is-admin="true" can-manage-named-queries="<%= canManageNamedQueries ? 'true' : 'false' %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <% if (userIsAdmin || canManageReports) { %>
+      <report-config branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" is-admin="<%= userIsAdmin ? 'true' : 'false' %>" can-manage-named-queries="<%= canManageNamedQueries ? 'true' : 'false' %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </report-config>
     <% } else { %>
@@ -25,7 +27,7 @@ const canManageNamedQueries = req.isAuthenticated() && (!queryEditorRules || Pat
     <% } %>
   </div>
 </div>
-<% if (userIsAdmin) { %>
+<% if (userIsAdmin || canManageReports) { %>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
    type="module"></script>
 

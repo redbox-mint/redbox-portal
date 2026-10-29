@@ -176,7 +176,9 @@ export namespace Controllers {
 
     public async previewConfig(req: Sails.Req, res: Sails.Res) {
       return this.assistance(req, res, (brand, portal, caller) =>
-        ReportsService.previewConfig(brand, getValidatedApiRequest(req).body as ReportConfigDto, req, {
+        ReportsService.previewConfig(brand, getValidatedApiRequest(req).body as ReportConfigDto, {
+          param: (name: string) => req.query?.[name],
+        }, {
           portal,
           caller,
         })

@@ -475,19 +475,23 @@ export namespace Services {
         throw new Error(`Named query '${name}' not found`);
       }
       const brandScope = this.resolveBrandScope(config.collectionName);
+      // The editor reads parsed JSON. Retain untouched source bytes, including
+      // bootstrap empty arrays and whitespace, when serializing that draft back.
+      const serialize = (stored: string | undefined, value: unknown, changed = JSON.stringify(value)) =>
+        stored && _.isEqual(parseSerializedValue(stored, undefined), value) ? stored : changed;
       const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ key }).set({
         name: name,
         branding: brand.id,
-        mongoQuery: JSON.stringify(config.mongoQuery),
-        queryParams: JSON.stringify(config.queryParams),
+        mongoQuery: serialize(existing.mongoQuery, config.mongoQuery),
+        queryParams: serialize(existing.queryParams, config.queryParams),
         collectionName: config.collectionName,
-        resultObjectMapping: JSON.stringify(config.resultObjectMapping),
+        resultObjectMapping: serialize(existing.resultObjectMapping, config.resultObjectMapping),
         brandIdFieldPath: brandScope.fieldPath,
-        sort: (config.sort !== undefined && Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : "",
+        sort: serialize(existing.sort, config.sort ?? [], (Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : ""),
         expandRelations: config.expandRelations === true,
-        relatedRecordFilters: (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
+        relatedRecordFilters: serialize(existing.relatedRecordFilters, config.relatedRecordFilters ?? [], (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
           ? JSON.stringify(config.relatedRecordFilters)
-          : "",
+          : ""),
       })));
       if (!updated) {
         throw new Error(`Named query '${name}' not found`);

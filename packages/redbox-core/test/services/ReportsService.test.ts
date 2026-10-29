@@ -241,6 +241,20 @@ describe('ReportsService', function () {
       expect(result[1].readOnlyReason).to.equal('Solr reports are read-only in this version');
     });
 
+    it('does not write normalized optional properties during a no-op report save', async function () {
+      const existing = { ...databaseConfig, name: 'scu-rdmps',
+        filter: [{ type: 'text', paramName: 'title', message: 'Filter by title' }],
+        columns: [{ label: 'Title', property: 'title', customHookOption: 'retain' }],
+      };
+      mockReport.findOne.returns(createQueryObject(existing));
+      const draft = await ReportsService.getConfig(brand, existing.name);
+      const result = await ReportsService.updateConfig(brand, existing.name, draft);
+      expect(result).to.deep.equal(draft);
+      expect(mockReport.updateOne.called).to.be.false;
+      expect(existing.columns[0]).not.to.have.property('hide');
+      expect(existing.filter[0]).not.to.have.property('database');
+    });
+
     it('should normalize the legacy filter message typo', async function () {
       mockReport.find.returns(
         createQueryObject([
@@ -304,7 +318,7 @@ describe('ReportsService', function () {
       mockReport.create.returns(createQueryObject({ id: 'legacy', ...legacy }));
       await ReportsService.createConfig(brand, legacy);
       mockReport.findOne.returns(createQueryObject({ id: 'legacy', ...legacy }));
-      await ReportsService.updateConfig(brand, legacy.name, legacy);
+      await ReportsService.updateConfig(brand, legacy.name, { ...legacy, title: 'Updated legacy report' });
       expect(mockReport.create.firstCall.args[0].columns[0]).to.deep.include(legacy.columns[0]);
       expect(mockReport.updateOne.lastCall.returnValue.set.firstCall.args[0].filter).to.deep.equal(legacy.filter);
       expect(JSON.stringify(legacy)).to.equal(before);

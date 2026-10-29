@@ -299,8 +299,8 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let row of result.records">
-                    <td *ngFor="let key of previewColumns">
-                      <code>{{ cell(row, key) }}</code>
+                    <td *ngFor="let key of previewColumns" class="rb-ws-cell">
+                      <span [class.rb-ws-cell-json]="isStructured(row, key)">{{ cell(row, key) }}</span>
                     </td>
                   </tr>
                 </tbody>

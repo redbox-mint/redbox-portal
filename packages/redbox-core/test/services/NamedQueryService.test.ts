@@ -180,6 +180,36 @@ describe('NamedQueryService', function() {
   });
 
   describe('legacy authoring contract', function() {
+    for (const omitEmpty of [false, true]) it(`preserves stored JSON bytes on no-op save (omit empty arrays: ${omitEmpty})`, async function() {
+      const existing = {
+        name: 'scu-rdmps', collectionName: 'record', brandIdFieldPath: 'metaMetadata.brandId',
+        mongoQuery: '{\n  "metaMetadata.type": "rdmp"\n}', queryParams: '{ }',
+        resultObjectMapping: '{ "title": "record.metadata.title" }',
+        sort: '[]', relatedRecordFilters: '[ ]', expandRelations: false,
+      };
+      mockNamedQuery.find.returns(createQueryObject([existing]));
+      mockNamedQuery.findOne.resolves(existing);
+      const [definition] = await NamedQueryService.list({ id: 'brand-1' });
+      if (omitEmpty) { definition.sort = undefined; definition.relatedRecordFilters = undefined; }
+      await NamedQueryService.update({ id: 'brand-1' }, existing.name, definition);
+      const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      for (const key of ['mongoQuery', 'queryParams', 'resultObjectMapping', 'sort', 'relatedRecordFilters'])
+        expect(saved[key], key).to.equal(existing[key]);
+    });
+
+    it('serializes changed query values and still permits clearing nonempty sort and related filters', async function() {
+      mockNamedQuery.findOne.resolves({ mongoQuery: '{ "old": true }', sort: '[{"dateCreated":"ASC"}]',
+        relatedRecordFilters: '[{"collectionName":"record"}]' });
+      await NamedQueryService.update({ id: 'brand-1' }, 'changed', {
+        collectionName: 'record', mongoQuery: { 'metaMetadata.type': 'rdmp' },
+        queryParams: {}, resultObjectMapping: {}, sort: [], relatedRecordFilters: [],
+      });
+      const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      expect(saved.mongoQuery).to.equal('{"metaMetadata.type":"rdmp"}');
+      expect(saved.sort).to.equal('');
+      expect(saved.relatedRecordFilters).to.equal('');
+    });
+
     it('persists malformed expressions without schema or syntax validation', async function() {
       const config = {
         collectionName: 'record', mongoQuery: { 'metadata.hookField': { $customOperator: true } },
