@@ -1,9 +1,9 @@
 <div class="nq-detail">
-  <ul class="nav nav-tabs nq-tabs" role="tablist">
-    <li class="nav-item" role="presentation">
+  <ul class="rb-ws-tabs nq-tabs" role="tablist">
+    <li role="presentation">
       <button
         type="button"
-        class="nav-link"
+        class="rb-ws-tab"
         [class.active]="activeTab === 'basics'"
         role="tab"
         [attr.aria-selected]="activeTab === 'basics'"
@@ -12,56 +12,56 @@
         {{ 'named-query-tab-basics' | i18next }}
       </button>
     </li>
-    <li class="nav-item" role="presentation">
+    <li role="presentation">
       <button
         type="button"
-        class="nav-link"
+        class="rb-ws-tab"
         [class.active]="activeTab === 'mongo'"
         role="tab"
         [attr.aria-selected]="activeTab === 'mongo'"
         (click)="setTab('mongo')"
       >
         {{ 'named-query-tab-mongo' | i18next }}
-        <span *ngIf="mongoKeyCount > 0" class="badge badge-secondary ml-1">{{ mongoKeyCount }}</span>
+        <span *ngIf="mongoKeyCount > 0" class="rb-ws-count">{{ mongoKeyCount }}</span>
       </button>
     </li>
-    <li class="nav-item" role="presentation">
+    <li role="presentation">
       <button
         type="button"
-        class="nav-link"
+        class="rb-ws-tab"
         [class.active]="activeTab === 'params'"
         role="tab"
         [attr.aria-selected]="activeTab === 'params'"
         (click)="setTab('params')"
       >
         {{ 'named-query-tab-params' | i18next }}
-        <span *ngIf="paramCount > 0" class="badge badge-secondary ml-1">{{ paramCount }}</span>
+        <span *ngIf="paramCount > 0" class="rb-ws-count">{{ paramCount }}</span>
       </button>
     </li>
-    <li class="nav-item" role="presentation">
+    <li role="presentation">
       <button
         type="button"
-        class="nav-link"
+        class="rb-ws-tab"
         [class.active]="activeTab === 'mappings'"
         role="tab"
         [attr.aria-selected]="activeTab === 'mappings'"
         (click)="setTab('mappings')"
       >
         {{ 'named-query-tab-mappings' | i18next }}
-        <span *ngIf="mappingCount > 0" class="badge badge-secondary ml-1">{{ mappingCount }}</span>
+        <span *ngIf="mappingCount > 0" class="rb-ws-count">{{ mappingCount }}</span>
       </button>
     </li>
-    <li class="nav-item" role="presentation">
+    <li role="presentation">
       <button
         type="button"
-        class="nav-link"
+        class="rb-ws-tab"
         [class.active]="activeTab === 'sort'"
         role="tab"
         [attr.aria-selected]="activeTab === 'sort'"
         (click)="setTab('sort')"
       >
         {{ 'named-query-tab-sort-filters' | i18next }}
-        <span *ngIf="sortCount + filterCount > 0" class="badge badge-secondary ml-1">{{
+        <span *ngIf="sortCount + filterCount > 0" class="rb-ws-count">{{
           sortCount + filterCount
         }}</span>
       </button>
@@ -70,9 +70,9 @@
 
   <div class="nq-tab-content" *ngIf="draft">
     <div [hidden]="activeTab !== 'basics'" class="nq-tab-pane">
-      <div class="row g-2">
-        <div class="form-group col-md-6">
-          <label for="nq-name">{{ 'named-query-name' | i18next }}</label>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label" for="nq-name">{{ 'named-query-name' | i18next }}</label>
           <input
             id="nq-name"
             type="text"
@@ -84,13 +84,13 @@
             title="Letters, numbers, underscores, and hyphens only"
             [attr.placeholder]="'named-query-name-placeholder' | i18next"
           />
-          <small *ngIf="!isNew" class="form-text text-muted">{{ 'named-query-name-readonly-help' | i18next }}</small>
+          <div *ngIf="!isNew" class="form-text">{{ 'named-query-name-readonly-help' | i18next }}</div>
         </div>
-        <div class="form-group col-md-6">
-          <label for="nq-collection">{{ 'named-query-collection' | i18next }}</label>
+        <div class="col-md-6">
+          <label class="form-label" for="nq-collection">{{ 'named-query-collection' | i18next }}</label>
           <select
             id="nq-collection"
-            class="form-control"
+            class="form-select"
             [(ngModel)]="draft.collectionName"
             (ngModelChange)="collectionChange.emit()"
           >
@@ -149,7 +149,7 @@
         (sortChange)="draftChange.emit()"
         [(sort)]="draft.sort"
       ></sort-editor>
-      <hr class="my-3" />
+      <hr class="nq-section-rule" />
       <related-filter-editor
         [fields]="fields"
         [diagnostics]="diagnostics"

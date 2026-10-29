@@ -1,43 +1,98 @@
 // Shared styles for the named-query-editor sub-editor components.
-// Top-level layout, theming and modal styling come from the global ReDBox theme
-// (Bootstrap 5 + the brand variables in assets/styles/default-variables.scss),
-// loaded via the host EJS shell.
+// Top-level layout and theming come from the global ReDBox theme (Bootstrap 5 +
+// the brand variables in assets/styles/default-variables.scss), loaded via the
+// host EJS shell. The workspace frame is shared with the report editor. The theme
+// keeps a 10px root font size, so sizes here are in px rather than rem.
+@use '../../portal-ng-common/src/lib/schema-assist/admin-workspace';
 
 .nq-subeditor {
-  font-size: 0.9rem;
+  font-size: 14px;
+
+  label {
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .form-text {
+    font-size: 12px;
+  }
 }
 
-.nq-subeditor .table thead.thead-light th {
-  background-color: #f3f4f6;
-  border-bottom: 2px solid #d6dbe1;
-  color: #2f353a;
+.nq-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.nq-section-title {
+  margin: 0;
+  font-size: 15px;
   font-weight: 600;
-  font-size: 0.85rem;
-  letter-spacing: 0;
-  text-transform: none;
+  color: var(--bs-emphasis-color);
+}
+
+// Fixed layout so long paths wrap instead of squeezing the type and action columns.
+.nq-subeditor .table {
+  --bs-table-bg: transparent;
+  min-width: 560px;
+  margin-bottom: 0;
+  table-layout: fixed;
+
+  .nq-col-path {
+    width: 45%;
+  }
+
+  .nq-col-key {
+    width: 35%;
+  }
+
+  .nq-col-choice {
+    width: 140px;
+  }
+
+  .nq-col-actions {
+    width: 96px;
+  }
+
+  td {
+    overflow-wrap: anywhere;
+  }
+}
+
+.nq-subeditor .table thead th {
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .nq-subeditor .table.table-bordered {
-  border-color: #d6dbe1;
+  border-color: var(--bs-border-color);
 }
 
 .nq-subeditor .table.table-bordered th,
 .nq-subeditor .table.table-bordered td {
-  border-color: #e5e8eb;
-  vertical-align: middle;
-  padding: 0.35rem 0.5rem;
+  border-color: var(--bs-border-color-translucent);
+  vertical-align: top;
+  padding: 8px;
 }
 
-.nq-subeditor select.form-control-sm {
-  height: auto;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-  line-height: 1.5;
-}
-
+// Add rows keep their controls top-aligned so an open field picker below the
+// path input does not stretch the neighbouring controls.
 .nq-add-row {
-  gap: 0.5rem;
-  align-items: stretch;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px dashed var(--bs-border-color);
+  border-radius: 6px;
+  background: var(--bs-tertiary-bg);
 }
 
 .nq-add-row .nq-add-grow {
@@ -54,50 +109,70 @@
   flex: 0 0 130px;
 }
 
-.nq-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.nq-section-header h6 {
-  margin-bottom: 0;
-}
-
 .nq-param-summary {
   min-width: 0;
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 0.4rem 0.6rem;
+  gap: 4px 10px;
 }
 
 .nq-param-meta {
-  font-size: 0.85rem;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  font-family: var(--bs-font-monospace);
+}
+
+.nq-param-key {
+  font-family: var(--bs-font-monospace);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.nq-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+  font-family: var(--bs-font-monospace);
+  font-size: 12px;
 }
 
 .nq-inline-card {
-  border-color: #d6dbe1;
+  border-color: var(--bs-border-color);
+  border-radius: 6px;
+
+  & + & {
+    margin-top: 8px;
+  }
+
+  // Scoped to outrank the theme's brand colour on nested panel-style headers.
+  .card.panel-style & > .card-header {
+    border-bottom-color: var(--bs-border-color-translucent);
+    border-radius: 5px 5px 0 0;
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+  }
+
+  .card.panel-style & > .card-body {
+    padding: 12px 16px;
+  }
 }
 
-.nq-inline-card .card-header {
-  background-color: #f8f9fa;
-}
-
-.nq-card-header-clickable {
-  cursor: pointer;
-}
-
-.nq-card-header-clickable:hover {
-  background-color: #f3f4f6;
+.nq-inline-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .nq-code-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.82rem;
-  background: #fbfbfc;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  font-family: var(--bs-font-monospace);
+  font-size: 13px;
+  background: var(--bs-body-bg);
   resize: vertical;
 }
 
@@ -113,17 +188,124 @@ nq-typed-value {
 .nq-add-row > nq-mapping-value {
   flex: 2 1 240px;
 }
-.nq-diagnostic {
-  padding: 0.35rem 0.5rem;
-  border-left: 3px solid currentColor;
-  margin: 0.35rem 0;
-  font-size: 0.85rem;
+
+.nq-field-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
-.nq-subeditor details {
-  margin-top: 0.25rem;
+
+// Field pickers and similar inline disclosures.
+.nq-subeditor details,
+nq-typed-value details {
+  margin-top: 4px;
 }
+
 .nq-subeditor summary {
+  display: inline-block;
+  color: var(--bs-link-color);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 0.85rem;
-  color: #32677d;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+    border-radius: var(--bs-border-radius-sm);
+  }
+}
+
+.nq-subeditor details[open] > summary {
+  margin-bottom: 4px;
+}
+
+nq-diagnostics {
+  display: block;
+}
+
+.nq-inline-card > nq-diagnostics .rb-ws-diagnostic {
+  margin: 8px 12px;
+}
+
+.nq-mode-toggle {
+  font-size: 12px;
+  text-decoration: none;
+}
+
+// Value control with its unset action on one line.
+.nq-typed-value-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  > .form-control,
+  > .form-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  > .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+// Named query list (catalogue layout, as in the email template list). Kept
+// global to stay within the component style budget.
+.nq-lede {
+  max-width: 768px;
+  margin-bottom: 20px;
+  color: var(--bs-secondary-color);
+}
+
+.nq-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.nq-search {
+  position: relative;
+  flex: 0 1 288px;
+
+  .form-control {
+    padding-left: 30px;
+    font-size: 13px;
+  }
+}
+
+.nq-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.nq-empty {
+  padding: 24px 12px;
+  color: var(--bs-secondary-color);
+  text-align: center;
+}
+
+.nq-list-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bs-border-color-translucent);
+  color: var(--bs-secondary-color);
+  font-size: 12px;
 }

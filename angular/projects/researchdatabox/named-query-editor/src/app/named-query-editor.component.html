@@ -1,42 +1,10 @@
 <ng-container *ngIf="isReady">
   <div
     *ngIf="!isEditing"
-    class="container-fluid py-3"
+    class="nq-list-page"
     [attr.aria-hidden]="isDeleteModalOpen ? 'true' : null"
     [attr.inert]="isDeleteModalOpen ? '' : null"
   >
-    <div class="row align-items-end mb-3">
-      <div class="col-md-8"></div>
-      <div class="col-md-4 mt-3 mt-md-0">
-        <div class="d-flex justify-content-md-end flex-wrap">
-          <span class="badge badge-light mr-2 mb-2 p-2">
-            {{ 'named-query-count-total' | i18next: { count: totalQueries } }}
-          </span>
-          <span class="badge badge-light mb-2 p-2">
-            {{ 'named-query-count-collections' | i18next: { count: uniqueCollections } }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card mb-3">
-      <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
-        <div
-          class="d-flex flex-wrap mb-2 mb-md-0 nq-action-group"
-          role="group"
-          [attr.aria-label]="'named-query-actions-aria-label' | i18next"
-        >
-          <button id="named-query-create" class="btn btn-primary nq-action-button" type="button" (click)="newQuery()">
-            {{ 'named-query-create-button' | i18next }}
-          </button>
-        </div>
-        <small class="text-muted">{{ 'named-query-row-help' | i18next }}</small>
-      </div>
-    </div>
-
-    <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
-    <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-
     <nq-list
       [queries]="filteredQueries"
       [selectedName]="selectedQuery?.name || null"
@@ -45,6 +13,24 @@
       (selected)="openQuery($event)"
       (deleted)="requestDelete($event)"
     >
+      <div nqListAlerts>
+        <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
+        <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+      </div>
+      <div
+        nqListActions
+        class="nq-action-group"
+        role="group"
+        [attr.aria-label]="'named-query-actions-aria-label' | i18next"
+      >
+        <button id="named-query-create" class="btn btn-sm btn-primary nq-action-button" type="button" (click)="newQuery()">
+          <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'named-query-create-button' | i18next }}
+        </button>
+      </div>
+      <span nqListSummary class="nq-list-summary">
+        <span>{{ 'named-query-count-total' | i18next: { count: totalQueries } }}</span>
+        <span>{{ 'named-query-count-collections' | i18next: { count: uniqueCollections } }}</span>
+      </span>
     </nq-list>
   </div>
 </ng-container>
@@ -93,188 +79,266 @@
 </div>
 <div *ngIf="isDeleteModalOpen" class="modal-backdrop fade show delete-named-query-backdrop" aria-hidden="true"></div>
 
-<section *ngIf="isEditing" class="nq-workspace">
-  <header class="nq-workspace-header">
-    <div>
-      <small class="text-muted">{{ 'named-query-workspace' | i18next }}</small>
-      <h2 id="named-query-workspace-title" tabindex="-1">
-        {{ isNew ? ('named-query-create-title' | i18next) : draft.name }}
-      </h2>
-      <span *ngIf="dirty" class="text-muted">{{ 'named-query-unsaved' | i18next }}</span>
+<section
+  *ngIf="isEditing"
+  class="nq-workspace card panel-style panel-default rb-ws"
+  aria-labelledby="named-query-workspace-title"
+>
+  <div class="card-header rb-ws-header">
+    <div class="rb-ws-heading">
+      <h1 id="named-query-workspace-title" tabindex="-1" class="card-title rb-ws-title">
+        <i class="fa-solid fa-database" aria-hidden="true"></i
+        >{{ isNew ? ('named-query-create-title' | i18next) : draft.name }}
+      </h1>
+      <span *ngIf="dirty" class="rb-ws-header-badge">{{ 'named-query-unsaved' | i18next }}</span>
     </div>
-    <div class="nq-workspace-actions">
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        [attr.aria-expanded]="helpOpen"
-        aria-controls="nq-field-panel"
-        (click)="helpOpen = !helpOpen"
-      >
-        {{ 'named-query-fields-help' | i18next }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-primary"
-        (click)="preview()"
-        [disabled]="previewInputInvalid || previewing || saving"
-      >
-        {{ 'named-query-preview' | i18next }}
-      </button>
-      <button type="button" class="btn btn-success" (click)="save()" [disabled]="!canSave">
-        {{ 'named-query-save' | i18next }}
-      </button>
-      <button type="button" class="btn btn-secondary" (click)="closeEditModal()" [disabled]="saving">
-        {{ 'named-query-cancel' | i18next }}
-      </button>
-    </div>
-  </header>
-  <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-  <div *ngIf="assistanceError" class="alert alert-warning" role="status">{{ assistanceError }}</div>
-  <p *ngIf="pendingInput" class="alert alert-warning">{{ 'named-query-pending-input' | i18next }}</p>
-  <div class="nq-workspace-grid" [class.nq-with-help]="helpOpen">
-    <main
-      class="nq-editing-area"
-      (input)="inputChanged($event)"
-      (change)="inputChanged($event)"
-      [attr.aria-label]="'named-query-workspace' | i18next"
+    <button
+      type="button"
+      class="btn btn-sm rb-ws-header-button"
+      [attr.aria-expanded]="helpOpen"
+      aria-controls="nq-field-panel"
+      (click)="helpOpen = !helpOpen"
     >
-      <fieldset [disabled]="saving">
-        <nq-detail
-          *ngFor="let current of [draft]"
-          [draft]="current"
-          [isNew]="isNew"
-          [collections]="collections"
-          [fields]="fields"
-          [mappingFields]="mappingFields"
-          [diagnostics]="diagnostics"
-          [foreignFields]="foreignFields"
-          [relatedGuidance]="relatedGuidance"
-          [targets]="targets"
-          (draftChange)="draftChanged()"
-          (collectionChange)="collectionChanged()"
-          (foreignContextChange)="foreignContextChanged($event)"
-          (validityChange)="validityChanged($event)"
-        ></nq-detail>
-      </fieldset>
-    </main>
-    <aside id="nq-field-panel" [hidden]="!helpOpen" class="nq-field-panel">
-      <h3>{{ 'named-query-fields-help' | i18next }}</h3>
-      <ng-container *ngIf="draft.collectionName === 'record'; else manualHelp">
-        <p>{{ 'named-query-guidance-only' | i18next }}</p>
-        <rb-schema-target-selector
-          [targets]="targets"
-          [selection]="guidance?.stage ? $any(guidance) : null"
-          [emptyLabel]="guidance?.recordType || ('named-query-choose-guidance' | i18next)"
-          [typeLabel]="'named-query-record-type' | i18next"
-          [stageLabel]="'named-query-stage' | i18next"
-          (choose)="chooseGuidance($event)"
-        ></rb-schema-target-selector>
-        <div class="my-2" *ngIf="guidance">
-          <code
-            >{{ guidance.recordType }}<span *ngIf="guidance.stage"> / {{ guidance.stage }}</span></code
-          >
-          <button
-            type="button"
-            class="btn btn-sm btn-link"
-            *ngIf="guidance.stage"
-            (click)="chooseGuidance({ recordType: guidance.recordType })"
-          >
-            {{ 'named-query-all-stages' | i18next }}
-          </button>
-          <button type="button" class="btn btn-sm btn-link" (click)="chooseGuidance(null)">
-            {{ 'named-query-without-guidance' | i18next }}
-          </button>
-          <p class="alert alert-info mt-2">{{ 'named-query-scope-notice' | i18next }}</p>
-          <p>
-            {{ 'named-query-type-effect' | i18next }}
-            <code>{{ { 'metaMetadata.type': guidance.recordType } | json }}</code>
-          </p>
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-primary"
-            [disabled]="pendingInput"
-            (click)="addTypeConstraint()"
-          >
-            {{ 'named-query-add-type' | i18next }}
-          </button>
-        </div>
-        <p *ngIf="!guidance" class="text-muted">{{ 'named-query-choose-guidance-help' | i18next }}</p>
-        <p *ngIf="fieldDescription" class="small text-muted">
-          {{ 'named-query-schema-quality' | i18next }} {{ fieldDescription.precision }} /
-          {{ fieldDescription.completeness }}
-        </p>
-        <p class="small">{{ 'named-query-field-insertion-help' | i18next }}</p>
-        <h4>{{ 'named-query-envelope' | i18next }}</h4>
-        <rb-field-tree
-          [fields]="fieldDescription?.envelopeFields || []"
-          [insertion]="fieldPath"
-          [disabled]="true"
-        ></rb-field-tree>
-        <h4>{{ 'named-query-metadata' | i18next }}</h4>
-        <rb-field-tree
-          [fields]="fieldDescription?.fields || []"
-          [insertion]="fieldPath"
-          [disabled]="true"
-        ></rb-field-tree>
-      </ng-container>
-      <ng-template #manualHelp
-        ><p>{{ 'named-query-manual-collection' | i18next }}</p></ng-template
-      >
-    </aside>
+      <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>{{ 'named-query-fields-help' | i18next }}
+    </button>
+    <button type="button" class="btn btn-sm rb-ws-header-button" (click)="closeEditModal()" [disabled]="saving">
+      <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>{{ 'named-query-list-title' | i18next }}
+    </button>
   </div>
-  <section class="nq-results" [attr.aria-label]="'named-query-results' | i18next" aria-live="polite">
-    <h3>{{ 'named-query-results' | i18next }}</h3>
-    <p *ngIf="validating">{{ 'named-query-validating' | i18next }}</p>
-    <nq-diagnostics [diagnostics]="diagnostics"></nq-diagnostics>
-    <h4>{{ 'named-query-test-parameters' | i18next }}</h4>
-    <div class="nq-test-parameters">
-      <label *ngFor="let param of parameterEntries; trackBy: parameterKey"
-        >{{ param.key }} <code>{{ param.path }}</code>
-        <nq-typed-value
-          [label]="param.key"
-          [value]="testParameters[param.key]"
-          [type]="param.type"
-          [format]="param.format"
-          [queryType]="param.queryType"
-          [template]="param.template"
-          (valueChange)="testParameterChanged(param.key, $event)"
-          (validityChange)="testParameterValidity(param.key, $event)"
-        ></nq-typed-value>
-      </label>
+
+  <div class="card-body">
+    <div *ngIf="error" class="alert alert-danger rb-ws-alert" role="alert">{{ error }}</div>
+    <div *ngIf="assistanceError" class="alert alert-warning rb-ws-alert" role="status">{{ assistanceError }}</div>
+    <p *ngIf="pendingInput" class="alert alert-warning rb-ws-alert">{{ 'named-query-pending-input' | i18next }}</p>
+
+    <div class="rb-ws-grid" [class.rb-ws-with-help]="helpOpen">
+      <main
+        class="rb-ws-main nq-editing-area"
+        (input)="inputChanged($event)"
+        (change)="inputChanged($event)"
+        [attr.aria-label]="'named-query-workspace' | i18next"
+      >
+        <fieldset class="nq-fieldset" [disabled]="saving">
+          <nq-detail
+            *ngFor="let current of [draft]"
+            [draft]="current"
+            [isNew]="isNew"
+            [collections]="collections"
+            [fields]="fields"
+            [mappingFields]="mappingFields"
+            [diagnostics]="diagnostics"
+            [foreignFields]="foreignFields"
+            [relatedGuidance]="relatedGuidance"
+            [targets]="targets"
+            (draftChange)="draftChanged()"
+            (collectionChange)="collectionChanged()"
+            (foreignContextChange)="foreignContextChanged($event)"
+            (validityChange)="validityChanged($event)"
+          ></nq-detail>
+        </fieldset>
+      </main>
+
+      <aside
+        id="nq-field-panel"
+        [hidden]="!helpOpen"
+        class="card rb-ws-pane rb-ws-help nq-field-panel"
+        aria-labelledby="nq-field-panel-title"
+      >
+        <div class="card-header">
+          <h2 id="nq-field-panel-title" class="rb-ws-pane-title">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>{{ 'named-query-fields-help' | i18next }}
+          </h2>
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'named-query-close-help' | i18next"
+            (click)="helpOpen = false"
+          ></button>
+        </div>
+        <div class="card-body">
+          <ng-container *ngIf="draft.collectionName === 'record'; else manualHelp">
+            <div class="rb-ws-section">
+              <h3 class="rb-ws-section-title">{{ 'named-query-guidance-heading' | i18next }}</h3>
+              <p class="rb-ws-lede">{{ 'named-query-guidance-only' | i18next }}</p>
+              <rb-schema-target-selector
+                [targets]="targets"
+                [selection]="guidance?.stage ? $any(guidance) : null"
+                [emptyLabel]="guidance?.recordType || ('named-query-choose-guidance' | i18next)"
+                [typeLabel]="'named-query-record-type' | i18next"
+                [stageLabel]="'named-query-stage' | i18next"
+                (choose)="chooseGuidance($event)"
+              ></rb-schema-target-selector>
+              <ng-container *ngIf="guidance">
+                <div class="nq-guidance-actions">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    *ngIf="guidance.stage"
+                    (click)="chooseGuidance({ recordType: guidance.recordType })"
+                  >
+                    {{ 'named-query-all-stages' | i18next }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="chooseGuidance(null)">
+                    {{ 'named-query-without-guidance' | i18next }}
+                  </button>
+                </div>
+                <p class="nq-guidance-scope" role="note">
+                  <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                  <span>{{ 'named-query-scope-notice' | i18next }}</span>
+                </p>
+                <div class="nq-type-constraint">
+                  <p class="mb-2">{{ 'named-query-type-effect' | i18next }}</p>
+                  <code class="nq-type-constraint-code">{{ { 'metaMetadata.type': guidance.recordType } | json }}</code>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    [disabled]="pendingInput"
+                    (click)="addTypeConstraint()"
+                  >
+                    <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'named-query-add-type' | i18next }}
+                  </button>
+                </div>
+              </ng-container>
+              <p *ngIf="!guidance" class="rb-ws-lede mt-2 mb-0">{{ 'named-query-choose-guidance-help' | i18next }}</p>
+            </div>
+            <div class="rb-ws-section">
+              <h3 class="rb-ws-section-title">{{ 'named-query-envelope' | i18next }}</h3>
+              <rb-field-tree
+                [fields]="fieldDescription?.envelopeFields || []"
+                [insertion]="fieldPath"
+                [disabled]="true"
+              ></rb-field-tree>
+              <h3 class="rb-ws-section-title mt-3">{{ 'named-query-metadata' | i18next }}</h3>
+              <p *ngIf="fieldDescription" class="nq-schema-quality">
+                {{ 'named-query-schema-quality' | i18next }} {{ fieldDescription.precision }} /
+                {{ fieldDescription.completeness }}
+              </p>
+              <rb-field-tree
+                [fields]="fieldDescription?.fields || []"
+                [insertion]="fieldPath"
+                [disabled]="true"
+              ></rb-field-tree>
+              <p class="rb-ws-lede mt-2 mb-0">{{ 'named-query-field-insertion-help' | i18next }}</p>
+            </div>
+          </ng-container>
+          <ng-template #manualHelp
+            ><p class="rb-ws-lede mb-0">{{ 'named-query-manual-collection' | i18next }}</p></ng-template
+          >
+        </div>
+      </aside>
     </div>
-    <p>{{ 'named-query-real-data' | i18next }}</p>
-    <p *ngIf="previewing" role="status">{{ 'named-query-previewing' | i18next }}</p>
-    <ng-container *ngIf="previewResult as result">
-      <nq-diagnostics *ngIf="!result.valid" [diagnostics]="result.diagnostics"></nq-diagnostics>
-      <p *ngIf="!result.valid" class="alert alert-danger" role="alert">{{ 'named-query-preview-refused' | i18next }}</p>
-      <p *ngIf="result.truncated" class="alert alert-warning" role="status">
-        {{ 'named-query-truncated' | i18next }} {{ result.truncationReasons.join(', ') }} ({{ result.limits.rows }})
-      </p>
-      <p *ngIf="result.valid">{{ 'named-query-preview-count' | i18next: { count: result.records.length } }}</p>
-      <div class="table-responsive" *ngIf="result.records.length">
-        <table class="table table-sm table-bordered">
-          <thead>
-            <tr>
-              <th *ngFor="let key of previewColumns">{{ key }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of result.records">
-              <td *ngFor="let key of previewColumns">
-                <code>{{ cell(row, key) }}</code>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+    <section
+      class="card rb-ws-pane nq-results"
+      aria-labelledby="nq-results-title"
+      aria-live="polite"
+    >
+      <div class="card-header">
+        <h2 id="nq-results-title" class="rb-ws-pane-title">
+          <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>{{ 'named-query-results' | i18next }}
+        </h2>
       </div>
-      <details>
-        <summary>{{ 'named-query-preview-json' | i18next }}</summary>
-        <pre>{{ result | json }}</pre>
-      </details>
-    </ng-container>
-    <details *ngIf="description">
-      <summary>{{ 'named-query-report-shape' | i18next }}</summary>
-      <pre>{{ description.result | json }}</pre>
-    </details>
-  </section>
+      <div class="card-body">
+        <div class="rb-ws-section">
+          <h3 class="rb-ws-section-title">{{ 'named-query-diagnostics-heading' | i18next }}</h3>
+          <p *ngIf="validating" class="rb-ws-status">
+            <span class="spinner-border" aria-hidden="true"></span>{{ 'named-query-validating' | i18next }}
+          </p>
+          <nq-diagnostics [diagnostics]="diagnostics"></nq-diagnostics>
+          <p *ngIf="!validating && !diagnostics.length" class="rb-ws-status nq-diagnostics-ok">
+            <i class="fa-solid fa-check" aria-hidden="true"></i>{{ 'named-query-no-diagnostics' | i18next }}
+          </p>
+        </div>
+
+        <div class="rb-ws-section">
+          <h3 class="rb-ws-section-title">{{ 'named-query-preview' | i18next }}</h3>
+          <p class="rb-ws-lede">{{ 'named-query-real-data' | i18next }}</p>
+          <ng-container *ngIf="parameterEntries.length">
+            <h4 class="rb-ws-label">{{ 'named-query-test-parameters' | i18next }}</h4>
+            <div class="nq-test-parameters">
+              <div
+                *ngFor="let param of parameterEntries; trackBy: parameterKey"
+                class="nq-test-parameter"
+                role="group"
+                [attr.aria-label]="param.key"
+              >
+                <div class="nq-test-parameter-label">
+                  <span class="fw-semibold">{{ param.key }}</span> <code>{{ param.path }}</code>
+                </div>
+                <nq-typed-value
+                  [label]="param.key"
+                  [value]="testParameters[param.key]"
+                  [type]="param.type"
+                  [format]="param.format"
+                  [queryType]="param.queryType"
+                  [template]="param.template"
+                  (valueChange)="testParameterChanged(param.key, $event)"
+                  (validityChange)="testParameterValidity(param.key, $event)"
+                ></nq-typed-value>
+              </div>
+            </div>
+          </ng-container>
+          <p *ngIf="previewing" class="rb-ws-status" role="status">
+            <span class="spinner-border" aria-hidden="true"></span>{{ 'named-query-previewing' | i18next }}
+          </p>
+          <ng-container *ngIf="previewResult as result">
+            <nq-diagnostics *ngIf="!result.valid" [diagnostics]="result.diagnostics"></nq-diagnostics>
+            <p *ngIf="!result.valid" class="alert alert-danger" role="alert">{{ 'named-query-preview-refused' | i18next }}</p>
+            <p *ngIf="result.truncated" class="alert alert-warning" role="status">
+              {{ 'named-query-truncated' | i18next }} {{ result.truncationReasons.join(', ') }} ({{ result.limits.rows }})
+            </p>
+            <p *ngIf="result.valid" class="nq-preview-count">
+              {{ 'named-query-preview-count' | i18next: { count: result.records.length } }}
+            </p>
+            <div class="table-responsive rb-ws-table-wrap" *ngIf="result.records.length">
+              <table class="table table-sm rb-ws-table">
+                <thead>
+                  <tr>
+                    <th scope="col" *ngFor="let key of previewColumns">{{ key }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of result.records">
+                    <td *ngFor="let key of previewColumns">
+                      <code>{{ cell(row, key) }}</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <details class="rb-ws-disclosure">
+              <summary>{{ 'named-query-preview-json' | i18next }}</summary>
+              <pre class="rb-ws-json">{{ result | json }}</pre>
+            </details>
+          </ng-container>
+          <details *ngIf="description" class="rb-ws-disclosure">
+            <summary>{{ 'named-query-report-shape' | i18next }}</summary>
+            <pre class="rb-ws-json">{{ description.result | json }}</pre>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <div class="rb-ws-footer">
+      <div class="rb-ws-footer-status">
+        <span *ngIf="dirty">{{ 'named-query-unsaved' | i18next }}</span>
+      </div>
+      <div class="rb-ws-footer-actions nq-workspace-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeEditModal()" [disabled]="saving">
+          {{ 'named-query-cancel' | i18next }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-primary"
+          (click)="preview()"
+          [disabled]="previewInputInvalid || previewing || saving"
+        >
+          <i class="fa-solid fa-play me-1" aria-hidden="true"></i>{{ 'named-query-preview' | i18next }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave">
+          {{ 'named-query-save' | i18next }}
+        </button>
+      </div>
+    </div>
+  </div>
 </section>

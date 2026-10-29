@@ -1,11 +1,11 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-params-heading' | i18next }}</h6>
+    <h2 class="nq-section-title">{{ 'named-query-params-heading' | i18next }}</h2>
     <button *ngIf="!addingNew" class="btn btn-sm btn-outline-primary" type="button" (click)="startAdd()">
       {{ 'named-query-param-add' | i18next }}
     </button>
   </div>
-  <p class="text-muted small mb-2">{{ 'named-query-params-help' | i18next }}</p>
+  <p class="rb-ws-lede">{{ 'named-query-params-help' | i18next }}</p>
 
   <div *ngIf="addingNew" class="card mb-3 nq-inline-card">
     <div class="card-header py-2 px-3">
@@ -13,16 +13,17 @@
     </div>
     <div class="card-body">
       <div class="row g-2">
-        <div class="form-group col-md-6">
-          <label>{{ 'named-query-param-key' | i18next }}</label>
+        <div class="mb-2 col-md-6">
+          <label [for]="inputId + '-key-' + 'new'">{{ 'named-query-param-key' | i18next }}</label>
           <input
+            [id]="inputId + '-key-' + 'new'"
             type="text"
             class="form-control form-control-sm"
             [(ngModel)]="newParam.key"
             [attr.placeholder]="'named-query-param-key-placeholder' | i18next"
           />
         </div>
-        <div class="form-group col-md-6">
+        <div class="mb-2 col-md-6">
           <label>{{ 'named-query-param-path' | i18next }}</label>
           <nq-path-input
             [value]="newParam.path"
@@ -33,41 +34,45 @@
         </div>
       </div>
       <div class="row g-2">
-        <div class="form-group col-md-4">
-          <label>{{ 'named-query-param-type' | i18next }}</label>
+        <div class="mb-2 col-md-4">
+          <label [for]="inputId + '-type-' + 'new'">{{ 'named-query-param-type' | i18next }}</label>
           <select
-            class="form-control form-control-sm"
+            [id]="inputId + '-type-' + 'new'"
+            class="form-select form-select-sm"
             [(ngModel)]="newParam.type"
             (ngModelChange)="defaultValidity(0, true)"
           >
             <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
           </select>
         </div>
-        <div class="form-group col-md-4">
-          <label>{{ 'named-query-param-query-type' | i18next }}</label>
-          <select class="form-control form-control-sm" [(ngModel)]="newParam.queryType">
+        <div class="mb-2 col-md-4">
+          <label [for]="inputId + '-query-type-' + 'new'">{{ 'named-query-param-query-type' | i18next }}</label>
+          <select
+            [id]="inputId + '-query-type-' + 'new'" class="form-select form-select-sm" [(ngModel)]="newParam.queryType">
             <option *ngFor="let qt of queryTypeOptions" [value]="qt">{{ qt || '(none)' }}</option>
           </select>
         </div>
-        <div class="form-group col-md-4" *ngIf="newParam.type === 'date'">
-          <label>{{ 'named-query-param-format' | i18next }}</label>
-          <select class="form-control form-control-sm" [(ngModel)]="newParam.format">
+        <div class="mb-2 col-md-4" *ngIf="newParam.type === 'date'">
+          <label [for]="inputId + '-format-' + 'new'">{{ 'named-query-param-format' | i18next }}</label>
+          <select
+            [id]="inputId + '-format-' + 'new'" class="form-select form-select-sm" [(ngModel)]="newParam.format">
             <option *ngFor="let f of dateFormatOptions" [value]="f">{{ f }}</option>
           </select>
         </div>
       </div>
       <div class="row g-2">
-        <div class="form-group" [ngClass]="newParam.whenUndefined === 'defaultValue' ? 'col-md-6' : 'col-12'">
-          <label>{{ 'named-query-param-when-undefined' | i18next }}</label>
+        <div class="mb-2" [ngClass]="newParam.whenUndefined === 'defaultValue' ? 'col-md-6' : 'col-12'">
+          <label [for]="inputId + '-when-undefined-' + 'new'">{{ 'named-query-param-when-undefined' | i18next }}</label>
           <select
-            class="form-control form-control-sm"
+            [id]="inputId + '-when-undefined-' + 'new'"
+            class="form-select form-select-sm"
             [(ngModel)]="newParam.whenUndefined"
             (ngModelChange)="defaultValidity(0, true)"
           >
             <option *ngFor="let wu of whenUndefinedOptions" [value]="wu">{{ wu }}</option>
           </select>
         </div>
-        <div class="form-group col-md-6" *ngIf="newParam.whenUndefined === 'defaultValue'">
+        <div class="mb-2 col-md-6" *ngIf="newParam.whenUndefined === 'defaultValue'">
           <label>{{ 'named-query-param-default' | i18next }}</label>
           <nq-typed-value
             [label]="('named-query-param-default' | i18next) + ': ' + newParam.key"
@@ -83,7 +88,7 @@
         </div>
       </div>
       <div class="row g-2">
-        <div class="form-group col-12">
+        <div class="mb-2 col-12">
           <label [for]="inputId + '-template-new'">{{ 'named-query-param-template' | i18next }}: {{ newParam.key }}</label>
           <textarea
             [id]="inputId + '-template-new'"
@@ -96,8 +101,8 @@
           ></textarea>
         </div>
       </div>
-      <div class="d-flex" style="gap: 0.5rem">
-        <button class="btn btn-sm btn-outline-primary" type="button" (click)="addParam()">
+      <div class="nq-inline-actions">
+        <button class="btn btn-sm btn-primary" type="button" (click)="addParam()">
           {{ 'named-query-add' | i18next }}
         </button>
         <button class="btn btn-sm btn-outline-secondary" type="button" (click)="cancelAdd()">
@@ -107,15 +112,15 @@
     </div>
   </div>
 
-  <p *ngIf="entries.length === 0 && !addingNew" class="text-muted mb-0">
+  <p *ngIf="entries.length === 0 && !addingNew" class="rb-ws-empty">
     {{ 'named-query-param-empty' | i18next }}
   </p>
 
   <div *ngFor="let param of entries; trackBy: trackById" class="card mb-2 nq-inline-card">
-    <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center nq-card-header-clickable">
+    <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
       <div class="nq-param-summary">
-        <button type="button" class="btn btn-link p-0" (click)="toggleExpand(param.key)">{{ param.key }}</button>
-        <span class="text-muted nq-param-meta">
+        <button type="button" class="btn btn-link p-0 nq-param-key" [attr.aria-expanded]="expandedParam === param.key" (click)="toggleExpand(param.key)">{{ param.key }}</button>
+        <span class="nq-param-meta">
           <span>{{ param.type }}</span>
           <span *ngIf="param.path"> · {{ param.path }}</span>
           <span *ngIf="param.queryType"> · {{ param.queryType }}</span>
@@ -132,7 +137,7 @@
     <nq-diagnostics [diagnostics]="diagnostics" [location]="'queryParams.' + param.key"></nq-diagnostics>
     <div class="card-body" [hidden]="expandedParam !== param.key">
       <div class="row g-2">
-        <div class="form-group col-12">
+        <div class="mb-2 col-12">
           <label>{{ 'named-query-param-path' | i18next }}</label>
           <nq-path-input
             [value]="param.path"
@@ -143,30 +148,33 @@
         </div>
       </div>
       <div class="row g-2">
-        <div class="form-group col-md-4">
-          <label>{{ 'named-query-param-type' | i18next }}</label>
+        <div class="mb-2 col-md-4">
+          <label [for]="inputId + '-type-' + param.id">{{ 'named-query-param-type' | i18next }}</label>
           <select
-            class="form-control form-control-sm"
+            [id]="inputId + '-type-' + param.id"
+            class="form-select form-select-sm"
             [ngModel]="param.type"
             (ngModelChange)="onFieldChange(param, 'type', $event)"
           >
             <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
           </select>
         </div>
-        <div class="form-group col-md-4">
-          <label>{{ 'named-query-param-query-type' | i18next }}</label>
+        <div class="mb-2 col-md-4">
+          <label [for]="inputId + '-query-type-' + param.id">{{ 'named-query-param-query-type' | i18next }}</label>
           <select
-            class="form-control form-control-sm"
+            [id]="inputId + '-query-type-' + param.id"
+            class="form-select form-select-sm"
             [ngModel]="param.queryType"
             (ngModelChange)="onFieldChange(param, 'queryType', $event)"
           >
             <option *ngFor="let qt of queryTypeOptions" [value]="qt">{{ qt || '(none)' }}</option>
           </select>
         </div>
-        <div class="form-group col-md-4" *ngIf="param.type === 'date'">
-          <label>{{ 'named-query-param-format' | i18next }}</label>
+        <div class="mb-2 col-md-4" *ngIf="param.type === 'date'">
+          <label [for]="inputId + '-format-' + param.id">{{ 'named-query-param-format' | i18next }}</label>
           <select
-            class="form-control form-control-sm"
+            [id]="inputId + '-format-' + param.id"
+            class="form-select form-select-sm"
             [ngModel]="param.format"
             (ngModelChange)="onFieldChange(param, 'format', $event)"
           >
@@ -175,17 +183,18 @@
         </div>
       </div>
       <div class="row g-2">
-        <div class="form-group" [ngClass]="param.whenUndefined === 'defaultValue' ? 'col-md-6' : 'col-12'">
-          <label>{{ 'named-query-param-when-undefined' | i18next }}</label>
+        <div class="mb-2" [ngClass]="param.whenUndefined === 'defaultValue' ? 'col-md-6' : 'col-12'">
+          <label [for]="inputId + '-when-undefined-' + param.id">{{ 'named-query-param-when-undefined' | i18next }}</label>
           <select
-            class="form-control form-control-sm"
+            [id]="inputId + '-when-undefined-' + param.id"
+            class="form-select form-select-sm"
             [ngModel]="param.whenUndefined"
             (ngModelChange)="onFieldChange(param, 'whenUndefined', $event)"
           >
             <option *ngFor="let wu of whenUndefinedOptions" [value]="wu">{{ wu }}</option>
           </select>
         </div>
-        <div class="form-group col-md-6" *ngIf="param.whenUndefined === 'defaultValue'">
+        <div class="mb-2 col-md-6" *ngIf="param.whenUndefined === 'defaultValue'">
           <label>{{ 'named-query-param-default' | i18next }}</label>
           <nq-typed-value
             [label]="('named-query-param-default' | i18next) + ': ' + param.key"
@@ -201,7 +210,7 @@
         </div>
       </div>
       <div class="row g-2">
-        <div class="form-group col-12 mb-0">
+        <div class="mb-2 col-12 mb-0">
           <label [for]="inputId + '-template-' + param.id">{{ 'named-query-param-template' | i18next }}: {{ param.key }}</label>
           <textarea
             [id]="inputId + '-template-' + param.id"

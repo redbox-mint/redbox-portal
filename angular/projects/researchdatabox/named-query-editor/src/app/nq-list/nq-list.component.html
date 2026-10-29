@@ -1,14 +1,16 @@
-<div class="panel panel-default nq-panel-card">
-  <div class="panel-heading d-flex justify-content-between align-items-center flex-wrap">
-    <strong>{{ 'named-query-list-title' | i18next }}</strong>
-    <small class="text-muted">{{ 'named-query-list-shown' | i18next: { count: queries.length } }}</small>
+<div class="card panel-style panel-default nq-panel-card">
+  <div class="card-header nq-panel-header">
+    <h1 class="card-title nq-panel-title">
+      <i class="fa-solid fa-database me-2" aria-hidden="true"></i>{{ 'named-query-list-title' | i18next }}
+    </h1>
   </div>
-  <div class="panel-body">
-    <div class="row no-gutters align-items-start nq-filters">
-      <div class="col-md-6 pr-md-3 mb-2 mb-md-0">
-        <label for="named-query-search" class="small text-uppercase text-muted mb-1">{{
-          'named-query-search' | i18next
-        }}</label>
+  <div class="card-body">
+    <p class="nq-lede">{{ 'named-query-list-intro' | i18next }} {{ 'named-query-row-help' | i18next }}</p>
+    <ng-content select="[nqListAlerts]"></ng-content>
+    <div class="nq-filters">
+      <div class="nq-search">
+        <label for="named-query-search" class="visually-hidden">{{ 'named-query-search' | i18next }}</label>
+        <i class="fa-solid fa-magnifying-glass nq-search-icon" aria-hidden="true"></i>
         <input
           id="named-query-search"
           class="form-control form-control-sm"
@@ -18,6 +20,7 @@
           (ngModelChange)="onSearchTermChanged($event)"
         />
       </div>
+      <ng-content select="[nqListActions]"></ng-content>
     </div>
 
     <div class="nq-table-wrap">
@@ -37,7 +40,7 @@
             <th class="text-center">{{ 'named-query-params' | i18next }}</th>
             <th class="text-center">{{ 'named-query-mappings' | i18next }}</th>
             <th class="text-center">{{ 'named-query-related-filters' | i18next }}</th>
-            <th class="text-right">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+            <th class="text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th>
           </tr>
         </thead>
         <tbody>
@@ -54,36 +57,40 @@
               <code>{{ q.collectionName || '-' }}</code>
             </td>
             <td class="text-center">
-              <span *ngIf="paramCount(q) > 0" class="badge badge-info text-white">{{ paramCount(q) }}</span>
+              <span *ngIf="paramCount(q) > 0" class="nq-count">{{ paramCount(q) }}</span>
               <span *ngIf="paramCount(q) === 0" class="text-muted">—</span>
             </td>
             <td class="text-center">
-              <span *ngIf="mappingCount(q) > 0" class="badge badge-info text-white">{{ mappingCount(q) }}</span>
+              <span *ngIf="mappingCount(q) > 0" class="nq-count">{{ mappingCount(q) }}</span>
               <span *ngIf="mappingCount(q) === 0" class="text-muted">—</span>
             </td>
             <td class="text-center">
-              <span *ngIf="filterCount(q) > 0" class="badge badge-warning text-white">{{ filterCount(q) }}</span>
+              <span *ngIf="filterCount(q) > 0" class="nq-count">{{ filterCount(q) }}</span>
               <span *ngIf="filterCount(q) === 0" class="text-muted">—</span>
             </td>
-            <td class="text-right text-nowrap">
+            <td class="text-end text-nowrap">
               <button
-                class="btn btn-sm btn-primary action-button"
+                class="btn btn-sm btn-outline-secondary action-button"
                 [attr.data-query-name]="q.name"
                 type="button"
                 (click)="open(q.name)"
               >
-                {{ 'named-query-edit' | i18next }}
+                {{ 'named-query-edit' | i18next }}<span class="visually-hidden"> {{ q.name }}</span>
               </button>
-              <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(q.name)">
-                {{ 'named-query-delete' | i18next }}
+              <button class="btn btn-sm btn-outline-danger action-button" type="button" (click)="remove(q.name)">
+                {{ 'named-query-delete' | i18next }}<span class="visually-hidden"> {{ q.name }}</span>
               </button>
             </td>
           </tr>
           <tr *ngIf="queries.length === 0">
-            <td colspan="6" class="text-muted text-center">{{ 'named-query-empty-filtered' | i18next }}</td>
+            <td colspan="6" class="nq-empty">{{ 'named-query-empty-filtered' | i18next }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="nq-list-footer">
+      <span>{{ 'named-query-list-shown' | i18next: { count: queries.length } }}</span>
+      <ng-content select="[nqListSummary]"></ng-content>
     </div>
   </div>
 </div>

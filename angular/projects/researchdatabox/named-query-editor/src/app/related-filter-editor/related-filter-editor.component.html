@@ -1,23 +1,23 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-related-filters-heading' | i18next }}</h6>
+    <h2 class="nq-section-title">{{ 'named-query-related-filters-heading' | i18next }}</h2>
     <button class="btn btn-sm btn-outline-primary" type="button" (click)="addFilter()">
       {{ 'named-query-related-filter-add' | i18next }}
     </button>
   </div>
-  <p class="text-muted small mb-2">{{ 'named-query-related-filters-help' | i18next }}</p>
+  <p class="rb-ws-lede">{{ 'named-query-related-filters-help' | i18next }}</p>
 
-  <p *ngIf="filters.length === 0" class="text-muted mb-0">
+  <p *ngIf="filters.length === 0" class="rb-ws-empty">
     {{ 'named-query-related-filter-empty' | i18next }}
   </p>
 
   <div *ngFor="let filter of filters; let i = index; trackBy: trackById" class="card mb-2 nq-inline-card">
-    <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center nq-card-header-clickable">
+    <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
       <div>
-        <button type="button" class="btn btn-link p-0" (click)="toggleExpand(filter)">
+        <button type="button" class="btn btn-link p-0 nq-param-key" [attr.aria-expanded]="expandedId === filter.id" (click)="toggleExpand(filter)">
           {{ filter.collectionName || ('named-query-related-filter-unnamed' | i18next) }}
         </button>
-        <span class="badge badge-light ml-2" *ngIf="filter.localField || filter.foreignField">
+        <span class="nq-chip ms-2" *ngIf="filter.localField || filter.foreignField">
           {{ filter.localField || '—' }} → {{ filter.foreignField || '—' }}
         </span>
       </div>
@@ -34,7 +34,7 @@
       <div *ngIf="filter.collectionName === 'record'" class="mb-2" data-nq-guidance>
         <label>{{ 'named-query-foreign-guidance' | i18next }}</label>
         <select
-          class="form-control"
+          class="form-select form-select-sm"
           [ngModel]="relatedGuidance[i]?.recordType || ''"
           (ngModelChange)="chooseForeign(i, $event)"
         >
@@ -43,7 +43,7 @@
         </select>
         <select
           *ngIf="relatedGuidance[i]"
-          class="form-control"
+          class="form-select form-select-sm"
           [ngModel]="relatedGuidance[i].stage || ''"
           (ngModelChange)="chooseForeign(i, relatedGuidance[i].recordType, $event)"
         >
@@ -56,7 +56,7 @@
         </select>
       </div>
       <div class="row g-2">
-        <div class="form-group col-md-4">
+        <div class="mb-2 col-md-4">
           <label>{{ 'named-query-related-filter-collection' | i18next }}</label>
           <input
             type="text"
@@ -65,7 +65,7 @@
             (ngModelChange)="onFieldChange(filter, 'collectionName', $event)"
           />
         </div>
-        <div class="form-group col-md-4">
+        <div class="mb-2 col-md-4">
           <label>{{ 'named-query-related-filter-local' | i18next }}</label>
           <nq-path-input
             [value]="filter.localField"
@@ -74,7 +74,7 @@
             (valueChange)="onFieldChange(filter, 'localField', $event)"
           ></nq-path-input>
         </div>
-        <div class="form-group col-md-4">
+        <div class="mb-2 col-md-4">
           <label>{{ 'named-query-related-filter-foreign' | i18next }}</label>
           <nq-path-input
             [value]="filter.foreignField"
@@ -84,9 +84,9 @@
           ></nq-path-input>
         </div>
       </div>
-      <p *ngIf="invalidFilters.has(filter.id)" class="text-danger">{{ 'named-query-invalid-json' | i18next }}</p>
+      <p *ngIf="invalidFilters.has(filter.id)" class="text-danger small">{{ 'named-query-invalid-json' | i18next }}</p>
       <div class="row g-2">
-        <div class="form-group col-12 mb-0">
+        <div class="mb-2 col-12 mb-0">
           <label>{{ 'named-query-related-filter-mongo' | i18next }}</label>
           <textarea
             class="form-control form-control-sm nq-code-editor"

@@ -1,714 +1,910 @@
 @if (isReady) {
   <div class="report-config-app">
-    <div class="page-header">
-      <h1>{{ 'reports-heading' | i18next }}</h1>
-      <p>{{ (isAdmin ? 'reports-description-admin' : 'reports-description-librarian') | i18next }}</p>
-    </div>
-
-    @if (errorMessage) {
-      <div class="alert alert-danger">{{ errorMessage }}</div>
+    @if (errorMessage && selectedReport) {
+      <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
     }
 
     @if (!selectedReport) {
-      <div class="report-toolbar">
-        <button id="report-create" class="btn btn-primary" type="button" (click)="createReport()">
-          <i class="fa fa-plus"></i> {{ 'report-create' | i18next }}
-        </button>
-        @if (canManageQueries) {
-          <a class="btn btn-info" [href]="brandingAndPortalUrl + '/admin/named-query'"
-            ><i class="fa fa-list"></i> {{ 'report-manage-named-queries' | i18next }}</a
-          >
-        }
-      </div>
-
-      <div class="report-stats">
-        <div class="report-stat-card">
-          <div class="report-stat-value">{{ totalReports }}</div>
-          <div class="report-stat-label">{{ 'report-stat-total' | i18next }}</div>
+      <div class="card panel-style panel-default report-list-card">
+        <div class="card-header report-list-header">
+          <h1 class="card-title report-list-title">
+            <i class="fa-solid fa-table-list me-2" aria-hidden="true"></i>{{ 'reports-heading' | i18next }}
+          </h1>
         </div>
-        <div class="report-stat-card">
-          <div class="report-stat-value">{{ databaseReports }}</div>
-          <div class="report-stat-label">{{ 'report-stat-database' | i18next }}</div>
-        </div>
-        <div class="report-stat-card">
-          <div class="report-stat-value">{{ solrReports }}</div>
-          <div class="report-stat-label">{{ 'report-stat-solr' | i18next }}</div>
-        </div>
-      </div>
-
-      <div class="panel panel-default">
-        <div class="panel-heading clearfix">
-          <span class="panel-title pull-left">{{ 'report-configured-reports' | i18next }}</span>
-          <div class="btn-group pull-right report-source-filter" role="group">
-            <button
-              class="btn btn-xs"
-              type="button"
-              [class.btn-primary]="sourceFilter === 'all'"
-              [class.btn-default]="sourceFilter !== 'all'"
-              (click)="setSourceFilter('all')"
+        <div class="card-body">
+          <p class="report-lede">
+            {{ (isAdmin ? 'reports-description-admin' : 'reports-description-librarian') | i18next }}
+          </p>
+          @if (errorMessage) {
+            <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
+          }
+          <div class="report-list-toolbar">
+            <div class="report-search-input">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input
+                class="form-control form-control-sm"
+                type="search"
+                [attr.aria-label]="'report-search-placeholder' | i18next"
+                [placeholder]="'report-search-placeholder' | i18next"
+                [(ngModel)]="searchText"
+                (ngModelChange)="applyFilter()"
+              />
+            </div>
+            <div
+              class="btn-group btn-group-sm report-source-filter"
+              role="group"
+              [attr.aria-label]="'report-col-source' | i18next"
             >
-              {{ 'report-source-all' | i18next }}
-            </button>
-            <button
-              class="btn btn-xs"
-              type="button"
-              [class.btn-primary]="sourceFilter === 'database'"
-              [class.btn-default]="sourceFilter !== 'database'"
-              (click)="setSourceFilter('database')"
-            >
-              {{ 'report-source-database' | i18next }}
-            </button>
-            <button
-              class="btn btn-xs"
-              type="button"
-              [class.btn-primary]="sourceFilter === 'solr'"
-              [class.btn-default]="sourceFilter !== 'solr'"
-              (click)="setSourceFilter('solr')"
-            >
-              {{ 'report-source-solr' | i18next }}
-            </button>
-          </div>
-        </div>
-        <div class="panel-body report-search-bar">
-          <div class="report-search-input">
-            <i class="fa fa-search"></i>
-            <input
-              class="form-control"
-              type="search"
-              [attr.aria-label]="'report-search-placeholder' | i18next"
-              [placeholder]="'report-search-placeholder' | i18next"
-              [(ngModel)]="searchText"
-              (ngModelChange)="applyFilter()"
-            />
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped table-hover">
-            <thead>
-              <tr>
-                <th>{{ 'report-col-title' | i18next }}</th>
-                <th>{{ 'report-col-name' | i18next }}</th>
-                <th>{{ 'report-col-source' | i18next }}</th>
-                <th class="text-center">{{ 'report-col-filters' | i18next }}</th>
-                <th class="text-center">{{ 'report-col-columns' | i18next }}</th>
-                <th class="text-right">{{ 'report-col-actions' | i18next }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (report of filteredReports; track report.name) {
-                <tr>
-                  <td>
-                    <a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next">{{ report.title }}</a>
-                  </td>
-                  <td>
-                    <a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next"
-                      ><code>{{ report.name }}</code></a
-                    >
-                  </td>
-                  <td>
-                    {{ report.reportSource }}
-                    @if (report.readOnly) {
-                      <span class="label label-default">{{ 'report-state-readonly' | i18next }}</span>
-                    }
-                  </td>
-                  <td class="text-center">{{ report.filter.length }}</td>
-                  <td class="text-center">{{ report.columns.length }}</td>
-                  <td class="text-right report-actions">
-                    <button
-                      class="btn btn-xs btn-default"
-                      type="button"
-                      [disabled]="report.readOnly || !report.canEdit"
-                      (click)="editReport(report)"
-                      [attr.title]="'report-action-edit' | i18next"
-                    >
-                      <i class="fa fa-pencil"></i> {{ 'report-action-edit' | i18next }}
-                    </button>
-                    <a
-                      class="btn btn-xs btn-default"
-                      [href]="openReport(report)"
-                      [attr.title]="'report-action-view' | i18next"
-                      ><i class="fa fa-eye"></i> {{ 'report-action-view' | i18next }}</a
-                    >
-                    <button
-                      class="btn btn-xs btn-danger"
-                      type="button"
-                      [disabled]="report.readOnly || !report.canDelete"
-                      (click)="deleteReport(report)"
-                      [attr.title]="'report-action-delete' | i18next"
-                    >
-                      <i class="fa fa-trash"></i> {{ 'report-action-delete' | i18next }}
-                    </button>
-                  </td>
-                </tr>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                [class.active]="sourceFilter === 'all'"
+                [attr.aria-pressed]="sourceFilter === 'all'"
+                (click)="setSourceFilter('all')"
+              >
+                {{ 'report-source-all' | i18next }}
+                <span class="report-count" [attr.title]="'report-stat-total' | i18next">{{ totalReports }}</span>
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                [class.active]="sourceFilter === 'database'"
+                [attr.aria-pressed]="sourceFilter === 'database'"
+                (click)="setSourceFilter('database')"
+              >
+                {{ 'report-source-database' | i18next }}
+                <span class="report-count" [attr.title]="'report-stat-database' | i18next">{{ databaseReports }}</span>
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                [class.active]="sourceFilter === 'solr'"
+                [attr.aria-pressed]="sourceFilter === 'solr'"
+                (click)="setSourceFilter('solr')"
+              >
+                {{ 'report-source-solr' | i18next }}
+                <span class="report-count" [attr.title]="'report-stat-solr' | i18next">{{ solrReports }}</span>
+              </button>
+            </div>
+            <div class="report-list-actions">
+              @if (canManageQueries) {
+                <a class="btn btn-sm btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/named-query'"
+                  ><i class="fa-solid fa-database me-1" aria-hidden="true"></i
+                  >{{ 'report-manage-named-queries' | i18next }}</a
+                >
               }
-              @if (filteredReports.length === 0) {
+              <button id="report-create" class="btn btn-sm btn-primary" type="button" (click)="createReport()">
+                <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'report-create' | i18next }}
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table align-middle report-list-table">
+              <caption class="visually-hidden">
+                {{
+                  'report-configured-reports' | i18next
+                }}
+              </caption>
+              <thead>
                 <tr>
-                  <td colspan="6" class="text-center text-muted">{{ 'report-none-found' | i18next }}</td>
+                  <th scope="col">{{ 'report-col-title' | i18next }}</th>
+                  <th scope="col">{{ 'report-col-name' | i18next }}</th>
+                  <th scope="col">{{ 'report-col-source' | i18next }}</th>
+                  <th scope="col" class="text-center">{{ 'report-col-filters' | i18next }}</th>
+                  <th scope="col" class="text-center">{{ 'report-col-columns' | i18next }}</th>
+                  <th scope="col" class="text-end">{{ 'report-col-actions' | i18next }}</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        <div class="panel-footer report-pagination">
-          {{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}
+              </thead>
+              <tbody>
+                @for (report of filteredReports; track report.name) {
+                  <tr>
+                    <td class="report-cell-title">
+                      <a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next">{{ report.title }}</a>
+                    </td>
+                    <td>
+                      <a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next"
+                        ><code class="report-name">{{ report.name }}</code></a
+                      >
+                    </td>
+                    <td>
+                      {{ report.reportSource }}
+                      @if (report.readOnly) {
+                        <span class="report-badge">{{ 'report-state-readonly' | i18next }}</span>
+                      }
+                    </td>
+                    <td class="text-center">{{ report.filter.length }}</td>
+                    <td class="text-center">{{ report.columns.length }}</td>
+                    <td class="text-end report-actions">
+                      <button
+                        class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        [disabled]="report.readOnly || !report.canEdit"
+                        (click)="editReport(report)"
+                      >
+                        {{ 'report-action-edit' | i18next }}<span class="visually-hidden"> {{ report.title }}</span>
+                      </button>
+                      <a class="btn btn-sm btn-outline-secondary" [href]="openReport(report)"
+                        >{{ 'report-action-view' | i18next }}<span class="visually-hidden"> {{ report.title }}</span></a
+                      >
+                      <button
+                        class="btn btn-sm btn-outline-danger"
+                        type="button"
+                        [disabled]="report.readOnly || !report.canDelete"
+                        (click)="deleteReport(report)"
+                      >
+                        {{ 'report-action-delete' | i18next }}<span class="visually-hidden"> {{ report.title }}</span>
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6" class="report-empty">{{ 'report-none-found' | i18next }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="report-list-footer">
+            {{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}
+          </div>
         </div>
       </div>
     }
     @if (selectedReport; as report) {
-      <section class="report-workspace" aria-labelledby="report-workspace-title">
-        <header class="report-workspace-header">
-          <div>
-            <h2 id="report-workspace-title" tabindex="-1">
-              {{ (isNewReport ? 'report-create-title' : 'report-edit-title') | i18next }} {{ report.title }}
-            </h2>
+      <section class="report-workspace card panel-style panel-default rb-ws" aria-labelledby="report-workspace-title">
+        <div class="card-header rb-ws-header">
+          <div class="rb-ws-heading">
+            <h1 id="report-workspace-title" tabindex="-1" class="card-title rb-ws-title">
+              <i class="fa-solid fa-table-list" aria-hidden="true"></i
+              >{{ (isNewReport ? 'report-create-title' : 'report-edit-title') | i18next }}
+              @if (report.title) {
+                <span class="report-title-detail">{{ report.title }}</span>
+              }
+            </h1>
             @if (dirty) {
-              <span class="text-warning" role="status">{{ 'report-unsaved' | i18next }}</span>
+              <span class="rb-ws-header-badge" role="status">{{ 'report-unsaved' | i18next }}</span>
             }
           </div>
-          <div class="report-workspace-actions">
-            <button class="btn btn-default" type="button" (click)="cancelEdit()">
-              {{ 'report-cancel' | i18next }}
-            </button>
-            <button
-              class="btn btn-default"
-              type="button"
-              [disabled]="isPreviewing || !report.canPreview"
-              (click)="previewReport()"
-            >
-              {{ 'report-preview' | i18next }}
-            </button>
-            <button class="btn btn-primary" type="button" [disabled]="isSaving || saveBlocked" (click)="saveReport()">
-              {{ 'report-save' | i18next }}
-            </button>
-          </div>
-        </header>
-        <div class="report-workspace-grid" [class.help-closed]="!helpOpen">
-          <main class="report-editor">
-            <fieldset>
-              <legend>{{ 'report-basics' | i18next }}</legend>
-              <div class="report-control-grid">
-                <div class="form-group">
-                  <label class="required" for="report-name">{{ 'report-field-key' | i18next }}</label>
-                  <input
-                    id="report-name"
-                    class="form-control"
-                    type="text"
-                    [(ngModel)]="report.name"
-                    (ngModelChange)="draftChanged()"
-                    [disabled]="!isNewReport || isSaving"
-                  />
-                  <report-diagnostics [diagnostics]="diagnostics" location="name"></report-diagnostics>
-                </div>
-                <div class="form-group">
-                  <label class="required" for="report-title">{{ 'report-field-title' | i18next }}</label>
-                  <input
-                    id="report-title"
-                    class="form-control"
-                    type="text"
-                    [(ngModel)]="report.title"
-                    (ngModelChange)="draftChanged()"
-                  />
-                  <report-diagnostics [diagnostics]="diagnostics" location="title"></report-diagnostics>
-                </div>
-                <div class="form-group">
-                  <label class="required" for="report-named-query">{{ 'report-field-named-query' | i18next }}</label>
-                  @if (queryChoicesUnavailable) {
-                    <input
-                      id="report-named-query"
-                      class="form-control"
-                      type="text"
-                      [ngModel]="report.databaseQuery?.queryName || ''"
-                      (ngModelChange)="selectQuery($event)"
-                      aria-describedby="report-query-choices-help"
-                    />
-                    <p id="report-query-choices-help">{{ 'report-query-choices-unavailable' | i18next }}</p>
-                  } @else {
-                    <select
-                      id="report-named-query"
-                      class="form-control"
-                      [ngModel]="report.databaseQuery?.queryName || ''"
-                      (ngModelChange)="selectQuery($event)"
-                    >
-                      <option value="">{{ 'report-named-query-placeholder' | i18next }}</option>
-                      @for (name of queryOptions; track name) {
-                        <option [value]="name">{{ name }}</option>
-                      }
-                    </select>
-                  }
-                  <report-diagnostics
-                    [diagnostics]="diagnostics"
-                    location="databaseQuery.queryName"
-                  ></report-diagnostics>
-                </div>
-              </div>
-              <p>{{ 'report-query-change-help' | i18next }}</p>
-            </fieldset>
-            <datalist id="report-parameters">
-              @for (p of parameters; track p.key) {
-                <option [value]="p.key">{{ p.type }} — {{ p.path }}</option>
-              }
-            </datalist>
-            <datalist id="report-date-parameters">
-              @for (p of dateParameters; track p.key) {
-                <option [value]="p.key">{{ p.type }} — {{ p.path }}</option>
-              }
-            </datalist>
-            <fieldset>
-              <legend>{{ 'report-section-filters' | i18next }}</legend>
-              <p>{{ 'report-filter-binding-help' | i18next }}</p>
-              @for (filter of report.filter; track filter; let i = $index) {
-                <section
-                  class="report-editor-card"
-                  [attr.data-filter]="i"
-                  [attr.aria-label]="('report-filter' | i18next) + ' ' + (i + 1)"
-                >
-                  <div class="report-control-grid">
-                    <div class="form-group">
-                      <label [for]="'filter-type-' + i">{{ 'report-filter-type' | i18next }}</label>
-                      <select
-                        [id]="'filter-type-' + i"
-                        class="form-control"
-                        [(ngModel)]="filter.type"
-                        (ngModelChange)="filterTypeChanged(filter)"
-                      >
-                        <option value="text">{{ 'report-filter-type-text' | i18next }}</option>
-                        <option value="date-range">{{ 'report-filter-type-date-range' | i18next }}</option>
-                        @if (filter.type !== 'text' && filter.type !== 'date-range') {
-                          <option [value]="filter.type">{{ filter.type }}</option>
-                        }
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label [for]="'filter-param-' + i">{{
-                        (filter.type === 'date-range' ? 'report-filter-range-key' : 'report-filter-parameter') | i18next
-                      }}</label>
-                      <input
-                        [id]="'filter-param-' + i"
-                        class="form-control"
-                        [(ngModel)]="filter.paramName"
-                        (ngModelChange)="draftChanged()"
-                        [attr.list]="filter.type === 'text' ? 'report-parameters' : null"
-                      />
-                      <report-diagnostics
-                        [diagnostics]="diagnostics"
-                        [location]="'filter.' + i + '.paramName'"
-                      ></report-diagnostics>
-                    </div>
-                    <div class="form-group">
-                      <label [for]="'filter-label-' + i">{{ 'report-filter-label' | i18next }}</label>
-                      <input
-                        [id]="'filter-label-' + i"
-                        class="form-control"
-                        [(ngModel)]="filter.message"
-                        (ngModelChange)="draftChanged()"
-                      />
-                    </div>
-                  </div>
-                  @if (filter.type === 'date-range') {
-                    <div class="report-control-grid">
-                      <div class="form-group">
-                        <label [for]="'filter-from-' + i">{{ 'report-filter-from-parameter' | i18next }}</label>
-                        <input
-                          [id]="'filter-from-' + i"
-                          class="form-control"
-                          list="report-date-parameters"
-                          [ngModel]="filter.database?.fromProperty || ''"
-                          (ngModelChange)="setDateBinding(filter, 'fromProperty', $event)"
-                        />
-                        <report-diagnostics
-                          [diagnostics]="diagnostics"
-                          [location]="'filter.' + i + '.database.fromProperty'"
-                        ></report-diagnostics>
-                      </div>
-                      <div class="form-group">
-                        <label [for]="'filter-to-' + i">{{ 'report-filter-to-parameter' | i18next }}</label>
-                        <input
-                          [id]="'filter-to-' + i"
-                          class="form-control"
-                          list="report-date-parameters"
-                          [ngModel]="filter.database?.toProperty || ''"
-                          (ngModelChange)="setDateBinding(filter, 'toProperty', $event)"
-                        />
-                        <report-diagnostics
-                          [diagnostics]="diagnostics"
-                          [location]="'filter.' + i + '.database.toProperty'"
-                        ></report-diagnostics>
-                      </div>
-                    </div>
-                    <p>{{ 'report-date-binding-help' | i18next }}</p>
-                    @if (datePair(); as pair) {
-                      <button class="btn btn-default" type="button" (click)="suggestDatePair(filter)">
-                        {{ 'report-suggest-date-pair' | i18next }}: {{ pair.from.key }} / {{ pair.to.key }}
-                      </button>
-                    }
-                  }
-                  <button
-                    class="btn btn-default"
-                    type="button"
-                    (click)="removeFilter(i)"
-                    [attr.aria-label]="('report-remove-filter' | i18next) + ' ' + (i + 1)"
-                  >
-                    {{ 'report-action-remove' | i18next }}
-                  </button>
-                </section>
-              }
-              <button class="btn btn-default" type="button" (click)="addFilter()">
-                {{ 'report-add-filter' | i18next }}
-              </button>
-            </fieldset>
-            <fieldset>
-              <legend>{{ 'report-section-columns' | i18next }}</legend>
-              <p>{{ 'report-columns-help' | i18next }}</p>
-              @for (column of report.columns; track column; let i = $index) {
-                <section
-                  class="report-editor-card"
-                  [attr.data-column]="i"
-                  [attr.aria-label]="('report-column' | i18next) + ' ' + (i + 1)"
-                >
-                  <div class="report-control-grid">
-                    <div class="form-group">
-                      <label [for]="'column-label-' + i">{{ 'report-column-label' | i18next }}</label>
-                      <input
-                        [id]="'column-label-' + i"
-                        class="form-control"
-                        [(ngModel)]="column.label"
-                        (ngModelChange)="draftChanged()"
-                      />
-                      <report-diagnostics
-                        [diagnostics]="diagnostics"
-                        [location]="'columns.' + i + '.label'"
-                      ></report-diagnostics>
-                    </div>
-                    <div class="form-group">
-                      <label [for]="'column-property-' + i">{{ 'report-column-property' | i18next }}</label>
-                      <input
-                        #propertyInput
-                        [id]="'column-property-' + i"
-                        class="form-control"
-                        [(ngModel)]="column.property"
-                        (ngModelChange)="draftChanged()"
-                      />
-                      <rb-field-autocomplete
-                        [target]="propertyInput"
-                        mode="path"
-                        [source]="outputSource"
-                      ></rb-field-autocomplete>
-                      <report-diagnostics
-                        [diagnostics]="diagnostics"
-                        [location]="'columns.' + i + '.property'"
-                      ></report-diagnostics>
-                    </div>
-                  </div>
-                  <div class="report-column-options">
-                    <label
-                      ><input type="checkbox" [(ngModel)]="column.hide" (ngModelChange)="draftChanged()" />
-                      {{ 'report-column-hide' | i18next }} {{ column.label }}</label
-                    >
-                    <label
-                      ><input type="checkbox" [(ngModel)]="column.multivalue" (ngModelChange)="draftChanged()" />
-                      {{ 'report-column-multivalue' | i18next }} {{ column.label }}</label
-                    >
-                  </div>
-                  @if (columnIsArray(column)) {
-                    <p class="alert alert-info">{{ 'report-array-help' | i18next }}</p>
-                  }
-                  <report-diagnostics
-                    [diagnostics]="diagnostics"
-                    [location]="'columns.' + i + '.multivalue'"
-                  ></report-diagnostics>
-                  <details class="report-templates">
-                    <summary>{{ 'report-column-templates' | i18next }} {{ column.label }}</summary>
-                    <report-template-input
-                      [fields]="fields"
-                      [property]="column.property"
-                      [multivalue]="!!column.multivalue"
-                      kind="display"
-                      [inputId]="'column-display-' + i"
-                      [label]="('report-column-template' | i18next) + ' ' + (i + 1) + ' ' + column.label"
-                      [value]="column.template || ''"
-                      (valueChange)="column.template = $event; draftChanged()"
-                      [diagnostics]="diagnostics"
-                      [location]="'columns.' + i + '.template'"
-                    ></report-template-input>
-                    <report-template-input
-                      [fields]="fields"
-                      [property]="column.property"
-                      [multivalue]="!!column.multivalue"
-                      kind="csv"
-                      [inputId]="'column-csv-' + i"
-                      [label]="('report-column-export-template' | i18next) + ' ' + (i + 1) + ' ' + column.label"
-                      [value]="column.exportTemplate || ''"
-                      (valueChange)="column.exportTemplate = $event; draftChanged()"
-                      [diagnostics]="diagnostics"
-                      [location]="'columns.' + i + '.exportTemplate'"
-                    ></report-template-input>
-                  </details>
-                  <div class="report-column-actions">
-                    <button
-                      class="btn btn-default"
-                      type="button"
-                      [disabled]="i === 0"
-                      (click)="moveColumn(i, -1)"
-                      [attr.aria-label]="('report-column-up' | i18next) + ' ' + column.label"
-                    >
-                      {{ 'report-column-up' | i18next }}
-                    </button>
-                    <button
-                      class="btn btn-default"
-                      type="button"
-                      [disabled]="i === report.columns.length - 1"
-                      (click)="moveColumn(i, 1)"
-                      [attr.aria-label]="('report-column-down' | i18next) + ' ' + column.label"
-                    >
-                      {{ 'report-column-down' | i18next }}
-                    </button>
-                    <button
-                      class="btn btn-default"
-                      type="button"
-                      (click)="removeColumn(i)"
-                      [attr.aria-label]="('report-remove-column' | i18next) + ' ' + column.label"
-                    >
-                      {{ 'report-action-remove' | i18next }}
-                    </button>
-                  </div>
-                </section>
-              }
-              <button class="btn btn-default" type="button" (click)="addColumn()">
-                {{ 'report-add-column' | i18next }}
-              </button>
-            </fieldset>
-          </main>
-          <aside class="report-help">
-            <button
-              class="btn btn-default"
-              type="button"
-              [attr.aria-expanded]="helpOpen"
-              aria-controls="report-help-content"
-              (click)="helpOpen = !helpOpen"
-            >
-              {{ 'report-field-help' | i18next }}
-            </button>
-            <div id="report-help-content" [hidden]="!helpOpen">
-              <h3>{{ 'report-selected-query' | i18next }} {{ report.databaseQuery?.queryName }}</h3>
-              <button class="btn btn-default" type="button" (click)="refreshAssistance()">
-                {{ 'report-refresh-assistance' | i18next }}
-              </button>
-              @if (canManageQueries) {
-                <p>
-                  <a [href]="brandingAndPortalUrl + '/admin/named-query'">{{
-                    'report-manage-named-queries' | i18next
-                  }}</a>
-                </p>
-              }
-              @if (describing) {
-                <p role="status">{{ 'report-loading-assistance' | i18next }}</p>
-              }
-              @if (assistanceError) {
-                <p class="alert alert-warning" role="status">{{ assistanceError }}</p>
-              }
-              @if (description; as desc) {
-                <p>
-                  {{ 'report-guidance-scope' | i18next }} {{ desc.result.precision }} / {{ desc.result.completeness }}
-                </p>
-                <h4>{{ 'report-query-parameters' | i18next }}</h4>
-                <ul class="report-parameter-list">
-                  @for (p of parameters; track p.key) {
-                    <li>
-                      <code>{{ p.key }}</code> — {{ p.type }}
-                      @if (p.required) {
-                        ({{ 'report-required' | i18next }})
-                      }
-                      <small
-                        >{{ 'report-target-path' | i18next }} <code>{{ p.path }}</code> {{ p.queryType }}
-                        {{ p.format }}</small
-                      >
-                    </li>
-                  }
-                </ul>
-                @if (!parameters.length) {
-                  <p>{{ 'report-no-parameters' | i18next }}</p>
-                }
-                <h4>{{ 'report-query-outputs' | i18next }}</h4>
-                <label for="report-output-search">{{ 'report-search-output-fields' | i18next }}</label>
-                <input id="report-output-search" class="form-control" type="search" [(ngModel)]="outputSearch" />
-                <div class="report-output-list">
-                  @for (field of outputs; track field.path) {
-                    <label
-                      ><input
-                        type="checkbox"
-                        [checked]="selectedOutputs.has(field.path)"
-                        (change)="toggleOutput(field.path, $any($event.target).checked)"
-                      />
-                      {{ field.title || field.path }} <code>{{ field.path }}</code> — {{ field.type }}
-                      @if (field.isArray) {
-                        <span>{{ 'report-array' | i18next }}</span>
-                      }
-                      @if (field.description) {
-                        <small>{{ field.description }}</small>
-                      }
-                    </label>
-                  }
-                </div>
-                <button
-                  class="btn btn-primary"
-                  type="button"
-                  [disabled]="!selectedOutputs.size"
-                  (click)="addSelectedColumns()"
-                >
-                  {{ 'report-add-selected-columns' | i18next }}
-                </button>
-              }
-            </div>
-          </aside>
+          <button
+            class="btn btn-sm rb-ws-header-button"
+            type="button"
+            [attr.aria-expanded]="helpOpen"
+            aria-controls="report-help-content"
+            (click)="helpOpen = !helpOpen"
+          >
+            <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>{{ 'report-field-help' | i18next }}
+          </button>
+          <button class="btn btn-sm rb-ws-header-button" type="button" (click)="cancelEdit()">
+            <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>{{ 'reports-heading' | i18next }}
+          </button>
         </div>
-        <section class="report-results" aria-labelledby="report-preview-heading">
-          <h3 id="report-preview-heading">{{ 'report-results-diagnostics' | i18next }}</h3>
-          @if (validating) {
-            <p role="status">{{ 'report-validating' | i18next }}</p>
-          }
-          @if (validationError) {
-            <p class="alert alert-warning" role="status">{{ validationError }}</p>
-          }
-          <details [open]="diagnostics.length > 0">
-            <summary>{{ 'report-all-diagnostics' | i18next }} ({{ diagnostics.length }})</summary>
-            @for (d of diagnostics; track $index) {
-              <div
-                class="report-diagnostic"
-                [class.text-danger]="d.severity === 'error'"
-                [class.text-warning]="d.severity !== 'error'"
-              >
-                <strong>{{ (d.severity === 'error' ? 'report-blocking' : 'report-advisory') | i18next }}</strong>
-                <code>{{ d.field }}</code> {{ d.reason }}
-                @if (d.suggestion) {
-                  {{ 'report-suggestion' | i18next }} <code>{{ d.suggestion }}</code>
+        <div class="card-body">
+          <div class="rb-ws-grid" [class.rb-ws-with-help]="helpOpen">
+            <main class="rb-ws-main report-editor">
+              <section class="card rb-ws-pane" aria-labelledby="report-basics-title">
+                <div class="card-header">
+                  <h2 id="report-basics-title" class="rb-ws-pane-title">
+                    <i class="fa-solid fa-sliders" aria-hidden="true"></i>{{ 'report-basics' | i18next }}
+                  </h2>
+                </div>
+                <div class="card-body">
+                  <div class="report-control-grid">
+                    <div>
+                      <label class="form-label required" for="report-name">{{ 'report-field-key' | i18next }}</label>
+                      <input
+                        id="report-name"
+                        class="form-control"
+                        type="text"
+                        [(ngModel)]="report.name"
+                        (ngModelChange)="draftChanged()"
+                        [disabled]="!isNewReport || isSaving"
+                      />
+                      <report-diagnostics [diagnostics]="diagnostics" location="name"></report-diagnostics>
+                    </div>
+                    <div>
+                      <label class="form-label required" for="report-title">{{ 'report-field-title' | i18next }}</label>
+                      <input
+                        id="report-title"
+                        class="form-control"
+                        type="text"
+                        [(ngModel)]="report.title"
+                        (ngModelChange)="draftChanged()"
+                      />
+                      <report-diagnostics [diagnostics]="diagnostics" location="title"></report-diagnostics>
+                    </div>
+                    <div>
+                      <label class="form-label required" for="report-named-query">{{
+                        'report-field-named-query' | i18next
+                      }}</label>
+                      @if (queryChoicesUnavailable) {
+                        <input
+                          id="report-named-query"
+                          class="form-control"
+                          type="text"
+                          [ngModel]="report.databaseQuery?.queryName || ''"
+                          (ngModelChange)="selectQuery($event)"
+                          aria-describedby="report-query-choices-help"
+                        />
+                        <div id="report-query-choices-help" class="form-text">
+                          {{ 'report-query-choices-unavailable' | i18next }}
+                        </div>
+                      } @else {
+                        <select
+                          id="report-named-query"
+                          class="form-select"
+                          [ngModel]="report.databaseQuery?.queryName || ''"
+                          (ngModelChange)="selectQuery($event)"
+                          aria-describedby="report-query-change-help"
+                        >
+                          <option value="">{{ 'report-named-query-placeholder' | i18next }}</option>
+                          @for (name of queryOptions; track name) {
+                            <option [value]="name">{{ name }}</option>
+                          }
+                        </select>
+                      }
+                      <report-diagnostics
+                        [diagnostics]="diagnostics"
+                        location="databaseQuery.queryName"
+                      ></report-diagnostics>
+                    </div>
+                  </div>
+                  <p id="report-query-change-help" class="form-text mb-0">{{ 'report-query-change-help' | i18next }}</p>
+                </div>
+              </section>
+              <datalist id="report-parameters">
+                @for (p of parameters; track p.key) {
+                  <option [value]="p.key">{{ p.type }} — {{ p.path }}</option>
+                }
+              </datalist>
+              <datalist id="report-date-parameters">
+                @for (p of dateParameters; track p.key) {
+                  <option [value]="p.key">{{ p.type }} — {{ p.path }}</option>
+                }
+              </datalist>
+
+              <section class="card rb-ws-pane" aria-labelledby="report-filters-title">
+                <div class="card-header">
+                  <h2 id="report-filters-title" class="rb-ws-pane-title">
+                    <i class="fa-solid fa-filter" aria-hidden="true"></i>{{ 'report-section-filters' | i18next }}
+                    <span class="rb-ws-count">{{ report.filter.length }}</span>
+                  </h2>
+                </div>
+                <div class="card-body">
+                  <p class="rb-ws-lede">{{ 'report-filter-binding-help' | i18next }}</p>
+                  @for (filter of report.filter; track filter; let i = $index) {
+                    <section
+                      class="rb-ws-item report-editor-card"
+                      [attr.data-filter]="i"
+                      [attr.aria-label]="('report-filter' | i18next) + ' ' + (i + 1)"
+                    >
+                      <div class="rb-ws-item-header">
+                        <h3 class="rb-ws-item-title">
+                          {{ 'report-filter' | i18next }} {{ i + 1 }}
+                          @if (filter.message) {
+                            <span class="report-item-detail">{{ filter.message }}</span>
+                          }
+                        </h3>
+                        <button
+                          class="btn btn-sm btn-outline-danger"
+                          type="button"
+                          (click)="removeFilter(i)"
+                          [attr.aria-label]="('report-remove-filter' | i18next) + ' ' + (i + 1)"
+                        >
+                          <i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i
+                          >{{ 'report-action-remove' | i18next }}
+                        </button>
+                      </div>
+                      <div class="report-control-grid">
+                        <div>
+                          <label class="form-label" [for]="'filter-type-' + i">{{ 'report-filter-type' | i18next }}</label>
+                          <select
+                            [id]="'filter-type-' + i"
+                            class="form-select"
+                            [(ngModel)]="filter.type"
+                            (ngModelChange)="filterTypeChanged(filter)"
+                          >
+                            <option value="text">{{ 'report-filter-type-text' | i18next }}</option>
+                            <option value="date-range">{{ 'report-filter-type-date-range' | i18next }}</option>
+                            @if (filter.type !== 'text' && filter.type !== 'date-range') {
+                              <option [value]="filter.type">{{ filter.type }}</option>
+                            }
+                          </select>
+                        </div>
+                        <div>
+                          <label class="form-label" [for]="'filter-param-' + i">{{
+                            (filter.type === 'date-range' ? 'report-filter-range-key' : 'report-filter-parameter')
+                              | i18next
+                          }}</label>
+                          <input
+                            [id]="'filter-param-' + i"
+                            class="form-control"
+                            [(ngModel)]="filter.paramName"
+                            (ngModelChange)="draftChanged()"
+                            [attr.list]="filter.type === 'text' ? 'report-parameters' : null"
+                          />
+                          <report-diagnostics
+                            [diagnostics]="diagnostics"
+                            [location]="'filter.' + i + '.paramName'"
+                          ></report-diagnostics>
+                        </div>
+                        <div>
+                          <label class="form-label" [for]="'filter-label-' + i">{{ 'report-filter-label' | i18next }}</label>
+                          <input
+                            [id]="'filter-label-' + i"
+                            class="form-control"
+                            [(ngModel)]="filter.message"
+                            (ngModelChange)="draftChanged()"
+                          />
+                        </div>
+                      </div>
+                      @if (filter.type === 'date-range') {
+                        <div class="report-date-binding">
+                          <div class="report-control-grid">
+                            <div>
+                              <label class="form-label" [for]="'filter-from-' + i">{{
+                                'report-filter-from-parameter' | i18next
+                              }}</label>
+                              <input
+                                [id]="'filter-from-' + i"
+                                class="form-control"
+                                list="report-date-parameters"
+                                [attr.aria-describedby]="'filter-date-help-' + i"
+                                [ngModel]="filter.database?.fromProperty || ''"
+                                (ngModelChange)="setDateBinding(filter, 'fromProperty', $event)"
+                              />
+                              <report-diagnostics
+                                [diagnostics]="diagnostics"
+                                [location]="'filter.' + i + '.database.fromProperty'"
+                              ></report-diagnostics>
+                            </div>
+                            <div>
+                              <label class="form-label" [for]="'filter-to-' + i">{{
+                                'report-filter-to-parameter' | i18next
+                              }}</label>
+                              <input
+                                [id]="'filter-to-' + i"
+                                class="form-control"
+                                list="report-date-parameters"
+                                [attr.aria-describedby]="'filter-date-help-' + i"
+                                [ngModel]="filter.database?.toProperty || ''"
+                                (ngModelChange)="setDateBinding(filter, 'toProperty', $event)"
+                              />
+                              <report-diagnostics
+                                [diagnostics]="diagnostics"
+                                [location]="'filter.' + i + '.database.toProperty'"
+                              ></report-diagnostics>
+                            </div>
+                          </div>
+                          <p [id]="'filter-date-help-' + i" class="form-text">{{ 'report-date-binding-help' | i18next }}</p>
+                          @if (datePair(); as pair) {
+                            <button class="btn btn-sm btn-outline-primary" type="button" (click)="suggestDatePair(filter)">
+                              <i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i
+                              >{{ 'report-suggest-date-pair' | i18next }}: {{ pair.from.key }} / {{ pair.to.key }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    </section>
+                  } @empty {
+                    <p class="rb-ws-empty">{{ 'report-no-filters' | i18next }}</p>
+                  }
+                  <button class="btn btn-sm btn-outline-primary rb-ws-add" type="button" (click)="addFilter()">
+                    <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'report-add-filter' | i18next }}
+                  </button>
+                </div>
+              </section>
+
+              <section class="card rb-ws-pane" aria-labelledby="report-columns-title">
+                <div class="card-header">
+                  <h2 id="report-columns-title" class="rb-ws-pane-title">
+                    <i class="fa-solid fa-table-columns" aria-hidden="true"></i>{{ 'report-section-columns' | i18next }}
+                    <span class="rb-ws-count">{{ report.columns.length }}</span>
+                  </h2>
+                </div>
+                <div class="card-body">
+                  <p class="rb-ws-lede">{{ 'report-columns-help' | i18next }}</p>
+                  @for (column of report.columns; track column; let i = $index) {
+                    <section
+                      class="rb-ws-item report-editor-card"
+                      [attr.data-column]="i"
+                      [attr.aria-label]="('report-column' | i18next) + ' ' + (i + 1)"
+                    >
+                      <div class="rb-ws-item-header">
+                        <h3 class="rb-ws-item-title">
+                          {{ 'report-column' | i18next }} {{ i + 1 }}
+                          @if (column.label) {
+                            <span class="report-item-detail">{{ column.label }}</span>
+                          }
+                        </h3>
+                        <div class="rb-ws-item-actions report-column-actions">
+                          <button
+                            class="btn btn-sm btn-outline-secondary"
+                            type="button"
+                            [disabled]="i === 0"
+                            (click)="moveColumn(i, -1)"
+                            [attr.aria-label]="('report-column-up' | i18next) + ' ' + column.label"
+                            [attr.title]="'report-column-up' | i18next"
+                          >
+                            <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+                            <span class="report-action-text">{{ 'report-column-up' | i18next }}</span>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-outline-secondary"
+                            type="button"
+                            [disabled]="i === report.columns.length - 1"
+                            (click)="moveColumn(i, 1)"
+                            [attr.aria-label]="('report-column-down' | i18next) + ' ' + column.label"
+                            [attr.title]="'report-column-down' | i18next"
+                          >
+                            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                            <span class="report-action-text">{{ 'report-column-down' | i18next }}</span>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-outline-danger"
+                            type="button"
+                            (click)="removeColumn(i)"
+                            [attr.aria-label]="('report-remove-column' | i18next) + ' ' + column.label"
+                          >
+                            <i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i
+                            >{{ 'report-action-remove' | i18next }}
+                          </button>
+                        </div>
+                      </div>
+                      <div class="report-control-grid">
+                        <div>
+                          <label class="form-label" [for]="'column-label-' + i">{{ 'report-column-label' | i18next }}</label>
+                          <input
+                            [id]="'column-label-' + i"
+                            class="form-control"
+                            [(ngModel)]="column.label"
+                            (ngModelChange)="draftChanged()"
+                          />
+                          <report-diagnostics
+                            [diagnostics]="diagnostics"
+                            [location]="'columns.' + i + '.label'"
+                          ></report-diagnostics>
+                        </div>
+                        <div>
+                          <label class="form-label" [for]="'column-property-' + i">{{
+                            'report-column-property' | i18next
+                          }}</label>
+                          <input
+                            #propertyInput
+                            [id]="'column-property-' + i"
+                            class="form-control font-monospace"
+                            [(ngModel)]="column.property"
+                            (ngModelChange)="draftChanged()"
+                          />
+                          <rb-field-autocomplete
+                            [target]="propertyInput"
+                            mode="path"
+                            [source]="outputSource"
+                          ></rb-field-autocomplete>
+                          <report-diagnostics
+                            [diagnostics]="diagnostics"
+                            [location]="'columns.' + i + '.property'"
+                          ></report-diagnostics>
+                        </div>
+                      </div>
+                      <div class="report-column-options">
+                        <div class="form-check form-check-inline">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            [id]="'column-hide-' + i"
+                            [(ngModel)]="column.hide"
+                            (ngModelChange)="draftChanged()"
+                          />
+                          <label class="form-check-label" [for]="'column-hide-' + i"
+                            >{{ 'report-column-hide' | i18next
+                            }}<span class="visually-hidden"> {{ column.label }}</span></label
+                          >
+                        </div>
+                        <div class="form-check form-check-inline">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            [id]="'column-multivalue-' + i"
+                            [(ngModel)]="column.multivalue"
+                            (ngModelChange)="draftChanged()"
+                          />
+                          <label class="form-check-label" [for]="'column-multivalue-' + i"
+                            >{{ 'report-column-multivalue' | i18next
+                            }}<span class="visually-hidden"> {{ column.label }}</span></label
+                          >
+                        </div>
+                      </div>
+                      @if (columnIsArray(column)) {
+                        <p class="report-array-help" role="note">
+                          <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+                          <span>{{ 'report-array-help' | i18next }}</span>
+                        </p>
+                      }
+                      <report-diagnostics
+                        [diagnostics]="diagnostics"
+                        [location]="'columns.' + i + '.multivalue'"
+                      ></report-diagnostics>
+                      <details class="report-templates rb-ws-disclosure">
+                        <summary>
+                          {{ 'report-column-templates' | i18next
+                          }}<span class="visually-hidden"> {{ column.label }}</span>
+                        </summary>
+                        <report-template-input
+                          [fields]="fields"
+                          [property]="column.property"
+                          [multivalue]="!!column.multivalue"
+                          kind="display"
+                          [inputId]="'column-display-' + i"
+                          [label]="('report-column-template' | i18next) + ' ' + (i + 1) + ' ' + column.label"
+                          [value]="column.template || ''"
+                          (valueChange)="column.template = $event; draftChanged()"
+                          [diagnostics]="diagnostics"
+                          [location]="'columns.' + i + '.template'"
+                        ></report-template-input>
+                        <report-template-input
+                          [fields]="fields"
+                          [property]="column.property"
+                          [multivalue]="!!column.multivalue"
+                          kind="csv"
+                          [inputId]="'column-csv-' + i"
+                          [label]="('report-column-export-template' | i18next) + ' ' + (i + 1) + ' ' + column.label"
+                          [value]="column.exportTemplate || ''"
+                          (valueChange)="column.exportTemplate = $event; draftChanged()"
+                          [diagnostics]="diagnostics"
+                          [location]="'columns.' + i + '.exportTemplate'"
+                        ></report-template-input>
+                      </details>
+                    </section>
+                  } @empty {
+                    <p class="rb-ws-empty">{{ 'report-no-columns' | i18next }}</p>
+                  }
+                  <button class="btn btn-sm btn-outline-primary rb-ws-add" type="button" (click)="addColumn()">
+                    <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'report-add-column' | i18next }}
+                  </button>
+                </div>
+              </section>
+            </main>
+
+            <aside
+              id="report-help-content"
+              class="card rb-ws-pane rb-ws-help report-help"
+              [hidden]="!helpOpen"
+              aria-labelledby="report-help-title"
+            >
+              <div class="card-header">
+                <h2 id="report-help-title" class="rb-ws-pane-title">
+                  <i class="fa-solid fa-circle-info" aria-hidden="true"></i>{{ 'report-field-help' | i18next }}
+                </h2>
+                <button
+                  type="button"
+                  class="btn-close"
+                  [attr.aria-label]="'report-close-help' | i18next"
+                  (click)="helpOpen = false"
+                ></button>
+              </div>
+              <div class="card-body">
+                <div class="rb-ws-section">
+                  <h3 class="rb-ws-section-title">{{ 'report-selected-query' | i18next }}</h3>
+                  <p class="report-query-name">
+                    @if (report.databaseQuery?.queryName) {
+                      <code>{{ report.databaseQuery?.queryName }}</code>
+                    } @else {
+                      <span class="text-body-secondary">—</span>
+                    }
+                  </p>
+                  <div class="report-help-actions">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" (click)="refreshAssistance()">
+                      <i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>{{ 'report-refresh-assistance' | i18next }}
+                    </button>
+                    @if (canManageQueries) {
+                      <a class="btn btn-sm btn-link" [href]="brandingAndPortalUrl + '/admin/named-query'">{{
+                        'report-manage-named-queries' | i18next
+                      }}</a>
+                    }
+                  </div>
+                  @if (describing) {
+                    <p class="rb-ws-status" role="status">
+                      <span class="spinner-border" aria-hidden="true"></span>{{ 'report-loading-assistance' | i18next }}
+                    </p>
+                  }
+                  @if (assistanceError) {
+                    <p class="alert alert-warning mt-2 mb-0" role="status">{{ assistanceError }}</p>
+                  }
+                  @if (description; as desc) {
+                    <p class="report-guidance-scope">
+                      {{ 'report-guidance-scope' | i18next }} {{ desc.result.precision }} / {{ desc.result.completeness }}
+                    </p>
+                  }
+                </div>
+                @if (description) {
+                  <div class="rb-ws-section">
+                    <h3 class="rb-ws-section-title">{{ 'report-query-parameters' | i18next }}</h3>
+                    <ul class="report-parameter-list">
+                      @for (p of parameters; track p.key) {
+                        <li>
+                          <div class="report-parameter-head">
+                            <code>{{ p.key }}</code>
+                            <span class="report-type">{{ p.type }}</span>
+                            @if (p.required) {
+                              <span class="report-required">{{ 'report-required' | i18next }}</span>
+                            }
+                          </div>
+                          <small
+                            >{{ 'report-target-path' | i18next }} <code>{{ p.path }}</code> {{ p.queryType }}
+                            {{ p.format }}</small
+                          >
+                        </li>
+                      }
+                    </ul>
+                    @if (!parameters.length) {
+                      <p class="rb-ws-lede mb-0">{{ 'report-no-parameters' | i18next }}</p>
+                    }
+                  </div>
+                  <div class="rb-ws-section">
+                    <h3 class="rb-ws-section-title">{{ 'report-query-outputs' | i18next }}</h3>
+                    <label class="visually-hidden" for="report-output-search">{{
+                      'report-search-output-fields' | i18next
+                    }}</label>
+                    <div class="report-output-search">
+                      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                      <input
+                        id="report-output-search"
+                        class="form-control form-control-sm"
+                        type="search"
+                        [placeholder]="'report-search-output-fields' | i18next"
+                        [(ngModel)]="outputSearch"
+                      />
+                    </div>
+                    <div class="report-output-list">
+                      @for (field of outputs; track field.path) {
+                        <label class="report-output-option">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            [checked]="selectedOutputs.has(field.path)"
+                            (change)="toggleOutput(field.path, $any($event.target).checked)"
+                          />
+                          <span class="report-output-text">
+                            <span class="report-output-title">{{ field.title || field.path }}</span>
+                            <span class="report-output-meta">
+                              <code>{{ field.path }}</code>
+                              <span class="report-type">{{ field.type }}</span>
+                              @if (field.isArray) {
+                                <span class="report-type">{{ 'report-array' | i18next }}</span>
+                              }
+                            </span>
+                            @if (field.description) {
+                              <small>{{ field.description }}</small>
+                            }
+                          </span>
+                        </label>
+                      }
+                    </div>
+                    <button
+                      class="btn btn-sm btn-primary w-100"
+                      type="button"
+                      [disabled]="!selectedOutputs.size"
+                      (click)="addSelectedColumns()"
+                    >
+                      <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'report-add-selected-columns' | i18next }}
+                    </button>
+                  </div>
                 }
               </div>
-            }
-          </details>
-          <h4>{{ 'report-preview' | i18next }}</h4>
-          <p>{{ 'report-preview-real-data' | i18next }}</p>
-          <fieldset>
-            <legend>{{ 'report-preview-filters' | i18next }}</legend>
-            <div class="report-control-grid">
-              @for (filter of report.filter; track filter; let i = $index) {
-                @if (filter.type === 'date-range') {
-                  <div class="form-group">
-                    <label [for]="'preview-from-' + i"
-                      >{{ filter.message || filter.paramName }} {{ 'report-filter-date-from' | i18next }}</label
-                    >
-                    <input
-                      [id]="'preview-from-' + i"
-                      class="form-control"
-                      type="date"
-                      [(ngModel)]="previewFilterValues[filter.paramName + '_fromDate']"
-                      (ngModelChange)="previewChanged()"
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label [for]="'preview-to-' + i"
-                      >{{ filter.message || filter.paramName }} {{ 'report-filter-date-to' | i18next }}</label
-                    >
-                    <input
-                      [id]="'preview-to-' + i"
-                      class="form-control"
-                      type="date"
-                      [(ngModel)]="previewFilterValues[filter.paramName + '_toDate']"
-                      (ngModelChange)="previewChanged()"
-                    />
-                  </div>
-                } @else {
-                  <div class="form-group">
-                    <label [for]="'preview-text-' + i">{{ filter.message || filter.paramName }}</label>
-                    <input
-                      [id]="'preview-text-' + i"
-                      class="form-control"
-                      type="text"
-                      [(ngModel)]="previewFilterValues[filter.paramName]"
-                      (ngModelChange)="previewChanged()"
-                    />
-                  </div>
-                }
-              }
+            </aside>
+          </div>
+
+          <section class="card rb-ws-pane report-results" aria-labelledby="report-preview-heading">
+            <div class="card-header">
+              <h2 id="report-preview-heading" class="rb-ws-pane-title">
+                <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>{{ 'report-results-diagnostics' | i18next }}
+              </h2>
             </div>
-          </fieldset>
-          @if (isPreviewing) {
-            <p role="status">{{ 'report-previewing' | i18next }}</p>
-          }
-          @if (previewResult; as result) {
-            <p role="status">{{ 'report-preview-result' | i18next: { total: result.total } }}</p>
-            @if (result.valid === false || result.success === false) {
-              <p class="alert alert-warning">{{ 'report-preview-refused' | i18next }}</p>
-            }
-            @if (result.truncated) {
-              <p class="alert alert-warning report-truncation">
-                {{ 'report-preview-truncated' | i18next }} {{ result.truncationReasons.join(', ') }} ({{
-                  result.limits.rows
-                }})
-              </p>
-            }
-            @if (result.deadlineEnforced === false) {
-              <p class="alert alert-warning report-deadline">{{ 'report-preview-no-deadline' | i18next }}</p>
-            }
-            <h4>{{ 'report-display-preview' | i18next }}</h4>
-            <div class="table-responsive">
-              <table class="table table-bordered report-display-preview">
-                <caption>
-                  {{
-                    'report-display-preview' | i18next
-                  }}
-                </caption>
-                <thead>
-                  <tr>
-                    @for (column of visiblePreviewColumns; track column) {
-                      <th scope="col">{{ column.label }}</th>
+            <div class="card-body">
+              <div class="rb-ws-section">
+                <h3 class="rb-ws-section-title">{{ 'report-diagnostics-heading' | i18next }}</h3>
+                @if (validating) {
+                  <p class="rb-ws-status" role="status">
+                    <span class="spinner-border" aria-hidden="true"></span>{{ 'report-validating' | i18next }}
+                  </p>
+                }
+                @if (validationError) {
+                  <p class="alert alert-warning" role="status">{{ validationError }}</p>
+                }
+                @if (diagnostics.length) {
+                  <details class="rb-ws-disclosure" open>
+                    <summary>{{ 'report-all-diagnostics' | i18next }} ({{ diagnostics.length }})</summary>
+                    @for (d of diagnostics; track $index) {
+                      <div
+                        class="rb-ws-diagnostic report-diagnostic"
+                        [class.rb-ws-diagnostic-warning]="d.severity !== 'error'"
+                        [class.report-diagnostic-error]="d.severity === 'error'"
+                      >
+                        <i
+                          class="fa-solid"
+                          [class.fa-circle-xmark]="d.severity === 'error'"
+                          [class.fa-triangle-exclamation]="d.severity !== 'error'"
+                          aria-hidden="true"
+                        ></i>
+                        <strong class="rb-ws-diagnostic-label">{{
+                          (d.severity === 'error' ? 'report-blocking' : 'report-advisory') | i18next
+                        }}</strong>
+                        <code>{{ d.field }}</code> <span>{{ d.reason }}</span>
+                        @if (d.suggestion) {
+                          <span>{{ 'report-suggestion' | i18next }} <code>{{ d.suggestion }}</code></span>
+                        }
+                      </div>
                     }
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (row of result.renderedRows; track $index) {
-                    <tr>
-                      @for (cell of row.cells; track $index; let i = $index) {
-                        @if (!report.columns[i].hide) {
-                          <td [innerHTML]="cell.untrustedDisplayHtml"></td>
+                  </details>
+                } @else if (!validating) {
+                  <p class="rb-ws-status report-diagnostics-ok">
+                    <i class="fa-solid fa-check" aria-hidden="true"></i>{{ 'report-no-diagnostics' | i18next }}
+                  </p>
+                }
+              </div>
+
+              <div class="rb-ws-section">
+                <h3 class="rb-ws-section-title">{{ 'report-preview' | i18next }}</h3>
+                <p class="rb-ws-lede">{{ 'report-preview-real-data' | i18next }}</p>
+                @if (report.filter.length) {
+                  <fieldset class="report-preview-filters">
+                    <legend class="rb-ws-label">{{ 'report-preview-filters' | i18next }}</legend>
+                    <div class="report-control-grid">
+                      @for (filter of report.filter; track filter; let i = $index) {
+                        @if (filter.type === 'date-range') {
+                          <div>
+                            <label class="form-label" [for]="'preview-from-' + i"
+                              >{{ filter.message || filter.paramName }} {{ 'report-filter-date-from' | i18next }}</label
+                            >
+                            <input
+                              [id]="'preview-from-' + i"
+                              class="form-control"
+                              type="date"
+                              [(ngModel)]="previewFilterValues[filter.paramName + '_fromDate']"
+                              (ngModelChange)="previewChanged()"
+                            />
+                          </div>
+                          <div>
+                            <label class="form-label" [for]="'preview-to-' + i"
+                              >{{ filter.message || filter.paramName }} {{ 'report-filter-date-to' | i18next }}</label
+                            >
+                            <input
+                              [id]="'preview-to-' + i"
+                              class="form-control"
+                              type="date"
+                              [(ngModel)]="previewFilterValues[filter.paramName + '_toDate']"
+                              (ngModelChange)="previewChanged()"
+                            />
+                          </div>
+                        } @else {
+                          <div>
+                            <label class="form-label" [for]="'preview-text-' + i">{{
+                              filter.message || filter.paramName
+                            }}</label>
+                            <input
+                              [id]="'preview-text-' + i"
+                              class="form-control"
+                              type="text"
+                              [(ngModel)]="previewFilterValues[filter.paramName]"
+                              (ngModelChange)="previewChanged()"
+                            />
+                          </div>
                         }
                       }
-                    </tr>
+                    </div>
+                  </fieldset>
+                }
+                @if (isPreviewing) {
+                  <p class="rb-ws-status" role="status">
+                    <span class="spinner-border" aria-hidden="true"></span>{{ 'report-previewing' | i18next }}
+                  </p>
+                }
+                @if (previewResult; as result) {
+                  <p class="report-preview-count" role="status">
+                    {{ 'report-preview-result' | i18next: { total: result.total } }}
+                  </p>
+                  @if (result.valid === false || result.success === false) {
+                    <p class="alert alert-warning">{{ 'report-preview-refused' | i18next }}</p>
                   }
-                </tbody>
-              </table>
-            </div>
-            <h4>{{ 'report-export-preview' | i18next }}</h4>
-            <div class="table-responsive">
-              <table class="table table-bordered report-export-preview">
-                <caption>
-                  {{
-                    'report-export-preview-help' | i18next
-                  }}
-                </caption>
-                <thead>
-                  <tr>
-                    @for (column of report.columns; track column) {
-                      <th scope="col">{{ column.label }}</th>
-                    }
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (row of result.renderedRows; track $index) {
-                    <tr>
-                      @for (cell of row.cells; track $index) {
-                        <td>{{ cell.export }}</td>
-                      }
-                    </tr>
+                  @if (result.truncated) {
+                    <p class="alert alert-warning report-truncation">
+                      {{ 'report-preview-truncated' | i18next }} {{ result.truncationReasons.join(', ') }} ({{
+                        result.limits.rows
+                      }})
+                    </p>
                   }
-                </tbody>
-              </table>
+                  @if (result.deadlineEnforced === false) {
+                    <p class="alert alert-warning report-deadline">{{ 'report-preview-no-deadline' | i18next }}</p>
+                  }
+                  <h4 class="rb-ws-label report-preview-heading">{{ 'report-display-preview' | i18next }}</h4>
+                  <div class="table-responsive rb-ws-table-wrap">
+                    <table class="table rb-ws-table report-display-preview">
+                      <caption class="visually-hidden">
+                        {{
+                          'report-display-preview' | i18next
+                        }}
+                      </caption>
+                      <thead>
+                        <tr>
+                          @for (column of visiblePreviewColumns; track column) {
+                            <th scope="col">{{ column.label }}</th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of result.renderedRows; track $index) {
+                          <tr>
+                            @for (cell of row.cells; track $index; let i = $index) {
+                              @if (!report.columns[i].hide) {
+                                <td [innerHTML]="cell.untrustedDisplayHtml"></td>
+                              }
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <h4 class="rb-ws-label report-preview-heading">{{ 'report-export-preview' | i18next }}</h4>
+                  <p class="form-text mt-0">{{ 'report-export-preview-help' | i18next }}</p>
+                  <div class="table-responsive rb-ws-table-wrap">
+                    <table class="table rb-ws-table report-export-preview">
+                      <caption class="visually-hidden">
+                        {{
+                          'report-export-preview' | i18next
+                        }}
+                      </caption>
+                      <thead>
+                        <tr>
+                          @for (column of report.columns; track column) {
+                            <th scope="col">{{ column.label }}</th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of result.renderedRows; track $index) {
+                          <tr>
+                            @for (cell of row.cells; track $index) {
+                              <td>{{ cell.export }}</td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <details class="report-raw-results rb-ws-disclosure">
+                    <summary>{{ 'report-raw-results' | i18next }}</summary>
+                    <pre class="rb-ws-json">{{ result.records | json }}</pre>
+                  </details>
+                }
+              </div>
             </div>
-            <details class="report-raw-results">
-              <summary>{{ 'report-raw-results' | i18next }}</summary>
-              <pre>{{ result.records | json }}</pre>
-            </details>
-          }
-        </section>
+          </section>
+
+          <div class="rb-ws-footer">
+            <div class="rb-ws-footer-status">
+              @if (dirty) {
+                <span>{{ 'report-unsaved' | i18next }}</span>
+              }
+            </div>
+            <div class="rb-ws-footer-actions report-workspace-actions">
+              <button class="btn btn-outline-secondary" type="button" (click)="cancelEdit()">
+                {{ 'report-cancel' | i18next }}
+              </button>
+              <button
+                class="btn btn-outline-primary"
+                type="button"
+                [disabled]="isPreviewing || !report.canPreview"
+                (click)="previewReport()"
+              >
+                <i class="fa-solid fa-play me-1" aria-hidden="true"></i>{{ 'report-preview' | i18next }}
+              </button>
+              <button class="btn btn-primary" type="button" [disabled]="isSaving || saveBlocked" (click)="saveReport()">
+                {{ 'report-save' | i18next }}
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
     }
   </div>
