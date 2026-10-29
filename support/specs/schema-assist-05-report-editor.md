@@ -173,3 +173,67 @@ end-to-end, full-stack regression and wiki/API reference verification. There are
 no open implementation questions. The only scope addition is the minimal EJS
 permission attribute needed to honor brand-specific named-query access; it does
 not change page access or expose new permissions/routes.
+
+## Review follow-up: save races and literal lookup completion
+
+All three findings were confirmed before implementation. The reviewer's five
+probes were incorporated into committed report workspace specs: on the original
+code they produced **5 failures with 64 existing specs passing**. Two additional
+named-query mapping-control probes confirmed that editor had the same literal
+lookup completion defect (**2 failures with 9 typed-control specs passing**).
+
+- **P1:** Save immediately reconciles the server's returned report into the list,
+  preserving list order, and keeps the workspace open until list refresh succeeds.
+  Cancel/reopen during that refresh therefore clones the saved response. Refresh
+  failures remain visible in the workspace, clear the saving state, and retain
+  the successfully saved baseline. A successful create becomes an existing
+  report before refresh, so retrying after refresh failure cannot create it again.
+  Later draft edits and item switches remain protected from the old save's close.
+- **P2 (validation):** Save has a separate `LatestRequest` validation stream.
+  Window focus, explicit assistance refresh, Preview and advisory validation
+  cannot cancel its validation. Item changes and teardown invalidate it; draft
+  fingerprints still reject edited snapshots. If the draft changes while Save
+  validates, a translated message explains that the author must save again.
+  Save still honors structural validation errors and allows legacy saves when
+  validation assistance is unavailable.
+- **P2 (literal paths):** Report columns and named-query direct mappings retain
+  presentation paths while matching. The shared autocomplete accepts a path
+  insertion adapter and invokes PR 1's existing sails-ng-common `lookupPath`
+  when accepting a suggestion. Dotted, namespaced, spaced and quoted literal
+  keys retain their literal meaning in lodash bracket syntax. Native lookup
+  parents also match presentation parents when drilling into literal objects.
+  Stored Mongo paths keep their existing adapter and behavior; array item
+  lookups remain excluded.
+
+There are **19 new regression specs**: 12 report workspace, 5 shared completion,
+2 named-query mapping controls. They include an actual second save after reopening
+and assertions that late validation cannot replace a different item's diagnostics.
+The changes to portal-ng-common (owned by PR 1) and named-query-editor (owned by
+PR 3) are deliberately committed here on **PR 5**; earlier stack branches are
+unchanged. No sails-ng-common source or dependency changes were needed.
+
+Final checks ran serially with Node **24.22.1**, `NG_BUILD_MAX_WORKERS=1`, and an
+external `timeout` for every Angular command. Tests used
+`CHROME_BIN=/snap/bin/chromium`, `--watch=false`,
+`--browsers=ChromeHeadlessNoSandbox` and `--progress=false`:
+
+- `timeout 240 ... ng build @researchdatabox/portal-ng-common --configuration development`: passes.
+- `timeout 300 ... ng test @researchdatabox/report-config`: **76 passing, 0 failing**.
+- `timeout 300 ... ng test @researchdatabox/portal-ng-common --include='**/schema-assist/*.spec.ts'`: **9 passing, 0 failing**.
+- `timeout 300 ... ng test @researchdatabox/named-query-editor`: **190 passing, 0 failing**.
+- `timeout 300 ... ng test @researchdatabox/email-templates`: **232 passing, 0 failing**.
+- `timeout 300 ... ng build @researchdatabox/report-config --configuration production`: passes.
+- `timeout 300 ... ng build @researchdatabox/named-query-editor --configuration production`: passes.
+
+Both production builds retain their documented bundle-budget and sails-ng-common
+CommonJS warnings (report-config approximately 1.14 MB; named-query-editor 1.20 MB).
+Focused source oxlint reports zero warnings/errors. Formatting of the changed
+report/shared files, parsing of both English JSON resources and `git diff --check`
+pass.
+
+Logs: `/tmp/pr5-report-before.log`, `/tmp/pr5-query-before.log`,
+`/tmp/pr5-shared-build.log`, `/tmp/pr5-{report,shared,query,email}-after.log`,
+`/tmp/pr5-{report,query}-production.log`.
+No Docker, subagents, push or PR creation was used. Work stayed in the existing
+`t3-39c46c3e` implementation worktree; the other worktree's review evidence was
+read only.
