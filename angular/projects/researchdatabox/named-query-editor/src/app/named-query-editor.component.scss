@@ -19,93 +19,114 @@
   --bs-backdrop-zindex: 1055;
 }
 
-.badge-light {
-  border: 1px solid #d4d9de;
-}
-
-.nq-action-button + .nq-action-button {
-  margin-left: 0.5rem;
-}
-
-.nq-workspace {
-  padding: 1.25rem;
-  color: #253640;
-}
-.nq-workspace-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 3px solid #32677d;
-}
-.nq-workspace-header h2 {
-  margin: 0.25rem 0;
-  overflow-wrap: anywhere;
-}
-.nq-workspace-actions {
+// List toolbar: primary action, hint and quiet count pills on one row.
+.nq-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 16px;
 }
-.nq-workspace-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.5rem;
+
+.nq-toolbar-help {
+  color: var(--bs-secondary-color);
+  font-size: 13px;
 }
-.nq-with-help {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+
+.nq-toolbar-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
 }
-.nq-editing-area {
-  min-width: 0;
-}
-.nq-field-panel {
-  border-left: 1px solid #cad5da;
-  padding-left: 1.25rem;
-  min-width: 0;
-}
-.nq-field-panel h3,
-.nq-results h3 {
-  font-size: 1.15rem;
+
+.nq-count-pill {
+  padding: 2px 10px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 999px;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
-.nq-field-panel h4,
-.nq-results h4 {
-  font-size: 1rem;
-  margin-top: 1rem;
+
+.nq-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
+
+.nq-guidance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.nq-guidance-scope {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 12px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--bs-info-border-subtle);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-info-bg-subtle);
+  color: var(--bs-info-text-emphasis);
+  font-size: 13px;
+}
+
+.nq-type-constraint {
+  font-size: 13px;
+
+  .nq-type-constraint-code {
+    display: block;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-tertiary-bg);
+    overflow-wrap: anywhere;
+  }
+}
+
+.nq-schema-quality {
+  margin: 0 0 6px;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+}
+
 .nq-results {
-  border-top: 1px solid #cad5da;
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
+  margin-top: 24px;
 }
-.nq-results pre {
-  max-height: 28rem;
-  overflow: auto;
-  background: #f3f6f7;
-  padding: 1rem;
+
+.nq-diagnostics-ok {
+  color: var(--bs-success-text-emphasis);
 }
-.nq-results td {
-  max-width: 24rem;
-  overflow-wrap: anywhere;
-}
+
 .nq-test-parameters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px 16px;
+  margin-bottom: 16px;
 }
-@media (max-width: 1000px) {
-  .nq-with-help {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .nq-workspace-header {
-    align-items: start;
-    flex-direction: column;
-  }
-  .nq-field-panel {
-    border-left: 0;
-    border-top: 1px solid #cad5da;
-    padding: 1rem 0;
-  }
+
+.nq-test-parameter {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--bs-border-color-translucent);
+  border-radius: 6px;
+  background: var(--bs-tertiary-bg);
+}
+
+.nq-test-parameter-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.nq-preview-count {
+  margin: 8px 0;
+  font-size: 13px;
+  font-weight: 600;
 }

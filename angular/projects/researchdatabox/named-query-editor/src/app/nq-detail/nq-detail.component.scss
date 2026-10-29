@@ -1,1 +1,13 @@
-:host { display: block; }
+:host {
+  display: block;
+}
+
+.nq-tab-pane {
+  min-height: 240px;
+}
+
+.nq-section-rule {
+  margin: 24px 0;
+  border-color: var(--bs-border-color);
+  opacity: 1;
+}

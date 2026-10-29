@@ -1,15 +1,20 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h3 class="h6">{{ 'named-query-mongo-heading' | i18next }}</h3>
+    <h2 class="nq-section-title">{{ 'named-query-mongo-heading' | i18next }}</h2>
     <div class="form-check">
-      <input [id]="idPrefix + '-raw-json'" type="checkbox" class="form-check-input"
-             [checked]="useRawJson" (change)="toggleRawJson()" />
-      <label [for]="idPrefix + '-raw-json'" class="form-check-label small">
+      <input
+        id="mongo-query-raw-json"
+        type="checkbox"
+        class="form-check-input"
+        [checked]="useRawJson"
+        (change)="toggleRawJson()"
+      />
+      <label for="mongo-query-raw-json" class="form-check-label small">
         {{ 'named-query-mongo-raw-json' | i18next }}
       </label>
     </div>
   </div>
-  <p class="text-muted small mb-2">{{ 'named-query-mongo-help' | i18next }}</p>
+  <p class="rb-ws-lede">{{ 'named-query-mongo-help' | i18next }}</p>
 
   <nq-diagnostics *ngIf="useRawJson" [diagnostics]="diagnostics" location="mongoQuery"></nq-diagnostics>
   <div *ngIf="jsonError && !useRawJson" class="text-danger">{{ jsonError | i18next }}</div>
@@ -35,12 +40,12 @@
   <ng-container *ngIf="!useRawJson">
     <div *ngIf="entries.length > 0" class="table-responsive">
       <table class="table table-sm table-bordered mb-0">
-        <thead class="table-light">
+        <thead>
           <tr>
             <th>{{ 'named-query-mongo-path' | i18next }}</th>
-            <th class="nq-type-column">{{ 'named-query-mongo-type' | i18next }}</th>
+            <th style="width: 130px">{{ 'named-query-mongo-type' | i18next }}</th>
             <th>{{ 'named-query-mongo-value' | i18next }}</th>
-            <th class="rb-admin-actions-col nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+            <th style="width: 70px">{{ 'record-table-results-table-header-actions' | i18next }}</th>
           </tr>
         </thead>
         <tbody>
@@ -55,8 +60,11 @@
               ></nq-path-input>
             </td>
             <td>
-              <select
-                class="form-control form-control-sm"
+              <label class="visually-hidden" [for]="idPrefix + '-control-2' + '-' + entry.id">
+        {{ 'named-query-mongo-raw-json' | i18next }}
+      </label>
+<select [id]="idPrefix + '-control-2' + '-' + entry.id"
+                class="form-select form-select-sm"
                 [ngModel]="entry.type"
                 (ngModelChange)="onTypeChange(entry, $event)"
               >
@@ -64,20 +72,30 @@
               </select>
             </td>
             <td>
-              <label class="visually-hidden" [for]="idPrefix + '-entry-value' + '-' + entry.id">{{ 'named-query-mongo-value' | i18next }}</label>
-              <input [id]="idPrefix + '-entry-value' + '-' + entry.id" *ngIf="entry.type !== 'object' && entry.type !== 'array'"
-                     type="text" class="form-control form-control-sm"
-                     [ngModel]="entry.value"
-                     (ngModelChange)="onValueChange(entry, $event)">
-              <textarea [id]="idPrefix + '-entry-value' + '-' + entry.id" *ngIf="entry.type === 'object' || entry.type === 'array'"
-                        class="form-control form-control-sm font-monospace" rows="2"
-                        [ngModel]="entry.value"
-                        (ngModelChange)="onValueChange(entry, $event)"
-                        spellcheck="false"></textarea>
+              <label class="visually-hidden" [for]="idPrefix + '-control-3' + '-' + entry.id">
+        {{ 'named-query-mongo-raw-json' | i18next }}
+      </label>
+<input [id]="idPrefix + '-control-3' + '-' + entry.id"
+                *ngIf="entry.type !== 'object' && entry.type !== 'array'"
+                type="text"
+                class="form-control form-control-sm"
+                [ngModel]="entry.value"
+                (ngModelChange)="onValueChange(entry, $event)"
+              />
+              <label class="visually-hidden" [for]="idPrefix + '-control-4' + '-' + entry.id">
+        {{ 'named-query-mongo-raw-json' | i18next }}
+      </label>
+<textarea [id]="idPrefix + '-control-4' + '-' + entry.id"
+                *ngIf="entry.type === 'object' || entry.type === 'array'"
+                class="form-control form-control-sm font-monospace"
+                rows="2"
+                [ngModel]="entry.value"
+                (ngModelChange)="onValueChange(entry, $event)"
+                spellcheck="false"
+              ></textarea>
             </td>
-            <td class="rb-admin-actions-col text-center">
-              <button class="btn btn-sm btn-outline-danger" type="button"
-                      (click)="removeEntry(entry)">
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeEntry(entry)">
                 {{ 'named-query-remove' | i18next }}
               </button>
             </td>
@@ -85,19 +103,25 @@
         </tbody>
       </table>
     </div>
-    <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-mongo-empty' | i18next }}</p>
+    <p *ngIf="entries.length === 0" class="rb-ws-empty mb-2">{{ 'named-query-mongo-empty' | i18next }}</p>
 
-    <div class="d-flex flex-wrap nq-add-row mt-2">
+    <div class="d-flex flex-wrap nq-add-row mt-3">
       <nq-path-input
         [value]="newPath"
         [label]="'named-query-mongo-path' | i18next"
         [fields]="fields"
         (valueChange)="newPath = $event"
       ></nq-path-input>
-      <select class="form-control form-control-sm nq-add-fixed" [(ngModel)]="newType">
+      <label class="visually-hidden" [for]="idPrefix + '-control-5'">
+        {{ 'named-query-mongo-raw-json' | i18next }}
+      </label>
+<select [id]="idPrefix + '-control-5'" class="form-select form-select-sm nq-add-fixed" [(ngModel)]="newType">
         <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
       </select>
-      <input
+      <label class="visually-hidden" [for]="idPrefix + '-control-6'">
+        {{ 'named-query-mongo-raw-json' | i18next }}
+      </label>
+<input [id]="idPrefix + '-control-6'"
         type="text"
         class="form-control form-control-sm nq-add-grow"
         [(ngModel)]="newValue"
