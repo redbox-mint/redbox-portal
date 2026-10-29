@@ -1,12 +1,12 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-mappings-heading' | i18next }}</h6>
+    <h2 class="nq-section-title">{{ 'named-query-mappings-heading' | i18next }}</h2>
   </div>
-  <p class="text-muted small mb-2">{{ 'named-query-mappings-help' | i18next }}</p>
+  <p class="rb-ws-lede">{{ 'named-query-mappings-help' | i18next }}</p>
 
   <div *ngIf="entries.length > 0" class="table-responsive">
     <table class="table table-sm table-bordered mb-0">
-      <thead class="thead-light">
+      <thead>
         <tr>
           <th style="width: 35%">{{ 'named-query-mapping-field' | i18next }}</th>
           <th>{{ 'named-query-mapping-template' | i18next }}</th>
@@ -44,9 +44,9 @@
       </tbody>
     </table>
   </div>
-  <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-mapping-empty' | i18next }}</p>
+  <p *ngIf="entries.length === 0" class="rb-ws-empty mb-2">{{ 'named-query-mapping-empty' | i18next }}</p>
 
-  <div class="d-flex flex-wrap nq-add-row mt-2">
+  <div class="d-flex flex-wrap nq-add-row mt-3">
     <input
       type="text"
       class="form-control form-control-sm nq-add-grow"

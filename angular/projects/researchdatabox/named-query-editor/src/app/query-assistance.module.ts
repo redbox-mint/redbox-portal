@@ -17,14 +17,22 @@ import { ContextSchemaField, EditorDiagnostic, lookupPath, storedRecordPath } fr
   standalone: false,
   template: `<div
     *ngFor="let d of matching"
-    class="nq-diagnostic"
-    [class.text-danger]="d.severity !== 'warning'"
-    [class.text-warning]="d.severity === 'warning'"
+    class="rb-ws-diagnostic nq-diagnostic"
+    [class.rb-ws-diagnostic-warning]="d.severity === 'warning'"
+    [class.nq-diagnostic-error]="d.severity !== 'warning'"
     [attr.data-location]="d.field"
     role="status"
   >
-    <strong>{{ (d.severity === 'warning' ? 'named-query-advisory' : 'named-query-blocking') | i18next }}</strong>
-    {{ d.reason }}
+    <i
+      class="fa-solid"
+      [class.fa-triangle-exclamation]="d.severity === 'warning'"
+      [class.fa-circle-xmark]="d.severity !== 'warning'"
+      aria-hidden="true"
+    ></i>
+    <strong class="rb-ws-diagnostic-label">{{
+      (d.severity === 'warning' ? 'named-query-advisory' : 'named-query-blocking') | i18next
+    }}</strong>
+    <span>{{ d.reason }}</span>
     <span *ngIf="d.suggestion">
       {{ 'named-query-suggestion' | i18next }} <code>{{ d.suggestion }}</code></span
     >
@@ -57,7 +65,7 @@ export class QueryDiagnosticsComponent {
       <summary>{{ 'named-query-choose-field' | i18next }}</summary>
       <rb-field-tree [fields]="fields" [insertion]="insertion" (insert)="valueChange.emit($event)"></rb-field-tree>
     </details>
-    <small class="form-text text-muted" *ngIf="selected as f"
+    <small class="nq-field-hint" *ngIf="selected as f"
       >{{ f.type }} <span *ngIf="f.enum"> · {{ 'named-query-enum' | i18next }} {{ f.enum | json }}</span>
       <span *ngIf="f.isArray"> · {{ 'named-query-array-help' | i18next }}</span>
       <span *ngIf="!f.isArray"> · {{ 'named-query-operators' | i18next }} {{ operators(f) }}</span>
@@ -104,41 +112,47 @@ export class QueryPathInputComponent implements OnChanges {
 @Component({
   selector: 'nq-typed-value',
   standalone: false,
-  template: `<input
-      *ngIf="inputType !== 'boolean' && inputType !== 'object' && inputType !== 'array'"
-      class="form-control form-control-sm"
-      [attr.aria-label]="label"
-      [type]="inputType === 'number' ? 'number' : 'text'"
-      [ngModel]="value"
-      (ngModelChange)="change($event)"
-    />
-    <select
-      *ngIf="inputType === 'boolean'"
-      class="form-control form-control-sm"
-      [attr.aria-label]="label"
-      [ngModel]="value"
-      (ngModelChange)="change($event)"
-    >
-      <option [ngValue]="undefined">—</option>
-      <option [ngValue]="true">true</option>
-      <option [ngValue]="false">false</option>
-    </select>
-    <textarea
-      *ngIf="inputType === 'object' || inputType === 'array'"
-      class="form-control form-control-sm"
-      [attr.aria-label]="label"
-      [ngModel]="jsonValue"
-      (ngModelChange)="changeJson($event)"
-    ></textarea>
-    <small *ngIf="template" class="form-text text-muted">{{ 'named-query-template-value-help' | i18next }}</small>
-    <small *ngIf="type === 'date'" class="form-text text-muted">{{
+  template: `<div class="input-group input-group-sm">
+      <input
+        *ngIf="inputType !== 'boolean' && inputType !== 'object' && inputType !== 'array'"
+        class="form-control"
+        [attr.aria-label]="label"
+        [type]="inputType === 'number' ? 'number' : 'text'"
+        [ngModel]="value"
+        (ngModelChange)="change($event)"
+      />
+      <select
+        *ngIf="inputType === 'boolean'"
+        class="form-select"
+        [attr.aria-label]="label"
+        [ngModel]="value"
+        (ngModelChange)="change($event)"
+      >
+        <option [ngValue]="undefined">—</option>
+        <option [ngValue]="true">true</option>
+        <option [ngValue]="false">false</option>
+      </select>
+      <textarea
+        *ngIf="inputType === 'object' || inputType === 'array'"
+        class="form-control font-monospace"
+        [attr.aria-label]="label"
+        [ngModel]="jsonValue"
+        (ngModelChange)="changeJson($event)"
+      ></textarea>
+      <button
+        type="button"
+        class="btn btn-outline-secondary nq-unset-value"
+        [attr.aria-label]="(unsetLabel | i18next) + ': ' + label"
+        (click)="unset()"
+      >
+        {{ unsetLabel | i18next }}
+      </button>
+    </div>
+    <small *ngIf="error" class="nq-field-hint text-danger" role="alert">{{ 'named-query-invalid-json' | i18next }}</small>
+    <small *ngIf="template" class="nq-field-hint">{{ 'named-query-template-value-help' | i18next }}</small>
+    <small *ngIf="type === 'date'" class="nq-field-hint">{{
       (format === 'days' ? 'named-query-date-days-help' : 'named-query-date-iso-help') | i18next
-    }}</small>
-    <small *ngIf="error" class="text-danger" role="alert">{{ 'named-query-invalid-json' | i18next }}</small>
-    <button type="button" class="btn btn-sm btn-outline-secondary nq-unset-value mt-1"
-      [attr.aria-label]="(unsetLabel | i18next) + ': ' + label" (click)="unset()">
-      {{ unsetLabel | i18next }}
-    </button>`,
+    }}</small>`,
 })
 export class QueryTypedValueComponent implements OnChanges {
   @Input() value: unknown;
@@ -199,7 +213,7 @@ export class QueryTypedValueComponent implements OnChanges {
   selector: 'nq-mapping-value',
   standalone: false,
   template: `<div class="d-flex mb-1">
-      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="template = !template">
+      <button type="button" class="btn btn-sm btn-link p-0 nq-mode-toggle" (click)="template = !template">
         {{ (template ? 'named-query-use-direct' : 'named-query-use-template') | i18next }}
       </button>
     </div>

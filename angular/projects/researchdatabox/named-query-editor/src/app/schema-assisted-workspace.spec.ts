@@ -336,9 +336,9 @@ describe('Schema-assisted named query workspace behaviours', () => {
     const mongo = fixture.debugElement.query(By.directive(MongoQueryEditorComponent));
     const param = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
     const mapping = fixture.debugElement.query(By.directive(ResultMappingEditorComponent));
-    expect(mongo.nativeElement.querySelector('.text-warning').textContent).toContain('metadata.title');
+    expect(mongo.nativeElement.querySelector('.rb-ws-diagnostic-warning').textContent).toContain('metadata.title');
     expect(param.nativeElement.querySelector('[data-location="queryParams.title.type"]')).toBeTruthy();
-    expect(mapping.nativeElement.querySelector('.text-danger').textContent).toContain('named-query-blocking');
+    expect(mapping.nativeElement.querySelector('.nq-diagnostic-error').textContent).toContain('named-query-blocking');
     expect(component.canSave).toBeFalse();
     expect(component.draft.mongoQuery['metadata.title']).toBe('One');
   });
