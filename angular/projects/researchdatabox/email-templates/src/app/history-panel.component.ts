@@ -18,7 +18,7 @@ import { WhenPipe } from './when.pipe';
       <div class="alert alert-danger" role="alert">{{ 'email-templates-history-load-failed' | i18next }}</div>
     } @else {
       <p class="et-sub mb-3">{{ 'email-templates-history-intro' | i18next }}</p>
-      <div class="table-responsive">
+      <div class="table-responsive et-table-wrap">
         <table class="table et-table align-middle mb-0">
           <caption class="visually-hidden">
             {{
