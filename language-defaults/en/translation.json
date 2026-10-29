@@ -2454,6 +2454,7 @@
   "report-target-path": "Targets:",
   "report-unsaved": "Unsaved changes",
   "report-validating": "Checking draft configuration…",
+  "report-save-draft-changed": "The report changed while Save was validating it. Review your changes and save again.",
   "report-validation-unavailable": "Draft validation is unavailable. Manual editing and saving remain available.",
   "report-query-choices-unavailable": "Query choices are unavailable for this session. Enter a saved query name to load its parameters and output fields."
 }

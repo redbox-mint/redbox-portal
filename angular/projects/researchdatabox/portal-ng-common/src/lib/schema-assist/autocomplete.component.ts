@@ -204,7 +204,7 @@ export class AutocompleteComponent implements OnChanges, OnDestroy {
     if (!control || !item || !this.query || control.readOnly) return;
     const edit =
       this.mode === 'path'
-        ? pathCompletionEdit(this.query, item)
+        ? pathCompletionEdit(this.query, item, this.source?.pathInsertion)
         : completionEdit(control.value, this.query, item, this.source?.blockScaffold);
     // A finished path stays closed; objects and helpers reopen for what comes next.
     this.dismissedAt = item.container || item.kind === 'helper' ? null : edit.start;

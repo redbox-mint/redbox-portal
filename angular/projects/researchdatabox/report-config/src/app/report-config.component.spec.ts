@@ -47,6 +47,7 @@ function description(): ReportNamedQueryDescription {
     field('metadata.tags', 'array', 'Tags'),
     field('metadata.tags[]'),
     field('metadata.[literal.alias]'),
+    field('metadata.[dc:title]'),
   ];
   const result = {
     fields,
@@ -892,5 +893,182 @@ describe('Report configuration workspace', () => {
         .withContext(input.outerHTML)
         .toBeTrue();
     expect(fixture.debugElement.queryAll(By.directive(CodeEditorComponent)).length).toBe(2);
+  });
+  it('a report reopened during post-save list reload must retain the saved edits', async () => {
+    await edit(component.reports[0]);
+    change('#report-title', 'Saved title');
+    const reload = deferred<ReportConfigDto[]>();
+    api.list.and.returnValue(reload.promise);
+    api.update.and.resolveTo({ ...report(), title: 'Saved title' });
+    const saving = component.saveReport();
+    await settle();
+    render();
+    expect(query('.report-workspace')).toBeTruthy();
+    expect(query('.report-actions button')).toBeNull();
+    expect(component.isSaving).toBeTrue();
+    expect(component.reports.find(r => r.name === 'report')!.title).toBe('Saved title');
+    // Cancel can still expose the list during reload; it must already contain the server response.
+    component.cancelEdit();
+    render();
+    query('.report-actions button:not(:disabled)').click();
+    await settle();
+    expect(component.selectedReport!.title).toBe('Saved title');
+    reload.resolve([{ ...report(), title: 'Saved title' }]);
+    await saving;
+    expect(component.selectedReport!.title).toBe('Saved title');
+    await component.saveReport();
+    expect(api.update).toHaveBeenCalledTimes(2);
+    expect(api.update.calls.mostRecent().args[0].title)
+      .withContext('a second no-op save must not revert the successful first save')
+      .toBe('Saved title');
+  });
+
+  it('a failed post-save reload must be reported to the user', async () => {
+    await edit();
+    change('#report-title', 'Saved title');
+    api.list.and.rejectWith({ error: { message: 'Refresh failed' } });
+    await component.saveReport();
+    expect(component.errorMessage).toBe('Refresh failed');
+    expect(component.selectedReport!.title).toBe('Saved title');
+    expect(component.isSaving).toBeFalse();
+    render();
+    expect(text()).toContain('Refresh failed');
+  });
+
+  it('refreshing guidance during slow save validation must not silently discard Save', async () => {
+    await edit();
+    change('#report-title', 'Please save this');
+    const validatingSave = deferred<any>();
+    api.validate.and.returnValue(validatingSave.promise);
+    const saving = component.saveReport();
+    api.validate.and.resolveTo({ valid: true, diagnostics: [] });
+    component.onWindowFocus();
+    await settle();
+    validatingSave.resolve({ valid: true, diagnostics: [] });
+    await saving;
+    expect(api.update).toHaveBeenCalled();
+  });
+
+  it('preview during slow save validation must not silently discard Save', async () => {
+    await edit();
+    change('#report-title', 'Please save this');
+    const validatingSave = deferred<any>();
+    api.validate.and.returnValue(validatingSave.promise);
+    const saving = component.saveReport();
+    await component.previewReport();
+    validatingSave.resolve({ valid: true, diagnostics: [] });
+    await saving;
+    expect(api.update).toHaveBeenCalled();
+  });
+
+  for (const literal of ['literal.alias', 'dc:title']) {
+    it(`offers and inserts the literal ${literal} output alias in column autocomplete`, async () => {
+      await edit();
+      const input = query('#column-property-0') as HTMLInputElement;
+      change('#column-property-0', 'metadata.');
+      input.scrollIntoView({ block: 'center' });
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+      const autocomplete = fixture.debugElement
+        .queryAll(By.directive(AutocompleteComponent))
+        .map(d => d.componentInstance as AutocompleteComponent)
+        .find(c => c.target === input)!;
+      autocomplete.update(true);
+      expect(autocomplete.items.map(i => i.value)).toContain('metadata.projectTitle');
+      const index = autocomplete.items.findIndex(i => i.value === `metadata.[${literal}]`);
+      expect(index).toBeGreaterThanOrEqual(0);
+      autocomplete.active = index;
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+      expect(component.selectedReport!.columns[0].property).toBe(`metadata["${literal}"]`);
+    });
+  }
+
+  it('explicitly refreshing assistance cannot cancel Save validation', async () => {
+    await edit();
+    const validation = deferred<any>();
+    api.validate.and.returnValue(validation.promise);
+    const pending = component.saveReport();
+    api.validate.and.resolveTo({ valid: true, diagnostics: [] });
+    await component.refreshAssistance();
+    validation.resolve({ valid: true, diagnostics: [] });
+    await pending;
+    expect(api.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows why Save stopped when the draft changes during validation', async () => {
+    await edit();
+    const validation = deferred<any>();
+    api.validate.and.returnValue(validation.promise);
+    const pending = component.saveReport();
+    change('#report-title', 'Later edit');
+    validation.resolve({ valid: true, diagnostics: [] });
+    await pending;
+    expect(api.update).not.toHaveBeenCalled();
+    expect(component.selectedReport!.title).toBe('Later edit');
+    expect(component.errorMessage).toBe('report-save-draft-changed');
+    expect(component.isSaving).toBeFalse();
+  });
+
+  it('ignores Save validation after switching items, including its diagnostics', async () => {
+    await edit();
+    const validation = deferred<any>();
+    api.validate.and.returnValue(validation.promise);
+    const pending = component.saveReport();
+    api.validate.and.resolveTo({ valid: true, diagnostics: [] });
+    await edit(report('other'));
+    validation.resolve({ valid: false, diagnostics: [diagnostic('title', 'error')] });
+    await pending;
+    expect(api.update).not.toHaveBeenCalled();
+    expect(component.selectedReport!.name).toBe('other');
+    expect(component.diagnostics).toEqual([]);
+    expect(component.isSaving).toBeFalse();
+  });
+
+  it('honors blocking Save validation even after assistance refresh validates successfully', async () => {
+    await edit();
+    const validation = deferred<any>();
+    api.validate.and.returnValue(validation.promise);
+    const pending = component.saveReport();
+    api.validate.and.resolveTo({ valid: true, diagnostics: [] });
+    await component.refreshAssistance();
+    validation.resolve({ valid: false, diagnostics: [diagnostic('title', 'error')] });
+    await pending;
+    expect(api.update).not.toHaveBeenCalled();
+    expect(component.saveBlocked).toBeTrue();
+    expect(component.diagnostics).toEqual([diagnostic('title', 'error')]);
+    expect(component.isSaving).toBeFalse();
+  });
+
+  it('preserves later edits while the saved list reload is pending', async () => {
+    await edit();
+    change('#report-title', 'Saved title');
+    const reload = deferred<ReportConfigDto[]>();
+    api.list.and.returnValue(reload.promise);
+    api.update.and.resolveTo({ ...report(), title: 'Saved title' });
+    const pending = component.saveReport();
+    await settle();
+    change('#report-title', 'Later edit');
+    reload.resolve([{ ...report(), title: 'Saved title' }]);
+    await pending;
+    expect(component.selectedReport!.title).toBe('Later edit');
+    expect(component.dirty).toBeTrue();
+    expect(component.isSaving).toBeFalse();
+  });
+
+  it('reconciles a created report before a failed refresh without creating it again on retry', async () => {
+    component.createReport();
+    render();
+    change('#report-name', 'created');
+    change('#report-title', 'Created title');
+    api.create.and.resolveTo({ ...report('created'), title: 'Created title' });
+    api.list.and.rejectWith({ error: { message: 'Refresh failed' } });
+    await component.saveReport();
+    expect(component.reports.find(r => r.name === 'created')!.title).toBe('Created title');
+    expect(component.isNewReport).toBeFalse();
+    expect(component.errorMessage).toBe('Refresh failed');
+    api.list.and.resolveTo(component.reports);
+    await component.saveReport();
+    expect(api.create).toHaveBeenCalledTimes(1);
+    expect(api.update).toHaveBeenCalledTimes(1);
   });
 });

@@ -80,10 +80,8 @@ export class QueryPathInputComponent implements OnChanges {
               const path = storedRecordPath(f.path);
               return path ? [{ ...f, path }] : [];
             })
-          : this.fields.flatMap(f => {
-              const path = lookupPath(f.path);
-              return path ? [{ ...f, path }] : [];
-            }),
+          : this.fields.filter(f => lookupPath(f.path) !== null),
+      pathInsertion: this.kind === 'mapping' ? lookupPath : undefined,
       roots: [],
       helpers: [],
     };
