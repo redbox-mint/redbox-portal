@@ -129,6 +129,7 @@ Server constants in `utilities/NamedQueryPreview.ts`:
 | Preview execution deadline             | 5,000 ms                                             |
 | Returned rows                          | 100, starting at zero                                |
 | Serialized response                    | 524,288 UTF-8 bytes, with wrapper overhead reserved  |
+| Template construction                  | Remaining response bytes, including intermediate appends |
 | Executor scan guard                    | 1,000 rows; user/link/join preview paths are refused |
 | Returned validation diagnostics        | 200; locations capped at 256 characters              |
 | Mapping aliases in assistance requests | 1,024                                                |
@@ -151,10 +152,29 @@ parameter, template and query safety. Use validate/describe for advisory field
 lint; those operations keep their existing guidance behavior and do not execute
 the draft query.
 
-Synchronous parameter/mapping rendering uses the **same** existing renderer/helper
-registry through a constant VM call with a deadline. Mapped values are accounted
-incrementally before retaining another alias or rendering another row. A bounded
-JSON walker counts UTF-8/escaped bytes and stops at the remaining budget without
+Synchronous preview parameter/mapping rendering uses an **isolated** Handlebars
+environment populated from the existing helper registry, through the constant VM
+call with a deadline. Its compiler checks every literal/expression/block append
+before coercion or concatenation, including nested `each`, `with`, conditionals,
+implicit blocks and helper block callbacks. All registered helpers (including
+overrides of builtins) have argument/hash preflight and result checks, so repeated
+references cannot reach allocating helpers such as `join`/`json` unchecked.
+The construction budget conservatively counts intermediate block output as well
+as final appends; helper inputs may also trigger truncation even when a selected
+output would be smaller. Normalization, unescaped data output and Handlebars'
+prototype restrictions remain in effect.
+
+Source and inline partials use the guarded compiler; partial indentation is
+accounted before concatenation. Registered function/precompiled partials cannot
+be instrumented and are byte-truncated **before invocation** in preview only.
+A dedicated construction-limit error and any rendering `RangeError` become
+`truncated: true`, `truncationReasons: ['bytes']`, with the oversized row dropped
+and HTTP 200. An oversized parameter template returns an empty truncated sample
+before database I/O. Ordinary saved execution keeps the existing renderer,
+helpers and partial behavior without these limits.
+
+Mapped values are accounted incrementally before retaining another alias or
+rendering another row. A bounded JSON walker counts UTF-8/escaped bytes and stops at the remaining budget without
 building an expanded JSON string, including when many aliases reference the
 same large object. Final row accounting reserves DTO/wrapper overhead. The HTTP assistance guard
 also counts bytes before serializing any DTO. Byte
@@ -234,3 +254,31 @@ Review-fix validation (Node 24.22.1, all commands serial under `timeout`):
 - PASS: focused source oxlint (0 warnings/errors), formatting checks on the new/
   formatted source and test files, and `git diff --check`.
 - Bruno, lifted portal integration and browser checks remain for PR 6.
+
+### Template-allocation follow-up
+
+The remaining re-review finding is covered by 21 additional regressions. They
+include the exact 186-byte draft / 602,086-byte source / attempted 600M-character
+expansion, nested `each` and `with` at both service and HTTP boundaries, other
+block forms, literals, UTF-8, helper/subexpression inputs, custom block callbacks
+and builtin overrides, partial indentation, remaining row/alias budgets,
+parameter templates, `RangeError` fallback and saved-renderer compatibility.
+
+Final checks used Node 24.22.1, serially under external `timeout`:
+
+- The focused Mocha command above: **187 passing, 0 failing, 0 pending** (16 s).
+- Existing named-query/report Mocha: **122 passing, 0 failing, 0 pending** (2 s),
+  including all 20 real-Mongo date cases.
+- Adapted reviewer probes at `/tmp/schema-assist-pr2-template-budget-probes.cjs`:
+  **16 passing, 0 failing, 0 pending** (2 s). Both former defect assertions now
+  require truncation/HTTP 200; nested `each` and `with` probes were added.
+- Core and focused-test `tsc --noEmit`, using the same project paths above:
+  **both passed with zero diagnostics** (`timeout 180` each).
+- Focused source oxlint: **0 warnings, 0 errors**. Formatting of the new renderer,
+  budget utility and modified test files, and `git diff --check`: **passed**.
+
+Mongo used one disposable `mongo:latest` container at a time, version **9.0.4**,
+named `schema-assist-pr2-budget-9cc4eb79`, port **27531**, limited to 0.5 CPU /
+1 GiB with a 0.25 GiB WiredTiger cache and test failpoints enabled. It and its
+anonymous volume were removed after Mongo verification; no existing container
+was changed. Final logs are `/tmp/schema-assist-pr2-budget-{focused,regression,probes,core-tsc,tests-tsc}.log`.

@@ -144,6 +144,9 @@ export class NamedQueryExecutionBudget {
     if (remaining <= 0) throw new NamedQueryAssistanceError('PREVIEW_TIMEOUT', 408);
     return remaining;
   }
+  remainingOutputBytes(): number {
+    return NAMED_QUERY_PREVIEW_LIMITS.responseBytes - this.outputBytes;
+  }
   /** Account for each mapped value before retaining it or rendering another alias/row. */
   output(value: unknown): boolean {
     const bytes = this.run(() => boundedJsonBytes(value, NAMED_QUERY_PREVIEW_LIMITS.responseBytes - this.outputBytes));

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import {
   flattenContextFields,
+  handlebarsInstance,
   type FieldDescription,
   type NamedQueryDraftRequest,
 } from '@researchdatabox/sails-ng-common';
@@ -731,6 +732,215 @@ describe('NamedQueryEditorService', () => {
     assert(render.callCount < 100);
     assert.deepEqual(result.truncationReasons, ['bytes']);
     assert(Buffer.byteLength(JSON.stringify({ data: result })) <= limits.responseBytes);
+  });
+  for (const [name, expression] of Object.entries({
+    each: '{{#each record.metadata.items}}{{@root.record.metadata.payload}}{{/each}}',
+    nestedEach:
+      '{{#each record.metadata.items}}{{#each @root.record.metadata.items}}{{@root.record.metadata.payload}}{{/each}}{{/each}}',
+    with: '{{#with record.metadata}}{{#each items}}{{@root.record.metadata.payload}}{{/each}}{{/with}}',
+    if: '{{#each record.metadata.items}}{{#if @root.record.metadata.payload}}{{@root.record.metadata.payload}}{{/if}}{{/each}}',
+    unless: '{{#each record.metadata.items}}{{#unless missing}}{{@root.record.metadata.payload}}{{/unless}}{{/each}}',
+    implicitBlock: '{{#record.metadata.items}}{{@root.record.metadata.payload}}{{/record.metadata.items}}',
+    lookup: '{{#each record.metadata.items}}{{lookup @root.record.metadata "payload"}}{{/each}}',
+    expression: '{{record.metadata.payload}}',
+    helper: '{{toUpper record.metadata.payload}}',
+    sourcePartial: '{{#each record.metadata.items}}{{> previewPayload}}{{/each}}',
+    inlinePartial:
+      '{{#*inline "payload"}}{{@root.record.metadata.payload}}{{/inline}}{{#each record.metadata.items}}{{> payload}}{{/each}}',
+  })) {
+    it(`byte-truncates ${name} template amplification during construction`, async () => {
+      const shared = handlebarsInstance();
+      shared.registerPartial('previewPayload', '{{@root.record.metadata.payload}}');
+      try {
+        // Exact reviewer source: valid BSON size, tiny draft, attempted 600M characters.
+        cursor.toArray.resolves([
+          { redboxOid: 'big', metadata: { payload: 'x'.repeat(600000), items: Array(1000).fill(0) } },
+        ]);
+        const definition = draft({ resultObjectMapping: { expanded: expression } });
+        assert(Buffer.byteLength(JSON.stringify({ definition })) < limits.inputBytes);
+        const result = await editor.previewDraft(brand, 'rdmp', caller, { definition });
+        assert.equal(result.valid, true);
+        assert.equal(result.summary.numFound, 1);
+        assert.deepEqual(result.records, []);
+        assert.equal(result.truncated, true);
+        assert.deepEqual(result.truncationReasons, ['bytes']);
+        assert(Buffer.byteLength(JSON.stringify({ data: result })) <= limits.responseBytes);
+      } finally {
+        shared.unregisterPartial('previewPayload');
+      }
+    });
+  }
+  it('stops nested helper block callbacks after at most the remaining budget of leaf output', async () => {
+    const shared = handlebarsInstance();
+    let emitted = 0;
+    shared.registerHelper('previewObserve', (value: string) => {
+      emitted += Buffer.byteLength(value);
+      return value;
+    });
+    shared.registerHelper('previewRepeat', (options: Handlebars.HelperOptions) => {
+      let result = '';
+      for (let i = 0; i < 1000; i++) result += options.fn({});
+      return result;
+    });
+    try {
+      cursor.toArray.resolves([{ redboxOid: 'big', metadata: { payload: 'x'.repeat(10000) } }]);
+      const result = await editor.previewDraft(brand, 'rdmp', caller, {
+        definition: draft({
+          resultObjectMapping: {
+            expanded:
+              '{{#previewRepeat}}{{#previewRepeat}}{{previewObserve @root.record.metadata.payload}}{{/previewRepeat}}{{/previewRepeat}}',
+          },
+        }),
+      });
+      assert(emitted > 0 && emitted <= limits.responseBytes);
+      assert.deepEqual(result.records, []);
+      assert.deepEqual(result.truncationReasons, ['bytes']);
+    } finally {
+      shared.unregisterHelper('previewObserve');
+      shared.unregisterHelper('previewRepeat');
+    }
+  });
+  it('checks helper arguments before allocating join/json output from repeated references', async () => {
+    for (const expression of [
+      '{{join record.metadata.items ""}}',
+      '{{json record.metadata.items}}',
+      '{{record.metadata.items}}',
+    ]) {
+      cursor.toArray.resolves([{ redboxOid: 'big', metadata: { items: Array(1000).fill('x'.repeat(600000)) } }]);
+      const result = await editor.previewDraft(brand, 'rdmp', caller, {
+        definition: draft({ resultObjectMapping: { expanded: expression } }),
+      });
+      assert.deepEqual(result.records, []);
+      assert.deepEqual(result.truncationReasons, ['bytes']);
+    }
+  });
+  it('guards custom overrides of builtin helpers before invoking them', async () => {
+    const shared = handlebarsInstance();
+    const original = shared.helpers.lookup;
+    const helper = sinon.spy((values: string[]) => values.join(''));
+    shared.registerHelper('lookup', helper);
+    try {
+      cursor.toArray.resolves([{ redboxOid: 'big', metadata: { items: Array(1000).fill('x'.repeat(600000)) } }]);
+      const result = await editor.previewDraft(brand, 'rdmp', caller, {
+        definition: draft({ resultObjectMapping: { expanded: '{{lookup record.metadata.items}}' } }),
+      });
+      assert.deepEqual(result.records, []);
+      assert.deepEqual(result.truncationReasons, ['bytes']);
+      assert.equal(helper.callCount, 0);
+      assert.equal(executor.runTemplate('{{lookup items}}', { items: ['a', 'b'] }), 'ab');
+    } finally {
+      shared.registerHelper('lookup', original);
+    }
+  });
+  it('uses the remaining response budget across rows and aliases for template construction', async () => {
+    collection.countDocuments.resolves(2);
+    cursor.toArray.resolves(
+      Array.from({ length: 2 }, (_, i) => ({ redboxOid: String(i), metadata: { payload: 'x'.repeat(200000) } }))
+    );
+    const result = await editor.previewDraft(brand, 'rdmp', caller, {
+      definition: draft({
+        resultObjectMapping: { first: '{{record.metadata.payload}}', second: '{{record.metadata.payload}}' },
+      }),
+    });
+    assert.equal(result.summary.numFound, 2);
+    assert.equal(result.records.length, 1);
+    assert.deepEqual(result.truncationReasons, ['bytes']);
+    assert(Buffer.byteLength(JSON.stringify({ data: result })) <= limits.responseBytes);
+  });
+  it('counts literal amplification and UTF-8 bytes during rendering', async () => {
+    cursor.toArray.resolves([
+      { redboxOid: 'big', metadata: { items: Array(1000).fill(0), payload: '界'.repeat(200000) } },
+    ]);
+    for (const expression of [
+      '{{#each record.metadata.items}}' + 'x'.repeat(10000) + '{{/each}}',
+      '{{record.metadata.payload}}',
+    ]) {
+      const result = await editor.previewDraft(brand, 'rdmp', caller, {
+        definition: draft({ resultObjectMapping: { expanded: expression } }),
+      });
+      assert.deepEqual(result.records, []);
+      assert.deepEqual(result.truncationReasons, ['bytes']);
+    }
+  });
+  it('bounds partial indentation and refuses uninstrumented function partials before invoking them', async () => {
+    const shared = handlebarsInstance();
+    const precompiled = sinon.spy(shared.compile('{{record.metadata.payload}}'));
+    shared.registerPartial('previewLines', '\n'.repeat(1000));
+    shared.registerPartial('previewCompiled', precompiled);
+    try {
+      for (const expression of [' '.repeat(1000) + '{{> previewLines}}', '{{> previewCompiled}}']) {
+        const result = await editor.previewDraft(brand, 'rdmp', caller, {
+          definition: draft({ resultObjectMapping: { expanded: expression } }),
+        });
+        assert.deepEqual(result.records, []);
+        assert.deepEqual(result.truncationReasons, ['bytes']);
+      }
+      assert.equal(precompiled.callCount, 0);
+      assert.equal(
+        executor.runTemplate('{{> previewCompiled}}', { record: { metadata: { payload: 'saved' } } }),
+        'saved'
+      );
+      assert.equal(precompiled.callCount, 1);
+    } finally {
+      shared.unregisterPartial('previewLines');
+      shared.unregisterPartial('previewCompiled');
+    }
+  });
+  it('bounds parameter-template construction before executing database reads', async () => {
+    const result = await editor.previewDraft(brand, 'rdmp', caller, {
+      definition: draft({
+        queryParams: {
+          text: {
+            path: 'metadata.title',
+            type: 'object',
+            template: '{{#each value.items}}{{@root.value.payload}}{{/each}}',
+          },
+        },
+      }),
+      parameters: { text: { payload: 'x'.repeat(10000), items: Array(1000).fill(0) } },
+    });
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.records, []);
+    assert.deepEqual(result.truncationReasons, ['bytes']);
+    assert.equal(collection.countDocuments.callCount, 0);
+  });
+  it('maps rendering RangeError to byte truncation and preserves other failures', async () => {
+    const render = sinon.stub(executor, 'runTemplate').throws(new RangeError('Invalid string length'));
+    const request = { definition: draft({ resultObjectMapping: { value: '{{record.metadata}}' } }) };
+    const result = await editor.previewDraft(brand, 'rdmp', caller, request);
+    assert.deepEqual(result.records, []);
+    assert.deepEqual(result.truncationReasons, ['bytes']);
+    render.throws(new Error('unrelated helper failure'));
+    await assert.rejects(editor.previewDraft(brand, 'rdmp', caller, request), /unrelated helper failure/);
+  });
+  it('preserves helper output, normalization, prototype restrictions and the saved renderer', async () => {
+    const shared = handlebarsInstance();
+    const originalEach = shared.helpers.each;
+    const originalCompile = shared.compile;
+    shared.registerHelper('previewHook', (text: string) => `hook:${text}`);
+    try {
+      const variables = { record: { metadata: { title: "Coffee & Tea <Blend> O'Brien", items: [1, 2] } } };
+      const expressions = [
+        '{{previewHook record.metadata.title}}|{{toLower record.metadata.title}}',
+        '{{#each record.metadata.items}}{{@index}}:{{this}};{{/each}}',
+        '{{#with record.metadata}}{{#if title}}{{title}}{{else}}empty{{/if}}{{/with}}',
+        '{{record.metadata.constructor}}|{{record.metadata.__proto__}}',
+        'Ｃｏｆｆｅｅ: {{record.metadata.title}}',
+      ];
+      for (const expression of expressions) {
+        const before = executor.runTemplate(expression, variables);
+        const preview = executor.runTemplate(expression, variables, new NamedQueryExecutionBudget());
+        const after = executor.runTemplate(expression, variables);
+        assert.equal(preview, before);
+        assert.equal(after, before);
+      }
+      const text = 'x'.repeat(limits.responseBytes + 1);
+      assert.equal(executor.runTemplate('{{payload}}', { payload: text }), text);
+      assert.equal(shared.helpers.each, originalEach);
+      assert.equal(shared.compile, originalCompile);
+    } finally {
+      shared.unregisterHelper('previewHook');
+    }
   });
   it('caps mapping count independently of the request byte and node budgets', async () => {
     await assert.rejects(

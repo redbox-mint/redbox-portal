@@ -31,6 +31,7 @@ import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError, previewDeadlineIssue } from '../utilities/NamedQueryPreview';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+import { NamedQueryPreviewOutputLimitError, renderNamedQueryPreviewTemplate } from '../utilities/NamedQueryPreviewTemplate';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
@@ -540,8 +541,9 @@ export namespace Services {
       if (budget && previewDeadlineIssue({ collectionName, expandRelations, relatedRecordFilters }))
         throw new NamedQueryAssistanceError('PREVIEW_DEADLINE_UNSUPPORTED', 422);
       const criteriaMeta = { enableExperimentalDeepTargets: true, ...(budget ? { maxTimeMS: budget.remaining() } : {}) };
-      if (budget) budget.run(() => this.setParamsInQuery(mongoQuery, queryParams, paramMap));
+      if (budget) budget.run(() => this.setParamsInQuery(mongoQuery, queryParams, paramMap, budget));
       else this.setParamsInQuery(mongoQuery, queryParams, paramMap);
+      if (budget?.outputTruncated) return new ListAPIResponse<NamedQueryResponseRecord>();
 
       if (relatedRecordFilters && relatedRecordFilters.length > 0) {
         for (const filter of relatedRecordFilters) {
@@ -689,7 +691,14 @@ export namespace Services {
         if (!_.isEmpty(resultObjectMapping)) {
           const resultMetadata = _.cloneDeep(resultObjectMapping);
           for (const [key, value] of Object.entries(resultObjectMapping)) {
-            const mapped = budget ? budget.run(() => that.runTemplate(value as string, variables)) : that.runTemplate(value as string, variables);
+            let mapped: unknown;
+            try {
+              mapped = budget ? budget.run(() => that.runTemplate(value as string, variables, budget)) : that.runTemplate(value as string, variables);
+            } catch (error) {
+              if (!budget || !(error instanceof NamedQueryPreviewOutputLimitError || error instanceof RangeError)) throw error;
+              budget.outputTruncated = true;
+              break;
+            }
             if (budget && !budget.output({ [key]: mapped })) break;
             _.set(resultMetadata, key, mapped);
           }
@@ -809,7 +818,7 @@ export namespace Services {
       return response;
     }
 
-    setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>) {
+    setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>, budget?: NamedQueryExecutionBudget) {
       for (const queryParamKey in queryParams) {
         let value = paramMap[queryParamKey];
         const queryParam: QueryParameterDefinition = queryParams[queryParamKey];
@@ -830,7 +839,8 @@ export namespace Services {
         }
 
         if (!_.isEmpty(queryParam.template)) {
-          value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap });
+          value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap }, budget);
+          if (budget?.outputTruncated) return mongoQuery;
         }
 
         if (queryParam.type == DataType.Number) {
@@ -918,14 +928,19 @@ export namespace Services {
       return mongoQuery;
     }
 
-    runTemplate(templateOrPath: string, variables: Record<string, unknown>): unknown {
+    runTemplate(templateOrPath: string, variables: Record<string, unknown>, budget?: NamedQueryExecutionBudget): unknown {
       const templateVars = { ...variables };
 
       if (templateOrPath && templateOrPath.indexOf('{{') != -1) {
         try {
+          if (budget) return renderNamedQueryPreviewTemplate(templateOrPath, templateVars, budget.remainingOutputBytes());
           const compiledTemplate = handlebarsCompile(templateOrPath, { noEscape: true });
           return compiledTemplate(templateVars);
         } catch (err) {
+          if (budget && (err instanceof NamedQueryPreviewOutputLimitError || err instanceof RangeError)) {
+            budget.outputTruncated = true;
+            return undefined;
+          }
           this.updateChronicle({ namedQueryTemplateOutcome: 'failed' }, [err]);
           throw err;
         }
