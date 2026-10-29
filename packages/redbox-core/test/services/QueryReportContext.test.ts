@@ -201,5 +201,15 @@ describe('query and report context adapters against execution', () => {
       template: '{{recordTableMeta.val.name}};',
     };
     assert.equal(reports.getColValue(row, team, {}), 'Ada;Grace;');
+    const wholeTeam = {
+      ...team,
+      multivalue: false,
+      template: '{{#each recordTableMeta.val}}{{this.name}};{{/each}}',
+    };
+    assert.equal(reports.getColValue(row, wholeTeam, {}), 'Ada;Grace;');
+    assert.equal(
+      find(reportCsvTemplateFields(rows, 'metadata.team', false), 'recordTableMeta.val[].name')?.type,
+      'string'
+    );
   });
 });

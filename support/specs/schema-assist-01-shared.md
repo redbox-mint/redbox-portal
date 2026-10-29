@@ -29,6 +29,14 @@ fallback. Such failures disable guidance, not manual editing. There is no cache.
 Feature controllers retain their own policies; the service does not require the
 email editor's Admin role.
 
+Email validation treats a selected schema as advisory. If that selection becomes
+forbidden or schema retrieval otherwise fails, validation returns its structural
+diagnostics without schema lint (HTTP 200 for valid content, HTTP 400 for blocking
+structural diagnostics). Field discovery still denies inaccessible schemas and
+never falls back to forms after denial. The editor clears stale diagnostics when
+a validation request fails and displays the request error; length-limit failures
+remain blocking. Publishing still performs its own structural validation.
+
 ## Browser contracts and adapters
 
 `packages/sails-ng-common/src/schema-assist.model.ts` defines `FieldDescription`,
@@ -61,6 +69,8 @@ AST traversal, email diagnostics, roots and helper policies.
   output is a string. Non-record collections never inherit record metadata.
 - `reportDisplayTemplateFields(rows, property, multivalue)` and
   `reportCsvTemplateFields(...)` describe their separate column contexts.
+  CSV retains array-item descendants of the whole value when multivalue is off
+  (`recordTableMeta.val[].name`); display still leaves `val` undefined in that case.
 
 These adapters only describe paths; selecting guidance never changes a query
 predicate or a saved definition. They do not perform query validation or output
@@ -84,6 +94,8 @@ Autocomplete attaches to a native input/textarea, in `path` or `template` mode;
 its source provides the relevant fields, roots, registered helpers and optional
 feature-owned helper scaffolds. Email's placeholders, sample data, Context JSON,
 preview frames, publishing and orchestration remain in the email app.
+Custom scaffolds may omit the `YOUR_` placeholder marker; autocomplete then leaves
+the caret at the end of the inserted scaffold.
 
 `LatestRequest` is a per-instance generation guard. Start a new generation for a
 request/context change and invalidate it on item, brand, portal, caller changes
@@ -156,3 +168,25 @@ failures no longer fall back to forms. Missing guidance still leaves editing
 available. The display/CSV scalar-value difference is characterized and
 preserved for the later report editor. No unresolved implementation questions
 remain for §1.
+
+## Review-fix validation
+
+All three review findings were reproduced before their fixes: denied selected
+guidance returned HTTP 403 from validation, whole-array CSV guidance omitted item
+fields, and a custom scaffold without a placeholder threw on `placeholder.index`.
+Regression coverage now checks workflow and resolver denial after selection,
+structural errors and corrected content, continued discovery denial without form
+fallback, stale editor diagnostics after request failure, whole-array CSV
+execution and display behavior, nested array fields, and custom scaffolds.
+
+Focused checks ran sequentially under `timeout`, without Docker. Angular used
+`NG_BUILD_MAX_WORKERS=1` and `ChromeHeadlessNoSandbox`:
+
+- Core email/schema, query/report runtime and email controller Mocha: 486 passing,
+  with the same optional SCU fixture case pending.
+- Sails-ng-common compilation including tests and adapter Mocha: 3 passing.
+- Portal-ng-common development build and schema-assist Angular specs: 4 passing.
+- Full email-template Angular suite: 232 passing.
+- Core source and focused controller/runtime-test TypeScript checks passed.
+  Focused source lint reported zero warnings/errors; new-test formatting and
+  `git diff --check` passed.

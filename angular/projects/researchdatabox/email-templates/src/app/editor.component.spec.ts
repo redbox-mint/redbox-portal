@@ -737,6 +737,24 @@ describe('EditorComponent', () => {
     flush();
   }));
 
+  it('clears stale blocking diagnostics when validation fails after the source is corrected', fakeAsync(() => {
+    start(editorState({ draft: draft(7) }));
+    api['validate'].and.resolveTo([
+      { code: 'INVALID_TEMPLATE', field: 'body', reason: 'UNCLOSED_BLOCK', severity: 'error', line: 1, column: 1 },
+    ]);
+    typeBody('{{#if record.metadata.title}}');
+    tick(VALIDATE_DEBOUNCE_MS);
+    expect(component.publishBlocker).toBe('email-templates-publish-blocked-diagnostics');
+    api['validate'].and.rejectWith(new EmailTemplateApiError(403, 'FORBIDDEN'));
+    typeBody('{{record.metadata.title}}');
+    tick(VALIDATE_DEBOUNCE_MS);
+    expect(component.diagnostics).toEqual([]);
+    expect(component.bodyErrorLines).toEqual([]);
+    expect(component.publishBlocker).toBeNull();
+    expect(component.errorMessage).not.toBeNull();
+    flush();
+  }));
+
   it('keeps schema warnings visible after autosave and never blocks Publish', fakeAsync(() => {
     start(editorState({ draft: draft(7) }));
     api['validate'].and.resolveTo([

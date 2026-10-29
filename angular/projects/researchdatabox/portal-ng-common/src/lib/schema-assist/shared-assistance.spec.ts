@@ -172,5 +172,19 @@ describe('report display context contract', () => {
       false
     );
     expect(fields.find(field => field.path === 'recordTableMeta.val')?.type).toBe('undefined');
+    const wholeTeam = { ...team, multivalue: false };
+    table.getColValue(row, wholeTeam);
+    context = template.calls.mostRecent().args[1];
+    expect(context.recordTableMeta.val).toBeUndefined();
+    expect(context.metadata.team).toEqual([{ name: 'Ada' }]);
+    const arrayFields = reportDisplayTemplateFields(
+      queryResultFields('record', flattenContextFields({
+        properties: { team: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' } } } } },
+      })),
+      'metadata.team',
+      false
+    );
+    expect(arrayFields.find(field => field.path === 'recordTableMeta.val')?.type).toBe('undefined');
+    expect(arrayFields.some(field => field.path.startsWith('recordTableMeta.val[]'))).toBeFalse();
   });
 });

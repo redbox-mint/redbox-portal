@@ -118,7 +118,7 @@ function reportContextFields(
   const children =
     multivalue || scalarValue
       ? rows
-          .filter(f => f.path.startsWith(prefix + '.'))
+          .filter(f => f.path.startsWith(prefix + '.') || f.path.startsWith(prefix + '[]'))
           .map(f => ({ ...f, path: 'recordTableMeta.val' + f.path.slice(prefix.length), required: false }))
       : [];
   return [
