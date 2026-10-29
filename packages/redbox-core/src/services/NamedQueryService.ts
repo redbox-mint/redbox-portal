@@ -479,6 +479,11 @@ export namespace Services {
       // bootstrap empty arrays and whitespace, when serializing that draft back.
       const serialize = (stored: string | undefined, value: unknown, changed = JSON.stringify(value)) =>
         stored && _.isEqual(parseSerializedValue(stored, undefined), value) ? stored : changed;
+      // Legacy user queries may store "branding", although execution resolves
+      // access through roles. Preserve an untouched value without accepting a
+      // client-selected scope or carrying it across a collection change.
+      const brandIdFieldPath = existing.collectionName === config.collectionName &&
+        existing.brandIdFieldPath === config.brandIdFieldPath ? existing.brandIdFieldPath : brandScope.fieldPath;
       const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ key }).set({
         name: name,
         branding: brand.id,
@@ -486,7 +491,7 @@ export namespace Services {
         queryParams: serialize(existing.queryParams, config.queryParams),
         collectionName: config.collectionName,
         resultObjectMapping: serialize(existing.resultObjectMapping, config.resultObjectMapping),
-        brandIdFieldPath: brandScope.fieldPath,
+        brandIdFieldPath,
         sort: serialize(existing.sort, config.sort ?? [], (Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : ""),
         expandRelations: config.expandRelations === true,
         relatedRecordFilters: serialize(existing.relatedRecordFilters, config.relatedRecordFilters ?? [], (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
