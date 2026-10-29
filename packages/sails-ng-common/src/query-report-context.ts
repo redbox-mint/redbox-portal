@@ -127,6 +127,7 @@ function reportContextFields(
     field('recordTableMeta.col', 'object'),
     ...col,
     field('recordTableMeta.col.multivalue', 'boolean'),
+    field('recordTableMeta.col.hide', 'boolean'),
     { ...value, path: 'recordTableMeta.val', required: false },
     ...children,
     field('optTemplateData', 'object'),

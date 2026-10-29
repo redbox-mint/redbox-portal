@@ -1,5 +1,14 @@
 import { apiRoute } from '../route-factory';
-import { anyField, apiErrorResponseSchema, arrayField, listApiResponseSchema, namedQueryResponseRecordSchema, objectField, responseField, stringField } from '../schemas/common';
+import {
+  anyField,
+  apiErrorResponseSchema,
+  arrayField,
+  listApiResponseSchema,
+  namedQueryResponseRecordSchema,
+  objectField,
+  responseField,
+  stringField,
+} from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
@@ -11,7 +20,9 @@ const reportConfigBody = objectField(
     databaseQuery: objectField({ queryName: stringField() }).nullable(),
     solrQuery: objectField({ baseQuery: stringField(), searchCore: stringField() }).nullable(),
     filter: arrayField(objectField({}, [], 'Filter object', true)).nullable(),
-    columns: arrayField(objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)).nullable(),
+    columns: arrayField(
+      objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)
+    ).nullable(),
   },
   ['name', 'title', 'reportSource'],
   'Report configuration payload',
@@ -37,7 +48,8 @@ export const executeNamedQueryRoute = apiRoute(
   {
     tags: ['Reports'],
     summary: 'Execute named query report',
-    description: 'Supply additional query parameters using the names configured in the named query queryParams. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected.',
+    description:
+      'Supply additional query parameters using the names configured in the named query queryParams. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected.',
     responses: {
       200: responseField(listApiResponseSchema(namedQueryResponseRecordSchema), 'Named query results'),
       400: badRequestResponse,
@@ -113,22 +125,44 @@ export const deleteReportConfigRoute = apiRoute(
   }
 );
 
-export const previewReportConfigRoute = apiRoute(
-  'post',
-  '/:branding/:portal/api/report-config/preview',
-  'webservice/ReportController',
-  'previewConfig',
-  { body: reportConfigRequestBody },
-  {
-    tags: ['Reports'],
-    summary: 'Preview report configuration',
-    responses: { 200: reportConfigResponse, 400: badRequestResponse, 500: internalServerErrorResponse },
-  }
-);
+export const previewReportConfigRoute = {
+  ...apiRoute(
+    'post',
+    '/:branding/:portal/api/report-config/preview',
+    'webservice/ReportController',
+    'previewConfig',
+    { body: reportConfigRequestBody },
+    {
+      tags: ['Reports'],
+      summary: 'Preview report configuration',
+      description:
+        'Executes the unsaved database report using its brand-effective saved query. Retains total, pageNum, recordsPerPage, records and success; adds valid, diagnostics, renderedRows (configured cells with sanitized display HTML and CSV export values), truncated, truncationReasons and server-owned limits. At most 100 rows and 524288 response bytes. Uncancellable custom collections, joins and relation expansion return valid:false. Export samples are data values before CSV quoting, with formula protection.',
+      responses: { 200: reportConfigResponse, 400: badRequestResponse, 500: internalServerErrorResponse },
+    }
+  ),
+  csrf: true,
+};
+
+export const validateReportConfigRoute = {
+  ...apiRoute(
+    'post',
+    '/:branding/:portal/api/report-config/validate',
+    'webservice/ReportController',
+    'validateConfig',
+    { body: { required: true, content: { 'application/json': { schema: anyField('Unsaved report configuration') } } } },
+    {
+      tags: ['Reports'],
+      summary: 'Validate report bindings, columns and templates without executing or saving',
+      responses: { 200: reportConfigResponse, 400: badRequestResponse },
+    }
+  ),
+  csrf: true,
+};
 
 reportsApiRoutes.push(
   listReportConfigsRoute,
   previewReportConfigRoute,
+  validateReportConfigRoute,
   getReportConfigRoute,
   createReportConfigRoute,
   updateReportConfigRoute,
