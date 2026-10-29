@@ -12,7 +12,7 @@ import {
   EmailTemplateConflictError,
   EmailTemplateError,
 } from '../../src/services/EmailTemplateService';
-import { Services as EmailServices } from '../../src/services/EmailService';
+import { Services as EmailServices, curateEmailRecordData } from '../../src/services/EmailService';
 import { Services as NotificationServices, EmailChannel } from '../../src/services/IntegrationNotificationService';
 import { Controllers as EmailControllers } from '../../src/controllers/EmailController';
 import { EmailTemplateWLDef } from '../../src/waterline-models/EmailTemplate';
@@ -459,7 +459,9 @@ describe('Email template overrides', () => {
         assert.equal(report.length, 1);
         assert.equal(report[0].code, 'INVALID_TEMPLATE');
         assert.equal(report[0].diagnostic!.field, field);
-        assert.deepEqual(Object.keys(report[0].diagnostic!).sort(), ['column', 'field', 'line', 'reason']);
+        assert.deepEqual(Object.keys(report[0].diagnostic!).sort(),
+          ['column', 'field', ...(report[0].diagnostic!.helper ? ['helper'] : []), 'line', 'reason']);
+        if (report[0].diagnostic!.helper) assert.ok(['each', 'if', 'unless', 'with'].includes(report[0].diagnostic!.helper));
         const result = await render('a');
         assert.equal(result.status, 500);
         assert.ok(result.ex instanceof EmailTemplateError);
@@ -486,7 +488,7 @@ describe('Email template overrides', () => {
     const subject = '{{{json record}}}';
     const expectedRecord = { oid: 'oid', metadata: record.metadata, lastSaveDate: record.lastSaveDate,
       dateCreated: record.dateCreated, workflow: { stage: 'review', stageLabel: 'Review' },
-      metaMetadata: _.pick(record.metaMetadata, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']) };
+      metaMetadata: _.pick(record.metaMetadata, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']), redboxOid: 'oid' };
     const expectedSubject = JSON.stringify(expectedRecord);
     const expectedBody = expectedSubject + '|' + JSON.stringify({ record: expectedRecord, oid: 'oid' });
     writeFileSync(join(directory, 'hook-body.hbs'), body);
@@ -693,6 +695,149 @@ describe('Email template overrides', () => {
       delete mockSails.config.auth;
       delete mockSails.config.appUrl;
       assert.equal((await render()).body, '||||');
+    });
+
+    it('derives record URLs and title for supplied and stored templates, including root contexts and encoded OIDs', async () => {
+      const body = '{{title}}|{{record.viewUrl}}|{{record.editUrl}}|{{imports.record.viewUrl}}|{{record.redboxOid}}|{{imports.record.redboxOid}}';
+      const oid = 'explicit /?#ü';
+      const record = { redboxOid: 'fallback', metadata: { title: 'Record title' }, metaMetadata: { brandId: 'a' } };
+      const data = { record, oid, imports: { record, oid } };
+      const original = _.cloneDeep(data);
+      writeFileSync(join(directory, 'hook-body.hbs'), body);
+      mockSails.config.emailnotification.templates.notice.subject = body;
+      const send = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+      sinon.stub(email as any, 'metTriggerCondition').returns('true');
+      for (const override of [false, true]) {
+        if (override) await service.create('a', 'notice', { subject: body, body, format: 'text' });
+        for (const rootContext of ['', '/root/']) {
+          mockSails.config.http.rootContext = rootContext;
+          const base = `https://portal.example/${rootContext ? 'root/' : ''}brand-a/research/record`;
+          const viewUrl = `${base}/view/explicit%20%2F%3F%23%C3%BC`;
+          const editUrl = `${base}/edit/explicit%20%2F%3F%23%C3%BC`;
+          const expected = `Record title|${viewUrl}|${editUrl}|${viewUrl}|${oid}|${oid}`;
+          const rendered = await render('a', data);
+          assert.equal(rendered.status, 200);
+          assert.equal(rendered.body, expected);
+          assert.equal(rendered.subject, expected);
+          await email.sendRecordNotification(oid, record, { template: 'notice', to: 'reader@example.com' }, {}, {});
+          assert.deepEqual(send.lastCall.args.slice(1, 3), [expected, expected]);
+        }
+      }
+      assert.deepEqual(data, original);
+    });
+
+    it('uses the curated fallback OID and omits record URLs when their source is unavailable', async () => {
+      const record = { redboxOid: 'fallback/id', metadata: { title: 'Record title' } };
+      const context = await email.buildPreviewContext('notice', { record, imports: { record } }, 'a') as any;
+      assert.equal(context.title, 'Record title');
+      assert.equal(context.record.viewUrl, 'https://portal.example/root/brand-a/research/record/view/fallback%2Fid');
+      assert.equal(context.record.editUrl, 'https://portal.example/root/brand-a/research/record/edit/fallback%2Fid');
+      assert.equal(context.imports.record, context.record);
+      assert.equal(Object.hasOwn(context, 'recordUrl'), false);
+      for (const oid of [undefined, '', null, 42]) {
+        const withoutOid = await email.buildPreviewContext('notice', { record: { oid, metadata: record.metadata } }, 'a') as any;
+        assert.equal(Object.hasOwn(withoutOid.record, 'viewUrl'), false);
+        assert.equal(Object.hasOwn(withoutOid.record, 'editUrl'), false);
+      }
+      const withoutRecord = await email.buildPreviewContext('notice', { oid: 'oid' }, 'a');
+      assert.equal(Object.hasOwn(withoutRecord, 'title'), false);
+      assert.equal(Object.hasOwn(withoutRecord, 'recordUrl'), false);
+      for (const title of [undefined, null, 42, ['Title'], { value: 'Title' }]) {
+        const context = await email.buildPreviewContext('notice', { record: { metadata: { title } } }, 'a');
+        assert.equal(Object.hasOwn(context, 'title'), false);
+      }
+      writeFileSync(join(directory, 'hook-body.hbs'), '{{{json this}}}');
+      const legacy = await email.buildFromTemplateAsync('notice', { record });
+      assert.equal(legacy.status, 200);
+      const legacyContext = JSON.parse(String(legacy.body));
+      assert.equal(legacyContext.title, 'Record title');
+      assert.equal(Object.hasOwn(legacyContext, 'recordUrl'), false);
+      assert.equal(Object.hasOwn(legacyContext.record, 'viewUrl'), false);
+      assert.equal(Object.hasOwn(legacyContext.record, 'editUrl'), false);
+      delete mockSails.config.appUrl;
+      const withoutBrandUrl = await email.buildPreviewContext('notice', { record }, 'a') as any;
+      assert.equal(Object.hasOwn(withoutBrandUrl, 'recordUrl'), false);
+      assert.equal(Object.hasOwn(withoutBrandUrl.record, 'viewUrl'), false);
+      assert.equal(Object.hasOwn(withoutBrandUrl.record, 'editUrl'), false);
+    });
+
+    it('only derives URLs from non-empty string brand URLs and curated OIDs', () => {
+      for (const brandUrl of [undefined, '', null, 42]) {
+        const context = curateEmailRecordData({ portal: { brandUrl }, record: { oid: 'oid' } }) as any;
+        assert.equal(Object.hasOwn(context.record, 'viewUrl'), false);
+        assert.equal(Object.hasOwn(context.record, 'editUrl'), false);
+      }
+    });
+
+    it('preserves caller-supplied titles, including empty, null and undefined values', async () => {
+      writeFileSync(join(directory, 'hook-body.hbs'), '{{title}}');
+      mockSails.config.emailnotification.templates.notice.subject = '{{title}}';
+      const record = { oid: 'oid', metadata: { title: 'Record title' } };
+      for (const values of [
+        { title: 'Caller title' },
+        { title: '' },
+        { title: null },
+        { title: undefined },
+      ]) {
+        const result = await render('a', { record, ...values });
+        assert.equal(result.status, 200);
+        assert.equal(result.body, values.title ?? '');
+        assert.equal(result.subject, values.title ?? '');
+      }
+    });
+
+    it('keeps string record URL edits and derives each non-string URL independently', async () => {
+      const base = 'https://portal.example/root/brand-a/research/record';
+      for (const [viewUrl, editUrl, expectedView, expectedEdit] of [
+        ['https://edited.example/view', 'https://edited.example/edit', 'https://edited.example/view', 'https://edited.example/edit'],
+        ['', '', '', ''],
+        ['https://edited.example/view', null, 'https://edited.example/view', `${base}/edit/oid`],
+        [42, 'https://edited.example/edit', `${base}/view/oid`, 'https://edited.example/edit'],
+        [undefined, false, `${base}/view/oid`, `${base}/edit/oid`],
+      ]) {
+        const record = { oid: 'oid', viewUrl, editUrl };
+        const original = _.cloneDeep(record);
+        const context = await email.buildPreviewContext('notice', { record }, 'a') as any;
+        assert.equal(context.record.viewUrl, expectedView);
+        assert.equal(context.record.editUrl, expectedEdit);
+        assert.deepEqual(record, original);
+      }
+      const edited = curateEmailRecordData({ record: { viewUrl: '', editUrl: 'https://edited.example/edit' } }) as any;
+      assert.equal(edited.record.viewUrl, '');
+      assert.equal(edited.record.editUrl, 'https://edited.example/edit');
+      const invalid = curateEmailRecordData({ record: { viewUrl: null, editUrl: 42 } }) as any;
+      assert.equal(Object.hasOwn(invalid.record, 'viewUrl'), false);
+      assert.equal(Object.hasOwn(invalid.record, 'editUrl'), false);
+    });
+
+    it('strictly fails record notifications using the missing recordUrl root', async () => {
+      const body = '{{recordUrl}}';
+      const data = { record: { oid: 'oid', metadata: { title: 'Record title' }, metaMetadata: { brandId: 'a' } } };
+      const send = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+      sinon.stub(email as any, 'metTriggerCondition').returns('true');
+      writeFileSync(join(directory, 'hook-body.hbs'), body);
+      for (const override of [false, true]) {
+        if (override) await service.create('a', 'notice', { subject: 'Subject', body, format: 'text' });
+        const result = await render('a', data);
+        assert.equal(result.status, 500);
+        assert.equal((result.ex as EmailTemplateError).code, 'RENDER_FAILED');
+        await assert.rejects(email.sendRecordNotification('oid', data.record,
+          { template: 'notice', to: 'reader@example.com' }, {}, {}), { code: 'RENDER_FAILED' });
+      }
+      assert.equal(send.callCount, 0);
+    });
+
+    it('keeps integration title and recordUrl payload values unchanged without a record', async () => {
+      const payload = { kind: 'failure', brandId: 'a', title: 'Integration title',
+        recordUrl: 'https://integration.example/record/custom', redboxOid: 'oid' } as any;
+      const original = _.cloneDeep(payload);
+      writeFileSync(join(directory, 'integrationFailure.hbs'), '{{title}}|{{recordUrl}}');
+      const send = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+      assert.equal(await new EmailChannel().send(payload, { recipients: ['admin@example.com'], channelConfig: {} }), true);
+      assert.deepEqual(send.lastCall.args.slice(1, 3), [
+        'Integration title|https://integration.example/record/custom', 'Integration title',
+      ]);
+      assert.deepEqual(payload, original);
     });
 
     for (const attack of attacks) {

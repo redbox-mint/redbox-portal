@@ -38,6 +38,11 @@ export type ServiceStub = { [K in keyof EmailTemplateAdminService]?: jasmine.Spy
 export function serviceStub(): Record<string, jasmine.Spy | unknown> & Record<string, any> {
   const stub: Record<string, any> = {
     brandName: 'default',
+    schemaSelections: new Map(),
+    previewWorkspaces: new Map(),
+    heldEdits: new Map(),
+    schemaTargets: jasmine.createSpy('schemaTargets').and.resolveTo({ recordTypes: [] }),
+    contextSchema: jasmine.createSpy('contextSchema'),
     waitForInit: jasmine.createSpy('waitForInit').and.callFake(async () => stub),
     isInitializing: () => false,
     catalogue: jasmine.createSpy('catalogue').and.resolveTo([]),
@@ -49,6 +54,7 @@ export function serviceStub(): Record<string, jasmine.Spy | unknown> & Record<st
     preview: jasmine.createSpy('preview').and.resolveTo({
       subject: 'Rendered subject',
       html: '<p>Rendered</p>',
+      frameUrl: '/default/rdmp/app/email-templates/preview-frame/' + 'a'.repeat(43),
       sanitiserRemovals: [],
       diagnostics: [],
     }),
@@ -109,6 +115,7 @@ export function catalogueEntry(overrides: Partial<EmailAdminCatalogueEntry> = {}
   return {
     templateId: 'publicationReview',
     description: 'Publication ready for review',
+    subject: 'Publication subject',
     source: 'override',
     liveVersion: 4,
     latestVersion: 4,

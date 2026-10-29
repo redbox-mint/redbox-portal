@@ -101,30 +101,135 @@
   padding: 0;
 }
 
-.et-diagnostic {
+// One row per finding. Errors are red and block publishing; warnings are amber and
+// advisory. Icon shape and hidden text also distinguish them, not colour alone.
+.et-diagnostic-item {
   display: flex;
-  gap: 8px;
-  align-items: baseline;
-  width: 100%;
-  padding: 6px 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
   border: 1px solid var(--bs-danger-border-subtle);
   border-radius: var(--bs-border-radius);
   background: var(--bs-danger-bg-subtle);
   color: var(--bs-danger-text-emphasis);
-  text-align: left;
 
   & + & {
     margin-top: 4px;
   }
 
   &:hover {
-    border-color: var(--bs-danger);
+    border-color: rgba(var(--bs-danger-rgb), 0.6);
+  }
+
+  &.et-diagnostic-warning {
+    border-color: var(--bs-warning-border-subtle);
+    background: rgba(var(--bs-warning-rgb), 0.1);
+    color: var(--bs-warning-text-emphasis);
+
+    &:hover {
+      border-color: rgba(var(--bs-warning-rgb), 0.75);
+    }
+  }
+}
+
+.et-diagnostic {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  background: none;
+  color: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+  }
+}
+
+.et-diagnostic-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  // Paths stay whole; very long ones end in an ellipsis rather than breaking mid-name.
+  code {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+    padding: 0 2px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.6);
+    color: inherit;
+    font-size: 12px;
+  }
+}
+
+// "Did you mean title?" — a quiet pill on the right of a warning.
+.et-diagnostic-fix {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  // Its own line, under the message and clear of the icon.
+  margin: -2px 10px 8px 32px;
+  padding: 2px 10px;
+  border: 1px solid rgba(var(--bs-warning-rgb), 0.55);
+  border-radius: 999px;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-size: 12px;
+
+  > .fa-solid {
+    color: var(--bs-warning-text-emphasis);
+    font-size: 11px;
+  }
+
+  code {
+    padding: 0 2px;
+    border-radius: 3px;
+    background: rgba(var(--bs-warning-rgb), 0.16);
+    color: var(--bs-emphasis-color);
+    font-size: 12px;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--bs-warning);
+    background: rgba(var(--bs-warning-rgb), 0.08);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--bs-danger);
+    outline: 2px solid var(--bs-warning-text-emphasis);
     outline-offset: 1px;
   }
+}
+
+.et-diagnostic-list-compact {
+  margin-top: 6px;
+  font-size: 13px;
+
+  .et-diagnostic {
+    padding: 4px 10px;
+  }
+}
+
+.et-advisory {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin: 6px 0 0;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+}
+
+.et-subject-field {
+  position: relative;
 }
 
 .et-diagnostic-pos {
@@ -184,14 +289,239 @@
   font-size: 12px;
 
   &:hover,
-  &:focus-visible {
+  &:focus-visible,
+  &.active {
     border-color: var(--bs-primary);
     color: var(--bs-primary-text-emphasis);
   }
 }
 
+// Helper guidance: block helpers carry their syntax and an example inline; inline
+// helpers stay as chips with a single usage card that follows hover and focus.
+.et-helper-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.et-helper-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.et-chip-block {
+  justify-self: start;
+}
+
+.et-helper-usage,
+.et-helper-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.et-helper-syntax {
+  color: var(--bs-body-color);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.et-helper-example {
+  align-self: start;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: var(--bs-border-radius-sm);
+  background: rgba(var(--bs-emphasis-color-rgb), 0.05);
+  color: var(--bs-secondary-text-emphasis);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+// Tall enough for the longest documented usage, so hovering across chips never
+// changes the page height (which would shift the chips under the pointer).
+.et-helper-card {
+  min-height: 84px;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border: 1px dashed var(--bs-border-color);
+  border-radius: var(--bs-border-radius-sm);
+  background: var(--bs-body-bg);
+}
+
+.et-helper-card-hint {
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+}
+
+.et-help-note {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin: 6px 0 0;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  line-height: 1.45;
+
+  > .fa-solid {
+    flex: 0 0 auto;
+    font-size: 11px;
+  }
+
+  code {
+    color: var(--bs-emphasis-color);
+    font-size: 11px;
+  }
+}
+
+.et-context-scope {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin: 2px 0 6px;
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+
+  > .fa-regular {
+    font-size: 11px;
+  }
+}
+
+.et-preview-diagnostics {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li + li {
+    margin-top: 4px;
+  }
+}
+
+.et-preview-diagnostic {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 13px;
+  text-align: left;
+
+  .et-diagnostic-pos {
+    margin-right: 6px;
+    font-weight: 600;
+  }
+
+  code {
+    padding: 0 3px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.65);
+    color: inherit;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+}
+
+button.et-preview-diagnostic {
+  &:hover .et-diagnostic-text {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  &:focus-visible {
+    border-radius: 2px;
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
 .et-context-edited {
   font-size: 11px;
+}
+
+.et-context-action {
+  font-size: 13px;
+  text-decoration: none;
+
+  &:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+}
+
+.et-context-sep {
+  width: 1px;
+  height: 14px;
+  margin: 0 4px;
+  background: var(--bs-border-color);
+}
+
+// Shown after relaxed input (single quotes, bare keys, trailing commas) is rewritten.
+.et-context-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  margin: 6px 0 0;
+  color: var(--bs-success-text-emphasis);
+  font-size: 12px;
+
+  > .fa-solid {
+    font-size: 11px;
+  }
+}
+
+.et-context-note-detail {
+  color: var(--bs-secondary-color);
+}
+
+// Advisory schema differences in the preview data, listed at their JSON path.
+.et-context-issues {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--bs-warning-border-subtle);
+  border-radius: var(--bs-border-radius);
+  background: rgba(var(--bs-warning-rgb), 0.08);
+  font-size: 13px;
+
+  .btn-link {
+    font-size: 12px;
+  }
+}
+
+.et-context-issues-head {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin: 0 0 4px;
+  color: var(--bs-warning-text-emphasis);
+  font-weight: 600;
+}
+
+.et-context-issue-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    align-items: baseline;
+    padding: 2px 0;
+  }
+}
+
+.et-context-path {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--bs-body-bg);
+  color: var(--bs-emphasis-color);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .et-preview-placeholder {
@@ -358,6 +688,29 @@
   }
 }
 
+.et-summary-format {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+
+  > .fa-solid {
+    color: var(--bs-secondary-color);
+    font-size: 11px;
+  }
+}
+
+.et-format-warning {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: -4px 0 16px;
+  padding: 8px 12px;
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-warning-bg-subtle);
+  color: var(--bs-warning-text-emphasis);
+  font-size: 13px;
+}
+
 .et-summary-old,
 .et-summary-new {
   padding: 2px 8px;
@@ -376,4 +729,9 @@
 .et-summary-new {
   background: var(--bs-success-bg-subtle);
   color: var(--bs-success-text-emphasis);
+}
+
+.et-integration-sample {
+  gap: 12px;
+  font-size: 14px;
 }

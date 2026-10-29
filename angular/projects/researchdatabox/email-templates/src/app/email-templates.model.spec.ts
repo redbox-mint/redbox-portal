@@ -44,3 +44,10 @@ describe('email template helpers', () => {
     expect(utf8Bytes('é')).toBe(2);
   });
 });
+
+ describe('ET-11 CRLF line counting', () => {
+  it('counts only the edited line after textarea newline normalization', () => {
+    expect(changedLineCount('one\r\ntwo\r\nthree\r\n', 'Xone\ntwo\nthree\n')).toBe(1);
+    expect(changedLineCount('one\r\ntwo\r\n', 'one\ntwo\n')).toBe(0);
+  });
+});

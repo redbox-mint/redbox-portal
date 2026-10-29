@@ -1,0 +1,112 @@
+<div class="et-fields">
+  <div class="et-fields-search">
+    <i class="fa-solid fa-magnifying-glass et-fields-search-icon" aria-hidden="true"></i>
+    <input
+      #search
+      type="search"
+      id="et-fields-search"
+      class="form-control form-control-sm"
+      autocomplete="off"
+      spellcheck="false"
+      [value]="query"
+      [attr.aria-label]="'email-templates-fields-search-label' | i18next"
+      [attr.placeholder]="'email-templates-fields-search-placeholder' | i18next"
+      aria-controls="et-fields-list"
+      (input)="onSearch(search.value)"
+      (keydown.escape)="onEscape($event, search)"
+    />
+    <span class="et-fields-count" aria-live="polite">
+      @if (searching) {
+        {{ 'email-templates-fields-matches' | i18next: { count: rows.length } }}
+      } @else {
+        {{ 'email-templates-fields-count' | i18next: { count: fieldCount } }}
+      }
+    </span>
+  </div>
+
+  <ul
+    id="et-fields-list"
+    class="et-fields-list"
+    [class.et-fields-searching]="searching"
+    [attr.aria-label]="'email-templates-help-variables' | i18next"
+  >
+    @for (row of rows; track row.node.path) {
+      <li class="et-field" [style.padding-left.px]="8 + row.depth * 16">
+        @if (isGroup(row.node)) {
+          <button
+            type="button"
+            class="et-field-name et-field-group"
+            [attr.aria-expanded]="searching ? null : isExpanded(row.node)"
+            [attr.title]="hint(row.node)"
+            (click)="choose(row.node)"
+          >
+            <i
+              class="fa-solid fa-chevron-right et-field-chevron"
+              [class.et-field-chevron-open]="!searching && isExpanded(row.node)"
+              aria-hidden="true"
+            ></i>
+            <span class="et-field-key">{{ searching ? displayPath(row.node) : row.node.name }}</span>
+            @if (row.node.title) {
+              <span class="et-field-title">{{ row.node.title }}</span>
+            }
+          </button>
+        } @else {
+          @if (!searching && row.node.children.length) {
+            <button
+              type="button"
+              class="et-field-toggle"
+              [attr.aria-expanded]="isExpanded(row.node)"
+              [attr.aria-label]="
+                (isExpanded(row.node) ? 'email-templates-fields-collapse' : 'email-templates-fields-expand')
+                  | i18next: { name: row.node.name, interpolation: { escapeValue: false } }
+              "
+              (click)="toggle(row.node)"
+            >
+              <i
+                class="fa-solid fa-chevron-right et-field-chevron"
+                [class.et-field-chevron-open]="isExpanded(row.node)"
+                aria-hidden="true"
+              ></i>
+            </button>
+          } @else {
+            <span class="et-field-toggle" aria-hidden="true"></span>
+          }
+          <button
+            type="button"
+            class="et-field-name"
+            [disabled]="disabled"
+            [attr.title]="hint(row.node)"
+            (click)="choose(row.node)"
+          >
+            <span class="et-field-key">{{ searching ? displayPath(row.node) : row.node.name }}</span>
+            @if (row.node.title) {
+              <span class="et-field-title">{{ row.node.title }}</span>
+            }
+            <span class="et-field-insert" aria-hidden="true">
+              @if (row.node.isArray) {
+                <span class="et-field-each">#each</span>
+              }
+              <i class="fa-solid fa-arrow-turn-down fa-rotate-90"></i>
+            </span>
+          </button>
+        }
+        <!-- Form-config field lists carry names only: no invented type or requiredness. -->
+        <span class="et-field-meta">
+          @if (row.node.type !== 'unknown') {
+            <span class="et-field-type">{{ row.node.type }}</span>
+          }
+          @if (!row.node.loose && row.node.type !== 'unknown') {
+            <span class="et-field-req" [class.et-field-required]="row.node.required">{{
+              (row.node.required ? 'email-templates-fields-required' : 'email-templates-fields-optional') | i18next
+            }}</span>
+          }
+        </span>
+      </li>
+    }
+  </ul>
+  @if (searching && !rows.length) {
+    <p class="et-fields-empty">
+      {{ 'email-templates-fields-none' | i18next: { query: query, interpolation: { escapeValue: false } } }}
+    </p>
+  }
+</div>

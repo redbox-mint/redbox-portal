@@ -27,23 +27,22 @@ describe('PreviewFrameComponent', () => {
   }
 
   it('renders HTML in a fully sandboxed iframe without scripts or same-origin access', () => {
-    render({ subject: 'Hello', html: '<p>Body</p>', sanitiserRemovals: [], diagnostics: [] });
+    render({ subject: 'Hello', html: '<p>Body</p>', frameUrl: '/default/rdmp/app/email-templates/preview-frame/' + 'a'.repeat(43), sanitiserRemovals: [], diagnostics: [] });
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement;
     expect(iframe).toBeTruthy();
     expect(iframe.hasAttribute('sandbox')).toBeTrue();
     expect(iframe.getAttribute('sandbox')).toBe('');
     expect(iframe.sandbox.contains('allow-scripts')).toBeFalse();
     expect(iframe.sandbox.contains('allow-same-origin')).toBeFalse();
-    expect(iframe.srcdoc).toContain('<p>Body</p>');
+    expect(iframe.src).toContain('/app/email-templates/preview-frame/');
+    expect(iframe.hasAttribute('srcdoc')).toBeFalse();
     expect(iframe.getAttribute('title')).toBe('email-templates-preview-frame-title');
     expect(fixture.nativeElement.textContent).toContain('Hello');
   });
 
-  it('applies the page nonce only to the wrapper stylesheet', () => {
-    render({ subject: 'Hello', html: '<style>p{}</style><p>Body</p>', sanitiserRemovals: [], diagnostics: [] });
-    const srcdoc = (fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement).srcdoc;
-    expect(srcdoc).toContain('<style nonce="abc123">');
-    expect(srcdoc).toContain('<style>p{}</style>');
+  it('ET-07 rejects arbitrary frame URLs and never puts email HTML into srcdoc', () => {
+    render({ subject: 'Hello', html: '<p>Body</p>', frameUrl: 'javascript:alert(1)', sanitiserRemovals: [], diagnostics: [] });
+    expect(fixture.nativeElement.querySelector('iframe')).toBeNull();
   });
 
   it('does not run script even if markup reaches the frame', async () => {
@@ -89,4 +88,8 @@ describe('PreviewFrameComponent', () => {
   it('converts lists and breaks to text', () => {
     expect(htmlToText('<ul><li>One</li><li>Two</li></ul>Line<br>Next')).toBe('• One\n• Two\nLine\nNext');
   });
+  it('ET-12 preserves PRE line breaks, indentation, blank lines and repeated spaces', () => {
+    expect(htmlToText('<p>Prose   spaces</p><pre>first\n    indented    spaced\n\n\nlast</pre><p>After</p>')).toBe('Prose spaces\n\nfirst\n    indented    spaced\n\n\nlast\n\nAfter');
+  });
+
 });

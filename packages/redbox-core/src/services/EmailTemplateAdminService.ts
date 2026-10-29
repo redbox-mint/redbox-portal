@@ -24,7 +24,10 @@ import {
   validateEmailLength,
 } from './EmailTemplateService';
 import type { SearchService } from '../SearchService';
+import type { EmailTemplateAsts } from './EmailTemplateService';
 import type { UserModel, BrandingModel, RoleModel } from '../model';
+import { emailTemplateContextKind, integrationEmailTemplateIds } from '../utilities/EmailTemplateContextKind';
+import { integrationEmailContextSchema } from '../utilities/EmailContextSchema';
 import { curateEmailRecordData, renderEmailAdminPreview } from './EmailService';
 
 type DraftRow = EmailAdminContent & {
@@ -41,7 +44,7 @@ type DraftRow = EmailAdminContent & {
 };
 
 /** Strip unapproved roots and recursively copy own JSON properties without prototype keys. */
-export function filterEmailPreviewContext(value: unknown): Record<string, unknown> {
+export function filterEmailPreviewContext(value: unknown, roots = emailTemplateContextRoots()): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new EmailTemplateError('INVALID_CONTEXT', 'Preview context must be a JSON object.');
   }
@@ -72,7 +75,7 @@ export function filterEmailPreviewContext(value: unknown): Record<string, unknow
     return out;
   };
   const out: Record<string, unknown> = Object.create(null);
-  for (const root of emailTemplateContextRoots()) {
+  for (const root of roots) {
     const descriptor = Object.getOwnPropertyDescriptor(value, root);
     if (!descriptor) continue;
     if (!Object.hasOwn(descriptor, 'value'))
@@ -137,7 +140,7 @@ export namespace Services {
       };
     }
 
-    public validate(content: EmailAdminContent): EmailAdminDiagnostic[] {
+    public validate(content: EmailAdminContent, parsed?: EmailTemplateAsts): EmailAdminDiagnostic[] {
       // Structure/byte errors cannot be persisted. Policy and parser errors are editable diagnostics.
       if (
         !content ||
@@ -152,13 +155,21 @@ export namespace Services {
       const diagnostics: EmailAdminDiagnostic[] = [];
       for (const field of ['subject', 'body'] as const) {
         try {
-          validateEmailTemplate({ subject: 'Valid', body: 'Valid', format: content.format, [field]: content[field] });
+          const fieldAsts: EmailTemplateAsts = {};
+          validateEmailTemplate(
+            { subject: 'Valid', body: 'Valid', format: content.format, [field]: content[field] },
+            true,
+            parsed ? fieldAsts : undefined
+          );
+          if (parsed) parsed[field] = fieldAsts[field];
         } catch (error) {
           if (!(error instanceof EmailTemplateError)) throw error;
           diagnostics.push({
             code: error.code,
+            severity: 'error',
             field,
             reason: error.diagnostic?.reason ?? 'EMPTY_CONTENT',
+            ...(error.diagnostic?.helper ? { helper: error.diagnostic.helper } : {}),
             line: error.diagnostic?.line ?? 1,
             column: error.diagnostic?.column ?? 1,
           });
@@ -169,6 +180,7 @@ export namespace Services {
 
     public async catalogue(brandId: string): Promise<EmailAdminCatalogueEntry[]> {
       await this.validateBrand(brandId);
+      const integrationIds = await integrationEmailTemplateIds(brandId);
       const ids = new Set(Object.keys(sails.config.emailnotification.templates ?? {}));
       try {
         for (const file of readdirSync(sails.config.emailnotification.settings.templateDir)) {
@@ -193,10 +205,11 @@ export namespace Services {
         ].sort((left, right) => (right.updatedAt ?? '').localeCompare(left.updatedAt ?? ''));
         let invalid = false;
         let defaultUpdated = false;
-        let description = emailTemplateDefinition(templateId).subject;
+        const definition = emailTemplateDefinition(templateId);
+        let subject = definition.subject;
         try {
           const supplied = await this.getDefault(brandId, templateId);
-          description = supplied.subject;
+          subject = supplied.subject;
           const hash = live?.defaultHash ?? (last?.version === live?.revision ? last?.defaultHash : undefined);
           defaultUpdated = Boolean(live && hash && hash !== emailDefaultHash(supplied));
           if (live) this.validateStored(live, brandId, templateId);
@@ -210,7 +223,9 @@ export namespace Services {
         }
         entries.push({
           templateId,
-          description,
+          contextKind: integrationIds.has(templateId) ? 'integration' : 'record',
+          description: definition.description,
+          subject,
           source: live ? 'override' : 'default',
           liveVersion: live?.revision ?? null,
           latestVersion: await this.latestVersion(brandId, templateId),
@@ -233,6 +248,7 @@ export namespace Services {
       const live = await this.rawLive(brandId, templateId);
       const draft = await this.persist(() => this.drafts().findOne({ brandId, templateId }));
       const last = await this.latestHistory(brandId, templateId);
+      const contextKind = await emailTemplateContextKind(brandId, templateId);
       let diagnostics: EmailAdminDiagnostic[] = [];
       if (live) {
         try {
@@ -244,6 +260,7 @@ export namespace Services {
               code: error.code,
               field: error.diagnostic?.field ?? 'body',
               reason: error.diagnostic?.reason ?? 'INVALID_STORED_TEMPLATE',
+              ...(error.diagnostic?.helper ? { helper: error.diagnostic.helper } : {}),
               line: error.diagnostic?.line ?? 1,
               column: error.diagnostic?.column ?? 1,
             },
@@ -253,6 +270,8 @@ export namespace Services {
       const hash = live?.defaultHash ?? (last?.version === live?.revision ? last?.defaultHash : undefined);
       return {
         templateId,
+        contextKind,
+        description: emailTemplateDefinition(templateId).description,
         suppliedDefault: { subject: supplied.subject, body: supplied.body, format: supplied.format },
         live: live
           ? {
@@ -273,7 +292,9 @@ export namespace Services {
           version,
         })),
         help: {
-          contextRoots: [...emailTemplateContextRoots()].sort(),
+          contextRoots: (contextKind === 'integration'
+            ? Object.keys(integrationEmailContextSchema(templateId, brandId).properties!)
+            : [...emailTemplateContextRoots()]).sort(),
           helpers: Object.keys(handlebarsInstance().helpers).sort(),
           maxSubjectBytes: sails.config.emailnotification.settings.maxSubjectBytes ?? 998,
           maxBodyBytes: sails.config.emailnotification.settings.maxBodyBytes ?? 1048576,
@@ -513,6 +534,9 @@ export namespace Services {
       const context = filterEmailPreviewContext(
         await EmailService.buildPreviewContext(selected, { record, oid, imports: { record, oid } }, brandId)
       );
+      // The legacy `imports` alias is rebuilt from `record` on every preview, so it is
+      // not offered for editing.
+      delete context['imports'];
       if (Buffer.byteLength(JSON.stringify(context), 'utf8') > emailAdminSetting('maxPreviewContextBytes')) {
         throw new EmailTemplateError('LENGTH_LIMIT', 'Preview context exceeds maxPreviewContextBytes.');
       }
@@ -523,17 +547,25 @@ export namespace Services {
       brandId: string,
       templateId: string,
       content: EmailAdminContent,
-      contextJson: string
+      contextJson: string,
+      source?: 'default' | 'override'
     ): Promise<EmailAdminPreview> {
       await this.scope(brandId, templateId);
       const diagnostics = this.validate(content);
+      if (source !== undefined && !['default', 'override'].includes(source))
+        throw new EmailTemplateError('INVALID_CONTEXT', 'Invalid preview source.');
       if (typeof contextJson !== 'string')
         throw new EmailTemplateError('INVALID_CONTEXT', 'Context must be a JSON string.');
       if (Buffer.byteLength(contextJson, 'utf8') > emailAdminSetting('maxPreviewContextBytes'))
         throw new EmailTemplateError('LENGTH_LIMIT', 'Preview context exceeds maxPreviewContextBytes.');
+      const integration = await emailTemplateContextKind(brandId, templateId) === 'integration';
+      const roots = integration ? new Set(Object.keys(integrationEmailContextSchema(templateId, brandId).properties!)) : emailTemplateContextRoots();
       let data: Record<string, unknown>;
       try {
-        data = filterEmailPreviewContext(curateEmailRecordData(filterEmailPreviewContext(JSON.parse(contextJson))));
+        // Always rebuild the legacy `imports` alias from `record`, as record-based sends do;
+        // any submitted `imports` value is replaced, never trusted.
+        const submitted = filterEmailPreviewContext(JSON.parse(contextJson), roots);
+        data = integration ? submitted : filterEmailPreviewContext(curateEmailRecordData({ ...submitted, imports: {} }));
       } catch (error) {
         if (error instanceof EmailTemplateError) throw error;
         throw new EmailTemplateError('INVALID_CONTEXT', 'Context must be a JSON object.');
@@ -541,13 +573,23 @@ export namespace Services {
       if (diagnostics.length) return { subject: '', sanitiserRemovals: [], diagnostics };
       let rendered: Record<string, unknown>;
       try {
-        rendered = await renderEmailAdminPreview(EmailService, templateId, content, data);
+        let integrationPreview: Parameters<typeof renderEmailAdminPreview>[4];
+        if (integration) {
+          const supplied = await this.getDefault(brandId, templateId);
+          integrationPreview = {
+            context: { brandId, defaultSubject: typeof data.title === 'string' ? data.title : undefined },
+            suppliedDefault: source === 'default' && supplied.subject === content.subject &&
+              supplied.body === content.body && supplied.format === content.format,
+          };
+        }
+        rendered = await renderEmailAdminPreview(EmailService, templateId, content, data, integrationPreview);
       } catch (error) {
         if (error instanceof EmailTemplateError && error.code !== 'RENDER_FAILED') throw error;
-        // Only the failing field is reported; rendering errors never carry template text.
-        const field = error instanceof EmailTemplateError && error.diagnostic ? error.diagnostic.field : 'body';
+        // Only the failing field and position are reported; rendering errors never carry template text.
+        const at = error instanceof EmailTemplateError ? error.diagnostic : undefined;
         return { subject: '', sanitiserRemovals: [], diagnostics: [
-          { code: 'RENDER_FAILED', field, reason: 'RENDER_FAILED', line: 1, column: 1 },
+          { code: 'RENDER_FAILED', severity: 'error', field: at?.field ?? 'body', reason: 'RENDER_FAILED',
+            line: at?.line ?? 1, column: at?.column ?? 1 },
         ] };
       }
       const subject = hardenEmailSubject(String(rendered['subject']));

@@ -1,3 +1,4 @@
+import { EMAIL_PREVIEW_CSP } from '../utilities/EmailPreviewFrame';
 import * as crypto from 'node:crypto';
 import * as BrandingServiceModule from '../services/BrandingService';
 import { safeChronicleText } from '../utilities/RequestChronicle';
@@ -115,6 +116,11 @@ function applyWebAnalyticsCsp(req: Sails.Req, directives: Record<string, string[
  * See: https://centralcsp.com/docs
  */
 export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
+    // The preview document owns its CSP; do not add portal nonces or a second policy.
+    if (/\/[^/]+\/[^/]+\/app\/email-templates\/preview-frame\/[\w-]{43}\/?$/.test(req.path)) {
+        res.set('Content-Security-Policy', EMAIL_PREVIEW_CSP);
+        return next();
+    }
     sails.log.verbose(
         `Setting Content Security Policy nonce headers and view local for ${safeChronicleText(req.path, 500)}`
     );

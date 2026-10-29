@@ -62,4 +62,46 @@ describe('RecordPickerComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#et-record-search')).toBeTruthy();
   }));
+  it('UR-B02 disables obsolete options immediately and rejects late responses during debounce', fakeAsync(() => {
+    component.query = 'Beta';
+    component.runSearch(1); tick(); fixture.detectChanges();
+    const beta = component.results[0];
+    const choose = spyOn(component.choose, 'emit');
+    let resolve!: (value: any) => void;
+    api['searchRecords'].and.returnValue(new Promise(done => resolve = done));
+    component.runSearch(1); // An outstanding request for the old query.
+    component.query = 'Alpha'; component.onQueryChange(); fixture.detectChanges();
+    expect(component.canPick).toBeFalse();
+    expect((fixture.nativeElement.querySelector('.et-picker-option') as HTMLButtonElement).disabled).toBeTrue();
+    component.pick(beta); expect(choose).not.toHaveBeenCalled();
+    resolve({ records: [{ oid: 'late-beta', title: 'Late Beta' }], page: 1, hasMore: false }); tick(299);
+    expect(component.results).toEqual([beta]);
+    expect(component.busy).toBeTrue();
+    api['searchRecords'].and.resolveTo({ records: [{ oid: 'alpha', title: 'Alpha' }], page: 1, hasMore: false });
+    tick(1); fixture.detectChanges();
+    expect(component.canPick).toBeTrue();
+    component.pick(beta); expect(choose).not.toHaveBeenCalled();
+    component.pick(component.results[0]); expect(choose).toHaveBeenCalledWith({ oid: 'alpha', title: 'Alpha' });
+  }));
+
+  it('UR-B02 ignores late errors and teardown responses from obsolete requests', fakeAsync(() => {
+    let reject!: (error: unknown) => void;
+    api['searchRecords'].and.returnValue(new Promise((_resolve, fail) => reject = fail));
+    component.runSearch(1);
+    component.query = 'next'; component.onQueryChange();
+    reject(new Error('Old search')); tick(299);
+    expect(component.failed).toBeFalse(); expect(component.busy).toBeTrue();
+    fixture.destroy(); tick();
+  }));
+
+  it('UR-B02 can resume a cancelled search whose query changed during debounce', fakeAsync(() => {
+    component.query = 'Beta'; component.runSearch(1); tick();
+    component.query = 'Alpha'; component.onQueryChange(); component.cancelSearch();
+    tick(300); expect(component.busy).toBeFalse();
+    component.startSearch(); tick();
+    expect(api['searchRecords']).toHaveBeenCalledWith('Alpha', 1);
+    expect(component.canPick).toBeTrue();
+    expect(component.results[0].title).toContain('Alpha');
+  }));
+
 });

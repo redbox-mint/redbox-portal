@@ -1,0 +1,30 @@
+meta {
+  name: Email templates - Preview frame
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{host}}{{emailFrameUrl}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Frame serves sanitized output with its own enforcing CSP", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.include("<p>Hello Reader</p>");
+    expect(res.getHeader("content-security-policy")).to.include("style-src 'unsafe-inline'");
+    expect(res.getHeader("content-security-policy")).to.include("script-src 'none'");
+    expect(res.getHeader("cache-control")).to.equal("no-store");
+  });
+}

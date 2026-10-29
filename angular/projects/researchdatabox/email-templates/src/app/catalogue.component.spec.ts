@@ -99,4 +99,59 @@ describe('CatalogueComponent', () => {
       'email-templates-catalogue-load-failed'
     );
   });
+
+  it('UR-U05 shows the purpose with a quieter subject, and the subject alone when there is no purpose', async () => {
+    api['catalogue'].and.resolveTo([
+      catalogueEntry({
+        templateId: 'publicationReview',
+        description: 'Sent when a publication is ready for review',
+        subject: 'ReDBox Notification',
+      }),
+      catalogueEntry({ templateId: 'hookOnly', description: undefined, subject: 'Hook subject' }),
+    ]);
+    await component.load();
+    fixture.detectChanges();
+    const described = row('publicationReview');
+    expect(described.querySelector('.et-description')!.textContent).toBe('Sent when a publication is ready for review');
+    expect(described.querySelector('.et-subject .et-subject-label')!.textContent).toBe(
+      'email-templates-catalogue-subject'
+    );
+    expect(described.querySelector('.et-subject-text')!.textContent).toBe('ReDBox Notification');
+    expect(described.querySelector('.et-subject-only')).toBeNull();
+    const plain = row('hookOnly');
+    expect(plain.querySelector('.et-description')).toBeNull();
+    expect(plain.querySelector('.et-subject.et-subject-only .et-subject-text')!.textContent).toBe('Hook subject');
+  });
+
+  it('UR-U05 explains badges, the Live default and Needs attention', () => {
+    const legend = fixture.nativeElement.querySelector('.et-legend') as HTMLElement;
+    expect(legend.getAttribute('aria-label')).toBe('email-templates-legend-label');
+    const terms = Array.from(legend.querySelectorAll('dt')).map(node => node.textContent!.trim());
+    expect(terms).toEqual([
+      'email-templates-badge-default',
+      'email-templates-badge-overridden',
+      'email-templates-badge-draft',
+      'email-templates-filter-attention',
+    ]);
+    for (const key of ['default', 'overridden', 'draft', 'attention']) {
+      expect(legend.textContent).toContain(`email-templates-legend-${key}`);
+    }
+    expect(row('publicationReview').querySelector('.et-badge-draft')!.getAttribute('title')).toBe(
+      'email-templates-legend-draft'
+    );
+    expect(row('publicationStaged').querySelector('.et-badge-default')!.getAttribute('title')).toBe(
+      'email-templates-legend-default'
+    );
+
+    const live = row('publicationStaged').querySelector('.et-version .et-live-default') as HTMLElement;
+    expect(live.textContent!.trim()).toBe('email-templates-live-default');
+    expect(live.getAttribute('title')).toBe('email-templates-live-default-title');
+    expect(row('publicationStaged').querySelector('.et-version')!.textContent).not.toContain('—');
+
+    const attention = Array.from(fixture.nativeElement.querySelectorAll('.et-quick-filters button'))[3] as HTMLElement;
+    expect(attention.getAttribute('aria-describedby')).toBe('et-legend-attention');
+    expect(fixture.nativeElement.querySelector('#et-legend-attention').textContent).toBe(
+      'email-templates-legend-attention'
+    );
+  });
 });

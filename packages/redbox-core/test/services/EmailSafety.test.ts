@@ -268,7 +268,9 @@ describe('Email template safety', () => {
         assert.throws(() => validateEmailTemplate({ ...content('Body'), [field]: source }), (error: any) => {
           assert.ok(error instanceof EmailTemplateError);
           assert.equal(error.cause, undefined);
-          assert.deepEqual(Object.keys(error.diagnostic!).sort(), ['column', 'field', 'line', 'reason']);
+          assert.deepEqual(Object.keys(error.diagnostic!).sort(),
+            ['column', 'field', ...(error.diagnostic!.helper ? ['helper'] : []), 'line', 'reason']);
+          if (error.diagnostic!.helper) assert.ok(['each', 'if', 'unless', 'with'].includes(error.diagnostic!.helper));
           assert.ok(!inspect(error).includes('PRIVATE'));
           return true;
         });

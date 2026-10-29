@@ -32,6 +32,54 @@ Bootstrap creates unique indexes for the live identity, draft identity, history 
 
 ## Preview and record access
 
+For record templates, `record.redboxOid` is a compatibility alias of the curated
+`record.oid`, including in `imports.record`; it never restores other stored-record
+internals. Context JSON generated from a selected record includes `title` when its metadata
+title is a string, and `record.viewUrl` and `record.editUrl` when the brand URL and
+curated record OID are non-empty strings. The URLs use the brand's portal path,
+`/record/view/` or `/record/edit/`, and an encoded OID. All three are editable plain
+values: preview respects caller-supplied `title` and string URL edits, including
+empty strings. Changing metadata or the OID does not update these values unless
+they are removed or the context is reset from the record. Missing or non-string
+URLs are derived again when their sources are available, and otherwise omitted.
+The root `recordUrl` remains an integration payload field and is not derived for
+record emails. The legacy `imports` alias is rebuilt from `record`, including its
+URLs, on every preview and is not offered for editing.
+
+The server returns `contextKind` in catalogue and editor responses: `record`
+by default, or `integration` for `integrationFailure`, `integrationRecovery`, and
+any valid template ID named by an **email** channel in the brand's resolved
+`integrationNotification` app config, including every `perIntegration` override.
+Disabled configurations/channels count too. Resolution uses the same brand-scoped
+app-config resolver as integration dispatch (DB config or global defaults), with
+no cross-brand search or cache. If resolution fails, only the two core IDs are
+classified as integration. Minimal apps without the resolver use the global
+default config. Non-email channels and unreferenced custom templates stay record
+contexts; names and template content are not otherwise used to guess the kind.
+
+Integration templates show **Sample integration alert** and **Reset sample** in
+place of the record picker. They use the flat `IntegrationNotificationPayload`
+fields plus `portal` and `sailsConfig`, without `record`, `oid` or `imports`.
+The sample comes from schema examples, uses failure/recovery to match the core
+ID (custom channel templates default to failure), and includes ISO timestamps
+and a sample OID with the brand's encoded record view URL. No real-record lookup
+is performed for integration samples. Context JSON remains editable, accepts the
+same relaxed JSON, and reports advisory schema differences. Reset confirms before
+replacing edited JSON. Samples and edits remain temporary per-template UI state.
+Record type and stage selectors are hidden; the field source reads **Integration
+alert fields**.
+
+Integration preview calls `buildFromTemplate` with the route brand and payload
+`title` as `defaultSubject`, then follows the usual async rendering hooks and
+sanitisation without sending mail. Unchanged supplied-default content uses that
+runtime subject; preview accepts optional `source: default|override` to distinguish
+identical content (the editor supplies it for integration templates; omission
+preserves legacy override-subject behavior). Draft and published override subjects
+take precedence, including a draft created by saving unchanged default content. Payload
+edits pass through without record curation; reserved portal/config values are
+rebuilt from the trusted route brand just as on sends. Pre-render hook injection
+cannot overwrite the edited preview payload, and post-render hooks still run.
+
 The record picker uses the configured existing search service with ten results per page. It re-loads every candidate and rechecks exact `record.metaMetadata.brandId === brandId` and `RecordsService.hasViewAccess(brand, user, roles, record)`. A first-page exact OID lookup uses that same access boundary. Index totals and inaccessible candidate titles are not returned.
 
 Record-context requests enforce both checks before running `EmailService.buildPreviewContext`. That method dispatches through the real three-argument `buildFromTemplateAsync` hook chain, captures curated display context after hooks run, and stops before rendering or sending. Supply the selected `templateId` query parameter for hooks whose display data depends on the template (including SCU). Omission selects the first configured template. Hook display roots must also be listed in `emailnotification.settings.additionalContextRoots` (for SCU, `['scuEmail']`) to appear in filtered context/help and be accepted in drafts. Configure that in deployment config or the companion hook; the core does not infer or widen the allowlist. Missing, foreign-brand and denied records all produce the same 403 error, without a record existence oracle. Admin status alone does not grant record view access.
@@ -128,3 +176,121 @@ The unit suite exercises missing-history rollback, create/update/reset completio
 ## Verification
 
 Core tests: `packages/redbox-core/test/services/EmailTemplateAdminService.test.ts`, `test/controllers/EmailTemplateAdminController.test.ts`, and existing email safety/compatibility suites. Real Mongo races, partial failures, HTTP session/role/record gating and transport spies extend `test/integration/services/EmailTemplateService.test.ts`. Bruno requests are under `test/bruno/2 - AJAX calls/5 - Email Template Admin` and use `support/integration-testing/run-bruno-general*.sh`. The compatibility test loads SCU's actual `src/api/services/EmailService.ts` override and its real view-data function; only the core base import is substituted to use this checkout's implementation. Private SCU compatibility remains opt-in with both `SCU_EMAIL_REPO` and `SCU_EMAIL_FIXTURE`; fixtures/templates are never copied into this repository.
+
+## Schema assistance and editor lifecycle (stage 4)
+
+Schema assistance is read-only and separate from publication policy. `GET
+/schema-targets` lists only the route brand's record types and workflow stages.
+`GET /context-schema?recordType=rdmp&stage=draft&templateId=notice` returns
+`{recordType, stage, contextKind, precision, schema}`. `templateId` remains optional
+for legacy record-schema clients. For integration IDs, request
+`GET /context-schema?templateId=integrationFailure` without record type/stage:
+`precision` and `contextKind` are `integration`, and `recordType`/`stage` are empty
+strings. Required/optional payload fields, types, descriptions and known enums
+drive the field tree, autocomplete, samples and validation. Record schemas include
+the curated record and legacy `imports` alias. Both kinds describe explicitly
+exposed configuration path names without serializing exposed values. Integration schemas include
+public brand portal values as sample annotations. It is draft 2020-12 JSON Schema.
+Both endpoints require the route brand's Admin role and return `no-store`.
+Unknown types return `UNKNOWN_RECORD_TYPE` (404); invalid or unknown stages
+return `INVALID_SCHEMA_TARGET` (400). Responses are capped at 512 KiB.
+
+When enabled and available, `RecordSchemaService.describeStage` supplies metadata
+fields with the current requesting Admin as caller. `precision` is
+`record-schema`. If disabled, unavailable or unable to describe the target, a
+brand-scoped, caller-effective edit form supplies a best-effort name/label list
+(`form-config`). Reusable replacements use their final metadata names. Model
+groups retain their nesting, repeatables describe item paths, and layout-only
+containers add no path. Leaf values have unknown types and remain permissive. If there is no usable
+form, metadata is an open object (`none`). Schema responses are not cached:
+caller access, form and schema changes must take effect on the next request.
+
+The editor logic defaults assistance to the selected record's type and stage,
+otherwise the brand's first type and its starting stage. Explicit choices are
+kept per template in application memory, never in template configuration.
+Part 1 provides this state and pure field-tree, sample-generation and Context
+JSON validation helpers; selector, field-tree, autocomplete and sample-button
+presentation are supplied by the following UI layer.
+
+Validation accepts optional `recordType` and `stage`. It adds diagnostics with
+`severity: warning`: `UNKNOWN_FIELD`, `EACH_NOT_ARRAY`, `PRINTS_OBJECT` and,
+when requested by internal callers, `OPTIONAL_UNGUARDED`. Suggestions contain
+only schema sibling names, never source excerpts. `each` supports both arrays
+and objects. Scoped `each`/`with`, aliases, relative paths and `@root` are checked
+where their context is known. Uncertain helper scopes, ambiguous schema unions
+and additional hook roots are skipped. Missing form-only fields are not treated
+as errors. Record optional hints are suppressed by default. Integration validation always
+uses the payload schema, including `OPTIONAL_UNGUARDED` hints (for example for
+`recordUrl`); `if`, `if (isDefined ...)`, and equivalent undefined guards suppress
+those hints. Both core integration templates have zero schema warnings. Unknown
+root typos remain blocking policy errors, presented as `UNKNOWN_FIELD` with a safe
+sibling suggestion where available (for example `summray` → `summary`). Warnings are capped at 100;
+they never block Publish or alter catalogue `invalid` flags. Stage 2b syntax,
+context-root and helper policy remains the only blocking template validation.
+Existing diagnostics now include `severity: error`; older omitted severities
+must still be interpreted as errors.
+
+Context JSON accepts single-quoted strings, unquoted identifier keys and trailing
+commas. It uses a small data-only parser with no evaluation, comments or code
+support. Preview receives standard JSON. Blur reformats the field and displays
+“Converted to standard JSON”. UTF-8 size and 64-level nesting limits and recursive
+prototype-key filtering still apply. Client schema errors are advisory and
+reported by JSON path, without echoing data values. PRE whitespace is retained
+in the HTML preview's plain-text reading.
+
+Each template owns a keyed editor instance. All in-app, hash and browser-history
+navigation settles the outgoing save queue before destroying it. Failed saves
+keep the editor and working copy open; conflicts are retained under the original
+template ID in application memory. They do not block another template. Pending
+mutations lock editing and dialog dismissal, and reset stops on any failed
+preparatory save. Record changes retire previous context/preview; text typed
+during context loading takes precedence over the late record response.
+
+## Preview-frame threat model
+
+HTML preview responses include `frameUrl`, a same-origin
+`GET /preview-frame/:token` URL. Only the existing preview render/hook/sanitiser
+path may issue a token. The frame route never accepts HTML from a query, body,
+or token payload and never renders a template. Stored output is already
+sanitised. Subject and plain-text response fields remain as before.
+
+A cryptographically random 256-bit token refers to process-local output for at
+most 60 seconds and four reads, without sliding expiry. It is bound to the
+route brand, authenticated user ID and session ID, and every read requires that
+brand's current Admin role. Foreign, expired, exhausted and unknown tokens all
+return `PREVIEW_FRAME_UNAVAILABLE` (404). At most four frames per session/user,
+64 globally and 8 MiB of HTML are retained; older frames are evicted. Nothing is
+persisted to Mongo. Restarts or requests reaching another worker invalidate the
+URL; render another preview (or configure sticky sessions). URLs must not be
+shared as permanent preview links.
+
+The iframe uses `src` and retains **`sandbox=""`**. The document also enforces
+CSP `sandbox`, so opening the frame URL directly does not remove containment.
+Its response CSP is:
+
+```text
+default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src https: http: data:; font-src https: data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; sandbox
+```
+
+It also sends `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`
+and `Cache-Control: no-store`. The CSP policy recognizes this route before
+adding portal nonces, and the controller replaces the enforcing header and
+removes any report-only portal policy. The admin page's normal `frame-src 'self'`
+already permits it. The global portal style/script policy is unchanged.
+
+The attacker-controlled input is template/context content, including malicious
+markup which may survive a future sanitiser regression. DOMPurify remains the
+first boundary; the empty sandbox and CSP prevent scripts, same-origin access,
+forms, popups and parent/top navigation. Allowed inline email CSS can affect
+only the frame. External images/fonts may make network requests (and can track
+views); this is an intentional email-preview capability, with no referrer sent.
+The token is not an HTML injection channel or a substitute for authorization.
+No preview method sends mail or widens the delivery context/helpers.
+
+Preview JSON and its selected record are retained independently for each template
+in client memory while browsing this page. The edited marker and overwrite
+confirmations use the retained original record baseline. This temporary workspace
+is not part of a draft and is cleared when the page is reloaded or left; existing
+preview requests still render the current JSON without persisting it. Opening an
+editor focuses its heading; returning to the catalogue restores the opening action,
+including through browser history.

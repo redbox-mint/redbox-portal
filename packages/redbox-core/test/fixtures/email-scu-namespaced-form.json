@@ -1,0 +1,102 @@
+{
+  "source": "Namespaced model field names from SCU src/form-config/rdmp-1.0-draft.ts",
+  "configuration": {
+    "fields": [
+      {
+        "name": "dc:coverage_vivo:DateTimeInterval_vivo:start",
+        "model": true,
+        "label": "@dmpt-project-startdate"
+      },
+      {
+        "name": "dc:coverage_vivo:DateTimeInterval_vivo:end",
+        "model": true,
+        "label": "@dmpt-project-enddate"
+      },
+      {
+        "name": "foaf:fundedBy_foaf:Agent",
+        "model": true,
+        "label": "@dmpt-foaf:fundedBy_foaf:Agent"
+      },
+      {
+        "name": "dc:subject_anzsrc:toa_rdf:resource",
+        "model": true,
+        "label": "@dmpt-project-activity-type"
+      },
+      {
+        "name": "dc:subject_anzsrc:for",
+        "model": true,
+        "label": "@dmpt-project-anzsrcFor"
+      },
+      {
+        "name": "dc:subject_anzsrc:seo",
+        "model": true,
+        "label": "@dmpt-project-anzsrcSeo"
+      },
+      {
+        "name": "vivo:Dataset_redbox:DataCollectionMethodology",
+        "model": true,
+        "label": "@dmpt-data-collection-methodology"
+      },
+      {
+        "name": "vivo:Dataset_dc_format",
+        "model": true,
+        "label": "@dmpt-vivo:Dataset_dc_format"
+      },
+      {
+        "name": "vivo:Dataset_redbox:DataCollectionResources",
+        "model": true,
+        "label": "@dmpt-vivo:Dataset_redbox:DataCollectionResources"
+      },
+      {
+        "name": "vivo:Dataset_redbox:DataAnalysisResources",
+        "model": true,
+        "label": "@dmpt-vivo:Dataset_redbox:DataAnalysisResources"
+      },
+      {
+        "name": "vivo:Dataset_dc:extent",
+        "model": true,
+        "label": "@dmpt-vivo:Dataset_dc:extent"
+      },
+      {
+        "name": "redbox:retentionPeriod_dc:date",
+        "model": true,
+        "label": "@dmpt-redbox:retentionPeriod_dc:date"
+      },
+      {
+        "name": "redbox:retentionPeriod_dc:date_skos:note",
+        "model": true,
+        "label": "@dmpt-redbox:retentionPeriod_dc:date_skos:note"
+      },
+      {
+        "name": "dc:rightsHolder_dc:name",
+        "model": true,
+        "label": "@dmpt-dc:rightsHolder_dc:name"
+      },
+      {
+        "name": "dc:coverage_dc:identifier",
+        "model": true,
+        "label": "@dmpt-dc:coverage_dc:identifier"
+      },
+      {
+        "name": "dc:accessRights",
+        "model": true,
+        "label": "@dmpt-dc:accessRights"
+      },
+      {
+        "name": "agls:policy_skos:note",
+        "model": true,
+        "label": "@dmpt-agls:policy_skos:note"
+      },
+      {
+        "name": "agls:protectiveMarking_dc:type",
+        "model": true,
+        "label": "@dmpt-agls:protectiveMarking_dc:type"
+      },
+      {
+        "name": "agls:protectiveMarking_skos:note",
+        "model": true,
+        "label": "@dmpt-agls:protectiveMarking_skos:note"
+      }
+    ]
+  }
+}
