@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import supertest from 'supertest';
 import { firstValueFrom } from 'rxjs';
 
-/** Real route/policy/database coverage. Enable CSRF cases with RBPORTAL_TEST_CSRF=true. */
+/** Real route/policy/database coverage, including session-backed CSRF enforcement. */
 describe('Schema-assisted query and report release contracts', function () {
   this.timeout(60_000);
   const suffix = randomUUID().replace(/-/g, '');
@@ -34,6 +34,7 @@ describe('Schema-assisted query and report release contracts', function () {
   let brand: any;
   let role: any;
   let pathRule: any;
+  let previousCsrf: typeof sails.config.security.csrf;
 
   async function login(agent: supertest.Agent, username: string, password: string): Promise<string> {
     const token = (await agent.get('/csrfToken?branding=default&portal=rdmp')).body._csrf;
@@ -53,6 +54,10 @@ describe('Schema-assisted query and report release contracts', function () {
   const post = (path: string, data: unknown) => request(admin, 'post', path, csrf).send(data);
 
   before(async function () {
+    // Editor POSTs require CSRF even when the general integration harness disables it.
+    // Enable token generation for /csrfToken as well, and restore the harness afterward.
+    previousCsrf = sails.config.security.csrf;
+    sails.config.security.csrf = true;
     const app = (sails as any).hooks.http.app;
     admin = supertest.agent(app);
     author = supertest.agent(app);
@@ -65,7 +70,7 @@ describe('Schema-assisted query and report release contracts', function () {
       branding: brand.id,
       role: role.id,
       can_read: true,
-      can_write: true,
+      can_update: true,
     }).fetch();
     await firstValueFrom(PathRulesService.loadRules());
     const username = `assist${suffix}`;
@@ -88,6 +93,7 @@ describe('Schema-assisted query and report release contracts', function () {
   });
 
   after(async function () {
+    sails.config.security.csrf = previousCsrf;
     await Record.destroy({ redboxOid: { startsWith: name } });
     if (brand) {
       await NamedQuery.destroy({ name, branding: brand.id });
@@ -142,7 +148,6 @@ describe('Schema-assisted query and report release contracts', function () {
   });
 
   it('requires CSRF on every draft POST and session-backed mutation', async function () {
-    if (!sails.config.security.csrf) this.skip();
     for (const path of [
       '/named-query/editor/validate',
       '/named-query/editor/describe',
@@ -153,12 +158,22 @@ describe('Schema-assisted query and report release contracts', function () {
       await request(admin, 'post', path)
         .send(path.includes('named-query') ? { definition } : report)
         .expect(403);
-    await request(admin, 'post', '/named-query')
-      .send({ ...definition, name: `${name}_csrf` })
-      .expect(403);
-    await request(admin, 'put', `/named-query/${name}`).send(definition).expect(403);
-    await request(admin, 'delete', `/named-query/${name}`).expect(403);
-    await request(admin, 'post', '/report-config').send(report).expect(403);
+    // Check the session-mutation policy itself, without the global CSRF hook
+    // rejecting first and hiding a missing policy on one of these routes.
+    sails.config.security.csrf = false;
+    try {
+      for (const [method, path, body] of [
+        ['post', '/named-query', { ...definition, name: `${name}_csrf` }],
+        ['put', `/named-query/${name}`, definition],
+        ['delete', `/named-query/${name}`, undefined],
+        ['post', '/report-config', report],
+      ] as const) {
+        const result = await request(admin, method, path).send(body).expect(403);
+        assert.equal(result.body.error?.code, 'CSRF_MISMATCH');
+      }
+    } finally {
+      sails.config.security.csrf = true;
+    }
     assert.equal(await NamedQuery.count({ name, branding: brand.id }), 1);
   });
 
