@@ -1,3 +1,5 @@
+import { LatestRequest } from '@researchdatabox/portal-ng-common';
+import { fieldInsertion } from './field-tree';
 import { diagnosticExpressionAt } from './diagnostic-expression';
 import { blockHelperScaffold, helperInsertion, helperUsage } from './helper-usage';
 import {
@@ -191,7 +193,10 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   private saveAgain = false;
   private destroyed = false;
   private loadSeq = 0;
-  private schemaSeq = 0;
+  readonly fieldInsertion = fieldInsertion;
+  readonly fieldExpanded = ['record', 'record.metadata'];
+  readonly fieldAliases = ['imports'];
+  private readonly schemaRequests = new LatestRequest();
   private contextEditSeq = 0;
   private leavePromise: Promise<boolean> | null = null;
 
@@ -243,7 +248,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     ++this.validateSeq;
     ++this.previewSeq;
     ++this.contextSeq;
-    ++this.schemaSeq;
+    this.schemaRequests.invalidate();
     this.clearTimers();
   }
 
@@ -345,7 +350,11 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!help) return null;
     const fields = this.schemaFields;
     if (this.completionMemo?.fields !== fields || this.completionMemo.help !== help) {
-      this.completionMemo = { fields, help, source: { fields, roots: help.contextRoots, helpers: help.helpers } };
+      this.completionMemo = {
+        fields,
+        help,
+        source: { fields, roots: help.contextRoots, helpers: help.helpers, blockScaffold: blockHelperScaffold },
+      };
     }
     return this.completionMemo.source;
   }
@@ -1223,28 +1232,29 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private async loadIntegrationSchema(): Promise<void> {
-    const seq = ++this.schemaSeq;
+    const seq = this.schemaRequests.next();
     const editSeq = this.contextEditSeq;
     this.schemaLoading = true;
     this.schemaError = false;
     try {
       const schema = await this.api.contextSchema(undefined, undefined, this.templateId);
-      if (this.destroyed || seq !== this.schemaSeq) return;
+      if (this.destroyed || !this.schemaRequests.isCurrent(seq)) return;
       this.contextSchema = schema;
       if (!this.contextText.trim() && editSeq === this.contextEditSeq) this.applySample(schema);
       this.scheduleValidate(0);
       this.schedulePreview(0);
     } catch {
-      if (!this.destroyed && seq === this.schemaSeq) this.schemaError = true;
+      if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaError = true;
     } finally {
-      if (!this.destroyed && seq === this.schemaSeq) this.schemaLoading = false;
+      if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaLoading = false;
     }
   }
 
   async loadSchemaTargets(): Promise<void> {
+    const seq = this.schemaRequests.next();
     try {
       const response = await this.api.schemaTargets();
-      if (this.destroyed) return;
+      if (this.destroyed || !this.schemaRequests.isCurrent(seq)) return;
       this.schemaTargets = response.recordTypes;
       let context: Record<string, unknown> | null = null;
       try {
@@ -1259,13 +1269,13 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       if (selection) await this.selectSchemaTarget(selection, false);
     } catch {
-      if (!this.destroyed) this.schemaError = true;
+      if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaError = true;
     }
   }
 
   /** UI selector calls this; persistence is explicit so inferred defaults can follow the record. */
   async selectSchemaTarget(selection: SchemaSelection, persist = true): Promise<void> {
-    const seq = ++this.schemaSeq;
+    const seq = this.schemaRequests.next();
     this.schemaSelection = selection;
     if (persist) this.api.schemaSelections.set(this.templateId, selection);
     this.schemaLoading = true;
@@ -1276,14 +1286,14 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     this.diagnostics = this.diagnostics.filter(item => item.severity !== 'warning');
     try {
       const response = await this.api.contextSchema(selection.recordType, selection.stage, this.templateId);
-      if (this.destroyed || seq !== this.schemaSeq) return;
+      if (this.destroyed || !this.schemaRequests.isCurrent(seq)) return;
       this.contextSchema = response;
       this.scheduleValidate(0);
       this.schedulePreview(0);
     } catch {
-      if (!this.destroyed && seq === this.schemaSeq) this.schemaError = true;
+      if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaError = true;
     } finally {
-      if (!this.destroyed && seq === this.schemaSeq) this.schemaLoading = false;
+      if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaLoading = false;
     }
   }
 

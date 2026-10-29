@@ -4,31 +4,31 @@
     <input
       #search
       type="search"
-      id="et-fields-search"
+      [id]="idPrefix + '-search'"
       class="form-control form-control-sm"
       autocomplete="off"
       spellcheck="false"
       [value]="query"
-      [attr.aria-label]="'email-templates-fields-search-label' | i18next"
-      [attr.placeholder]="'email-templates-fields-search-placeholder' | i18next"
-      aria-controls="et-fields-list"
+      [attr.aria-label]="translationPrefix + '-fields-search-label' | i18next"
+      [attr.placeholder]="translationPrefix + '-fields-search-placeholder' | i18next"
+      [attr.aria-controls]="idPrefix + '-list'"
       (input)="onSearch(search.value)"
       (keydown.escape)="onEscape($event, search)"
     />
     <span class="et-fields-count" aria-live="polite">
       @if (searching) {
-        {{ 'email-templates-fields-matches' | i18next: { count: rows.length } }}
+        {{ translationPrefix + '-fields-matches' | i18next: { count: rows.length } }}
       } @else {
-        {{ 'email-templates-fields-count' | i18next: { count: fieldCount } }}
+        {{ translationPrefix + '-fields-count' | i18next: { count: fieldCount } }}
       }
     </span>
   </div>
 
   <ul
-    id="et-fields-list"
+    [id]="idPrefix + '-list'"
     class="et-fields-list"
     [class.et-fields-searching]="searching"
-    [attr.aria-label]="'email-templates-help-variables' | i18next"
+    [attr.aria-label]="translationPrefix + '-help-variables' | i18next"
   >
     @for (row of rows; track row.node.path) {
       <li class="et-field" [style.padding-left.px]="8 + row.depth * 16">
@@ -57,7 +57,7 @@
               class="et-field-toggle"
               [attr.aria-expanded]="isExpanded(row.node)"
               [attr.aria-label]="
-                (isExpanded(row.node) ? 'email-templates-fields-collapse' : 'email-templates-fields-expand')
+                (isExpanded(row.node) ? translationPrefix + '-fields-collapse' : translationPrefix + '-fields-expand')
                   | i18next: { name: row.node.name, interpolation: { escapeValue: false } }
               "
               (click)="toggle(row.node)"
@@ -84,7 +84,7 @@
             }
             <span class="et-field-insert" aria-hidden="true">
               @if (row.node.isArray) {
-                <span class="et-field-each">#each</span>
+                <span class="et-field-each">[]</span>
               }
               <i class="fa-solid fa-arrow-turn-down fa-rotate-90"></i>
             </span>
@@ -97,7 +97,8 @@
           }
           @if (!row.node.loose && row.node.type !== 'unknown') {
             <span class="et-field-req" [class.et-field-required]="row.node.required">{{
-              (row.node.required ? 'email-templates-fields-required' : 'email-templates-fields-optional') | i18next
+              (row.node.required ? translationPrefix + '-fields-required' : translationPrefix + '-fields-optional')
+                | i18next
             }}</span>
           }
         </span>
@@ -106,7 +107,7 @@
   </ul>
   @if (searching && !rows.length) {
     <p class="et-fields-empty">
-      {{ 'email-templates-fields-none' | i18next: { query: query, interpolation: { escapeValue: false } } }}
+      {{ translationPrefix + '-fields-none' | i18next: { query: query, interpolation: { escapeValue: false } } }}
     </p>
   }
 </div>
