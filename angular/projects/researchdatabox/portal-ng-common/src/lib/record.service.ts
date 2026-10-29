@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { map, firstValueFrom } from 'rxjs';
+import { map, firstValueFrom, timeout } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
@@ -541,9 +541,9 @@ export class RecordService extends HttpClientService {
     sort: string = '',
     filterFields: string = '',
     filterString: string = '',
-    filterMode: string = ''
+    filterMode: string = '',
+    rows: number = 10
   ): Promise<RecordResponseTable> {
-    let rows = 10;
     let start = (pageNumber - 1) * rows;
 
     const items = {
@@ -571,7 +571,9 @@ export class RecordService extends HttpClientService {
       }
     }
 
-    const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(map(res => res));
+    // Bound verification reads so stalled requests release the UI for recovery.
+    // Unsubscription cancels the client request; mutation timeouts remain uncertain.
+    const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(timeout(30_000), map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
   }
@@ -579,7 +581,7 @@ export class RecordService extends HttpClientService {
   public async restoreDeletedRecord(oid: string) {
     const httpOptions = this.getHttpOptions();
     const restoreDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/delete/${oid}`);
-    const result$ = this.http.put(restoreDeletedRecordUrl.toString(), undefined, httpOptions).pipe(map(res => res));
+    const result$ = this.http.put(restoreDeletedRecordUrl.toString(), undefined, httpOptions).pipe(timeout(30_000), map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
   }
@@ -595,7 +597,7 @@ export class RecordService extends HttpClientService {
   public async destroyDeletedRecord(oid: string) {
     const httpOptions = this.getHttpOptions();
     const destroyDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/destroy/${oid}`);
-    const result$ = this.http.delete(destroyDeletedRecordUrl.toString(), httpOptions).pipe(map(res => res));
+    const result$ = this.http.delete(destroyDeletedRecordUrl.toString(), httpOptions).pipe(timeout(30_000), map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
   }
