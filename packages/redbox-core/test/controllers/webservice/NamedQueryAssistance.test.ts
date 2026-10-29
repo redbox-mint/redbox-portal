@@ -7,7 +7,7 @@ import { policies } from '../../../src/config/policies.config';
 import { routes } from '../../../src/config/routes.config';
 import { namedQueryMutationCsrf } from '../../../src/policies/namedQueryMutationCsrf';
 import { checkAuth } from '../../../src/policies/checkAuth';
-import { NamedQueryAssistanceError } from '../../../src/utilities/NamedQueryPreview';
+import { NamedQueryAssistanceError, NAMED_QUERY_PREVIEW_LIMITS } from '../../../src/utilities/NamedQueryPreview';
 import { FieldDescriptionError } from '../../../src/services/FieldDescriptionsService';
 import { Services as PathServices } from '../../../src/services/PathRulesService';
 import { Services as EditorServices } from '../../../src/services/NamedQueryEditorService';
@@ -146,6 +146,62 @@ describe('Named query assistance HTTP boundary', () => {
     await controller.describeDraft(request() as unknown as Sails.Req, {} as Sails.Res);
     assert.equal(send.firstCall.args[2]?.status, 413);
     assert.equal(send.firstCall.args[2]?.displayErrors?.[0].code, 'RESPONSE_LIMIT');
+  });
+  it('returns HTTP 200 with byte truncation for template amplification through the real executor', async () => {
+    const queryBefore = Reflect.get(globalThis, 'NamedQueryService');
+    const executor = new QueryServices.NamedQueryService();
+    const editor = new EditorServices.NamedQueryEditor();
+    const cursor = {
+      sort() {
+        return this;
+      },
+      skip() {
+        return this;
+      },
+      limit() {
+        return this;
+      },
+      async toArray() {
+        return [{ redboxOid: 'big', metadata: { payload: 'x'.repeat(600000), items: Array(1000).fill(0) } }];
+      },
+    };
+    Reflect.set(sails, 'models', {
+      record: {
+        native: (callback: (error: null, collection: unknown) => void) =>
+          callback(null, { countDocuments: async () => 1, find: () => cursor }),
+      },
+    });
+    Object.assign(globalThis, { NamedQueryService: executor, NamedQueryEditorService: editor });
+    try {
+      const send = sinon.stub(controller, 'sendResp');
+      for (const expression of [
+        '{{#each record.metadata.items}}{{@root.record.metadata.payload}}{{/each}}',
+        '{{#each record.metadata.items}}{{#each @root.record.metadata.items}}{{@root.record.metadata.payload}}{{/each}}{{/each}}',
+        '{{#with record.metadata}}{{#each items}}{{@root.record.metadata.payload}}{{/each}}{{/with}}',
+      ]) {
+        const req = {
+          ...request(),
+          body: {
+            definition: {
+              collectionName: 'record',
+              mongoQuery: {},
+              queryParams: {},
+              resultObjectMapping: { expanded: expression },
+            },
+          },
+        };
+        await controller.previewDraft(req as unknown as Sails.Req, {} as Sails.Res);
+        const response = send.lastCall.args[2];
+        assert.equal(response?.status, 200);
+        const data = response?.data as { records: unknown[]; truncated: boolean; truncationReasons: string[] };
+        assert.deepEqual(data.records, []);
+        assert.equal(data.truncated, true);
+        assert.deepEqual(data.truncationReasons, ['bytes']);
+        assert(Buffer.byteLength(JSON.stringify({ data })) <= NAMED_QUERY_PREVIEW_LIMITS.responseBytes);
+      }
+    } finally {
+      Reflect.set(globalThis, 'NamedQueryService', queryBefore);
+    }
   });
   it('authorizes saved reads through either feature route with brand-specific rules', () => {
     class TestPathRules extends PathServices.PathRules {
