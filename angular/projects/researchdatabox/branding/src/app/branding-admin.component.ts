@@ -518,10 +518,22 @@ export class BrandingAdminComponent extends BaseComponent {
             help: this.i18n.t('branding-primary-help'),
           },
           {
+            key: 'primary-text-color',
+            label: this.i18n.t('branding-primary-text-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-button-text-color-help'),
+          },
+          {
             key: 'secondary',
             label: this.i18n.t('branding-secondary-label'),
             default: '#6c757d',
             help: this.i18n.t('branding-secondary-help'),
+          },
+          {
+            key: 'secondary-text-color',
+            label: this.i18n.t('branding-secondary-text-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-button-text-color-help'),
           },
           {
             key: 'success',
@@ -530,10 +542,22 @@ export class BrandingAdminComponent extends BaseComponent {
             help: this.i18n.t('branding-success-help'),
           },
           {
+            key: 'success-text-color',
+            label: this.i18n.t('branding-success-text-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-button-text-color-help'),
+          },
+          {
             key: 'info',
             label: this.i18n.t('branding-info-label'),
             default: '#0dcaf0',
             help: this.i18n.t('branding-info-help'),
+          },
+          {
+            key: 'info-text-color',
+            label: this.i18n.t('branding-info-text-color-label'),
+            default: '#000000',
+            help: this.i18n.t('branding-button-text-color-help'),
           },
           {
             key: 'warning',
@@ -542,10 +566,22 @@ export class BrandingAdminComponent extends BaseComponent {
             help: this.i18n.t('branding-warning-help'),
           },
           {
+            key: 'warning-text-color',
+            label: this.i18n.t('branding-warning-text-color-label'),
+            default: '#000000',
+            help: this.i18n.t('branding-button-text-color-help'),
+          },
+          {
             key: 'danger',
             label: this.i18n.t('branding-danger-label'),
             default: '#dc3545',
             help: this.i18n.t('branding-danger-help'),
+          },
+          {
+            key: 'danger-text-color',
+            label: this.i18n.t('branding-danger-text-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-button-text-color-help'),
           },
           {
             key: 'light',
@@ -554,10 +590,22 @@ export class BrandingAdminComponent extends BaseComponent {
             help: this.i18n.t('branding-light-help'),
           },
           {
+            key: 'light-text-color',
+            label: this.i18n.t('branding-light-text-color-label'),
+            default: '#000000',
+            help: this.i18n.t('branding-button-text-color-help'),
+          },
+          {
             key: 'dark',
             label: this.i18n.t('branding-dark-label'),
             default: '#212529',
             help: this.i18n.t('branding-dark-help'),
+          },
+          {
+            key: 'dark-text-color',
+            label: this.i18n.t('branding-dark-text-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-button-text-color-help'),
           },
         ],
       },

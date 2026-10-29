@@ -161,6 +161,25 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(publish).toHaveBeenCalledWith(1, 4);
   });
 
+  it('lists each contextual button text colour after its background and saves it before preview', async () => {
+    await initWith(adminState());
+    const contexts = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark'];
+    const keys = component.colourGroups.flatMap(group => group.variables).map(variable => variable.key);
+    for (const context of contexts) {
+      expect(keys.indexOf(`${context}-text-color`)).toBe(keys.indexOf(context) + 1);
+    }
+    const input = fixture.nativeElement.querySelector('#info-text-color') as HTMLInputElement;
+    expect(input.value).toBe('#000000');
+    input.value = '#ffffff';
+    input.dispatchEvent(new Event('input'));
+    expect(component.draftConfig['info-text-color']).toBe('#ffffff');
+    const save = spyOn(serviceStub, 'saveColourDraft').and.callThrough();
+    const preview = spyOn(serviceStub, 'createPreview').and.callThrough();
+    await component.createPreview();
+    expect(save).toHaveBeenCalledWith(jasmine.objectContaining({ 'info-text-color': '#ffffff' }), 2);
+    expect(preview).toHaveBeenCalled();
+  });
+
   it('keeps local colour edits through independent typography mutations', async () => {
     await initWith(adminState());
     component.draftConfig = { primary: '#0000ff' };

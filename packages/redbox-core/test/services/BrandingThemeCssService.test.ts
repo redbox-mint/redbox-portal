@@ -58,6 +58,74 @@ describe('BrandingThemeCssService', function () {
     expect(result.hash).to.match(/^[0-9a-f]{32}$/);
   });
 
+  for (const key of ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark']) {
+    it(`configures ${key} button text with Bootstrap-compatible defaults and aliases`, function () {
+      const { Services } = require('../../src/services/BrandingThemeCssService');
+      const { brandingThemeAllowedVariableNames } = require('../../src/services/BrandingThemeTokens');
+      const { BrandingConfigWLDef } = require('../../src/waterline-models/BrandingConfig');
+      const service = new Services.BrandingThemeCss();
+      const token = `${key}-text-color`;
+      const bootstrap = fs.readFileSync(require.resolve('bootstrap/dist/css/bootstrap.css'), 'utf8');
+      const block = bootstrap.split(`.btn-${key} {`)[1].split('}')[0];
+      const defaultColour = service.normalizeHex(/--bs-btn-color: (#[0-9a-f]+);/.exec(block)![1]);
+      const legacy = service.validateVariables({ [key]: '#123' });
+      expect(legacy).to.not.have.property(token);
+      expect(service.generate(legacy).css).to.contain(`--rb-${token}: ${defaultColour};`);
+      expect(service.getAllowedVariableKeys()).to.include(token);
+      expect(brandingThemeAllowedVariableNames).to.include(`${key}-text-colour`);
+      expect(BrandingConfigWLDef.attributes.variables.custom({ [token]: '#fff' })).to.equal(true);
+      expect(BrandingConfigWLDef.attributes.variables.custom({ [`$${key}-text-colour`]: '#fff' })).to.equal(true);
+      const normalized = service.validateVariables({ [`$${key}-text-colour`]: '#ABC' });
+      expect(normalized).to.deep.equal({ [token]: '#aabbcc' });
+      expect(() => service.validateVariables({ [token]: 'white' })).to.throw(/Invalid variable value/);
+      expect(() => service.validateVariables({ [token]: '#fff; color:red' })).to.throw(/Invalid variable value/);
+      const result = service.generate(normalized);
+      expect(result.css).to.contain(`--rb-${token}: #aabbcc;`);
+      const rule = result.css.split(`.btn-${key} {`)[1].split('}')[0];
+      for (const state of ['color', 'hover-color', 'active-color', 'disabled-color']) {
+        expect(rule).to.contain(`--bs-btn-${state}: var(--rb-${token});`);
+      }
+      // With the text colour set, disabled text sits on the brand background, not Bootstrap's default.
+      for (const state of ['bg', 'border-color', 'hover-bg', 'active-bg', 'disabled-bg', 'disabled-border-color']) {
+        expect(rule).to.contain(`--bs-btn-${state}: var(--rb-${key});`);
+      }
+      if (key === 'secondary') {
+        expect(rule).to.contain('\n  color: var(--rb-secondary-text-color);');
+        expect(rule).to.contain('\n  background-color: var(--rb-secondary);');
+        expect(rule).to.contain('\n  border-color: var(--rb-secondary);');
+      } else {
+        expect(rule).to.not.match(/\n  (color|background-color|border-color):/);
+      }
+      // Unset contexts keep the exact pre-text-setting rule, even with a background
+      // override or a different context's text colour set.
+      const legacyRule = [
+        '',
+        `  --bs-btn-bg: var(--rb-${key});`,
+        `  --bs-btn-border-color: var(--rb-${key});`,
+        `  --bs-btn-hover-bg: var(--rb-${key});`,
+        `  --bs-btn-hover-border-color: var(--rb-${key});`,
+        `  --bs-btn-active-bg: var(--rb-${key});`,
+        `  --bs-btn-active-border-color: var(--rb-${key});`,
+        '',
+      ].join('\n');
+      for (const variables of [
+        {},
+        { [key]: '#ffffff' },
+        { [`${key === 'info' ? 'primary' : 'info'}-text-color`]: '#fff' },
+      ]) {
+        const defaultRule = service.generate(variables).css.split(`.btn-${key} {`)[1].split('}')[0];
+        expect(defaultRule).to.equal(legacyRule);
+        expect(defaultRule).to.not.match(/--bs-btn-(?:color|hover-color|active-color|disabled-[\w-]+):/);
+        expect(defaultRule).to.not.contain('\n  color:');
+      }
+      expect(service.generate({ [token]: 'invalid' }).hash).to.equal(service.generate({}).hash);
+      expect(result.hash).to.not.equal(service.generate({}).hash);
+      expect(result.hash).to.equal(service.generate({ [token]: '#aabbcc' }).hash);
+      // Opting in to the exposed default still changes CSS and its content hash.
+      expect(service.generate({ [token]: defaultColour }).hash).to.not.equal(service.generate({}).hash);
+    });
+  }
+
   it('normalizes and validates hex values', function () {
     const { Services } = require('../../src/services/BrandingThemeCssService');
     const service = new Services.BrandingThemeCss();

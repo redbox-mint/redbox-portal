@@ -82,7 +82,7 @@ describe('VocabularyService integration', function () {
     [
       'missing parent',
       [{ id: 'child', identifier: 'child', label: 'Child', value: 'child', parent: '000000000000000000000001' }],
-      'VocabularyEntry.parent not found',
+      'VocabularyEntry.parent must belong to the replacement entries',
     ],
   ] as const) {
     it(`rejects ${name} and cleans up a failed import`, async function () {
