@@ -7359,16 +7359,21 @@ img[src$="images/loading.svg"],
         flex-wrap: wrap;
     }
 
+    // Stacked below the sidebar: drop the side-by-side divider and keep a 16px gutter.
     .admin-layout > .admin-main-content {
         min-width: 0;
-        padding: 0 1rem;
+        padding: 0 16px;
+        border-left: 0;
     }
 
     .admin-sidebar {
         position: static;
-        margin: 0;
+        margin: 0 0 16px;
         height: auto;
         min-height: 0;
+        border-right: 0;
+        border-bottom: 1px solid #dee2e6;
+        box-shadow: none;
     }
 }
 
