@@ -486,6 +486,11 @@ jobs:
     machine:
       image: ubuntu-2404:current
     resource_class: large
+    environment:
+      # Bound registry stalls below CircleCI's 10-minute inactivity limit, including
+      # npm's two retries, and log completed requests to diagnose slow installs.
+      npm_config_fetch_timeout: "60000"
+      npm_config_loglevel: http
     steps:
       - checkout
       - run: *usePatchedNode
