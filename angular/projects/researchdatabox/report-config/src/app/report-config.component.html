@@ -1,158 +1,153 @@
 @if (isReady) {
   <div class="report-config-app">
-    @if (!selectedReport) {
-      <div class="page-header">
-        <h1>{{ 'reports-heading' | i18next }}</h1>
-        <p>{{ (isAdmin ? 'reports-description-admin' : 'reports-description-librarian') | i18next }}</p>
-      </div>
-    }
-
-    @if (errorMessage) {
+    @if (errorMessage && selectedReport) {
       <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
     }
 
     @if (!selectedReport) {
-      <div class="report-toolbar">
-        <button id="report-create" class="btn btn-primary" type="button" (click)="createReport()">
-          <i class="fa fa-plus"></i> {{ 'report-create' | i18next }}
-        </button>
-        @if (canManageQueries) {
-          <a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/named-query'"
-            ><i class="fa fa-list"></i> {{ 'report-manage-named-queries' | i18next }}</a
-          >
-        }
-      </div>
-
-      <div class="report-stats">
-        <div class="report-stat-card">
-          <div class="report-stat-value">{{ totalReports }}</div>
-          <div class="report-stat-label">{{ 'report-stat-total' | i18next }}</div>
+      <div class="card panel-style panel-default report-list-card">
+        <div class="card-header report-list-header">
+          <h1 class="card-title report-list-title">
+            <i class="fa-solid fa-table-list me-2" aria-hidden="true"></i>{{ 'reports-heading' | i18next }}
+          </h1>
         </div>
-        <div class="report-stat-card">
-          <div class="report-stat-value">{{ databaseReports }}</div>
-          <div class="report-stat-label">{{ 'report-stat-database' | i18next }}</div>
-        </div>
-        <div class="report-stat-card">
-          <div class="report-stat-value">{{ solrReports }}</div>
-          <div class="report-stat-label">{{ 'report-stat-solr' | i18next }}</div>
-        </div>
-      </div>
-
-      <div class="panel panel-default">
-        <div class="panel-heading clearfix">
-          <span class="panel-title pull-left">{{ 'report-configured-reports' | i18next }}</span>
-          <div class="btn-group pull-right report-source-filter" role="group">
-            <button
-              class="btn btn-xs"
-              type="button"
-              [class.btn-primary]="sourceFilter === 'all'"
-              [class.btn-default]="sourceFilter !== 'all'"
-              (click)="setSourceFilter('all')"
+        <div class="card-body">
+          <p class="report-lede">
+            {{ (isAdmin ? 'reports-description-admin' : 'reports-description-librarian') | i18next }}
+          </p>
+          @if (errorMessage) {
+            <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
+          }
+          <div class="report-list-toolbar">
+            <div class="report-search-input">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input
+                class="form-control form-control-sm"
+                type="search"
+                [attr.aria-label]="'report-search-placeholder' | i18next"
+                [placeholder]="'report-search-placeholder' | i18next"
+                [(ngModel)]="searchText"
+                (ngModelChange)="applyFilter()"
+              />
+            </div>
+            <div
+              class="btn-group btn-group-sm report-source-filter"
+              role="group"
+              [attr.aria-label]="'report-col-source' | i18next"
             >
-              {{ 'report-source-all' | i18next }}
-            </button>
-            <button
-              class="btn btn-xs"
-              type="button"
-              [class.btn-primary]="sourceFilter === 'database'"
-              [class.btn-default]="sourceFilter !== 'database'"
-              (click)="setSourceFilter('database')"
-            >
-              {{ 'report-source-database' | i18next }}
-            </button>
-            <button
-              class="btn btn-xs"
-              type="button"
-              [class.btn-primary]="sourceFilter === 'solr'"
-              [class.btn-default]="sourceFilter !== 'solr'"
-              (click)="setSourceFilter('solr')"
-            >
-              {{ 'report-source-solr' | i18next }}
-            </button>
-          </div>
-        </div>
-        <div class="panel-body report-search-bar">
-          <div class="report-search-input">
-            <i class="fa fa-search"></i>
-            <input
-              class="form-control"
-              type="search"
-              [attr.aria-label]="'report-search-placeholder' | i18next"
-              [placeholder]="'report-search-placeholder' | i18next"
-              [(ngModel)]="searchText"
-              (ngModelChange)="applyFilter()"
-            />
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped table-hover">
-            <thead>
-              <tr>
-                <th>{{ 'report-col-title' | i18next }}</th>
-                <th>{{ 'report-col-name' | i18next }}</th>
-                <th>{{ 'report-col-source' | i18next }}</th>
-                <th class="text-center">{{ 'report-col-filters' | i18next }}</th>
-                <th class="text-center">{{ 'report-col-columns' | i18next }}</th>
-                <th class="text-end">{{ 'report-col-actions' | i18next }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (report of filteredReports; track report.name) {
-                <tr>
-                  <td>
-                    <a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next">{{ report.title }}</a>
-                  </td>
-                  <td>
-                    <a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next"
-                      ><code>{{ report.name }}</code></a
-                    >
-                  </td>
-                  <td>
-                    {{ report.reportSource }}
-                    @if (report.readOnly) {
-                      <span class="label label-default">{{ 'report-state-readonly' | i18next }}</span>
-                    }
-                  </td>
-                  <td class="text-center">{{ report.filter.length }}</td>
-                  <td class="text-center">{{ report.columns.length }}</td>
-                  <td class="text-end report-actions">
-                    <button
-                      class="btn btn-xs btn-default"
-                      type="button"
-                      [disabled]="report.readOnly || !report.canEdit"
-                      (click)="editReport(report)"
-                      [attr.title]="'report-action-edit' | i18next"
-                    >
-                      <i class="fa fa-pencil"></i> {{ 'report-action-edit' | i18next }}
-                    </button>
-                    <a
-                      class="btn btn-xs btn-default"
-                      [href]="openReport(report)"
-                      [attr.title]="'report-action-view' | i18next"
-                      ><i class="fa fa-eye"></i> {{ 'report-action-view' | i18next }}</a
-                    >
-                    <button
-                      class="btn btn-xs btn-danger"
-                      type="button"
-                      [disabled]="report.readOnly || !report.canDelete"
-                      (click)="deleteReport(report)"
-                      [attr.title]="'report-action-delete' | i18next"
-                    >
-                      <i class="fa fa-trash"></i> {{ 'report-action-delete' | i18next }}
-                    </button>
-                  </td>
-                </tr>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                [class.active]="sourceFilter === 'all'"
+                [attr.aria-pressed]="sourceFilter === 'all'"
+                (click)="setSourceFilter('all')"
+              >
+                {{ 'report-source-all' | i18next }}
+                <span class="report-count" [attr.title]="'report-stat-total' | i18next">{{ totalReports }}</span>
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                [class.active]="sourceFilter === 'database'"
+                [attr.aria-pressed]="sourceFilter === 'database'"
+                (click)="setSourceFilter('database')"
+              >
+                {{ 'report-source-database' | i18next }}
+                <span class="report-count" [attr.title]="'report-stat-database' | i18next">{{ databaseReports }}</span>
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                [class.active]="sourceFilter === 'solr'"
+                [attr.aria-pressed]="sourceFilter === 'solr'"
+                (click)="setSourceFilter('solr')"
+              >
+                {{ 'report-source-solr' | i18next }}
+                <span class="report-count" [attr.title]="'report-stat-solr' | i18next">{{ solrReports }}</span>
+              </button>
+            </div>
+            <div class="report-list-actions">
+              @if (canManageQueries) {
+                <a class="btn btn-sm btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/named-query'"
+                  ><i class="fa-solid fa-database me-1" aria-hidden="true"></i
+                  >{{ 'report-manage-named-queries' | i18next }}</a
+                >
               }
-              @if (filteredReports.length === 0) {
+              <button id="report-create" class="btn btn-sm btn-primary" type="button" (click)="createReport()">
+                <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>{{ 'report-create' | i18next }}
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table align-middle report-list-table">
+              <caption class="visually-hidden">
+                {{
+                  'report-configured-reports' | i18next
+                }}
+              </caption>
+              <thead>
                 <tr>
-                  <td colspan="6" class="text-center text-muted">{{ 'report-none-found' | i18next }}</td>
+                  <th scope="col">{{ 'report-col-title' | i18next }}</th>
+                  <th scope="col">{{ 'report-col-name' | i18next }}</th>
+                  <th scope="col">{{ 'report-col-source' | i18next }}</th>
+                  <th scope="col" class="text-center">{{ 'report-col-filters' | i18next }}</th>
+                  <th scope="col" class="text-center">{{ 'report-col-columns' | i18next }}</th>
+                  <th scope="col" class="text-end">{{ 'report-col-actions' | i18next }}</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        <div class="panel-footer report-pagination">
-          {{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}
+              </thead>
+              <tbody>
+                @for (report of filteredReports; track report.name) {
+                  <tr>
+                    <td class="report-cell-title">
+                      <a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next">{{ report.title }}</a>
+                    </td>
+                    <td>
+                      <a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next"
+                        ><code class="report-name">{{ report.name }}</code></a
+                      >
+                    </td>
+                    <td>
+                      {{ report.reportSource }}
+                      @if (report.readOnly) {
+                        <span class="report-badge">{{ 'report-state-readonly' | i18next }}</span>
+                      }
+                    </td>
+                    <td class="text-center">{{ report.filter.length }}</td>
+                    <td class="text-center">{{ report.columns.length }}</td>
+                    <td class="text-end report-actions">
+                      <button
+                        class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        [disabled]="report.readOnly || !report.canEdit"
+                        (click)="editReport(report)"
+                      >
+                        {{ 'report-action-edit' | i18next }}<span class="visually-hidden"> {{ report.title }}</span>
+                      </button>
+                      <a class="btn btn-sm btn-outline-secondary" [href]="openReport(report)"
+                        >{{ 'report-action-view' | i18next }}<span class="visually-hidden"> {{ report.title }}</span></a
+                      >
+                      <button
+                        class="btn btn-sm btn-outline-danger"
+                        type="button"
+                        [disabled]="report.readOnly || !report.canDelete"
+                        (click)="deleteReport(report)"
+                      >
+                        {{ 'report-action-delete' | i18next }}<span class="visually-hidden"> {{ report.title }}</span>
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6" class="report-empty">{{ 'report-none-found' | i18next }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="report-list-footer">
+            {{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}
+          </div>
         </div>
       </div>
     }
@@ -179,6 +174,9 @@
             (click)="helpOpen = !helpOpen"
           >
             <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>{{ 'report-field-help' | i18next }}
+          </button>
+          <button class="btn btn-sm rb-ws-header-button" type="button" (click)="cancelEdit()">
+            <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>{{ 'reports-heading' | i18next }}
           </button>
         </div>
         <div class="card-body">
@@ -721,7 +719,14 @@
                       <div
                         class="rb-ws-diagnostic report-diagnostic"
                         [class.rb-ws-diagnostic-warning]="d.severity !== 'error'"
+                        [class.report-diagnostic-error]="d.severity === 'error'"
                       >
+                        <i
+                          class="fa-solid"
+                          [class.fa-circle-xmark]="d.severity === 'error'"
+                          [class.fa-triangle-exclamation]="d.severity !== 'error'"
+                          aria-hidden="true"
+                        ></i>
                         <strong class="rb-ws-diagnostic-label">{{
                           (d.severity === 'error' ? 'report-blocking' : 'report-advisory') | i18next
                         }}</strong>
