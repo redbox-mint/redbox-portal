@@ -63,8 +63,13 @@
         </div>
       </div>
       <div class="form-check">
-        <input id="nq-expand-relations" type="checkbox" class="form-check-input"
-               [(ngModel)]="draft.expandRelations" />
+        <input
+          id="nq-expand-relations"
+          type="checkbox"
+          class="form-check-input"
+          [(ngModel)]="draft.expandRelations"
+          (ngModelChange)="draftChange.emit()"
+        />
         <label for="nq-expand-relations" class="form-check-label">
           {{ 'named-query-expand-relations' | i18next }}
         </label>
