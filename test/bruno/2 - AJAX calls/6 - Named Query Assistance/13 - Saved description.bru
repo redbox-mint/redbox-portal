@@ -1,0 +1,30 @@
+meta {
+  name: Named queries - Saved description
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/listRDMPRecords/description
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Describes the saved brand query", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.name).to.equal("listRDMPRecords");
+    expect(res.getBody().data.result.fields).to.be.an("array");
+  });
+}

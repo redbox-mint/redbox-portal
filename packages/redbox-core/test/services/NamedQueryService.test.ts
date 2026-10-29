@@ -179,6 +179,33 @@ describe('NamedQueryService', function() {
     });
   });
 
+  describe('legacy authoring contract', function() {
+    it('persists malformed expressions without schema or syntax validation', async function() {
+      const config = {
+        collectionName: 'record', mongoQuery: { 'metadata.hookField': { $customOperator: true } },
+        resultObjectMapping: { title: '{{#if broken}}' },
+        queryParams: { custom: { type: 'hook-type', path: 'metadata.custom' } }, sort: { invalid: true },
+      };
+      await NamedQueryService.create({ id: 'brand-1' }, 'legacy', config);
+      expect(mockNamedQuery.create.firstCall.args[0].resultObjectMapping).to.equal(JSON.stringify(config.resultObjectMapping));
+      expect(mockNamedQuery.create.firstCall.args[0].queryParams).to.equal(JSON.stringify(config.queryParams));
+      expect(mockNamedQuery.create.firstCall.args[0].sort).to.equal('');
+      mockNamedQuery.findOne.resolves({ key: 'brand-1_legacy' });
+      await NamedQueryService.update({ id: 'brand-1' }, 'legacy', { collectionName: 'record' });
+      expect(mockNamedQuery.updateOne.calledOnce).to.be.true;
+    });
+    it('requires a brand-scoped collection but does not enforce the editor dropdown', async function() {
+      await NamedQueryService.create({ id: 'brand-1' }, 'custom', { collectionName: 'custommodel' });
+      expect(mockNamedQuery.create.firstCall.args[0].brandIdFieldPath).to.equal('branding');
+      for (const collectionName of ['', 'missing', 'unscopedmodel']) {
+        let error: unknown;
+        try { await NamedQueryService.create({ id: 'brand-1' }, 'invalid', { collectionName }); }
+        catch (caught) { error = caught; }
+        expect(error).to.be.instanceOf(Error);
+      }
+    });
+  });
+
   describe('create', function() {
     it('should create named query', async function() {
       const brand = { id: 'brand-1' };

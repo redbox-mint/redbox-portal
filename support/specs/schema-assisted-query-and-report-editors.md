@@ -116,7 +116,7 @@ Implemented in PR 1; see [shared assistance API and validation](schema-assist-01
 
 - [ ] Introduce the editing workspace and explicit guidance/type-constraint distinction.
 - [ ] Wire field assistance into conditions, parameters, mappings, sort and related-filter join fields.
-- [ ] Add structured diagnostics and explicit bounded draft preview.
+- [ ] Add structured diagnostics and explicit bounded draft preview. Backend operations are implemented in PR 2; UI wiring remains in PR 3. See [backend API handoff](schema-assist-02-query-backend.md).
 - [ ] Verify raw JSON round trips and legacy/non-record configuration compatibility.
 
 Exit: an administrator can create and preview a record query, choose fields and create a mapping without manually typing record field paths.
