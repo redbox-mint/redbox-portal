@@ -19,35 +19,11 @@
   --bs-backdrop-zindex: 1055;
 }
 
-// List toolbar: primary action, hint and quiet count pills on one row.
-.nq-toolbar {
-  display: flex;
+// Projected into the nq-list card.
+.nq-list-summary {
+  display: inline-flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  margin-bottom: 16px;
-}
-
-.nq-toolbar-help {
-  color: var(--bs-secondary-color);
-  font-size: 13px;
-}
-
-.nq-toolbar-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.nq-count-pill {
-  padding: 2px 10px;
-  border: 1px solid var(--bs-border-color);
-  border-radius: 999px;
-  color: var(--bs-secondary-color);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
+  gap: 4px 16px;
 }
 
 .nq-fieldset {
