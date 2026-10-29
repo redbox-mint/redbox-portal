@@ -55,7 +55,8 @@ describe('ReportsService', function () {
       getFullPath: sinon.stub().returns('http://portal'),
     };
     (global as any).NamedQueryService = {
-      getNamedQueryConfig: sinon.stub().resolves({}),
+      getNamedQueryConfig: sinon.stub().resolves({ collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }),
+      resolveBrandScope: sinon.stub().returns({}),
       performNamedQueryFromConfig: sinon.stub().resolves({
         summary: { numFound: 1, start: 0, page: 1 },
         records: [{ title: 'Record 1', id: '1' }],
@@ -64,6 +65,9 @@ describe('ReportsService', function () {
 
     const { Services } = require('../../src/services/ReportsService');
     ReportsService = new Services.Reports();
+    const { Services: EditorServices } = require('../../src/services/NamedQueryEditorService');
+    Reflect.set(globalThis, 'NamedQueryEditorService', new EditorServices.NamedQueryEditor());
+    Reflect.set(globalThis, 'DomSanitizerService', { sanitizeWithProfile: (value: string) => value });
     ReportsService.searchService = mockSails.services.solrsearchservice;
   });
 
@@ -72,6 +76,8 @@ describe('ReportsService', function () {
     delete (global as any).RBReport;
     delete (global as any).BrandingService;
     delete (global as any).NamedQueryService;
+    Reflect.deleteProperty(globalThis, 'NamedQueryEditorService');
+    Reflect.deleteProperty(globalThis, 'DomSanitizerService');
     sinon.restore();
   });
 
@@ -287,6 +293,23 @@ describe('ReportsService', function () {
       }
     });
 
+    it('preserves legacy saves with invalid templates, unknown columns and stale parameter bindings', async function () {
+      const legacy = {
+        ...databaseConfig,
+        filter: [{ type: 'date-range', paramName: 'dates', property: '', message: '',
+          database: { fromProperty: 'deletedParameter', toProperty: 'dateCreated' } }],
+        columns: [{ label: 'Hook output', property: 'metadata.hookOutput', template: '{{#each missing}}', exportTemplate: '{{broken' }],
+      };
+      const before = JSON.stringify(legacy);
+      mockReport.create.returns(createQueryObject({ id: 'legacy', ...legacy }));
+      await ReportsService.createConfig(brand, legacy);
+      mockReport.findOne.returns(createQueryObject({ id: 'legacy', ...legacy }));
+      await ReportsService.updateConfig(brand, legacy.name, legacy);
+      expect(mockReport.create.firstCall.args[0].columns[0]).to.deep.include(legacy.columns[0]);
+      expect(mockReport.updateOne.lastCall.returnValue.set.firstCall.args[0].filter).to.deep.equal(legacy.filter);
+      expect(JSON.stringify(legacy)).to.equal(before);
+    });
+
     it('should validate required fields and named query existence before persisting', async function () {
       (global as any).NamedQueryService.getNamedQueryConfig.resolves(null);
 
@@ -404,7 +427,7 @@ describe('ReportsService', function () {
       req.param.withArgs('dateRange_toDate').returns('2024-01-31T23:59:59.999Z');
       req.param.withArgs('title').returns('Test title');
 
-      const result = await ReportsService.previewConfig(brand, databaseConfig, req);
+      const result = await ReportsService.previewConfig(brand, databaseConfig, req, { portal: 'rdmp', caller: { brand, user: { username: 'author' } } });
 
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.calledOnce).to.be.true;
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[1]).to.deep.equal({

@@ -168,13 +168,23 @@ export const namedQueryEditorRoutes = [
   apiRoute(
     'get',
     '/:branding/:portal/api/report-config/named-query/:name/description',
-    'webservice/NamedQueryController',
-    'describeSaved',
-    { params: nameParam, query: assistanceQuery },
+    'webservice/ReportController',
+    'describeQuery',
+    {
+      params: nameParam,
+      query: objectField({
+        recordType: stringField(),
+        stage: stringField(),
+        property: stringField(),
+        multivalue: stringField(),
+      }),
+    },
     {
       tags: ['NamedQuery'],
       operationId: 'describeReportNamedQuery',
       summary: 'Describe a brand-effective saved named query for report authoring',
+      description:
+        'Extends the saved-query description with separate display and CSV templateContexts. Optional property (lodash lookup syntax) and multivalue=true select an ephemeral report column. Scalar display recordTableMeta.val is undefined; CSV val is the selected value. Uses report-config authorization.',
       responses: { 200: namedQueryResponse },
     }
   ),

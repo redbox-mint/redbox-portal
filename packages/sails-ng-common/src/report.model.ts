@@ -1,4 +1,6 @@
-import {RecordPageDto, RecordPropViewMetaDto} from "./record.model";
+import { RecordPageDto, RecordPropViewMetaDto } from './record.model';
+import type { FieldDescription, EditorDiagnostic } from './schema-assist.model';
+import type { NamedQueryDescription } from './named-query-assist.model';
 
 export interface ReportFilterDto {
   type: string;
@@ -14,9 +16,9 @@ export class ReportDto {
   filter: ReportFilterDto[];
   columns: RecordPropViewMetaDto[];
   constructor() {
-    this.title = "";
-    this.name = "";
-    this.solrQuery = "";
+    this.title = '';
+    this.name = '';
+    this.solrQuery = '';
     this.filter = [];
     this.columns = [];
   }
@@ -69,7 +71,34 @@ export interface ReportConfigDto {
 }
 
 export interface ReportConfigPreviewDto extends ReportResultDto {
+  records: Record<string, unknown>[];
   success: boolean;
+  valid: boolean;
+  diagnostics: EditorDiagnostic[];
+  /** Same order as records and configured columns, including hidden/export columns. */
+  renderedRows: Array<{
+    cells: Array<{
+      /** Untrusted rendered HTML. Use Angular [innerHTML], exactly like the live report; never bypass its sanitizer. */
+      untrustedDisplayHtml: string;
+      /** Actual CSV-cast cell text, with formula protection, before CSV quoting. */
+      export: string;
+    }>;
+  }>;
+  /** False for legacy saved queries whose Waterline/hook reads cannot enforce a DB deadline. */
+  deadlineEnforced: boolean;
+  truncated: boolean;
+  truncationReasons: Array<'rows' | 'bytes'>;
+  limits: { rows: number; responseBytes: number; inputBytes: number; timeMs: number };
+}
+
+export interface ReportConfigValidation {
+  valid: boolean;
+  diagnostics: EditorDiagnostic[];
+}
+
+/** Extends the saved-query DTO; property/multivalue select an ephemeral column context. */
+export interface ReportNamedQueryDescription extends NamedQueryDescription {
+  templateContexts: { display: FieldDescription; csv: FieldDescription };
 }
 /**
  * Users of Record Table must extend RecordPage model

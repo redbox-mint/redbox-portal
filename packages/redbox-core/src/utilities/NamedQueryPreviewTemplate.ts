@@ -21,7 +21,8 @@ interface PreviewSpecification {
 export function renderNamedQueryPreviewTemplate(
   source: string,
   variables: Record<string, unknown>,
-  limit: number
+  limit: number,
+  noEscape = true
 ): string {
   const shared = handlebarsInstance();
   const environment = shared.create() as ReturnType<typeof handlebarsInstance> & {
@@ -105,5 +106,5 @@ export function renderNamedQueryPreviewTemplate(
           }
     );
   }
-  return environment.compile(normaliseVisual(source), { noEscape: true })(variables);
+  return environment.compile(normaliseVisual(source), { noEscape })(variables);
 }

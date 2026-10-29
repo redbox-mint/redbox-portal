@@ -27,10 +27,35 @@ import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import {handlebarsCompile, ReportDto, TemplateCompileInput} from '@researchdatabox/sails-ng-common';
+import { handlebarsCompile, ReportDto, TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import { stringify } from 'csv-stringify/sync';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import type { FormRecordAccessContext } from './FormsService';
+import {
+  reportDisplayTemplateFields,
+  reportCsvTemplateFields,
+  type ReportConfigPreviewDto,
+  type ReportConfigValidation,
+  type ReportNamedQueryDescription,
+  type NamedQuerySchemaSelection,
+} from '@researchdatabox/sails-ng-common';
+import {
+  boundedJsonBytes,
+  previewDeadlineIssue,
+  checkDraftBudget,
+  NAMED_QUERY_PREVIEW_LIMITS,
+  NamedQueryExecutionBudget,
+  NamedQueryAssistanceError,
+} from '../utilities/NamedQueryPreview';
+import { renderNamedQueryPreviewTemplate, NamedQueryPreviewOutputLimitError } from '../utilities/NamedQueryPreviewTemplate';
+import {
+  reportStructure,
+  reportBindingAdvice,
+  reportDiagnostic,
+  reportTemplateAdvice,
+  displayedReportDiagnostics,
+} from '../utilities/ReportConfigAssistance';
 
 const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
@@ -121,6 +146,8 @@ export namespace Services {
       'updateConfig',
       'deleteConfig',
       'previewConfig',
+      'validateConfig',
+      'describeQuery',
       'extractReportTemplates',
       //exported only for unit testing
       'getDataRows',
@@ -286,13 +313,213 @@ export namespace Services {
       return { deleted: true };
     }
 
-    public async previewConfig(brand: BrandingModel, config: ReportConfigDto, req: Sails.ReqParamProvider): Promise<ReportResult> {
+    public async describeQuery(
+      brand: BrandingModel,
+      portal: string,
+      caller: FormRecordAccessContext,
+      name: string,
+      property = '',
+      multivalue = false,
+      guidance?: NamedQuerySchemaSelection
+    ): Promise<ReportNamedQueryDescription> {
+      checkDraftBudget({ name, property, multivalue, guidance });
+      const description = await NamedQueryEditorService.describeSaved(brand, portal, caller, name, guidance);
+      return {
+        ...description,
+        templateContexts: {
+          display: {
+            ...description.result,
+            fields: reportDisplayTemplateFields(description.result.fields, property, multivalue),
+          },
+          csv: {
+            ...description.result,
+            fields: reportCsvTemplateFields(description.result.fields, property, multivalue),
+          },
+        },
+      };
+    }
+
+    public async validateConfig(
+      brand: BrandingModel,
+      portal: string,
+      caller: FormRecordAccessContext,
+      config: unknown
+    ): Promise<ReportConfigValidation> {
+      checkDraftBudget(config);
+      const diagnostics = reportStructure(config);
+      if (diagnostics.some(item => item.severity === 'error'))
+        return { valid: false, diagnostics: displayedReportDiagnostics(diagnostics) };
+      const normalized = this.normalizeReportConfigDto(config as ReportConfigDto);
+      const queryName = normalized.databaseQuery!.queryName;
+      const saved = await NamedQueryService.getNamedQueryConfig(brand, queryName);
+      if (!saved)
+        return {
+          valid: false,
+          diagnostics: [
+            reportDiagnostic(
+              'QUERY_NOT_FOUND',
+              'databaseQuery.queryName',
+              'The selected saved query no longer exists in this brand.',
+              'error'
+            ),
+          ],
+        };
+      const description = await NamedQueryEditorService.describeSaved(brand, portal, caller, queryName);
+      diagnostics.push(
+        ...reportBindingAdvice(normalized, description, Object.keys(saved.resultObjectMapping ?? {}).length > 0)
+      );
+      return { valid: true, diagnostics: displayedReportDiagnostics(diagnostics) };
+    }
+
+    public async previewConfig(
+      brand: BrandingModel,
+      config: ReportConfigDto,
+      req: Sails.ReqParamProvider,
+      context?: { portal: string; caller: FormRecordAccessContext }
+    ): Promise<ReportConfigPreviewDto> {
+      checkDraftBudget(config);
       const { dto: normalized, namedQuery } = await this.validateMutableConfig(brand, config, false);
       const paramMap = this.buildNamedQueryParamMap(req, normalized as unknown as ReportConfig);
-      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, 0, 100);
-      const response = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, normalized as unknown as ReportConfig);
-      response.success = true;
+      checkDraftBudget({ config, parameters: paramMap });
+      if (!context?.caller?.user?.username || String(context.caller.brand?.id) !== String(brand.id))
+        throw new NamedQueryAssistanceError('FORBIDDEN', 403);
+      let budget = new NamedQueryExecutionBudget();
+      const deadlineEnforced = !previewDeadlineIssue({ ...namedQuery });
+      const templateDiagnostics = budget.run(() =>
+        normalized.columns.flatMap((column, i) =>
+          (['template', 'exportTemplate'] as const).flatMap(key =>
+            reportTemplateAdvice(column[key] ?? '', [], `columns.${i}.${key}`, false, false).filter(
+              item => item.code !== 'UNKNOWN_TEMPLATE_REFERENCE'
+            )
+          )
+        )
+      );
+      // Determine execution safety before capping diagnostics; later columns must not escape the guard.
+      const templateBlocked = templateDiagnostics.some(item => item.code === 'TEMPLATE_COMPLEXITY');
+      const sample = templateBlocked
+        ? {
+            summary: { numFound: 0, page: 1 },
+            valid: false,
+            records: [],
+            truncated: false,
+            truncationReasons: [],
+            diagnostics: [
+              reportDiagnostic(
+                'PREVIEW_TEMPLATE_COMPLEXITY',
+                'columns',
+                'Simplify templates before previewing; saving remains available.',
+                'error'
+              ),
+            ],
+          }
+        : !deadlineEnforced
+          ? await this.previewLegacyReportQuery(brand, namedQuery, paramMap)
+          : await NamedQueryEditorService.previewDraft(
+              brand,
+              context.portal,
+              context.caller,
+              {
+                definition: { ...namedQuery },
+                parameters: paramMap,
+              },
+              budget
+            );
+      // Legacy Waterline/hook execution has no enforceable DB deadline. Start the
+      // bounded rendering window after it returns, without claiming to cancel it.
+      if (!deadlineEnforced) budget = new NamedQueryExecutionBudget();
+      const response: ReportConfigPreviewDto = {
+        deadlineEnforced,
+        total: sample.summary.numFound,
+        pageNum: sample.summary.page,
+        recordsPerPage: 0,
+        records: [],
+        success: sample.valid,
+        valid: sample.valid,
+        diagnostics: displayedReportDiagnostics([...sample.diagnostics, ...templateDiagnostics]),
+        renderedRows: [],
+        truncated: sample.truncated,
+        truncationReasons: [...sample.truncationReasons],
+        limits: {
+          rows: NAMED_QUERY_PREVIEW_LIMITS.rows,
+          responseBytes: NAMED_QUERY_PREVIEW_LIMITS.responseBytes,
+          inputBytes: NAMED_QUERY_PREVIEW_LIMITS.inputBytes,
+          timeMs: NAMED_QUERY_PREVIEW_LIMITS.timeMs,
+        },
+      };
+      if (!sample.valid) return response;
+      const optTemplateData = this.buildOptTemplateData(req);
+      let bytes = boundedJsonBytes({ data: response }, response.limits.responseBytes) + 128;
+      const truncate = () => {
+        if (!response.truncationReasons.includes('bytes')) response.truncationReasons.push('bytes');
+        response.truncated = true;
+      };
+      for (const result of sample.records.slice(0, response.limits.rows)) {
+        const row = { ...result };
+        try {
+          const rendered = budget.run(() => {
+            // Bound raw rows before serialization, including legacy executor results.
+            if (boundedJsonBytes(row, response.limits.responseBytes - bytes) > response.limits.responseBytes - bytes)
+              throw new NamedQueryPreviewOutputLimitError();
+            // Angular receives JSON, while CSV renders templates against native values.
+            const displayRow = JSON.parse(JSON.stringify(row)) as Record<string, unknown>;
+            const exports = this.getDataRows(normalized as unknown as ReportConfig, [row], optTemplateData, budget)[0];
+            return {
+              cells: normalized.columns.map((column, i) => {
+                const display = this.getColValue(displayRow, column, optTemplateData, budget, true);
+                // The live table sanitizes via Angular [innerHTML]. PR 5 must use that
+                // same binding, without bypassSecurityTrustHtml or a second sanitizer.
+                const untrustedDisplayHtml = display == null ? '' : String(display);
+                // Reuse the actual CSV serializer's casts, without cell quoting or
+                // a record terminator. Dates become milliseconds; templates stay native.
+                const exportValue = stringify([[exports[i]]], { quote: false, escape: '', eof: false });
+                if (!budget.output(exportValue)) throw new NamedQueryPreviewOutputLimitError();
+                return { untrustedDisplayHtml, export: exportValue };
+              }),
+            };
+          });
+          const size = boundedJsonBytes({ row, rendered }, response.limits.responseBytes - bytes) + 2;
+          if (bytes + size > response.limits.responseBytes) {
+            truncate();
+            break;
+          }
+          response.records.push(row);
+          response.renderedRows.push(rendered);
+          bytes += size;
+        } catch (error) {
+          if (error instanceof NamedQueryPreviewOutputLimitError || error instanceof RangeError) {
+            truncate();
+            break;
+          }
+          throw error;
+        }
+      }
+      response.recordsPerPage = response.records.length;
       return response;
+    }
+
+    private async previewLegacyReportQuery(
+      brand: BrandingModel,
+      namedQuery: NamedQueryConfig,
+      parameters: Record<string, unknown>
+    ) {
+      // Preserve the pre-assistance report preview path and its 100-row cap.
+      // Draft named-query previews deliberately retain their stricter refusal.
+      const result = await NamedQueryService.performNamedQueryFromConfig(
+        namedQuery,
+        parameters,
+        brand,
+        0,
+        NAMED_QUERY_PREVIEW_LIMITS.rows
+      );
+      const truncationReasons: Array<'rows' | 'bytes'> =
+        result.summary.numFound > NAMED_QUERY_PREVIEW_LIMITS.rows ? ['rows'] : [];
+      return {
+        ...result,
+        valid: true,
+        diagnostics: [],
+        truncated: truncationReasons.length > 0,
+        truncationReasons,
+      };
     }
 
     private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<{ dto: ReportConfigDto; namedQuery: NamedQueryConfig }> {
@@ -570,11 +797,16 @@ export namespace Services {
     }
 
     //TODO: It's public only because we need it at the moment to unit test it
-    public getDataRows(report: ReportConfig, data: Array<Record<string, unknown>>, optTemplateData: Record<string, unknown>): string[][] {
+    public getDataRows(
+      report: { columns: ReportColumnLike[] },
+      data: Array<Record<string, unknown>>,
+      optTemplateData: Record<string, unknown>,
+      budget?: NamedQueryExecutionBudget
+    ): string[][] {
       const dataRows: string[][] = [];
 
       for (const row of data) {
-        const sanitizedRow = this.getDataRow(row, report.columns, optTemplateData).map(cell => {
+        const sanitizedRow = this.getDataRow(row, report.columns, optTemplateData, budget).map(cell => {
           if (typeof cell === 'string' && /^[=+\-@\t\r\n]/.test(cell)) {
             return "'" + cell;
           }
@@ -586,45 +818,73 @@ export namespace Services {
       return dataRows;
     }
 
-    getDataRow(row: Record<string, unknown>, columns: ReportColumnLike[], optTemplateData: Record<string, unknown>): string[] {
+    getDataRow(
+      row: Record<string, unknown>,
+      columns: ReportColumnLike[],
+      optTemplateData: Record<string, unknown>,
+      budget?: NamedQueryExecutionBudget
+    ): string[] {
       const dataRow: string[] = [];
       for (const column of columns) {
-        dataRow.push(this.getColValue(row, column, optTemplateData))
+        dataRow.push(this.getColValue(row, column, optTemplateData, budget));
       }
       return dataRow;
     }
 
-    getColValue(row: Record<string, unknown>, col: ReportColumnLike, optTemplateData: Record<string, unknown>): string {
+    getColValue(
+      row: Record<string, unknown>,
+      col: ReportColumnLike,
+      optTemplateData: Record<string, unknown>,
+      budget?: NamedQueryExecutionBudget,
+      display = false
+    ): string {
       if (col.multivalue) {
         const retVal: string[] = [];
         const values = _.get(row, col.property);
-        if (Array.isArray(values)) {
+        if (Array.isArray(values) || (display && typeof values === 'string')) {
           for (const val of values) {
-            retVal.push(this.getEntryValue(row, col, val, optTemplateData) as string);
+            const entry = this.getEntryValue(row, col, val, optTemplateData, budget, display) as string;
+            if (budget && !budget.output(entry)) throw new NamedQueryPreviewOutputLimitError();
+            retVal.push(entry);
           }
         }
         return retVal.join('');
       } else {
-        return this.getEntryValue(row, col, _.get(row, col.property), optTemplateData) as string;
+        return this.getEntryValue(
+          row,
+          col,
+          display ? undefined : _.get(row, col.property),
+          optTemplateData,
+          budget,
+          display
+        ) as string;
       }
     }
 
-    getEntryValue(row: Record<string, unknown>, col: ReportColumnLike, val: unknown = undefined, optTemplateData: Record<string, unknown> = {}) {
+    getEntryValue(
+      row: Record<string, unknown>,
+      col: ReportColumnLike,
+      val: unknown = undefined,
+      optTemplateData: Record<string, unknown> = {},
+      budget?: NamedQueryExecutionBudget,
+      display = false
+    ) {
       let retVal: unknown = '';
-      const template = this.getExportTemplate(col);
+      const template = display ? (!_.isEmpty(col.template) ? col.template : null) : this.getExportTemplate(col);
       if (template != null) {
         const data = _.merge({}, row, {
           recordTableMeta: {
             col: col,
-            val: val
+            val: val,
           },
-          optTemplateData: optTemplateData
+          optTemplateData: optTemplateData,
         });
 
-        retVal = this.runTemplate(data, { template: template, noEscape: true });
+        retVal = this.runTemplate(data, { template: template, noEscape: !display }, {}, undefined, budget);
       } else {
         retVal = _.get(row, col.property, val);
       }
+      if (budget && !budget.output(retVal)) throw new NamedQueryPreviewOutputLimitError();
       return retVal;
     }
 
@@ -660,8 +920,21 @@ export namespace Services {
      * @param additionalImports Additional data to merge into context (deprecated, for backward compat)
      * @param field Optional field data (deprecated, for backward compat)
      */
-    runTemplate(data: Record<string, unknown>, config: TemplateConfig, additionalImports: Record<string, unknown> = {}, _field: unknown = undefined) {
+    runTemplate(
+      data: Record<string, unknown>,
+      config: TemplateConfig,
+      additionalImports: Record<string, unknown> = {},
+      _field: unknown = undefined,
+      budget?: NamedQueryExecutionBudget
+    ) {
       try {
+        if (budget)
+          return renderNamedQueryPreviewTemplate(
+            config.template,
+            _.merge({}, data, additionalImports),
+            budget.remainingOutputBytes(),
+            config.noEscape === true
+          );
         const template = this.getCompiledTemplate(config.template, config.noEscape === true);
         // Build context compatible with the new Handlebars templates
         // The data is provided as the root context
@@ -675,6 +948,13 @@ export namespace Services {
         }
         return templateRes;
       } catch (error) {
+        if (
+          budget &&
+          (error instanceof NamedQueryPreviewOutputLimitError ||
+            error instanceof RangeError ||
+            error instanceof NamedQueryAssistanceError)
+        )
+          throw error;
         sails.log.error(`ReportsService: Error running template: ${error}`);
         return '';
       }

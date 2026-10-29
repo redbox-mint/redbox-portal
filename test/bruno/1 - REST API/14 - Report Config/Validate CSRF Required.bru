@@ -1,0 +1,56 @@
+meta {
+  name: Validate CSRF Required
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{host}}/default/rdmp/api/report-config/validate
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "unsaved",
+    "title": "Unsaved",
+    "reportSource": "database",
+    "databaseQuery": {
+      "queryName": "listRDMPRecords"
+    },
+    "filter": [
+      {
+        "type": "text",
+        "paramName": "deletedQueryParameter",
+        "property": ""
+      }
+    ],
+    "columns": [
+      {
+        "label": "Missing",
+        "property": "absentEnvelope",
+        "template": "{{#each broken}}"
+      }
+    ]
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "reportEditorCookie" });
+}
+
+tests {
+  // The token setup stores an empty string only after a successful /csrfToken
+  // response without a token, as returned by the CSRF-disabled CI harness.
+  if (bru.getVar("reportEditorCsrf") === "") {
+    console.warn("Skipping CSRF rejection assertion: the test server has CSRF disabled.");
+  } else {
+    test("Rejects a draft POST without CSRF", () => expect(res.getStatus()).to.equal(403));
+  }
+}

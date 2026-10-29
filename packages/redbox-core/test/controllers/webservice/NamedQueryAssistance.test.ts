@@ -231,7 +231,7 @@ describe('Named query assistance HTTP boundary', () => {
       namedQueryEditorRoutes.some(
         route =>
           route.path === '/:branding/:portal/api/report-config/named-query/:name/description' &&
-          route.action === 'describeSaved' &&
+          route.action === 'describeQuery' &&
           route.method === 'get'
       )
     );
