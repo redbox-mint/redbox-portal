@@ -11,47 +11,90 @@
     {{ 'named-query-related-filter-empty' | i18next }}
   </p>
 
-  <div *ngFor="let filter of filters; trackBy: trackById" class="card rb-admin-card-secondary mb-2 nq-inline-card">
+  <div *ngFor="let filter of filters; let i = index; trackBy: trackById" class="card mb-2 nq-inline-card">
     <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center nq-card-header-clickable">
-      <button type="button" class="btn rb-admin-disclosure text-start flex-grow-1" (click)="toggleExpand(filter)" [attr.aria-expanded]="expandedId === filter.id" [attr.aria-controls]="idPrefix + '-panel-' + filter.id">
-        <strong>{{ (filter.collectionName === 'record' || filter.collectionName === 'user' ? 'admin-query-collection-' + filter.collectionName : filter.collectionName || 'named-query-related-filter-unnamed') | i18next }}</strong>
-        <span class="badge badge-light ms-2" *ngIf="filter.localField || filter.foreignField">
+      <div>
+        <button type="button" class="btn btn-link p-0" (click)="toggleExpand(filter)">
+          {{ filter.collectionName || ('named-query-related-filter-unnamed' | i18next) }}
+        </button>
+        <span class="badge badge-light ml-2" *ngIf="filter.localField || filter.foreignField">
           {{ filter.localField || '—' }} → {{ filter.foreignField || '—' }}
         </span>
-      </button>
-      <button class="btn btn-sm btn-outline-danger" type="button"
-              (click)="removeFilter(filter); $event.stopPropagation()">
+      </div>
+      <button
+        class="btn btn-sm btn-outline-danger"
+        type="button"
+        (click)="removeFilter(filter); $event.stopPropagation()"
+      >
         {{ 'named-query-remove' | i18next }}
       </button>
     </div>
-    <div class="card-body" [id]="idPrefix + '-panel-' + filter.id" [hidden]="!(expandedId === filter.id)">
-      <div class="row g-2">
-        <div class="form-group col-md-4">
-          <label [for]="idPrefix + '-collectionName' + '-' + filter.id">{{ 'named-query-related-filter-collection' | i18next }}</label>
-          <input [id]="idPrefix + '-collectionName' + '-' + filter.id" type="text" class="form-control form-control-sm"
-                 [ngModel]="filter.collectionName"
-                 (ngModelChange)="onFieldChange(filter, 'collectionName', $event)">
-        </div>
-        <div class="form-group col-md-4">
-          <label [for]="idPrefix + '-localField' + '-' + filter.id">{{ 'named-query-related-filter-local' | i18next }}</label>
-          <input [id]="idPrefix + '-localField' + '-' + filter.id" type="text" class="form-control form-control-sm"
-                 [ngModel]="filter.localField"
-                 (ngModelChange)="onFieldChange(filter, 'localField', $event)">
-        </div>
-        <div class="form-group col-md-4">
-          <label [for]="idPrefix + '-foreignField' + '-' + filter.id">{{ 'named-query-related-filter-foreign' | i18next }}</label>
-          <input [id]="idPrefix + '-foreignField' + '-' + filter.id" type="text" class="form-control form-control-sm"
-                 [ngModel]="filter.foreignField"
-                 (ngModelChange)="onFieldChange(filter, 'foreignField', $event)">
-        </div>
+    <nq-diagnostics [diagnostics]="diagnostics" [location]="'relatedRecordFilters.' + i"></nq-diagnostics>
+    <div class="card-body" [hidden]="expandedId !== filter.id">
+      <div *ngIf="filter.collectionName === 'record'" class="mb-2" data-nq-guidance>
+        <label>{{ 'named-query-foreign-guidance' | i18next }}</label>
+        <select
+          class="form-control"
+          [ngModel]="relatedGuidance[i]?.recordType || ''"
+          (ngModelChange)="chooseForeign(i, $event)"
+        >
+          <option value="">{{ 'named-query-without-guidance' | i18next }}</option>
+          <option *ngFor="let target of targets" [value]="target.id">{{ target.label }}</option>
+        </select>
+        <select
+          *ngIf="relatedGuidance[i]"
+          class="form-control"
+          [ngModel]="relatedGuidance[i].stage || ''"
+          (ngModelChange)="chooseForeign(i, relatedGuidance[i].recordType, $event)"
+        >
+          <option value="">{{ 'named-query-all-stages' | i18next }}</option>
+          <ng-container *ngFor="let target of targets"
+            ><ng-container *ngIf="target.id === relatedGuidance[i].recordType"
+              ><option *ngFor="let stage of target.stages" [value]="stage.id">{{ stage.label }}</option></ng-container
+            ></ng-container
+          >
+        </select>
       </div>
       <div class="row g-2">
+        <div class="form-group col-md-4">
+          <label>{{ 'named-query-related-filter-collection' | i18next }}</label>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            [ngModel]="filter.collectionName"
+            (ngModelChange)="onFieldChange(filter, 'collectionName', $event)"
+          />
+        </div>
+        <div class="form-group col-md-4">
+          <label>{{ 'named-query-related-filter-local' | i18next }}</label>
+          <nq-path-input
+            [value]="filter.localField"
+            [label]="'named-query-param-path' | i18next"
+            [fields]="fields"
+            (valueChange)="onFieldChange(filter, 'localField', $event)"
+          ></nq-path-input>
+        </div>
+        <div class="form-group col-md-4">
+          <label>{{ 'named-query-related-filter-foreign' | i18next }}</label>
+          <nq-path-input
+            [value]="filter.foreignField"
+            [label]="'named-query-param-path' | i18next"
+            [fields]="foreignFields[i] || []"
+            (valueChange)="onFieldChange(filter, 'foreignField', $event)"
+          ></nq-path-input>
+        </div>
+      </div>
+      <p *ngIf="invalidFilters.has(filter.id)" class="text-danger">{{ 'named-query-invalid-json' | i18next }}</p>
+      <div class="row g-2">
         <div class="form-group col-12 mb-0">
-          <label [for]="idPrefix + '-mongoQueryJson' + '-' + filter.id">{{ 'named-query-related-filter-mongo' | i18next }}</label>
-          <textarea [id]="idPrefix + '-mongoQueryJson' + '-' + filter.id" class="form-control form-control-sm nq-code-editor" rows="6"
-                    [ngModel]="filter.mongoQueryJson"
-                    (ngModelChange)="onMongoQueryJsonChange(filter, $event)"
-                    spellcheck="false"></textarea>
+          <label>{{ 'named-query-related-filter-mongo' | i18next }}</label>
+          <textarea
+            class="form-control form-control-sm nq-code-editor"
+            rows="6"
+            [ngModel]="filter.mongoQueryJson"
+            (ngModelChange)="onMongoQueryJsonChange(filter, $event)"
+            spellcheck="false"
+          ></textarea>
         </div>
       </div>
     </div>
