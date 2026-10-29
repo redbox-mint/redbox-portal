@@ -25,7 +25,7 @@ import { Services as services } from '../CoreService';
 import { type TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
 import * as fs from 'graceful-fs';
 import { join } from 'node:path';
-import { EmailTemplateError, readEmailTemplateDefault, safeEmailTemplateError, validateEmailTemplate } from './EmailTemplateService';
+import { EmailTemplateError, readEmailTemplateDefault, safeEmailTemplateError, validateEmailTemplate, emailTemplateContextRoots, validateEmailLength, hardenEmailSubject } from './EmailTemplateService';
 import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
@@ -74,11 +74,14 @@ export namespace Services {
      * bootstrap), so a bad allowlist fails startup instead of every send.
      */
     public validateExposedConfig(): void {
+      emailTemplateContextRoots();
+      validateEmailLength('', 'subject');
+      validateEmailLength('', 'body');
       this.createRenderData({});
     }
 
     /** Construct reserved display values; never merge caller data into these objects. */
-    private createRenderData(data: Record<string, unknown>, context = this.renderDataContexts.get(data) ?? {}): Record<string, unknown> {
+    private createRenderData(data: Record<string, unknown>, context = this.renderDataContexts.get(data) ?? {}, curateRecord = true): Record<string, unknown> {
       // Minimal hook/test apps may lift without email settings; use the default allowlist.
       const configuredPaths = sails.config.emailnotification?.settings?.exposedConfigPaths;
       const paths = configuredPaths === undefined ? ['appUrl'] : configuredPaths;
@@ -133,7 +136,7 @@ export namespace Services {
           if (value === undefined) {
             if (!this.missingExposedPaths.has(path)) {
               this.missingExposedPaths.add(path);
-              sails.log.warn(`Email exposed config path '${path}' does not exist; omitting it from sailsConfig.`);
+              this.updateChronicle({ emailMissingExposedConfigPath: path }, [], 'warn');
             }
             continue;
           }
@@ -165,7 +168,26 @@ export namespace Services {
         brandUrl: appUrl && brandName && portalName ? `${appUrl.replace(/\/+$/, '')}/${brandPath}` : '',
         portalName,
       };
-      const prepared = { ...data, sailsConfig, portal };
+      const prepared: Record<string, unknown> = { ...data, sailsConfig, portal };
+      if (curateRecord) {
+        const raw = data.record as Record<string, unknown> | undefined;
+        if (raw && typeof raw === 'object') {
+          // Explicitly construct display data: no authorization, storage, version or form internals.
+          const meta = (raw.metaMetadata ?? {}) as Record<string, unknown>;
+          const workflow = (raw.workflow ?? {}) as Record<string, unknown>;
+          prepared['record'] = {
+            oid: data.oid ?? raw.oid ?? raw.redboxOid ?? '',
+            metadata: _.cloneDeep(raw.metadata ?? {}),
+            lastSaveDate: raw.lastSaveDate,
+            dateCreated: raw.dateCreated,
+            workflow: _.pick(workflow, ['stage', 'stageLabel']),
+            metaMetadata: _.pick(meta, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']),
+          };
+          prepared['oid'] = (prepared['record'] as Record<string, unknown>).oid;
+        }
+        // Retain the legacy alias without leaving a second copy of the full record reachable.
+        if (data.imports) prepared['imports'] = { record: prepared['record'], oid: prepared['oid'] };
+      }
       this.renderDataContexts.set(prepared, { ...context });
       return prepared;
     }
@@ -257,11 +279,37 @@ export namespace Services {
       }
       this.updateChronicle({ emailSendOutcome: 'processing' });
 
+      // This also covers callers supplying already-rendered strings to sendMessage.
+      try {
+        msgSubject = hardenEmailSubject(msgSubject);
+        validateEmailLength(msgBody, 'body');
+        if (!['html', 'text'].includes(msgFormat)) throw new EmailTemplateError('INVALID_TEMPLATE', 'Invalid email format.');
+        if (msgFormat === 'html') {
+          // Never let getDOMPurifyConfig silently fall back to a different profile.
+          if (!sails.config.dompurify?.profiles?.email) {
+            throw new EmailTemplateError('SANITISATION_FAILED', 'DOMPurify email profile is required.');
+          }
+          try {
+            const result = DomSanitizerService.sanitizeEmail(msgBody);
+            msgBody = result.sanitized;
+            if (result.removed) this.updateChronicle({ emailSanitisationRemovedMarkup: true });
+          } catch {
+            // Do not retain sanitizer exceptions: they can embed the email content.
+            throw new EmailTemplateError('SANITISATION_FAILED', 'Unable to sanitise email HTML.');
+          }
+          validateEmailLength(msgBody, 'body');
+        }
+      } catch (error) {
+        this.updateChronicle({ emailSendOutcome: 'validation-failed',
+          emailErrorCode: error instanceof EmailTemplateError ? error.code : 'RENDER_FAILED' });
+        throw error;
+      }
+
       let transport;
       try {
         transport = nodemailer.createTransport(sails.config.emailnotification.settings.serverOptions);
-      } catch (err) {
-        this.updateChronicle({ emailSendOutcome: 'transport-failed' }, [err]);
+      } catch {
+        this.updateChronicle({ emailSendOutcome: 'transport-failed' }, [new Error('Email transport creation failed.')]);
         return {
           'success': false,
           'msg': 'Failed to establish mail transport connection.'
@@ -287,10 +335,10 @@ export namespace Services {
         response.msg = `Email sent successfully. Message Id: ${sendResult.messageId}`;
         response.success = true;
         this.updateChronicle({ emailSendOutcome: 'sent' }, [], 'info');
-      } catch (err) {
+      } catch {
         response.msg = 'Email unable to be submitted';
         response.success = false;
-        this.updateChronicle({ emailSendOutcome: 'failed' }, [err]);
+        this.updateChronicle({ emailSendOutcome: 'failed' }, [new Error('Email transport submission failed.')]);
       }
 
       return response;
@@ -317,17 +365,18 @@ export namespace Services {
           subject: context?.subject ?? (template.source === 'default' ? context?.defaultSubject : undefined) ?? template.subject,
           format: context?.format ?? template.format,
         };
-        validateEmailTemplate(selected as Parameters<typeof validateEmailTemplate>[0]);
+        validateEmailTemplate(selected as Parameters<typeof validateEmailTemplate>[0], false);
         // DB compilation is deliberately uncached. Every send queries storage;
         // revision updates and delete/recreate cycles are visible on all workers.
         const body = template.source === 'override'
           ? handlebarsCompile(template.body, { strict: true })(data)
           : this.getCompiledTemplate(template.fileName ?? templateName)(data);
 
+        validateEmailLength(body, 'body');
         res['status'] = 200;
         res['body'] = body;
         // Direct legacy body-only calls need not supply subject display values.
-        if (context) res['subject'] = this.runTemplate(selected.subject, data);
+        if (context) res['subject'] = hardenEmailSubject(this.runTemplate(selected.subject, data));
         res['format'] = selected.format;
         res['source'] = template.source;
         res['revision'] = template.revision;
@@ -336,7 +385,8 @@ export namespace Services {
         // Record and propagate one safe typed instance; render errors may quote template text.
         const failure = err instanceof EmailTemplateError ? err
           : safeEmailTemplateError('RENDER_FAILED', `Unable to render email template '${templateName}'.`, err);
-        this.updateChronicle({ emailTemplate: templateName, emailTemplateOutcome: 'failed' }, [failure]);
+        this.updateChronicle({ emailTemplate: templateName, emailTemplateOutcome: 'failed', emailErrorCode: failure.code },
+          [failure]);
         res['status'] = 500;
         res['body'] = 'Templating error.';
         res['ex'] = failure;
@@ -398,6 +448,11 @@ export namespace Services {
       return template;
     }
 
+    private runAddressTemplate(template: string, variables: Record<string, unknown>) {
+      return template?.includes('{{')
+        ? handlebarsCompile(template, { strict: true })(this.createRenderData(variables, undefined, false)) : template;
+    }
+
     /**
      * Send an email build from the given record data.
      *
@@ -444,7 +499,8 @@ export namespace Services {
 
         if (buildResult['status'] != 200) {
           const error = (buildResult['ex'] as Error | undefined) ?? new EmailTemplateError('RENDER_FAILED', 'Invalid email body.');
-          this.updateChronicle({ emailNotificationOutcome: 'invalid-body' }, [error]);
+          this.updateChronicle({ emailNotificationOutcome: 'invalid-body',
+            emailErrorCode: error instanceof EmailTemplateError ? error.code : 'RENDER_FAILED' });
           throw error;
         }
         const sendResult = await firstValueFrom(this.sendMessage(
@@ -462,7 +518,7 @@ export namespace Services {
           this.updateChronicle({ emailNotificationOutcome: 'sent' });
           const postSendHooks = _.get(options, "onNotifySuccess", null);
           if (Array.isArray(postSendHooks)) {
-            sails.log.verbose(`Processing onNotifySuccess hooks`);
+            this.updateChronicle({ emailNotificationHookOutcome: 'processing' });
             for (const postSendHook of postSendHooks) {
               const postSendHookFnName = _.get(postSendHook, 'function', null);
               if (typeof postSendHookFnName === 'string' && postSendHookFnName.length > 0) {
@@ -480,8 +536,8 @@ export namespace Services {
                 try {
                   await postSendHookResult;
                   this.updateChronicle({ emailNotificationHookOutcome: 'success' });
-                } catch (error) {
-                  this.updateChronicle({ emailNotificationHookOutcome: 'failure' }, [error]);
+                } catch {
+                  this.updateChronicle({ emailNotificationHookOutcome: 'failure' }, [new Error('Email notification hook failed.')]);
                 }
               }
             }
@@ -543,27 +599,27 @@ export namespace Services {
         from: {
           names: ["msgFrom", "from"],
           defaultKey: "from",
-          templateFunc: this.runTemplate,
+          templateFunc: this.runAddressTemplate,
         },
         to: {
           names: ["msgTo", "to"],
-          templateFunc: this.runTemplate,
+          templateFunc: this.runAddressTemplate,
         },
         cc: {
           names: ["cc"],
           defaultKey: "cc",
-          templateFunc: this.runTemplate,
+          templateFunc: this.runAddressTemplate,
         },
         bcc: {
           names: ["bcc"],
           defaultKey: "bcc",
-          templateFunc: this.runTemplate,
+          templateFunc: this.runAddressTemplate,
         },
         subject: {
           names: ["subject"],
           defaultKey: "subject",
           templatesKey: "subject",
-          templateFunc: this.runTemplate,
+          templateFunc: (value: string, data: Record<string, unknown>) => hardenEmailSubject(this.runTemplate(value, data)),
         },
         template: {
           names: ["template"],
@@ -575,7 +631,7 @@ export namespace Services {
         }
       }, config) as Record<string, Record<string, unknown>>;
 
-      templateData = this.createRenderData(templateData, context);
+      templateData = this.createRenderData(templateData, context, false);
 
       // Get the template name first, so it is available for the other properties.
       let templateName = null;
