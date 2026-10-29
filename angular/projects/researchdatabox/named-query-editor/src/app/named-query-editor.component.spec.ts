@@ -1,5 +1,13 @@
+import { AdminTabsDirective } from '@researchdatabox/portal-ng-common';
 import { Subject } from 'rxjs';
 import { AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { QueryAssistanceModule } from './query-assistance.module';
+import {
+  TranslationService as AssistanceTranslationService,
+  FieldTreeComponent,
+  SchemaTargetSelectorComponent,
+} from '@researchdatabox/portal-ng-common';
+import { of } from 'rxjs';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
@@ -25,15 +33,46 @@ class I18NextPipeStub implements PipeTransform {
 }
 
 class NamedQueryApiServiceStub {
-  async waitForInit(): Promise<this> { return this; }
-  async list(): Promise<NamedQueryDefinition[]> { return []; }
-  async getCollections(): Promise<string[]> { return ['record', 'user']; }
+  async schemaTargets() {
+    return { recordTypes: [] };
+  }
+  async fields(context: { collectionName: string }) {
+    return {
+      collectionName: context.collectionName,
+      recordType: '',
+      stage: '',
+      precision: 'none',
+      completeness: 'unavailable',
+      fields: [],
+      envelopeFields: [],
+      mappingFields: [],
+    };
+  }
+  async validate() {
+    return { valid: true, diagnostics: [] };
+  }
+
+  async waitForInit(): Promise<this> {
+    return this;
+  }
+  async list(): Promise<NamedQueryDefinition[]> {
+    return [];
+  }
+  async getCollections(): Promise<string[]> {
+    return ['record', 'user'];
+  }
   async get(_name: string): Promise<NamedQueryDefinition> {
     return { name: _name, collectionName: 'c1', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
   }
-  async create(_data: NamedQueryDefinition): Promise<{ name: string }> { return { name: _data.name || '' }; }
-  async update(_name: string, _data: NamedQueryDefinition): Promise<{ name: string }> { return { name: _name }; }
-  async delete(_name: string): Promise<{ name: string }> { return { name: _name }; }
+  async create(_data: NamedQueryDefinition): Promise<{ name: string }> {
+    return { name: _data.name || '' };
+  }
+  async update(_name: string, _data: NamedQueryDefinition): Promise<{ name: string }> {
+    return { name: _name };
+  }
+  async delete(_name: string): Promise<{ name: string }> {
+    return { name: _name };
+  }
 }
 
 class TranslationServiceStub {
@@ -54,6 +93,7 @@ class TranslationServiceStub {
 
 describe('NamedQueryEditorComponent', () => {
   beforeEach(async () => {
+    spyOn(window, 'confirm').and.returnValue(true);
     await TestBed.configureTestingModule({
       declarations: [
         NamedQueryEditorComponent,
@@ -64,15 +104,15 @@ describe('NamedQueryEditorComponent', () => {
         SortEditorComponent,
         MongoQueryEditorComponent,
         RelatedFilterEditorComponent,
-        I18NextPipeStub
+        I18NextPipeStub,
       ],
-      imports: [AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, FormsModule, A11yModule],
+      imports: [AdminTabsDirective, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: NamedQueryApiService, useClass: NamedQueryApiServiceStub },
         { provide: TranslationService, useClass: TranslationServiceStub },
-        LoggerService
-      ]
+        LoggerService,
+      ],
     }).compileComponents();
   });
 
@@ -96,7 +136,13 @@ describe('NamedQueryEditorComponent', () => {
   it('keeps a legacy collection value selectable in the detail dropdown', () => {
     const detail = new NqDetailComponent();
     detail.collections = ['record', 'user'];
-    detail.draft = { name: 'q', collectionName: 'legacyCollection', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    detail.draft = {
+      name: 'q',
+      collectionName: 'legacyCollection',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     expect(detail.collectionOptions).toEqual(['legacyCollection', 'record', 'user']);
   });
 
@@ -108,7 +154,7 @@ describe('NamedQueryEditorComponent', () => {
     spyOn(api, 'list').and.resolveTo([
       { name: 'q1', collectionName: 'c1', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
       { name: 'q2', collectionName: 'c1', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
-      { name: 'q3', collectionName: 'c2', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+      { name: 'q3', collectionName: 'c2', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
     ]);
 
     fixture.detectChanges();
@@ -141,7 +187,7 @@ describe('NamedQueryEditorComponent', () => {
 
     spyOn(api, 'list').and.resolveTo([
       { name: 'alpha', collectionName: 'c1', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
-      { name: 'beta', collectionName: 'c2', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+      { name: 'beta', collectionName: 'c2', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
     ]);
 
     fixture.detectChanges();
@@ -155,7 +201,7 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.filteredQueries.length).toBe(2);
   });
 
-  it('opens new query modal', async () => {
+  it('opens new query workspace', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
@@ -163,7 +209,7 @@ describe('NamedQueryEditorComponent', () => {
 
     component.newQuery();
     expect(component.isNew).toBeTrue();
-    expect(component.isEditModalOpen).toBeTrue();
+    expect(component.isEditing).toBeTrue();
     expect(component.draft.name).toBe('');
   });
 
@@ -173,7 +219,7 @@ describe('NamedQueryEditorComponent', () => {
     fixture.detectChanges();
     await component.waitForInit();
 
-    component.isEditModalOpen = true;
+    component.isEditing = true;
     component.isNew = true;
     component.draft = { name: '', collectionName: '', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
     expect(component.canSave).toBeFalse();
@@ -191,9 +237,15 @@ describe('NamedQueryEditorComponent', () => {
     fixture.detectChanges();
     await component.waitForInit();
 
-    component.isEditModalOpen = true;
+    component.isEditing = true;
     component.isNew = true;
-    component.draft = { name: 'foo/bar', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.draft = {
+      name: 'foo/bar',
+      collectionName: 'records',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     expect(component.canSave).toBeFalse();
 
     component.draft.name = 'valid_name-123';
@@ -210,7 +262,7 @@ describe('NamedQueryEditorComponent', () => {
       collectionName: 'c1',
       mongoQuery: { a: 1 },
       queryParams: { p: { type: 'string', path: 'path', whenUndefined: 'ignore' } },
-      resultObjectMapping: { r: 'v' }
+      resultObjectMapping: { r: 'v' },
     });
 
     fixture.detectChanges();
@@ -219,7 +271,7 @@ describe('NamedQueryEditorComponent', () => {
 
     expect(component.isNew).toBeFalse();
     expect(component.draft.name).toBe('existing');
-    expect(component.isEditModalOpen).toBeTrue();
+    expect(component.isEditing).toBeTrue();
   });
 
   it('shows error when opening query fails', async () => {
@@ -243,7 +295,7 @@ describe('NamedQueryEditorComponent', () => {
 
     const createSpy = spyOn(api, 'create').and.resolveTo({ name: 'new-query' });
     spyOn(api, 'list').and.resolveTo([
-      { name: 'new-query', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+      { name: 'new-query', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
     ]);
 
     fixture.detectChanges();
@@ -256,7 +308,7 @@ describe('NamedQueryEditorComponent', () => {
 
     expect(createSpy).toHaveBeenCalled();
     expect(component.message).toContain('new-query');
-    expect(component.isEditModalOpen).toBeFalse();
+    expect(component.isEditing).toBeFalse();
   });
 
   it('updates an existing query on save', async () => {
@@ -266,15 +318,21 @@ describe('NamedQueryEditorComponent', () => {
 
     const updateSpy = spyOn(api, 'update').and.resolveTo({ name: 'existing' });
     spyOn(api, 'list').and.resolveTo([
-      { name: 'existing', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+      { name: 'existing', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
     ]);
 
     fixture.detectChanges();
     await component.waitForInit();
 
     component.isNew = false;
-    component.isEditModalOpen = true;
-    component.draft = { name: 'existing', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.isEditing = true;
+    component.draft = {
+      name: 'existing',
+      collectionName: 'records',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     await component.save();
 
     expect(updateSpy).toHaveBeenCalledWith('existing', jasmine.any(Object));
@@ -288,7 +346,7 @@ describe('NamedQueryEditorComponent', () => {
     await component.waitForInit();
 
     component.isNew = true;
-    component.isEditModalOpen = true;
+    component.isEditing = true;
     component.draft = { name: '', collectionName: '', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
     await component.save();
 
@@ -302,8 +360,14 @@ describe('NamedQueryEditorComponent', () => {
     await component.waitForInit();
 
     component.isNew = true;
-    component.isEditModalOpen = true;
-    component.draft = { name: 'collections', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.isEditing = true;
+    component.draft = {
+      name: 'collections',
+      collectionName: 'records',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     await component.save();
 
     expect(component.error).toContain('reserved');
@@ -316,8 +380,14 @@ describe('NamedQueryEditorComponent', () => {
     await component.waitForInit();
 
     component.isNew = true;
-    component.isEditModalOpen = true;
-    component.draft = { name: 'foo/bar', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.isEditing = true;
+    component.draft = {
+      name: 'foo/bar',
+      collectionName: 'records',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     await component.save();
 
     expect(component.error).toContain('URL safe');
@@ -379,7 +449,7 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.isDeleteModalOpen).toBeFalse();
   });
 
-  it('closes edit modal if deleted query was selected', async () => {
+  it('closes workspace if deleted query was selected', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
     const api = TestBed.inject(NamedQueryApiService);
@@ -390,12 +460,18 @@ describe('NamedQueryEditorComponent', () => {
     fixture.detectChanges();
     await component.waitForInit();
 
-    component.selectedQuery = { name: 'q1', collectionName: 'c', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
-    component.isEditModalOpen = true;
+    component.selectedQuery = {
+      name: 'q1',
+      collectionName: 'c',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
+    component.isEditing = true;
     component.requestDelete('q1');
     await component.confirmDelete();
 
-    expect(component.isEditModalOpen).toBeFalse();
+    expect(component.isEditing).toBeFalse();
     expect(component.selectedQuery).toBeNull();
   });
 
@@ -486,15 +562,15 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.isDeleteModalOpen).toBeFalse();
   });
 
-  it('closes edit modal', async () => {
+  it('closes workspace', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
     await component.waitForInit();
 
-    component.newQuery();
+    component.isEditing = true;
     component.closeEditModal();
-    expect(component.isEditModalOpen).toBeFalse();
+    expect(component.isEditing).toBeFalse();
   });
 
   it('returns pendingDeleteDisplayName', async () => {
@@ -516,7 +592,7 @@ describe('NamedQueryEditorComponent', () => {
     spyOn(api, 'list').and.resolveTo([
       { name: 'q1', collectionName: 'c1', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
       { name: 'q2', collectionName: undefined as any, mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
-      { name: 'q3', collectionName: '', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+      { name: 'q3', collectionName: '', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
     ]);
 
     fixture.detectChanges();
@@ -525,15 +601,21 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.uniqueCollections).toBe(1);
   });
 
-  it('canSave is false when edit modal is closed', async () => {
+  it('canSave is false when workspace is closed', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
     await component.waitForInit();
 
-    component.isEditModalOpen = false;
+    component.isEditing = false;
     component.isNew = true;
-    component.draft = { name: 'test', collectionName: 'records', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.draft = {
+      name: 'test',
+      collectionName: 'records',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     expect(component.canSave).toBeFalse();
   });
 
@@ -544,8 +626,14 @@ describe('NamedQueryEditorComponent', () => {
     await component.waitForInit();
 
     component.isNew = false;
-    component.isEditModalOpen = true;
-    component.draft = { name: 'existing', collectionName: '', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.isEditing = true;
+    component.draft = {
+      name: 'existing',
+      collectionName: '',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     await component.save();
 
     expect(component.error).toContain('Collection name is required');
@@ -558,7 +646,7 @@ describe('NamedQueryEditorComponent', () => {
 
     spyOn(api, 'list').and.resolveTo([
       { name: 'alpha', collectionName: 'special', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
-      { name: 'beta', collectionName: 'normal', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
+      { name: 'beta', collectionName: 'normal', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
     ]);
 
     fixture.detectChanges();
@@ -593,7 +681,7 @@ describe('NamedQueryEditorComponent', () => {
       queryParams: undefined,
       resultObjectMapping: undefined,
       sort: undefined,
-      relatedRecordFilters: undefined
+      relatedRecordFilters: undefined,
     });
     expect(result.mongoQuery).toEqual({});
     expect(result.queryParams).toEqual({});
@@ -616,7 +704,7 @@ describe('NamedQueryEditorComponent', () => {
       resultObjectMapping: undefined,
       sort: [],
       expandRelations: true,
-      relatedRecordFilters: []
+      relatedRecordFilters: [],
     });
     expect(result.name).toBeUndefined();
     expect(result.collectionName).toBe('');
@@ -661,7 +749,7 @@ describe('NamedQueryEditorComponent', () => {
 
     (component as any).editModalTrigger = null;
     component.closeEditModal();
-    expect(component.isEditModalOpen).toBeFalse();
+    expect(component.isEditing).toBeFalse();
   });
 
   it('does not restore edit trigger when removed from DOM', async () => {
