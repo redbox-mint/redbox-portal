@@ -86,10 +86,13 @@ button can use `{ "info": "#003087", "info-text-color": "#ffffff" }`.
 
 Generated CSS exposes `--rb-<context>-text-color` on `:root` and `:host` and uses
 it for `--bs-btn-color`, `--bs-btn-hover-color`, `--bs-btn-active-color` and
-`--bs-btn-disabled-color` on `.btn-<context>`. Disabled buttons also use the
-brand background and border (`--bs-btn-disabled-bg`, `--bs-btn-disabled-border-color`),
-so their text sits on the same colour as the other states. The default theme's
-`.btn-secondary` rule reads `--rb-secondary` and `--rb-secondary-text-color`.
+`--bs-btn-disabled-color` on `.btn-<context>`. When a brand sets a context's
+text colour, its disabled buttons also use the brand background and border
+(`--bs-btn-disabled-bg`, `--bs-btn-disabled-border-color`), so the text sits on the
+same colour as the other states. Brands that do not set it keep Bootstrap's
+disabled pairing. The default theme's
+`.btn-secondary` rule takes its text colour from `--rb-secondary-text-color`; its
+normal-state background and border remain the theme's Sass values.
 These settings do not change outline buttons, alerts or badges.
 
 Generate Preview saves the draft and shows the button text colours in the

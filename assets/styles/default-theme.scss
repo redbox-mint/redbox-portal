@@ -566,10 +566,10 @@ tree-internal > ul.rootless > li > tree-internal > ul {
 }
 
 .btn-secondary {
-    // Branding theme variables win; the Sass values apply only without a theme stylesheet.
+    // The text follows the branding setting; the Sass value applies only without a theme stylesheet.
     color: var(--rb-secondary-text-color, #{$btn-secondary-text-color});
-    background-color: var(--rb-secondary, #{$btn-secondary-background-color});
-    border-color: var(--rb-secondary, #{$btn-secondary-border-color});
+    background-color: $btn-secondary-background-color;
+    border-color: $btn-secondary-border-color;
 }
 
 .btn.btn-primary.btn-search-bar {

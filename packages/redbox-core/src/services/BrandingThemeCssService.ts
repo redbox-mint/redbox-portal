@@ -120,7 +120,7 @@ export namespace Services {
       return lines.join('\n');
     }
 
-    private buildCompatibilityCss(): string {
+    private buildCompatibilityCss(normalized: Record<string, string>): string {
       return compatTokens
         .flatMap(token => [
           `.btn-${token.key} {`,
@@ -134,8 +134,14 @@ export namespace Services {
           `  --bs-btn-hover-border-color: var(--rb-${token.key});`,
           `  --bs-btn-active-bg: var(--rb-${token.key});`,
           `  --bs-btn-active-border-color: var(--rb-${token.key});`,
-          `  --bs-btn-disabled-bg: var(--rb-${token.key});`,
-          `  --bs-btn-disabled-border-color: var(--rb-${token.key});`,
+          // Only a brand that sets this text colour gets the brand background on disabled
+          // buttons; otherwise disabled buttons keep Bootstrap's default pairing.
+          ...(normalized[`${token.key}-text-color`]
+            ? [
+                `  --bs-btn-disabled-bg: var(--rb-${token.key});`,
+                `  --bs-btn-disabled-border-color: var(--rb-${token.key});`,
+              ]
+            : []),
           '}',
           `.text-${token.key} {`,
           `  color: var(--rb-${token.key}) !important;`,
@@ -153,7 +159,7 @@ export namespace Services {
       const css = [
         typefaceCss,
         this.buildRootCss(normalized, normalizeTypefaceState(opts?.typeface).mode === 'custom'),
-        this.buildCompatibilityCss(),
+        this.buildCompatibilityCss(normalized),
       ]
         .filter(block => block.length > 0)
         .join('\n\n');

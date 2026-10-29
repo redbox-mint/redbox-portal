@@ -85,10 +85,15 @@ describe('BrandingThemeCssService', function () {
       for (const state of ['color', 'hover-color', 'active-color', 'disabled-color']) {
         expect(rule).to.contain(`--bs-btn-${state}: var(--rb-${token});`);
       }
-      // Disabled text must sit on the brand background, not Bootstrap's default.
+      // With the text colour set, disabled text sits on the brand background, not Bootstrap's default.
       for (const state of ['bg', 'border-color', 'hover-bg', 'active-bg', 'disabled-bg', 'disabled-border-color']) {
         expect(rule).to.contain(`--bs-btn-${state}: var(--rb-${key});`);
       }
+      // Without it, existing publications keep Bootstrap's disabled background.
+      const defaultRule = service.generate({ [key]: '#ffffff' }).css.split(`.btn-${key} {`)[1].split('}')[0];
+      expect(defaultRule).to.contain(`--bs-btn-bg: var(--rb-${key});`);
+      expect(defaultRule).to.not.contain('--bs-btn-disabled-bg');
+      expect(defaultRule).to.not.contain('--bs-btn-disabled-border-color');
       expect(service.generate({ [token]: 'invalid' }).hash).to.equal(service.generate({}).hash);
       expect(result.hash).to.not.equal(service.generate({}).hash);
       expect(result.hash).to.equal(service.generate({ [token]: '#aabbcc' }).hash);
