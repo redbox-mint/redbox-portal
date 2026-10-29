@@ -67,11 +67,12 @@ tests {
     expect(jsonData.data).to.have.property("total");
     expect(jsonData.data.records).to.be.an("array");
     expect(jsonData.data.records.length).to.be.at.most(100);
+    expect(jsonData.data.deadlineEnforced).to.be.a("boolean");
     expect(jsonData.data.renderedRows).to.have.length(jsonData.data.records.length);
     expect(jsonData.data.truncated).to.be.a("boolean");
     expect(jsonData.data.truncationReasons).to.be.an("array");
     if (jsonData.data.renderedRows.length) {
-      expect(jsonData.data.renderedRows[0].cells[0].display).to.be.a("string");
+      expect(jsonData.data.renderedRows[0].cells[0].untrustedDisplayHtml).to.be.a("string");
       expect(jsonData.data.renderedRows[0].cells[0]).to.have.property("export");
     }
   });
