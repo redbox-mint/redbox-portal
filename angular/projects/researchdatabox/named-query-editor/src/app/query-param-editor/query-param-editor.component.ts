@@ -25,6 +25,8 @@ let nextEditorId = 0;
 })
 export class QueryParamEditorComponent implements OnChanges {
   readonly idPrefix = 'query-param-editor-' + nextEditorId++;
+  private static nextId = 1;
+  readonly inputId = `nq-param-${QueryParamEditorComponent.nextId++}`;
   @Output() validityChange = new EventEmitter<boolean>();
   @Input() fields: ContextSchemaField[] = [];
   @Input() diagnostics: EditorDiagnostic[] = [];
@@ -90,7 +92,7 @@ export class QueryParamEditorComponent implements OnChanges {
 
   onFieldChange(entry: ParamEntry, field: keyof NamedQueryParam, value: unknown): void {
     (entry as unknown as Record<string, unknown>)[field as string] = value;
-    if (field === 'type' || field === 'whenUndefined') this.defaultValidity(entry.id, true);
+    if (field === 'type' || field === 'template' || field === 'whenUndefined') this.defaultValidity(entry.id, true);
     this.emitFromEntries();
   }
 
