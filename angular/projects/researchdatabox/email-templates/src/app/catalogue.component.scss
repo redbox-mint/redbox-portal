@@ -28,6 +28,12 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+// Positioned so the visually hidden action labels stay inside the scroller
+// instead of widening the page on narrow screens.
+.table-responsive {
+  position: relative;
+}
+
 .et-cell-template {
   max-width: 448px;
 }
