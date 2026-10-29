@@ -131,8 +131,15 @@ export namespace Services {
                 `  --bs-btn-hover-color: var(--rb-${token.key}-text-color);`,
                 `  --bs-btn-active-color: var(--rb-${token.key}-text-color);`,
                 `  --bs-btn-disabled-color: var(--rb-${token.key}-text-color);`,
-                // The compiled theme sets secondary's normal colour directly.
-                ...(token.key === 'secondary' ? ['  color: var(--rb-secondary-text-color);'] : []),
+                // The compiled theme sets secondary's normal colours directly; override them
+                // together so the configured text sits on the configured background.
+                ...(token.key === 'secondary'
+                  ? [
+                      '  color: var(--rb-secondary-text-color);',
+                      '  background-color: var(--rb-secondary);',
+                      '  border-color: var(--rb-secondary);',
+                    ]
+                  : []),
               ]
             : []),
           `  --bs-btn-bg: var(--rb-${token.key});`,

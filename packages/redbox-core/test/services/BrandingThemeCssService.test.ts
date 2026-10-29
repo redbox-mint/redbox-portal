@@ -91,6 +91,10 @@ describe('BrandingThemeCssService', function () {
       }
       if (key === 'secondary') {
         expect(rule).to.contain('\n  color: var(--rb-secondary-text-color);');
+        expect(rule).to.contain('\n  background-color: var(--rb-secondary);');
+        expect(rule).to.contain('\n  border-color: var(--rb-secondary);');
+      } else {
+        expect(rule).to.not.match(/\n  (color|background-color|border-color):/);
       }
       // Unset contexts keep the exact pre-text-setting rule, even with a background
       // override or a different context's text colour set.

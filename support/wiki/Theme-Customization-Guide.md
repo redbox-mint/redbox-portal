@@ -96,11 +96,11 @@ brand background and border
 (`--bs-btn-disabled-bg`, `--bs-btn-disabled-border-color`), so the text sits on the
 same colour as the other states. Brands that do not set it keep Bootstrap's
 disabled pairing. The default theme's `.btn-secondary` rule keeps its Sass text,
-background and border colours. An explicit `secondary-text-color` adds a
-generated `.btn-secondary` colour declaration, loaded after the compiled theme,
-to override the normal-state Sass text colour. Its normal-state background and
-border remain the theme's Sass values. Clear the text colour setting to return
-to the Sass behaviour.
+background and border colours. An explicit `secondary-text-color` adds generated
+`.btn-secondary` text, background and border declarations, loaded after the
+compiled theme, so the normal state uses the configured `secondary-text-color` on
+the configured `secondary` colour, matching hover, active and disabled. Clear the
+text colour setting to return to the Sass behaviour.
 These settings do not change outline buttons, alerts or badges.
 
 Two existing default-theme rules keep their own branding and take precedence over
