@@ -6,12 +6,6 @@
   font-size: 13px;
 }
 
-.et-lede {
-  color: var(--bs-secondary-color);
-  max-width: 768px;
-  margin-bottom: 20px;
-}
-
 .et-mono,
 .et-template-id {
   font-family: var(--bs-font-monospace);
@@ -92,23 +86,35 @@ button.et-badge-button {
   }
 }
 
+// Bordered list table with a light header row, as on the other admin list screens.
+.et-table-wrap {
+  border: 1px solid #d6dbe1;
+  border-radius: 4px;
+}
+
 .et-table {
   --bs-table-bg: transparent;
 
   > thead th {
+    padding: 8px 10px;
+    background: #f8f9fa;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    color: var(--bs-secondary-color);
-    border-bottom-width: 1px;
+    color: #59626b;
+    border-bottom: 1px solid #e5e8eb;
     white-space: nowrap;
   }
 
   > tbody td {
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding: 10px;
     font-size: 14px;
+    border-bottom-color: #e5e8eb;
+  }
+
+  > tbody > tr:last-child > td {
+    border-bottom: 0;
   }
 }
 
@@ -126,43 +132,18 @@ button.et-badge-button {
   color: var(--bs-emphasis-color);
 }
 
-// Portal panel language: a `card panel-style panel-default` with the brand-coloured
-// header, as on the branding and other admin screens.
-.et-card {
+// Portal panel language: the theme's `panel panel-default` gives the brand-coloured
+// header, as on the vocabulary, named query and dashboard configuration screens.
+.et-panel {
   margin-bottom: 0;
+  border-color: #d6dbe1;
 }
 
-.et-card-header {
-  display: flex;
-  flex-wrap: wrap;
+.et-panel-title {
+  display: inline-flex;
   align-items: center;
-  gap: 8px 12px;
-  min-height: 48px;
-}
-
-.et-card-title {
-  display: flex;
-  align-items: center;
-  flex: 1 1 auto;
-  min-width: 0;
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-// Secondary action on the coloured header: outlined in the header's text colour.
-.et-header-button {
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  background: transparent;
-  color: inherit;
-  font-size: 13px;
-  padding: 4px 10px;
-
-  &:hover,
-  &:focus-visible {
-    border-color: currentColor;
-    background: rgba(255, 255, 255, 0.14);
-    color: inherit;
-  }
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
 }

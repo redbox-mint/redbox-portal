@@ -7251,7 +7251,7 @@
   },
   "email-templates-catalogue-intro": {
     "category": "email-templates",
-    "description": "Introductory text above the email template catalogue",
+    "description": "Short help text at the top of the email template catalogue panel",
     "contentFormat": "plain"
   },
   "email-templates-loading": {
@@ -7271,7 +7271,7 @@
   },
   "email-templates-filter-label": {
     "category": "email-templates",
-    "description": "Accessible label for the catalogue filter box",
+    "description": "Visible label for the catalogue search box",
     "contentFormat": "plain"
   },
   "email-templates-filter-placeholder-purpose": {
@@ -7281,7 +7281,17 @@
   },
   "email-templates-quick-filters-label": {
     "category": "email-templates",
-    "description": "Accessible label for the catalogue quick filter buttons",
+    "description": "Visible label for the catalogue quick filter buttons",
+    "contentFormat": "plain"
+  },
+  "email-templates-list-shown_one": {
+    "category": "email-templates",
+    "description": "Catalogue panel header count of templates shown by the current filters (singular)",
+    "contentFormat": "plain"
+  },
+  "email-templates-list-shown_other": {
+    "category": "email-templates",
+    "description": "Catalogue panel header count of templates shown by the current filters (plural)",
     "contentFormat": "plain"
   },
   "email-templates-filter-all": {

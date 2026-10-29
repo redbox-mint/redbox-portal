@@ -1,17 +1,20 @@
-<div class="et-editor card panel-style panel-default et-card">
-  <div class="card-header et-card-header">
-    <h1 #editorHeading tabindex="-1" class="card-title et-card-title">
-      <i class="fa-regular fa-envelope me-2" aria-hidden="true"></i><span class="et-template-id">{{ templateId }}</span>
-    </h1>
-    <nav class="et-crumbs" [attr.aria-label]="'email-templates-breadcrumb-label' | i18next">
-      <button type="button" class="btn btn-sm et-header-button" (click)="goBack()">
+<div class="et-editor panel panel-default et-panel">
+  <div class="panel-heading">
+    <span class="panel-title et-panel-title">
+      <i class="fa-regular fa-envelope me-2" aria-hidden="true"></i>{{ 'email-templates-heading' | i18next }}
+    </span>
+  </div>
+
+  <div class="panel-body">
+    <nav [attr.aria-label]="'email-templates-breadcrumb-label' | i18next">
+      <button type="button" class="btn btn-link btn-sm et-back" (click)="goBack()">
         <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>{{ 'email-templates-heading' | i18next }}
       </button>
     </nav>
-  </div>
-
-  <div class="card-body et-card-body">
     <div class="et-title-row">
+      <h1 #editorHeading tabindex="-1" class="et-editor-title">
+        <span class="et-template-id">{{ templateId }}</span>
+      </h1>
       @if (state) {
         <div class="et-badges">
           @if (liveVersion !== null) {

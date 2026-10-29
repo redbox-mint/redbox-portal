@@ -1,5 +1,5 @@
 import { Component, ElementRef, HostListener, Inject, ViewChild } from '@angular/core';
-import { BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { CatalogueComponent } from './catalogue.component';
 import { EditorComponent } from './editor.component';
 import { EmailTemplateAdminService } from './email-template-admin.service';
@@ -15,7 +15,7 @@ const TEMPLATE_HASH = /^#\/templates\/(.+)$/;
 @Component({
   selector: 'email-templates-root',
   standalone: true,
-  imports: [I18NextPipe, CatalogueComponent, EditorComponent],
+  imports: [CatalogueComponent, EditorComponent],
   providers: [EmailTemplateAdminService],
   template: `
     @if (ready) {
@@ -31,26 +31,18 @@ const TEMPLATE_HASH = /^#\/templates\/(.+)$/;
           ></email-templates-editor>
           }
         } @else {
-          <div class="card panel-style panel-default et-card">
-            <div class="card-header et-card-header">
-              <h1 class="card-title et-card-title">
-                <i class="fa-regular fa-envelope me-2" aria-hidden="true"></i>{{ 'email-templates-heading' | i18next }}
-              </h1>
-            </div>
-            <div class="card-body et-card-body">
-              <email-templates-catalogue [returnFocus]="catalogueFocus" (openTemplate)="openTemplate($event)"></email-templates-catalogue>
-            </div>
-          </div>
+          <email-templates-catalogue
+            [returnFocus]="catalogueFocus"
+            (openTemplate)="openTemplate($event)"
+          ></email-templates-catalogue>
         }
       </div>
     }
   `,
-  styleUrls: ['./email-templates.shared.scss'],
   styles: [
     `
       .et-app {
-        /* The portal uses a 10px root; keep this app at its native 16px text size. */
-        font-size: 16px;
+        /* The portal uses a 10px root, so sizes in this app are in px. */
         padding: 0 15px 16px;
       }
     `,
