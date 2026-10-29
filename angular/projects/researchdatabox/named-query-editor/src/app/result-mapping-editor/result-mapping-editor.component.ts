@@ -1,3 +1,4 @@
+import type { ContextSchemaField, EditorDiagnostic } from '@researchdatabox/sails-ng-common';
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 
 interface MappingEntry {
@@ -9,9 +10,12 @@ interface MappingEntry {
 @Component({
   selector: 'result-mapping-editor',
   templateUrl: './result-mapping-editor.component.html',
-  standalone: false
+  standalone: false,
 })
 export class ResultMappingEditorComponent implements OnChanges {
+  @Input() fields: ContextSchemaField[] = [];
+  @Input() diagnostics: EditorDiagnostic[] = [];
+
   @Input() resultObjectMapping: Record<string, string> = {};
   @Output() resultObjectMappingChange = new EventEmitter<Record<string, string>>();
 
@@ -83,7 +87,7 @@ export class ResultMappingEditorComponent implements OnChanges {
     this.entries = Object.entries(this.resultObjectMapping || {}).map(([key, value]) => ({
       id: this.nextEntryId++,
       key,
-      value
+      value,
     }));
   }
 }

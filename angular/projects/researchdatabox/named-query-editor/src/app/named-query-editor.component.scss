@@ -26,3 +26,86 @@
 .nq-action-button + .nq-action-button {
   margin-left: 0.5rem;
 }
+
+.nq-workspace {
+  padding: 1.25rem;
+  color: #253640;
+}
+.nq-workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 3px solid #32677d;
+}
+.nq-workspace-header h2 {
+  margin: 0.25rem 0;
+  overflow-wrap: anywhere;
+}
+.nq-workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.nq-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+.nq-with-help {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+}
+.nq-editing-area {
+  min-width: 0;
+}
+.nq-field-panel {
+  border-left: 1px solid #cad5da;
+  padding-left: 1.25rem;
+  min-width: 0;
+}
+.nq-field-panel h3,
+.nq-results h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.nq-field-panel h4,
+.nq-results h4 {
+  font-size: 1rem;
+  margin-top: 1rem;
+}
+.nq-results {
+  border-top: 1px solid #cad5da;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+}
+.nq-results pre {
+  max-height: 28rem;
+  overflow: auto;
+  background: #f3f6f7;
+  padding: 1rem;
+}
+.nq-results td {
+  max-width: 24rem;
+  overflow-wrap: anywhere;
+}
+.nq-test-parameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+@media (max-width: 1000px) {
+  .nq-with-help {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nq-workspace-header {
+    align-items: start;
+    flex-direction: column;
+  }
+  .nq-field-panel {
+    border-left: 0;
+    border-top: 1px solid #cad5da;
+    padding: 1rem 0;
+  }
+}

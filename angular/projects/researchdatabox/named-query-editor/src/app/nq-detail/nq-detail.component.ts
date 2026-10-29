@@ -1,4 +1,10 @@
-import { Component, Input } from '@angular/core';
+import type {
+  ContextSchemaField,
+  EditorDiagnostic,
+  SchemaTarget,
+  NamedQuerySchemaSelection,
+} from '@researchdatabox/sails-ng-common';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { NamedQueryDefinition } from '../named-query-api.service';
 
 export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
@@ -7,12 +13,33 @@ export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
   selector: 'nq-detail',
   templateUrl: './nq-detail.component.html',
   styleUrls: ['./nq-detail.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class NqDetailComponent {
   @Input() draft!: NamedQueryDefinition;
   @Input() isNew = false;
   @Input() collections: string[] = [];
+
+  @Input() fields: ContextSchemaField[] = [];
+  @Input() mappingFields: ContextSchemaField[] = [];
+  @Input() foreignFields: Record<string, ContextSchemaField[]> = {};
+  @Input() relatedGuidance: Record<string, NamedQuerySchemaSelection> = {};
+  @Input() targets: SchemaTarget[] = [];
+  @Input() diagnostics: EditorDiagnostic[] = [];
+  @Output() draftChange = new EventEmitter<void>();
+  @Output() collectionChange = new EventEmitter<void>();
+  @Output() foreignContextChange = new EventEmitter<{
+    index: number;
+    collectionName: string;
+    selection?: NamedQuerySchemaSelection;
+  }>();
+  @Output() validityChange = new EventEmitter<boolean>();
+  private invalidSections = new Set<string>();
+  validity(section: string, valid: boolean): void {
+    if (valid) this.invalidSections.delete(section);
+    else this.invalidSections.add(section);
+    this.validityChange.emit(this.invalidSections.size === 0);
+  }
 
   activeTab: NqDetailTab = 'basics';
 

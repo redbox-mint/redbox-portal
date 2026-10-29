@@ -94,9 +94,36 @@
 }
 
 .nq-code-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.82rem;
   background: #fbfbfc;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   resize: vertical;
+}
+
+nq-path-input,
+nq-mapping-value,
+nq-typed-value {
+  display: block;
+  min-width: 0;
+}
+.nq-add-row > nq-path-input {
+  flex: 1 1 180px;
+}
+.nq-add-row > nq-mapping-value {
+  flex: 2 1 240px;
+}
+.nq-diagnostic {
+  padding: 0.35rem 0.5rem;
+  border-left: 3px solid currentColor;
+  margin: 0.35rem 0;
+  font-size: 0.85rem;
+}
+.nq-subeditor details {
+  margin-top: 0.25rem;
+}
+.nq-subeditor summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #32677d;
 }
