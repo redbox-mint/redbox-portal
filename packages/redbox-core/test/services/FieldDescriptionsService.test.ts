@@ -150,7 +150,30 @@ describe('FieldDescriptionsService', () => {
       assert.equal(result.fields.find(field => field.path === 'title')?.title, 'Project name:');
       assert.equal(result.fields.find(field => field.path === 'scu_retention')?.title, 'Literal label');
       assert.equal(result.fields.find(field => field.path === 'missing')?.title, '@missing-label');
-      assert.deepEqual(translate.firstCall.args, ['@dmpt-project-title', undefined, 'en', 'brand-a']);
+      assert.deepEqual(translate.firstCall.args, ['@dmpt-project-title', { nsSeparator: false, keySeparator: false }, 'en', 'brand-a']);
+    } finally { Reflect.set(globalThis, 'TranslationService', previous); }
+  });
+  it('resolves literal UoN label keys containing colons and dots without treating them as namespaces', async () => {
+    mock.config.recordSchema.enabled = false;
+    getForm.resolves({ branding: 'a', configuration: { fields: [
+      { name: 'foaf:fundedBy_foaf:Agent', label: '@dmpt-foaf:fundedBy_foaf:Agent' },
+      { name: 'license_identifier', label: '@dataPublication-dc:license.dc:identifier' },
+      { name: 'missing', label: '@hook:missing.label' },
+    ] } });
+    const i18next = require('i18next').createInstance();
+    await i18next.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: {
+      '@dmpt-foaf:fundedBy_foaf:Agent': 'Funding source',
+      '@dataPublication-dc:license.dc:identifier': 'The data will be licenced under',
+    } } } });
+    const previous = Reflect.get(globalThis, 'TranslationService');
+    Reflect.set(globalThis, 'TranslationService', {
+      t: (key: string, options: Record<string, unknown>) => i18next.t(key, options),
+    });
+    try {
+      const result = await fields();
+      assert.equal(result.fields.find(field => field.path === '[foaf:fundedBy_foaf:Agent]')?.title, 'Funding source');
+      assert.equal(result.fields.find(field => field.path === 'license_identifier')?.title, 'The data will be licenced under');
+      assert.equal(result.fields.find(field => field.path === 'missing')?.title, '@hook:missing.label');
     } finally { Reflect.set(globalThis, 'TranslationService', previous); }
   });
   for (const outcome of ['forbidden', 'unavailable', 'throws'])
