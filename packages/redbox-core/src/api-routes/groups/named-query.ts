@@ -120,6 +120,8 @@ export const namedQueryEditorRoutes = [
     {
       tags: ['NamedQuery'],
       summary: 'Discover caller-authorized record schema targets',
+      description:
+        'Uses named-query feature permissions and current brand/caller workflow access. Guidance is advisory editor state; selecting a target never changes query predicates. Responses are no-store.',
       responses: { 200: namedQueryResponse },
     }
   ),
@@ -132,6 +134,8 @@ export const namedQueryEditorRoutes = [
     {
       tags: ['NamedQuery'],
       summary: 'Describe stored query fields and mapping context',
+      description:
+        'Returns precision/completeness and separate stored-record and mapping fields. Schema title becomes metadata.title for predicates and record.metadata.title for mappings. Partial or unavailable guidance leaves manual editing enabled; authorization denial never reveals a fallback tree.',
       responses: { 200: namedQueryResponse },
     }
   ),
@@ -147,7 +151,15 @@ export const namedQueryEditorRoutes = [
       {
         tags: ['NamedQuery'],
         summary: `${operation} an unsaved named query`,
-        responses: { 200: namedQueryResponse, 400: namedQueryResponse },
+        description:
+          'Accepts {definition, guidance?, parameters?}; guidance is ephemeral and parameters are used only by explicit preview. Requires named-query permission and CSRF. Validation/description do not execute or persist. Completed validation and preview refusals return 200 with valid:false and diagnostics. Preview executes real data, forcibly brand-scoped, with server-owned limits: 131072 input bytes, depth 24, 4000 nodes, 1024 mapping aliases, 256 template expressions, 100 sample rows, 1000 scan rows, 524288 response bytes and 5000 ms query/render budget. Mongo count/find receive remaining maxTimeMS. Inspect truncated/truncationReasons (rows/bytes). User/custom collections, related filters and relation expansion refuse draft preview with PREVIEW_DEADLINE_UNSUPPORTED; editing/saving remains supported. API v1 returns DTOs; v2 wraps data/meta. Responses are no-store.',
+        responses: {
+          200: namedQueryResponse,
+          400: namedQueryResponse,
+          403: namedQueryResponse,
+          408: namedQueryResponse,
+          413: namedQueryResponse,
+        },
       }
     ),
     csrf: true,
@@ -161,6 +173,8 @@ export const namedQueryEditorRoutes = [
     {
       tags: ['NamedQuery'],
       summary: 'Describe the brand-effective saved named query',
+      description:
+        'Uses named-query administration permission and the current brand-effective saved definition. Output mapping alias projectTitle appears at metadata.projectTitle in result fields. Direct lookups may retain known source types; template mappings generally produce strings and dynamic output remains unknown. Responses are no-store.',
       responses: { 200: namedQueryResponse },
     }
   ),
