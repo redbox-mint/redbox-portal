@@ -29,7 +29,7 @@ import { RecordModel } from '../model/storage/RecordModel';
 import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
-import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError } from '../utilities/NamedQueryPreview';
+import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError, previewDeadlineIssue } from '../utilities/NamedQueryPreview';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
@@ -535,6 +535,10 @@ export namespace Services {
       relatedRecordFilters: RelatedRecordFilter[] = [],
       budget?: NamedQueryExecutionBudget
     ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+      // A response timer cannot cancel Waterline/populate or hook database operations.
+      // Refuse those paths before any I/O when running a draft preview budget.
+      if (budget && previewDeadlineIssue({ collectionName, expandRelations, relatedRecordFilters }))
+        throw new NamedQueryAssistanceError('PREVIEW_DEADLINE_UNSUPPORTED', 422);
       const criteriaMeta = { enableExperimentalDeepTargets: true, ...(budget ? { maxTimeMS: budget.remaining() } : {}) };
       if (budget) budget.run(() => this.setParamsInQuery(mongoQuery, queryParams, paramMap));
       else this.setParamsInQuery(mongoQuery, queryParams, paramMap);
@@ -599,6 +603,8 @@ export namespace Services {
       if (!model) {
         throw new Error(`Model ${collectionName} not found`);
       }
+      if (budget && typeof model.native !== 'function')
+        throw new NamedQueryAssistanceError('PREVIEW_DEADLINE_UNSUPPORTED', 422);
       let results: Array<RecordLike | UserLike> = [];
       if (collectionName === 'record') {
         const collectionOperation = this.getNativeRecordCollection(model);
@@ -682,15 +688,19 @@ export namespace Services {
         const variables: Record<string, unknown> = { record: recordItem };
         if (!_.isEmpty(resultObjectMapping)) {
           const resultMetadata = _.cloneDeep(resultObjectMapping);
-          _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
-            _.set(resultMetadata, key, budget ? budget.run(() => that.runTemplate(value as string, variables)) : that.runTemplate(value as string, variables));
-          });
+          for (const [key, value] of Object.entries(resultObjectMapping)) {
+            const mapped = budget ? budget.run(() => that.runTemplate(value as string, variables)) : that.runTemplate(value as string, variables);
+            if (budget && !budget.output({ [key]: mapped })) break;
+            _.set(resultMetadata, key, mapped);
+          }
           defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
         } else {
           defaultMetadata = collectionName === 'record'
             ? that.runTemplate('record.metadata', variables) as NamedQueryResponseMetadata
             : recordItem as unknown as NamedQueryResponseMetadata;
+          if (budget && !budget.output(defaultMetadata)) break;
         }
+        if (budget?.outputTruncated) break;
 
         const responseRecord: NamedQueryResponseRecord = new NamedQueryResponseRecord({
           oid: recordItem.redboxOid ?? getIdentifierProperty(recordItem, 'id') ?? '',
@@ -699,6 +709,7 @@ export namespace Services {
           lastSaveDate: recordItem.lastSaveDate ?? null,
           dateCreated: recordItem.dateCreated ?? null
         });
+        if (budget && !budget.output({ ...responseRecord, metadata: undefined })) break;
         responseRecords.push(responseRecord);
       }
       const response = new ListAPIResponse<NamedQueryResponseRecord>();

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
+import UrlPattern from 'url-pattern';
 import { Controllers } from '../../../src/controllers/webservice/NamedQueryController';
 import { namedQueryEditorRoutes } from '../../../src/api-routes/groups/named-query';
 import { policies } from '../../../src/config/policies.config';
@@ -8,6 +9,9 @@ import { namedQueryMutationCsrf } from '../../../src/policies/namedQueryMutation
 import { checkAuth } from '../../../src/policies/checkAuth';
 import { NamedQueryAssistanceError } from '../../../src/utilities/NamedQueryPreview';
 import { FieldDescriptionError } from '../../../src/services/FieldDescriptionsService';
+import { Services as PathServices } from '../../../src/services/PathRulesService';
+import { Services as EditorServices } from '../../../src/services/NamedQueryEditorService';
+import { Services as QueryServices, NamedQueryConfig } from '../../../src/services/NamedQueryService';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from '../../services/testHelper';
 
 const actions = [
@@ -95,6 +99,102 @@ describe('Named query assistance HTTP boundary', () => {
     await controller.previewDraft(request() as unknown as Sails.Req, {} as Sails.Res);
     assert.equal(send.secondCall.args[2]?.status, 500);
     assert(!JSON.stringify(send.secondCall.args[2]).includes('PRIVATE'));
+  });
+  it('infers rdmp guidance for a saved description requested without query options', async () => {
+    const queryBefore = Reflect.get(globalThis, 'NamedQueryService');
+    const executor = new QueryServices.NamedQueryService();
+    const editor = new EditorServices.NamedQueryEditor();
+    sinon.stub(executor, 'getNamedQueryConfig').resolves(
+      new NamedQueryConfig({
+        name: 'typed',
+        collectionName: 'record',
+        mongoQuery: { 'metaMetadata.type': 'rdmp' },
+        queryParams: {},
+        resultObjectMapping: { total: 'record.metadata.count' },
+      })
+    );
+    const fields = sinon.stub().resolves({
+      recordType: 'rdmp',
+      stage: 'draft',
+      precision: 'record-schema',
+      completeness: 'complete',
+      fields: [{ path: 'count', type: 'number', required: false, isArray: false }],
+    });
+    Object.assign(sails.services, { fielddescriptionsservice: { describeFields: fields } });
+    Object.assign(globalThis, { NamedQueryService: executor, NamedQueryEditorService: editor });
+    try {
+      const send = sinon.stub(controller, 'sendResp');
+      await controller.describeSaved({ ...request(), query: {} } as unknown as Sails.Req, {} as Sails.Res);
+      const response = send.firstCall.args[2];
+      assert.equal(response?.status, 200);
+      const description = response?.data as { result: { fields: Array<{ path: string; type: string }> } };
+      assert.equal(description.result.fields.find(field => field.path === 'metadata.total')?.type, 'number');
+      assert.equal(fields.firstCall.args[3], 'rdmp');
+    } finally {
+      Reflect.set(globalThis, 'NamedQueryService', queryBefore);
+    }
+  });
+  it('retains explicitly selected guidance for saved descriptions', async () => {
+    sinon.stub(controller, 'sendResp');
+    await controller.describeSaved(request() as unknown as Sails.Req, {} as Sails.Res);
+    assert.deepEqual(service.describeSaved.firstCall.args[4], { recordType: 'rdmp', stage: undefined });
+  });
+  it('bounds assistance responses before serializing repeated large values', async () => {
+    const metadata = { payload: 'x'.repeat(600000) };
+    service.describeDraft.resolves(Object.fromEntries(Array.from({ length: 1024 }, (_, i) => [`copy${i}`, metadata])));
+    const send = sinon.stub(controller, 'sendResp');
+    await controller.describeDraft(request() as unknown as Sails.Req, {} as Sails.Res);
+    assert.equal(send.firstCall.args[2]?.status, 413);
+    assert.equal(send.firstCall.args[2]?.displayErrors?.[0].code, 'RESPONSE_LIMIT');
+  });
+  it('authorizes saved reads through either feature route with brand-specific rules', () => {
+    class TestPathRules extends PathServices.PathRules {
+      setRules(value: typeof this.rulePatterns) {
+        this.rulePatterns = value;
+      }
+    }
+    const rules = new TestPathRules();
+    rules.setRules([
+      {
+        pattern: new UrlPattern('/:branding/:portal/api/report-config(/*)'),
+        rule: { role: { id: 'report-author' }, branding: brand, can_update: true },
+      },
+      {
+        pattern: new UrlPattern('/:branding/:portal/api/named-query(/*)'),
+        rule: { role: { id: 'query-author' }, branding: brand, can_update: true },
+      },
+      {
+        pattern: new UrlPattern('/:branding/:portal/api/report-config(/*)'),
+        rule: { role: { id: 'other-brand-author' }, branding: { id: 'b', name: 'brand-b' }, can_update: true },
+      },
+    ]);
+    Object.assign(globalThis, { PathRulesService: rules });
+    const reportPath = '/brand-a/rdmp/api/report-config/named-query/typed/description';
+    const queryPath = '/brand-a/rdmp/api/named-query/typed/description';
+    assert(
+      namedQueryEditorRoutes.some(
+        route =>
+          route.path === '/:branding/:portal/api/report-config/named-query/:name/description' &&
+          route.action === 'describeSaved' &&
+          route.method === 'get'
+      )
+    );
+    for (const [role, path, allowed] of [
+      ['report-author', reportPath, true],
+      ['query-author', queryPath, true],
+      ['other-brand-author', reportPath, false],
+      ['report-author', queryPath, false],
+      ...['validate', 'describe', 'preview', 'fields'].map(
+        action => ['report-author', `/brand-a/rdmp/api/named-query/editor/${action}`, false] as const
+      ),
+    ] as const) {
+      const req = { ...request(), path, user: { username: 'author', roles: [{ id: role }] } };
+      const next = sinon.stub();
+      const res = { status: sinon.stub().returnsThis(), send: sinon.stub() };
+      checkAuth(req as unknown as Sails.Req, res as unknown as Sails.Res, next);
+      assert.equal(next.calledOnce, allowed, `${role}: ${path}`);
+      if (!allowed) assert.equal(res.status.firstCall.args[0], 403);
+    }
   });
   it('serializes blocking diagnostics and safe errors through the real response helper', async () => {
     service.validateDraft.resolves({ valid: false, diagnostics: [{ code: 'INVALID_DEFINITION', severity: 'error' }] });

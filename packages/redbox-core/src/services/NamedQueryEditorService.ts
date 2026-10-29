@@ -26,6 +26,8 @@ import type { NamedQueryDefinition } from '../config/namedQuery.config';
 import { NamedQueryResponseRecord } from './NamedQueryService';
 import {
   checkDraftBudget,
+  boundedJsonBytes,
+  previewDeadlineIssue,
   NAMED_QUERY_PREVIEW_LIMITS,
   NamedQueryAssistanceError,
   NamedQueryExecutionBudget,
@@ -62,6 +64,15 @@ const diagnostic = (
   column: 0,
   ...(suggestion ? { suggestion } : {}),
 });
+
+const blocksPreview = (item: EditorDiagnostic): boolean =>
+  item.severity === 'error' || ['TEMPLATE_SYNTAX', 'TEMPLATE_COMPLEXITY'].includes(item.code);
+const displayedDiagnostics = (items: EditorDiagnostic[]): EditorDiagnostic[] =>
+  [
+    ...items.filter(item => item.severity === 'error'),
+    ...items.filter(item => item.severity !== 'error' && blocksPreview(item)),
+    ...items.filter(item => !blocksPreview(item)),
+  ].slice(0, 200);
 
 function distance(a: string, b: string): number {
   if (Math.abs(a.length - b.length) > 2) return 3;
@@ -305,16 +316,12 @@ export namespace Services {
       selection: NamedQueryDraftRequest['guidance'],
       budget?: NamedQueryExecutionBudget
     ): Promise<FieldDescription> {
+      // Schema discovery can invoke Waterline and hook reads without server deadlines.
+      // Preview performs structural checks only; validate/describe supply advisory field lint.
+      if (budget) return unavailable();
       if (collectionName !== 'record' || !selection?.recordType) return unavailable();
       try {
-        const operation = this.fieldService().describeFields(
-          brand,
-          portal,
-          caller,
-          selection.recordType,
-          selection.stage
-        );
-        return budget ? await budget.wait(operation) : await operation;
+        return await this.fieldService().describeFields(brand, portal, caller, selection.recordType, selection.stage);
       } catch (error) {
         if (error instanceof NamedQueryAssistanceError) throw error;
         return unavailable();
@@ -325,9 +332,19 @@ export namespace Services {
       brand: BrandingModel,
       portal: string,
       caller: FormRecordAccessContext,
+      request: NamedQueryDraftRequest
+    ): Promise<NamedQueryValidation> {
+      const { valid, diagnostics } = await this.inspectDraft(brand, portal, caller, request);
+      return { valid, diagnostics };
+    }
+
+    private async inspectDraft(
+      brand: BrandingModel,
+      portal: string,
+      caller: FormRecordAccessContext,
       request: NamedQueryDraftRequest,
       budget?: NamedQueryExecutionBudget
-    ): Promise<NamedQueryValidation> {
+    ): Promise<NamedQueryValidation & { previewBlocked: boolean }> {
       this.caller(brand, caller);
       checkDraftBudget(request);
       const diagnostics: EditorDiagnostic[] = [];
@@ -335,6 +352,7 @@ export namespace Services {
       if (!object(definition))
         return {
           valid: false,
+          previewBlocked: true,
           diagnostics: [
             diagnostic('INVALID_DEFINITION', 'definition', 'A query definition object is required.', 'error'),
           ],
@@ -442,7 +460,11 @@ export namespace Services {
           queryAdvice(filter.mongoQuery, foreignFields, `${base}.mongoQuery`, diagnostics);
         }
       }
-      return { valid: !diagnostics.some(item => item.severity === 'error'), diagnostics: diagnostics.slice(0, 200) };
+      return {
+        valid: !diagnostics.some(item => item.severity === 'error'),
+        previewBlocked: diagnostics.some(blocksPreview),
+        diagnostics: displayedDiagnostics(diagnostics),
+      };
     }
 
     public async describeDraft(
@@ -518,11 +540,16 @@ export namespace Services {
       request: NamedQueryPreviewRequest
     ): Promise<NamedQueryPreview<NamedQueryResponseRecord>> {
       const budget = new NamedQueryExecutionBudget();
-      const validation = await budget.wait(this.validateDraft(brand, portal, caller, request, budget));
+      const validation = await budget.wait(this.inspectDraft(brand, portal, caller, request, budget));
       const diagnostics = [...validation.diagnostics];
+      let previewBlocked = validation.previewBlocked;
       const definition = object(request.definition) ? request.definition : {};
-      const reject = (field: string, reason: string) =>
-        diagnostics.push(diagnostic('PREVIEW_UNSAFE_DEFINITION', field, reason, 'error'));
+      const reject = (field: string, reason: string, code = 'PREVIEW_UNSAFE_DEFINITION') => {
+        previewBlocked = true;
+        diagnostics.push(diagnostic(code, field, reason, 'error'));
+      };
+      const deadlineIssue = previewDeadlineIssue(definition);
+      if (deadlineIssue) reject('definition', deadlineIssue, 'PREVIEW_DEADLINE_UNSUPPORTED');
       for (const key of ['mongoQuery', 'queryParams', 'resultObjectMapping'])
         if (definition[key] != null && !object(definition[key])) reject(key, 'Preview requires an object.');
       if (request.parameters != null && !object(request.parameters))
@@ -599,8 +626,8 @@ export namespace Services {
       scan(definition);
       scan(request.parameters);
       const response: NamedQueryPreview<NamedQueryResponseRecord> = {
-        valid: !diagnostics.some(item => item.severity === 'error'),
-        diagnostics,
+        valid: !previewBlocked,
+        diagnostics: displayedDiagnostics(diagnostics),
         records: [],
         summary: { numFound: 0, start: 0, page: 1 },
         truncated: false,
@@ -621,14 +648,16 @@ export namespace Services {
         )
       );
       response.summary = { numFound: result.summary.numFound, start: 0, page: 1 };
-      if (result.summary.numFound > Math.min(result.records.length, NAMED_QUERY_PREVIEW_LIMITS.rows))
-        response.truncationReasons.push('rows');
-      // Serialize each row once. Reserve DTO overhead and the CoreController data wrapper.
-      let bytes = budget.run(() => Buffer.byteLength(JSON.stringify({ data: response }), 'utf8')) + 64;
+      if (result.summary.numFound > NAMED_QUERY_PREVIEW_LIMITS.rows) response.truncationReasons.push('rows');
+      if (budget.outputTruncated) response.truncationReasons.push('bytes');
+      // Count incrementally without expanding repeated aliases into a JSON string.
+      // Reserve DTO overhead, truncation flags and the CoreController data wrapper.
+      let bytes = budget.run(() => boundedJsonBytes({ data: response }, NAMED_QUERY_PREVIEW_LIMITS.responseBytes)) + 64;
       for (const record of result.records.slice(0, NAMED_QUERY_PREVIEW_LIMITS.rows)) {
-        const rowBytes = budget.run(() => Buffer.byteLength(JSON.stringify(record), 'utf8')) + 1;
+        const rowBytes =
+          budget.run(() => boundedJsonBytes(record, NAMED_QUERY_PREVIEW_LIMITS.responseBytes - bytes)) + 1;
         if (bytes + rowBytes > NAMED_QUERY_PREVIEW_LIMITS.responseBytes) {
-          response.truncationReasons.push('bytes');
+          if (!response.truncationReasons.includes('bytes')) response.truncationReasons.push('bytes');
           break;
         }
         response.records.push(record);

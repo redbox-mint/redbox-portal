@@ -164,6 +164,20 @@ export const namedQueryEditorRoutes = [
       responses: { 200: namedQueryResponse },
     }
   ),
+  // Report authors use their own feature's brand path rules for this saved read.
+  apiRoute(
+    'get',
+    '/:branding/:portal/api/report-config/named-query/:name/description',
+    'webservice/NamedQueryController',
+    'describeSaved',
+    { params: nameParam, query: assistanceQuery },
+    {
+      tags: ['NamedQuery'],
+      operationId: 'describeReportNamedQuery',
+      summary: 'Describe a brand-effective saved named query for report authoring',
+      responses: { 200: namedQueryResponse },
+    }
+  ),
 ];
 
 export const namedQueryApiRoutes = [

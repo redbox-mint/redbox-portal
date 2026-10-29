@@ -4,7 +4,11 @@ import type {
   NamedQueryGuidance,
 } from '@researchdatabox/sails-ng-common';
 import type { FormRecordAccessContext } from '../../services/FormsService';
-import { NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError } from '../../utilities/NamedQueryPreview';
+import {
+  boundedJsonBytes,
+  NAMED_QUERY_PREVIEW_LIMITS,
+  NamedQueryAssistanceError,
+} from '../../utilities/NamedQueryPreview';
 import { FieldDescriptionError } from '../../services/FieldDescriptionsService';
 import { Controllers as controllers } from '../../CoreController';
 import type { NamedQueryDefinition } from '../../config/namedQuery.config';
@@ -36,9 +40,12 @@ export namespace Controllers {
         const brand = this.resolveBrand(req);
         const caller = { brand, user: req.user } as unknown as FormRecordAccessContext;
         const data = await action(brand, String(req.param('portal') ?? ''), caller);
-        const serialized = JSON.stringify({ data });
-        if (Buffer.byteLength(serialized, 'utf8') > NAMED_QUERY_PREVIEW_LIMITS.responseBytes)
+        if (
+          boundedJsonBytes({ data }, NAMED_QUERY_PREVIEW_LIMITS.responseBytes) >
+          NAMED_QUERY_PREVIEW_LIMITS.responseBytes
+        )
           throw new NamedQueryAssistanceError('RESPONSE_LIMIT', 413);
+        const serialized = JSON.stringify({ data });
         // Validation is a completed operation even when diagnostics block execution.
         // Keep the DTO available on both API versions (4xx envelopes discard supplied data).
         return this.sendResp(req, res, {
@@ -93,10 +100,18 @@ export namespace Controllers {
     }
     public describeSaved(req: Sails.Req, res: Sails.Res) {
       return this.assistance(req, res, (brand, portal, caller) =>
-        NamedQueryEditorService.describeSaved(brand, portal, caller, String(req.param('name')), {
-          recordType: req.query['recordType'],
-          stage: req.query['stage'],
-        } as unknown as NamedQueryDraftRequest['guidance'])
+        NamedQueryEditorService.describeSaved(
+          brand,
+          portal,
+          caller,
+          String(req.param('name')),
+          req.query['recordType']
+            ? ({
+                recordType: req.query['recordType'],
+                stage: req.query['stage'],
+              } as unknown as NamedQueryDraftRequest['guidance'])
+            : undefined
+        )
       );
     }
     public previewDraft(req: Sails.Req, res: Sails.Res) {

@@ -12,6 +12,7 @@ import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import { FieldDescriptionError } from '../../src/services/FieldDescriptionsService';
 import {
   checkDraftBudget,
+  boundedJsonBytes,
   NAMED_QUERY_PREVIEW_LIMITS as limits,
   NamedQueryExecutionBudget,
 } from '../../src/utilities/NamedQueryPreview';
@@ -437,10 +438,14 @@ describe('NamedQueryEditorService', () => {
   it('previews the real shaped report result with immutable draft, forced brand and sort', async () => {
     const definition = draft({
       brandIdFieldPath: 'metadata.evil',
-      mongoQuery: { 'metaMetadata.brandId': 'b', metaMetadata: { brandId: 'b' } },
+      mongoQuery: {
+        'metaMetadata.brandId': 'b',
+        metaMetadata: { brandId: 'b' },
+        $or: [{ 'metaMetadata.brandId': 'b' }, {}],
+        $expr: { $eq: [1, 1] },
+      },
       resultObjectMapping: { projectTitle: 'record.metadata.title', titleText: '{{record.metadata.title}}' },
       sort: [{ dateCreated: 'DESC' }],
-      expandRelations: true,
     });
     const before = JSON.stringify(definition);
     const result = await editor.previewDraft(brand, 'rdmp', caller, { definition, guidance: { recordType: 'rdmp' } });
@@ -450,8 +455,9 @@ describe('NamedQueryEditorService', () => {
     assert.equal(collection.countDocuments.firstCall.args[0]['metaMetadata.brandId'], 'a');
     assert(collection.countDocuments.firstCall.args[1].maxTimeMS <= limits.timeMs);
     assert(collection.find.firstCall.args[1].maxTimeMS <= limits.timeMs);
+    assert.deepEqual(collection.countDocuments.firstCall.args[0].$expr, { $eq: [1, 1] });
     assert.deepEqual(cursor.sort.firstCall.args[0], { dateCreated: -1 });
-    assert.equal(relations.getRelatedRecords.firstCall.args[1], brand);
+    assert.equal(relations.getRelatedRecords.callCount, 0);
     assert.equal(JSON.stringify(definition), before);
   });
   it('caps rows and reports row truncation', async () => {
@@ -507,16 +513,16 @@ describe('NamedQueryEditorService', () => {
     collection.countDocuments.rejects(Object.assign(new Error('PRIVATE DATABASE DETAILS'), { code: 50 }));
     await assert.rejects(editor.previewDraft(brand, 'rdmp', caller, { definition: draft() }), /PREVIEW_TIMEOUT/);
   });
-  it('applies the preview deadline to guidance lookup before database execution', async () => {
-    const clock = sinon.useFakeTimers();
+  it('does not start schema or hook reads without enforceable database deadlines during preview', async () => {
     fields.describeFields.returns(new Promise<never>(() => undefined));
-    const assertion = assert.rejects(
-      editor.previewDraft(brand, 'rdmp', caller, { definition: draft(), guidance: { recordType: 'rdmp' } }),
-      /PREVIEW_TIMEOUT/
-    );
-    await clock.tickAsync(limits.timeMs + 1);
-    await assertion;
-    assert.equal(collection.countDocuments.callCount, 0);
+    const result = await editor.previewDraft(brand, 'rdmp', caller, {
+      definition: draft({ mongoQuery: { 'metaMetadata.type': 'rdmp' } }),
+      guidance: { recordType: 'rdmp' },
+      relatedGuidance: { '0': { recordType: 'rdmp' } },
+    });
+    assert.equal(result.valid, true);
+    assert.equal(fields.describeFields.callCount, 0);
+    assert.equal(collection.countDocuments.callCount, 1);
   });
   it('forces brand scope after nested and dotted criteria collide in saved execution too', async () => {
     await executor.performNamedQueryFromConfig(
@@ -530,21 +536,25 @@ describe('NamedQueryEditorService', () => {
     );
     assert.equal(collection.countDocuments.firstCall.args[0]['metaMetadata.brandId'], 'a');
   });
-  it('scopes related reads, bounds their scan and applies joins without mutating filters', async () => {
+  it('preserves saved related-filter execution without a preview budget', async () => {
     const definition = draft({
       relatedRecordFilters: [
         { collectionName: 'foreign', localField: 'redboxOid', foreignField: 'project', mongoQuery: { branding: 'b' } },
       ],
     });
     const before = JSON.stringify(definition);
-    const result = await editor.previewDraft(brand, 'rdmp', caller, { definition });
-    assert.equal(result.valid, true);
-    assert.equal(foreign.find.firstCall.args[0].where.branding, 'a');
-    assert.equal(foreign.find.firstCall.args[0].limit, limits.scanRows + 1);
+    const result = await executor.performNamedQueryFromConfig(
+      definition as unknown as Parameters<typeof executor.performNamedQueryFromConfig>[0],
+      {},
+      brand,
+      0,
+      100
+    );
+    assert.equal(foreign.find.firstCall.args[0].where.branding, 'b');
+    assert.equal(foreign.find.firstCall.args[0].limit, undefined);
     assert.deepEqual(collection.countDocuments.firstCall.args[0].redboxOid, { $in: ['oid-a'] });
+    assert.equal(result.records.length, 1);
     assert.equal(JSON.stringify(definition), before);
-    foreign.find.returns({ meta: sinon.stub().resolves(Array(limits.scanRows + 1).fill({ project: 'oid-a' })) });
-    await assert.rejects(editor.previewDraft(brand, 'rdmp', caller, { definition }), /PREVIEW_SCAN_LIMIT/);
   });
   it('refuses unscoped related collections and server JavaScript before execution', async () => {
     for (const definition of [
@@ -558,24 +568,44 @@ describe('NamedQueryEditorService', () => {
       assert.equal((await editor.previewDraft(brand, 'rdmp', caller, { definition })).valid, false);
     assert.equal(collection.countDocuments.callCount, 0);
   });
-  it('applies brand-role/link scope to user related filters before joining records', async () => {
-    users.find.returns({
-      populate: sinon.stub().returnsThis(),
-      meta: sinon.stub().resolves([
-        { id: 'a-user', project: 'oid-a', roles: [{ branding: 'a' }] },
-        { id: 'b-user', project: 'oid-b', roles: [{ branding: 'b' }] },
-      ]),
+  for (const definition of [
+    draft({ collectionName: 'user' }),
+    draft({ collectionName: 'foreign' }),
+    draft({ expandRelations: true }),
+    ...['record', 'foreign', 'user'].map(collectionName =>
+      draft({
+        relatedRecordFilters: [{ collectionName, localField: 'redboxOid', foreignField: 'project', mongoQuery: {} }],
+      })
+    ),
+  ]) {
+    it(`refuses database paths without enforceable deadlines: ${JSON.stringify(definition)}`, async () => {
+      const result = await editor.previewDraft(brand, 'rdmp', caller, { definition });
+      assert.equal(result.valid, false);
+      assert(
+        result.diagnostics.some(item => item.code === 'PREVIEW_DEADLINE_UNSUPPORTED' && item.severity === 'error')
+      );
+      assert.deepEqual(result.records, []);
+      assert.equal(collection.countDocuments.callCount, 0);
+      assert.equal(collection.find.callCount, 0);
+      assert.equal(users.find.callCount, 0);
+      assert.equal(links.find.callCount, 0);
+      assert.equal(foreign.find.callCount, 0);
+      assert.equal(foreign.count.callCount, 0);
+      assert.equal(relations.getRelatedRecords.callCount, 0);
+      await assert.rejects(
+        executor.performNamedQueryFromConfig(
+          definition as unknown as Parameters<typeof executor.performNamedQueryFromConfig>[0],
+          {},
+          brand,
+          0,
+          100,
+          caller.user,
+          new NamedQueryExecutionBudget()
+        ),
+        /PREVIEW_DEADLINE_UNSUPPORTED/
+      );
     });
-    const result = await editor.previewDraft(brand, 'rdmp', caller, {
-      definition: draft({
-        relatedRecordFilters: [
-          { collectionName: 'user', localField: 'redboxOid', foreignField: 'project', mongoQuery: {} },
-        ],
-      }),
-    });
-    assert.equal(result.valid, true);
-    assert.deepEqual(collection.countDocuments.firstCall.args[0].redboxOid, { $in: ['oid-a'] });
-  });
+  }
   it('returns diagnostics for missing required or malformed object parameters without database execution', async () => {
     for (const queryParams of [
       { p: { type: 'string', path: 'metadata.title', required: true } },
@@ -613,7 +643,7 @@ describe('NamedQueryEditorService', () => {
     assert(result.diagnostics.some(item => item.code === 'TEMPLATE_COMPLEXITY'));
     assert.equal(collection.countDocuments.callCount, 0);
   });
-  it('bounds user scans while retaining brand-role/link scope and password/token sanitization', async () => {
+  it('preserves saved user brand-role/link scope and password/token sanitization', async () => {
     users.find.returns({
       populate: sinon.stub().returnsThis(),
       meta: sinon.stub().resolves([
@@ -623,12 +653,16 @@ describe('NamedQueryEditorService', () => {
       ]),
     });
     links.find.resolves([{ secondaryUserId: 'linked' }]);
-    const result = await editor.previewDraft(brand, 'rdmp', caller, {
-      definition: draft({
+    const result = await executor.performNamedQueryFromConfig(
+      draft({
         collectionName: 'user',
         resultObjectMapping: { name: 'record.name', secret: 'record.password', token: 'record.token' },
-      }),
-    });
+      }) as unknown as Parameters<typeof executor.performNamedQueryFromConfig>[0],
+      {},
+      brand,
+      0,
+      100
+    );
     assert.equal(result.summary.numFound, 2);
     assert.deepEqual(
       result.records.map(record => record.metadata),
@@ -637,24 +671,157 @@ describe('NamedQueryEditorService', () => {
         { name: 'Linked', secret: undefined, token: undefined },
       ]
     );
-    assert.equal(users.find.firstCall.args[0].limit, limits.scanRows + 1);
-    assert.equal(links.find.firstCall.args[0].where.brandId, 'a');
-    users.find.returns({ meta: sinon.stub().resolves(Array(limits.scanRows + 1).fill({ id: 'a', roles: [] })) });
-    await assert.rejects(
-      editor.previewDraft(brand, 'rdmp', caller, { definition: draft({ collectionName: 'user' }) }),
-      /PREVIEW_SCAN_LIMIT/
-    );
+    assert.equal(users.find.firstCall.args[0].limit, undefined);
+    assert.equal(links.find.firstCall.args[0].brandId, 'a');
   });
   it('preserves branded custom-collection execution and forced brand scope', async () => {
-    const result = await editor.previewDraft(brand, 'rdmp', caller, {
-      definition: draft({
+    const result = await executor.performNamedQueryFromConfig(
+      draft({
         collectionName: 'foreign',
         mongoQuery: { branding: 'b' },
         resultObjectMapping: { join: 'record.project' },
-      }),
-    });
-    assert.equal(result.valid, true);
+      }) as unknown as Parameters<typeof executor.performNamedQueryFromConfig>[0],
+      {},
+      brand,
+      0,
+      100
+    );
     assert.equal(foreign.count.firstCall.args[0].branding, 'a');
     assert.deepEqual(result.records[0].metadata, { join: 'oid-a' });
+  });
+  it('refuses record adapters without native deadline support', async () => {
+    Reflect.set(sails.models, 'record', { find: sinon.stub(), count: sinon.stub() });
+    await assert.rejects(
+      editor.previewDraft(brand, 'rdmp', caller, { definition: draft() }),
+      /PREVIEW_DEADLINE_UNSUPPORTED/
+    );
+    assert.equal(collection.countDocuments.callCount, 0);
+  });
+  it('stops whole-metadata alias expansion before serialization overflows', async () => {
+    cursor.toArray.resolves([{ redboxOid: 'big', metadata: { payload: 'x'.repeat(600000) } }]);
+    const definition = draft({
+      resultObjectMapping: Object.fromEntries(Array.from({ length: 1024 }, (_, i) => [`copy${i}`, 'record.metadata'])),
+    });
+    assert(Buffer.byteLength(JSON.stringify({ definition })) < limits.inputBytes);
+    const render = sinon.spy(executor, 'runTemplate');
+    const result = await editor.previewDraft(brand, 'rdmp', caller, { definition });
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.numFound, 1);
+    assert.deepEqual(result.records, []);
+    assert.equal(result.truncated, true);
+    assert.deepEqual(result.truncationReasons, ['bytes']);
+    assert.equal(render.callCount, 1);
+    assert(Buffer.byteLength(JSON.stringify({ data: result })) <= limits.responseBytes);
+  });
+  it('accounts for repeated aliases and accumulated rows before rendering further output', async () => {
+    collection.countDocuments.resolves(100);
+    cursor.toArray.resolves(
+      Array.from({ length: 100 }, (_, i) => ({
+        redboxOid: String(i),
+        metadata: { payload: 'x'.repeat(10000) },
+      }))
+    );
+    const render = sinon.spy(executor, 'runTemplate');
+    const result = await editor.previewDraft(brand, 'rdmp', caller, {
+      definition: draft({
+        resultObjectMapping: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`copy${i}`, 'record.metadata'])),
+      }),
+    });
+    assert(result.records.length > 0 && result.records.length < 100);
+    assert(render.callCount < 100);
+    assert.deepEqual(result.truncationReasons, ['bytes']);
+    assert(Buffer.byteLength(JSON.stringify({ data: result })) <= limits.responseBytes);
+  });
+  it('caps mapping count independently of the request byte and node budgets', async () => {
+    await assert.rejects(
+      editor.previewDraft(brand, 'rdmp', caller, {
+        definition: draft({
+          resultObjectMapping: Object.fromEntries(
+            Array.from({ length: limits.mappings + 1 }, (_, i) => [`copy${i}`, 'record.metadata'])
+          ),
+        }),
+      }),
+      /MAPPING_LIMIT/
+    );
+    assert.equal(collection.countDocuments.callCount, 0);
+  });
+  it('retains template blockers after 200 field warnings and refuses execution', async () => {
+    const definition = draft({
+      mongoQuery: Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`metadata.custom${i}`, 'x'])),
+      resultObjectMapping: { bad: '{{#if broken}}' },
+    });
+    const validation = await validate(definition);
+    assert.equal(validation.valid, true); // Legacy save advice stays nonblocking.
+    assert.equal(validation.diagnostics.length, 200);
+    assert(validation.diagnostics.some(item => item.code === 'TEMPLATE_SYNTAX'));
+    const result = await editor.previewDraft(brand, 'rdmp', caller, { definition, guidance: { recordType: 'rdmp' } });
+    assert.equal(result.valid, false);
+    assert(result.diagnostics.some(item => item.code === 'TEMPLATE_SYNTAX'));
+    assert.equal(collection.countDocuments.callCount, 0);
+  });
+  it('keeps preview refusal independent of the displayed diagnostic limit', async () => {
+    const definition = draft({
+      queryParams: Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`p${i}`, { path: '', type: 'hook' }])),
+      resultObjectMapping: { bad: '{{#if broken}}' },
+    });
+    const result = await editor.previewDraft(brand, 'rdmp', caller, { definition });
+    assert.equal(result.valid, false);
+    assert.equal(result.diagnostics.length, 200);
+    assert(result.diagnostics.some(item => item.severity === 'error'));
+    assert.equal(collection.countDocuments.callCount, 0);
+  });
+  it('uses positive remaining maxTimeMS for every permitted preview database operation', async () => {
+    const clock = sinon.useFakeTimers();
+    collection.countDocuments.callsFake(async () => {
+      await clock.tickAsync(25);
+      return 1;
+    });
+    await editor.previewDraft(brand, 'rdmp', caller, { definition: draft() });
+    const countTime = collection.countDocuments.firstCall.args[1].maxTimeMS;
+    const findTime = collection.find.firstCall.args[1].maxTimeMS;
+    assert(countTime > 0 && countTime <= limits.timeMs);
+    assert(findTime > 0 && findTime <= countTime - 25);
+  });
+  it('reports native find deadline errors as timeouts too', async () => {
+    cursor.toArray.rejects(Object.assign(new Error('PRIVATE DATABASE DETAILS'), { code: 50 }));
+    await assert.rejects(editor.previewDraft(brand, 'rdmp', caller, { definition: draft() }), /PREVIEW_TIMEOUT/);
+    assert(collection.find.firstCall.args[1].maxTimeMS > 0);
+  });
+  it('preserves saved relation expansion without applying preview limits', async () => {
+    const result = await executor.performNamedQueryFromConfig(
+      draft({ expandRelations: true }) as unknown as Parameters<typeof executor.performNamedQueryFromConfig>[0],
+      {},
+      brand,
+      0,
+      100
+    );
+    assert.equal(result.records.length, 1);
+    assert.equal(relations.getRelatedRecords.firstCall.args[1], brand);
+    assert.equal(collection.countDocuments.firstCall.args[1], undefined);
+    assert.equal(collection.find.firstCall.args[1], undefined);
+  });
+});
+
+describe('Bounded preview JSON accounting', () => {
+  for (const value of [
+    { text: 'ASCII \" \\ \b\t\n\f\r\u0000' },
+    { text: 'é漢😀\ud800\udc00\ud800' },
+    [undefined, null, NaN, Infinity, true, false, 123, -1.25, 1e100],
+    { absent: undefined, date: new Date('2026-01-01T00:00:00Z'), nested: [{ value: 'x' }] },
+  ]) {
+    it(`matches serializer byte counts for ${JSON.stringify(value)}`, () => {
+      const expected = Buffer.byteLength(JSON.stringify(value));
+      assert.equal(boundedJsonBytes(value, expected), expected);
+      assert(boundedJsonBytes(value, expected - 1) > expected - 1);
+    });
+  }
+  it('stops visiting values as soon as the output cannot fit', () => {
+    const value = {
+      first: 'x'.repeat(600000),
+      get later() {
+        throw new Error('should never be read');
+      },
+    };
+    assert.equal(boundedJsonBytes(value, limits.responseBytes), limits.responseBytes + 1);
   });
 });

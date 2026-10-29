@@ -7,22 +7,32 @@ context or query configuration shape was added.
 
 ## Routes and wire contract
 
-All paths start with `/:branding/:portal/api/named-query`. All six actions use the
+Named-query paths start with `/:branding/:portal/api/named-query`. All six actions use the
 existing named-query contract policy chain: `noCache`, brand/portal preparation,
 webservice authentication, brand-configured `checkAuth`, CSP and contract request
 validation. The default path rule allows Admin; brand rules may authorize other
-administration roles. There is no email policy or hard-coded Admin check.
+administration roles. The report-owned saved-description GET below uses the same
+policy chain with the current brand's `/api/report-config(/*)` path rules. It
+reuses `describeSaved` and exposes only a saved definition's description; report
+permission does not grant editor fields/validate/describe/preview access. There
+is no email policy or hard-coded Admin check.
 Responses use `CoreController.sendResp`: API v2 has `{ data: DTO, meta: {} }`,
 API v1 returns the DTO directly. All assistance responses are `no-store`.
 
-| Method | Suffix | Request | Response DTO | CSRF |
-| --- | --- | --- | --- | --- |
-| GET | `/editor/schema-targets` | none | `{ recordTypes: SchemaTarget[] }` | safe method |
-| GET | `/editor/fields` | query `collectionName`, optional `recordType`, `stage` | `NamedQueryFieldDescription` | safe method |
-| POST | `/editor/validate` | `NamedQueryDraftRequest` | `NamedQueryValidation` | Sails `csrf: true` |
-| POST | `/editor/describe` | `NamedQueryDraftRequest` | `NamedQueryDescription` | Sails `csrf: true` |
-| POST | `/editor/preview` | `NamedQueryPreviewRequest` | `NamedQueryPreview<NamedQueryResponseRecord>` | Sails `csrf: true` |
-| GET | `/:name/description` | saved name; optional query `recordType`, `stage` | `NamedQueryDescription` | safe method |
+| Method | Suffix                   | Request                                                | Response DTO                                  | CSRF               |
+| ------ | ------------------------ | ------------------------------------------------------ | --------------------------------------------- | ------------------ |
+| GET    | `/editor/schema-targets` | none                                                   | `{ recordTypes: SchemaTarget[] }`             | safe method        |
+| GET    | `/editor/fields`         | query `collectionName`, optional `recordType`, `stage` | `NamedQueryFieldDescription`                  | safe method        |
+| POST   | `/editor/validate`       | `NamedQueryDraftRequest`                               | `NamedQueryValidation`                        | Sails `csrf: true` |
+| POST   | `/editor/describe`       | `NamedQueryDraftRequest`                               | `NamedQueryDescription`                       | Sails `csrf: true` |
+| POST   | `/editor/preview`        | `NamedQueryPreviewRequest`                             | `NamedQueryPreview<NamedQueryResponseRecord>` | Sails `csrf: true` |
+| GET    | `/:name/description`     | saved name; optional query `recordType`, `stage`       | `NamedQueryDescription`                       | safe method        |
+
+Report authors (PR 4) use
+`GET /:branding/:portal/api/report-config/named-query/:name/description`, with
+the same request/DTO as the named-query saved-description GET. Both routes use
+brand-effective saved lookup. Omitted `recordType` passes no guidance override,
+so an exact saved `metaMetadata.type: 'rdmp'` predicate can infer the field types.
 
 DTOs are exported from `packages/sails-ng-common/src/named-query-assist.model.ts`.
 A draft request contains `definition` (the existing configuration object),
@@ -39,8 +49,8 @@ the controller's ordinary 4xx path discards supplied data. Request-contract,
 authorization and execution failures use the existing error envelopes (v2
 `errors[].code`, v1 translated message), with safe identifiers only: 400 invalid
 collection/schema target, 403 forbidden/CSRF, 404 `QUERY_NOT_FOUND`, 408
-`PREVIEW_TIMEOUT`, 413 input/complexity/response limits, 422 unsafe effective query
-or scan limit, and 500 `ASSISTANCE_UNAVAILABLE` for unexpected failures.
+`PREVIEW_TIMEOUT`, 413 input/complexity/mapping/response limits, 422 unsafe effective query
+or unsupported deadline path, and 500 `ASSISTANCE_UNAVAILABLE` for unexpected failures.
 
 The `/editor/` namespace avoids reserving additional existing query names.
 Existing create/update/delete keep their bearer-compatible `csrf: false` routes,
@@ -57,7 +67,7 @@ clients. The Angular API service already enables the CSRF header.
 - `validateDraft(brand, portal, caller, request)` without execution or persistence.
 - `describeDraft(brand, portal, caller, request)`.
 - `describeSaved(brand, portal, caller, name, guidance?)`: PR 4 should call this
-  under its report authorization. It loads `NamedQueryService.getNamedQueryConfig`
+  through the report-owned GET route (or under its report authorization). It loads `NamedQueryService.getNamedQueryConfig`
   using the current brand/name key; it never consults an editor draft.
 - `previewDraft(brand, portal, caller, request)`.
 
@@ -96,6 +106,9 @@ collection eligibility, but do not parse templates, validate hook parameter
 types, or require all optional configuration objects. Those saves remain
 compatible. Validation blocks a non-object definition or invalid collection.
 Legacy shapes/template syntax and schema path/type/operator advice are warnings.
+Diagnostic display is capped at 200, prioritizing errors then template blockers.
+An independent execution-safety flag is computed before display truncation, so
+omitted diagnostics cannot permit unsafe preview execution.
 Likely typos receive suggestions; custom fields stay editable. The Mongo query
 is never validated as stored metadata against a JSON Schema.
 
@@ -108,30 +121,47 @@ parameters and parameter paths cannot introduce `$where`, `$function`, or
 
 Server constants in `utilities/NamedQueryPreview.ts`:
 
-| Bound | Value |
-| --- | --- |
-| Serialized request/effective query | 131,072 UTF-8 bytes |
-| JSON nesting / visited nodes | 24 / 4,000 |
-| Handlebars expressions per template | 256 |
-| Preview deadline, including guidance | 5,000 ms |
-| Returned rows | 100, starting at zero |
-| Serialized response | 524,288 UTF-8 bytes, with wrapper overhead reserved |
-| User/active-link/related-filter scan | 1,000 rows; fetch one extra and refuse overflow |
-| Returned validation diagnostics | 200; locations capped at 256 characters |
+| Bound                                  | Value                                                |
+| -------------------------------------- | ---------------------------------------------------- |
+| Serialized request/effective query     | 131,072 UTF-8 bytes                                  |
+| JSON nesting / visited nodes           | 24 / 4,000                                           |
+| Handlebars expressions per template    | 256                                                  |
+| Preview execution deadline             | 5,000 ms                                             |
+| Returned rows                          | 100, starting at zero                                |
+| Serialized response                    | 524,288 UTF-8 bytes, with wrapper overhead reserved  |
+| Executor scan guard                    | 1,000 rows; user/link/join preview paths are refused |
+| Returned validation diagnostics        | 200; locations capped at 256 characters              |
+| Mapping aliases in assistance requests | 1,024                                                |
+| Response accounting depth              | 100; deeper rows are byte-truncated                  |
 
-Record Mongo count/find receive the remaining `maxTimeMS`; asynchronous service
-and adapter work shares the deadline. Synchronous parameter/mapping rendering
-uses the **same** existing renderer/helper registry through a constant VM call
-with a deadline; there is no template dialect replacement. Byte truncation drops
-whole result rows. `truncated` and `truncationReasons: ['rows' | 'bytes']` explain
-the sample, while `summary.numFound` retains the execution total. An oversized
-single row yields an empty sample with byte truncation.
+Record Mongo count/find receive the remaining `maxTimeMS` directly on the native
+Mongo driver's `countDocuments` and `find`; no Waterline metadata hint is relied
+on. Mongo code 50 maps to HTTP 408 `PREVIEW_TIMEOUT`. Preview permits only native
+record execution without related filters or relation expansion. User/custom
+collections, foreign joins and relation hooks use uncancellable Waterline or
+hook reads, so preview refuses them **before I/O** with HTTP 200, `valid: false`
+and an error diagnostic `PREVIEW_DEADLINE_UNSUPPORTED`. Internal execution with
+a budget also refuses these paths with 422; record adapters without native
+access return the same 422 code. Ordinary saved-query runs keep their original
+collection, role/link scoping, join and relation behavior with no new deadline.
 
-Waterline/hook operations receive a remaining-time hint and have bounded waits;
-third-party adapters that ignore that hint cannot be forcibly cancelled after
-the response deadline. Overflowing user/join scans fail rather than reporting
-an incomplete count or silently changing join results. This is an intentional
-preview-only limit; normal saved-query pagination is unchanged.
+Preview does not load schema guidance, since schema/form authorization and hook
+reads cannot guarantee database deadlines either. It still validates structural,
+parameter, template and query safety. Use validate/describe for advisory field
+lint; those operations keep their existing guidance behavior and do not execute
+the draft query.
+
+Synchronous parameter/mapping rendering uses the **same** existing renderer/helper
+registry through a constant VM call with a deadline. Mapped values are accounted
+incrementally before retaining another alias or rendering another row. A bounded
+JSON walker counts UTF-8/escaped bytes and stops at the remaining budget without
+building an expanded JSON string, including when many aliases reference the
+same large object. Final row accounting reserves DTO/wrapper overhead. The HTTP assistance guard
+also counts bytes before serializing any DTO. Byte
+truncation drops whole rows; an oversized single row gives an empty sample.
+`truncated` and `truncationReasons: ['rows' | 'bytes']` explain the sample, while
+`summary.numFound` retains the execution total. No mapping or output limits are
+applied to normal saved-query execution.
 
 ## Access-control findings
 
@@ -147,37 +177,60 @@ preview-only limit; normal saved-query pagination is unchanged.
 - The main record query does **not** perform per-record read ACL filtering in
   the existing saved executor. Preview retains this administrative behavior;
   adding a different ACL contract belongs to a separate change.
-- Relation expansion continues through `RecordsService.getRelatedRecords` with
-  the current brand and its existing access behavior.
-- Legacy related-filter reads were unscoped and unbounded. Draft preview adds
-  forced foreign brand scope (including user role/link scope) and scan bounds.
-  A draft cannot use another brand's foreign rows to broaden its joins. Existing
-  saved related-filter behavior is otherwise retained.
+- Normal saved relation expansion continues through `RecordsService.getRelatedRecords`
+  with the current brand and its existing access behavior. Preview refuses it.
+- Legacy saved related-filter reads retain their existing behavior. Preview
+  refuses related filters before any foreign read, so a draft cannot use another
+  brand's foreign rows to broaden its joins.
 
 ## Verification
 
-Focused checks run sequentially under external `timeout`, without Docker.
+Checks run sequentially under external `timeout`; Mongo regressions use an isolated
+lightweight container, without lifting the portal.
 The service/controller suite covers diagnostics, description derivation, saved
 brand lookup, non-record collections, immutable definitions, parameters, sort,
-relations, main/foreign brand isolation, CSRF, malformed drafts, limits and
+saved relations/joins, brand isolation, CSRF, malformed drafts, limits and
 synchronous/asynchronous deadlines. Route tests also validate generated OpenAPI.
 Bruno requests are in `test/bruno/2 - AJAX calls/6 - Named Query Assistance/`.
 They cover session/CSRF setup, discovery, non-record fields, validate, describe,
 preview, malformed drafts, missing CSRF and saved descriptions. Bruno and lifted
 Docker integration execution remain for PR 6; no portal was started here.
 
-Final results:
+## PR 2 review fixes
 
-- PASS: `timeout 120 node_modules/.bin/tsc -p packages/sails-ng-common/tsconfig.prod.json`.
-- PASS: `timeout 120 node_modules/.bin/tsc --noEmit -p packages/redbox-core/tsconfig.json`.
-- PASS: `timeout 120 node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.named-query-assist.json`.
-- PASS: focused Mocha, 238 passing (18 seconds), with `timeout 120`,
-  `--no-config --node-option no-experimental-strip-types`, `ts-node/register/transpile-only`,
-  `chai` and `test/setup.ts`. Files: service tests `NamedQueryEditorService`,
-  `NamedQueryService`, `QueryReportContext`, `FieldDescriptionsService`,
-  `ReportsService`, `PathRulesService`; controller tests `NamedQueryAssistance`,
-  `NamedQueryController`, `NamedQueryNotificationParams`; unit `api-routes`.
-- PASS: focused source oxlint, zero warnings/errors; new-source/test formatting
-  checks; `git diff --check`.
-- Not run: Bruno, opt-in native Mongo dates, lifted integration and browser tests.
-  No Docker or portal process was started.
+All five findings were reproduced before edits with the reviewer's seven probes.
+Committed regressions replace the defect assertions with expected safe behavior,
+including the 1,024-alias/600 KB metadata case, warning saturation, saved `rdmp`
+inference, report-only authorization and native Mongo deadline propagation.
+The positive `$or`/`$expr` brand-collision probe is retained too.
+
+Review-fix validation (Node 24.22.1, all commands serial under `timeout`):
+
+- Reviewer defect probes before edits: **7 passing**, confirming all five findings.
+- Shared DTO build: `timeout 120 node_modules/.bin/tsc -p packages/sails-ng-common/tsconfig.prod.json`.
+- Focused Mocha: **166 passing, 0 failing, 0 pending** (15 s), including
+  `NamedQueryEditorService`, `NamedQueryAssistance`, `QueryReportContext`,
+  `FieldDescriptionsService`, `PathRulesService`, `api-routes`, and
+  `NamedQueryPreviewMongo`.
+- Existing named-query/report Mocha: **122 passing, 0 failing, 0 pending** (2 s),
+  including `NamedQueryService`, `ReportsService`, webservice `NamedQueryController`,
+  `NamedQueryNotificationParams`, `ReportControllerCsv`, and all 20 previously
+  pending `NamedQueryServiceMongoDates` cases.
+- Both Mocha commands used `timeout 180`, `TS_NODE_PROJECT=test/tsconfig.json`,
+  package-local `node_modules/.bin/mocha`, `--no-config`,
+  `--node-option no-experimental-strip-types`, `--require ts-node/register/transpile-only`,
+  `--require ./node_modules/chai/index.js`, `--require test/setup.ts`, and `--timeout 10000`.
+- Mongo runs used `NAMED_QUERY_TEST_MONGO_URL=mongodb://127.0.0.1:27529` against
+  a single disposable `mongo:latest` container (resolved to **9.0.4**), limited
+  to 1 CPU / 1 GiB with a 0.25 GiB WiredTiger cache. The focused run additionally
+  set `NAMED_QUERY_TEST_MONGO_FAILPOINTS=true` and started mongod with
+  `--setParameter enableTestCommands=1`. Driver command monitoring verified
+  count (`aggregate`) and `find` carry positive remaining `maxTimeMS`;
+  `maxTimeAlwaysTimeOut` verified server-side enforcement on each operation.
+  The container was stopped and automatically removed after the tests.
+- PASS: core `timeout 180 node_modules/.bin/tsc --noEmit -p tsconfig.json`
+  and focused-test `timeout 180 node_modules/.bin/tsc --noEmit -p test/tsconfig.named-query-assist.json`,
+  both from `packages/redbox-core`.
+- PASS: focused source oxlint (0 warnings/errors), formatting checks on the new/
+  formatted source and test files, and `git diff --check`.
+- Bruno, lifted portal integration and browser checks remain for PR 6.
