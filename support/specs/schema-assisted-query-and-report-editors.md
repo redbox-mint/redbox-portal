@@ -103,12 +103,14 @@ Keep existing configuration shapes, hook-defined fields, non-record queries, rel
 
 ### 1. Shared field assistance and context contracts
 
-- [ ] Reconcile #5121 with the target branch and identify the minimal extraction.
-- [ ] Characterize stored-record, mapping, query-result, display-template and CSV-template contexts with representative fixtures.
-- [ ] Extract shared components/types and authorized field discovery; keep email assistance working.
-- [ ] Cover complete/partial schemas, namespaced hook fields, form fallback, disabled schemas, authorization and stale-response handling.
+- [x] Reconcile #5121 with the target branch and identify the minimal extraction.
+- [x] Characterize stored-record, mapping, query-result, display-template and CSV-template contexts with representative fixtures.
+- [x] Extract shared components/types and authorized field discovery; keep email assistance working.
+- [x] Cover complete/partial schemas, namespaced hook fields, form fallback, disabled schemas, authorization and stale-response handling.
 
 Exit: email and a query-editor integration can use the same field tree without sharing feature-specific roots or policies.
+
+Implemented in PR 1; see [shared assistance API and validation](schema-assist-01-shared.md).
 
 ### 2. Named-query editor
 
