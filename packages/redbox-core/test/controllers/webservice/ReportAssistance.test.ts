@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import UrlPattern from 'url-pattern';
 import { Controllers } from '../../../src/controllers/webservice/ReportController';
+import { Controllers as AdminControllers } from '../../../src/controllers/ReportController';
 import { policies } from '../../../src/config/policies.config';
 import { routes } from '../../../src/config/routes.config';
 import { reportsApiRoutes } from '../../../src/api-routes/groups/reports';
@@ -17,6 +18,11 @@ const actions = ['describeQuery', 'validateConfig', 'previewConfig'] as const;
 describe('Report assistance HTTP boundary', () => {
   class Controller extends Controllers.Report {
     public override sendResp(...args: Parameters<Controllers.Report['sendResp']>) {
+      return super.sendResp(...args);
+    }
+  }
+  class AdminController extends AdminControllers.Report {
+    public override sendResp(...args: Parameters<AdminControllers.Report['sendResp']>) {
       return super.sendResp(...args);
     }
   }
@@ -85,6 +91,19 @@ describe('Report assistance HTTP boundary', () => {
       }
       assert.equal(send.firstCall.args[2]?.headers?.['Cache-Control'], 'no-store');
     });
+  for (const endpoint of ['api', 'admin']) it(`${endpoint} preview filters do not leak report body properties`, async () => {
+    const req = { ...request(), query: { title: 'coral', created_fromDate: '2026-01-01' },
+      param: (key: string) => ({ portal: 'rdmp', title: 'Report title', name: 'report-name' })[key] };
+    const target = endpoint === 'api' ? controller : new AdminController();
+    sinon.stub(target, 'sendResp');
+    await target.previewConfig(req as unknown as Sails.Req, {} as Sails.Res);
+    const parameters = service.previewConfig.firstCall.args[2] as Sails.ReqParamProvider;
+    assert.equal(parameters.param('title'), 'coral');
+    assert.equal(parameters.param('name'), undefined);
+    assert.equal(parameters.param('created_fromDate'), '2026-01-01');
+    req.query.title = '';
+    assert.equal(parameters.param('title'), '');
+  });
   it('keeps completed validation diagnostics available in v1 and v2', async () => {
     service.validateConfig.resolves({ valid: false, diagnostics: [{ code: 'INVALID_REPORT', severity: 'error' }] });
     const res = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
