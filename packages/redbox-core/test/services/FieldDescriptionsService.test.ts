@@ -135,6 +135,24 @@ describe('FieldDescriptionsService', () => {
     await assert.rejects(fields(), { code: 'FORBIDDEN' });
     sinon.assert.notCalled(getForm);
   });
+  it('resolves SCU-style form label keys with the current brand before field search', async () => {
+    mock.config.recordSchema.enabled = false;
+    getForm.resolves({ branding: 'a', configuration: { fields: [
+      { name: 'title', label: '@dmpt-project-title' },
+      { name: 'scu_retention', label: 'Literal label' },
+      { name: 'missing', label: '@missing-label' },
+    ] } });
+    const translate = sinon.stub().callsFake((key: string) => key === '@dmpt-project-title' ? 'Project name:' : key);
+    const previous = Reflect.get(globalThis, 'TranslationService');
+    Reflect.set(globalThis, 'TranslationService', { t: translate });
+    try {
+      const result = await fields();
+      assert.equal(result.fields.find(field => field.path === 'title')?.title, 'Project name:');
+      assert.equal(result.fields.find(field => field.path === 'scu_retention')?.title, 'Literal label');
+      assert.equal(result.fields.find(field => field.path === 'missing')?.title, '@missing-label');
+      assert.deepEqual(translate.firstCall.args, ['@dmpt-project-title', undefined, 'en', 'brand-a']);
+    } finally { Reflect.set(globalThis, 'TranslationService', previous); }
+  });
   for (const outcome of ['forbidden', 'unavailable', 'throws'])
     it(`does not fall back after ${outcome}`, async () => {
       if (outcome === 'throws') describe.rejects(new Error('private config'));

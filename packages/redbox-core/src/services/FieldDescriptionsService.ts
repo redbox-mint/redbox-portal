@@ -36,7 +36,7 @@ export interface EffectiveMetadataDescription {
 }
 
 /** Effective model names only. Containers describe structure, not leaf value types. */
-export function formMetadataSchema(form: unknown): EditorContextSchema {
+export function formMetadataSchema(form: unknown, translate?: (key: string) => string): EditorContextSchema {
   const metadata = object({}, true);
   let visited = 0;
   const add = (parent: EditorContextSchema, name: string, title?: string): EditorContextSchema | null => {
@@ -51,7 +51,15 @@ export function formMetadataSchema(form: unknown): EditorContextSchema {
       if (!Object.hasOwn(node.properties!, part)) node.properties![part] = {};
       node = node.properties![part];
     }
-    if (title) node.title = title;
+    if (title) {
+      node.title = title;
+      if (translate && title.startsWith('@')) {
+        try {
+          const translated = translate(title);
+          if (translated && translated !== title) node.title = translated;
+        } catch { /* Missing translation assistance must not hide otherwise available fields. */ }
+      }
+    }
     return node;
   };
   const walk = (value: unknown, parent: EditorContextSchema, depth = 0): void => {
@@ -250,7 +258,10 @@ export namespace Services {
                 false,
                 { hydrateVocabulary: false }
               );
-              metadataSchema = formMetadataSchema(effective);
+              metadataSchema = formMetadataSchema(effective,
+                typeof TranslationService !== 'undefined' && typeof TranslationService.t === 'function'
+                  ? key => String(TranslationService.t(key, undefined, 'en', brand.name))
+                  : undefined);
               if (Object.keys(metadataSchema.properties ?? {}).length) {
                 precision = 'form-config';
                 completeness = 'partial';
