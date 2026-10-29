@@ -1,3 +1,4 @@
+import type { ContextSchemaField, EditorDiagnostic } from '@researchdatabox/sails-ng-common';
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 
 interface NamedQueryParam {
@@ -18,11 +19,22 @@ interface ParamEntry extends NamedQueryParam {
 @Component({
   selector: 'query-param-editor',
   templateUrl: './query-param-editor.component.html',
-  standalone: false
+  standalone: false,
 })
 export class QueryParamEditorComponent implements OnChanges {
+  @Output() validityChange = new EventEmitter<boolean>();
+  @Input() fields: ContextSchemaField[] = [];
+  @Input() diagnostics: EditorDiagnostic[] = [];
+
   @Input() queryParams: Record<string, NamedQueryParam> = {};
   @Output() queryParamsChange = new EventEmitter<Record<string, NamedQueryParam>>();
+
+  private invalidDefaults = new Set<number>();
+  defaultValidity(id: number, valid: boolean): void {
+    if (valid) this.invalidDefaults.delete(id);
+    else this.invalidDefaults.add(id);
+    this.validityChange.emit(this.invalidDefaults.size === 0);
+  }
 
   expandedParam: string | null = null;
   addingNew = false;
@@ -56,25 +68,32 @@ export class QueryParamEditorComponent implements OnChanges {
 
   cancelAdd(): void {
     this.addingNew = false;
+    this.defaultValidity(0, true);
   }
 
   addParam(): void {
-    if (!this.newParam.key) return;
-    const updated = { ...this.queryParams };
+    if (!this.newParam.key || this.invalidDefaults.has(0)) return;
+    // Keep existing control identities and their pending typed/default text intact.
     const key = this.newParam.key;
-    const { id: _id, key: _k, ...param } = this.newParam;
-    updated[key] = param;
-    this.emit(updated);
+    const entry = { ...this.newParam, id: this.nextEntryId++ };
+    const existing = this.entries.findIndex(param => param.key === key);
+    if (existing >= 0) {
+      this.defaultValidity(this.entries[existing].id, true);
+      this.entries = this.entries.map((param, index) => (index === existing ? entry : param));
+    } else this.entries = [...this.entries, entry];
+    this.emitFromEntries();
     this.addingNew = false;
   }
 
   onFieldChange(entry: ParamEntry, field: keyof NamedQueryParam, value: unknown): void {
     (entry as unknown as Record<string, unknown>)[field as string] = value;
+    if (field === 'type' || field === 'whenUndefined') this.defaultValidity(entry.id, true);
     this.emitFromEntries();
   }
 
   removeParam(entry: ParamEntry): void {
     this.entries = this.entries.filter(e => e.id !== entry.id);
+    this.defaultValidity(entry.id, true);
     if (this.expandedParam === entry.key) {
       this.expandedParam = null;
     }
@@ -93,24 +112,11 @@ export class QueryParamEditorComponent implements OnChanges {
     this.queryParamsChange.emit(updated);
   }
 
-  private emit(value: Record<string, NamedQueryParam>): void {
-    this.lastEmitted = value;
-    this.queryParams = value;
-    this.rebuildEntries();
-    this.queryParamsChange.emit(value);
-  }
-
   private rebuildEntries(): void {
     this.entries = Object.entries(this.queryParams || {}).map(([key, val]) => ({
+      ...val,
       id: this.nextEntryId++,
       key,
-      type: val.type,
-      path: val.path,
-      queryType: val.queryType,
-      whenUndefined: val.whenUndefined,
-      defaultValue: val.defaultValue,
-      format: val.format,
-      template: val.template
     }));
   }
 
@@ -124,7 +130,7 @@ export class QueryParamEditorComponent implements OnChanges {
       queryType: '',
       defaultValue: '',
       format: 'days',
-      template: ''
+      template: '',
     };
   }
 
