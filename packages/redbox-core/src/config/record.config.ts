@@ -42,6 +42,12 @@ export interface RecordSearchConfig {
 
 export interface RecordAttachmentsConfig {
   path: string;
+  /**
+   * Maximum body bytes per TUS PATCH or creation-with-upload request, across all
+   * internal storage parts (buffered at up to 8 MiB each). Defaults to
+   * record.maxUploadSize. Must be a positive safe integer.
+   */
+  maxChunkSize?: number;
   store?: 'file' | 's3';
   file?: {
     directory: string;
