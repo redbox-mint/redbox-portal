@@ -535,10 +535,17 @@ describe('Request chronicles in services', () => {
           }
         )
       );
-      assert.equal(result, undefined);
-      item.finish();
-      rejectWork(new Error('detached hook failed'));
+      assert.ok(result instanceof Promise);
+      let completed = false;
+      void result.then(() => {
+        completed = true;
+      });
       await delay(0);
+      assert.equal(completed, false);
+      item.finish();
+      const error = new Error('detached hook failed');
+      rejectWork(error);
+      assert.deepEqual(await result, [{ status: 'rejected', reason: error }]);
       sinon.assert.calledWithMatch(logger.error, {
         requestId: 'detached-user-hook',
         info: { usersOperation: 'triggerPostSaveTriggers', usersOutcome: 'failed' },
