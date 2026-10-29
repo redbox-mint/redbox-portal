@@ -51,7 +51,7 @@
     "@types/express": "5.0.6",
     "@types/lodash": "4.17.24",
     "@types/node": "24.12.4",
-    "@uppy/companion": "7.1.1",
+    "@uppy/companion": "7.2.0",
     "agenda": "file:../agenda-patched/agenda-6.2.6-redbox.1.tgz",
     "ajv": "8.20.0",
     "async": "3.2.6",
