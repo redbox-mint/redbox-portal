@@ -2,7 +2,12 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
-import { ReportConfigDto, ReportConfigPreviewDto } from '@researchdatabox/sails-ng-common';
+import {
+  ReportConfigDto,
+  ReportConfigPreviewDto,
+  ReportConfigValidation,
+  ReportNamedQueryDescription,
+} from '@researchdatabox/sails-ng-common';
 import { merge as _merge } from 'lodash-es';
 import { firstValueFrom, Observable } from 'rxjs';
 
@@ -29,19 +34,34 @@ export class ReportConfigService extends HttpClientService {
   }
 
   public list(): Promise<ReportConfigDto[]> {
-    return this.unwrapResponse<ReportConfigDto[]>(this.http.get(`${this.brandingAndPortalUrl}/admin/report-config`, this.reqOptsJsonBodyOnly));
+    return this.unwrapResponse<ReportConfigDto[]>(
+      this.http.get(`${this.brandingAndPortalUrl}/admin/report-config`, this.reqOptsJsonBodyOnly)
+    );
   }
 
   public create(report: ReportConfigDto): Promise<ReportConfigDto> {
-    return this.unwrapResponse<ReportConfigDto>(this.http.post(`${this.brandingAndPortalUrl}/admin/report-config`, report, this.reqOptsJsonBodyOnly));
+    return this.unwrapResponse<ReportConfigDto>(
+      this.http.post(`${this.brandingAndPortalUrl}/admin/report-config`, report, this.reqOptsJsonBodyOnly)
+    );
   }
 
   public update(report: ReportConfigDto): Promise<ReportConfigDto> {
-    return this.unwrapResponse<ReportConfigDto>(this.http.put(`${this.brandingAndPortalUrl}/admin/report-config/${encodeURIComponent(report.name)}`, report, this.reqOptsJsonBodyOnly));
+    return this.unwrapResponse<ReportConfigDto>(
+      this.http.put(
+        `${this.brandingAndPortalUrl}/admin/report-config/${encodeURIComponent(report.name)}`,
+        report,
+        this.reqOptsJsonBodyOnly
+      )
+    );
   }
 
   public delete(name: string): Promise<{ deleted: boolean }> {
-    return this.unwrapResponse<{ deleted: boolean }>(this.http.delete(`${this.brandingAndPortalUrl}/admin/report-config/${encodeURIComponent(name)}`, this.reqOptsJsonBodyOnly));
+    return this.unwrapResponse<{ deleted: boolean }>(
+      this.http.delete(
+        `${this.brandingAndPortalUrl}/admin/report-config/${encodeURIComponent(name)}`,
+        this.reqOptsJsonBodyOnly
+      )
+    );
   }
 
   public preview(report: ReportConfigDto, filterValues: Record<string, string> = {}): Promise<ReportConfigPreviewDto> {
@@ -49,21 +69,39 @@ export class ReportConfigService extends HttpClientService {
     Object.entries(filterValues).forEach(([key, value]) => {
       params = params.set(key, value);
     });
-    return this.unwrapResponse<ReportConfigPreviewDto>(this.http.post(
-      `${this.brandingAndPortalUrl}/admin/report-config/preview`,
-      report,
-      { ...this.reqOptsJsonBodyOnly, params }
-    ));
+    return this.unwrapResponse<ReportConfigPreviewDto>(
+      this.http.post(`${this.brandingAndPortalUrl}/api/report-config/preview`, report, {
+        ...this.reqOptsJsonBodyOnly,
+        params,
+      })
+    );
+  }
+
+  public describeQuery(name: string): Promise<ReportNamedQueryDescription> {
+    return this.unwrapResponse<ReportNamedQueryDescription>(
+      this.http.get(
+        `${this.brandingAndPortalUrl}/api/report-config/named-query/${encodeURIComponent(name)}/description`,
+        this.reqOptsJsonBodyOnly
+      )
+    );
+  }
+
+  public validate(report: ReportConfigDto): Promise<ReportConfigValidation> {
+    return this.unwrapResponse<ReportConfigValidation>(
+      this.http.post(`${this.brandingAndPortalUrl}/api/report-config/validate`, report, this.reqOptsJsonBodyOnly)
+    );
   }
 
   public async listNamedQueries(): Promise<{ name: string }[]> {
-    const queries = await this.unwrapResponse<{ name: string }[]>(this.http.get(`${this.brandingAndPortalUrl}/api/named-query`, this.reqOptsJsonBodyOnly));
+    const queries = await this.unwrapResponse<{ name: string }[]>(
+      this.http.get(`${this.brandingAndPortalUrl}/api/named-query`, this.reqOptsJsonBodyOnly)
+    );
     return Array.isArray(queries) ? queries : [];
   }
 
   private async unwrapResponse<T>(request: Observable<unknown>): Promise<T> {
     const response = await firstValueFrom(request);
     const wrapped = response as DataEnvelope<T>;
-    return wrapped && typeof wrapped === 'object' && 'data' in wrapped ? wrapped.data as T : response as T;
+    return wrapped && typeof wrapped === 'object' && 'data' in wrapped ? (wrapped.data as T) : (response as T);
   }
 }

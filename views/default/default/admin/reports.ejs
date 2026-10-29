@@ -1,12 +1,17 @@
 <% let appName = 'report-config'; %>
 <% const userIsAdmin = (typeof isAdmin !== 'undefined' && isAdmin); %>
+<%
+const queryEditorBrand = BrandingService.getBrand(req.session.branding);
+const queryEditorRules = PathRulesService.getRulesFromPath(BrandingService.getBrandAndPortalPath(req) + '/admin/named-query', queryEditorBrand);
+const canManageNamedQueries = req.isAuthenticated() && (!queryEditorRules || PathRulesService.canRead(queryEditorRules, req.user.roles || [], queryEditorBrand.name));
+%>
 <div class="row admin-layout">
   <div class="col-md-3 col-lg-2">
     <%- include('layout/sidebar.ejs') %>
   </div>
   <div class="col-md-9 col-lg-10 admin-main-content">
     <% if (userIsAdmin) { %>
-      <report-config branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" is-admin="true" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <report-config branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" is-admin="true" can-manage-named-queries="<%= canManageNamedQueries ? 'true' : 'false' %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </report-config>
     <% } else { %>
