@@ -1,0 +1,50 @@
+meta {
+  name: Preview CSRF Required
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/default/rdmp/api/report-config/preview
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "unsaved",
+    "title": "Unsaved",
+    "reportSource": "database",
+    "databaseQuery": {
+      "queryName": "listRDMPRecords"
+    },
+    "filter": [
+      {
+        "type": "text",
+        "paramName": "deletedQueryParameter",
+        "property": ""
+      }
+    ],
+    "columns": [
+      {
+        "label": "Missing",
+        "property": "absentEnvelope",
+        "template": "{{#each broken}}"
+      }
+    ]
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "reportEditorCookie" });
+}
+
+tests {
+  test("Rejects preview without CSRF", () => expect(res.getStatus()).to.equal(403));
+}

@@ -1,7 +1,7 @@
 meta {
   name: Preview Report Config
   type: http
-  seq: 5
+  seq: 6
 }
 
 post {
@@ -16,6 +16,7 @@ query {
 }
 
 headers {
+  X-CSRF-Token: {{reportEditorCsrf}}
   Authorization: Bearer {{token}}
   X-ReDBox-Api-Version: 2.0
 }
@@ -50,6 +51,10 @@ body:json {
   }
 }
 
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "reportEditorCookie" });
+}
+
 tests {
   test("Status code is 200", function () {
     expect(res.getStatus()).to.equal(200);
@@ -61,5 +66,13 @@ tests {
     expect(jsonData.data).to.have.property("success", true);
     expect(jsonData.data).to.have.property("total");
     expect(jsonData.data.records).to.be.an("array");
+    expect(jsonData.data.records.length).to.be.at.most(100);
+    expect(jsonData.data.renderedRows).to.have.length(jsonData.data.records.length);
+    expect(jsonData.data.truncated).to.be.a("boolean");
+    expect(jsonData.data.truncationReasons).to.be.an("array");
+    if (jsonData.data.renderedRows.length) {
+      expect(jsonData.data.renderedRows[0].cells[0].display).to.be.a("string");
+      expect(jsonData.data.renderedRows[0].cells[0]).to.have.property("export");
+    }
   });
 }
