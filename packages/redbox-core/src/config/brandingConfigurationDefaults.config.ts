@@ -29,6 +29,8 @@ export interface BrandAuthLocalConfig extends UserPostHookConfig {
 }
 
 export interface BrandAuthAafConfig extends UserPostHookConfig {
+    /** AAF authentication request URL rendered by the login page. */
+    loginUrl?: string;
     defaultRole: string;
     attributesField: string;
     usernameField: string;
@@ -44,6 +46,10 @@ export interface BrandAuthOidcConfig extends UserPostHookConfig {
     defaultRole: string;
     postLoginRedir: string;
     claimMappings: Record<string, string>;
+    claimMappingOptions?: {
+        /** Lowercase the mapped username before looking up or creating the user. */
+        usernameToLowercase?: boolean;
+    };
     opts: {
         issuer: string;
         client: {
