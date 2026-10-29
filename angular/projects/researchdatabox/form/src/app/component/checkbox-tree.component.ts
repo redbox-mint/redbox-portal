@@ -23,7 +23,7 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <div class="redbox-checkbox-tree" role="tree" [attr.aria-label]="label || name || 'Checkbox tree'" (keydown)="onTreeKeydown($event)">
+      <div class="redbox-checkbox-tree" role="tree" [attr.aria-label]="((label | i18next) || name || 'Checkbox tree') | plainTextLabel" (keydown)="onTreeKeydown($event)">
         @if (rootLoading) {
           <div class="rb-tree-status rb-tree-status-muted">Loading vocabulary tree...</div>
         }

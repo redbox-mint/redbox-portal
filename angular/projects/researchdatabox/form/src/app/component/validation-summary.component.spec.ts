@@ -1,7 +1,8 @@
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+// Load the form registry before a component that the registry itself imports.
+import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { ValidationSummaryFieldComponent } from "./validation-summary.component";
 import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
-import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { SimpleInputComponent } from "./simple-input.component";
 import { GroupFieldComponent } from './group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
@@ -34,6 +35,64 @@ describe('ValidationSummaryFieldComponent', () => {
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
+
+  it('renders translated HTML labels as text inside the summary link, retaining raw metadata and error text', async () => {
+    translationService.translationMap['@research-label'] = 'Research with <a href="https://example.org" target="_blank" rel="noopener">DFAT &amp; Australia&#39;s partners</a>?';
+    const { fixture } = await createFormAndWaitForReady({
+      name: 'html-labels',
+      componentDefinitions: [
+        {
+          name: 'research',
+          model: { class: 'SimpleInputModel', config: { value: '', validators: [{ class: 'required' }] } },
+          component: { class: 'SimpleInputComponent' },
+          layout: { class: 'DefaultLayout', config: { label: '@research-label' } },
+        },
+        { name: 'summary', component: { class: 'ValidationSummaryComponent' } },
+      ],
+    }, { editMode: true });
+    const root: HTMLElement = fixture.nativeElement;
+    const link = root.querySelector('.validation-summary-item a');
+    expect(link?.textContent).toBe("Research with DFAT & Australia's partners?");
+    expect(link?.querySelector('a')).toBeNull();
+    expect(link?.textContent).not.toContain('<a href');
+    expect(link?.getAttribute('data-validation-summary-message')).toBe('@research-label');
+    // The original field continues to render the linked label intentionally.
+    expect(root.querySelector('.rb-form-field-label a')?.textContent).toBe("DFAT & Australia's partners");
+
+    const summary = fixture.componentInstance.componentDefArr[1].component as ValidationSummaryFieldComponent;
+    summary.validationErrorsDisplay$.next([{
+      id: 'server-field', message: translationService.translationMap['@research-label'],
+      errors: [{ class: 'server', message: 'Keep literal <value> &amp; text', params: {} }],
+      lineagePaths: { formConfig: [], angularComponents: [], dataModel: [], layout: [] },
+    }]);
+    fixture.detectChanges();
+    expect(root.querySelector('.validation-summary-item a')?.textContent).toBe("Research with DFAT & Australia's partners?");
+    expect(root.querySelector('.validation-summary-errors li')?.textContent).toBe('Keep literal <value> &amp; text');
+  });
+
+  for (const source of ['form config', 'component entries']) {
+    it(`converts tab, group and leaf lineage labels from ${source} before joining and deduplicating`, () => {
+      const component = TestBed.createComponent(ValidationSummaryFieldComponent).componentInstance;
+      const leaf = { name: 'field', component: { class: 'SimpleInputComponent' }, layout: { config: { label: '<a href="/field">Field &amp; partners</a>' } } };
+      const group = { name: 'group', component: { class: 'GroupComponent', config: { componentDefinitions: [leaf] } }, layout: { config: { label: '<b>Group</b>' } } };
+      const tab = { name: 'tab', component: { class: 'TabContentComponent', config: { componentDefinitions: [group] } }, layout: { config: { buttonLabel: '<em>Tab</em>' } } };
+      const leafEntry = { compConfigJson: leaf };
+      const groupEntry = { compConfigJson: group, component: { formFieldCompMapEntries: [leafEntry] } };
+      const tabEntry = { compConfigJson: tab, component: { formFieldCompMapEntries: [groupEntry] } };
+      spyOnProperty(component as any, 'formComponent', 'get').and.returnValue({
+        formDefMap: source === 'form config' ? { formConfig: { componentDefinitions: [tab] } } : undefined,
+        componentDefArr: [tabEntry],
+      });
+      (component as any).formFieldCompMapEntry = { compConfigJson: { component: { config: { includeTabLabel: true } } } };
+      expect(component.getValidationSummaryLabel({
+        id: 'field', message: '<strong>Field &amp; partners</strong>', errors: [],
+        lineagePaths: {
+          formConfig: ['componentDefinitions', 0, 'component', 'config', 'componentDefinitions', 0, 'component', 'config', 'componentDefinitions', 0],
+          angularComponents: ['tab', 'group', 'field'], dataModel: [], layout: [],
+        },
+      })).toBe('Tab - Group - Field & partners');
+    });
+  }
 
   it('should reveal tabs implemented by a dynamically loaded component instance', () => {
     const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);

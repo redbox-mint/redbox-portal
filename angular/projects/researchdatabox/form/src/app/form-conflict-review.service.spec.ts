@@ -50,6 +50,12 @@ describe('FormConflictReviewService', () => {
     service = TestBed.inject(FormConflictReviewService);
   });
 
+  it('uses plain text field labels in conflict review', () => {
+    const projection = service.project(conflict({ field: 'base' }, { field: 'mine' }, { field: 'latest' }),
+      { field: 'mine' }, [entry('field', '<a href="/help">Research &amp; partners</a>')]);
+    expect(projection?.items[0].label).toBe('Research & partners');
+  });
+
   it('maps current labels and configured option renderers while retaining non-overlapping local changes', () => {
     const base = {
       status: 'draft',

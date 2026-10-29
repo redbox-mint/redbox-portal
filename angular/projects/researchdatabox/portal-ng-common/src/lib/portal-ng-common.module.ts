@@ -19,6 +19,7 @@ import { RecordTableComponent } from './record-table.component';
 import { ReportService } from './report.service';
 import { HeaderSortComponent } from "./header-sort.component";
 import { I18NextPipe } from './i18next.pipe';
+import { PlainTextLabelPipe } from './plain-text-label.pipe';
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
     var trimmedUrl = baseUrl.substring(0, baseUrl.length - 1);
@@ -60,10 +61,12 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     HttpClientModule,
     FormsModule,
     I18NextPipe,
+    PlainTextLabelPipe,
     PaginationModule.forRoot()
   ],
   exports: [
     I18NextPipe,
+    PlainTextLabelPipe,
     PaginationModule,
     RecordTableComponent,
     HeaderSortComponent,
