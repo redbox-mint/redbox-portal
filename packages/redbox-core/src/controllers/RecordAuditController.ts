@@ -83,7 +83,9 @@ export namespace Controllers {
         return '';
       }
 
-      return `/${branding}/${portal}/api/records/audit/${encodeURIComponent(oid)}`;
+      const rootContext = BrandingService.getRootContext().replace(/^\/+|\/+$/g, '');
+      const rootPath = rootContext ? `/${rootContext}` : '';
+      return `${rootPath}/${branding}/${portal}/api/records/audit/${encodeURIComponent(oid)}`;
     }
 
     protected hasViewAccess(brand: BrandingModel, user: AnyRecord | undefined, record: AnyRecord): Observable<boolean> {

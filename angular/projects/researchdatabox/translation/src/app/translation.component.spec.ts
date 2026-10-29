@@ -113,6 +113,102 @@ describe('AppComponent (translation)', () => {
     return { fixture, comp };
   }
 
+  it('shows a warning for failed entries, preserves editor data, and retries to a real empty list', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const previous = comp.entries();
+    comp.openEdit(previous[0]);
+    comp.onPlainTextChange('Unsaved editor text');
+    comp.modalOpen.set(false);
+    const spy = spyOn(translationService, 'listEntries').and.rejectWith(new Error('offline'));
+    await comp.loadEntries();
+    fixture.detectChanges();
+    expect(comp.entries()).toEqual(previous);
+    expect(comp.editValue).toBe('Unsaved editor text');
+    expect(comp.readPending().entries).toBeFalse();
+    const button = Array.from(fixture.nativeElement.querySelectorAll('[role="status"] button'))
+      .find((element) => (element as HTMLButtonElement).textContent?.includes('Retry loading entries')) as HTMLButtonElement;
+    expect(button).toBeTruthy();
+    spy.and.resolveTo([]);
+    button.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(comp.entries()).toEqual([]);
+    expect(comp.readWarnings().entries).toBeUndefined();
+    expect(comp.editValue).toBe('Unsaved editor text');
+    expect(translationService.setEntryCalls).toEqual([]);
+  });
+
+  it('warns for failed languages and recovers the language list and bundle settings on retry', async () => {
+    const { comp } = create();
+    const spy = spyOn(translationService, 'listLanguages').and.rejectWith(new Error('offline'));
+    await comp.ngOnInit();
+    expect(comp.languages()).toEqual([]);
+    expect(comp.readWarnings().languages).toContain('does not confirm');
+    expect(comp.readPending().languages).toBeFalse();
+    spy.and.callThrough();
+    await comp.retryLanguages();
+    expect(comp.readWarnings().languages).toBeUndefined();
+    expect(comp.availableLanguages()).toEqual(['en', 'fr']);
+    expect(comp.entries().length).toBe(3);
+  });
+
+  it('identifies default bundle availability and recovers without overwriting user choices', async () => {
+    const { comp } = create();
+    const spy = spyOn(translationService, 'getBundle').and.rejectWith(new Error('offline'));
+    await comp.ngOnInit();
+    expect(comp.availableLanguages()).toEqual(['en', 'fr', 'de']);
+    expect(comp.readWarnings().bundles).toContain('defaults');
+    expect(comp.readPending().bundles).toBeFalse();
+    comp.toggleAvailableLanguage('fr', false);
+    spy.and.callThrough();
+    await comp.loadAvailableLanguagesFromBundles();
+    expect(comp.availableLanguages()).toEqual(['en']);
+    expect(comp.readWarnings().bundles).toBeUndefined();
+    expect(translationService.updateBundleEnabledCalls).toEqual([]);
+  });
+
+  it('ignores older entries after changing language, including stale failures', async () => {
+    const { comp } = create();
+    await comp.ngOnInit();
+    let rejectOld!: (error: Error) => void;
+    const spy = spyOn(translationService, 'listEntries').and.returnValue(new Promise((_, reject) => { rejectOld = reject; }));
+    const old = comp.loadEntries();
+    comp.selectedLang = 'fr';
+    spy.and.resolveTo([{ key: 'fr', value: 'French' }]);
+    await comp.onLangChange();
+    rejectOld(new Error('stale'));
+    await old;
+    expect(comp.entries()).toEqual([{ key: 'fr', value: 'French' }]);
+    expect(comp.readWarnings().entries).toBeUndefined();
+    expect(comp.readPending().entries).toBeFalse();
+  });
+
+  it('retries display name reads without replacing text edited while the request is pending', async () => {
+    const { comp } = create();
+    await comp.ngOnInit();
+    const spy = spyOn(translationService, 'getBundle').and.rejectWith(new Error('offline'));
+    comp.displayNameModalOpen.set(true);
+    comp.editDisplayName = 'en';
+    await comp.loadCurrentDisplayName();
+    expect(comp.readWarnings().displayName).toContain('could not be loaded');
+    let resolve!: (value: { displayName: string; enabled: boolean }) => void;
+    spy.and.returnValue(new Promise(done => { resolve = done; }));
+    const retry = comp.loadCurrentDisplayName();
+    comp.editDisplayName = 'My unsaved name';
+    comp.displayNameEdited = true;
+    resolve({ displayName: 'English', enabled: true });
+    await retry;
+    expect(comp.editDisplayName).toBe('My unsaved name');
+    expect(comp.readWarnings().displayName).toBeUndefined();
+    expect(comp.readPending().displayName).toBeFalse();
+    spy.and.callThrough();
+    await comp.loadCurrentDisplayName();
+    expect(comp.editDisplayName).toBe('My unsaved name');
+    expect(translationService.updateLanguageDisplayNameCalls).toEqual([]);
+  });
+
   it('should create', async () => {
     const { comp } = create();
     expect(comp).toBeTruthy();

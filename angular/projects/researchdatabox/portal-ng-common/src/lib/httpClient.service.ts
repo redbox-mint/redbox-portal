@@ -85,15 +85,15 @@ export class HttpClientService implements Service {
    * @returns itself
    */
   public async waitForInit(): Promise<any> {
-    if (!this.isInitializing()) {
-      return this;
-    }
+    // Re-read config after explicit recovery instead of retaining a stale session.
     await this.utilService.waitForDependencies([this.configService]);
     this.config = await this.configService.getConfig();
     this.baseUrl = this.config.baseUrl;
     this.brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${this.config.branding}/${this.config.portal}`;
     this.baseUrlWithContext = `${this.baseUrl}${this.rootContext}`;
-    this.httpContext = new HttpContext();
+    // Retain CSRF opt-in and other request context across configuration reloads.
+    // The interceptor resolves opted-in requests against the current token.
+    this.httpContext ??= new HttpContext();
     return this;
   }
   /**

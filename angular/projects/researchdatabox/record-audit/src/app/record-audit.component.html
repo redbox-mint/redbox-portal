@@ -1,3 +1,10 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-default" [disabled]="loadPending" (click)="retryLoad()">Retry</button>
+  </div>
+}
+@if (isReady) {
 <div class="record-audit-app">
   <!-- Page heading -->
   <div class="rb-page-heading">
@@ -658,3 +665,5 @@
     </div>
   </section>
 </div>
+
+}

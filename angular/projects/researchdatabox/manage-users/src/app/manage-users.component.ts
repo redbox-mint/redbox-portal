@@ -146,9 +146,7 @@ export class ManageUsersComponent extends BaseComponent {
 
   protected override async initComponent(): Promise<void> {
     const roles = await this.userService.getBrandRoles() as unknown as Role[];
-    for (const role of roles) {
-      this.allRoles.push(role);
-    }
+    this.allRoles = [...roles];
     await this.refreshUsers();
   }
 

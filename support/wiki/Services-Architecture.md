@@ -230,6 +230,67 @@ Recent user-management work extends `UsersService` beyond simple CRUD. It now al
 
 The corresponding admin-facing controller surface is documented on the **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)** page.
 
+### User post-save hook completion and errors
+
+`UsersService.triggerPostSaveTriggers(user, config, mode = 'onUpdate')` returns
+`Promise<PromiseSettledResult<unknown>[]>`. Await it to obtain all hook outcomes
+in configuration order. Every configured `hooks.<mode>.post` entry with a
+non-null `function` runs independently; entries without a function are skipped.
+An absent or non-array hook list produces `[]`.
+
+Hooks receive `(user, options)` and may return a plain value, `undefined`, a
+Promise/thenable, or an RxJS Observable. Observable hooks are awaited through
+completion and return their last emitted value, or `undefined` if empty.
+A rejected Promise, Observable error, synchronous throw, invalid function
+expression, or expression resolving to a non-function produces a
+`{ status: 'rejected', reason }` entry with the original error. Failures are
+also logged. Other hooks continue and the aggregate fulfills only after all
+hooks settle. Inspect rejected entries explicitly when failures matter:
+
+```typescript
+const outcomes = await users.triggerPostSaveTriggers(user, authConfig);
+for (const outcome of outcomes) {
+    if (outcome.status === 'rejected') {
+        // Apply the caller's failure policy; the user has already been saved.
+        handleHookFailure(outcome.reason);
+    }
+}
+```
+
+Previously this method returned `void` and discarded outcomes. Callers that
+ignore the new return value can still do so; hook failures are handled and
+logged without an unhandled rejection. Local, AAF, and OIDC login now await all
+regular post hooks before completing authentication, including when pre hooks run.
+OIDC account-creation calls explicitly select `onCreate` when invoking the runner.
+Hook failures remain non-fatal to login and do not roll back a saved user.
+Hooks still run concurrently; their return values do not replace the user or
+feed the next hook. The sequential `postSync` chain starts after regular hooks
+are launched, without waiting for regular hook completion. It remains a background chain and does not
+hold the login callback. Its failures are logged and handled. This permits a
+regular hook to depend on a `postSync` hook without introducing a dependency
+cycle. OIDC creation selects `onCreate` for both groups.
+
+Compatibility: login latency now includes post-hook execution. Observable hooks
+previously used their first emission; they now wait for completion so late
+errors are retained. Each regular hook now has an absolute deadline, measured
+when its response is received, including Observable completion (emissions do not reset the deadline).
+Configure `postHookTimeoutMs` on the selected auth provider object, for example
+`auth.local.postHookTimeoutMs = 5000` in brand auth configuration. It applies to
+both `onCreate.post` and `onUpdate.post`, independently for every hook; concurrent
+hooks do not each add their timeout to login latency. The default is 30000ms.
+Only positive integer numbers up to 2147483647 are accepted; omitted, zero,
+negative, fractional, string, nonfinite or oversized values use the default.
+The typed setting is shared by local, AAF and OIDC provider configurations.
+
+Timeout produces a rejected outcome with an Error identifying the deadline;
+other results remain ordered and hook failures/timeouts remain nonfatal to login.
+Timers are cleared on settlement. Observable subscriptions are disposed on
+settlement or timeout. Promises cannot be cancelled: their work may continue
+after timeout, but late rejections remain handled. This deadline cannot interrupt
+synchronous JavaScript that blocks the event loop. It does not apply to pre hooks
+or `postSync`. Hooks should not depend on the login callback itself; such regular
+hooks now time out rather than preventing login indefinitely.
+
 ## Overriding Services in Hooks
 
 Hooks can provide custom services that override core services. Hook services take precedence.

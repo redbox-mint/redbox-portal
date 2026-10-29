@@ -172,20 +172,73 @@ function mergeAgendaQueueConfig(...configs: RedboxConfigMap[]): RedboxConfigMap 
     };
 }
 
+/** Consume sibling replacement directives on cloned config layers before merging. */
+function applyDontMerge(
+    target: RedboxConfigMap,
+    source: RedboxConfigMap,
+    seen = new WeakSet<object>(),
+    directives = new WeakMap<object, unknown[]>()
+): void {
+    const _ = require('lodash') as typeof import('lodash');
+    if (seen.has(source)) {
+        return;
+    }
+    seen.add(source);
+    // Shared config objects may occur under multiple siblings; retain their directives
+    // after consuming the marker, while guarding only against ancestor cycles.
+    const fields = directives.get(source) ?? (Array.isArray(source._dontMerge) ? source._dontMerge : []);
+    directives.set(source, fields);
+    delete source._dontMerge;
+    for (const key of Object.keys(source)) {
+        // Match lodash's protection against traversing prototype properties.
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+            continue;
+        }
+        if (fields.includes(key)) {
+            delete target[key];
+        }
+        const value = source[key];
+        if (_.isPlainObject(value) || Array.isArray(value)) {
+            const previous = Object.prototype.hasOwnProperty.call(target, key) ? target[key] : undefined;
+            applyDontMerge(
+                (_.isPlainObject(previous) || Array.isArray(previous) ? previous : {}) as RedboxConfigMap,
+                value as RedboxConfigMap,
+                seen,
+                directives
+            );
+        }
+    }
+    seen.delete(source);
+}
+
+/** Merge layers in precedence order; _dontMerge lists literal siblings replaced by that layer only. */
 export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): RedboxConfigMap {
     const _ = require('lodash') as typeof import('lodash');
-    if (name === 'agendaQueue') {
-        return mergeAgendaQueueConfig(...configs);
+    let merged: RedboxConfigMap = name === 'agendaQueue' ? { jobs: {} } : {};
+    for (const config of configs) {
+        if (config == null) continue;
+        // Copy configuration containers, but retain runtime objects (for example
+        // webpack plugins whose private fields cannot survive prototype cloning).
+        const source = _.cloneDeepWith(config, (value: unknown) => {
+            return value !== null && typeof value === 'object' && !_.isPlainObject(value) && !Array.isArray(value)
+                ? value
+                : undefined;
+        });
+        if (name === 'agendaQueue' && Array.isArray(source.jobs)) {
+            source.jobs = normalizeAgendaJobsConfig(source.jobs);
+        }
+        applyDontMerge(merged, source);
+        if (name === 'agendaQueue') {
+            merged = mergeAgendaQueueConfig(merged, source);
+        } else if (name === 'brandingConfigurationDefaults') {
+            merged = _.mergeWith(merged, source, (_objValue: unknown, srcValue: unknown) => {
+                return Array.isArray(srcValue) ? srcValue : undefined;
+            }) as RedboxConfigMap;
+        } else {
+            _.merge(merged, source);
+        }
     }
-    if (name === 'brandingConfigurationDefaults') {
-        return _.mergeWith({}, ...configs, (_objValue: unknown, srcValue: unknown) => {
-            if (Array.isArray(srcValue)) {
-                return srcValue;
-            }
-            return undefined;
-        }) as RedboxConfigMap;
-    }
-    return _.merge({}, ...configs) as RedboxConfigMap;
+    return merged;
 }
 
 type CoreTypesRegistry = {

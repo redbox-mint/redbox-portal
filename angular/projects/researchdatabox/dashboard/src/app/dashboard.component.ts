@@ -1,3 +1,4 @@
+import { NgModel } from '@angular/forms';
 import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField, HandlebarsTemplateService, DashboardViewDefinitionResponse, DashboardViewStepDefinitionResponse } from '@researchdatabox/portal-ng-common';
@@ -894,42 +895,48 @@ export class DashboardComponent extends BaseComponent {
     };
   }
 
-  public async pageChanged(event: PageChangedEvent, step: string) {
+  public async pageChanged(event: PageChangedEvent, step: string, pageModel?: NgModel) {
 
-    if (this.isProcessingPageChange) {
+    if (this.isProcessingPageChange || event.page === this.records[step]?.currentPage) {
       return;
     }
 
     this.isProcessingPageChange = true;
+    this.loadError = '';
+    try {
 
-    let sortMapAtStep = this.sortMap[step];
+      let sortMapAtStep = this.sortMap[step];
 
-    if (this.dashboardTypeSelected == 'standard') {
-      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, this.recordType);
-      this.records[step] = planTable;
-      this.isProcessingPageChange = false;
-    } else if (this.dashboardTypeSelected == 'workspace') {
-      let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, '');
-      this.records[step] = planTable;
-      this.isProcessingPageChange = false;
-    } else if (!_isEmpty(this.dashboardView)) {
-      const workflowSteps = _isArray(this.workflowSteps) ? this.workflowSteps : [];
-      if (workflowSteps.length === 0) {
-        this.isProcessingPageChange = false;
-        return;
+      if (this.dashboardTypeSelected == 'standard') {
+        let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
+        let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, this.recordType);
+        this.records[step] = planTable;
+      } else if (this.dashboardTypeSelected == 'workspace') {
+        let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortStringFromSortMap(sortMapAtStep, step, true), this.filterFieldPath, this.getFilterSearchString(step), '', this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true));
+        let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, '');
+        this.records[step] = planTable;
+      } else if (!_isEmpty(this.dashboardView)) {
+        const workflowSteps = _isArray(this.workflowSteps) ? this.workflowSteps : [];
+        if (workflowSteps.length === 0) {
+          return;
+        }
+
+        const currentStep = _find(workflowSteps, (workflowStep) => this.getStepKey(workflowStep) == step) || workflowSteps[0];
+        const evaluateStepName = this.getStepKey(currentStep) || step;
+        const recordType = _get(currentStep, 'dashboardViewStep.sourceRecordType', this.recordType);
+        const dashboardViewStep = _get(currentStep, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
+        const stepName = dashboardViewStep.fetchMode == 'workflowStage'
+          ? (dashboardViewStep.sourceWorkflowStage || evaluateStepName)
+          : '';
+        this.restoreDashboardViewStepConfig(evaluateStepName);
+        await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
       }
-
-      const currentStep = _find(workflowSteps, (workflowStep) => this.getStepKey(workflowStep) == step) || workflowSteps[0];
-      const evaluateStepName = this.getStepKey(currentStep) || step;
-      const recordType = _get(currentStep, 'dashboardViewStep.sourceRecordType', this.recordType);
-      const dashboardViewStep = _get(currentStep, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
-      const stepName = dashboardViewStep.fetchMode == 'workflowStage'
-        ? (dashboardViewStep.sourceWorkflowStage || evaluateStepName)
-        : '';
-      this.restoreDashboardViewStepConfig(evaluateStepName);
-      await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
+    } catch (error) {
+      this.showLoadError(error, () => this.pageChanged(event, step, pageModel));
+    } finally {
+      // Keep the selected control page aligned with the rows after failure.
+      // Reset NgModel too, with the processing guard held while it emits.
+      pageModel?.reset(this.records[step]?.currentPage || 1);
       this.isProcessingPageChange = false;
     }
   }

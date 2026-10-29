@@ -43,7 +43,7 @@ export namespace Services {
     limit?: number;
     offset?: number;
     sort?: string;
-    branding?: string;
+    branding?: string | number | { id?: string | number; _id?: string | number; name?: string };
   }
 
   export interface VocabularyTreeNode extends VocabularyEntryAttributes {
@@ -143,6 +143,7 @@ export namespace Services {
   }
 
   type VocabularyListWhere = {
+    branding: string;
     type?: VocabularyAttributes['type'];
     source?: VocabularyAttributes['source'];
     or?: Array<
@@ -230,7 +231,7 @@ export namespace Services {
           return String(brandingObject._id);
         }
         if (typeof brandingObject.name === 'string' && brandingObject.name.trim()) {
-          return brandingObject.name.trim();
+          return this.resolveBrandingId(brandingObject.name);
         }
         return '';
       }
@@ -258,15 +259,21 @@ export namespace Services {
       const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
       const sort = options.sort || 'name ASC';
 
-      const where: VocabularyListWhere = {};
+      // Omitted branding uses the same default as request brand resolution. Never
+      // turn an empty brand into an unscoped query.
+      const branding = this.resolveBrandingId(options.branding === undefined
+        ? sails.config.auth.defaultBrand
+        : options.branding);
+      if (!branding) {
+        return { data: [], meta: { total: 0, limit, offset } };
+      }
+      const where: VocabularyListWhere = { branding };
       if (options.type && VALID_TYPES.has(options.type as VocabType)) {
         where.type = options.type as VocabularyAttributes['type'];
       }
       if (options.source && VALID_SOURCES.has(options.source as VocabSource)) {
         where.source = options.source as VocabularyAttributes['source'];
       }
-      // Branding is single-tenant for this admin feature; avoid ObjectId/string mismatch
-      // filtering at query time which can hide records in Mongo-backed environments.
       if (options.q) {
         where.or = [
           { name: { contains: options.q } },
@@ -654,6 +661,7 @@ export namespace Services {
       };
 
       const entries = payload.entries ?? [];
+      this.validateReplacementParents(entries);
       delete payload.entries;
 
       const createPayload: Partial<VocabularyAttributes> = {
@@ -758,6 +766,9 @@ export namespace Services {
         throw new Error('Vocabulary not found');
       }
       await this.assertMutableVocabulary(id);
+      if (input.entries) {
+        this.validateReplacementParents(input.entries);
+      }
 
       const updatePayload: Partial<VocabularyInput> = { ...input };
       const entries = updatePayload.entries;
@@ -1002,6 +1013,16 @@ export namespace Services {
       }
 
       return { created, updated, skipped };
+    }
+
+    // Replacement recreates every entry, so parents must resolve within this payload.
+    // Validate before any writes, including on datastores without transactions.
+    private validateReplacementParents(entries: VocabularyEntryInput[]): void {
+      const flat = this.flattenEntries(entries);
+      const ids = new Set(flat.map(entry => String(entry.id)));
+      if (flat.some(entry => entry.parent && !ids.has(String(entry.parent)))) {
+        throw new Error('VocabularyEntry.parent must belong to the replacement entries');
+      }
     }
 
     private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<void> {

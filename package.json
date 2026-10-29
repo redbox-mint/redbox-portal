@@ -104,7 +104,8 @@
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node packages/redbox-dev-tools/bin/wrapper-webpack.js",
     "dev:prepare": "./support/development/prepareLocalDev.sh",
     "compile:jsonSchema": "./support/development/compileJsonSchema.sh",
-    "nvm:install-all": "bash ./support/development/installAllNvmrc.sh"
+    "nvm:install-all": "bash ./support/development/installAllNvmrc.sh",
+    "test:agenda-watchdog": "node --test packages/agenda-patched/test/*.test.mjs"
   },
   "main": "app.js",
   "repository": {

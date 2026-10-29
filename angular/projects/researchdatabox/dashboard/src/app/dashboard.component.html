@@ -1,3 +1,9 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-default" [disabled]="loadPending || isProcessingPageChange" (click)="retryLoad()">Retry</button>
+  </div>
+}
 @if (isReady) {
   <div>
     <ng-container>
@@ -65,8 +71,8 @@
                     }
                   </table>
                   @if (records[getStepKey(workflowStep)].totalItems > 0) {
-                    <pagination [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
-                    [(ngModel)]="records[getStepKey(workflowStep)].currentPage" (pageChanged)="pageChanged($event,getStepKey(workflowStep))" class="pagination-sm" [maxSize]="10"></pagination>
+                    <pagination #paginator #pageModel="ngModel" [disabled]="loadPending || isProcessingPageChange" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
+                    [ngModel]="records[getStepKey(workflowStep)].currentPage" (ngModelChange)="pageChanged({page: $event, itemsPerPage: paginator.itemsPerPage}, getStepKey(workflowStep), pageModel)" class="pagination-sm" [maxSize]="10"></pagination>
                   }
                 </div>
               }
