@@ -21,14 +21,22 @@ import {
   imports: [CommonModule, I18NextPipe],
   template: `@for (d of matching; track $index) {
     <div
-      class="report-diagnostic"
-      [class.text-danger]="d.severity === 'error'"
-      [class.text-warning]="d.severity !== 'error'"
+      class="rb-ws-diagnostic report-diagnostic"
+      [class.rb-ws-diagnostic-warning]="d.severity !== 'error'"
+      [class.report-diagnostic-error]="d.severity === 'error'"
       [attr.data-location]="d.field"
       role="status"
     >
-      <strong>{{ (d.severity === 'error' ? 'report-blocking' : 'report-advisory') | i18next }}</strong>
-      {{ d.reason }}
+      <i
+        class="fa-solid"
+        [class.fa-circle-xmark]="d.severity === 'error'"
+        [class.fa-triangle-exclamation]="d.severity !== 'error'"
+        aria-hidden="true"
+      ></i>
+      <strong class="rb-ws-diagnostic-label">{{
+        (d.severity === 'error' ? 'report-blocking' : 'report-advisory') | i18next
+      }}</strong>
+      <span>{{ d.reason }}</span>
       @if (d.line) {
         <span>({{ d.line }}:{{ d.column }})</span>
       }
@@ -39,6 +47,7 @@ import {
       }
     </div>
   }`,
+  styles: [':host { display: block; }'],
 })
 export class ReportDiagnosticsComponent {
   @Input() diagnostics: EditorDiagnostic[] = [];
@@ -56,10 +65,7 @@ export class ReportDiagnosticsComponent {
   selector: 'report-template-input',
   standalone: true,
   imports: [CodeEditorComponent, FieldTreeComponent, ReportDiagnosticsComponent, I18NextPipe],
-  template: ` <label [for]="inputId">{{ label }}</label>
-    <p [id]="inputId + '-help'">
-      {{ (kind === 'display' ? 'report-display-context-help' : 'report-csv-context-help') | i18next }}
-    </p>
+  template: ` <label class="form-label" [for]="inputId">{{ label }}</label>
     <rb-template-editor
       #editor
       [inputId]="inputId"
@@ -71,8 +77,11 @@ export class ReportDiagnosticsComponent {
       [warningLines]="warningLines"
       [highlightLines]="errorLines"
     ></rb-template-editor>
+    <p class="form-text" [id]="inputId + '-help'">
+      {{ (kind === 'display' ? 'report-display-context-help' : 'report-csv-context-help') | i18next }}
+    </p>
     <report-diagnostics [diagnostics]="diagnostics" [location]="location"></report-diagnostics>
-    <details>
+    <details class="rb-ws-disclosure">
       <summary>{{ 'report-insert-template-field' | i18next }}</summary>
       <rb-field-tree
         [fields]="source.fields"
@@ -82,6 +91,7 @@ export class ReportDiagnosticsComponent {
         (insert)="editor.insertAtCursor($event)"
       ></rb-field-tree>
     </details>`,
+  styles: [':host { display: block; } .form-text { margin: 6px 0 0; font-size: 12px; }'],
 })
 export class ReportTemplateInputComponent implements OnChanges {
   @Input() fields: ContextSchemaField[] = [];
