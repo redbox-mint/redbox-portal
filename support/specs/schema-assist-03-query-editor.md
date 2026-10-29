@@ -29,6 +29,13 @@ and explicit Preview actions remain available in the workspace header.
   parameter types, formats, templates and hook properties survive path edits.
   Date help describes `days` offsets and ISO timestamp pass-through; selecting
   a source field never guesses a date format or changes a parameter override.
+  An explicit template switches to raw input: execution applies the default,
+  then the template, then type coercion in `NamedQueryService.setParamsInQuery`.
+  Scalar inputs to object/array/number/boolean/date templates are sent unchanged
+  for server evaluation. Numeric `days` controls appear only with a date operator;
+  dates without an operator and `ISODate` values pass through without conversion.
+  Clearing a string preserves the explicit `''` default; **Unset default** is a
+  separate action that removes `defaultValue` from the serialized definition.
 - `nq-diagnostics` filters backend diagnostic locations at each condition,
   parameter, mapping/template, sort and related filter. Errors and warnings
   have explicit text and distinct styles. Suggested corrections are displayed
@@ -81,6 +88,20 @@ JSON entries and survive unrelated structured edits. Invalid structured JSON
 never replaces an expression with an empty object. Parameter control identities
 survive additions, retaining pending default text.
 
+Adding a Mongo condition now works from the current entries, retaining entry
+identities and pending invalid text. The complete entry set must parse before
+it updates the draft or enables Save/Preview. Repairing an invalid entry applies
+both that repair and any newly added conditions.
+
+Parameter-definition changes reconcile invalid test-control state and discard
+test values for removed keys. Type/template changes reset the obsolete control
+error and emit recovered validity; unrelated operator, path and label edits
+retain pending invalid JSON. The parameter editor assigns the updated definition
+before notifying the workspace, so validity reconciliation sees the new state.
+Mapping sources and typed defaults include their alias/key in accessible names.
+Mapping and parameter template textareas have associated labels and unique IDs
+that remain stable for the control's lifetime.
+
 ## Requests, diagnostics and preview
 
 The Angular API service extends the existing `HttpClientService` and uses its
@@ -119,8 +140,8 @@ server, push or pull request was created.
 - Shared Angular library: `timeout 240 env NG_BUILD_MAX_WORKERS=1
   ./node_modules/.bin/ng build @researchdatabox/portal-ng-common
   --configuration development`.
-- Named-query editor: **167 passing** Angular specs, including 39 new workspace
-  and API behaviour cases, with `timeout 300 env NG_BUILD_MAX_WORKERS=1
+- Named-query editor: **188 passing** Angular specs, including 60 new workspace,
+  typed-control and API behaviour cases, with `timeout 300 env NG_BUILD_MAX_WORKERS=1
   CHROME_BIN=/snap/bin/chromium ./node_modules/.bin/ng test
   @researchdatabox/named-query-editor --watch=false
   --browsers=ChromeHeadlessNoSandbox`.
@@ -130,6 +151,15 @@ server, push or pull request was created.
   ./node_modules/.bin/ng build @researchdatabox/named-query-editor
   --configuration production`.
 - Focused oxlint and `git diff --check` passed.
+
+Review follow-up adds **21 committed regression specs** across the workspace and
+typed controls. Before the fixes, nine workspace regressions reproduced all five
+review findings (**9 failed, 34 passed**); these include serialization of empty
+defaults, explicit unsetting, raw template inputs, parameter removal/type changes,
+and accessible names/label associations. The additional cases cover every typed
+template input, date operator/format behavior, validity emission and preserving
+invalid text through unrelated edits. Backend conversion order and empty-string
+versus missing-default semantics were checked against `NamedQueryService`.
 
 The production build reports an initial bundle budget warning (approximately
 1.20 MB against the 500 kB warning budget) and a CommonJS optimization warning

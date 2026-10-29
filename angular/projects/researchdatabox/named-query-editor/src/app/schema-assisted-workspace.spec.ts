@@ -709,4 +709,239 @@ describe('Schema-assisted named query workspace behaviours', () => {
     select.dispatchEvent(new Event('change', { bubbles: true }));
     expect(component.dirty).toBeFalse();
   });
+
+  it('preserves invalid structured text across Add and blocks Save and Preview until repaired', async () => {
+    const editor = fixture.debugElement.query(By.directive(MongoQueryEditorComponent))
+      .componentInstance as MongoQueryEditorComponent;
+    editor.rawJsonText = '{"$expr":{"$eq":["$a","$b"]}}';
+    editor.applyRawJson();
+    const entry = editor.entries[0];
+    editor.onValueChange(entry, '{ unfinished');
+    editor.newPath = 'metadata.status';
+    editor.newValue = 'active';
+    editor.addEntry();
+    fixture.detectChanges();
+    expect(editor.entries[0]).toBe(entry);
+    expect(entry.value).toBe('{ unfinished');
+    expect(editor.entries.length).toBe(2);
+    expect(editor.jsonError).toBe('named-query-invalid-json');
+    expect(component.pendingInput).toBeTrue();
+    expect(component.canSave).toBeFalse();
+    expect(component.previewInputInvalid).toBeTrue();
+    await component.save();
+    await component.preview();
+    expect(api.update).not.toHaveBeenCalled();
+    expect(api.preview).not.toHaveBeenCalled();
+    editor.onValueChange(entry, '{"$eq":["$a","$c"]}');
+    expect(component.draft.mongoQuery).toEqual({
+      $expr: { $eq: ['$a', '$c'] }, 'metadata.status': 'active',
+    });
+    expect(component.canSave).toBeTrue();
+  });
+
+  it('serializes a cleared string default as an explicit empty string', async () => {
+    component.draft.queryParams = {
+      title: { type: 'string', path: 'metadata.title', whenUndefined: 'defaultValue', defaultValue: 'old' },
+    };
+    fixture.detectChanges();
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
+    const typed = params.query(By.directive(QueryTypedValueComponent)).componentInstance as QueryTypedValueComponent;
+    typed.change('');
+    await component.save();
+    const saved = JSON.parse(JSON.stringify(api.update.calls.mostRecent().args[1]));
+    expect(saved.queryParams.title.defaultValue).toBe('');
+  });
+
+  it('offers an explicit unset default action independent of clearing a string', async () => {
+    component.draft.queryParams = {
+      title: { type: 'string', path: 'metadata.title', whenUndefined: 'defaultValue', defaultValue: 'old' },
+    };
+    fixture.detectChanges();
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
+    const button = params.nativeElement.querySelector('nq-typed-value .nq-unset-value') as HTMLButtonElement | null;
+    expect(button).withContext('Explicit unset default action').not.toBeNull();
+    button?.click();
+    await component.save();
+    const saved = JSON.parse(JSON.stringify(api.update.calls.mostRecent().args[1]));
+    expect(Object.prototype.hasOwnProperty.call(saved.queryParams.title, 'defaultValue')).toBeFalse();
+    expect(saved.queryParams.title.whenUndefined).toBe('defaultValue');
+  });
+
+  it('previews raw scalar input before an object parameter template is evaluated', async () => {
+    component.draft.queryParams = {
+      person: { type: 'object', path: 'metadata.person', whenUndefined: 'ignore', template: '{"name":"{{value}}"}' },
+    };
+    fixture.detectChanges();
+    const testControl = fixture.debugElement.query(By.css('.nq-test-parameters nq-typed-value'));
+    testControl.query(By.css('input, textarea')).triggerEventHandler('ngModelChange', 'Alice');
+    fixture.detectChanges();
+    expect(component.previewInputInvalid).toBeFalse();
+    await component.preview();
+    expect(api.preview).toHaveBeenCalled();
+    expect(api.preview.calls.mostRecent()?.args[0].parameters).toEqual({ person: 'Alice' });
+  });
+
+  it('saves a raw scalar default for an object parameter template', async () => {
+    component.draft.queryParams = {
+      person: {
+        type: 'object', path: 'metadata.person', whenUndefined: 'defaultValue',
+        defaultValue: 'Bob', template: '{"name":"{{value}}"}',
+      },
+    };
+    fixture.detectChanges();
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
+    params.query(By.css('nq-typed-value input, nq-typed-value textarea')).triggerEventHandler('ngModelChange', 'Alice');
+    fixture.detectChanges();
+    expect(component.canSave).toBeTrue();
+    await component.save();
+    expect(api.update).toHaveBeenCalled();
+    expect(api.update.calls.mostRecent()?.args[1].queryParams.person.defaultValue).toBe('Alice');
+  });
+
+  it('removes obsolete invalid test state without clearing another invalid parameter', async () => {
+    component.draft.queryParams = {
+      first: { type: 'object', path: 'metadata.first', whenUndefined: 'ignore' },
+      second: { type: 'object', path: 'metadata.second', whenUndefined: 'ignore' },
+    };
+    fixture.detectChanges();
+    const tests = fixture.debugElement.queryAll(By.css('.nq-test-parameters nq-typed-value'));
+    tests.forEach(c => c.query(By.css('textarea')).triggerEventHandler('ngModelChange', '{ unfinished'));
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent))
+      .componentInstance as QueryParamEditorComponent;
+    params.removeParam(params.entries[0]);
+    fixture.detectChanges();
+    expect(component.previewInputInvalid).toBeTrue();
+    params.removeParam(params.entries[0]);
+    fixture.detectChanges();
+    expect(component.previewInputInvalid).toBeFalse();
+    await component.preview();
+    expect(api.preview).toHaveBeenCalled();
+  });
+
+  it('recovers Preview after an invalid object test parameter becomes a string', async () => {
+    component.draft.queryParams = {
+      options: { type: 'object', path: 'metadata.options', whenUndefined: 'ignore' },
+    };
+    fixture.detectChanges();
+    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+      .triggerEventHandler('ngModelChange', '{ unfinished');
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent))
+      .componentInstance as QueryParamEditorComponent;
+    params.onFieldChange(params.entries[0], 'type', 'string');
+    fixture.detectChanges();
+    expect(component.previewInputInvalid).toBeFalse();
+    await component.preview();
+    expect(api.preview).toHaveBeenCalled();
+  });
+
+  it('names mapping sources in both modes and uniquely associates template labels', () => {
+    component.draft.resultObjectMapping = {
+      ...component.draft.resultObjectMapping, otherTitle: 'record.metadata.title',
+    };
+    fixture.detectChanges();
+    const mappings = fixture.debugElement.query(By.directive(ResultMappingEditorComponent));
+    const sources = mappings.queryAll(By.directive(QueryMappingValueComponent));
+    const direct = sources[0].nativeElement.querySelector('input') as HTMLInputElement;
+    expect(direct.getAttribute('aria-label')).toContain('projectTitle');
+    sources.slice(0, 2).forEach(source => {
+      (source.componentInstance as QueryMappingValueComponent).template = true;
+    });
+    fixture.detectChanges();
+    const areas = sources.slice(0, 2).map(source => source.nativeElement.querySelector('textarea') as HTMLTextAreaElement);
+    expect(areas[0].id).toBeTruthy();
+    expect(areas[1].id).toBeTruthy();
+    expect(areas[0].id).not.toBe(areas[1].id);
+    const label = sources[0].nativeElement.querySelector('label') as HTMLLabelElement | null;
+    expect(label?.htmlFor).toBe(areas[0].id);
+    expect(label?.textContent).toContain('projectTitle');
+    sources[0].componentInstance.template = false;
+    fixture.detectChanges();
+    sources[0].componentInstance.template = true;
+    fixture.detectChanges();
+    expect(sources[0].nativeElement.querySelector('textarea').id).toBe(areas[0].id);
+  });
+
+  it('retains invalid JSON when changing only a parameter operator', () => {
+    component.draft.queryParams = {
+      options: { type: 'object', path: 'metadata.options', whenUndefined: 'defaultValue' },
+    };
+    fixture.detectChanges();
+    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+      .triggerEventHandler('ngModelChange', '{ unfinished test');
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
+    const typed = params.query(By.directive(QueryTypedValueComponent)).componentInstance as QueryTypedValueComponent;
+    typed.changeJson('{ unfinished default');
+    const editor = params.componentInstance as QueryParamEditorComponent;
+    editor.onFieldChange(editor.entries[0], 'queryType', '$eq');
+    fixture.detectChanges();
+    expect(typed.jsonValue).toBe('{ unfinished default');
+    expect(typed.error).toBeTrue();
+    expect(component.canSave).toBeFalse();
+    expect(component.previewInputInvalid).toBeTrue();
+  });
+
+  it('recovers invalid test input when a template override is added', async () => {
+    component.draft.queryParams = {
+      options: { type: 'object', path: 'metadata.options', whenUndefined: 'ignore' },
+    };
+    fixture.detectChanges();
+    fixture.debugElement.query(By.css('.nq-test-parameters textarea'))
+      .triggerEventHandler('ngModelChange', '{ unfinished');
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent))
+      .componentInstance as QueryParamEditorComponent;
+    params.onFieldChange(params.entries[0], 'template', '{"name":"{{value}}"}');
+    fixture.detectChanges();
+    const input = fixture.debugElement.query(By.css('.nq-test-parameters input'));
+    input.triggerEventHandler('ngModelChange', 'Alice');
+    expect(component.previewInputInvalid).toBeFalse();
+    await component.preview();
+    expect(api.preview.calls.mostRecent().args[0].parameters).toEqual({ options: 'Alice' });
+  });
+
+  it('recovers an invalid new default when its parameter gets a template override', () => {
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
+    const editor = params.componentInstance as QueryParamEditorComponent;
+    editor.startAdd();
+    editor.newParam.key = 'person';
+    editor.newParam.type = 'object';
+    editor.newParam.whenUndefined = 'defaultValue';
+    fixture.detectChanges();
+    params.query(By.css('nq-typed-value textarea')).triggerEventHandler('ngModelChange', '{ unfinished');
+    fixture.detectChanges();
+    expect(component.canSave).toBeFalse();
+    params.query(By.css('textarea[id$="-template-new"]'))
+      .triggerEventHandler('ngModelChange', '{"name":"{{value}}"}');
+    fixture.detectChanges();
+    params.query(By.css('nq-typed-value input')).triggerEventHandler('ngModelChange', 'Alice');
+    editor.addParam();
+    fixture.detectChanges();
+    expect(component.canSave).toBeTrue();
+    expect(component.draft.queryParams['person'].defaultValue).toBe('Alice');
+  });
+
+  it('names existing and new typed defaults and associates parameter template labels', () => {
+    component.draft.queryParams = {
+      title: { ...component.draft.queryParams['title'], whenUndefined: 'defaultValue' },
+    };
+    fixture.detectChanges();
+    const params = fixture.debugElement.query(By.directive(QueryParamEditorComponent));
+    const editor = params.componentInstance as QueryParamEditorComponent;
+    editor.startAdd();
+    editor.newParam.key = 'otherTitle';
+    editor.newParam.whenUndefined = 'defaultValue';
+    fixture.detectChanges();
+    const controls = params.queryAll(By.directive(QueryTypedValueComponent));
+    expect(controls.length).toBe(2);
+    expect(controls[0].nativeElement.querySelector('input').getAttribute('aria-label')).toContain('otherTitle');
+    expect(controls[1].nativeElement.querySelector('input').getAttribute('aria-label')).toContain('title');
+    const areas = Array.from(params.nativeElement.querySelectorAll('textarea')) as HTMLTextAreaElement[];
+    expect(areas.length).toBe(2);
+    expect(new Set(areas.map(a => a.id)).size).toBe(areas.length);
+    for (const area of areas) {
+      expect(area.id).toBeTruthy();
+      const label = Array.from(params.nativeElement.querySelectorAll('label') as NodeListOf<HTMLLabelElement>)
+        .find(l => l.htmlFor === area.id);
+      expect(label?.textContent).toContain('named-query-param-template');
+    }
+  });
 });

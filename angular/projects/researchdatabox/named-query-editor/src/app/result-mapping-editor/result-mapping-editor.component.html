@@ -29,6 +29,7 @@
               [location]="'resultObjectMapping.' + entry.key"
             ></nq-diagnostics>
             <nq-mapping-value
+              [label]="('named-query-mapping-source' | i18next) + ': ' + entry.key"
               [value]="entry.value"
               [fields]="fields"
               (valueChange)="onValueChange(entry, $event)"
@@ -52,7 +53,10 @@
       [(ngModel)]="newKey"
       [attr.placeholder]="'named-query-mapping-field-placeholder' | i18next"
     />
-    <nq-mapping-value [value]="newValue" [fields]="fields" (valueChange)="newValue = $event"></nq-mapping-value>
+    <nq-mapping-value
+      [label]="('named-query-mapping-source' | i18next) + ': ' + newKey"
+      [value]="newValue" [fields]="fields" (valueChange)="newValue = $event"
+    ></nq-mapping-value>
     <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">
       {{ 'named-query-add' | i18next }}
     </button>

@@ -76,17 +76,24 @@ export class MongoQueryEditorComponent implements OnChanges {
 
   addEntry(): void {
     if (!this.newPath) return;
-    const updated = { ...this.mongoQuery };
     try {
-      updated[this.newPath] = this.parseValue(this.newType, this.newValue);
+      this.parseValue(this.newType, this.newValue);
     } catch {
       this.jsonError = 'named-query-invalid-json';
       this.validityChange.emit(false);
       return;
     }
-    this.jsonError = null;
-    this.validityChange.emit(true);
-    this.emit(updated);
+    // Entries include pending edits that are absent from the last valid query.
+    const existing = this.entries.find(entry => entry.path === this.newPath);
+    if (existing) {
+      existing.type = this.newType;
+      existing.value = this.newValue;
+    } else {
+      this.entries = [...this.entries, {
+        id: this.nextEntryId++, path: this.newPath, type: this.newType, value: this.newValue,
+      }];
+    }
+    this.emitFromEntries();
     this.newPath = '';
     this.newValue = '';
     this.newType = 'string';

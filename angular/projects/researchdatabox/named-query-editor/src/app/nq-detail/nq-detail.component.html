@@ -127,9 +127,9 @@
       <query-param-editor
         [fields]="fields"
         [diagnostics]="diagnostics"
-        (queryParamsChange)="draftChange.emit()"
+        [queryParams]="draft.queryParams"
+        (queryParamsChange)="draft.queryParams = $event; draftChange.emit()"
         (validityChange)="validity('query-param-editor', $event)"
-        [(queryParams)]="draft.queryParams"
       ></query-param-editor>
     </div>
 

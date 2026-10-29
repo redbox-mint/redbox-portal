@@ -70,9 +70,13 @@
         <div class="form-group col-md-6" *ngIf="newParam.whenUndefined === 'defaultValue'">
           <label>{{ 'named-query-param-default' | i18next }}</label>
           <nq-typed-value
+            [label]="('named-query-param-default' | i18next) + ': ' + newParam.key"
+            unsetLabel="named-query-unset-default"
             [value]="newParam.defaultValue"
             [type]="newParam.type"
             [format]="newParam.format"
+            [queryType]="newParam.queryType"
+            [template]="newParam.template"
             (valueChange)="newParam.defaultValue = $event"
             (validityChange)="defaultValidity(0, $event)"
           ></nq-typed-value>
@@ -80,11 +84,13 @@
       </div>
       <div class="row g-2">
         <div class="form-group col-12">
-          <label>{{ 'named-query-param-template' | i18next }}</label>
+          <label [for]="inputId + '-template-new'">{{ 'named-query-param-template' | i18next }}: {{ newParam.key }}</label>
           <textarea
+            [id]="inputId + '-template-new'"
             class="form-control form-control-sm font-monospace"
             rows="2"
             [(ngModel)]="newParam.template"
+            (ngModelChange)="defaultValidity(0, true)"
             [attr.placeholder]="'named-query-param-template-placeholder' | i18next"
             spellcheck="false"
           ></textarea>
@@ -182,9 +188,13 @@
         <div class="form-group col-md-6" *ngIf="param.whenUndefined === 'defaultValue'">
           <label>{{ 'named-query-param-default' | i18next }}</label>
           <nq-typed-value
+            [label]="('named-query-param-default' | i18next) + ': ' + param.key"
+            unsetLabel="named-query-unset-default"
             [value]="param.defaultValue"
             [type]="param.type"
             [format]="param.format"
+            [queryType]="param.queryType"
+            [template]="param.template"
             (valueChange)="onFieldChange(param, 'defaultValue', $event)"
             (validityChange)="defaultValidity(param.id, $event)"
           ></nq-typed-value>
@@ -192,8 +202,9 @@
       </div>
       <div class="row g-2">
         <div class="form-group col-12 mb-0">
-          <label>{{ 'named-query-param-template' | i18next }}</label>
+          <label [for]="inputId + '-template-' + param.id">{{ 'named-query-param-template' | i18next }}: {{ param.key }}</label>
           <textarea
+            [id]="inputId + '-template-' + param.id"
             class="form-control form-control-sm font-monospace"
             rows="2"
             [ngModel]="param.template"

@@ -235,6 +235,8 @@
           [value]="testParameters[param.key]"
           [type]="param.type"
           [format]="param.format"
+          [queryType]="param.queryType"
+          [template]="param.template"
           (valueChange)="testParameterChanged(param.key, $event)"
           (validityChange)="testParameterValidity(param.key, $event)"
         ></nq-typed-value>

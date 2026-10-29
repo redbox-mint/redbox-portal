@@ -45,7 +45,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   fieldDescription: NamedQueryFieldDescription | null = null;
   diagnostics: EditorDiagnostic[] = [];
   private validationBlocking = false;
-  private invalidTestParameters = new Set<string>();
+  private invalidTestParameters = new Map<string, string>();
   description: NamedQueryDescription | null = null;
   previewResult: NamedQueryPreview | null = null;
   testParameters: Record<string, unknown> = {};
@@ -264,6 +264,13 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   draftChanged(): void {
+    // A removed or retyped parameter no longer owns its old control's error.
+    for (const [key, definition] of this.invalidTestParameters) {
+      if (definition !== this.testParameterDefinition(key)) this.invalidTestParameters.delete(key);
+    }
+    for (const key of Object.keys(this.testParameters)) {
+      if (!Object.prototype.hasOwnProperty.call(this.draft.queryParams || {}, key)) delete this.testParameters[key];
+    }
     this.inputDirty = true;
     this.previewRequests.invalidate();
     this.previewing = false;
@@ -335,10 +342,14 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
   testParameterValidity(key: string, valid: boolean): void {
     if (valid) this.invalidTestParameters.delete(key);
-    else this.invalidTestParameters.add(key);
+    else this.invalidTestParameters.set(key, this.testParameterDefinition(key));
     this.previewRequests.invalidate();
     this.previewResult = null;
     this.previewing = false;
+  }
+  private testParameterDefinition(key: string): string {
+    const param = this.draft.queryParams?.[key];
+    return JSON.stringify(param ? [param.type, param.template] : null);
   }
   get previewInputInvalid(): boolean {
     return this.pendingInput || this.invalidTestParameters.size > 0;

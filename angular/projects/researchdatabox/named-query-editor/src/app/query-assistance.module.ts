@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, NgModule, Output, OnChanges } from '@angular/core';
+import { Component, EventEmitter, Input, NgModule, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -107,15 +107,15 @@ export class QueryPathInputComponent implements OnChanges {
   selector: 'nq-typed-value',
   standalone: false,
   template: `<input
-      *ngIf="type !== 'boolean' && type !== 'object' && type !== 'array'"
+      *ngIf="inputType !== 'boolean' && inputType !== 'object' && inputType !== 'array'"
       class="form-control form-control-sm"
       [attr.aria-label]="label"
-      [type]="type === 'number' || (type === 'date' && format === 'days') ? 'number' : 'text'"
+      [type]="inputType === 'number' ? 'number' : 'text'"
       [ngModel]="value"
       (ngModelChange)="change($event)"
     />
     <select
-      *ngIf="type === 'boolean'"
+      *ngIf="inputType === 'boolean'"
       class="form-control form-control-sm"
       [attr.aria-label]="label"
       [ngModel]="value"
@@ -126,33 +126,57 @@ export class QueryPathInputComponent implements OnChanges {
       <option [ngValue]="false">false</option>
     </select>
     <textarea
-      *ngIf="type === 'object' || type === 'array'"
+      *ngIf="inputType === 'object' || inputType === 'array'"
       class="form-control form-control-sm"
       [attr.aria-label]="label"
       [ngModel]="jsonValue"
       (ngModelChange)="changeJson($event)"
     ></textarea>
+    <small *ngIf="template" class="form-text text-muted">{{ 'named-query-template-value-help' | i18next }}</small>
     <small *ngIf="type === 'date'" class="form-text text-muted">{{
       (format === 'days' ? 'named-query-date-days-help' : 'named-query-date-iso-help') | i18next
     }}</small>
-    <small *ngIf="error" class="text-danger" role="alert">{{ 'named-query-invalid-json' | i18next }}</small>`,
+    <small *ngIf="error" class="text-danger" role="alert">{{ 'named-query-invalid-json' | i18next }}</small>
+    <button type="button" class="btn btn-sm btn-outline-secondary nq-unset-value mt-1"
+      [attr.aria-label]="(unsetLabel | i18next) + ': ' + label" (click)="unset()">
+      {{ unsetLabel | i18next }}
+    </button>`,
 })
 export class QueryTypedValueComponent implements OnChanges {
   @Input() value: unknown;
   @Input() type = 'string';
   @Input() format?: string;
+  @Input() queryType?: string;
+  @Input() template?: string;
   @Input() label = '';
+  @Input() unsetLabel = 'named-query-unset-value';
   @Output() valueChange = new EventEmitter<unknown>();
   @Output() validityChange = new EventEmitter<boolean>();
   jsonValue = '';
   error = false;
-  ngOnChanges(): void {
+  get inputType(): string {
+    // NamedQueryService applies the template before coercing its result. Keep
+    // template input untouched and let the server evaluate the full context.
+    if (this.template) return 'string';
+    if (this.type === 'date') return this.format === 'days' && this.queryType ? 'number' : 'string';
+    return this.type;
+  }
+  ngOnChanges(changes?: SimpleChanges): void {
+    if (changes && !['value', 'type', 'template'].some(key => key in changes)) return;
+    const wasInvalid = this.error;
     this.error = false;
     this.jsonValue =
       this.value === undefined ? '' : typeof this.value === 'string' ? this.value : JSON.stringify(this.value);
+    if (wasInvalid) this.validityChange.emit(true);
   }
   change(value: unknown): void {
-    this.valueChange.emit(value === '' || value === null ? undefined : value);
+    this.valueChange.emit(value === null ? undefined : value);
+  }
+  unset(): void {
+    this.jsonValue = '';
+    this.error = false;
+    this.validityChange.emit(true);
+    this.valueChange.emit(undefined);
   }
   changeJson(text: string): void {
     this.jsonValue = text;
@@ -190,8 +214,10 @@ export class QueryTypedValueComponent implements OnChanges {
       (valueChange)="valueChange.emit($event)"
     ></nq-path-input>
     <ng-container *ngIf="template"
-      ><rb-template-editor
+      ><label [for]="inputId">{{ label }}</label>
+      <rb-template-editor
         #editor
+        [inputId]="inputId"
         [value]="value"
         [rows]="3"
         [completions]="source"
@@ -208,6 +234,8 @@ export class QueryTypedValueComponent implements OnChanges {
     </ng-container>`,
 })
 export class QueryMappingValueComponent implements OnChanges {
+  private static nextId = 1;
+  readonly inputId = `nq-mapping-template-${QueryMappingValueComponent.nextId++}`;
   @Input() value = '';
   @Input() label = '';
   @Input() fields: ContextSchemaField[] = [];
