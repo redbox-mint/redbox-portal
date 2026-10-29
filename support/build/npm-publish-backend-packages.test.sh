@@ -65,3 +65,39 @@ assert_rejects rc v5.0.0-RC1 latest
 assert_rejects release v5.0.0-RC1 latest
 
 printf 'npm publish version handling tests passed.\n'
+
+# File dependency patches must survive npm publication, including generated core-types.
+publish_test_dir="$(mktemp -d)"
+trap 'rm -rf -- "$publish_test_dir"' EXIT
+for package_name in redbox-core redbox-core-types agenda-sqs-backend; do
+  mkdir -p "$publish_test_dir/packages/$package_name"
+  node - "$publish_test_dir/packages/$package_name/package.json" "$package_name" <<'NODE'
+const fs = require('fs');
+fs.writeFileSync(process.argv[2], JSON.stringify({
+  name: `@researchdatabox/${process.argv[3]}`, version: '0.0.0', files: ['dist'],
+  [process.argv[3] === 'agenda-sqs-backend' ? 'devDependencies' : 'dependencies']:
+    { agenda: 'file:../agenda-patched/agenda-6.2.6-redbox.1.tgz' }
+}));
+NODE
+done
+NPM_PUBLISH_STAGING_ROOT="$publish_test_dir" bash -c 'source "$1"; bundle_patched_agenda' bash "$SCRIPT_PATH"
+for package_name in redbox-core redbox-core-types; do
+  npm pack "$publish_test_dir/packages/$package_name" --ignore-scripts --pack-destination "$publish_test_dir" --silent >/dev/null
+  tar -xOf "$publish_test_dir/researchdatabox-$package_name-0.0.0.tgz" package/node_modules/agenda/dist/JobProcessor.js \
+    | grep 'watchdog.abort()' >/dev/null
+  tar -xOf "$publish_test_dir/researchdatabox-$package_name-0.0.0.tgz" \
+    package/node_modules/agenda/node_modules/cron-parser/package.json | node -e '
+const fs = require("fs");
+const { createRequire } = require("module");
+const fromCore = createRequire(require("path").resolve("packages/redbox-core/package.json"));
+const fromAgenda = createRequire(fromCore.resolve("agenda"));
+require("assert/strict").equal(JSON.parse(fs.readFileSync(0, "utf8")).version,
+  fromAgenda("cron-parser/package.json").version);'
+  node - "$publish_test_dir/packages/$package_name/package.json" <<'NODE'
+const assert = require('assert/strict');
+const pkg = require(process.argv[2]);
+assert.equal(pkg.dependencies.agenda, '6.2.6');
+assert(pkg.bundleDependencies.includes('agenda'));
+NODE
+done
+printf 'Patched Agenda is bundled in both published core packages.\n'

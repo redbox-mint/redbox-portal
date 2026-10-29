@@ -60,6 +60,15 @@ describe('TranslationService testing', () => {
     translationService = TestBed.inject(TranslationService);
   });
 
+  it('can initialize after a rejected config dependency is recovered', async () => {
+    const dependency = spyOn(configService, 'waitForInit').and.rejectWith({ status: 403 });
+    await expectAsync(translationService.waitForInit()).toBeRejected();
+    dependency.and.resolveTo({});
+    await translationService.waitForInit();
+    expect(translationService.isInitializing()).toBeFalse();
+    expect(translationService.t('key1')).toBe('value1');
+  });
+
   it('should produce a valid translation using configService with valid config', async function () {
     const mockConfigData = {
       csrfToken: 'test', 

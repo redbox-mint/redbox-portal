@@ -236,6 +236,30 @@ describe('ManageUsersComponent', () => {
     ));
   }
 
+  for (const readMethod of ['getBrandRoles', 'getUsers']) {
+    it(`shows an initial ${readMethod} error and recovers with retry`, async () => {
+      const original = userService[readMethod].bind(userService);
+      const read = spyOn(userService, readMethod).and.rejectWith({ status: 403 });
+      configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+      const fixture = TestBed.createComponent(ManageUsersComponent);
+      const component = fixture.componentInstance;
+      const waiting = expectAsync(component.waitForInit()).toBeRejected();
+      fixture.detectChanges();
+      await waiting;
+      fixture.detectChanges();
+      expect(component.loadPending).toBeFalse();
+      expect(fixture.nativeElement.textContent).toContain('Sign in again');
+      expect(fixture.nativeElement.textContent).toContain('Retry');
+      read.and.callFake(original);
+      await component.retryLoad();
+      await component.waitForInit();
+      expect(component.loadError).toBe('');
+      expect(component.allRoles.length).toBe(baseRolesData.length);
+      expect(configService.refreshConfig).toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
+
   it('should create the app and perform testing of basic functions', async () => {
     const app = createBareComponent();
     expect(app).toBeTruthy();

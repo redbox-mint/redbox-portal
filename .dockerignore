@@ -38,3 +38,7 @@ support/debug-config
 
 # All embedded applications are rebuilt in the builder stage.
 assets/angular
+
+# Required exact local dependency for Agenda watchdog cleanup.
+!packages/agenda-patched/agenda-6.2.5-redbox.1.tgz
+!packages/agenda-patched/agenda-6.2.6-redbox.1.tgz

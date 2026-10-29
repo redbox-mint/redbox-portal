@@ -1,31 +1,46 @@
+@if (attachmentsLoadWarning) {
+  <div class="alert alert-warning" role="status" aria-live="polite">
+    PDF attachments could not be loaded. The list may be incomplete; an empty list does not confirm that there are no
+    PDFs.
+    <button type="button" class="btn btn-default" (click)="loadAttachments()" [disabled]="attachmentsLoading">
+      Retry loading PDFs
+    </button>
+  </div>
+}
 @if (latestPdf) {
   <div class="rb-pdf-list d-flex flex-wrap align-items-start gap-2">
     @if (!hasHistory) {
-      <a class="btn btn-danger print-hidden"
-         [href]="getDownloadUrl(latestPdf, true, 0)"
-         target="_blank"
-         rel="noopener noreferrer"
+      <a
+        class="btn btn-danger print-hidden"
+        [href]="getDownloadUrl(latestPdf, true, 0)"
+        target="_blank"
+        rel="noopener noreferrer"
         [attr.title]="getDownloadActionLabel(0)"
-         [attr.aria-label]="getDownloadAriaLabel(latestPdf, 0)"
-         download>
+        [attr.aria-label]="getDownloadAriaLabel(latestPdf, 0)"
+        download
+      >
         <i class="fa fa-file-pdf-o" aria-hidden="true">&nbsp;</i>{{ downloadBtnLabel | i18next }}
       </a>
     } @else {
       <div class="btn-group print-hidden" (click)="$event.stopPropagation()">
-        <a class="btn btn-danger"
-           [href]="getDownloadUrl(latestPdf, true, 0)"
-           target="_blank"
-           rel="noopener noreferrer"
-            [attr.title]="getDownloadActionLabel(0)"
-           [attr.aria-label]="getDownloadAriaLabel(latestPdf, 0)"
-           download>
+        <a
+          class="btn btn-danger"
+          [href]="getDownloadUrl(latestPdf, true, 0)"
+          target="_blank"
+          rel="noopener noreferrer"
+          [attr.title]="getDownloadActionLabel(0)"
+          [attr.aria-label]="getDownloadAriaLabel(latestPdf, 0)"
+          download
+        >
           <i class="fa fa-file-pdf-o" aria-hidden="true">&nbsp;</i>{{ downloadBtnLabel | i18next }}
         </a>
-        <button type="button"
-                class="btn btn-danger dropdown-toggle dropdown-toggle-split"
-                aria-haspopup="true"
-                [attr.aria-expanded]="showHistoryMenu"
-                (click)="toggleHistoryMenu($event)">
+        <button
+          type="button"
+          class="btn btn-danger dropdown-toggle dropdown-toggle-split"
+          aria-haspopup="true"
+          [attr.aria-expanded]="showHistoryMenu"
+          (click)="toggleHistoryMenu($event)"
+        >
           <span class="sr-only">{{ 'toggle-dropdown' | i18next }}</span>
           @if (showVersionCounter) {
             <span class="badge badge-light ml-1">{{ pdfAttachments.length }}</span>
@@ -33,13 +48,15 @@
         </button>
         <div class="dropdown-menu dropdown-menu-right" [class.show]="showHistoryMenu">
           @for (attachment of recentPdfAttachments; track attachment.label; let idx = $index) {
-            <a class="dropdown-item d-flex justify-content-between align-items-center px-3 py-2"
-               [href]="getDownloadUrl(attachment, useVersionLabelForFileName, idx)"
-               target="_blank"
-               rel="noopener noreferrer"
+            <a
+              class="dropdown-item d-flex justify-content-between align-items-center px-3 py-2"
+              [href]="getDownloadUrl(attachment, useVersionLabelForFileName, idx)"
+              target="_blank"
+              rel="noopener noreferrer"
               [attr.title]="getDownloadActionLabel(idx)"
-               [attr.aria-label]="getDownloadAriaLabel(attachment, idx)"
-               download>
+              [attr.aria-label]="getDownloadAriaLabel(attachment, idx)"
+              download
+            >
               <span class="d-inline-flex align-items-center pr-4">
                 <span>{{ getDropdownAttachmentLabel(attachment, idx) }}</span>
                 @if (idx === 0) {
@@ -68,23 +85,27 @@
 }
 
 @if (showHistoryModal) {
-  <div class="modal fade show d-block"
-       id="rbPdfListHistoryModal"
-       tabindex="-1"
-       role="dialog"
-       aria-modal="true"
-       data-bs-backdrop="static"
-       data-bs-keyboard="true"
-       (click)="hideHistoryModal()">
+  <div
+    class="modal fade show d-block"
+    id="rbPdfListHistoryModal"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="true"
+    (click)="hideHistoryModal()"
+  >
     <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document" (click)="$event.stopPropagation()">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">{{ '@pdf-modal-all-versions' | i18next: { count: pdfAttachments.length } }}</h5>
-          <button type="button"
-                  class="btn-close"
-                  [attr.aria-label]="'@pdf-close' | i18next"
-                  data-bs-dismiss="modal"
-                  (click)="hideHistoryModal()"></button>
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'@pdf-close' | i18next"
+            data-bs-dismiss="modal"
+            (click)="hideHistoryModal()"
+          ></button>
         </div>
         <div class="modal-body">
           <div class="table-responsive">
@@ -106,12 +127,14 @@
                     }
                     <td>{{ attachment.formattedDateUpdated }}</td>
                     <td>
-                      <a [href]="getDownloadUrl(attachment, useVersionLabelForFileName, idx)"
-                         target="_blank"
-                         rel="noopener noreferrer"
-                         [attr.title]="getDownloadActionLabel(idx)"
-                         [attr.aria-label]="getDownloadAriaLabel(attachment, idx)"
-                         download>
+                      <a
+                        [href]="getDownloadUrl(attachment, useVersionLabelForFileName, idx)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [attr.title]="getDownloadActionLabel(idx)"
+                        [attr.aria-label]="getDownloadAriaLabel(attachment, idx)"
+                        download
+                      >
                         <i class="fa fa-file-pdf-o" aria-hidden="true"></i> {{ '@pdf-column-download' | i18next }}
                       </a>
                     </td>

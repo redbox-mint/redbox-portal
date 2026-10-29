@@ -3,6 +3,41 @@
   [attr.aria-hidden]="modalOpen() || languageModalOpen() || displayNameModalOpen() ? 'true' : null"
   [attr.inert]="modalOpen() || languageModalOpen() || displayNameModalOpen() ? '' : null"
 >
+  @if (readWarnings().languages) {
+    <div class="alert alert-warning" role="status" aria-live="polite">
+      {{ readWarnings().languages }}
+      <button
+        type="button"
+        class="btn btn-default"
+        (click)="retryLanguages()"
+        [disabled]="readPending().languages || readPending().bundles"
+      >
+        Retry loading languages
+      </button>
+    </div>
+  }
+  @if (readWarnings().bundles) {
+    <div class="alert alert-warning" role="status" aria-live="polite">
+      {{ readWarnings().bundles }}
+      <button
+        type="button"
+        class="btn btn-default"
+        (click)="loadAvailableLanguagesFromBundles()"
+        [disabled]="readPending().bundles"
+      >
+        Retry loading availability
+      </button>
+    </div>
+  }
+  @if (readWarnings().entries) {
+    <div class="alert alert-warning" role="status" aria-live="polite">
+      {{ readWarnings().entries }}
+      <button type="button" class="btn btn-default" (click)="loadEntries()" [disabled]="readPending().entries">
+        Retry loading entries
+      </button>
+    </div>
+  }
+
   <!-- TOP STATS ROW -->
   <div class="row align-items-end mb-3">
     <div class="col-md-8"></div>
@@ -42,9 +77,11 @@
           }
         </div>
       } @else {
-        <p class="text-muted mb-0">
-          No languages configured yet. Click <strong>Add language</strong> above to get started.
-        </p>
+        @if (!readWarnings().languages && !readPending().languages) {
+          <p class="text-muted mb-0">
+            No languages configured yet. Click <strong>Add language</strong> above to get started.
+          </p>
+        }
       }
 
       <div class="tx-action-row mt-3 pt-3 border-top">
@@ -92,7 +129,9 @@
           <div class="tx-editing-language">
             <select id="tx-lang-select" class="form-control" [(ngModel)]="selectedLang" (change)="onLangChange()">
               @if (!getFilteredLanguages().length) {
-                <option value="">No languages available</option>
+                <option value="">
+                  {{ readWarnings().languages ? 'Languages unavailable' : 'No languages available' }}
+                </option>
               }
               @for (lang of getFilteredLanguages(); track lang) {
                 <option [value]="lang.code">
@@ -285,7 +324,7 @@
                   </td>
                 </tr>
               }
-              @if (!viewEntries().length) {
+              @if (!viewEntries().length && !readWarnings().entries && !readPending().entries) {
                 <tr>
                   <td colspan="4" class="tx-empty-cell text-muted">
                     @if (filterText.trim() || selectedCategory) {
@@ -625,6 +664,19 @@
           ></button>
         </div>
         <div class="modal-body">
+          @if (readWarnings().displayName) {
+            <div class="alert alert-warning" role="status" aria-live="polite">
+              {{ readWarnings().displayName }}
+              <button
+                type="button"
+                class="btn btn-default"
+                (click)="loadCurrentDisplayName()"
+                [disabled]="readPending().displayName"
+              >
+                Retry loading display name
+              </button>
+            </div>
+          }
           @if (displayNameUpdateSuccess()) {
             <div class="alert alert-success" role="status">
               <i class="fa fa-check-circle mr-1" aria-hidden="true"></i>Display name updated
@@ -642,6 +694,7 @@
               type="text"
               class="form-control form-control-sm"
               [(ngModel)]="editDisplayName"
+              (ngModelChange)="displayNameEdited = true"
               placeholder="Français, Deutsch, Español, 日本語"
               [disabled]="updatingDisplayName()"
             />

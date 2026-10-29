@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { LocalAuthComponent } from './local-auth.component';
-import { UtilityService, LoggerService, UserService, TranslationService, ConfigService } from '@researchdatabox/portal-ng-common';
+import { UtilityService, LoggerService, UserService, TranslationService, ConfigService, I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '../../../portal-ng-common/src/lib/helper.spec';
 
 let configService:any;
@@ -18,6 +18,7 @@ describe('LocalAuthComponent', () => {
     translationService = getStubTranslationService();
     userService = getStubUserService(username, password);
     await TestBed.configureTestingModule({
+      imports: [ReactiveFormsModule, I18NextPipe],
       declarations: [
         LocalAuthComponent
       ],
@@ -55,7 +56,10 @@ describe('LocalAuthComponent', () => {
     fixture.detectChanges();
     // test init
     await app.waitForInit();
+    fixture.detectChanges();
     expect(app.form).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#username')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#password')).toBeTruthy();
     // test login message 
     app.form.setValue({'username': '', 'password': ''});
     expect(app.loginMessage).toEqual('Please provide a username.');

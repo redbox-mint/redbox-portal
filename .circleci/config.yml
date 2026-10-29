@@ -71,6 +71,9 @@ jobs:
             npm run compile:agenda-sqs
             npm run compile:core
       - run:
+          name: Typecheck public runtime configuration fixtures
+          command: npm run test:config-types
+      - run:
           name: Validate API route contracts
           command: npm run validate:api-routes
       - run:
@@ -163,7 +166,14 @@ jobs:
       - run: &usePatchedNode
           name: Use patched Node.js from .nvmrc
           command: |
-            nvm install
+            # Keep download options scoped to nvm and avoid a source build on network failure.
+            (
+              curl() {
+                command curl --http1.1 --connect-timeout 20 --max-time 60 \
+                  --retry 2 --retry-delay 3 --retry-all-errors "$@"
+              }
+              nvm install -b
+            )
             nvm use
             printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
       - attach_workspace:
@@ -192,7 +202,10 @@ jobs:
               local target="$2"
               local attempt
               for attempt in 1 2 3 4 5; do
-                if curl --fail --location --silent --show-error --retry 2 --retry-delay 3 --retry-all-errors --output "$target" "$url" && test -s "$target"; then
+                if curl --http1.1 --fail --location --silent --show-error \
+                  --connect-timeout 15 --max-time 60 --speed-time 30 --speed-limit 1024 \
+                  --retry 2 --retry-delay 3 --retry-all-errors --retry-max-time 120 \
+                  --output "$target" "$url" && test -s "$target"; then
                   return 0
                 fi
                 echo "Retrying Codecov download ($attempt/5): $url" >&2
@@ -496,6 +509,11 @@ jobs:
     machine:
       image: ubuntu-2404:current
     resource_class: large
+    environment:
+      # Bound registry stalls below CircleCI's 10-minute inactivity limit, including
+      # npm's two retries, and log completed requests to diagnose slow installs.
+      npm_config_fetch_timeout: "60000"
+      npm_config_loglevel: http
     steps:
       - checkout
       - run: *usePatchedNode
@@ -801,6 +819,9 @@ jobs:
             npm run compile:sails-ng-common
             npm run compile:agenda-sqs
             npm run compile:core
+      - run:
+          name: Test Agenda watchdog cleanup with real MongoDB and SQS repository jobs
+          command: AGENDA_TEST_MONGO_URL="$MONGO_TEST_URL/agenda_watchdog" npm run test:agenda-watchdog
       - run:
           name: Run storage-mongo package tests with coverage
           command: |

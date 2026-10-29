@@ -1,4 +1,4 @@
-import { NgModule, inject, provideAppInitializer } from '@angular/core';
+import { NgModule } from '@angular/core';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { isEmpty as _isEmpty } from 'lodash-es';
@@ -38,8 +38,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
       useClass: CsrfInterceptor,
       multi: true
     },
-    UserService,
-    provideAppInitializer(() => inject(TranslationService).waitForInit())
+    // Roots await translation themselves so failed bootstrap can render Retry.
+    UserService
   ],
   imports: [
     HttpClientModule,

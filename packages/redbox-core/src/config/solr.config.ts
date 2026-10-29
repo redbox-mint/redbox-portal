@@ -53,7 +53,14 @@ export interface SolrPreIndexFlattenConfig {
     special?: SolrPreIndexFlattenSpecial[];
 }
 
+export interface SolrPreIndexJsonStringConfig {
+    source: string;
+    /** Destination path; defaults to the source path when omitted. */
+    dest?: string;
+}
+
 export interface SolrPreIndexConfig {
+    jsonString?: SolrPreIndexJsonStringConfig[];
     move?: SolrPreIndexMoveConfig[];
     copy?: SolrPreIndexCopyConfig[];
     flatten?: SolrPreIndexFlattenConfig;

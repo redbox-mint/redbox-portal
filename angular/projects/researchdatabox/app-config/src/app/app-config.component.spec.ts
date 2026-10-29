@@ -125,6 +125,27 @@ describe('AppConfigComponent', () => {
     TestBed.inject(UtilityService);
 
   });
+  it('shows an initial read error and recovers with retry', async () => {
+    const original = appConfigService.getAppConfigForm.bind(appConfigService);
+    const read = spyOn(appConfigService, 'getAppConfigForm').and.rejectWith({ status: 403 });
+    configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const component = fixture.componentInstance;
+    const waiting = expectAsync(component.waitForInit()).toBeRejected();
+    fixture.detectChanges();
+    await waiting;
+    fixture.detectChanges();
+    expect(component.loadPending).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Sign in again');
+    expect(fixture.nativeElement.textContent).toContain('Retry');
+    read.and.callFake(original);
+    await component.retryLoad();
+    await component.waitForInit();
+    expect(component.loadError).toBe('');
+    expect(configService.refreshConfig).toHaveBeenCalled();
+    fixture.destroy();
+  });
+
   it('Check form submission success', async () => {
     const fixture = TestBed.createComponent(AppConfigComponent);
     const app = fixture.componentInstance;

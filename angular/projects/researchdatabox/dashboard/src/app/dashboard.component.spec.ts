@@ -1,3 +1,6 @@
+import { SortComponent } from './sort/sort.component';
+import { CommonModule } from '@angular/common';
+import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
 import { FormsModule } from '@angular/forms';
@@ -85,8 +88,8 @@ describe('DashboardComponent', () => {
     templates.compileAndRunTemplate.and.callFake((_tpl: string, ctx: any, key: string[]) => `${key.join('|')}:${ctx?.metadata?.title ?? ''}`);
 
     await TestBed.configureTestingModule({
-      declarations: [DashboardComponent],
-      imports: [FormsModule, I18NextPipe],
+      declarations: [DashboardComponent, SortComponent],
+      imports: [CommonModule, FormsModule, I18NextPipe, PaginationModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: 'base' },
         LoggerService,
@@ -132,6 +135,39 @@ describe('DashboardComponent', () => {
       expect(component.settingsUnavailable).toBeTrue();
       expect(templates.compileAndRunTemplate).not.toHaveBeenCalled();
       expect(component.records).toEqual({});
+    });
+
+    it('retains its stage snapshot and resets the actual paginator after a failed page then retries', async () => {
+      const config = TestBed.inject(ConfigService) as any;
+      config.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const component = fixture.componentInstance;
+      component.recordType = 'rdmp';
+      component.dashboardTypeSelected = 'standard';
+      (TestBed.inject(UserService) as any).getInfo = jasmine.createSpy('getInfo').and.resolveTo({ user: { email: 'me@example.org' } });
+      fixture.detectChanges();
+      await component.waitForInit();
+      const previous = component.records['draft'];
+      previous.totalItems = 30;
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
+      const page = (value: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>).find(a => a.textContent?.trim() === String(value))!;
+      recordService.getRecords.and.rejectWith({ status: 500 });
+      page(2).click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(component.records['draft']).toBe(previous);
+      expect(activePage()).toBe('1');
+      expect(component.loadError).toContain('Unable to load');
+      recordService.getRecords.and.resolveTo({ ...records, currentPage: 2, totalItems: 30 });
+      await component.retryLoad();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(activePage()).toBe('2');
+      expect(component.loadError).toBe('');
+      fixture.destroy();
     });
 
     it('loads each stage from one settings snapshot and pins templates to its fingerprint', async () => {

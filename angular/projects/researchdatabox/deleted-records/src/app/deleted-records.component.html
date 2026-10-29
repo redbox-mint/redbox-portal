@@ -1,3 +1,9 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-default" [disabled]="loadPending || actionPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">Retry</button>
+  </div>
+}
 @if (isReady) {
   <div class="row">
     <div class="col-xs-12">
@@ -6,6 +12,17 @@
       </h1>
     </div>
   </div>
+  @if (actionMessage && !isDestroyRecordModalShown) {
+    <div class="alert alert-warning action-feedback" role="alert">
+      {{ actionMessage }} {{ actionRefreshError }}
+      @if (canRetryRestore) {
+        <button type="button" class="btn btn-default retry-restore" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="retryRestore()">Retry restore</button>
+      }
+      @if (actionNeedsRefresh) {
+        <button type="button" class="btn btn-default refresh-actions" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="refreshActionList()">Refresh list</button>
+      }
+    </div>
+  }
   <!-- Render the filter UI elements -->
   @if (filters != null) {
     <div class="row">
@@ -84,7 +101,7 @@
     </div>
   }
   <!-- Result details -->
-  <record-table
+  <record-table [paginationDisabled]="loadPending || actionPending || !initTracker.resultsReturned"
     [columnConfig]="tableHeaders"
     [dataSource]="this"
     [optTemplateData]="optTemplateData"
@@ -92,12 +109,12 @@
     [paginationMaxSize]="paginationMaxSize"
     [showActions]="showActions"
     [enableSort]="true"
-    [enableActions]="true">
+    [enableActions]="!loadPending && initTracker.resultsReturned && !actionPending && !actionNeedsRefresh && !isDestroyRecordModalShown">
   </record-table>
   <!-- Modal -->
   @if (isDestroyRecordModalShown) {
     <div
-      [config]="{backdrop: 'static', show: true}"
+      [config]="{backdrop: 'static', keyboard: false, show: true}"
       (onHidden)="onDestroyRecordModalHidden()"
       bsModal
       #destroyRecordModal="bs-modal"
@@ -115,12 +132,23 @@
           <div class="modal-body">
             {{ 'deleted-records-item-confirm-delete-message' | i18next }}
           </div>
+          @if (actionMessage) {
+            <div class="alert alert-warning action-feedback" role="alert">
+              {{ actionMessage }} {{ actionRefreshError }}
+              @if (canRetryRestore) {
+                <button type="button" class="btn btn-default retry-restore" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="retryRestore()">Retry restore</button>
+              }
+              @if (actionNeedsRefresh) {
+                <button type="button" class="btn btn-default refresh-actions" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="refreshActionList()">Refresh list</button>
+              }
+            </div>
+          }
           <div class="modal-footer">
             <button type="button" class="btn btn-default"
-              (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
+              [disabled]="actionPending" (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
             </button>
             <button type="button" class="btn btn-primary"
-              (click)="confirmDestroyRecordModal($event)">{{ 'deleted-records-item-confirm-delete-confirm' | i18next }}
+              [disabled]="actionPending || actionNeedsRefresh || loadPending || !initTracker.resultsReturned" (click)="confirmDestroyRecordModal($event)">{{ actionMessage && !actionNeedsRefresh ? 'Retry destroy' : ('deleted-records-item-confirm-delete-confirm' | i18next) }}
             </button>
           </div>
         </div>

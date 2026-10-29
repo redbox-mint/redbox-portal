@@ -1,3 +1,9 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-default" [disabled]="loadPending || isProcessingPageChange" (click)="retryLoad()">Retry</button>
+  </div>
+}
 @if (isReady) {
   <div>
     @if (settingsUnavailable) {
@@ -28,7 +34,7 @@
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(getStepKey(workflowStep), $event)">{{ 'record-search-reset' | i18next }}</a></li>
                   </ul>
-                  <input type="text" class="form-control" [(ngModel)]="filterSearchString[getStepKey(workflowStep)]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(getStepKey(workflowStep))" aria-describedby="basic-search-addon" autofocus>
+                  <input type="text" class="form-control" [ngModel]="filterSearchString[getStepKey(workflowStep)]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(getStepKey(workflowStep))" aria-describedby="basic-search-addon" autofocus>
                   <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="getIsSearching(getStepKey(workflowStep)) || getFilterSearchString(getStepKey(workflowStep)) == ''" (click)="filterChanged(getStepKey(workflowStep))">{{ 'record-search-basic-search' | i18next }}</button>
                 </div>
               </div>
@@ -71,8 +77,8 @@
                       }
                     </table>
                   }
-                  <pagination [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
-                  [(ngModel)]="records[getStepKey(workflowStep)].currentPage" (pageChanged)="pageChanged($event,getStepKey(workflowStep))" class="pagination-sm" [maxSize]="10"></pagination>
+                  <pagination #paginator #pageModel="ngModel" [disabled]="loadPending || isProcessingPageChange" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
+                  [ngModel]="records[getStepKey(workflowStep)].currentPage" (ngModelChange)="pageChanged({page: $event, itemsPerPage: paginator.itemsPerPage}, getStepKey(workflowStep), pageModel)" class="pagination-sm" [maxSize]="10"></pagination>
                 </div>
               }
             </div>

@@ -59,7 +59,7 @@ class CustomFormReportComponent {
 for (const imports of [[RedboxPortalCoreServicesModule], [RedboxPortalCoreModule],
   [RedboxPortalCoreServicesModule, RedboxPortalCoreModule]]) {
   describe(imports.map(module => module.name).join(' + '), () => {
-    it('retains the EJS base URL, CSRF interceptor and translation bootstrap barrier', async () => {
+    it('retains the EJS base URL and CSRF interceptor without blocking roots on translation bootstrap', async () => {
       let finishTranslation!: () => void;
       const translations = { waitForInit: jasmine.createSpy('waitForInit').and.returnValue(
         new Promise<void>(resolve => { finishTranslation = resolve; })
@@ -80,8 +80,8 @@ for (const imports of [[RedboxPortalCoreServicesModule], [RedboxPortalCoreModule
       expect(TestBed.inject(UtilityService)).toBeTruthy();
       expect(TestBed.inject(HTTP_INTERCEPTORS).filter(interceptor => interceptor instanceof CsrfInterceptor).length).toBe(1);
       const status = TestBed.inject(ApplicationInitStatus);
-      expect(translations.waitForInit).toHaveBeenCalledTimes(1);
-      expect(status.done).toBeFalse();
+      expect(translations.waitForInit).not.toHaveBeenCalled();
+      expect(status.done).toBeTrue();
       finishTranslation();
       await status.donePromise;
       expect(status.done).toBeTrue();

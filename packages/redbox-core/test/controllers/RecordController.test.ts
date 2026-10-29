@@ -2303,6 +2303,16 @@ describe('RecordController getWorkflowSteps', () => {
 });
 
 describe('RecordController TUS URL generation', () => {
+  class TestTusRecordController extends Controllers.Record {
+    public getTusServer() {
+      this.initTusServer();
+      if (!this.tusServer) {
+        throw new Error('TUS server was not initialized');
+      }
+      return this.tusServer;
+    }
+  }
+
   let controller: Controllers.Record;
   let originalSails: any;
   let originalStorageManagerService: any;
@@ -2414,6 +2424,17 @@ describe('RecordController TUS URL generation', () => {
 
     expect((global as any).StorageManagerService.stagingDisk.calledOnce).to.equal(true);
     expect((controller as any).tusServer.datastore.constructor.name).to.equal('TusStorageManagerDataStore');
+  });
+
+  it('configures a finite default TUS maximum even when legacy attachment config omits limits', () => {
+    expect(new TestTusRecordController().getTusServer().options.maxSize).to.equal(1073741824);
+  });
+
+  it('uses record.maxUploadSize for the server and rejects an unbounded chunk configuration', () => {
+    sails.config.record.maxUploadSize = 12345;
+    expect(new TestTusRecordController().getTusServer().options.maxSize).to.equal(12345);
+    sails.config.record.attachments.maxChunkSize = Infinity;
+    expect(() => new TestTusRecordController().getTusServer()).to.throw('positive safe integers');
   });
 
   it('does not require record.attachments.file.directory when using the storage manager datastore', () => {

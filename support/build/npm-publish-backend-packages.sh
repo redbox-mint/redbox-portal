@@ -182,6 +182,55 @@ for (const packagePath of packagePaths) {
   fs.writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 NODE
+  bundle_patched_agenda
+}
+
+# Published packages cannot refer to checkout-relative tarballs. Bundle the reviewed
+# Agenda build into both core entry points, keeping its exact upstream peer version.
+bundle_patched_agenda() {
+  local package_path
+  for package_path in packages/redbox-core packages/redbox-core-types; do
+    mkdir -p "$STAGING_ROOT/$package_path/node_modules/agenda"
+    tar -xzf packages/agenda-patched/agenda-6.2.6-redbox.1.tgz \
+      --strip-components=1 -C "$STAGING_ROOT/$package_path/node_modules/agenda"
+  done
+  node - "$STAGING_ROOT" <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const { createRequire } = require('module');
+const root = process.argv[2];
+const sourceRequire = createRequire(path.resolve('packages/redbox-core/package.json'));
+const agendaRequire = createRequire(sourceRequire.resolve('agenda'));
+// npm does not install missing children of a bundled dependency. Copy the
+// installed, locked dependency graph as well, preserving nested version choices.
+function bundleDependency(name, fromRequire, destination) {
+  const manifest = fromRequire.resolve(`${name}/package.json`);
+  const source = path.dirname(manifest);
+  fs.cpSync(source, destination, { recursive: true,
+    filter: filename => !path.relative(source, filename).split(path.sep).includes('node_modules') });
+  const childRequire = createRequire(manifest);
+  for (const child of Object.keys(childRequire('./package.json').dependencies || {})) {
+    bundleDependency(child, childRequire, path.join(destination, 'node_modules', child));
+  }
+}
+for (const name of ['redbox-core', 'redbox-core-types', 'agenda-sqs-backend']) {
+  const filename = path.join(root, 'packages', name, 'package.json');
+  const pkg = JSON.parse(fs.readFileSync(filename, 'utf8'));
+  if (name === 'agenda-sqs-backend') {
+    // The published adapter takes Agenda from its caller via its exact peer pin.
+    pkg.devDependencies.agenda = '6.2.6';
+  } else {
+    pkg.dependencies.agenda = '6.2.6';
+    const destination = path.join(root, 'packages', name, 'node_modules', 'agenda');
+    const agenda = JSON.parse(fs.readFileSync(path.join(destination, 'package.json'), 'utf8'));
+    for (const dependency of Object.keys(agenda.dependencies)) {
+      bundleDependency(dependency, agendaRequire, path.join(destination, 'node_modules', dependency));
+    }
+    pkg.bundleDependencies = [...new Set([...(pkg.bundleDependencies || []), 'agenda'])];
+  }
+  fs.writeFileSync(filename, `${JSON.stringify(pkg, null, 2)}\n`);
+}
+NODE
 }
 
 validate_staging_root() {

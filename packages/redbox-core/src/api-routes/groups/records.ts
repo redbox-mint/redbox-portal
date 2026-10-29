@@ -281,7 +281,11 @@ export const getRecordAuditRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Get record audit',
-    responses: { 200: responseField(listApiResponseSchema(recordAuditEntrySchema), 'Record audit list') },
+    responses: {
+      200: responseField(listApiResponseSchema(recordAuditEntrySchema), 'Record audit list'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+    },
   }
 );
 

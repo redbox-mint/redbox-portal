@@ -1,3 +1,9 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-default" [disabled]="loadPending" (click)="retryLoad()">Retry</button>
+  </div>
+}
 @if (isReady) {
   <div class="col-md-offset-2 col-md-8">
     <div class="panel panel-default">

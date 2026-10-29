@@ -24,6 +24,8 @@ type TranslationEntry = {
   contentFormat?: TranslationContentFormat;
 };
 
+type ReadKind = 'languages' | 'entries' | 'bundles' | 'displayName';
+
 type TranslationEditorMode = 'rich' | 'text' | 'html';
 
 @Component({
@@ -494,6 +496,35 @@ export class AppComponent implements OnInit, OnDestroy {
   private sanitizer = inject(DomSanitizer);
   private allowedClasses = getTranslationHtmlClasses();
 
+  readWarnings = signal<Partial<Record<ReadKind, string>>>({});
+  readPending = signal<Partial<Record<ReadKind, boolean>>>({});
+  private readRequests: Record<ReadKind, number> = { languages: 0, entries: 0, bundles: 0, displayName: 0 };
+  private destroyed = false;
+  private entriesContext = '';
+  private editedAvailability = new Set<string>();
+
+  // Read errors are advisory only. Retries use the current context and never write data.
+  private async read(kind: ReadKind, relevant: () => boolean, load: () => Promise<() => boolean | void>, warning: string) {
+    const request = ++this.readRequests[kind];
+    this.readPending.update(state => ({ ...state, [kind]: true }));
+    const current = () => !this.destroyed && request === this.readRequests[kind] && relevant();
+    try {
+      const apply = await load();
+      if (!current()) return;
+      const complete = apply() !== false;
+      this.readWarnings.update(state => ({ ...state, [kind]: complete ? undefined : warning }));
+    } catch (error) {
+      console.error(`Failed to load translation ${kind}`, error);
+      if (current()) this.readWarnings.update(state => ({ ...state, [kind]: warning }));
+    } finally {
+      if (request === this.readRequests[kind]) this.readPending.update(state => ({ ...state, [kind]: false }));
+    }
+  }
+
+  async retryLanguages() {
+    await this.ngOnInit();
+  }
+
   // Simple state
   languages = signal<any[]>([]);
   availableLanguages = signal<string[]>([]); // Language codes that can be shown
@@ -541,6 +572,7 @@ export class AppComponent implements OnInit, OnDestroy {
   // Modal state for display name editing
   displayNameModalOpen = signal(false);
   editDisplayName = '';
+  displayNameEdited = false;
 
   // Display name update status
   updatingDisplayName = signal(false);
@@ -553,77 +585,85 @@ export class AppComponent implements OnInit, OnDestroy {
   saveLanguagesError = signal(false);
 
   async ngOnInit() {
-    await this.svc.waitForInit();
-    const config = await this.configService.getConfig();
-    this.allowedClasses = getTranslationHtmlClasses(config?.translationEditor?.allowedClasses);
-    await this.loadLanguages();
-    // Load the enabled state from bundles instead of showing all by default
-    await this.loadAvailableLanguagesFromBundles();
+    try {
+      await this.svc.waitForInit();
+      const config = await this.configService.getConfig();
+      this.allowedClasses = getTranslationHtmlClasses(config?.translationEditor?.allowedClasses);
+      await this.loadLanguages();
+      if (!this.readWarnings().languages) await this.loadAvailableLanguagesFromBundles();
+    } catch (error) {
+      console.error('Failed to initialise translation reads', error);
+      if (!this.destroyed) this.readWarnings.update(state => ({ ...state,
+        languages: 'Languages could not be loaded. The list may be incomplete; retry to load the current configuration.' }));
+    }
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.destroyRichTextEditor();
   }
 
   private async loadLanguages() {
-    try {
-      const list: any[] = await this.svc.listLanguages();
-      this.languages.set(Array.isArray(list) ? list : []);
-      if (!this.selectedLang && this.languages().length > 0) {
-        this.selectedLang = this.languages()[0].code;
-        await this.onLangChange();
-      }
-    } catch (e) {
-      console.error('Failed to load languages', e);
-      this.languages.set([]);
+    await this.read('languages', () => true, async () => {
+      const list = await this.svc.listLanguages();
+      return () => this.languages.set(Array.isArray(list) ? list : []);
+    }, 'Languages could not be loaded. The list may be incomplete; an empty list does not confirm that no languages exist.');
+    if (!this.destroyed && !this.selectedLang && this.languages().length > 0) {
+      this.selectedLang = this.languages()[0].code;
+      await this.onLangChange();
     }
   }
 
-  private async loadAvailableLanguagesFromBundles() {
-    try {
-      const enabledLanguages: string[] = [];
-
-      // Load bundle information for each language to check enabled status
-      for (const lang of this.languages()) {
+  async loadAvailableLanguagesFromBundles() {
+    const namespace = this.namespace;
+    const codes = this.languages().map(lang => lang.code);
+    await this.read('bundles', () => namespace === this.namespace &&
+      JSON.stringify(codes) === JSON.stringify(this.languages().map(lang => lang.code)), async () => {
+      const enabled: string[] = [];
+      const failed: string[] = [];
+      for (const code of codes) {
         try {
-          const bundle = await this.svc.getBundle(lang.code, this.namespace);
-          if (bundle && bundle.enabled !== false) { // Default to enabled if not specified
-            enabledLanguages.push(lang.code);
-          }
-        } catch (e) {
-          console.warn(`Could not load bundle for ${lang.code}, assuming enabled:`, e);
-          // If we can't load the bundle, assume it's enabled (backward compatibility)
-          enabledLanguages.push(lang.code);
+          const bundle = await this.svc.getBundle(code, namespace);
+          if (bundle && bundle.enabled !== false) enabled.push(code);
+        } catch (error) {
+          console.warn(`Could not load bundle for ${code}`, error);
+          failed.push(code);
+          // Preserve the safe default, or the previously loaded setting.
+          if (this.availableLanguages().includes(code) || !this.bundleContexts.has(JSON.stringify([namespace, code]))) enabled.push(code);
         }
       }
-
-      this.availableLanguages.set(enabledLanguages);
-    } catch (e) {
-      console.error('Failed to load available languages from bundles', e);
-      // Fallback: show all languages if we can't load bundle info
-      this.availableLanguages.set(this.languages().map(l => l.code));
-    }
+      return () => {
+        this.availableLanguages.set(codes.filter(code => this.editedAvailability.has(code)
+          ? this.availableLanguages().includes(code) : enabled.includes(code)));
+        for (const code of codes) this.bundleContexts.add(JSON.stringify([namespace, code]));
+        return failed.length === 0;
+      };
+    }, 'Language availability could not be fully loaded. Previous settings or enabled defaults are shown and may be inaccurate.');
   }
+  private bundleContexts = new Set<string>();
 
   async onLangChange() {
-    if (!this.selectedLang) return;
     await this.loadEntries();
   }
 
-  // Load individual entries with metadata for the selected language
-  private async loadEntries() {
-    try {
-      const data = await this.svc.listEntries(this.selectedLang, this.namespace);
-      this.entries.set(Array.isArray(data) ? data : []);
-      // Reset category filter on language change
+  async loadEntries() {
+    const lang = this.selectedLang;
+    const namespace = this.namespace;
+    const context = JSON.stringify([lang, namespace]);
+    if (context !== this.entriesContext) {
+      this.entriesContext = context;
+      this.entries.set([]);
       this.selectedCategory = '';
       this.refreshDerived();
-    } catch (e) {
-      console.error('Failed to load entries', e);
-      this.entries.set([]);
-      this.viewEntries.set([]);
-      this.categories.set([]);
+      this.readWarnings.update(state => ({ ...state, entries: undefined }));
     }
+    await this.read('entries', () => lang === this.selectedLang && namespace === this.namespace, async () => {
+      const data = lang ? await this.svc.listEntries(lang, namespace) : [];
+      return () => {
+        this.entries.set(Array.isArray(data) ? data : []);
+        this.refreshDerived();
+      };
+    }, 'Translation entries could not be loaded. The list may be incomplete; an empty list does not confirm that no entries exist.');
   }
 
   setSort(col: 'key' | 'value' | 'category') {
@@ -877,6 +917,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!this.selectedLang) return;
 
     // Load current display name for the language
+    this.displayNameEdited = false;
     this.editDisplayName = this.selectedLang; // Default to language code
     this.displayNameModalOpen.set(true);
 
@@ -885,6 +926,9 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   closeDisplayNameModal() {
+    ++this.readRequests.displayName;
+    this.readPending.update(state => ({ ...state, displayName: false }));
+    this.readWarnings.update(state => ({ ...state, displayName: undefined }));
     this.displayNameModalOpen.set(false);
     // Reset form fields
     this.editDisplayName = '';
@@ -895,15 +939,15 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async loadCurrentDisplayName() {
-    try {
-      const bundle = await this.svc.getBundle(this.selectedLang, this.namespace);
-      if (bundle?.displayName) {
-        this.editDisplayName = bundle.displayName;
-      }
-    } catch (e) {
-      console.warn('Could not load current display name:', e);
-      // Keep the default (language code)
-    }
+    const lang = this.selectedLang;
+    const namespace = this.namespace;
+    const value = this.editDisplayName;
+    await this.read('displayName', () => this.displayNameModalOpen() && lang === this.selectedLang && namespace === this.namespace, async () => {
+      const bundle = await this.svc.getBundle(lang, namespace);
+      return () => {
+        if (!this.displayNameEdited && this.editDisplayName === value && bundle?.displayName) this.editDisplayName = bundle.displayName;
+      };
+    }, 'The current display name could not be loaded. The language code or your existing text is shown.');
   }
 
   async updateDisplayName() {
@@ -948,6 +992,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   toggleAvailableLanguage(code: string, checked: boolean) {
+    this.editedAvailability.add(code);
     const current = this.availableLanguages();
     if (checked) {
       if (!current.includes(code)) {

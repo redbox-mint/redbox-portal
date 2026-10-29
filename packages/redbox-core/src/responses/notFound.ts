@@ -26,6 +26,11 @@ export function notFound(
   const sails = req._sails as Sails.Application;
   const siteTitle = resolveSiteTitle('Site', req.options?.locals as Record<string, unknown> | undefined);
 
+  // A missing static bundle may already have immutable cache headers.
+  // Reset them before JSON, view rendering, or the terminal fallback sends it.
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   res.status(404);
 
   if (data !== undefined) {
