@@ -134,6 +134,8 @@ export namespace Services {
           `  --bs-btn-hover-border-color: var(--rb-${token.key});`,
           `  --bs-btn-active-bg: var(--rb-${token.key});`,
           `  --bs-btn-active-border-color: var(--rb-${token.key});`,
+          `  --bs-btn-disabled-bg: var(--rb-${token.key});`,
+          `  --bs-btn-disabled-border-color: var(--rb-${token.key});`,
           '}',
           `.text-${token.key} {`,
           `  color: var(--rb-${token.key}) !important;`,

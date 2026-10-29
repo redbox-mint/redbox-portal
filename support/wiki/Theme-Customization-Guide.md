@@ -86,8 +86,11 @@ button can use `{ "info": "#003087", "info-text-color": "#ffffff" }`.
 
 Generated CSS exposes `--rb-<context>-text-color` on `:root` and `:host` and uses
 it for `--bs-btn-color`, `--bs-btn-hover-color`, `--bs-btn-active-color` and
-`--bs-btn-disabled-color` on `.btn-<context>`. Existing background and border
-rules are unchanged. These settings do not change alert or badge text.
+`--bs-btn-disabled-color` on `.btn-<context>`. Disabled buttons also use the
+brand background and border (`--bs-btn-disabled-bg`, `--bs-btn-disabled-border-color`),
+so their text sits on the same colour as the other states. The default theme's
+`.btn-secondary` rule reads `--rb-secondary` and `--rb-secondary-text-color`.
+These settings do not change outline buttons, alerts or badges.
 
 Generate Preview saves the draft and shows the button text colours in the
 preview, as for the other colours. Save draft and Publish use the existing shared colour/typeface revision and

@@ -566,9 +566,10 @@ tree-internal > ul.rootless > li > tree-internal > ul {
 }
 
 .btn-secondary {
-    color: $btn-secondary-text-color;
-    background-color: $btn-secondary-background-color;
-    border-color: $btn-secondary-border-color;
+    // Branding theme variables win; the Sass values apply only without a theme stylesheet.
+    color: var(--rb-secondary-text-color, #{$btn-secondary-text-color});
+    background-color: var(--rb-secondary, #{$btn-secondary-background-color});
+    border-color: var(--rb-secondary, #{$btn-secondary-border-color});
 }
 
 .btn.btn-primary.btn-search-bar {
