@@ -66,5 +66,6 @@ export interface NamedQueryPreview<T = unknown> extends NamedQueryValidation {
     rows: number;
     responseBytes: number;
     scanRows: number;
+    mappings: number;
   };
 }
