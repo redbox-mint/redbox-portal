@@ -41,7 +41,7 @@ before(function (this: Mocha.Context, done) {
               migrate: 'drop',
             },
             security: {
-              csrf: false,
+              csrf: process.env.RBPORTAL_TEST_CSRF === 'true',
             },
             brandingConfigurationDefaults: {
               ..._.cloneDeep(defaultBrandingConfigurationDefaults),

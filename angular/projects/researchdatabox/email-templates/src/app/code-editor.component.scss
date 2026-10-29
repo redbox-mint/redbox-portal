@@ -1,0 +1,108 @@
+// Gutter, highlight layer and textarea share these metrics so they line up.
+$line-height: 20px;
+$pad-y: 8px;
+
+:host {
+  display: block;
+}
+
+.et-code {
+  display: flex;
+  position: relative;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
+  font-family: var(--bs-font-monospace);
+  font-size: 13px;
+  line-height: $line-height;
+  overflow: hidden;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+
+  &:focus-within {
+    border-color: var(--bs-primary-border-subtle);
+    box-shadow: 0 0 0 3.2px rgba(var(--bs-primary-rgb), 0.15);
+  }
+
+  &.is-invalid {
+    border-color: var(--bs-danger-border-subtle);
+  }
+}
+
+.et-code-gutter {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 48px;
+  overflow: hidden;
+  border-right: 1px solid var(--bs-border-color-translucent);
+  color: var(--bs-secondary-color);
+  text-align: right;
+  user-select: none;
+}
+
+.et-code-gutter-inner {
+  // Line numbers scroll with the textarea without setting its height.
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: $pad-y 10px $pad-y 8px;
+  will-change: transform;
+}
+
+.et-code-ln {
+  height: $line-height;
+  font-variant-numeric: tabular-nums;
+
+  &.et-code-ln-flag {
+    color: var(--bs-danger-text-emphasis);
+    font-weight: 600;
+  }
+}
+
+.et-code-surface {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--bs-body-bg);
+}
+
+.et-code-marks {
+  position: absolute;
+  inset: $pad-y 0 auto 0;
+  pointer-events: none;
+}
+
+.et-code-mark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: $line-height;
+  background: var(--bs-danger-bg-subtle);
+  box-shadow: inset 3px 0 0 var(--bs-danger);
+}
+
+.et-code-input {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: $pad-y 12px;
+  border: 0;
+  outline: 0;
+  resize: vertical;
+  min-height: $line-height * 4 + $pad-y * 2;
+  background: transparent;
+  color: var(--bs-body-color);
+  font: inherit;
+  line-height: inherit;
+  white-space: pre;
+  overflow: auto;
+  overflow-wrap: normal;
+  tab-size: 2;
+}
+
+.et-code-readonly .et-code-surface {
+  background: var(--bs-tertiary-bg);
+}

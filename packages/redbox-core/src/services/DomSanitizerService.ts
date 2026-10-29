@@ -297,11 +297,14 @@ export namespace Services {
     }
 
     /** Strict email profile with attribute-specific URL checks (DOMPurify permits data images by default). */
-    sanitizeEmail(content: string): { sanitized: string; removed: boolean } {
+    sanitizeEmail(content: string, includeRemovals = false): { sanitized: string; removed: boolean; removals?: Array<{ element?: string; attribute?: string }> } {
       if (typeof content !== 'string') throw new Error('Content must be a string');
       if (!sails.config.dompurify?.profiles?.email) throw new Error('DOMPurify email profile is required');
       const instance = createDOMPurifyForCall();
       let removed = false;
+      const removals: Array<{ element?: string; attribute?: string }> = [];
+      // Names only: no attribute values, node text, URLs, or serialized markup.
+      const safeName = (name: string | undefined) => name && /^[a-z][a-z0-9:-]{0,63}$/i.test(name) ? name.toLowerCase() : 'other';
       instance.addHook('uponSanitizeAttribute', (node: unknown, event: unknown) => {
         const attribute = event as { attrName: string; attrValue: string; keepAttr: boolean };
         const name = attribute.attrName.toLowerCase();
@@ -312,7 +315,7 @@ export namespace Services {
           (name === 'src' && (tag !== 'img' || !/^https?:\/\//i.test(value))) ||
           // Keep inline presentation, but no CSS execution, escapes or resource loading.
           (name === 'style' && /url\s*\(|(?:image-set|image|src|expression)\s*\(|(?:javascript|vbscript|data)\s*:|@|\\|\/\*|behavior\s*:|-moz-binding/i.test(value));
-        if (unsafe) { attribute.keepAttr = false; removed = true; }
+        if (unsafe) { attribute.keepAttr = false; removed = true; removals.push({ element: safeName(tag), attribute: safeName(name) }); }
       });
       try {
         const sanitized = String(instance.sanitize(content, this.getDOMPurifyConfig('email')));
@@ -323,7 +326,13 @@ export namespace Services {
           const removal = entry as { element?: { tagName?: string }; attribute?: unknown };
           return removal.attribute || removal.element?.tagName !== 'BODY';
         });
-        return { sanitized, removed: removed || Boolean(removedContent) };
+        for (const entry of instance.removed ?? []) {
+          const item = entry as { element?: { tagName?: string }; attribute?: { name?: string }; from?: { tagName?: string } };
+          if (item.attribute) removals.push({ element: safeName(item.from?.tagName), attribute: safeName(item.attribute.name) });
+          else if (item.element?.tagName !== 'BODY') removals.push({ element: safeName(item.element?.tagName) });
+        }
+        const unique = [...new Map(removals.map(item => [JSON.stringify(item), item])).values()];
+        return { sanitized, removed: removed || Boolean(removedContent), ...(includeRemovals ? { removals: unique } : {}) };
       } finally {
         instance.removeHook('uponSanitizeAttribute');
       }

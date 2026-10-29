@@ -7238,5 +7238,1055 @@
     "category": "figshare",
     "description": "Error detail shown when publishing a Figshare article fails",
     "contentFormat": "plain"
+  },
+  "menu-email-templates": {
+    "category": "email-templates",
+    "description": "Admin sidebar link to the email template editor",
+    "contentFormat": "plain"
+  },
+  "email-templates-heading": {
+    "category": "email-templates",
+    "description": "Email templates admin page heading and breadcrumb root",
+    "contentFormat": "plain"
+  },
+  "email-templates-brand": {
+    "category": "email-templates",
+    "description": "Badge showing which brand the templates belong to; brand is the brand name",
+    "contentFormat": "plain"
+  },
+  "email-templates-catalogue-intro": {
+    "category": "email-templates",
+    "description": "Introductory text above the email template catalogue",
+    "contentFormat": "plain"
+  },
+  "email-templates-loading": {
+    "category": "email-templates",
+    "description": "Loading indicator text in the email templates admin",
+    "contentFormat": "plain"
+  },
+  "email-templates-retry": {
+    "category": "email-templates",
+    "description": "Button to retry a failed load",
+    "contentFormat": "plain"
+  },
+  "email-templates-catalogue-load-failed": {
+    "category": "email-templates",
+    "description": "Error shown when the template catalogue fails to load",
+    "contentFormat": "plain"
+  },
+  "email-templates-filter-label": {
+    "category": "email-templates",
+    "description": "Accessible label for the catalogue filter box",
+    "contentFormat": "plain"
+  },
+  "email-templates-filter-placeholder": {
+    "category": "email-templates",
+    "description": "Placeholder for the catalogue filter box",
+    "contentFormat": "plain"
+  },
+  "email-templates-quick-filters-label": {
+    "category": "email-templates",
+    "description": "Accessible label for the catalogue quick filter buttons",
+    "contentFormat": "plain"
+  },
+  "email-templates-filter-all": {
+    "category": "email-templates",
+    "description": "Catalogue quick filter: all templates",
+    "contentFormat": "plain"
+  },
+  "email-templates-filter-overridden": {
+    "category": "email-templates",
+    "description": "Catalogue quick filter: templates with a published customisation",
+    "contentFormat": "plain"
+  },
+  "email-templates-filter-drafts": {
+    "category": "email-templates",
+    "description": "Catalogue quick filter: templates with a draft",
+    "contentFormat": "plain"
+  },
+  "email-templates-filter-attention": {
+    "category": "email-templates",
+    "description": "Catalogue quick filter: invalid, default updated or inconsistent templates",
+    "contentFormat": "plain"
+  },
+  "email-templates-catalogue-caption": {
+    "category": "email-templates",
+    "description": "Accessible caption for the catalogue table",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-template": {
+    "category": "email-templates",
+    "description": "Catalogue column heading",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-status": {
+    "category": "email-templates",
+    "description": "Catalogue column heading",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-live": {
+    "category": "email-templates",
+    "description": "Catalogue column heading for the live version",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-last-change": {
+    "category": "email-templates",
+    "description": "Catalogue column heading",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-actions": {
+    "category": "email-templates",
+    "description": "Accessible heading for action columns",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-version": {
+    "category": "email-templates",
+    "description": "History column heading",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-event": {
+    "category": "email-templates",
+    "description": "History column heading",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-by": {
+    "category": "email-templates",
+    "description": "History column heading for the actor",
+    "contentFormat": "plain"
+  },
+  "email-templates-col-when": {
+    "category": "email-templates",
+    "description": "History column heading for the time",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-default": {
+    "category": "email-templates",
+    "description": "Badge: the template uses the supplied default",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-overridden": {
+    "category": "email-templates",
+    "description": "Badge: the brand has published its own version",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-draft": {
+    "category": "email-templates",
+    "description": "Badge: the template has an unpublished draft",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-invalid": {
+    "category": "email-templates",
+    "description": "Badge: the live customisation fails current validation",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-default-updated": {
+    "category": "email-templates",
+    "description": "Badge: the supplied default changed after the customisation was published",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-default-updated-open": {
+    "category": "email-templates",
+    "description": "Accessible label for the Default updated badge button; templateId is the template ID",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-incomplete": {
+    "category": "email-templates",
+    "description": "Badge: a publish did not finish and needs reconciliation",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-live": {
+    "category": "email-templates",
+    "description": "Badge marking the live version in history",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-live-version": {
+    "category": "email-templates",
+    "description": "Editor badge showing the live version number",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-not-applied": {
+    "category": "email-templates",
+    "description": "History badge: this version was reserved but never went live",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-draft-revision": {
+    "category": "email-templates",
+    "description": "Editor badge showing the draft revision",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-unsaved": {
+    "category": "email-templates",
+    "description": "Editor badge: the working copy has changes not yet saved",
+    "contentFormat": "plain"
+  },
+  "email-templates-badge-restored-from": {
+    "category": "email-templates",
+    "description": "Editor badge: the draft was copied from a history version",
+    "contentFormat": "plain"
+  },
+  "email-templates-no-live-version": {
+    "category": "email-templates",
+    "description": "Accessible text for the empty live version cell",
+    "contentFormat": "plain"
+  },
+  "email-templates-unknown-actor": {
+    "category": "email-templates",
+    "description": "Shown when a change has no recorded actor name",
+    "contentFormat": "plain"
+  },
+  "email-templates-supplied-default": {
+    "category": "email-templates",
+    "description": "Catalogue last-change cell for templates that were never customised",
+    "contentFormat": "plain"
+  },
+  "email-templates-action-edit": {
+    "category": "email-templates",
+    "description": "Catalogue button to edit a customised template",
+    "contentFormat": "plain"
+  },
+  "email-templates-action-customise": {
+    "category": "email-templates",
+    "description": "Catalogue button to start customising a default template",
+    "contentFormat": "plain"
+  },
+  "email-templates-no-matches": {
+    "category": "email-templates",
+    "description": "Catalogue empty state when filtering hides everything",
+    "contentFormat": "plain"
+  },
+  "email-templates-no-templates": {
+    "category": "email-templates",
+    "description": "Catalogue empty state",
+    "contentFormat": "plain"
+  },
+  "email-templates-breadcrumb-label": {
+    "category": "email-templates",
+    "description": "Accessible label for the editor breadcrumb",
+    "contentFormat": "plain"
+  },
+  "email-templates-dismiss": {
+    "category": "email-templates",
+    "description": "Button to dismiss a notice",
+    "contentFormat": "plain"
+  },
+  "email-templates-close": {
+    "category": "email-templates",
+    "description": "Button to close a dialog",
+    "contentFormat": "plain"
+  },
+  "email-templates-cancel": {
+    "category": "email-templates",
+    "description": "Button to cancel a dialog or search",
+    "contentFormat": "plain"
+  },
+  "email-templates-rescued": {
+    "category": "email-templates",
+    "description": "Notice offering the content kept after a conflict reload",
+    "contentFormat": "plain"
+  },
+  "email-templates-copy-subject": {
+    "category": "email-templates",
+    "description": "Button to copy the user's kept subject",
+    "contentFormat": "plain"
+  },
+  "email-templates-copy-body": {
+    "category": "email-templates",
+    "description": "Button to copy the user's kept body",
+    "contentFormat": "plain"
+  },
+  "email-templates-copied": {
+    "category": "email-templates",
+    "description": "Announcement after copying",
+    "contentFormat": "plain"
+  },
+  "email-templates-copy-failed": {
+    "category": "email-templates",
+    "description": "Announcement when copying fails",
+    "contentFormat": "plain"
+  },
+  "email-templates-consistency-incomplete": {
+    "category": "email-templates",
+    "description": "Editor alert for an incomplete live transition",
+    "contentFormat": "plain"
+  },
+  "email-templates-consistency-retained": {
+    "category": "email-templates",
+    "description": "Editor notice when a draft was retained after publish",
+    "contentFormat": "plain"
+  },
+  "email-templates-live-invalid": {
+    "category": "email-templates",
+    "description": "Editor alert when the live customisation is invalid",
+    "contentFormat": "plain"
+  },
+  "email-templates-default-updated-banner": {
+    "category": "email-templates",
+    "description": "Default updated banner text",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-new-default": {
+    "category": "email-templates",
+    "description": "Button to preview the current supplied default",
+    "contentFormat": "plain"
+  },
+  "email-templates-start-from-new-default": {
+    "category": "email-templates",
+    "description": "Button to copy the current supplied default into the draft",
+    "contentFormat": "plain"
+  },
+  "email-templates-start-from-default": {
+    "category": "email-templates",
+    "description": "Button in a reset version view to start a draft from the default",
+    "contentFormat": "plain"
+  },
+  "email-templates-tabs-label": {
+    "category": "email-templates",
+    "description": "Accessible label for the editor tab list",
+    "contentFormat": "plain"
+  },
+  "email-templates-tab-edit": {
+    "category": "email-templates",
+    "description": "Editor tab",
+    "contentFormat": "plain"
+  },
+  "email-templates-tab-history": {
+    "category": "email-templates",
+    "description": "Editor tab",
+    "contentFormat": "plain"
+  },
+  "email-templates-template-pane": {
+    "category": "email-templates",
+    "description": "Accessible label for the template editing pane",
+    "contentFormat": "plain"
+  },
+  "email-templates-subject-label": {
+    "category": "email-templates",
+    "description": "Label for the email subject",
+    "contentFormat": "plain"
+  },
+  "email-templates-format-label": {
+    "category": "email-templates",
+    "description": "Label for the email format choice",
+    "contentFormat": "plain"
+  },
+  "email-templates-format-html": {
+    "category": "email-templates",
+    "description": "Email format option",
+    "contentFormat": "plain"
+  },
+  "email-templates-format-text": {
+    "category": "email-templates",
+    "description": "Email format option",
+    "contentFormat": "plain"
+  },
+  "email-templates-body-label": {
+    "category": "email-templates",
+    "description": "Label for the email body",
+    "contentFormat": "plain"
+  },
+  "email-templates-no-problems": {
+    "category": "email-templates",
+    "description": "Shown under the body when validation passes",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-position": {
+    "category": "email-templates",
+    "description": "Diagnostic position",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-UNKNOWN_CONTEXT_ROOT": {
+    "category": "email-templates",
+    "description": "Diagnostic: unknown variable",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-UNKNOWN_CONTEXT_ROOT-named": {
+    "category": "email-templates",
+    "description": "Diagnostic: unknown variable; name is the variable read from the template",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-UNKNOWN_HELPER": {
+    "category": "email-templates",
+    "description": "Diagnostic: unknown helper",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-UNKNOWN_HELPER-named": {
+    "category": "email-templates",
+    "description": "Diagnostic: unknown helper; name is the helper read from the template",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-UNSUPPORTED_CONSTRUCT": {
+    "category": "email-templates",
+    "description": "Diagnostic: unsupported Handlebars construct",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-INVALID_SYNTAX": {
+    "category": "email-templates",
+    "description": "Diagnostic: Handlebars syntax error",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-EMPTY_CONTENT": {
+    "category": "email-templates",
+    "description": "Diagnostic: empty subject or body",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-RENDER_FAILED": {
+    "category": "email-templates",
+    "description": "Diagnostic: strict render failed",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-LENGTH_LIMIT": {
+    "category": "email-templates",
+    "description": "Diagnostic: byte limit exceeded",
+    "contentFormat": "plain"
+  },
+  "email-templates-diagnostic-other": {
+    "category": "email-templates",
+    "description": "Diagnostic fallback",
+    "contentFormat": "plain"
+  },
+  "email-templates-help-summary": {
+    "category": "email-templates",
+    "description": "Collapsible help panel heading",
+    "contentFormat": "plain"
+  },
+  "email-templates-help-insert-hint": {
+    "category": "email-templates",
+    "description": "Help panel hint",
+    "contentFormat": "plain"
+  },
+  "email-templates-help-variables": {
+    "category": "email-templates",
+    "description": "Help panel group heading",
+    "contentFormat": "plain"
+  },
+  "email-templates-help-helpers": {
+    "category": "email-templates",
+    "description": "Help panel group heading",
+    "contentFormat": "plain"
+  },
+  "email-templates-help-limits": {
+    "category": "email-templates",
+    "description": "Help panel size limits",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-pane": {
+    "category": "email-templates",
+    "description": "Accessible label for the preview pane",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-data-label": {
+    "category": "email-templates",
+    "description": "Label above the record picker",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-untitled": {
+    "category": "email-templates",
+    "description": "Shown for a record without a title",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-loading-context": {
+    "category": "email-templates",
+    "description": "Accessible text while record context loads",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-change": {
+    "category": "email-templates",
+    "description": "Button to choose a different preview record",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-search-label": {
+    "category": "email-templates",
+    "description": "Accessible label for the record search",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-search-placeholder": {
+    "category": "email-templates",
+    "description": "Placeholder for the record search",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-results_one": {
+    "category": "email-templates",
+    "description": "Announcement of record search results",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-results_other": {
+    "category": "email-templates",
+    "description": "Announcement of record search results",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-search-failed": {
+    "category": "email-templates",
+    "description": "Record search error",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-none": {
+    "category": "email-templates",
+    "description": "Record search empty state",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-searching": {
+    "category": "email-templates",
+    "description": "Record search in progress",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-more": {
+    "category": "email-templates",
+    "description": "Button to load another page of records",
+    "contentFormat": "plain"
+  },
+  "email-templates-record-unavailable": {
+    "category": "email-templates",
+    "description": "Shown when the record context is denied or missing",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-label": {
+    "category": "email-templates",
+    "description": "Label for the editable preview context",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-edited": {
+    "category": "email-templates",
+    "description": "Marker shown when the context JSON differs from the record",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-reset": {
+    "category": "email-templates",
+    "description": "Button to restore the context JSON from the selected record",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-help": {
+    "category": "email-templates",
+    "description": "Help under the context JSON",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-invalid-json": {
+    "category": "email-templates",
+    "description": "Context JSON parse error",
+    "contentFormat": "plain"
+  },
+  "email-templates-context-too-large": {
+    "category": "email-templates",
+    "description": "Context JSON size error",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-label": {
+    "category": "email-templates",
+    "description": "Heading above the rendered preview",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-updating": {
+    "category": "email-templates",
+    "description": "Preview refresh in progress",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-mode-label": {
+    "category": "email-templates",
+    "description": "Accessible label for the preview mode toggle",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-mode-rendered": {
+    "category": "email-templates",
+    "description": "Preview mode: rendered HTML",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-mode-text": {
+    "category": "email-templates",
+    "description": "Preview mode: text reading of the HTML",
+    "contentFormat": "plain"
+  },
+  "email-templates-previewing-default": {
+    "category": "email-templates",
+    "description": "Notice when previewing the supplied default",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-back-to-working": {
+    "category": "email-templates",
+    "description": "Button to return the preview to the working copy",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-subject": {
+    "category": "email-templates",
+    "description": "Label for the rendered subject",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-frame-title": {
+    "category": "email-templates",
+    "description": "Accessible title for the preview frame",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-text-label": {
+    "category": "email-templates",
+    "description": "Accessible label for the plain-text preview",
+    "contentFormat": "plain"
+  },
+  "email-templates-sanitiser-removed_one": {
+    "category": "email-templates",
+    "description": "Note listing what HTML sanitisation removed",
+    "contentFormat": "plain"
+  },
+  "email-templates-sanitiser-removed_other": {
+    "category": "email-templates",
+    "description": "Note listing what HTML sanitisation removed",
+    "contentFormat": "plain"
+  },
+  "email-templates-removed-attribute": {
+    "category": "email-templates",
+    "description": "Describes a removed attribute in the sanitiser note",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-render-failed": {
+    "category": "email-templates",
+    "description": "Preview error for strict render failures",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-invalid-context": {
+    "category": "email-templates",
+    "description": "Preview error for an invalid context",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-template-invalid": {
+    "category": "email-templates",
+    "description": "Preview error when the template is invalid",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-empty": {
+    "category": "email-templates",
+    "description": "Preview empty state",
+    "contentFormat": "plain"
+  },
+  "email-templates-preview-nothing-sent": {
+    "category": "email-templates",
+    "description": "Reassurance under the preview",
+    "contentFormat": "plain"
+  },
+  "email-templates-status-saving": {
+    "category": "email-templates",
+    "description": "Footer status",
+    "contentFormat": "plain"
+  },
+  "email-templates-status-save-failed": {
+    "category": "email-templates",
+    "description": "Footer status after a failed save",
+    "contentFormat": "plain"
+  },
+  "email-templates-status-unsaved": {
+    "category": "email-templates",
+    "description": "Footer status",
+    "contentFormat": "plain"
+  },
+  "email-templates-status-saved": {
+    "category": "email-templates",
+    "description": "Footer status; when is a date and time",
+    "contentFormat": "plain"
+  },
+  "email-templates-status-editing-live": {
+    "category": "email-templates",
+    "description": "Footer status before a draft exists",
+    "contentFormat": "plain"
+  },
+  "email-templates-status-editing-default": {
+    "category": "email-templates",
+    "description": "Footer status before a draft exists",
+    "contentFormat": "plain"
+  },
+  "email-templates-status-based-on": {
+    "category": "email-templates",
+    "description": "Footer status: the version the draft started from",
+    "contentFormat": "plain"
+  },
+  "email-templates-status-based-on-default": {
+    "category": "email-templates",
+    "description": "Footer status: the draft started from the default",
+    "contentFormat": "plain"
+  },
+  "email-templates-action-discard": {
+    "category": "email-templates",
+    "description": "Button to delete the draft",
+    "contentFormat": "plain"
+  },
+  "email-templates-action-reset": {
+    "category": "email-templates",
+    "description": "Button to remove the live customisation",
+    "contentFormat": "plain"
+  },
+  "email-templates-action-save": {
+    "category": "email-templates",
+    "description": "Button to save the draft now",
+    "contentFormat": "plain"
+  },
+  "email-templates-action-publish": {
+    "category": "email-templates",
+    "description": "Button to publish the draft",
+    "contentFormat": "plain"
+  },
+  "email-templates-action-view": {
+    "category": "email-templates",
+    "description": "History button to view a version",
+    "contentFormat": "plain"
+  },
+  "email-templates-action-restore": {
+    "category": "email-templates",
+    "description": "Button to copy a history version into the draft",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-blocked-loading": {
+    "category": "email-templates",
+    "description": "Publish unavailable while loading",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-blocked-incomplete": {
+    "category": "email-templates",
+    "description": "Publish blocked reason",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-blocked-conflict": {
+    "category": "email-templates",
+    "description": "Publish blocked reason",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-blocked-diagnostics": {
+    "category": "email-templates",
+    "description": "Publish blocked reason",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-blocked-no-draft": {
+    "category": "email-templates",
+    "description": "Publish blocked reason",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-blocked-save-failed": {
+    "category": "email-templates",
+    "description": "Publish blocked reason",
+    "contentFormat": "plain"
+  },
+  "email-templates-draft-saved": {
+    "category": "email-templates",
+    "description": "Announcement after a manual save",
+    "contentFormat": "plain"
+  },
+  "email-templates-draft-up-to-date": {
+    "category": "email-templates",
+    "description": "Announcement when there is nothing to save",
+    "contentFormat": "plain"
+  },
+  "email-templates-draft-discarded": {
+    "category": "email-templates",
+    "description": "Announcement after discarding",
+    "contentFormat": "plain"
+  },
+  "email-templates-draft-from-default-done": {
+    "category": "email-templates",
+    "description": "Announcement after starting from default",
+    "contentFormat": "plain"
+  },
+  "email-templates-published": {
+    "category": "email-templates",
+    "description": "Notice after publishing",
+    "contentFormat": "plain"
+  },
+  "email-templates-published-draft-retained": {
+    "category": "email-templates",
+    "description": "Notice after publishing when the draft was retained",
+    "contentFormat": "plain"
+  },
+  "email-templates-reset-done": {
+    "category": "email-templates",
+    "description": "Notice after reset",
+    "contentFormat": "plain"
+  },
+  "email-templates-restored": {
+    "category": "email-templates",
+    "description": "Notice after restore",
+    "contentFormat": "plain"
+  },
+  "email-templates-history-intro": {
+    "category": "email-templates",
+    "description": "History tab introduction",
+    "contentFormat": "plain"
+  },
+  "email-templates-history-caption": {
+    "category": "email-templates",
+    "description": "Accessible caption for the history table",
+    "contentFormat": "plain"
+  },
+  "email-templates-history-empty": {
+    "category": "email-templates",
+    "description": "History empty state",
+    "contentFormat": "plain"
+  },
+  "email-templates-history-load-failed": {
+    "category": "email-templates",
+    "description": "History load error",
+    "contentFormat": "plain"
+  },
+  "email-templates-history-retention_one": {
+    "category": "email-templates",
+    "description": "History retention note",
+    "contentFormat": "plain"
+  },
+  "email-templates-history-retention_other": {
+    "category": "email-templates",
+    "description": "History retention note",
+    "contentFormat": "plain"
+  },
+  "email-templates-event-publish": {
+    "category": "email-templates",
+    "description": "History event",
+    "contentFormat": "plain"
+  },
+  "email-templates-event-reset": {
+    "category": "email-templates",
+    "description": "History event",
+    "contentFormat": "plain"
+  },
+  "email-templates-event-restore-published": {
+    "category": "email-templates",
+    "description": "History event: a restored version was published",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-title": {
+    "category": "email-templates",
+    "description": "Publish confirmation title",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-body": {
+    "category": "email-templates",
+    "description": "Publish confirmation text",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-subject": {
+    "category": "email-templates",
+    "description": "Publish summary label",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-subject-unchanged": {
+    "category": "email-templates",
+    "description": "Publish summary when the subject is the same",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-old-subject": {
+    "category": "email-templates",
+    "description": "Publish summary label",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-new-subject": {
+    "category": "email-templates",
+    "description": "Publish summary label",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-body-label": {
+    "category": "email-templates",
+    "description": "Publish summary label",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-body-unchanged": {
+    "category": "email-templates",
+    "description": "Publish summary when the body is the same",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-lines-changed_one": {
+    "category": "email-templates",
+    "description": "Publish summary changed line count",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-lines-changed_other": {
+    "category": "email-templates",
+    "description": "Publish summary changed line count",
+    "contentFormat": "plain"
+  },
+  "email-templates-publish-confirm": {
+    "category": "email-templates",
+    "description": "Publish confirmation button",
+    "contentFormat": "plain"
+  },
+  "email-templates-reset-title": {
+    "category": "email-templates",
+    "description": "Reset confirmation title",
+    "contentFormat": "plain"
+  },
+  "email-templates-reset-body": {
+    "category": "email-templates",
+    "description": "Reset confirmation text",
+    "contentFormat": "plain"
+  },
+  "email-templates-reset-confirm": {
+    "category": "email-templates",
+    "description": "Reset confirmation button",
+    "contentFormat": "plain"
+  },
+  "email-templates-discard-title": {
+    "category": "email-templates",
+    "description": "Discard confirmation title",
+    "contentFormat": "plain"
+  },
+  "email-templates-discard-body": {
+    "category": "email-templates",
+    "description": "Discard confirmation text",
+    "contentFormat": "plain"
+  },
+  "email-templates-change-record-title": {
+    "category": "email-templates",
+    "description": "Change record confirmation title",
+    "contentFormat": "plain"
+  },
+  "email-templates-change-record-body": {
+    "category": "email-templates",
+    "description": "Change record confirmation text",
+    "contentFormat": "plain"
+  },
+  "email-templates-keep-json": {
+    "category": "email-templates",
+    "description": "Button to keep the edited context",
+    "contentFormat": "plain"
+  },
+  "email-templates-change-record-confirm": {
+    "category": "email-templates",
+    "description": "Button to load the new record context",
+    "contentFormat": "plain"
+  },
+  "email-templates-from-default-title": {
+    "category": "email-templates",
+    "description": "Start from default confirmation title",
+    "contentFormat": "plain"
+  },
+  "email-templates-from-default-body": {
+    "category": "email-templates",
+    "description": "Start from default confirmation text",
+    "contentFormat": "plain"
+  },
+  "email-templates-restore-title": {
+    "category": "email-templates",
+    "description": "Restore confirmation title",
+    "contentFormat": "plain"
+  },
+  "email-templates-restore-body": {
+    "category": "email-templates",
+    "description": "Restore confirmation text",
+    "contentFormat": "plain"
+  },
+  "email-templates-view-title": {
+    "category": "email-templates",
+    "description": "View version dialog title",
+    "contentFormat": "plain"
+  },
+  "email-templates-view-reset": {
+    "category": "email-templates",
+    "description": "View dialog text for reset versions",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-title": {
+    "category": "email-templates",
+    "description": "Conflict dialog title",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-published": {
+    "category": "email-templates",
+    "description": "Conflict: someone published",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-reset": {
+    "category": "email-templates",
+    "description": "Conflict: someone reset",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-draft-saved": {
+    "category": "email-templates",
+    "description": "Conflict: someone saved the draft",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-draft-gone": {
+    "category": "email-templates",
+    "description": "Conflict: the draft no longer exists",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-generic": {
+    "category": "email-templates",
+    "description": "Conflict: fallback",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-based-on": {
+    "category": "email-templates",
+    "description": "Conflict: the version the user started from",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-kept": {
+    "category": "email-templates",
+    "description": "Conflict dialog guidance",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-your-subject": {
+    "category": "email-templates",
+    "description": "Conflict dialog label",
+    "contentFormat": "plain"
+  },
+  "email-templates-conflict-your-body": {
+    "category": "email-templates",
+    "description": "Conflict dialog label",
+    "contentFormat": "plain"
+  },
+  "email-templates-reload": {
+    "category": "email-templates",
+    "description": "Conflict dialog button",
+    "contentFormat": "plain"
+  },
+  "email-templates-someone": {
+    "category": "email-templates",
+    "description": "Fallback actor name",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-FORBIDDEN": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-UNKNOWN_TEMPLATE": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-UNKNOWN_VERSION": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-MISSING_DEFAULT": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-LENGTH_LIMIT": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-INVALID_TEMPLATE": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-INVALID_CONTEXT": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-INCOMPLETE_TRANSITION": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-PERSISTENCE": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-SANITISATION_FAILED": {
+    "category": "email-templates",
+    "description": "Error message",
+    "contentFormat": "plain"
+  },
+  "email-templates-error-UNAVAILABLE": {
+    "category": "email-templates",
+    "description": "Error message fallback",
+    "contentFormat": "plain"
   }
 }

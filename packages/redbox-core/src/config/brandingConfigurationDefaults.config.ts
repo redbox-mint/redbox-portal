@@ -289,6 +289,7 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
                 { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
                 { id: 'web-analytics', labelKey: 'menu-webanalytics', href: '/admin/appconfig/edit/webAnalytics' },
                 { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
+                { id: 'email-templates', labelKey: 'menu-email-templates', href: '/admin/email-templates' },
                 { id: 'dashboard-config', labelKey: 'menu-dashboard-config', href: '/admin/dashboard-config' },
                 { id: 'named-query', labelKey: 'menu-named-query', href: '/admin/named-query' }
             ]

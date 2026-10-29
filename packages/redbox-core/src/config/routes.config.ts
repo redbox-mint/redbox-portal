@@ -409,6 +409,23 @@ export const routes: RoutesConfig = {
   // Action routes
   'post /:branding/:portal/action/:action': 'ActionController.callService',
 
+  // Email template administration: session/cookie authentication and default CSRF protection.
+  'get /:branding/:portal/app/email-templates/catalogue': { controller: 'EmailTemplateAdminController', action: 'catalogue' },
+  'get /:branding/:portal/app/email-templates/templates/:templateId': { controller: 'EmailTemplateAdminController', action: 'editor' },
+  'put /:branding/:portal/app/email-templates/templates/:templateId/draft': { controller: 'EmailTemplateAdminController', action: 'saveDraft' },
+  'delete /:branding/:portal/app/email-templates/templates/:templateId/draft': { controller: 'EmailTemplateAdminController', action: 'discardDraft' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/draft/from-default': { controller: 'EmailTemplateAdminController', action: 'fromDefault' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/validate': { controller: 'EmailTemplateAdminController', action: 'validate' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/preview': { controller: 'EmailTemplateAdminController', action: 'preview' },
+  'get /:branding/:portal/app/email-templates/preview-records': { controller: 'EmailTemplateAdminController', action: 'searchRecords' },
+  'get /:branding/:portal/app/email-templates/preview-records/:oid/context': { controller: 'EmailTemplateAdminController', action: 'recordContext' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/publish': { controller: 'EmailTemplateAdminController', action: 'publish' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/reset': { controller: 'EmailTemplateAdminController', action: 'reset' },
+  'get /:branding/:portal/app/email-templates/templates/:templateId/history': { controller: 'EmailTemplateAdminController', action: 'history' },
+  'get /:branding/:portal/app/email-templates/templates/:templateId/history/:version': { controller: 'EmailTemplateAdminController', action: 'historyVersion' },
+  'post /:branding/:portal/app/email-templates/templates/:templateId/history/:version/restore': { controller: 'EmailTemplateAdminController', action: 'restore' },
+  'get /:branding/:portal/admin/email-templates': { controller: 'EmailTemplateAdminController', action: 'page' },
+
   // App config routes
   'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
   'post /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.saveAppConfig',

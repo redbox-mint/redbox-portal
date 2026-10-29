@@ -1,0 +1,35 @@
+meta {
+  name: Email templates - Restore to draft
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test/history/{{emailAdminPublishedVersion}}/restore
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  { "expectedDraftRevision": null }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Restores content into a draft only", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().draft.subject).to.equal("Admin preview {{name}}");
+    bru.setVar("emailAdminDraftRevision", res.getBody().draft.draftRevision);
+  });
+}

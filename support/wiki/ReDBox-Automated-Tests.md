@@ -47,6 +47,10 @@ These tests run the Sails.js backend logic in a Docker container.
       - Example: `RBPORTAL_MOCHA_TEST_PATHS="test/integration/**/auth*.test.ts" npm run test:mocha`
       - Example live run: `RUN_LIVE_INTEGRATION_TESTS=true RBPORTAL_MOCHA_TEST_PATHS="test/integration/services/FormVocabularyService.test.ts" npm run test:mocha:mount`
 
+Email template lifecycle/HTTP tests are in `test/integration/services/EmailTemplateService.test.ts`. Set `RBPORTAL_TEST_CSRF=true` inside the test container to exercise session mutations with real CSRF protection; the default remains disabled for the legacy suite. The email HTTP tests fetch and submit the session token, including assertions that a missing token is rejected.
+
+The Bruno general runner accepts optional positional request/folder paths (passed to `bru run`), for example `bash support/integration-testing/run-bruno-general.sh "2 - AJAX calls/5 - Email Template Admin"` inside the Bruno container. Omit arguments to run the existing full collection.
+
 Relevant current coverage includes `test/integration/services/AdminUserManagementAjax.test.ts`, which verifies the CSRF-backed admin user-management AJAX routes for link-candidate search, linking, linked-account retrieval, disable/enable, and user-audit retrieval.
 
 ### 3. API Integration Tests (`test:bruno`)

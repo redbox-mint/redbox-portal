@@ -1540,6 +1540,95 @@
         }
       }
     },
+    "@researchdatabox/email-templates": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/email-templates",
+      "sourceRoot": "projects/researchdatabox/email-templates/src",
+      "prefix": "email-templates",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "../assets/angular/email-templates"
+            },
+            "index": "projects/researchdatabox/email-templates/src/index.html",
+            "polyfills": ["zone.js"],
+            "tsConfig": "projects/researchdatabox/email-templates/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/email-templates/src/favicon.ico",
+              "projects/researchdatabox/email-templates/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/email-templates/src/styles.scss"],
+            "scripts": [],
+            "browser": "projects/researchdatabox/email-templates/src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "6mb",
+                  "maximumError": "10mb"
+                }
+              ],
+              "optimization": {
+                "scripts": false,
+                "styles": true,
+                "fonts": true
+              },
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "@researchdatabox/email-templates:build:production"
+            },
+            "development": {
+              "buildTarget": "@researchdatabox/email-templates:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "@researchdatabox/email-templates:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "karmaConfig": "projects/researchdatabox/email-templates/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/email-templates/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/email-templates/src/favicon.ico",
+              "projects/researchdatabox/email-templates/src/assets"
+            ],
+            "styles": ["projects/researchdatabox/email-templates/src/styles.scss"],
+            "scripts": []
+          }
+        }
+      }
+    },
     "@researchdatabox/translation": {
       "projectType": "application",
       "schematics": {
