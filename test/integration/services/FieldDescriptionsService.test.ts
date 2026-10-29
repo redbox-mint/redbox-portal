@@ -20,7 +20,8 @@ describe('FieldDescriptionsService with the lifted portal', function () {
     assert.ok(stage);
     const result = await service.describeFields(brand, 'rdmp', caller, type.id, stage.id);
     assert.ok(result.fields.length);
-    assert.ok(result.fields.some(field => field.path === 'title'));
+    // The development hook used by the lifted harness names this field text_1_event.
+    assert.ok(result.fields.some(field => field.path === 'text_1_event'));
     assert.ok(['record-schema', 'form-config'].includes(result.precision));
     assert.equal(Object.hasOwn(result, 'document'), false);
     await assert.rejects(
