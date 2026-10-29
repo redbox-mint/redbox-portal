@@ -6,7 +6,7 @@ export interface CompletionSource {
   fields: ContextSchemaField[];
   roots: string[];
   helpers: string[];
-  /** Feature-owned placeholders; shared code never assumes a record/email root. */
+  /** Feature-owned scaffolds; an optional YOUR_ marker selects the initial placeholder. */
   blockScaffold?: (helper: string) => string | null;
 }
 
@@ -159,12 +159,14 @@ export function completionEdit(
       // Keep an inverse opener (`{{^`) inverse; the scaffold is otherwise identical in length.
       const inverse = /^\{+~?\s*\^/.test(text.slice(open, query.start));
       const block = inverse ? scaffold.replace(/^\{\{#/, '{{^') : scaffold;
-      const placeholder = /YOUR_[A-Z]+/.exec(block)!;
+      const placeholder = /YOUR_[A-Z]+/.exec(block);
       return {
         start: open,
         end: query.end + (closing?.[0].length ?? 0),
         text: block,
-        selection: { start: placeholder.index, end: placeholder.index + placeholder[0].length },
+        selection: placeholder
+          ? { start: placeholder.index, end: placeholder.index + placeholder[0].length }
+          : undefined,
       };
     }
     return { start: query.start, end: query.end, text: scaffold ? item.value : `${item.value} ` };
