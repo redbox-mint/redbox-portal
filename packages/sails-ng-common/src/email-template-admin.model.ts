@@ -1,3 +1,5 @@
+import type { EditorContextSchema, EditorDiagnostic, SchemaTarget, FieldCompleteness } from './schema-assist.model';
+
 export type EmailContextKind = 'record' | 'integration';
 
 /** Shared JSON contracts for the email template Admin application. */
@@ -14,20 +16,10 @@ export interface EmailAdminActor {
   id: string;
   name: string;
 }
-export interface EmailAdminDiagnostic {
-  code: string;
+export interface EmailAdminDiagnostic extends EditorDiagnostic {
   /** Fixed allow-list only; no source expressions leave the server. */
   helper?: 'each' | 'if' | 'unless' | 'with';
-  /** Omitted by older servers; clients must treat omission as error. */
-  severity?: 'error' | 'warning';
-  /** A sibling property name from the schema, never a source excerpt. */
-  suggestion?: string;
-  /** Zero-based index in the Handlebars AST path parts, excluding this/parent prefixes. */
-  segmentIndex?: number;
   field: 'subject' | 'body' | 'context';
-  reason: string;
-  line: number;
-  column: number;
 }
 export interface EmailAdminChange {
   updatedBy: string | null;
@@ -177,29 +169,9 @@ export interface EmailAdminRecordContextResponse {
   context: Record<string, unknown>;
 }
 
-/** JSON Schema draft 2020-12 subset used by email authoring assistance. */
-export interface EmailContextSchema {
-  [keyword: string]: unknown;
-  $ref?: string;
-  type?: string | string[];
-  properties?: Record<string, EmailContextSchema>;
-  required?: string[];
-  additionalProperties?: boolean | EmailContextSchema;
-  items?: EmailContextSchema;
-  title?: string;
-  description?: string;
-  enum?: unknown[];
-  examples?: unknown[];
-  default?: unknown;
-  allOf?: EmailContextSchema[];
-  anyOf?: EmailContextSchema[];
-  oneOf?: EmailContextSchema[];
-}
-export interface EmailSchemaTarget {
-  id: string;
-  label: string;
-  stages: Array<{ id: string; label: string; starting: boolean }>;
-}
+/** Compatibility names for existing email clients. */
+export type EmailContextSchema = EditorContextSchema;
+export type EmailSchemaTarget = SchemaTarget;
 export interface EmailSchemaTargetsResponse {
   recordTypes: EmailSchemaTarget[];
 }
@@ -208,5 +180,6 @@ export interface EmailContextSchemaResponse {
   stage: string;
   contextKind?: EmailContextKind;
   precision: 'record-schema' | 'form-config' | 'none' | 'integration';
+  completeness?: FieldCompleteness;
   schema: EmailContextSchema;
 }

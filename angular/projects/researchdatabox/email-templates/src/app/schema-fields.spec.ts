@@ -28,6 +28,7 @@ describe('flattenContextFields', () => {
       description: 'Record authors',
       required: false,
       isArray: true,
+      itemType: 'object',
     });
     expect(fields[2].required).toBeTrue();
   });

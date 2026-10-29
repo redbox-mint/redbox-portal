@@ -11,6 +11,7 @@ import type {
   EmailAdminErrorResponse,
   EmailAdminToken,
   EmailAdminActor,
+  EmailContextSchemaResponse,
 } from '@researchdatabox/sails-ng-common';
 import { EmailTemplateConflictError, EmailTemplateError } from '../services/EmailTemplateService';
 import { getRouteParam } from '../utilities/RequestParamUtils';
@@ -143,7 +144,10 @@ export namespace Controllers {
         { brand, user: req.user } as unknown as FormRecordAccessContext, recordType, stage, templateId);
     }
     public schemaTargets(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, () => emailSchemaTargets(requireEmailTemplateAdmin(req)));
+      return this.run(req, res, () => {
+        const brand = requireEmailTemplateAdmin(req);
+        return emailSchemaTargets(brand, { brand, user: req.user } as unknown as FormRecordAccessContext);
+      });
     }
     public contextSchema(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, () => this.schema(req, req.query.recordType, req.query.stage, req.query.templateId));
@@ -200,10 +204,23 @@ export namespace Controllers {
         const parsed: EmailTemplateAsts = {};
         const diagnostics = EmailTemplateAdminService.validate(content, parsed);
         const integration = await emailTemplateContextKind(brand, id) === 'integration';
+        let context: EmailContextSchemaResponse | undefined;
+        if (
+          (body.recordType !== undefined || body.stage !== undefined || integration) &&
+          diagnostics.every(
+            item => item.severity === 'warning' || (integration && item.reason === 'UNKNOWN_CONTEXT_ROOT')
+          )
+        ) {
+          try {
+            context = await this.schema(req, body.recordType, body.stage, id);
+          } catch {
+            // Guidance is advisory: a revoked selection must not prevent structural validation.
+            // Discovery still reports the error, and no alternate schema/form is used here.
+          }
+        }
         // Keep the root allowlist blocking, but offer the integration schema's safe spelling suggestion.
-        if (integration && diagnostics.some(item => item.reason === 'UNKNOWN_CONTEXT_ROOT') &&
+        if (integration && context && diagnostics.some(item => item.reason === 'UNKNOWN_CONTEXT_ROOT') &&
           diagnostics.every(item => item.severity === 'warning' || item.reason === 'UNKNOWN_CONTEXT_ROOT')) {
-          const context = await this.schema(req, undefined, undefined, id);
           const hints = lintEmailTemplateSchema(content, context.schema, true, context.precision, parsed);
           for (let index = 0; index < diagnostics.length; index++) {
             const error = diagnostics[index];
@@ -216,8 +233,7 @@ export namespace Controllers {
           return res
             .status(400)
             .json({ error: { code: 'INVALID_TEMPLATE', message: 'Template validation failed.' }, diagnostics });
-        if (body.recordType !== undefined || body.stage !== undefined || integration) {
-          const context = await this.schema(req, body.recordType, body.stage, id);
+        if (context) {
           diagnostics.push(...lintEmailTemplateSchema(content, context.schema, context.precision === 'integration', context.precision, parsed));
         }
         return { diagnostics };

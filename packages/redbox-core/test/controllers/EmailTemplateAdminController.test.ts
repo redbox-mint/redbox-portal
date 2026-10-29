@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
+import { of } from 'rxjs';
 import { Controllers, mapEmailTemplateAdminError } from '../../src/controllers/EmailTemplateAdminController';
 import { EMAIL_PREVIEW_CSP } from '../../src/utilities/EmailPreviewFrame';
 import { contentSecurityPolicy } from '../../src/policies/contentSecurityPolicy';
@@ -101,7 +102,10 @@ describe('Email template Admin HTTP boundary', () => {
   afterEach(() => {
     sinon.restore();
     cleanupServiceTestGlobals();
-    for (const name of ['BrandingService', 'RolesService', 'EmailTemplateAdminService', 'EmailTemplateService', 'EmailService', 'AppConfigService'])
+    for (const name of [
+      'BrandingService', 'RolesService', 'EmailTemplateAdminService', 'EmailTemplateService', 'EmailService',
+      'AppConfigService', 'RecordTypesService', 'WorkflowStepsService', 'FormsService',
+    ])
       delete (global as any)[name];
   });
 
@@ -200,6 +204,66 @@ describe('Email template Admin HTTP boundary', () => {
     await controller.validate(req, res);
     assert.equal(res.status.lastCall.args[0], 200);
   });
+  for (const denial of ['workflow', 'resolver']) {
+    it(`keeps structural validation available after ${denial} access is denied for selected guidance`, async () => {
+      sails.config.emailnotification = {
+        settings: {},
+        defaults: { subject: 'Notice', format: 'text' },
+        templates: { notice: { subject: 'Notice', template: 'notice' } },
+      } as any;
+      const type = { id: 'rdmp-a', name: 'rdmp', branding: 'a' };
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of(type)) };
+      (global as any).WorkflowStepsService = {
+        getAllForRecordTypeIncludingHidden: sinon.stub().returns(
+          of([{ name: 'draft', starting: true, config: { form: 'rdmp-draft' } }])
+        ),
+      };
+      const access = sinon.stub().resolves(true);
+      const describe = sinon.stub().resolves({
+        kind: 'resolved', completeness: 'complete',
+        document: { type: 'object', properties: { title: { type: 'string' } }, required: ['title'] },
+      });
+      sails.services.recordsservice = { hasCreateAccess: access } as any;
+      sails.services.recordschemaservice = { describeStage: describe } as any;
+      const form = sinon.stub().rejects(new Error('Denied guidance must not read forms'));
+      (global as any).FormsService = { getForm: form };
+      service.validate.callsFake((content: any, parsed: any) =>
+        new AdminServices.EmailTemplateAdmin().validate(content, parsed)
+      );
+      req.query = { recordType: 'rdmp', stage: 'draft' };
+      await controller.contextSchema(req, res);
+      assert.equal(res.status.lastCall.args[0], 200);
+      assert.equal(res.json.lastCall.args[0].precision, 'record-schema');
+
+      if (denial === 'workflow') access.resolves(false);
+      else describe.resolves({ kind: 'unavailable', code: 'forbidden' });
+      res.headersSent = false;
+      await controller.contextSchema(req, res);
+      assert.equal(res.status.lastCall.args[0], 403);
+      assert.equal(res.json.lastCall.args[0].error.code, 'FORBIDDEN');
+
+      Object.assign(req.body, req.query);
+      req.body.content = { subject: 'Notice', body: '{{#if record.metadata.title}}', format: 'text' };
+      res.headersSent = false;
+      await controller.validate(req, res);
+      assert.equal(res.status.lastCall.args[0], 400);
+      assert.ok(res.json.lastCall.args[0].diagnostics.some((item: any) => item.reason === 'UNCLOSED_BLOCK'));
+
+      req.body.content.body = '{{record.metadata.title}}';
+      delete req.body.recordType;
+      delete req.body.stage;
+      res.headersSent = false;
+      await controller.validate(req, res);
+      assert.equal(res.status.lastCall.args[0], 200);
+      assert.deepEqual(res.json.lastCall.args[0], { diagnostics: [] });
+      Object.assign(req.body, req.query);
+      res.headersSent = false;
+      await controller.validate(req, res);
+      assert.equal(res.status.lastCall.args[0], 200);
+      assert.deepEqual(res.json.lastCall.args[0], { diagnostics: [] });
+      sinon.assert.notCalled(form);
+    });
+  }
   for (const severity of ['error', undefined]) {
     it(`skips schema retrieval and lint after blocking validation (severity ${severity})`, async () => {
       const diagnostics = [

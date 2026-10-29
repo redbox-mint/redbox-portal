@@ -68,7 +68,11 @@
       "**/src/internal/plain-record.*",
       "**/src/record-concurrency.model.*",
       "**/src/record-diff.*",
-      "**/src/record-save.model.*"
+      "**/src/record-save.model.*",
+      "**/src/query-report-context.*",
+      "**/src/template-path.*",
+      "**/src/schema-utils.*",
+      "**/src/schema-fields.*"
     ],
     "reporter": [
       "lcov",

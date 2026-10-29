@@ -129,10 +129,10 @@ describe('CodeEditorComponent', () => {
   });
 
   it('adds suggestions only when completions are supplied', () => {
-    expect(fixture.nativeElement.querySelector('email-templates-autocomplete')).toBeNull();
+    expect(fixture.nativeElement.querySelector('rb-field-autocomplete')).toBeNull();
     host.completions = { fields: [], roots: ['oid'], helpers: [] };
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('email-templates-autocomplete')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('rb-field-autocomplete')).not.toBeNull();
     expect(textarea().getAttribute('aria-autocomplete')).toBe('list');
   });
 });

@@ -2,16 +2,6 @@
   display: block;
 }
 
-.et-schema-selects {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  gap: 8px;
-
-  .form-select {
-    font-size: 14px;
-  }
-}
-
 .et-schema-status {
   display: flex;
   align-items: baseline;
