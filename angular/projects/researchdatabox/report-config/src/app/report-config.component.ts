@@ -55,6 +55,7 @@ export class ReportConfigComponent extends BaseComponent {
   private itemRequests = new LatestRequest();
   private descriptionRequests = new LatestRequest();
   private validationRequests = new LatestRequest();
+  private saveValidationRequests = new LatestRequest();
   private previewRequests = new LatestRequest();
   private listRequests = new LatestRequest();
   private validationTimer: ReturnType<typeof setTimeout> | null = null;
@@ -98,10 +99,8 @@ export class ReportConfigComponent extends BaseComponent {
   }
   get outputSource(): CompletionSource {
     return {
-      fields: this.fields.flatMap(f => {
-        const path = lookupPath(f.path);
-        return path === null ? [] : [{ ...f, path }];
-      }),
+      fields: this.fields.filter(f => lookupPath(f.path) !== null),
+      pathInsertion: lookupPath,
       roots: [],
       helpers: [],
     };
@@ -130,6 +129,7 @@ export class ReportConfigComponent extends BaseComponent {
 
   override ngOnDestroy(): void {
     this.itemRequests.invalidate();
+    this.saveValidationRequests.invalidate();
     this.listRequests.invalidate();
     this.invalidateAssistance();
     super.ngOnDestroy();
@@ -218,6 +218,7 @@ export class ReportConfigComponent extends BaseComponent {
   }
   private startDraft(report: ReportConfigDto, isNew: boolean): void {
     this.itemRequests.next();
+    this.saveValidationRequests.invalidate();
     this.invalidateAssistance();
     this.selectedReport = report;
     this.isNewReport = isNew;
@@ -235,6 +236,7 @@ export class ReportConfigComponent extends BaseComponent {
   }
   private closeDraft(): void {
     this.itemRequests.invalidate();
+    this.saveValidationRequests.invalidate();
     this.invalidateAssistance();
     this.selectedReport = null;
     this.previewFilterValues = {};
@@ -321,26 +323,28 @@ export class ReportConfigComponent extends BaseComponent {
       if (this.descriptionRequests.isCurrent(token)) this.describing = false;
     }
   }
-  async validateDraft(): Promise<boolean> {
+  async validateDraft(forSave = false): Promise<boolean> {
     this.cancelValidation();
     if (!this.editable || !this.selectedReport) return true;
-    const token = this.validationRequests.next();
+    // Assistance refresh and preview cancel advisory validation, never Save's check.
+    const requests = forSave ? this.saveValidationRequests : this.validationRequests;
+    const token = requests.next();
     const fingerprint = this.fingerprint();
-    this.validating = true;
+    if (!forSave) this.validating = true;
     try {
       const result = await this.reportConfigService.validate(this.clone(this.selectedReport));
-      if (!this.validationRequests.isCurrent(token) || fingerprint !== this.fingerprint()) return false;
+      if (!requests.isCurrent(token) || fingerprint !== this.fingerprint()) return false;
       this.diagnostics = result.diagnostics;
       this.validationBlocking = !result.valid;
       this.validationError = '';
       return result.valid;
     } catch {
-      if (!this.validationRequests.isCurrent(token) || fingerprint !== this.fingerprint()) return false;
+      if (!requests.isCurrent(token) || fingerprint !== this.fingerprint()) return false;
       this.validationError = this.t('report-validation-unavailable');
       this.validationBlocking = false;
       return true; // Guidance failures must not remove legacy editing/saving.
     } finally {
-      if (this.validationRequests.isCurrent(token)) this.validating = false;
+      if (!forSave && requests.isCurrent(token)) this.validating = false;
     }
   }
   async saveReport(): Promise<void> {
@@ -352,16 +356,28 @@ export class ReportConfigComponent extends BaseComponent {
     this.isSaving = true;
     this.errorMessage = '';
     try {
-      if (!(await this.validateDraft()) || !this.itemRequests.isCurrent(item) || fingerprint !== this.fingerprint())
-        return;
-      if (isNew) await this.reportConfigService.create(report);
-      else await this.reportConfigService.update(report);
+      const valid = await this.validateDraft(true);
       if (!this.itemRequests.isCurrent(item)) return;
+      if (fingerprint !== this.fingerprint()) {
+        this.errorMessage = this.t('report-save-draft-changed');
+        return;
+      }
+      if (!valid) return;
+      const saved = isNew
+        ? await this.reportConfigService.create(report)
+        : await this.reportConfigService.update(report);
+      if (!this.itemRequests.isCurrent(item)) return;
+      // Reconcile before Cancel or a list reload can expose the saved entry.
+      this.listRequests.invalidate();
+      this.reports = this.reports.some(r => r.name === saved.name)
+        ? this.reports.map(r => (r.name === saved.name ? this.clone(saved) : r))
+        : [...this.reports, this.clone(saved)];
+      this.applyFilter();
       this.baseline = fingerprint;
       this.isNewReport = false;
-      // Preserve edits made while the save was in flight.
-      if (fingerprint === this.fingerprint()) this.closeDraft();
       await this.loadReports();
+      // Keep the workspace open during refresh, and preserve later edits/item switches.
+      if (this.itemRequests.isCurrent(item) && fingerprint === this.fingerprint()) this.closeDraft();
     } catch (error: unknown) {
       if (this.itemRequests.isCurrent(item)) {
         this.errorMessage = this.getErrorMessage(error);
