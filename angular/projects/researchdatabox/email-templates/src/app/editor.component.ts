@@ -802,11 +802,12 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     } catch (error) {
       if (seq === this.validateSeq) {
-        this.diagnostics =
-          isApiError(error) && error.code === 'LENGTH_LIMIT'
-            ? [{ code: 'LENGTH_LIMIT', field: 'body', reason: 'LENGTH_LIMIT', line: 1, column: 1 }]
-            : this.diagnostics;
-        if (!(isApiError(error) && error.code === 'LENGTH_LIMIT')) {
+        const lengthLimit = isApiError(error) && error.code === 'LENGTH_LIMIT';
+        this.diagnostics = lengthLimit
+          ? [{ code: 'LENGTH_LIMIT', field: 'body', reason: 'LENGTH_LIMIT', line: 1, column: 1 }]
+          : [];
+        this.diagnosticSource = lengthLimit ? content : null;
+        if (!lengthLimit) {
           this.showError(error);
         }
       }
