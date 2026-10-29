@@ -1,0 +1,139 @@
+--- a/dist/JobProcessor.js
++++ b/dist/JobProcessor.js
+@@ -1,8 +1,8 @@
+ import debug from 'debug';
++import { setTimeout as delay } from 'node:timers/promises';
+ import packageJson from '../package.json' with { type: 'json' };
+ import { Job } from './Job.js';
+ import { JobProcessingQueue } from './JobProcessingQueue.js';
+-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+ const log = debug('agenda:jobProcessor');
+ const agendaVersion = packageJson.version;
+ const MAX_SAFE_32BIT_INTEGER = 2 ** 31; // Math.pow(2,31);
+@@ -71,6 +71,7 @@
+     lockedJobs = [];
+     isJobQueueFilling = new Map();
+     isRunning = true;
++    watchdogControllers = new Set();
+     processInterval;
+     notificationChannel;
+     notificationUnsubscribe;
+@@ -90,9 +91,14 @@
+             this.notificationUnsubscribe = this.notificationChannel.subscribe(this.handleNotification.bind(this));
+         }
+     }
++    cancelWatchdogs() {
++        for (const controller of this.watchdogControllers) controller.abort();
++        this.watchdogControllers.clear();
++    }
+     stop() {
+         log.extend('stop')('stop job processor', this.isRunning);
+         this.isRunning = false;
++        this.cancelWatchdogs();
+         if (this.processInterval) {
+             clearInterval(this.processInterval);
+             this.processInterval = undefined;
+@@ -134,12 +140,14 @@
+         if (initialRunning === 0) {
+             log.extend('drain')('no running jobs, resolving immediately');
+             this.isRunning = false;
++            this.cancelWatchdogs();
+             return { completed: 0, running: 0, timedOut: false, aborted: false };
+         }
+         // Check if already aborted
+         if (opts.signal?.aborted) {
+             log.extend('drain')('signal already aborted, resolving immediately');
+             this.isRunning = false;
++            this.cancelWatchdogs();
+             return { completed: 0, running: initialRunning, timedOut: false, aborted: true };
+         }
+         log.extend('drain')('waiting for %d running jobs to finish', initialRunning);
+@@ -159,6 +167,7 @@
+             const finish = (result) => {
+                 cleanup();
+                 this.isRunning = false;
++                this.cancelWatchdogs();
+                 resolve(result);
+             };
+             const checkComplete = () => {
+@@ -423,6 +432,8 @@
+             this.runningJobs.push(job);
+             this.updateStatus(job.attrs.name, 'running', 1);
+             let jobIsRunning = true;
++            const watchdog = new AbortController();
++            this.watchdogControllers.add(watchdog);
+             try {
+                 log.extend('runOrRetry')('[%s:%s] processing job', job.attrs.name, job.attrs._id);
+                 // check if the job is still alive
+@@ -430,13 +441,28 @@
+                     // check every "this.agenda.definitions[job.attrs.name].lockLifetime / 2"" (or at mininum every processEvery)
+                     const timeout = Math.max(this.processEvery / 2, this.agenda.definitions[job.attrs.name].lockLifetime / 2);
+                     do {
+-                        await delay(timeout);
++                        try {
++                            await delay(timeout, undefined, { signal: watchdog.signal });
++                        } catch (error) {
++                            if (!watchdog.signal.aborted) throw error;
++                            // Stopping monitoring must not mark a still-running job complete.
++                            return jobRun;
++                        }
+                         // when job is not running anymore, just finish
+                         if (!jobIsRunning) {
+                             log.extend('runOrRetry')('[%s:%s] checkIfJobIsStillAlive detected job is not running anymore. stopping check.', job.attrs.name, job.attrs._id);
+                             return;
+                         }
+-                        if (await job.isExpired()) {
++                        let expired;
++                        try {
++                            expired = await job.isExpired();
++                        } catch (error) {
++                            if (watchdog.signal.aborted) return jobRun;
++                            throw error;
++                        }
++                        // isExpired() can be in flight when the job finishes or stop() runs.
++                        if (watchdog.signal.aborted) return jobRun;
++                        if (expired) {
+                             log.extend('runOrRetry')('[%s:%s] checkIfJobIsStillAlive detected an expired job, killing it.', job.attrs.name, job.attrs._id);
+                             this.agenda.logJobEvent({
+                                 level: 'warn',
+@@ -454,7 +480,8 @@
+                     } while (jobIsRunning);
+                 };
+                 // CALL THE ACTUAL METHOD TO PROCESS THE JOB!!!
+-                await Promise.race([job.run(), checkIfJobIsStillAlive()]);
++                const jobRun = job.run();
++                await Promise.race([jobRun, checkIfJobIsStillAlive()]);
+                 log.extend('runOrRetry')('[%s:%s] processing job successfull', job.attrs.name, job.attrs._id);
+                 // Job isn't in running jobs so throw an error
+                 if (!this.runningJobs.includes(job)) {
+@@ -477,6 +504,8 @@
+             }
+             finally {
+                 jobIsRunning = false;
++                watchdog.abort();
++                this.watchdogControllers.delete(watchdog);
+                 // Remove the job from the running queue
+                 let runningJobIndex = this.runningJobs.indexOf(job);
+                 if (runningJobIndex === -1) {
+@@ -520,4 +549,4 @@
+         this.jobStatus[name][key] += number;
+     }
+ }
+-//# sourceMappingURL=JobProcessor.js.map
+\ No newline at end of file
++//# sourceMappingURL=JobProcessor.js.map
+--- a/dist/JobProcessor.d.ts
++++ b/dist/JobProcessor.d.ts
+@@ -20,10 +20,12 @@
+     private lockedJobs;
+     private isJobQueueFilling;
+     private isRunning;
++    private watchdogControllers;
+     private processInterval?;
+     private notificationChannel?;
+     private notificationUnsubscribe?;
+     constructor(agenda: Agenda, maxConcurrency: number, totalLockLimit: number, processEvery: number, notificationChannel?: NotificationChannel);
++    private cancelWatchdogs;
+     stop(): JobWithId[];
+     /**
+      * Waits for all currently running jobs to finish, then stops the processor.

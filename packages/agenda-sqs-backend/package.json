@@ -40,6 +40,7 @@
     "@types/debug": "4.1.13",
     "@types/node": "24.12.4",
     "@vitest/coverage-v8": "4.1.5",
+    "agenda": "file:../agenda-patched/agenda-6.2.5-redbox.1.tgz",
     "typescript": "5.9.3",
     "vitest": "4.1.5"
   }

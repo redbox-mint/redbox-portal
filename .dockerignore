@@ -20,3 +20,6 @@ docs
 test
 coverage
 *.tgz
+
+# Required exact local dependency for Agenda watchdog cleanup.
+!packages/agenda-patched/agenda-6.2.5-redbox.1.tgz
