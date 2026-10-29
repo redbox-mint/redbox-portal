@@ -1,0 +1,40 @@
+meta {
+  name: Editor Validate CSRF Required
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/validate
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Accept: application/json
+}
+
+body:json {
+  {
+    "definition": {
+      "collectionName": "record",
+      "mongoQuery": {
+        "metaMetadata.type": "rdmp"
+      },
+      "queryParams": {},
+      "resultObjectMapping": {
+        "projectTitle": "record.metadata.title"
+      }
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Missing CSRF is rejected", () => expect(res.getStatus()).to.equal(403));
+}
