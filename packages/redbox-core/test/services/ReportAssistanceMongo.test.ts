@@ -62,7 +62,7 @@ describe('Report assistance native Mongo execution', () => {
   const request = {
     param: (key: string) => ({ created_fromDate: '2026-01-01T00:00:00Z', created_toDate: '2026-12-31T23:59:59Z' })[key],
   };
-  const preview = () => reports.previewConfig(brand, draft, request, { portal: 'rdmp', caller });
+  const preview = (config = draft) => reports.previewConfig(brand, config, request, { portal: 'rdmp', caller });
   before(async function () {
     const url = process.env.NAMED_QUERY_TEST_MONGO_URL;
     if (!url) this.skip();
@@ -152,11 +152,12 @@ describe('Report assistance native Mongo execution', () => {
   it('uses parameter keys for date coercion, enforces brand scope and sends server deadlines', async () => {
     const result = await preview();
     assert.equal(result.total, 102);
+    assert.equal(result.deadlineEnforced, true);
     assert.equal(result.records.length, 100);
     assert.equal(result.truncated, true);
     assert.deepEqual(result.truncationReasons, ['rows']);
     assert(result.records.every(record => String(record.oid).startsWith('ours-')));
-    assert(result.renderedRows[0].cells[0].display.startsWith('<b>'));
+    assert(result.renderedRows[0].cells[0].untrustedDisplayHtml.startsWith('<b>'));
     const reads = commands.filter(command => ['aggregate', 'find'].includes(command.name));
     assert.equal(reads.length, 2);
     assert(reads.every(command => command.maxTimeMS && command.maxTimeMS > 0 && command.maxTimeMS <= 5000));
@@ -173,6 +174,24 @@ describe('Report assistance native Mongo execution', () => {
     const csv = await reports.getCSVResult(brand, 'saved', request, 0, 100);
     assert(csv.includes('"\'=SUM(1,2)"'));
     assert(sample.renderedRows.some(row => row.cells[0].export === "'=SUM(1,2)"));
+  });
+  it('renders Mongo dates as browser ISO strings but keeps native CSV date semantics', async () => {
+    const dateDraft = {
+      ...draft,
+      columns: [
+        { label: 'Date', property: 'dateCreated' },
+        { label: 'Templated', property: 'dateCreated', exportTemplate: '{{dateCreated}}', template: '{{dateCreated}}' },
+      ],
+    };
+    sinon.stub(RBReport, 'findOne').returns(createQueryObject(dateDraft));
+    const result = await preview(dateDraft);
+    const date = new Date('2026-05-01T00:00:00Z');
+    assert.deepEqual(result.renderedRows[0].cells, [
+      { untrustedDisplayHtml: date.toISOString(), export: String(date.getTime()) },
+      { untrustedDisplayHtml: date.toISOString(), export: String(date) },
+    ]);
+    const csv = await reports.getCSVResult(brand, 'saved', request, 0, 100);
+    assert.equal(csv.split('\n')[1], `${date.getTime()},${String(date)}`);
   });
   it('cannot load or execute another brand saved query', async () => {
     const other = Object.assign(new BrandingModel(), { id: 'other-brand', name: 'other-brand' });

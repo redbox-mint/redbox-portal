@@ -54,13 +54,19 @@ Shared DTOs are exported by `packages/sails-ng-common/src/report.model.ts`:
 - `ReportConfigValidation` contains `valid` and `diagnostics: EditorDiagnostic[]`.
 - `ReportConfigPreviewDto` retains `total`, `pageNum`, `recordsPerPage`, `records`
   and `success`. It adds `valid`, `diagnostics`, `renderedRows`, `truncated`,
-  `truncationReasons` and `limits`. `records` are the raw named-query **result**
-  rows, including the query's mapped metadata, rather than stored Mongo records.
+  `truncationReasons`, `limits` and `deadlineEnforced`. `records` are the raw
+  named-query **result** rows, including the query's mapped metadata, rather than stored Mongo records.
   `renderedRows[i].cells[j]` corresponds to `records[i]` and configured column `j`;
-  cells contain `{ display: string, export: unknown }`. Hidden columns are retained
-  for export. Export values keep existing untemplated scalar/array/object types;
-  strings include spreadsheet-formula protection and precede CSV quoting.
-  Missing/null export values become explicit empty strings, matching CSV's blank cells.
+  cells contain `{ untrustedDisplayHtml: string, export: string }`. Hidden columns
+  are retained for export. `untrustedDisplayHtml` is rendered, **unsanitized HTML**
+  for Angular's normal `[innerHTML]` binding. `export` is the actual CSV-cast text,
+  after existing spreadsheet-formula protection but before CSV quoting/escaping.
+  Missing/null values become empty strings; native Date values become millisecond
+  timestamp strings, booleans become `1`/empty and arrays/objects become JSON text,
+  exactly as `csv-stringify` emits them. CSV templates still receive native values.
+  `deadlineEnforced` is true for bounded native-record execution and false for the
+  saved-query compatibility path described below. It concerns the DB deadline;
+  rendering and response limits apply to both paths.
 
 `ReportsService` exports `describeQuery(brand, portal, caller, name, property?,
 multivalue?, guidance?)`, `validateConfig(brand, portal, caller, config)` and its
@@ -125,30 +131,48 @@ the normal escaped Handlebars options, matching the real precompiled display
 templates. Both contexts expose `optTemplateData.brandingAndPortalUrl` and have
 no email-specific `record`, `imports`, `portal` or `sailsConfig` roots.
 
-Display strings pass through existing `DomSanitizerService.sanitizeWithProfile`
-with the `html` profile. The running report page continues to use Angular's
-normal `[innerHTML]` sanitizer; its code and semantics are unchanged. The server
-HTML profile is more restrictive for some tags/attributes (e.g. images/style),
-so preview intentionally removes those before delivery. PR 5 should bind display
-through normal `[innerHTML]`, without trust bypass, and show export/raw values
-as text/JSON. Runtime template errors produce empty text with advisory syntax
-diagnostics, preserving legacy behavior. This server sanitizer difference is
-the display parity limitation; escaping, data contexts and CSV values are tested.
+Display renders against a JSON round-trip of each named-query result, exactly as
+the browser receives the live report row (including nested Dates as ISO strings).
+CSV renders against the native result, then preview uses `csv-stringify` for each
+cell with quoting, quote escaping and the record terminator disabled. This reuses
+the real export's value casts without duplicating its Date/boolean/object rules.
 
-Preview uses PR 2's saved execution service through `previewDraft`, with one
-server-created budget shared by native query execution and report rendering.
-It performs no schema/form/hook guidance reads during execution. Validate and
+The exact live binding is
+`<td [innerHTML]="getColValue(row, col)"></td>` in
+`angular/projects/researchdatabox/portal-ng-common/src/lib/record-table.component.html`.
+**PR 5 must bind `<td [innerHTML]="cell.untrustedDisplayHtml"></td>`**, with no
+`bypassSecurityTrustHtml`, other trust bypass, or second HTML sanitizer. The API
+returns untrusted HTML, including any template-supplied unsafe markup; Angular's
+normal binding removes unsafe content at the same boundary as the live table.
+This preserves allowed image/table/code markup that the former server `html`
+profile removed. Show export/raw values as text/JSON. Runtime template errors
+produce empty text with advisory syntax diagnostics, preserving legacy behavior.
+
+The PR 4-only `display` field is replaced by the explicitly named
+`untrustedDisplayHtml`; it must never be treated as server-sanitized HTML. A repo
+consumer audit found no production client of the new rendered-cell fields yet;
+the PR 4 Bruno request is updated. The pre-stack preview fields remain compatible.
+
+Preview uses PR 2's `previewDraft` and a shared query/render budget when that
+executor supports the saved query's DB deadline. For user/custom collections,
+related-filter reads or relation expansion, it calls the exact pre-stack
+`NamedQueryService.performNamedQueryFromConfig(saved, parameters, brand, 0, 100)`
+path. These compatibility runs return `deadlineEnforced: false`; PR 5 should show
+that the database deadline is not enforced. No response timer claims to cancel
+those reads. Their bounded rendering window starts after query execution returns.
+Draft **named-query** preview retains PR 2's stricter refusal unchanged.
+Neither report execution path performs schema/form guidance reads; validate and
 describe provide that advisory guidance separately.
 
 | Bound | Value |
 | --- | --- |
-| Submitted JSON/filter parameters and effective query budget | 131072 UTF-8 bytes |
+| Submitted JSON/filter parameters (plus effective query for bounded native execution) | 131072 UTF-8 bytes |
 | Input depth / visited nodes | 24 / 4000 |
 | Template expressions | 256 per template |
-| Query execution plus report rendering deadline | 5000 ms |
+| Native query plus rendering deadline / legacy post-query rendering deadline | 5000 ms |
 | Sample rows | 100, start zero |
 | Serialized response including raw/rendered rows and wrapper reserve | 524288 UTF-8 bytes |
-| Executor scan guard / mapping aliases | 1000 / 1024 |
+| Bounded executor scan guard / mapping aliases | 1000 / 1024 |
 | Displayed diagnostics | 200 |
 
 Templates use PR 2's guarded renderer with an added optional `noEscape` argument
@@ -159,7 +183,8 @@ rendered values and drops whole rows. Construction accounting is conservative,
 so complex output can truncate before its final serialized value fills the cap.
 `truncationReasons` contains `rows` and/or `bytes`; `total` retains the match count.
 Excessive template complexity refuses preview before database reads, without
-blocking saves. Native Mongo count/find receive remaining `maxTimeMS`.
+blocking saves. Bounded native Mongo count/find receive remaining `maxTimeMS`;
+legacy compatibility execution retains its existing database behavior.
 
 ## Access findings and execution limits
 
@@ -169,12 +194,12 @@ blocking saves. Native Mongo count/find receive remaining `maxTimeMS`.
 - Existing database reports do **not** apply per-record read ACL filtering.
   A real-Mongo regression compares saved report rows and preview rows containing
   empty view ACLs and confirms equal administrative access behavior.
-- PR 2's deadline limitations also apply here: custom/user collection execution,
-  related-filter reads and relation expansion use uncancellable Waterline/hook
-  paths. Preview returns `PREVIEW_DEADLINE_UNSUPPORTED` before such reads.
-  This narrows the old preview operation for those saved query kinds; normal
-  report runs, exports, configuration saves and non-record descriptions remain
-  available with their existing behavior. No deadline support is fabricated.
+- User/custom collection execution, related-filter reads and relation expansion
+  retain the old report preview path and 100-row cap. They return successful
+  samples with `deadlineEnforced: false`, still bounded by report rendering and
+  serialized response limits. Query reads/mapping on that legacy path remain
+  uncancellable, exactly as before this stack; the UI must disclose the missing
+  database deadline. PR 2's draft named-query refusal is unchanged.
 - Solr config mutations/preview remain forbidden; Solr saved runs/exports and
   read-only flags remain unchanged and covered by existing report tests.
 
@@ -228,5 +253,41 @@ publishing generated reference files and wiki changes remain in PR 6.
 PR 5 owns report controls, consuming diagnostics/contexts, rendering samples,
 guarding stale requests and preserving unsaved UI edits. Section 3 marks only
 finished backend items; shared UI parts remain unchecked. No open backend
-implementation questions remain; the documented sanitizer and uncancellable-path
-limitations should be reflected in preview presentation.
+implementation questions remain. PR 5 must use the untrusted HTML binding and
+disclose `deadlineEnforced: false` as described above.
+
+## Review remediation verification
+
+All four review findings were confirmed before edits. The adapted reviewer
+probes passed **12/12** while asserting the original defects, including a direct
+comparison with Angular **20.3.34**'s HTML sanitizer. Committed regression cases
+then reproduced the defects (**36 passing, 14 failing** before service changes).
+
+The fixes return explicitly untrusted display HTML, serialize display contexts
+like the browser, reuse actual CSV casts, restore the legacy saved-query preview
+paths with a deadline flag, and treat custom-helper/subexpression contexts as
+unknown while retaining builtin scope diagnostics. API route documentation and
+the existing Bruno preview assertions match the revised DTO.
+
+Final checks run serially under `timeout`, with Node **24.22.1**, and at most one
+memory-heavy command at a time:
+
+- Focused PR report/query/context/controller/API-contract Mocha: **234 passing,
+  0 failing, 0 pending**, including native Mongo dates and unchanged PR 2 refusal
+  tests. Same focused paths and runner options as above.
+- Existing report/named-query Mocha: **123 passing, 0 failing, 0 pending**,
+  including all native-Mongo date cases and CSV/controller regressions.
+- Adapted reviewer probes with corrected expectations: **12 passing, 0 failing**,
+  including exact Angular sanitizer markup parity and amplification guards.
+- Shared DTO compilation, core `tsc --noEmit`, and focused report-test
+  `tsc --noEmit` pass. TypeScript commands use `timeout 180` and a 4 GiB heap cap.
+- Final report/controller/API-contract rerun after fixture typing and API text
+  updates: **121 passing, 0 failing, 0 pending**.
+- Focused source oxlint: **0 warnings, 0 errors**. Formatting checks for the
+  updated utility, tests and DTO, plus `git diff --check`, pass.
+
+Mongo used one disposable `mongo:latest` container, resolved to **9.0.4**, named
+`schema-assist-pr4-review-9c907abb`, with the same URL, failpoints and resource
+limits as above. The container and its anonymous volume are removed after the
+Mongo suites. Logs and the adapted probes are under the worktree's ignored
+`.tmp/pr4-review/` directory. No push or PR is part of this remediation.
