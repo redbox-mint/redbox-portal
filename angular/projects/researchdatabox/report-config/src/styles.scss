@@ -1,3 +1,287 @@
+// The workspace frame is shared with the named-query editor.
+@use '../../portal-ng-common/src/lib/schema-assist/admin-workspace';
+
 .report-config-app {
   display: block;
+}
+
+// Report workspace. The frame, panes, footer and diagnostics come from the
+// shared admin-workspace styles; the theme keeps a 10px root, so sizes are px.
+.report-workspace {
+  .report-title-detail::before {
+    content: '·';
+    margin: 0 8px;
+    opacity: 0.7;
+  }
+
+  .report-title-detail {
+    font-weight: 400;
+  }
+
+  .report-editor {
+    label {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .form-text {
+      font-size: 12px;
+    }
+  }
+
+  .report-control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px 16px;
+    margin-bottom: 8px;
+  }
+
+  .report-item-detail {
+    margin-left: 6px;
+    color: var(--bs-secondary-color);
+    font-weight: 400;
+
+    &::before {
+      content: '·';
+      margin-right: 6px;
+    }
+  }
+
+  .report-date-binding {
+    margin-top: 4px;
+    padding: 12px;
+    border-radius: 6px;
+    background: var(--bs-tertiary-bg);
+
+    .form-text {
+      margin: 0 0 8px;
+    }
+  }
+
+  .report-column-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin: 4px 0 8px;
+
+    .form-check-inline {
+      margin-right: 0;
+    }
+
+    .form-check-label {
+      font-weight: 500;
+    }
+  }
+
+  .report-array-help {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    margin: 8px 0;
+    padding: 8px 12px;
+    border: 1px solid var(--bs-info-border-subtle);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-info-bg-subtle);
+    color: var(--bs-info-text-emphasis);
+    font-size: 13px;
+  }
+
+  .report-templates report-template-input {
+    margin: 12px 0 16px;
+  }
+
+  .report-templates report-template-input + report-template-input {
+    padding-top: 16px;
+    border-top: 1px solid var(--bs-border-color-translucent);
+  }
+
+  // Icon-only move buttons on narrow screens; the aria-label keeps the name.
+  @media (max-width: 575.98px) {
+    .report-action-text {
+      display: none;
+    }
+  }
+
+  .report-action-text {
+    margin-left: 4px;
+  }
+
+  .report-query-name {
+    margin: 0 0 8px;
+    overflow-wrap: anywhere;
+
+    code {
+      font-size: 14px;
+    }
+  }
+
+  .report-help-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+  }
+
+  .report-guidance-scope {
+    margin: 8px 0 0;
+    color: var(--bs-secondary-color);
+    font-size: 12px;
+  }
+
+  .report-type {
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-family: var(--bs-font-monospace);
+    font-size: 11px;
+    line-height: 18px;
+  }
+
+  .report-required {
+    color: var(--bs-emphasis-color);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .report-parameter-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    small {
+      display: block;
+      color: var(--bs-secondary-color);
+      font-size: 12px;
+    }
+  }
+
+  .report-parameter-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .report-output-search {
+    position: relative;
+    margin-bottom: 8px;
+
+    .fa-magnifying-glass {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+      color: var(--bs-secondary-color);
+      font-size: 11px;
+      pointer-events: none;
+    }
+
+    .form-control {
+      padding-left: 28px;
+      font-size: 13px;
+    }
+  }
+
+  .report-output-list {
+    max-height: 360px;
+    margin: 0 0 12px;
+    overflow: auto;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+  }
+
+  .report-output-option {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+
+    & + & {
+      border-top: 1px solid var(--bs-border-color-translucent);
+    }
+
+    &:hover {
+      background: var(--bs-tertiary-bg);
+    }
+
+    .form-check-input {
+      flex: 0 0 auto;
+      margin-top: 3px;
+    }
+
+    small {
+      display: block;
+      color: var(--bs-secondary-color);
+    }
+  }
+
+  .report-output-text {
+    min-width: 0;
+  }
+
+  .report-output-title {
+    display: block;
+    font-weight: 600;
+  }
+
+  .report-output-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 6px;
+
+    code {
+      font-size: 12px;
+    }
+  }
+
+  .report-results {
+    margin-top: 24px;
+  }
+
+  .report-diagnostics-ok {
+    color: var(--bs-success-text-emphasis);
+  }
+
+  .report-preview-filters {
+    min-width: 0;
+    margin: 0 0 12px;
+    padding: 0;
+    border: 0;
+
+    legend {
+      float: none;
+      width: auto;
+      padding: 0;
+      border: 0;
+      line-height: inherit;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+    }
+  }
+
+  .report-preview-count {
+    margin: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .report-preview-heading {
+    margin-top: 16px;
+  }
 }
