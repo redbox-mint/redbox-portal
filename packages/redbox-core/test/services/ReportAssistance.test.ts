@@ -17,8 +17,14 @@ import { BrandingModel } from '../../src/model/storage/BrandingModel';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import { dompurify } from '../../src/config/dompurify.config';
 import { NAMED_QUERY_PREVIEW_LIMITS, NamedQueryExecutionBudget } from '../../src/utilities/NamedQueryPreview';
-import { reportStructure } from '../../src/utilities/ReportConfigAssistance';
-import { createMockSails, createQueryObject, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
+import { reportStructure, reportTemplateAdvice } from '../../src/utilities/ReportConfigAssistance';
+import {
+  createMockSails,
+  createMockModel,
+  createQueryObject,
+  setupServiceTestGlobals,
+  cleanupServiceTestGlobals,
+} from './testHelper';
 
 const brand = Object.assign(new BrandingModel(), { id: 'a', name: 'brand-a' });
 const caller: FormRecordAccessContext = {
@@ -268,6 +274,60 @@ describe('Report authoring assistance', () => {
       '{{#each metadata.people as |person index|}}{{person.name}}{{name}}{{@root.title}}{{../title}}{{/each}}{{#with metadata}}{{projectTitle}}{{/with}}';
     assert.deepEqual((await validate(draft)).diagnostics, []);
   });
+  for (const template of [
+    '{{#reviewContext}}{{customValue}}{{/reviewContext}}',
+    '{{#reviewContext}}{{customValue}}{{else}}{{inverseValue}}{{/reviewContext}}',
+    '{{#reviewContext as |provided|}}{{provided.customValue}}{{customValue}}{{/reviewContext}}',
+    '{{#each (reviewItems) as |item|}}{{item.customValue}}{{customValue}}{{/each}}',
+    '{{#with (reviewContextValue)}}{{customValue}}{{/with}}',
+    '{{#with (unregisteredValue)}}{{dynamicValue}}{{/with}}',
+  ])
+    it(`treats helper-produced contexts as unknown: ${template}`, async () => {
+      handlebarsInstance().registerHelper('reviewContext', function (options: Handlebars.HelperOptions) {
+        const value = { customValue: 'works' };
+        return options.fn(value, { blockParams: [value] });
+      });
+      handlebarsInstance().registerHelper('reviewItems', () => [{ customValue: 'works' }]);
+      handlebarsInstance().registerHelper('reviewContextValue', () => ({ customValue: 'works' }));
+      try {
+        const draft = config();
+        draft.columns[0].template = template;
+        assert.deepEqual((await validate(draft)).diagnostics, []);
+      } finally {
+        for (const name of ['reviewContext', 'reviewItems', 'reviewContextValue'])
+          handlebarsInstance().unregisterHelper(name);
+      }
+    });
+  it('keeps builtin if/unless, each/with inverse scopes and root references known', () => {
+    const context = flattenContextFields(
+      {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          people: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' } } } },
+        },
+      },
+      'record-schema'
+    );
+    const advice = (template: string) => reportTemplateAdvice(template, context, 'columns.0.template', true, false);
+    assert.deepEqual(
+      advice(
+        '{{#if title}}{{title}}{{/if}}{{#unless title}}{{title}}{{/unless}}{{#each people}}{{name}}{{else}}{{title}}{{/each}}{{#with people}}{{else}}{{title}}{{/with}}'
+      ),
+      []
+    );
+    for (const template of [
+      '{{#if title}}{{missing}}{{/if}}',
+      '{{#unless title}}{{missing}}{{/unless}}',
+      '{{#each people}}{{missing}}{{/each}}',
+      '{{#with people}}{{missing}}{{/with}}',
+      '{{#each (reviewItems)}}{{@root.missing}}{{/each}}',
+    ])
+      assert(
+        advice(template).some(item => item.code === 'UNKNOWN_TEMPLATE_REFERENCE'),
+        template
+      );
+  });
   it('explains arrays without multivalue and accepts explicit per-item handling', async () => {
     const draft = config();
     draft.columns[0].property = 'metadata.people';
@@ -313,7 +373,7 @@ describe('Report authoring assistance', () => {
     assert(!collection.find.called && !fields.called);
   });
 
-  it('renders sanitized display and export cells with real CSV fallback, escaping and formula protection', async () => {
+  it('renders untrusted display and export cells with real CSV fallback, escaping and formula protection', async () => {
     const draft = config();
     draft.columns = [
       {
@@ -333,11 +393,11 @@ describe('Report authoring assistance', () => {
     assert.equal(result.total, 1);
     assert.equal(result.success, true);
     assert.equal(
-      result.renderedRows[0].cells[0].display,
-      '<a href="/brand-a/rdmp/one">=café &amp; &lt;study&gt;, "quoted"</a>'
+      result.renderedRows[0].cells[0].untrustedDisplayHtml,
+      '<a href="/brand-a/rdmp/one" onclick="alert(1)">&#x3D;café &amp; &lt;study&gt;, &quot;quoted&quot;</a><script>alert(2)</script>'
     );
     assert.equal(result.renderedRows[0].cells[0].export, '\'=café & <study>, "quoted"');
-    assert.equal(result.renderedRows[0].cells[1].display, 'value=;5');
+    assert.equal(result.renderedRows[0].cells[1].untrustedDisplayHtml, 'value=;5');
     assert.equal(result.renderedRows[0].cells[1].export, 'value=5;5');
     const data = reports.getDataRows(draft, result.records, { brandingAndPortalUrl: '/brand-a/rdmp' });
     assert.deepEqual(
@@ -359,6 +419,92 @@ describe('Report authoring assistance', () => {
     assert.equal(parsed[0].Count, result.renderedRows[0].cells[1].export);
     assert(!fields.called, 'preview must not perform unbounded schema/hook reads');
   });
+  it('returns live-table markup as explicitly untrusted HTML without server sanitization', async () => {
+    const draft = config();
+    draft.columns[0].template =
+      '<img src="/logo.png" alt="Logo"><table><tbody><tr><td>Value</td></tr></tbody></table><code>code</code><script>alert(1)</script>';
+    rows([{ metadata: { title: 'A' } }]);
+    const result = await preview(draft);
+    assert.equal(result.renderedRows[0].cells[0].untrustedDisplayHtml, draft.columns[0].template);
+    // PR 5 must use Angular [innerHTML], the same sanitization boundary as the live table.
+    assert(!Object.hasOwn(result.renderedRows[0].cells[0], 'display'));
+  });
+  it('renders native dates against the browser JSON row for plain and templated display', async () => {
+    const draft = config();
+    draft.columns = [
+      { label: 'Date', property: 'dateCreated' },
+      { label: 'Template Date', property: 'dateCreated', template: '{{dateCreated}}' },
+      { label: 'Nested Date', property: 'metadata.dynamic.date', template: '{{metadata.dynamic.date}}' },
+    ];
+    const date = new Date('2026-05-01T00:00:00Z');
+    rows([{ dateCreated: date, metadata: { custom: { date } } }]);
+    const result = await preview(draft);
+    const browserRow = JSON.parse(JSON.stringify(result.records[0]));
+    assert.equal(result.renderedRows[0].cells[0].untrustedDisplayHtml, browserRow.dateCreated);
+    assert.equal(
+      result.renderedRows[0].cells[1].untrustedDisplayHtml,
+      handlebarsCompile('{{dateCreated}}')(browserRow)
+    );
+    assert.equal(result.renderedRows[0].cells[2].untrustedDisplayHtml, browserRow.metadata.dynamic.date);
+  });
+  it('casts untemplated native dates exactly like CSV while CSV templates keep native dates', async () => {
+    const draft = config();
+    draft.columns = [
+      { label: 'Date', property: 'dateCreated' },
+      { label: 'CSV Date', property: 'dateCreated', exportTemplate: '{{dateCreated}}' },
+      { label: 'Fallback Date', property: 'dateCreated', template: '{{dateCreated}}' },
+    ];
+    const date = new Date('2026-05-01T00:00:00Z');
+    rows([{ dateCreated: date }]);
+    const result = await preview(draft);
+    model.findOne.returns(createQueryObject(draft));
+    const csv = await reports.getCSVResult(brand, 'draft', req());
+    const parsed: Record<string, string>[] = [];
+    await new Promise<void>((resolve, reject) =>
+      Readable.from([csv])
+        .pipe(csvParser())
+        .on('data', row => parsed.push(row))
+        .on('end', resolve)
+        .on('error', reject)
+    );
+    assert.deepEqual(
+      result.renderedRows[0].cells.map(cell => cell.export),
+      Object.values(parsed[0])
+    );
+    assert.equal(result.renderedRows[0].cells[0].export, '1777593600000');
+    assert.equal(result.renderedRows[0].cells[1].export, String(date));
+    assert.equal(result.renderedRows[0].cells[2].export, String(date));
+  });
+  it('uses CSV casting for booleans, numbers, objects, arrays, blanks and quoted multiline text', async () => {
+    saved.resultObjectMapping = {};
+    const values = {
+      yes: true,
+      no: false,
+      count: 42,
+      object: { nested: 'A,B' },
+      array: ['A', 'B'],
+      blank: null,
+      text: 'A,"B"\nC',
+    };
+    const draft = config();
+    draft.columns = Object.keys(values).map(key => ({ label: key, property: `metadata.${key}` }));
+    rows([{ metadata: values }]);
+    const result = await preview(draft);
+    model.findOne.returns(createQueryObject(draft));
+    const csv = await reports.getCSVResult(brand, 'draft', req());
+    const parsed: Record<string, string>[] = [];
+    await new Promise<void>((resolve, reject) =>
+      Readable.from([csv])
+        .pipe(csvParser())
+        .on('data', row => parsed.push(row))
+        .on('end', resolve)
+        .on('error', reject)
+    );
+    assert.deepEqual(
+      result.renderedRows[0].cells.map(cell => cell.export),
+      Object.values(parsed[0])
+    );
+  });
   it('preserves multivalue item rendering and the whole-array CSV value contract', async () => {
     const draft = config();
     draft.columns = [
@@ -374,8 +520,8 @@ describe('Report authoring assistance', () => {
     rows([{ redboxOid: 'one', metadata: { people: [{ name: 'A & B' }, { name: 'C' }] } }]);
     const result = await preview(draft);
     assert.deepEqual(result.renderedRows[0].cells, [
-      { display: '<b>A &amp; B</b><b>C</b>', export: 'A & B;C;' },
-      { display: '', export: 'A & B;C;' },
+      { untrustedDisplayHtml: '<b>A &amp; B</b><b>C</b>', export: 'A & B;C;' },
+      { untrustedDisplayHtml: '', export: 'A & B;C;' },
     ]);
   });
   it('matches escaped display templates against the shared runtime compiler before sanitization', async () => {
@@ -384,7 +530,7 @@ describe('Report authoring assistance', () => {
     rows([{ metadata: { title: 'A & <B>' } }]);
     const result = await preview(draft);
     assert.equal(
-      result.renderedRows[0].cells[0].display,
+      result.renderedRows[0].cells[0].untrustedDisplayHtml,
       handlebarsCompile(draft.columns[0].template)(result.records[0])
     );
   });
@@ -393,7 +539,7 @@ describe('Report authoring assistance', () => {
     draft.columns[0].property = 'metadata.count';
     rows([{ metadata: { title: 'A' } }]);
     const result = await preview(draft);
-    assert.deepEqual(result.renderedRows[0].cells[0], { display: '', export: '' });
+    assert.deepEqual(result.renderedRows[0].cells[0], { untrustedDisplayHtml: '', export: '' });
     assert(JSON.stringify(result).includes('"export":""'));
   });
   it('renders legacy invalid templates as empty cells and returns syntax warnings', async () => {
@@ -402,7 +548,7 @@ describe('Report authoring assistance', () => {
     rows([{ metadata: { title: 'A' } }]);
     const result = await preview(draft);
     assert.equal(result.success, true);
-    assert.deepEqual(result.renderedRows[0].cells[0], { display: '', export: '' });
+    assert.deepEqual(result.renderedRows[0].cells[0], { untrustedDisplayHtml: '', export: '' });
     assert(result.diagnostics.some(item => item.code === 'TEMPLATE_SYNTAX'));
   });
   it('caps samples at 100 with backwards-compatible totals and explicit row truncation', async () => {
@@ -416,6 +562,7 @@ describe('Report authoring assistance', () => {
     assert.equal(result.total, 101);
     assert.equal(result.recordsPerPage, 100);
     assert.equal(result.pageNum, 1);
+    assert.equal(result.deadlineEnforced, true);
     assert.equal(cursor.limit.firstCall.args[0], 100);
     assert.deepEqual(result.truncationReasons, ['rows']);
     assert(collection.find.firstCall.args[1].maxTimeMS <= 5000);
@@ -473,19 +620,127 @@ describe('Report authoring assistance', () => {
     assert(result.diagnostics.length <= 200);
     assert(!collection.find.called);
   });
-  for (const modification of [
-    { collectionName: 'user' },
-    { expandRelations: true },
-    { relatedRecordFilters: [{ collectionName: 'record', mongoQuery: {}, localField: 'oid', foreignField: 'oid' }] },
-  ])
-    it(`refuses uncancellable preview execution ${Object.keys(modification)[0]} without changing saved execution`, async () => {
-      Object.assign(saved, modification);
-      const result = await preview();
-      assert.equal(result.valid, false);
-      assert.equal(result.success, false);
-      assert(result.diagnostics.some(item => item.code === 'PREVIEW_DEADLINE_UNSUPPORTED'));
-      assert(!collection.find.called);
+  it('preserves relation expansion through the saved executor and reports the missing DB deadline', async () => {
+    saved.expandRelations = true;
+    saved.resultObjectMapping.related = 'record.relationships.label';
+    const related = sinon.stub().resolves({ label: 'Expanded relation' });
+    sails.services.recordsservice = { getRelatedRecords: related };
+    rows([{ redboxOid: 'one', metadata: { title: 'A' } }]);
+    const draft = config();
+    draft.columns = [{ label: 'Related', property: 'metadata.related' }];
+    const result = await preview(draft);
+    assert.equal(result.success, true);
+    assert.equal(result.deadlineEnforced, false);
+    assert.equal(result.renderedRows[0].cells[0].untrustedDisplayHtml, 'Expanded relation');
+    assert(related.calledOnceWithExactly('one', brand));
+    assert.equal(collection.find.firstCall.args[1], undefined);
+    assert.equal(cursor.limit.firstCall.args[0], 100);
+  });
+  it('preserves related-filter reads and parameter substitution through the saved executor', async () => {
+    saved.relatedRecordFilters = [
+      { collectionName: 'related', mongoQuery: { 'metadata.title': '' }, localField: 'relatedId', foreignField: 'id' },
+    ];
+    const find = sinon.stub().returns(createQueryObject([{ id: 'joined' }]));
+    sails.models.related = { ...createMockModel('related'), find };
+    rows([{ metadata: { title: 'A' } }]);
+    const result = await preview(config(), { title: 'Needle' });
+    assert.equal(result.success, true);
+    assert.equal(result.deadlineEnforced, false);
+    assert.deepEqual(find.firstCall.args[0].where, { 'metadata.title': 'Needle' });
+    assert.deepEqual(collection.find.firstCall.args[0].relatedId, { $in: ['joined'] });
+    assert.equal((result.records[0].metadata as Record<string, unknown>).projectTitle, 'A');
+  });
+  it('preserves user collection previews, role scoping and sensitive-field removal', async () => {
+    saved.collectionName = 'user';
+    saved.mongoQuery = {};
+    saved.queryParams = {};
+    saved.resultObjectMapping = { projectTitle: 'record.name', password: 'record.password', token: 'record.token' };
+    const find = sinon.stub().returns(
+      createQueryObject([
+        { id: 'ours', name: 'Our author', password: 'secret', token: 'secret', roles: [{ branding: brand.id }] },
+        { id: 'theirs', name: 'Other author', roles: [{ branding: 'b' }] },
+      ])
+    );
+    sails.models.user = { ...createMockModel('user'), find };
+    const result = await preview();
+    assert.equal(result.success, true);
+    assert.equal(result.deadlineEnforced, false);
+    assert.equal(result.total, 1);
+    assert.equal((result.records[0].metadata as Record<string, unknown>).projectTitle, 'Our author');
+    assert(!JSON.stringify(result).includes('secret'));
+    assert(!collection.find.called && !fields.called);
+  });
+  it('preserves brand-scoped custom collection previews', async () => {
+    saved.collectionName = 'custom';
+    saved.mongoQuery = {};
+    saved.queryParams = {};
+    saved.resultObjectMapping = { projectTitle: 'record.name' };
+    const find = sinon.stub().returns(createQueryObject([{ id: 'custom-one', name: 'Custom output' }]));
+    sails.models.custom = {
+      ...createMockModel('custom'),
+      attributes: { branding: {} },
+      count: sinon.stub().returns(createQueryObject(1)),
+      find,
+    };
+    const result = await preview();
+    assert.equal(result.success, true);
+    assert.equal(result.deadlineEnforced, false);
+    assert.equal(result.renderedRows[0].cells[0].untrustedDisplayHtml, 'Custom output');
+    assert.equal(find.firstCall.args[0].where.branding, brand.id);
+    assert.equal(find.firstCall.args[0].limit, 100);
+  });
+  it('keeps fallback report rows and rendering within row and byte limits', async () => {
+    saved.expandRelations = true;
+    rows(
+      Array.from({ length: 100 }, (_, i) => ({ metadata: { title: `Title ${i}` } })),
+      101
+    );
+    const result = await preview();
+    assert.equal(result.records.length, 100);
+    assert.deepEqual(result.truncationReasons, ['rows']);
+    rows([{ metadata: { title: 'é'.repeat(100000) } }]);
+    const oversized = await preview();
+    assert.deepEqual(oversized.records, []);
+    assert.deepEqual(oversized.truncationReasons, ['bytes']);
+    assert(Buffer.byteLength(JSON.stringify({ data: oversized })) <= oversized.limits.responseBytes);
+    saved.resultObjectMapping = {};
+    rows([{ metadata: { payload: 'x'.repeat(10000), items: Array(100).fill(0) } }]);
+    const draft = config();
+    draft.columns = [
+      {
+        label: 'Amplify',
+        property: 'metadata.payload',
+        template: '{{#each metadata.items}}{{@root.metadata.payload}}{{/each}}',
+      },
+    ];
+    assert.deepEqual((await preview(draft)).truncationReasons, ['bytes']);
+  });
+  it('starts the rendering deadline after legacy query execution returns', async () => {
+    saved.expandRelations = true;
+    rows([{ metadata: { title: 'A' } }]);
+    const clock = sinon.useFakeTimers({ toFake: ['Date'] });
+    const perform = executor.performNamedQueryFromConfig.bind(executor);
+    sinon.stub(executor, 'performNamedQueryFromConfig').callsFake(async (...args) => {
+      const result = await perform(...args);
+      clock.tick(6000);
+      return result;
     });
+    const result = await preview();
+    assert.equal(result.success, true);
+    assert.equal(result.deadlineEnforced, false);
+    assert.equal(result.renderedRows[0].cells[0].untrustedDisplayHtml, 'A');
+  });
+  it('checks authenticated brand context before fallback execution', async () => {
+    saved.expandRelations = true;
+    await assert.rejects(
+      reports.previewConfig(brand, config(), req(), {
+        portal: 'rdmp',
+        caller: { ...caller, brand: Object.assign(new BrandingModel(), { id: 'b' }) },
+      }),
+      /FORBIDDEN/
+    );
+    assert(!collection.find.called);
+  });
   it('interrupts synchronous report helpers with the shared execution deadline', () => {
     handlebarsInstance().registerHelper('reportSpin', () => {
       while (true) {

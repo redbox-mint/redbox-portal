@@ -136,7 +136,7 @@ export const previewReportConfigRoute = {
       tags: ['Reports'],
       summary: 'Preview report configuration',
       description:
-        'Executes the unsaved database report using its brand-effective saved query. Retains total, pageNum, recordsPerPage, records and success; adds valid, diagnostics, renderedRows (configured cells with sanitized display HTML and CSV export values), truncated, truncationReasons and server-owned limits. At most 100 rows and 524288 response bytes. Uncancellable custom collections, joins and relation expansion return valid:false. Export samples are data values before CSV quoting, with formula protection.',
+        'Executes the unsaved database report using its brand-effective saved query. Retains total, pageNum, recordsPerPage, records and success; adds valid, diagnostics, renderedRows (cells with untrustedDisplayHtml and export text), truncated, truncationReasons, deadlineEnforced and server-owned limits. At most 100 rows and 524288 response bytes. Bind untrustedDisplayHtml through Angular [innerHTML] exactly like the live report, without any trust bypass. User/custom collections, related filters and relation expansion retain legacy execution with deadlineEnforced:false; rendering and response limits still apply. Export samples use actual CSV value casts after formula protection and before quoting; CSV templates receive native values.',
       responses: { 200: reportConfigResponse, 400: badRequestResponse, 500: internalServerErrorResponse },
     }
   ),

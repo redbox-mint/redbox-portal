@@ -42,6 +42,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import {
   boundedJsonBytes,
+  previewDeadlineIssue,
   checkDraftBudget,
   NAMED_QUERY_PREVIEW_LIMITS,
   NamedQueryExecutionBudget,
@@ -380,8 +381,10 @@ export namespace Services {
       const { dto: normalized, namedQuery } = await this.validateMutableConfig(brand, config, false);
       const paramMap = this.buildNamedQueryParamMap(req, normalized as unknown as ReportConfig);
       checkDraftBudget({ config, parameters: paramMap });
-      if (!context) throw new NamedQueryAssistanceError('FORBIDDEN', 403);
-      const budget = new NamedQueryExecutionBudget();
+      if (!context?.caller?.user?.username || String(context.caller.brand?.id) !== String(brand.id))
+        throw new NamedQueryAssistanceError('FORBIDDEN', 403);
+      let budget = new NamedQueryExecutionBudget();
+      const deadlineEnforced = !previewDeadlineIssue({ ...namedQuery });
       const templateDiagnostics = budget.run(() =>
         normalized.columns.flatMap((column, i) =>
           (['template', 'exportTemplate'] as const).flatMap(key =>
@@ -409,17 +412,23 @@ export namespace Services {
               ),
             ],
           }
-        : await NamedQueryEditorService.previewDraft(
-            brand,
-            context.portal,
-            context.caller,
-            {
-              definition: { ...namedQuery },
-              parameters: paramMap,
-            },
-            budget
-          );
+        : !deadlineEnforced
+          ? await this.previewLegacyReportQuery(brand, namedQuery, paramMap)
+          : await NamedQueryEditorService.previewDraft(
+              brand,
+              context.portal,
+              context.caller,
+              {
+                definition: { ...namedQuery },
+                parameters: paramMap,
+              },
+              budget
+            );
+      // Legacy Waterline/hook execution has no enforceable DB deadline. Start the
+      // bounded rendering window after it returns, without claiming to cancel it.
+      if (!deadlineEnforced) budget = new NamedQueryExecutionBudget();
       const response: ReportConfigPreviewDto = {
+        deadlineEnforced,
         total: sample.summary.numFound,
         pageNum: sample.summary.page,
         recordsPerPage: 0,
@@ -448,15 +457,23 @@ export namespace Services {
         const row = { ...result };
         try {
           const rendered = budget.run(() => {
+            // Bound raw rows before serialization, including legacy executor results.
+            if (boundedJsonBytes(row, response.limits.responseBytes - bytes) > response.limits.responseBytes - bytes)
+              throw new NamedQueryPreviewOutputLimitError();
+            // Angular receives JSON, while CSV renders templates against native values.
+            const displayRow = JSON.parse(JSON.stringify(row)) as Record<string, unknown>;
             const exports = this.getDataRows(normalized as unknown as ReportConfig, [row], optTemplateData, budget)[0];
             return {
               cells: normalized.columns.map((column, i) => {
-                const display = this.getColValue(row, column, optTemplateData, budget, true);
-                // Match the report table's untrusted innerHTML boundary; never return trusted/bypassed HTML.
-                const html = display == null ? '' : String(display);
-                const sanitized = DomSanitizerService.sanitizeWithProfile(html, 'html');
-                // CSV serializes null/undefined as an empty cell; keep the value present in JSON too.
-                return { display: sanitized, export: exports[i] ?? '' };
+                const display = this.getColValue(displayRow, column, optTemplateData, budget, true);
+                // The live table sanitizes via Angular [innerHTML]. PR 5 must use that
+                // same binding, without bypassSecurityTrustHtml or a second sanitizer.
+                const untrustedDisplayHtml = display == null ? '' : String(display);
+                // Reuse the actual CSV serializer's casts, without cell quoting or
+                // a record terminator. Dates become milliseconds; templates stay native.
+                const exportValue = stringify([[exports[i]]], { quote: false, escape: '', eof: false });
+                if (!budget.output(exportValue)) throw new NamedQueryPreviewOutputLimitError();
+                return { untrustedDisplayHtml, export: exportValue };
               }),
             };
           });
@@ -478,6 +495,31 @@ export namespace Services {
       }
       response.recordsPerPage = response.records.length;
       return response;
+    }
+
+    private async previewLegacyReportQuery(
+      brand: BrandingModel,
+      namedQuery: NamedQueryConfig,
+      parameters: Record<string, unknown>
+    ) {
+      // Preserve the pre-assistance report preview path and its 100-row cap.
+      // Draft named-query previews deliberately retain their stricter refusal.
+      const result = await NamedQueryService.performNamedQueryFromConfig(
+        namedQuery,
+        parameters,
+        brand,
+        0,
+        NAMED_QUERY_PREVIEW_LIMITS.rows
+      );
+      const truncationReasons: Array<'rows' | 'bytes'> =
+        result.summary.numFound > NAMED_QUERY_PREVIEW_LIMITS.rows ? ['rows'] : [];
+      return {
+        ...result,
+        valid: true,
+        diagnostics: [],
+        truncated: truncationReasons.length > 0,
+        truncationReasons,
+      };
     }
 
     private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<{ dto: ReportConfigDto; namedQuery: NamedQueryConfig }> {

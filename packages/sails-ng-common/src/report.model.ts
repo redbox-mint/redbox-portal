@@ -76,7 +76,16 @@ export interface ReportConfigPreviewDto extends ReportResultDto {
   valid: boolean;
   diagnostics: EditorDiagnostic[];
   /** Same order as records and configured columns, including hidden/export columns. */
-  renderedRows: Array<{ cells: Array<{ display: string; export: unknown }> }>;
+  renderedRows: Array<{
+    cells: Array<{
+      /** Untrusted rendered HTML. Use Angular [innerHTML], exactly like the live report; never bypass its sanitizer. */
+      untrustedDisplayHtml: string;
+      /** Actual CSV-cast cell text, with formula protection, before CSV quoting. */
+      export: string;
+    }>;
+  }>;
+  /** False for legacy saved queries whose Waterline/hook reads cannot enforce a DB deadline. */
+  deadlineEnforced: boolean;
   truncated: boolean;
   truncationReasons: Array<'rows' | 'bytes'>;
   limits: { rows: number; responseBytes: number; inputBytes: number; timeMs: number };

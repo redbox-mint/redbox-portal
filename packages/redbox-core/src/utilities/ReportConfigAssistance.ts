@@ -141,6 +141,8 @@ export function reportTemplateAdvice(
     const helpers = handlebarsInstance().helpers;
     type Scope = { base: string[] | null; parents: Array<string[] | null>; aliases: Map<string, string[] | null> };
     const resolve = (node: Ast, scope: Scope): string[] | null => {
+      // Helper/subexpression output has no statically known context path.
+      if (node.type !== 'PathExpression') return null;
       const segments = [...(node.parts ?? [])];
       if (node.data) return segments.shift() === 'root' ? segments : null;
       const alias = segments[0];
@@ -169,7 +171,12 @@ export function reportTemplateAdvice(
       }
       if (node.path) {
         const name = node.path.original ?? '';
-        if (!Object.hasOwn(helpers, name) && !(node.params?.length || node.hash?.pairs.length)) walk(node.path, scope);
+        if (
+          node.type !== 'SubExpression' &&
+          !Object.hasOwn(helpers, name) &&
+          !(node.params?.length || node.hash?.pairs.length)
+        )
+          walk(node.path, scope);
         for (const param of node.params ?? []) walk(param, scope);
         for (const pair of node.hash?.pairs ?? []) walk(pair.value, scope);
         let nested = scope;
@@ -179,12 +186,15 @@ export function reportTemplateAdvice(
           if (node.program?.blockParams?.[0]) aliases.set(node.program.blockParams[0], base);
           if (node.program?.blockParams?.[1]) aliases.set(node.program.blockParams[1], null);
           nested = { base, parents: [scope.base, ...scope.parents], aliases };
-        } else if (node.type === 'BlockStatement' && !Object.hasOwn(helpers, name)) {
-          // Custom block helpers may supply arbitrary contexts.
-          nested = { ...scope, base: null };
+        } else if (node.type === 'BlockStatement' && !['if', 'unless'].includes(name)) {
+          // Registered and unregistered custom helpers may supply arbitrary
+          // contexts and block parameters, including to their inverse branch.
+          const aliases = new Map(scope.aliases);
+          for (const alias of node.program?.blockParams ?? []) aliases.set(alias, null);
+          nested = { base: null, parents: scope.parents.map(() => null), aliases };
         }
         if (node.program) walk(node.program, nested);
-        if (node.inverse) walk(node.inverse, scope);
+        if (node.inverse) walk(node.inverse, ['each', 'with', 'if', 'unless'].includes(name) ? scope : nested);
       }
       for (const child of node.body ?? []) walk(child, scope);
     };
