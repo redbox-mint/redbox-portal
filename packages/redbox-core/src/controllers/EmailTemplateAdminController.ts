@@ -143,7 +143,10 @@ export namespace Controllers {
         { brand, user: req.user } as unknown as FormRecordAccessContext, recordType, stage, templateId);
     }
     public schemaTargets(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, () => emailSchemaTargets(requireEmailTemplateAdmin(req)));
+      return this.run(req, res, () => {
+        const brand = requireEmailTemplateAdmin(req);
+        return emailSchemaTargets(brand, { brand, user: req.user } as unknown as FormRecordAccessContext);
+      });
     }
     public contextSchema(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, () => this.schema(req, req.query.recordType, req.query.stage, req.query.templateId));

@@ -2329,5 +2329,21 @@
   "email-templates-preview-integration-sample": "Sample integration alert",
   "email-templates-integration-reset-sample": "Reset sample",
   "email-templates-schema-precision-integration": "Integration alert fields",
-  "email-templates-preview-empty-integration": "Reset the sample alert or enter Context JSON to preview this email."
+  "email-templates-preview-empty-integration": "Reset the sample alert or enter Context JSON to preview this email.",
+  "schema-assist-ac-label": "Field suggestions",
+  "schema-assist-ac-hint": "↑ ↓ to choose · Enter or Tab to insert · Esc to close",
+  "schema-assist-ac-count_one": "{{count}} suggestion. Use the up and down arrows to choose.",
+  "schema-assist-ac-count_other": "{{count}} suggestions. Use the up and down arrows to choose.",
+  "schema-assist-fields-search-label": "Filter fields",
+  "schema-assist-fields-search-placeholder": "Filter by name or title",
+  "schema-assist-fields-count_one": "{{count}} field",
+  "schema-assist-fields-count_other": "{{count}} fields",
+  "schema-assist-fields-matches_one": "{{count}} match",
+  "schema-assist-fields-matches_other": "{{count}} matches",
+  "schema-assist-fields-expand": "Show fields in {{name}}",
+  "schema-assist-fields-collapse": "Hide fields in {{name}}",
+  "schema-assist-fields-required": "required",
+  "schema-assist-fields-optional": "optional",
+  "schema-assist-fields-none": "No fields match “{{query}}”.",
+  "schema-assist-help-variables": "Available fields"
 }

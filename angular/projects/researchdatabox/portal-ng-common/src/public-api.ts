@@ -31,3 +31,12 @@ export * from './lib/portal-ng-common.module';
 export * from './lib/httpClient.service';
 export * from './lib/record-audit/record-audit.module';
 export * from './lib/record-audit/record-audit.component';
+
+export * from './lib/schema-assist/field-tree';
+export * from './lib/schema-assist/field-tree.component';
+export * from './lib/schema-assist/autocomplete.component';
+export * from './lib/schema-assist/code-editor.component';
+export * from './lib/schema-assist/caret-coordinates';
+export * from './lib/schema-assist/template-completion';
+export * from './lib/schema-assist/schema-target-selector.component';
+export * from './lib/schema-assist/latest-request';

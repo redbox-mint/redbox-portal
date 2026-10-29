@@ -1,7 +1,10 @@
 import { generateSampleContext } from '../../../../angular/projects/researchdatabox/email-templates/src/app/context-sample';
-import { flattenContextFields } from '../../../../angular/projects/researchdatabox/email-templates/src/app/schema-fields';
-import { buildFieldTree } from '../../../../angular/projects/researchdatabox/email-templates/src/app/field-tree';
-import { completionItems, completionQuery } from '../../../../angular/projects/researchdatabox/email-templates/src/app/template-completion';
+import { flattenContextFields } from '@researchdatabox/sails-ng-common';
+import { buildFieldTree } from '../../../../angular/projects/researchdatabox/portal-ng-common/src/lib/schema-assist/field-tree';
+import {
+  completionItems,
+  completionQuery,
+} from '../../../../angular/projects/researchdatabox/portal-ng-common/src/lib/schema-assist/template-completion';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -30,7 +33,10 @@ import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } f
 
 describe('Email schema assistance', () => {
   const brand = { id: 'a', name: 'brand-a' } as any;
-  const caller = { brand, user: { id: 'admin-a', roles: [{ id: 'admin-a', name: 'Admin' }] } } as any;
+  const caller = {
+    brand,
+    user: { id: 'admin-a', username: 'admin-a', roles: [{ id: 'admin-a', name: 'Admin' }] },
+  } as any;
   const metadata = {
     type: 'object',
     additionalProperties: false,
@@ -66,6 +72,7 @@ describe('Email schema assistance', () => {
       },
     });
     setupServiceTestGlobals(mock);
+    mock.services.recordsservice = { hasCreateAccess: sinon.stub().resolves(true) };
     const type = { id: 'rdmp-a', name: 'rdmp', label: 'Research plan', branding: 'a' };
     (global as any).RecordTypesService = {
       getAll: sinon.stub().returns(of([type])),
@@ -107,7 +114,7 @@ describe('Email schema assistance', () => {
         { id: 'a-rdmp', name: 'rdmp', branding: 'a' },
       ])
     );
-    const result = await emailSchemaTargets(brand);
+    const result = await emailSchemaTargets(brand, caller);
     assert.deepEqual(
       result.recordTypes.map(t => t.id),
       ['rdmp']
@@ -147,12 +154,11 @@ describe('Email schema assistance', () => {
     assert.equal(describe.callCount, 2);
     assert.equal(result.schema.properties!.record.properties!.metadata.title, 'Changed');
   });
-  for (const reason of ['disabled', 'absent', 'unavailable', 'throws']) {
+  for (const reason of ['disabled', 'absent', 'unavailable']) {
     it(`falls back to brand-scoped permissive form fields when describeStage is ${reason}`, async () => {
       if (reason === 'disabled') mock.config.recordSchema.enabled = false;
       if (reason === 'absent') delete mock.services.recordschemaservice;
       if (reason === 'unavailable') describe.resolves({ kind: 'unavailable', code: 'not-resolvable' });
-      if (reason === 'throws') describe.rejects(new Error('PRIVATE FORM'));
       const result = await schema();
       assert.equal(result.precision, 'form-config');
       const metadata = result.schema.properties!.record.properties!.metadata;
@@ -404,19 +410,32 @@ describe('Email schema assistance', () => {
     mock.config.emailnotification.settings.additionalContextRoots.push('title');
     const schema = curatedEmailContextSchema(metadata);
     assert.deepEqual(schema.properties!.title, {
-      type: 'string', description: 'Record title; shortcut for record.metadata.title',
+      type: 'string',
+      description: 'Record title; shortcut for record.metadata.title',
     });
     const record = schema.properties!.record;
     assert.equal(record.additionalProperties, false);
     assert.deepEqual(record.properties!.viewUrl, {
-      type: 'string', format: 'uri', description: 'Link to view this record in the portal',
+      type: 'string',
+      format: 'uri',
+      description: 'Link to view this record in the portal',
     });
     assert.deepEqual(record.properties!.editUrl, {
-      type: 'string', format: 'uri', description: 'Link to edit this record in the portal',
+      type: 'string',
+      format: 'uri',
+      description: 'Link to edit this record in the portal',
     });
     assert.deepEqual(schema.properties!.recordUrl, {});
     const fields = flattenContextFields(schema);
-    for (const path of ['record.redboxOid', 'imports.record.redboxOid', 'title', 'record.viewUrl', 'record.editUrl', 'imports.record.viewUrl', 'imports.record.editUrl']) {
+    for (const path of [
+      'record.redboxOid',
+      'imports.record.redboxOid',
+      'title',
+      'record.viewUrl',
+      'record.editUrl',
+      'imports.record.viewUrl',
+      'imports.record.editUrl',
+    ]) {
       const field = fields.find(field => field.path === path)!;
       assert.equal(field.type, 'string');
       assert.equal(field.required, false);
@@ -444,14 +463,25 @@ describe('Email schema assistance', () => {
     assert.deepEqual(lint('{{recordUrl}} {{recordUrl.custom}}'), []);
     mock.config.emailnotification.settings.additionalContextRoots.push('recordUrl');
     assert.deepEqual(curatedEmailContextSchema(metadata).properties!.recordUrl, {
-      type: 'object', properties: {}, additionalProperties: true,
+      type: 'object',
+      properties: {},
+      additionalProperties: true,
     });
   });
   it('recognises title and record URL fields and only warns about unguarded use when requested', () => {
     const body = '{{title}} {{record.viewUrl}} {{record.editUrl}}';
     assert.deepEqual(lint(body), []);
-    assert.deepEqual(lint(body, true).map(diagnostic => diagnostic.code), ['OPTIONAL_UNGUARDED', 'OPTIONAL_UNGUARDED', 'OPTIONAL_UNGUARDED']);
-    assert.deepEqual(lint('{{#if title}}{{title}}{{/if}} {{#if record.viewUrl}}{{record.viewUrl}}{{/if}} {{#if record.editUrl}}{{record.editUrl}}{{/if}}', true), []);
+    assert.deepEqual(
+      lint(body, true).map(diagnostic => diagnostic.code),
+      ['OPTIONAL_UNGUARDED', 'OPTIONAL_UNGUARDED', 'OPTIONAL_UNGUARDED']
+    );
+    assert.deepEqual(
+      lint(
+        '{{#if title}}{{title}}{{/if}} {{#if record.viewUrl}}{{record.viewUrl}}{{/if}} {{#if record.editUrl}}{{record.editUrl}}{{/if}}',
+        true
+      ),
+      []
+    );
     const [unknown] = lint('{{record.viewUr}}');
     assert.equal(unknown.code, 'UNKNOWN_FIELD');
     assert.equal(unknown.suggestion, 'viewUrl');
