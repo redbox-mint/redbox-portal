@@ -25,7 +25,7 @@
       </div>
       <div class="panel-body">
         <form class="ex-form" (ngSubmit)="download()" novalidate>
-          <div class="ex-field ex-field--wide">
+          <div class="ex-field">
             <label for="export-record-type">{{ 'export-record-type' | i18next }}</label>
             <select class="form-select" id="export-record-type" name="recordType" [(ngModel)]="record_type">
               @for (recTypeName of getRecordTypeNames(); track recTypeName) {
@@ -33,16 +33,24 @@
               }
             </select>
           </div>
-          <div class="ex-field">
-            <label for="after">{{ 'export-field-modified-after' | i18next }}</label>
-            <input type="text" class="form-control" id="after" name="modAfter" autocomplete="off"
-              [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="modAfter" bsDatepicker />
-          </div>
-          <div class="ex-field">
-            <label for="before">{{ 'export-field-modified-before' | i18next }}</label>
-            <input type="text" class="form-control" id="before" name="modBefore" autocomplete="off"
-              [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="modBefore" bsDatepicker />
-          </div>
+
+          <fieldset class="ex-field" aria-describedby="export-range-help">
+            <legend>{{ 'export-field-modification-range' | i18next }}</legend>
+            <div class="ex-range">
+              <div class="ex-range__part">
+                <label class="ex-range__label" for="after">{{ 'export-field-date-from' | i18next }}</label>
+                <input type="text" class="form-control" id="after" name="modAfter" autocomplete="off"
+                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="modAfter" bsDatepicker />
+              </div>
+              <div class="ex-range__part">
+                <label class="ex-range__label" for="before">{{ 'export-field-date-to' | i18next }}</label>
+                <input type="text" class="form-control" id="before" name="modBefore" autocomplete="off"
+                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="modBefore" bsDatepicker />
+              </div>
+            </div>
+            <small class="ex-help" id="export-range-help">{{ 'export-date-range-help' | i18next }}</small>
+          </fieldset>
+
           @if (getExportFormatNames().length > 1) {
             <fieldset class="ex-field">
               <legend>{{ 'export-field-format' | i18next }}</legend>
@@ -55,7 +63,15 @@
               </div>
             </fieldset>
           }
-          <div class="ex-form-actions">
+
+          @if (submissionErrorKey) {
+            <div class="alert alert-danger ex-alert" role="alert">
+              <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+              {{ submissionErrorKey | i18next }}
+            </div>
+          }
+
+          <div class="ex-submit">
             <button type="submit" class="btn btn-primary" [disabled]="mutationPending || !record_type">
               @if (createPending) {
                 <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
@@ -69,18 +85,12 @@
               }
             </button>
           </div>
-        </form>
 
-        @if (submissionErrorKey) {
-          <div class="alert alert-danger ex-alert" role="alert">
-            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
-            {{ submissionErrorKey | i18next }}
-          </div>
-        }
-        <p class="ex-hint">
-          <i class="fa fa-info-circle" aria-hidden="true"></i>
-          {{ (export_format === 'csv' ? 'export-background-hint' : 'export-direct-hint') | i18next }}
-        </p>
+          <p class="ex-hint">
+            <i class="fa fa-info-circle" aria-hidden="true"></i>
+            <span>{{ (export_format === 'csv' ? 'export-background-hint' : 'export-direct-hint') | i18next }}</span>
+          </p>
+        </form>
       </div>
     </section>
 

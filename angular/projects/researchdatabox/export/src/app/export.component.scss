@@ -82,10 +82,28 @@ $ex-divider: #e5e8eb;
 /* ─── Request form ─── */
 
 .ex-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  max-width: 560px;
+}
+
+.ex-range {
   display: grid;
-  grid-template-columns: minmax(200px, 2fr) repeat(2, minmax(150px, 1fr)) auto auto;
-  align-items: end;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.ex-range__part {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ex-help {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--bs-secondary-color, #6c757d);
 }
 
 .ex-field {
@@ -96,8 +114,8 @@ $ex-divider: #e5e8eb;
   padding: 0;
   border: 0;
 
-  label,
-  legend {
+  > label,
+  > legend {
     @include ex-caption;
     float: none;
     width: auto;
@@ -133,8 +151,16 @@ $ex-divider: #e5e8eb;
   }
 }
 
+.ex-range__label {
+  margin: 0 0 0.2rem;
+  color: #59626b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .ex-format {
   display: flex;
+  align-self: flex-start;
 
   .btn {
     height: $ex-control-height;
@@ -180,12 +206,12 @@ $ex-divider: #e5e8eb;
   }
 }
 
-.ex-form-actions .btn {
+.ex-submit .btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: $ex-control-height;
-  padding: 0 14px;
+  padding: 0 16px;
   border-radius: 4px;
   font-size: 14px;
   line-height: 1;
@@ -197,20 +223,20 @@ $ex-divider: #e5e8eb;
   display: flex;
   align-items: baseline;
   gap: 6px;
-  margin: 0.85rem 0 0;
+  margin: 0;
   color: var(--bs-secondary-color, #6c757d);
 }
 
 .ex-alert {
-  margin: 0.85rem 0 0;
+  margin: 0;
 
   i {
     margin-right: 4px;
   }
 }
 
-.panel-body > .ex-alert:first-child {
-  margin: 0 0 0.85rem;
+.panel-body > .ex-alert {
+  margin-bottom: 0.85rem;
 }
 
 .ex-load-error {
@@ -357,27 +383,12 @@ $ex-divider: #e5e8eb;
 
 /* ─── Responsive ─── */
 
-@media (max-width: 1199px) {
-  .ex-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ex-field--wide {
-    grid-column: 1 / -1;
-  }
-
-  .ex-form-actions {
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-
-@media (max-width: 767px) {
-  .ex-form {
+@media (max-width: 479px) {
+  .ex-range {
     grid-template-columns: 1fr;
   }
 
-  .ex-form-actions .btn {
+  .ex-submit .btn {
     width: 100%;
     justify-content: center;
   }

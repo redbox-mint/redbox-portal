@@ -1987,7 +1987,7 @@
   "export-submit-error": "Unable to confirm the export request. Refresh the list before trying again; the request may already have been accepted.",
   "export-select-record-type": "Select a record type to export.",
   "export-invalid-date": "Enter valid modification dates or clear the date fields.",
-  "export-invalid-range": "Modified after must be on or before modified before.",
+  "export-invalid-date-order": "The From date must be on or before the To date.",
   "export-status-queued": "Queued",
   "export-status-running": "Preparing CSV",
   "export-status-ready": "Ready",
@@ -2006,8 +2006,8 @@
   "export-actions": "Actions",
   "export-loading": "Loading exports…",
   "export-heading": "Export records",
-  "export-field-modified-after": "Modified after",
-  "export-field-modified-before": "Modified before",
+  "export-field-date-from": "From",
+  "export-field-date-to": "To",
   "export-field-format": "Format",
   "export-direct-hint": "The file downloads directly in a new tab. Large exports may take a while to start.",
   "export-auto-refresh": "Updating automatically",
@@ -2017,5 +2017,7 @@
   "export-range-from": "From {{date}}",
   "export-range-until": "Up to {{date}}",
   "export-range-to": "to",
-  "export-download-format": "Download {{format}}"
+  "export-download-format": "Download {{format}}",
+  "export-field-modification-range": "Modification date range",
+  "export-date-range-help": "Optional. Leave both dates empty to export records modified at any time."
 }

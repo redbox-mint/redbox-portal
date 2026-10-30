@@ -119,7 +119,7 @@ describe('ExportComponent', () => {
     component.modAfter = new Date(2026, 5, 2);
     component.modBefore = new Date(2026, 5, 1);
     void component.download(); flushMicrotasks();
-    expect(component.submissionErrorKey).toBe('export-invalid-range');
+    expect(component.submissionErrorKey).toBe('export-invalid-date-order');
     expect(service.create).not.toHaveBeenCalled();
     fixture.destroy();
   }));

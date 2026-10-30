@@ -292,7 +292,7 @@ export class ExportComponent extends BaseComponent {
       return null;
     }
     if (before && after && before < after) {
-      this.submissionErrorKey = 'export-invalid-range';
+      this.submissionErrorKey = 'export-invalid-date-order';
       return null;
     }
     return {

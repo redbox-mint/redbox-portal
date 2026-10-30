@@ -7449,7 +7449,7 @@
     "description": "Validation message for invalid export modification date input",
     "contentFormat": "plain"
   },
-  "export-invalid-range": {
+  "export-invalid-date-order": {
     "category": "export",
     "description": "Validation message for reversed export modification date bounds",
     "contentFormat": "plain"
@@ -7544,14 +7544,14 @@
     "description": "Heading of the export request panel",
     "contentFormat": "plain"
   },
-  "export-field-modified-after": {
+  "export-field-date-from": {
     "category": "export",
-    "description": "Label for the earliest modification date filter",
+    "description": "Label for the earliest modification date in the export date range",
     "contentFormat": "plain"
   },
-  "export-field-modified-before": {
+  "export-field-date-to": {
     "category": "export",
-    "description": "Label for the latest modification date filter",
+    "description": "Label for the latest modification date in the export date range",
     "contentFormat": "plain"
   },
   "export-field-format": {
@@ -7602,6 +7602,16 @@
   "export-download-format": {
     "category": "export",
     "description": "Action to download a direct (non-CSV) export in the selected format",
+    "contentFormat": "plain"
+  },
+  "export-field-modification-range": {
+    "category": "export",
+    "description": "Legend for the optional modification date range on the export form",
+    "contentFormat": "plain"
+  },
+  "export-date-range-help": {
+    "category": "export",
+    "description": "Help text under the export modification date range",
     "contentFormat": "plain"
   }
 }
