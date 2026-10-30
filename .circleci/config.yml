@@ -546,6 +546,13 @@ jobs:
           name: Load Docker image
           command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
       - run:
+          name: Test Solr fixture lifecycle
+          command: |
+            docker run --rm --entrypoint node \
+              -v "$PWD/test/integration/services/solr-index-fixture-lifecycle.ts:/opt/redbox-portal/test/integration/services/solr-index-fixture-lifecycle.ts:ro" \
+              -v "$PWD/test/integration/services/solr-index-fixture-lifecycle.probe.test.cjs:/opt/redbox-portal/test/integration/services/solr-index-fixture-lifecycle.probe.test.cjs:ro" \
+              redbox-portal:test --test test/integration/services/solr-index-fixture-lifecycle.probe.test.cjs
+      - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
       - restore_cache:
