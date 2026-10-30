@@ -31,6 +31,26 @@ commands:
                   printf 'export CI_PIPELINE_REVISION=%q\n' "$CIRCLE_SHA1" >> "$BASH_ENV"
                   printf 'export CIRCLE_SHA1=%q\n' "$revision" >> "$BASH_ENV"
 jobs:
+  arm64-timing-pilot:
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: false
+    resource_class: arm.medium
+    environment:
+      CI_RESOURCE_CLASS: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Time native runtime and PDF builds without publishing
+          no_output_timeout: 30m
+          command: timeout --signal=TERM --kill-after=45s 100m node support/build/ci-arm64-pilot.cjs run
+      - run:
+          name: Clean up only ARM64 pilot resources
+          when: always
+          command: node support/build/ci-arm64-pilot.cjs cleanup
+      - store_artifacts:
+          path: .tmp/ci-arm64-pilot
+          destination: ci-arm64-pilot
   build:
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
@@ -58,7 +78,7 @@ jobs:
           command: bash support/build/docker-build-vars.test.sh
       - run:
           name: Test CI scheduling and measurement contracts
-          command: node --test support/build/circleci-config.test.cjs support/build/ci-performance.test.cjs
+          command: node --test support/build/circleci-config.test.cjs support/build/ci-performance.test.cjs support/build/ci-arm64-pilot.test.cjs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -1236,6 +1256,19 @@ parameters:
       - manual
     default: none
 workflows:
+  arm64_timing_pilot:
+    when:
+      and:
+        - equal: [chore/circleci-performance, << pipeline.git.branch >>]
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
+    jobs:
+      - arm64-timing-pilot:
+          filters:
+            branches:
+              only: chore/circleci-performance
+            tags:
+              ignore: /.*/
   build_test_gendocs_and_deploy:
     when:
       and:
