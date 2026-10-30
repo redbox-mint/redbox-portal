@@ -110,6 +110,9 @@ export interface AgendaQueueConfig {
 
 export const HARVEST_HISTORY_RETENTION_JOB_NAME = 'HarvestRunService-PruneHistory';
 
+export const EXPORT_GENERATE_JOB_NAME = 'ExportService-GenerateCsv';
+export const EXPORT_MAINTENANCE_JOB_NAME = 'ExportService-Maintenance';
+
 export const RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME = 'RecordsService-ReconcilePostCommitSave';
 
 /** Daily orphan reconciliation for content-addressed brand typeface assets (design.md section 12). */
@@ -124,6 +127,16 @@ export const agendaQueue: AgendaQueueConfig = {
         historyRetentionHours: parseAgendaHistoryRetentionHours(process.env['sails__agendaQueue_options_historyRetentionHours'], 'sails__agendaQueue_options_historyRetentionHours') ?? 25,
     },
     jobs: {
+        [EXPORT_GENERATE_JOB_NAME]: {
+            fnName: 'exportservice.generateCsvJob',
+            options: { lockLifetime: 120000, lockLimit: 1, concurrency: 1 }
+        },
+        [EXPORT_MAINTENANCE_JOB_NAME]: {
+            fnName: 'exportservice.maintenanceJob',
+            backend: 'mongodb',
+            options: { lockLifetime: 120000, lockLimit: 1, concurrency: 1 },
+            schedule: { method: 'every', intervalOrSchedule: '5 minutes', opts: { skipImmediate: true } }
+        },
         [HARVEST_HISTORY_RETENTION_JOB_NAME]: {
             fnName: 'harvestrunservice.pruneHistoryJob',
             backend: 'mongodb',

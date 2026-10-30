@@ -1,0 +1,41 @@
+meta {
+  name: Background Exports - Prepare CSV
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/default/rdmp/export/jobs
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  { "format": "csv", "recType": "rdmp" }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("Preparation is accepted without waiting for CSV generation", function () {
+    expect(res.getStatus()).to.equal(202);
+    const job = res.getBody().data;
+    expect(job.status).to.equal("queued");
+    expect(job.format).to.equal("csv");
+    expect(job.recordType).to.equal("rdmp");
+    expect(job.downloadUrl).to.equal(null);
+    expect(job).not.to.have.property("objectKey");
+    expect(job).not.to.have.property("authorizationContext");
+    expect(res.getHeader("location")).to.equal(`/default/rdmp/export/jobs/${job.id}`);
+    expect(res.getHeader("cache-control")).to.include("no-store");
+    bru.setVar("backgroundExportId", job.id);
+  });
+}

@@ -1,0 +1,30 @@
+meta {
+  name: Background Exports - Download CSV
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/default/rdmp/export/jobs/{{backgroundExportId}}/download
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("The completed CSV downloads privately with attachment headers", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getHeader("content-type")).to.include("text/csv");
+    expect(res.getHeader("content-disposition")).to.include("attachment;");
+    expect(res.getHeader("content-disposition")).to.include("Exported Records.csv");
+    expect(res.getHeader("cache-control")).to.include("no-store");
+    expect(Number(res.getHeader("content-length"))).to.be.at.least(0);
+  });
+}

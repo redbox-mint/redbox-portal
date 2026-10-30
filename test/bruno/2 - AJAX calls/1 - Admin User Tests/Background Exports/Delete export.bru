@@ -1,0 +1,28 @@
+meta {
+  name: Background Exports - Delete export
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{host}}/default/rdmp/export/jobs/{{backgroundExportId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("Explicit deletion returns an empty private response", function () {
+    expect(res.getStatus()).to.equal(204);
+    expect(res.getHeader("cache-control")).to.include("no-store");
+    expect(res.getBody() || "").to.equal("");
+  });
+}

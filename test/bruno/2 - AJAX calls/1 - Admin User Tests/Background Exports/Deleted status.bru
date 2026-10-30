@@ -1,0 +1,26 @@
+meta {
+  name: Background Exports - Deleted status
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/default/rdmp/export/jobs/{{backgroundExportId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("Deleted export status is concealed", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+}

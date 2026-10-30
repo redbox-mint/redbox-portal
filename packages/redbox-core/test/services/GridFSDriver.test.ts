@@ -1,7 +1,8 @@
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { MongoClient, ObjectId } from 'mongodb';
-import { Readable, Writable } from 'node:stream';
+import { PassThrough, Readable, Writable } from 'node:stream';
+import { setImmediate as nextTurn } from 'node:timers/promises';
 import { GridFSDriver } from '../../src/storage/GridFSDriver';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
@@ -9,40 +10,57 @@ type StoredFile = {
   _id: ObjectId;
   filename: string;
   length: number;
+  chunkSize: number;
   uploadDate: Date;
   metadata?: Record<string, unknown>;
   buffer: Buffer;
 };
 
+type PendingUpload = {
+  _id: ObjectId;
+  filename: string;
+  startedAt: Date;
+  metadata: Record<string, unknown>;
+};
+
+type StoredChunk = { files_id: ObjectId; data: Buffer };
+
 class FakeGridFSBucket {
   public readonly files: StoredFile[];
+  public readonly chunks: StoredChunk[];
 
-  public constructor(files: StoredFile[]) {
+  public constructor(files: StoredFile[], chunks: StoredChunk[] = []) {
     this.files = files;
+    this.chunks = chunks;
   }
 
   public find(filter?: Record<string, unknown>) {
     const filenameFilter = filter?.filename as string | { $regex?: string } | undefined;
     let matched = this.files.slice();
     if (typeof filenameFilter === 'string') {
-      matched = matched.filter((file) => file.filename === filenameFilter);
+      matched = matched.filter(file => file.filename === filenameFilter);
     } else if (filenameFilter && typeof filenameFilter === 'object' && typeof filenameFilter.$regex === 'string') {
       const regex = new RegExp(filenameFilter.$regex);
-      matched = matched.filter((file) => regex.test(file.filename));
+      matched = matched.filter(file => regex.test(file.filename));
     }
     return {
       toArray: async () => matched.map(({ buffer, ...file }) => ({ ...file })),
     };
   }
 
-  public openUploadStream(filename: string, options?: { metadata?: Record<string, unknown> }) {
+  public openUploadStreamWithId(
+    uploadId: ObjectId,
+    filename: string,
+    options?: { metadata?: Record<string, unknown>; chunkSizeBytes?: number }
+  ) {
     const chunks: Buffer[] = [];
     const files = this.files;
-    const uploadId = new ObjectId();
+    const storedChunks = this.chunks;
 
     const writable = new Writable({
       write(chunk, _encoding, callback) {
         chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        storedChunks.push({ files_id: uploadId, data: Buffer.from(chunk) });
         callback();
       },
       final(callback) {
@@ -51,6 +69,7 @@ class FakeGridFSBucket {
           _id: uploadId,
           filename,
           length: buffer.length,
+          chunkSize: options?.chunkSizeBytes ?? 255 * 1024,
           uploadDate: new Date(),
           metadata: options?.metadata,
           buffer,
@@ -64,10 +83,14 @@ class FakeGridFSBucket {
   }
 
   public openDownloadStreamByName(filename: string, options?: { revision?: number }) {
-    const matches = this.files.filter((file) => file.filename === filename);
+    const matches = this.files.filter(file => file.filename === filename);
     const file = matches[options?.revision === 0 ? 0 : matches.length - 1];
     if (!file) {
-      const stream = new Readable({ read() { return; } });
+      const stream = new Readable({
+        read() {
+          return;
+        },
+      });
       process.nextTick(() => stream.emit('error', Object.assign(new Error(`missing ${filename}`), { code: 'ENOENT' })));
       return stream;
     }
@@ -75,7 +98,7 @@ class FakeGridFSBucket {
   }
 
   public async delete(id: unknown): Promise<void> {
-    const index = this.files.findIndex((file) => file._id.equals(id as ObjectId));
+    const index = this.files.findIndex(file => file._id.equals(id as ObjectId));
     if (index >= 0) {
       this.files.splice(index, 1);
     }
@@ -85,6 +108,11 @@ class FakeGridFSBucket {
 describe('GridFSDriver', function () {
   let mockSails: any;
   let files: StoredFile[];
+  let pending: PendingUpload[];
+  let chunks: StoredChunk[];
+  let failChunkDeletion: boolean;
+  let insertChunk: (chunk: StoredChunk) => Promise<void>;
+  let insertFile: (file: Omit<StoredFile, 'buffer'>) => Promise<void>;
 
   before(async function () {
     ({ expect } = await import('chai'));
@@ -92,6 +120,18 @@ describe('GridFSDriver', function () {
 
   beforeEach(function () {
     files = [];
+    pending = [];
+    chunks = [];
+    failChunkDeletion = false;
+    insertChunk = async chunk => {
+      chunks.push(chunk);
+    };
+    insertFile = async file => {
+      files.push({
+        ...file,
+        buffer: Buffer.concat(chunks.filter(chunk => chunk.files_id.equals(file._id)).map(chunk => chunk.data)),
+      });
+    };
     mockSails = createMockSails();
     mockSails.getDatastore = sinon.stub().returns({ manager: {} });
     setupServiceTestGlobals(mockSails);
@@ -105,9 +145,46 @@ describe('GridFSDriver', function () {
   function createDriver() {
     return new GridFSDriver(
       { datastore: 'mongodb', bucketName: 'fs', visibility: 'private' },
-      () => new FakeGridFSBucket(files) as any,
-      async () => ({}) as any
+      () => new FakeGridFSBucket(files, chunks),
+      async () => createDatabase()
     );
+  }
+
+  function createDatabase() {
+    // A real Db-shaped instance avoids weakening the production driver's injected Db contract.
+    return Object.assign(new MongoClient('mongodb://unused.test:27017').db('unit'), {
+      collection(name: string) {
+        return {
+          insertOne: async (document: PendingUpload | Omit<StoredFile, 'buffer'> | StoredChunk) => {
+            if ('files_id' in document) await insertChunk(document);
+            else if ('startedAt' in document) pending.push(document);
+            else await insertFile(document);
+          },
+          // An existing file lets the real GridFS stream skip index creation.
+          findOne: async () => ({ _id: new ObjectId() }),
+          find(filter: { filename?: string | { $regex?: string } }) {
+            return {
+              toArray: async () =>
+                (name.endsWith('.uploads') ? pending : files).filter(upload => {
+                  if (typeof filter.filename === 'string') return upload.filename === filter.filename;
+                  return !filter.filename?.$regex || new RegExp(filter.filename.$regex).test(upload.filename);
+                }),
+            };
+          },
+          async deleteOne(filter: { _id: ObjectId }) {
+            const entries = name.endsWith('.uploads') ? pending : files;
+            const index = entries.findIndex(entry => entry._id.equals(filter._id));
+            if (index >= 0) entries.splice(index, 1);
+          },
+          async deleteMany(filter: { files_id: ObjectId }) {
+            if (failChunkDeletion) throw new Error('Chunk deletion unavailable');
+            for (let index = chunks.length - 1; index >= 0; index--) {
+              if (chunks[index].files_id.equals(filter.files_id)) chunks.splice(index, 1);
+            }
+          },
+        };
+      },
+    });
   }
 
   it('writes and reads bytes, streams, and metadata', async function () {
@@ -135,6 +212,7 @@ describe('GridFSDriver', function () {
       contentLength: 11,
       visibility: 'private',
     });
+    expect(pending).to.have.length(0);
   });
 
   it('overwrites same filename and supports copy, move, list, and delete operations', async function () {
@@ -142,14 +220,14 @@ describe('GridFSDriver', function () {
     await driver.put('attachments/oid-1/file-a', Buffer.from('one'), { contentType: 'text/plain' });
     await driver.put('attachments/oid-1/file-a', Buffer.from('two'), { contentType: 'text/plain' });
 
-    expect(files.filter((file) => file.filename === 'attachments/oid-1/file-a')).to.have.length(1);
+    expect(files.filter(file => file.filename === 'attachments/oid-1/file-a')).to.have.length(1);
     expect(await driver.get('attachments/oid-1/file-a')).to.equal('two');
 
     await driver.copy('attachments/oid-1/file-a', 'attachments/oid-1/file-b');
     await driver.move('attachments/oid-1/file-b', 'attachments/oid-1/file-c');
 
     const listed = await driver.listAll('attachments/oid-1/', { recursive: true });
-    const keys = Array.from(listed.objects).map((entry) => entry.key);
+    const keys = Array.from(listed.objects).map(entry => entry.key);
     expect(keys).to.deep.equal(['attachments/oid-1/file-a', 'attachments/oid-1/file-c']);
 
     await driver.delete('attachments/oid-1/file-a');
@@ -170,13 +248,216 @@ describe('GridFSDriver', function () {
     }
   });
 
+  it('persists the key mapping before consuming the first upload chunk', async function () {
+    const driver = createDriver();
+    const key = 'exports/first-chunk.csv';
+    const source = new Readable({
+      read() {
+        expect(pending).to.have.length(1);
+        expect(pending[0].filename).to.equal(key);
+        this.push('csv');
+        this.push(null);
+      },
+    });
+    await driver.putStream(key, source);
+    expect(pending).to.have.length(0);
+    expect(await driver.get(key)).to.equal('csv');
+  });
+
+  it('discovers and deletes a crashed chunk-only upload through a reconstructed driver', async function () {
+    const uploadId = new ObjectId();
+    const key = 'exports/crashed/attempt.csv';
+    const startedAt = new Date(Date.now() - 600000);
+    pending.push({ _id: uploadId, filename: key, startedAt, metadata: { visibility: 'private' } });
+    chunks.push({ files_id: uploadId, data: Buffer.from('partial CSV') });
+    const driver = createDriver();
+
+    expect(await driver.exists(key)).to.equal(true);
+    const listed = Array.from((await driver.listAll('exports/')).objects);
+    expect(listed.map(object => object.key)).to.deep.equal([key]);
+    expect(listed[0].lastModified).to.equal(startedAt);
+    for (const operation of [driver.getStream(key), driver.getMetaData(key)]) {
+      try {
+        await operation;
+        expect.fail('An unfinished upload must not be readable.');
+      } catch (error) {
+        expect(error).to.have.property('code', 'ENOENT');
+      }
+    }
+
+    failChunkDeletion = true;
+    try {
+      await driver.delete(key);
+      expect.fail('Deletion should fail for retry.');
+    } catch (error) {
+      expect(error).to.have.property('message', 'Chunk deletion unavailable');
+    }
+    expect(pending).to.have.length(1);
+    expect(chunks).to.have.length(1);
+    failChunkDeletion = false;
+    await driver.delete(key);
+    await driver.delete(key);
+    expect(pending).to.have.length(0);
+    expect(chunks).to.have.length(0);
+    expect(await driver.exists(key)).to.equal(false);
+    expect(Array.from((await driver.listAll('exports/')).objects)).to.have.length(0);
+  });
+
+  it('retains a failed upload mapping when cleanup fails and supports deletion by prefix', async function () {
+    const driver = createDriver();
+    const key = 'exports/failed/attempt.csv';
+    failChunkDeletion = true;
+    const source = Readable.from(
+      (async function* () {
+        yield 'partial CSV';
+        throw new Error('Source failed');
+      })()
+    );
+    try {
+      await driver.putStream(key, source);
+      expect.fail('Upload should fail.');
+    } catch (error) {
+      expect(error).to.have.property('message', 'Source failed');
+    }
+    expect(pending).to.have.length(1);
+    expect(await driver.exists(key)).to.equal(true);
+    failChunkDeletion = false;
+    await driver.deleteAll('exports/failed/');
+    expect(pending).to.have.length(0);
+    expect(chunks).to.have.length(0);
+  });
+
+  it('drains a real GridFS chunk insert before rejecting a source failure and allowing immediate deletion', async function () {
+    const driver = new GridFSDriver({ bucketName: 'fs' }, undefined, async () => createDatabase());
+    const key = 'exports/source-error/attempt.csv';
+    let releaseInsert!: () => void;
+    let notifyStarted!: () => void;
+    const blocked = new Promise<void>(resolve => {
+      releaseInsert = resolve;
+    });
+    const started = new Promise<void>(resolve => {
+      notifyStarted = resolve;
+    });
+    insertChunk = async chunk => {
+      notifyStarted();
+      await blocked;
+      chunks.push(chunk);
+    };
+    const source = new PassThrough();
+    let settled = false;
+    const result = driver.putStream(key, source).then(
+      () => {
+        settled = true;
+        return null;
+      },
+      error => {
+        settled = true;
+        return error;
+      }
+    );
+    source.write(Buffer.alloc(300 * 1024));
+    try {
+      await started;
+      source.destroy(new Error('Source failed during insert'));
+      await nextTurn();
+      expect(settled).to.equal(false);
+      expect(pending).to.have.length(1);
+    } finally {
+      releaseInsert();
+    }
+    expect(await result).to.have.property('message', 'Source failed during insert');
+    // ExportService calls disk.delete immediately after putStream fails.
+    await driver.delete(key);
+    await nextTurn();
+    expect(files).to.have.length(0);
+    expect(chunks).to.have.length(0);
+    expect(pending).to.have.length(0);
+    expect(await driver.exists(key)).to.equal(false);
+  });
+
+  it('bounds real GridFS writes so one rejected insert cannot leave delayed sibling inserts', async function () {
+    const driver = new GridFSDriver({ bucketName: 'fs' }, undefined, async () => createDatabase());
+    const key = 'exports/insert-error/attempt.csv';
+    let insertCalls = 0;
+    let releaseInsert!: () => void;
+    const blocked = new Promise<void>(resolve => {
+      releaseInsert = resolve;
+    });
+    insertChunk = async chunk => {
+      insertCalls += 1;
+      if (insertCalls === 1) {
+        await nextTurn();
+        throw new Error('Chunk insert failed');
+      }
+      await blocked;
+      chunks.push(chunk);
+    };
+    const error = await driver.putStream(key, Readable.from([Buffer.alloc(800 * 1024)])).then(
+      () => null,
+      error => error
+    );
+    await driver.delete(key);
+    releaseInsert();
+    await nextTurn();
+    expect(error).to.have.property('message', 'Chunk insert failed');
+    expect(insertCalls).to.equal(1);
+    expect(files).to.have.length(0);
+    expect(chunks).to.have.length(0);
+    expect(pending).to.have.length(0);
+  });
+
+  it('waits for the real GridFS final file insert before cleaning a failed upload', async function () {
+    const driver = new GridFSDriver({ bucketName: 'fs' }, undefined, async () => createDatabase());
+    const key = 'exports/final-error/attempt.csv';
+    let releaseInsert!: () => void;
+    let notifyStarted!: () => void;
+    const blocked = new Promise<void>(resolve => {
+      releaseInsert = resolve;
+    });
+    const started = new Promise<void>(resolve => {
+      notifyStarted = resolve;
+    });
+    insertFile = async () => {
+      notifyStarted();
+      await blocked;
+      throw new Error('File insert failed');
+    };
+    let settled = false;
+    const result = driver.putStream(key, Readable.from(['small CSV'])).then(
+      () => {
+        settled = true;
+        return null;
+      },
+      error => {
+        settled = true;
+        return error;
+      }
+    );
+    try {
+      await started;
+      await nextTurn();
+      expect(settled).to.equal(false);
+      expect(pending).to.have.length(1);
+      expect(chunks).to.have.length(1);
+    } finally {
+      releaseInsert();
+    }
+    expect(await result).to.have.property('message', 'File insert failed');
+    await driver.delete(key);
+    expect(files).to.have.length(0);
+    expect(chunks).to.have.length(0);
+    expect(pending).to.have.length(0);
+  });
+
   it('encodes synthetic URLs and throws for unsupported visibility changes', async function () {
     const driver = createDriver();
     const key = 'attachments/oid 1/file name?.txt';
 
     await driver.put(key, Buffer.from('hello world'));
 
-    expect(await driver.getSignedUploadUrl(key)).to.equal('gridfs://mongodb/fs/attachments%2Foid%201%2Ffile%20name%3F.txt');
+    expect(await driver.getSignedUploadUrl(key)).to.equal(
+      'gridfs://mongodb/fs/attachments%2Foid%201%2Ffile%20name%3F.txt'
+    );
 
     try {
       await driver.setVisibility(key, 'public');
@@ -187,7 +468,7 @@ describe('GridFSDriver', function () {
   });
 
   it('uses a MongoDB driver Db from the configured datastore URL instead of the Sails datastore manager', async function () {
-    const dbFromMongoClient = { source: 'mongodb-7-client' };
+    const dbFromMongoClient = Object.assign(createDatabase(), { source: 'mongodb-7-client' });
     const dbFromSailsManager = { source: 'sails-mongo-manager' };
     const client = { db: sinon.stub().returns(dbFromMongoClient) };
     const connect = sinon.stub(MongoClient, 'connect').resolves(client as any);
@@ -212,7 +493,10 @@ describe('GridFSDriver', function () {
   });
 
   it('throws when GridFS is configured without a MongoDB URL', async function () {
-    const driver = new GridFSDriver({ datastore: 'mongodb', bucketName: 'fs' }, () => new FakeGridFSBucket(files) as any);
+    const driver = new GridFSDriver(
+      { datastore: 'mongodb', bucketName: 'fs' },
+      () => new FakeGridFSBucket(files) as any
+    );
 
     try {
       await driver.exists('attachments/oid-1/file-1');

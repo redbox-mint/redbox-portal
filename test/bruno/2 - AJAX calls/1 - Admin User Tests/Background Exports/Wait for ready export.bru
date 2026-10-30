@@ -1,0 +1,46 @@
+meta {
+  name: Background Exports - Wait for ready export
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/default/rdmp/export/jobs/{{backgroundExportId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+  const axios = require("axios");
+  const url = `${bru.getEnvVar("host")}/default/rdmp/export/jobs/${bru.getVar("backgroundExportId")}`;
+  const deadline = Date.now() + 60000;
+  let ready = false;
+  while (Date.now() < deadline) {
+    const response = await axios.get(url, {
+      headers: { Cookie: bru.getVar("backgroundExportCookie"), "X-ReDBox-Api-Version": "2.0", "X-Source": "jsclient" },
+      timeout: 5000
+    });
+    const job = response.data.data;
+    if (job.status === "ready") { ready = true; break; }
+    if (job.status !== "queued" && job.status !== "running") throw new Error(`Export preparation ended with ${job.status}`);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  if (!ready) throw new Error("Background export did not complete through Agenda within 60 seconds");
+}
+
+tests {
+  test("The completed job exposes a download URL and expiry", function () {
+    expect(res.getStatus()).to.equal(200);
+    const job = res.getBody().data;
+    expect(job.status).to.equal("ready");
+    expect(job.downloadUrl).to.equal(`export/jobs/${job.id}/download`);
+    expect(Date.parse(job.expiresAt)).to.be.greaterThan(Date.parse(job.completedAt));
+    expect(job.byteLength).to.be.at.least(0);
+  });
+}

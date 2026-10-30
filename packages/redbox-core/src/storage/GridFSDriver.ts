@@ -1,10 +1,9 @@
 /// <reference path="../sails.ts" />
 import { createHash } from 'node:crypto';
 import { basename, posix } from 'node:path';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
-import type { Db, Document, GridFSBucketWriteStreamOptions, GridFSFile, MongoClientOptions, ObjectId } from 'mongodb';
-import { GridFSBucket, MongoClient } from 'mongodb';
+import { Readable, Writable } from 'node:stream';
+import type { Collection, Db, Document, GridFSBucketWriteStreamOptions, GridFSFile, MongoClientOptions } from 'mongodb';
+import { GridFSBucket, MongoClient, ObjectId } from 'mongodb';
 import type { GridFSDriverOptions, Visibility } from '../config/storage.config';
 
 type GridFSMetadata = {
@@ -37,13 +36,18 @@ type ListedObject = {
   contentType?: string;
 };
 
+/** Persisted before the first chunk so deletion by key survives a process crash. */
+type PendingUpload = {
+  _id: ObjectId;
+  filename: string;
+  startedAt: Date;
+  metadata: GridFSMetadata;
+};
+
 type GridFSBucketLike = {
   find: (filter?: Document) => { toArray: () => Promise<GridFSFile[]> };
-  openUploadStream: (filename: string, options?: GridFSBucketWriteStreamOptions) => NodeJS.WritableStream & {
-    id?: { toHexString?: () => string; toString: () => string };
-  };
+  openUploadStreamWithId: (id: ObjectId, filename: string, options?: GridFSBucketWriteStreamOptions) => Writable;
   openDownloadStreamByName: (filename: string, options?: { revision?: number }) => NodeJS.ReadableStream;
-  delete: (id: ObjectId) => Promise<void>;
 };
 
 type GridFSBucketFactory = (db: Db, options: { bucketName: string }) => GridFSBucketLike;
@@ -53,6 +57,8 @@ type CachedMongoDb = {
   db: Db;
 };
 
+const UPLOAD_CHUNK_BYTES = 255 * 1024;
+
 export class GridFSDriver {
   private static dbCache: Map<string, Promise<CachedMongoDb>> = new Map();
 
@@ -61,11 +67,12 @@ export class GridFSDriver {
   private readonly bucketFactory: GridFSBucketFactory;
   private readonly dbFactory: MongoDbFactory;
   private cachedBucket: GridFSBucketLike | null = null;
+  private cachedDb?: Promise<Db>;
 
   public constructor(
     options: GridFSDriverOptions = {},
     bucketFactory: GridFSBucketFactory = (db, bucketOptions) => new GridFSBucket(db, bucketOptions),
-    dbFactory: MongoDbFactory = (resolvedOptions) => GridFSDriver.connectDb(resolvedOptions)
+    dbFactory: MongoDbFactory = resolvedOptions => GridFSDriver.connectDb(resolvedOptions)
   ) {
     this.options = GridFSDriver.resolveOptions(options);
     this.bucketFactory = bucketFactory;
@@ -73,7 +80,7 @@ export class GridFSDriver {
   }
 
   public async exists(key: string): Promise<boolean> {
-    return (await this.findLatestFile(key)) !== null;
+    return (await this.findLatestFile(key)) !== null || (await this.findPendingUploads({ filename: key })).length > 0;
   }
 
   public async get(key: string): Promise<string> {
@@ -92,7 +99,9 @@ export class GridFSDriver {
     return new Uint8Array(buffer);
   }
 
-  public async getMetaData(key: string): Promise<{ contentType?: string; contentLength: number; etag: string; lastModified: Date }> {
+  public async getMetaData(
+    key: string
+  ): Promise<{ contentType?: string; contentLength: number; etag: string; lastModified: Date }> {
     const file = await this.requireLatestFile(key);
     return this.fileToMetaData(file);
   }
@@ -123,30 +132,53 @@ export class GridFSDriver {
   }
 
   public async put(key: string, contents: string | Uint8Array, options?: GridFSWriteOptions): Promise<void> {
-    const stream = typeof contents === 'string'
-      ? Readable.from([contents])
-      : Readable.from([Buffer.from(contents)]);
+    const stream = typeof contents === 'string' ? Readable.from([contents]) : Readable.from([Buffer.from(contents)]);
     await this.putStream(key, stream, options);
   }
 
   public async putStream(key: string, contents: Readable, options?: GridFSWriteOptions): Promise<void> {
     await this.deleteMatchingFiles(key);
     const bucket = await this.getBucket();
-    const upload = bucket.openUploadStream(key, {
-      metadata: this.buildMetadata(options),
-    }) as NodeJS.WritableStream;
+    const uploadId = new ObjectId();
+    const metadata = this.buildMetadata(options);
+    // GridFS writes its files document only after the upload finishes. Without this durable
+    // mapping, a process crash can leave chunks whose key cannot be recovered for cleanup.
+    await (await this.pendingUploads()).insertOne({ _id: uploadId, filename: key, startedAt: new Date(), metadata });
     try {
-      await pipeline(contents, upload);
+      const upload = bucket.openUploadStreamWithId(uploadId, key, { metadata, chunkSizeBytes: UPLOAD_CHUNK_BYTES });
+      await this.writeUpload(contents, upload);
+      await (await this.pendingUploads()).deleteOne({ _id: uploadId });
     } catch (error) {
-      const uploadId = (upload as { id?: ObjectId }).id;
-      if (uploadId) {
-        try {
-          await bucket.delete(uploadId);
-        } catch {
-          // Best effort cleanup for partial uploads.
-        }
+      try {
+        await this.deleteUpload(uploadId);
+      } catch {
+        // Retain the mapping if deletion fails so normal disk cleanup can retry by key.
       }
       throw error;
+    }
+  }
+
+  private async writeUpload(contents: Readable, upload: Writable): Promise<void> {
+    // GridFS destroy()/abort() do not wait for outstanding Mongo inserts. Await each
+    // write before observing a source error, and bound its size so an insert failure
+    // cannot leave sibling inserts running after the write callback has failed.
+    upload.on('error', error => contents.destroy(error));
+    try {
+      for await (const chunk of contents) {
+        const buffer = Buffer.from(chunk);
+        for (let offset = 0; offset < buffer.length; offset += UPLOAD_CHUNK_BYTES) {
+          await new Promise<void>((resolve, reject) => {
+            upload.write(buffer.subarray(offset, offset + UPLOAD_CHUNK_BYTES), error =>
+              error ? reject(error) : resolve()
+            );
+          });
+        }
+      }
+      await new Promise<void>((resolve, reject) => {
+        upload.end((error?: Error | null) => (error ? reject(error) : resolve()));
+      });
+    } finally {
+      upload.destroy();
     }
   }
 
@@ -178,22 +210,37 @@ export class GridFSDriver {
 
   public async deleteAll(prefix: string): Promise<void> {
     const files = await this.findFilesByPrefix(prefix);
-    const bucket = await this.getBucket();
-    await Promise.all(files.map((file) => bucket.delete(file._id)));
+    const pending = await this.findPendingUploads(this.prefixFilter(prefix));
+    await Promise.all([...files, ...pending].map(file => this.deleteUpload(file._id)));
   }
 
-  public async listAll(prefix: string, _options?: { recursive?: boolean; paginationToken?: string }): Promise<{
+  public async listAll(
+    prefix: string,
+    _options?: { recursive?: boolean; paginationToken?: string }
+  ): Promise<{
     paginationToken?: string;
     objects: Iterable<ListedObject>;
   }> {
     const files = await this.findFilesByPrefix(prefix);
-    const objects = files
-      .sort((left, right) => left.filename.localeCompare(right.filename))
-      .map((file) => ({
-        key: file.filename,
-        name: basename(file.filename),
-        ...this.fileToMetaData(file),
-      }));
+    const objects = files.map(file => ({
+      key: file.filename,
+      name: basename(file.filename),
+      ...this.fileToMetaData(file),
+    }));
+
+    const completedKeys = new Set(files.map(file => file.filename));
+    for (const pending of await this.findPendingUploads(this.prefixFilter(prefix))) {
+      if (completedKeys.has(pending.filename)) continue;
+      objects.push({
+        key: pending.filename,
+        name: basename(pending.filename),
+        contentType: pending.metadata.contentType,
+        contentLength: 0,
+        lastModified: pending.startedAt,
+        etag: pending._id.toHexString(),
+      });
+    }
+    objects.sort((left, right) => left.key.localeCompare(right.key));
 
     return {
       paginationToken: undefined,
@@ -208,10 +255,12 @@ export class GridFSDriver {
   public static async dispose(): Promise<void> {
     const cachedDbs = Array.from(GridFSDriver.dbCache.values());
     GridFSDriver.dbCache.clear();
-    await Promise.all(cachedDbs.map(async (cachedDb) => {
-      const { client } = await cachedDb;
-      await client.close?.();
-    }));
+    await Promise.all(
+      cachedDbs.map(async cachedDb => {
+        const { client } = await cachedDb;
+        await client.close?.();
+      })
+    );
   }
 
   private static resolveOptions(options: GridFSDriverOptions): Required<GridFSDriverOptions> {
@@ -237,10 +286,35 @@ export class GridFSDriver {
       return this.cachedBucket;
     }
 
-    const db = await this.dbFactory(this.options);
+    const db = await this.getDb();
 
     this.cachedBucket = this.bucketFactory(db, { bucketName: this.options.bucketName });
     return this.cachedBucket;
+  }
+
+  private getDb(): Promise<Db> {
+    this.cachedDb ??= this.dbFactory(this.options).catch(error => {
+      this.cachedDb = undefined;
+      throw error;
+    });
+    return this.cachedDb;
+  }
+
+  private async pendingUploads(): Promise<Collection<PendingUpload>> {
+    return (await this.getDb()).collection<PendingUpload>(`${this.options.bucketName}.uploads`);
+  }
+
+  private async findPendingUploads(filter: Document): Promise<PendingUpload[]> {
+    return (await this.pendingUploads()).find(filter).toArray();
+  }
+
+  private async deleteUpload(uploadId: ObjectId): Promise<void> {
+    const db = await this.getDb();
+    // GridFSBucket.delete() rejects for a chunk-only upload with no files document. These
+    // idempotent deletes deliberately handle that state and keep the marker until both succeed.
+    await db.collection(`${this.options.bucketName}.chunks`).deleteMany({ files_id: uploadId });
+    await db.collection(`${this.options.bucketName}.files`).deleteOne({ _id: uploadId });
+    await (await this.pendingUploads()).deleteOne({ _id: uploadId });
   }
 
   private static async connectDb(options: Required<GridFSDriverOptions>): Promise<Db> {
@@ -252,7 +326,7 @@ export class GridFSDriver {
     const cacheKey = `${url}::${options.databaseName}`;
     let cachedPromise = GridFSDriver.dbCache.get(cacheKey);
     if (!cachedPromise) {
-      cachedPromise = GridFSDriver.createMongoClientDb(url, options.databaseName, cacheKey).catch((error) => {
+      cachedPromise = GridFSDriver.createMongoClientDb(url, options.databaseName, cacheKey).catch(error => {
         GridFSDriver.dbCache.delete(cacheKey);
         throw error;
       });
@@ -266,7 +340,11 @@ export class GridFSDriver {
     return GridFSDriver.readNonEmptyString(datastores?.[datastoreName]?.url, '');
   }
 
-  private static async createMongoClientDb(url: string, databaseName: string, cacheKey: string): Promise<CachedMongoDb> {
+  private static async createMongoClientDb(
+    url: string,
+    databaseName: string,
+    cacheKey: string
+  ): Promise<CachedMongoDb> {
     const clientOptions: MongoClientOptions = {};
     const client = await MongoClient.connect(url, clientOptions);
     client.on?.('close', () => {
@@ -300,20 +378,27 @@ export class GridFSDriver {
   }
 
   private async findFilesByPrefix(prefix: string): Promise<GridFSFile[]> {
+    return (await this.getBucket()).find(this.prefixFilter(prefix)).toArray();
+  }
+
+  private prefixFilter(prefix: string): Document {
     const normalizedPrefix = this.normalizePrefix(prefix);
-    const filter = normalizedPrefix
-      ? { filename: { $regex: `^${this.escapeRegExp(normalizedPrefix)}` } }
-      : {};
-    return (await this.getBucket()).find(filter).toArray();
+    const filter = normalizedPrefix ? { filename: { $regex: `^${this.escapeRegExp(normalizedPrefix)}` } } : {};
+    return filter;
   }
 
   private async deleteMatchingFiles(key: string): Promise<void> {
     const files = await this.findFilesByFilename(key);
-    const bucket = await this.getBucket();
-    await Promise.all(files.map((file) => bucket.delete(file._id)));
+    const pending = await this.findPendingUploads({ filename: key });
+    await Promise.all([...files, ...pending].map(file => this.deleteUpload(file._id)));
   }
 
-  private fileToMetaData(file: GridFSFile): { contentType?: string; contentLength: number; etag: string; lastModified: Date } {
+  private fileToMetaData(file: GridFSFile): {
+    contentType?: string;
+    contentLength: number;
+    etag: string;
+    lastModified: Date;
+  } {
     const metadata = this.readStoredMetadata(file);
     return {
       contentType: metadata.contentType,
@@ -384,7 +469,7 @@ export class GridFSDriver {
         chunks.push(Buffer.from(chunk));
       });
       stream.once('end', () => resolve(Buffer.concat(chunks)));
-      stream.once('error', (error) => reject(error));
+      stream.once('error', error => reject(error));
     });
   }
 }

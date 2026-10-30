@@ -368,6 +368,11 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/export': 'ExportController.index',
   'get /:branding/:portal/admin/export': 'ExportController.index',
   'get /:branding/:portal/export/record/download/:format': 'ExportController.downloadRecs',
+  'post /:branding/:portal/export/jobs': 'ExportController.createJob',
+  'get /:branding/:portal/export/jobs': 'ExportController.listJobs',
+  'get /:branding/:portal/export/jobs/:id': 'ExportController.getJob',
+  'delete /:branding/:portal/export/jobs/:id': 'ExportController.deleteJob',
+  'get /:branding/:portal/export/jobs/:id/download': 'ExportController.downloadJob',
 
   // Async routes
   'post /:branding/:portal/asynch': 'AsynchController.start',

@@ -1,0 +1,27 @@
+meta {
+  name: Background Exports - Deleted download
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/default/rdmp/export/jobs/{{backgroundExportId}}/download
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("Deleted CSV can no longer be downloaded", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getHeader("content-disposition")).to.equal(undefined);
+  });
+}

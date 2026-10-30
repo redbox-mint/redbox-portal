@@ -16,6 +16,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Architecture Overview](https://github.com/redbox-mint/redbox-portal/wiki/Architecture-Overview)**: High-level system structure and key components.
 - **[Coding Standards and Conventions](https://github.com/redbox-mint/redbox-portal/wiki/Coding-Standards-and-Conventions)**: Shared language and style expectations.
 - **[Configuration Guide](https://github.com/redbox-mint/redbox-portal/wiki/Configuration-Guide)**: Portal configuration and environment settings.
+- **[Background admin CSV exports](Admin-CSV-Exports)**: Prepare large CSVs, choose a StorageManager disk, and configure retention and cleanup.
 - **[Configuring Figshare Publishing](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing)**: Admin guide for the Figshare publishing AppConfig screen.
 - **[Migrating from the Legacy Mint Harvest Endpoint](https://github.com/redbox-mint/redbox-portal/wiki/Migrating-from-the-Legacy-Mint-Harvest-Endpoint)**: Migration guide for moving harvest integrations to the new records and harvest-runs endpoints.
 - **[Harvest run administration](https://github.com/redbox-mint/redbox-portal/wiki/Harvest-Run-Administration)**: Browse run history, configure retention, and check MongoDB indexes before deployment.

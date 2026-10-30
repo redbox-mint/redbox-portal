@@ -6,6 +6,7 @@ Welcome to the RedBox Portal User Guide! This document is your resource for sett
 - Dive into **[Configuring Record Workflows](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Workflows)** for process management.
 - Understand **[Configuring Record Forms](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms)** for data entry.
 - Configure **[Named Queries](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Named-Queries)** for reporting.
+- Prepare and download large CSV files with **[Background admin CSV exports](Admin-CSV-Exports)**.
 - Customize your experience with the **[Theme Customization Guide](https://github.com/redbox-mint/redbox-portal/wiki/Theme-Customization-Guide)**.
 - Integrate systems using the **[ReDBox Portal API](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Portal-API)**.
 - Manage notifications with **[Configuring Email Notifications](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Email-Notifications)**.

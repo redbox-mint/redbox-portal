@@ -1,0 +1,26 @@
+meta {
+  name: Background Exports - Reject unauthenticated download
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/default/rdmp/export/jobs/{{backgroundExportId}}/download
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:pre-request {
+  await bru.cookies.jar().deleteCookies(req.getUrl());
+}
+
+tests {
+  test("Downloads require an authenticated export user", function () {
+    expect(res.getStatus()).to.equal(403);
+    expect(res.getHeader("content-disposition")).to.equal(undefined);
+  });
+}

@@ -1,72 +1,143 @@
 @if (loadError) {
   <div class="alert alert-danger" role="alert">
     {{ loadError }}
-    <button type="button" class="btn btn-default" [disabled]="loadPending" (click)="retryLoad()">Retry</button>
+    <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending" (click)="retryLoad()">{{ 'export-refresh' | i18next }}</button>
   </div>
 }
-<!-- ngIf is needed so init completes and view has all the information it needs -->
 @if (isReady) {
   <div class="row">
-    <div class="col-xs-1">
-    </div>
-    <div class="col-xs-10">
+    <div class="col-12 col-lg-10 offset-lg-1">
       <div class="form-horizontal">
-        <div class="form-group">
-          <label class="col-xs-2 control-label" for="after">{{ 'export-modified-after' | i18next }}</label>
-          <span class="col-xs-2">
-            <input type="text" id="after"
-              [bsConfig]="datePickerOpts"
-              [placeholder] = "datePickerPlaceHolder"
-              [(ngModel)] = "modAfter"
-              bsDatepicker />
-          </span>
+        <div class="form-group row mb-3">
+          <label class="col-sm-3 col-form-label" for="after">{{ 'export-modified-after' | i18next }}</label>
+          <div class="col-sm-5">
+            <input type="text" class="form-control" id="after" [bsConfig]="datePickerOpts"
+              [placeholder]="datePickerPlaceHolder" [(ngModel)]="modAfter" bsDatepicker />
+          </div>
         </div>
-        <div class="form-group">
-          <label class="col-xs-2 control-label" for="before">{{ 'export-modified-before' | i18next }}</label>
-          <span class="col-xs-2">
-            <input type="text" id="before"
-              [bsConfig]="datePickerOpts"
-              [placeholder] = "datePickerPlaceHolder"
-              [(ngModel)] = "modBefore"
-              bsDatepicker />
-          </span>
+        <div class="form-group row mb-3">
+          <label class="col-sm-3 col-form-label" for="before">{{ 'export-modified-before' | i18next }}</label>
+          <div class="col-sm-5">
+            <input type="text" class="form-control" id="before" [bsConfig]="datePickerOpts"
+              [placeholder]="datePickerPlaceHolder" [(ngModel)]="modBefore" bsDatepicker />
+          </div>
         </div>
-        <div class="form-group">
-          <label class="col-xs-2 control-label">{{ 'export-format' | i18next }} </label>
-          <span class="col-xs-2">
-            @for (recExportFormat of getExportFormatNames(); track recExportFormat) {
-              <div  >
-                <input [checked]="recExportFormat.checked" (change)="setExportFormat(recExportFormat.id, $event)" id="format-{{recExportFormat.id}}" name="export-format-radio" type="radio" >
-                <label for="format-{{recExportFormat.id}}" >&nbsp;{{ recExportFormat.name }}</label>
+        <div class="form-group row mb-3">
+          <label class="col-sm-3 col-form-label" for="export-record-type">{{ 'export-record-type' | i18next }}</label>
+          <div class="col-sm-5">
+            <select class="form-select" id="export-record-type" [(ngModel)]="record_type">
+              @for (recTypeName of getRecordTypeNames(); track recTypeName) {
+                <option [value]="recTypeName">{{ recTypeName + '-title' | i18next }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <fieldset class="form-group row mb-3">
+          <legend class="col-sm-3 col-form-label">{{ 'export-format' | i18next }}</legend>
+          <div class="col-sm-5">
+            @for (recExportFormat of getExportFormatNames(); track recExportFormat.id) {
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" [checked]="export_format === recExportFormat.id"
+                  (change)="setExportFormat(recExportFormat.id)" id="format-{{recExportFormat.id}}" name="export-format-radio" type="radio" />
+                <label class="form-check-label" for="format-{{recExportFormat.id}}">{{ recExportFormat.name }}</label>
               </div>
             }
-          </span>
-        </div>
-        <div class="form-group">
-          <div class="col-xs-2"></div>
-          <div class="col-xs-10 padding-remove">
-            <span class="btn-group">
-              <button (click)="download()" class="btn btn-primary text-nowrap" type="button">
-                {{ 'export-' + record_type  | i18next }}
-              </button>
-              <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="visually-hidden">Toggle Dropdown</span>
-              </button>
-              <ul class="dropdown-menu">
-                @for (recTypeName of getRecordTypeNames(); track recTypeName) {
-                  <li>
-                    <a class="dropdown-item" href="#" (click)="setRecordType(recTypeName, $event)">
-                      {{ 'export-'+ recTypeName  | i18next }}
-                    </a>
-                  </li>
-                }
-              </ul>
-            </span>
+          </div>
+        </fieldset>
+        @if (submissionErrorKey) {
+          <div class="alert alert-danger" role="alert">{{ submissionErrorKey | i18next }}</div>
+        }
+        <div class="form-group row mb-4">
+          <div class="col-sm-9 offset-sm-3">
+            <button (click)="download()" class="btn btn-primary" type="button" [disabled]="mutationPending || !record_type">
+              @if (createPending) {
+                {{ 'export-submitting' | i18next }}
+              } @else if (export_format === 'csv') {
+                {{ 'export-prepare' | i18next }}
+              } @else {
+                {{ 'export-' + record_type | i18next }}
+              }
+            </button>
+            @if (export_format === 'csv') {
+              <p class="text-body-secondary mt-2 mb-0">{{ 'export-background-hint' | i18next }}</p>
+            }
           </div>
         </div>
       </div>
-    </div>
-    <div class="col-xs-1">
+
+      <section aria-labelledby="export-recent-title">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+          <h2 class="h4 mb-0" id="export-recent-title">{{ 'export-recent-title' | i18next }}</h2>
+          <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="jobsLoading || mutationPending" (click)="refreshJobs()">
+            {{ (jobsLoading ? 'export-refreshing' : 'export-refresh') | i18next }}
+          </button>
+        </div>
+        @if (jobsErrorKey) {
+          <div class="alert alert-warning" role="alert">{{ jobsErrorKey | i18next }}</div>
+        }
+        @if (deleteErrorKey) {
+          <div class="alert alert-danger" role="alert">{{ deleteErrorKey | i18next }}</div>
+        }
+        @if (!jobs.length && !jobsErrorKey) {
+          <p class="text-body-secondary">{{ 'export-no-jobs' | i18next }}</p>
+        }
+        @if (jobs.length) {
+          <div class="table-responsive">
+            <table class="table table-striped align-middle">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'export-record-type' | i18next }}</th>
+                  <th scope="col">{{ 'export-date-range' | i18next }}</th>
+                  <th scope="col">{{ 'export-requested' | i18next }}</th>
+                  <th scope="col">{{ 'export-status' | i18next }}</th>
+                  <th scope="col">{{ 'export-expires' | i18next }}</th>
+                  <th scope="col">{{ 'export-actions' | i18next }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (job of jobs; track job.id) {
+                  <tr>
+                    <th scope="row">{{ job.recordType + '-title' | i18next }}</th>
+                    <td>
+                      @if (job.modifiedAfter) {
+                        <div>{{ 'export-modified-after' | i18next }} {{ job.modifiedAfter | date:'medium' }}</div>
+                      }
+                      @if (job.modifiedBefore) {
+                        <div>{{ 'export-modified-before' | i18next }} {{ job.modifiedBefore | date:'medium' }}</div>
+                      }
+                      @if (!job.modifiedAfter && !job.modifiedBefore) {
+                        {{ 'export-all-dates' | i18next }}
+                      }
+                    </td>
+                    <td>{{ job.createdAt | date:'medium' }}</td>
+                    <td aria-live="polite" aria-atomic="true">
+                      <div>{{ 'export-status-' + getStatus(job) | i18next }}</div>
+                      @if (getStatus(job) === 'failed') {
+                        <small class="text-body-secondary">{{ job.errorMessage || ('export-failed-hint' | i18next) }}</small>
+                      }
+                    </td>
+                    <td>{{ job.expiresAt ? (job.expiresAt | date:'medium') : '—' }}</td>
+                    <td>
+                      <div class="d-flex flex-wrap gap-2">
+                        @if (getDownloadUrl(job); as downloadUrl) {
+                          <a class="btn btn-primary btn-sm" [href]="downloadUrl" [attr.download]="job.filename">{{ 'export-download' | i18next }}</a>
+                        } @else if (getStatus(job) === 'failed' || getStatus(job) === 'expired') {
+                          <button class="btn btn-outline-secondary btn-sm" type="button" [disabled]="mutationPending" (click)="prepareAgain(job)">{{ 'export-prepare-again' | i18next }}</button>
+                        }
+                        @if (canDelete(job)) {
+                          <button class="btn btn-outline-danger btn-sm" type="button" [disabled]="mutationPending" (click)="deleteJob(job)">
+                            {{ (deletePendingId === job.id ? 'export-deleting' : 'export-delete') | i18next }}
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
     </div>
   </div>
 }

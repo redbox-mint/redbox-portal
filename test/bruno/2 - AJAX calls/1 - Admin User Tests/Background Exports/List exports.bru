@@ -1,0 +1,31 @@
+meta {
+  name: Background Exports - List exports
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/export/jobs
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("The recent list restores the submitted job", function () {
+    expect(res.getStatus()).to.equal(200);
+    const jobs = res.getBody().data;
+    expect(jobs).to.be.an("array");
+    expect(jobs.length).to.be.at.most(20);
+    expect(jobs.some(job => job.id === bru.getVar("backgroundExportId"))).to.equal(true);
+    expect(res.getHeader("cache-control")).to.include("no-store");
+  });
+}
