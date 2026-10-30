@@ -98,6 +98,6 @@
       "identity_additions_or_removals": 0,
       "covered_identity_regressions": 0
     },
-    "note": "The 444 emitted JUnit testcase identities match with multiplicity; the identities of the 10 declared skipped tests are unavailable, so full discovery parity is unproven. Covered identity totals match, but the comparator flags hit-count decreases. Source-map correctness was not attested, and matching totals do not prove coverage equivalence. Deliberate failure and artifact/gate retention remain untested; timing is one pair, not representative performance."
+    "note": "The 444 emitted JUnit testcase identities match with multiplicity; the identities of the 10 declared skipped tests are unavailable, so full discovery parity is unproven. Covered identity totals match, but the comparator flags hit-count decreases. Investigation found evidence consistent with variable asynchronous indexing and random sampling; it did not prove the missing indexing execution was harmless. The Solr integration test returns without awaiting indexing or search, and awaiting index submission alone would not prove queued job completion. Source-map correctness was not attested, and matching totals do not prove coverage equivalence. Deliberate failure and artifact/gate retention remain untested; timing is one pair, not representative performance."
   }
 }
