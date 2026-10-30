@@ -20,6 +20,14 @@
     "empty_matching_jobs": ["test-storage-mongo", "test-rva-registry", "test-agenda-sqs-backend"],
     "note": "Sorted source, classname, name and result tuples match with multiplicity and all API pagination tokens were null. Three empty result lists cannot establish discovery parity; reported results do not establish coverage equivalence. The API documentation job is not a test-result comparison."
   },
+  "all_checks_target": {
+    "target_seconds": 720,
+    "result": "missed",
+    "target_at": "2026-10-30T22:37:02Z",
+    "reason": "The test image Docker build ran from 22:26:22.927Z to 22:40:38.301Z, spanning the target instant; the image-dependent validation jobs require the producer.",
+    "test_image_docker_build_seconds": 855.374,
+    "note": "This establishes the target miss, not the final all-checks elapsed time."
+  },
   "matched_mocha_pilot": {
     "candidate_job_number": 199615,
     "baseline_job_number": 199623,
