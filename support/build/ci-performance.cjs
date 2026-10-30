@@ -33,6 +33,7 @@ async function measure(args) {
   const signals = ['SIGINT', 'SIGTERM'];
   let cancellationSignal = null;
   let escalation = null;
+  let escalationDone = null;
   let outputError = null;
   const signalGroup = signal => {
     try {
@@ -47,7 +48,9 @@ async function measure(args) {
   const stopGroup = signal => {
     signalGroup(signal);
     // A child can ignore TERM/INT; do not leave a CI job hanging forever.
-    if (!escalation) escalation = setTimeout(() => signalGroup('SIGKILL'), 1000);
+    if (!escalation) escalationDone = new Promise(resolve => {
+      escalation = setTimeout(() => { signalGroup('SIGKILL'); resolve(); }, 1000);
+    });
   };
   const forward = (stream, destination) => {
     let pending = '';
@@ -83,13 +86,16 @@ async function measure(args) {
   child.once('exit', (code, signal) => {
     // Descendants can retain stdout/stderr even after the immediate child exits.
     // Clean up before waiting for close, which otherwise waits on those pipes.
-    if (cancellationSignal || outputError || signal || (code >= 128 && code <= 192)) signalGroup('SIGKILL');
+    if (!cancellationSignal && (outputError || signal || (code >= 128 && code <= 192))) signalGroup('SIGKILL');
   });
   const result = await new Promise(resolve => {
     child.on('error', error => resolve({ code: 127, error: error.code }));
     child.on('close', (code, signal) => resolve({ code, signal }));
   });
-  if (escalation) clearTimeout(escalation);
+  // GNU time may exit before the command's signal handler runs. Allow that
+  // handler its bounded grace period even if time closes its own output first.
+  if (cancellationSignal && escalationDone) await escalationDone;
+  else if (escalation) clearTimeout(escalation);
   // The immediate child may exit while a descendant with closed stdio remains.
   if (cancellationSignal || result.signal || (result.code >= 128 && result.code <= 192)) signalGroup('SIGKILL');
   signals.forEach((signal, index) => process.removeListener(signal, handlers[index]));

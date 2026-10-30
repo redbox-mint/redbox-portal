@@ -89,6 +89,26 @@ test('cancellation remains a failure when the command handles the signal', { ski
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
+test('cancellation allows a measured command to finish asynchronous signal handling', { skip: process.platform === 'win32', timeout: 6000 }, async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-ci-grace-'));
+  const helper = path.join(__dirname, 'ci-performance.cjs');
+  const marker = path.join(directory, 'handled');
+  const script = `process.on('SIGTERM', () => setTimeout(() => { require('fs').writeFileSync(${JSON.stringify(marker)}, 'handled'); process.exit(0); }, 200)); console.log('ready'); setInterval(() => {}, 1000);`;
+  const child = spawn(process.execPath, [helper, 'run', 'grace', '--', process.execPath, '-e', script],
+    { cwd: directory, stdio: ['ignore', 'pipe', 'pipe'] });
+  try {
+    await new Promise((resolve, reject) => {
+      child.stdout.on('data', chunk => { if (chunk.toString().includes('ready')) resolve(); });
+      child.once('error', reject);
+      child.once('exit', code => reject(new Error(`wrapper exited before ready: ${code}`)));
+    });
+    const closed = new Promise(resolve => child.once('close', code => resolve(code)));
+    child.kill('SIGTERM');
+    assert.equal(await closed, 143);
+    assert.equal(fs.readFileSync(marker, 'utf8'), 'handled');
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
 test('cancellation escalates when the measured command ignores SIGTERM', { skip: process.platform === 'win32', timeout: 6000 }, async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-ci-stubborn-'));
   const helper = path.join(__dirname, 'ci-performance.cjs');
