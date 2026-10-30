@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "pipeline": 13583,
+  "workflow_id": "75002c8c-1b35-455e-89c3-d1bd9d61f2be",
+  "revision": "d4bdb2600f19b421eab5cc50dbf95e4e118d9640",
+  "created_at": "2026-10-30T21:35:15Z",
+  "independent_checks": {
+    "count": 26,
+    "all_success": true,
+    "last_finished_at": "2026-10-30T21:40:09Z",
+    "elapsed_seconds": 294,
+    "note": "Same independent tests and docs group as pilot 13582; a single chore-branch run, not a representative median."
+  },
+  "angular_form_comparison": {
+    "pilot_13582": { "job_number": 199489, "cache_restore_seconds": 19.083, "root_npm_install_seconds": 24.714, "shared_compile_seconds": 39, "test_step_seconds": 113.509 },
+    "pilot_13583": { "job_number": 199531, "cache_restore_seconds": 19.921, "root_npm_install_seconds": 44.04, "shared_compile_seconds": 47.711, "test_step_seconds": 157.355 },
+    "note": "One run each; timings include differing machine conditions and do not isolate the Angular change's effect."
+  },
+  "workflow_status": "running",
+  "arm64_pilot_workflow_id": "60ee5ee1-86d1-496f-a98d-fc38c9d61aad",
+  "arm64_pilot_status": "running"
+}
