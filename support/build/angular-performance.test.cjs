@@ -103,6 +103,60 @@ test('CI source chain installs once, builds both libraries, preserves cwd and ev
   assert.ok(fs.existsSync(path.join(f.dir, 'home/project/.tmp/junit/frontend-dashboard')));
 });
 
+test('separate CircleCI steps reuse dependencies across chmod -R 777', t => {
+  const f = fixture(t);
+  f.write('home/.nvm/nvm.sh', `nvm() {
+    node -e 'require("fs").appendFileSync(process.env.EVENTS, JSON.stringify(["nvm", process.argv[1], process.cwd(), process.env.NVM_DIR])+"\\n")' "$1"
+  }\n`);
+  f.write('install-state.cjs', `
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
+const digest = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const installed = JSON.parse(fs.readFileSync('node_modules/.package-lock.json'));
+const stats = Object.keys(installed.packages).sort().map(name => {
+  const stat = fs.statSync(path.join(name, 'package.json'), { bigint: true });
+  return [fs.realpathSync(name), String(stat.ino), String(stat.size), String(stat.mtimeNs)];
+});
+const stat = fs.statSync('node_modules/esbuild/package.json', { bigint: true });
+fs.writeFileSync(process.argv[2], JSON.stringify({
+  shell: process.argv[3], cwd: process.cwd(), nvm: process.env.NVM_DIR,
+  node: [process.version, process.versions.modules, process.platform, process.arch, process.execPath],
+  environment: [process.env.CI, process.env.npm_config_fetch_timeout, process.env.npm_config_loglevel],
+  config: digest(JSON.parse(execFileSync('npm', ['config', 'list', '--json', '--ignore-scripts', '--strict-peer-deps', '--no-audit'], { encoding: 'utf8' }))),
+  installed: digest(stats), mode: Number(stat.mode) & 0o777, ctime: String(stat.ctimeNs),
+  receipt: JSON.parse(fs.readFileSync('node_modules/.redbox-angular-install.json'))
+}));
+`);
+  const environment = { npm_config_fetch_timeout: '60000', npm_config_loglevel: 'http' };
+  const snapshot = name => `node "$FIXTURE/install-state.cjs" "$FIXTURE/${name}.json" "$$"`;
+  const builds = f.run(`${common} && cd .. && ${custom} && ${snapshot('before')}`, environment);
+  succeeds(builds);
+  // Each CircleCI run step starts a fresh shell in the project root. Its setup
+  // step chmods the entire checkout, including installed package manifests.
+  succeeds(f.run('sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 .', environment));
+  const tests = f.run(`chmod +x support/unit-testing/angular/testAngular.sh && ${dashboard} && ${snapshot('after')}`, environment);
+  succeeds(tests);
+  const before = JSON.parse(fs.readFileSync(path.join(f.dir, 'before.json')));
+  const after = JSON.parse(fs.readFileSync(path.join(f.dir, 'after.json')));
+  assert.notEqual(before.shell, after.shell);
+  assert.notEqual(before.mode, 0o777);
+  assert.equal(after.mode, 0o777);
+  assert.notEqual(before.ctime, after.ctime);
+  for (const key of ['cwd', 'nvm', 'node', 'environment', 'config', 'installed', 'receipt']) {
+    assert.deepEqual(after[key], before[key], key);
+  }
+  assert.equal(after.cwd, path.join(f.dir, 'angular'));
+  assert.equal(after.nvm, path.join(f.dir, 'home/.nvm'));
+  assert.deepEqual(after.environment, ['true', '60000', 'http']);
+  assert.deepEqual(f.events().filter(e => e[0] === 'nvm'),
+    ['install', 'use', 'install', 'use', 'install', 'use'].map(command => ['nvm', command, after.cwd, after.nvm]));
+  assert.equal(builds.stdout.split('Reusing verified Angular dependencies').length - 1, 1);
+  assert.equal(tests.stdout.split('Reusing verified Angular dependencies').length - 1, 1);
+  assert.deepEqual(f.events().filter(e => e[0] === 'npm'), [['npm', 'ci', '--ignore-scripts', '--strict-peer-deps', '--no-audit']]);
+});
+
 test('standalone tests retain npm install; a subsequent production call requires npm ci', t => {
   const f = fixture(t);
   succeeds(f.run(`${dashboard} && cd .. && ${common}`));
