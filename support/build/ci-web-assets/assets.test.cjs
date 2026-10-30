@@ -147,7 +147,6 @@ test('archive and descriptors are deterministic and output directories cannot be
 
 test('revision, sources, all locks, build helpers, npmrc, tarballs, styles and fonts invalidate identity', t => {
   const f = fixture(t);
-  const before = sha256(json(identity(f.root, f.revision)));
   for (const name of ['backend.ts', 'angular/angular.json', 'angular/projects/example/app.ts',
     'packages/sails-ng-common/src/index.ts', 'packages/sails-ng-common/package-lock.json',
     'packages/redbox-core/src/config/webpack.config.ts', 'package-lock.json', 'angular/package-lock.json',
@@ -161,8 +160,10 @@ test('revision, sources, all locks, build helpers, npmrc, tarballs, styles and f
   put(f.root, 'untracked-input.ts', 'source');
   assert.throws(() => identity(f.root, f.revision), /Untracked/);
   fs.rmSync(path.join(f.root, 'untracked-input.ts'));
-  assert.notEqual(sha256(json(identity(f.root, f.revision, { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }))), before);
-  assert.notEqual(sha256(json(identity(f.root, f.revision, { ...process.env, NG_BUILD_MAX_WORKERS: '1' }))), before);
+  const baselineEnv = { ...process.env, NODE_OPTIONS: '--max-old-space-size=2048', NG_BUILD_MAX_WORKERS: '2' };
+  const envIdentity = sha256(json(identity(f.root, f.revision, baselineEnv)));
+  assert.notEqual(sha256(json(identity(f.root, f.revision, { ...baselineEnv, NODE_OPTIONS: '--max-old-space-size=4096' }))), envIdentity);
+  assert.notEqual(sha256(json(identity(f.root, f.revision, { ...baselineEnv, NG_BUILD_MAX_WORKERS: '1' }))), envIdentity);
   put(f.root, '.nvmrc', '0.0.1');
   assert.throws(() => identity(f.root, f.revision));
 });
