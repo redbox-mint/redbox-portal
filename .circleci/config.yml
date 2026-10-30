@@ -610,6 +610,76 @@ jobs:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+  # Non-gating comparison only; the sole invocation is the exact automatic chore cohort.
+  test-mocha-baseline:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
+    steps:
+      - checkout
+      - run: *usePatchedNode
+      - attach_workspace:
+          at: /tmp
+      # Reuse the image workspace for the refreshed revision; do not download it twice.
+      - use-refreshed-revision
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          <<: *installCodecov
+      - run:
+          name: Install required ReDBox dependencies
+          command: |
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/junit/backend-mocha
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run Mocha tests
+          no_output_timeout: 30m
+          command: timeout 1800s npm run test:mocha:ci
+      # Prepare the identical report without uploading a second backend-mocha flag.
+      - run:
+          name: Normalize baseline Mocha coverage
+          when: always
+          command: |
+            sudo chmod -R a+rwX ./coverage
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/mocha/lcov.info"
+      - run:
+          name: Record matched Mocha baseline identity
+          when: always
+          command: node support/build/ci-mocha-baseline.cjs baseline
+      - store_artifacts:
+          path: coverage/mocha/lcov.info
+          destination: ci-mocha-baseline/baseline/lcov.info
+      - store_artifacts:
+          path: .tmp/junit/backend-mocha
+          destination: ci-mocha-baseline/baseline/junit
+      - store_artifacts:
+          path: .tmp/ci-mocha-baseline
+          destination: ci-mocha-baseline/baseline/identity
+      - store_test_results:
+          path: .tmp/junit
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
   test-angular:
     parameters:
       angular_app:
@@ -1367,9 +1437,37 @@ workflows:
       - test-mocha:
           requires:
             - build
+          post-steps: &mochaComparisonEvidence
+            - when:
+                condition:
+                  and:
+                    - equal: [chore/circleci-performance, << pipeline.git.branch >>]
+                    - equal: ['', << pipeline.git.tag >>]
+                    - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+                    - equal: [none, << pipeline.parameters.docker_publish_mode >>]
+                steps:
+                  - run:
+                      name: Record matched Mocha candidate identity
+                      when: always
+                      command: node support/build/ci-mocha-baseline.cjs candidate
+                  - store_artifacts:
+                      path: .tmp/junit/backend-mocha
+                      destination: ci-mocha-baseline/candidate/junit
+                  - store_artifacts:
+                      path: .tmp/ci-mocha-baseline
+                      destination: ci-mocha-baseline/candidate/identity
           filters:
             branches:
               ignore: /^dependabot.*/
+      # No job requires the baseline. Keep test-mocha as the required validation status.
+      - test-mocha-baseline:
+          requires:
+            - build
+          filters:
+            branches:
+              only: chore/circleci-performance
+            tags:
+              ignore: /.*/
       - test-angular:
           name: test-angular-<< matrix.angular_app >>
           matrix:
@@ -1541,6 +1639,7 @@ workflows:
             tags:
               ignore: /.*/
       - test-mocha:
+          post-steps: *mochaComparisonEvidence
           requires:
             - build
           filters:
@@ -1715,6 +1814,7 @@ workflows:
             branches:
               ignore: /.*/
       - test-mocha:
+          post-steps: *mochaComparisonEvidence
           requires:
             - build
           filters:
