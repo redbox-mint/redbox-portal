@@ -40,17 +40,32 @@ if [[ ${#test_args[@]} -eq 0 ]]; then
   test_args=(test/integration/**/*.test.ts)
 fi
 
-# Ensure dependencies are available (install if missing)
+asset_mode=$(node support/build/integration-prebuilt-assets.cjs startup)
+
+# Prepared images must already contain test dependencies; never repair an
+# immutable CI image by downloading packages during startup.
 if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
+  if [[ "$asset_mode" == "reuse" ]]; then
+    echo "Prepared CI image is missing mocha/nyc test dependencies." >&2
+    exit 1
+  fi
   echo "Test dependencies not found. Running npm install..."
   npm install
 fi
 
-if [[ ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
-  npm install --no-save --ignore-scripts --strict-peer-deps redoc@3.0.1
+if [[ "$asset_mode" == "reuse" ]]; then
+  export WEBPACK_SKIP=true
+else
+  if [[ ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
+    npm install --no-save --ignore-scripts --strict-peer-deps redoc@3.0.1
+  fi
+  # Mounted sources must be rebuilt even if the caller inherited WEBPACK_SKIP.
+  if [[ "$asset_mode" == "mounted" ]]; then
+    WEBPACK_SKIP=false npm run webpack
+  else
+    npm run webpack
+  fi
 fi
-
-npm run webpack
 
 # Redoc is only needed to build the browser bundle. Remove it and its transitive
 # `should` package before Sails boots so moduleloader does not scan them.

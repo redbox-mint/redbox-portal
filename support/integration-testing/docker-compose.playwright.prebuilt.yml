@@ -1,0 +1,38 @@
+# Opt-in only: use AFTER docker-compose.playwright.yml, with --profile ci.
+# Requires Docker Compose >= 2.24.4 (!override replaces rather than merges mounts).
+# The separate browser runner retains its checkout and report paths unchanged.
+# The test image must satisfy support/build/ci-prebuilt-compose.md first.
+services:
+  redboxportal:
+    image: 'sha256:${RBPORTAL_CI_IMAGE_SHA256:?Set the verified local test image ID without its sha256 prefix}'
+    pull_policy: never
+    volumes: !override
+      - '../../.tmp/attachments:/attachments'
+      - '../../coverage/playwright:/tmp/coverage/playwright'
+    environment: !override
+      NODE_ENV: integrationtest
+      PORT: '1500'
+      NODE_OPTIONS: --max-old-space-size=1024
+      RBPORTAL_REMOTE_DEBUG: ''
+      # Public integration fixtures, never real provider credentials.
+      UPPY_COMPANION_ENABLED: 'true'
+      UPPY_COMPANION_SECRET: integrationtest-companion-secret
+      UPPY_COMPANION_FILE_PATH: /tmp/companion
+      UPPY_COMPANION_HOST: redboxportal:1500
+      UPPY_COMPANION_PROTOCOL: http
+      UPPY_COMPANION_PATH: /companion
+      UPPY_COMPANION_UPLOAD_URLS: http://redboxportal:1500/default/rdmp/companion/record/pending-oid/attach
+      UPPY_GOOGLE_KEY: integrationtest-google-key
+      UPPY_GOOGLE_SECRET: integrationtest-google-secret
+      UPPY_ONEDRIVE_KEY: integrationtest-onedrive-key
+      UPPY_ONEDRIVE_SECRET: integrationtest-onedrive-secret
+      sails_redbox__apiKey: c8e844fc-8550-497f-b970-7900ec8741ca
+      sails_record__baseUrl_redbox: http://redbox:9000/redbox
+      sails_record__baseUrl_mint: http://203.101.226.160/mint
+      LOAD_DEFAULT_FORMS: 'true'
+      sails_brandingConfigurationDefaults__auth__local__default__token: d077835a-696b-4728-85cf-3ffd57152b1e
+      sails_security__csrf: 'false'
+      RBPORTAL_COVERAGE_DIR: /tmp/coverage/playwright
+      CI: 'true'
+      RBPORTAL_REUSE_PREBUILT_ASSETS: 'true'
+      RBPORTAL_EXPECTED_IMAGE_REVISION: '${RBPORTAL_EXPECTED_IMAGE_REVISION:?Set the full tested checkout revision independently of image metadata}'
