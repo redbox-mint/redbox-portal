@@ -559,4 +559,42 @@ describe('Shared Handlebars Helpers', async function () {
         expect(result).to.eql('&lt;ul class&#x3D;&quot;rb-view-metadata__list&quot;&gt;&lt;li&gt;one&lt;/li&gt;&lt;li&gt;two&lt;/li&gt;&lt;/ul&gt;');
       });
     });
+
+  describe('asArray', async function () {
+    it('convert values to array', function () {
+      const input = ['value', null, undefined, {}];
+      expect(handlebarsHelperDefinitions.asArray(input)).to.deep.equal(input);
+      expect(handlebarsHelperDefinitions.asArray('value')).to.deep.equal(['value']);
+    });
+  });
+
+  describe('filterArray', async function () {
+    it('should filter undefined, null, empty string', function () {
+      const date = new Date();
+      const input = ['one', '  ', undefined, null, {}, date, 0];
+      const expected = ['one', {}, date, 0];
+      expect(handlebarsHelperDefinitions.filterArray(input)).to.deep.equal(expected);
+    });
+  });
+
+  describe('displayName', async function () {
+    it('should format the display name', function () {
+      const input1 = {
+        text_full_name: 'Mr Given1 Family1',
+        givenName: 'given',
+        familyName: 'family',
+        honorific: 'HON',
+      };
+      const expected1 = 'Mr Given1 Family1';
+      expect(handlebarsHelperDefinitions.displayName(input1)).to.deep.equal(expected1);
+
+      const input2 = { givenName: 'given', familyName: 'family', honorific: 'HON' };
+      const expected2 = 'HON given family';
+      expect(handlebarsHelperDefinitions.displayName(input2)).to.deep.equal(expected2);
+
+      const input3 = ['one'];
+      const expected3 = '';
+      expect(handlebarsHelperDefinitions.displayName(input3)).to.deep.equal(expected3);
+    });
+  });
 });

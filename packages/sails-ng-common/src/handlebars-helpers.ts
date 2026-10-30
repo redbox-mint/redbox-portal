@@ -740,13 +740,75 @@ export const handlebarsHelperDefinitions = {
    *
    * @example {{attachmentDownloadUrl this oid branding portal}}
    */
-  attachmentDownloadUrl: function (
-    attachment: unknown,
-    oid: unknown,
-    branding: unknown,
-    portal: unknown
-  ): string {
+  attachmentDownloadUrl: function (attachment: unknown, oid: unknown, branding: unknown, portal: unknown): string {
     return buildAttachmentDownloadUrl(attachment, oid, branding, portal);
+  },
+
+  /**
+   * Convert a value with an unknown type to an array.
+   *
+   * @example {{asArray ['value']}} -> ['value]
+   * @example {{asArray 'value'}} -> ['value']
+   * @param value The value to get as an array.
+   */
+  asArray: function (value: unknown): unknown[] {
+    return Array.isArray(value) ? value : [value];
+  },
+
+  /**
+   * Remove undefined, null, and empty trimmed strings from an array.
+   * When provided a non-array value, returns it unchanged.
+   *
+   * @example {{filterArray ['one', '', undefined, null, {}]}} -> ['one', {}]
+   * @param value The array to filter.
+   */
+  filterArray: function (value: unknown): unknown[] | unknown {
+    return Array.isArray(value)
+      ? value.filter(value => value !== undefined && value !== null && typeof value == 'string' && value.trim())
+      : value;
+  },
+
+  /**
+   * Build a display name from a contributor object.
+   * Returns empty string if the value is not a plain object.
+   * The provided path options will be checked in order, and the first that has a truthy value will be used.
+   * @example {{displayName {text_full_name: 'My Name'} }} -> 'My Name'
+   * @example {{displayName {given_name: 'given', family_name: 'family'} }} -> 'given family'
+   * @param value Contributor object.
+   * @param fullOrOptions Paths to use as full name.
+   * @param honorificOrOptions Paths to use as honorific.
+   * @param givenOrOptions Paths to use as given name.
+   * @param familyOrOptions Paths to use as family name.
+   */
+  displayName: function (
+    value: unknown,
+    fullOrOptions?: string[],
+    honorificOrOptions?: string[],
+    givenOrOptions?: string[],
+    familyOrOptions?: string[]
+  ): string {
+    if (!_isPlainObject(value)) {
+      return '';
+    }
+    const pathOptions = function (provided: unknown, defaultValue: string[]) {
+      return Array.isArray(provided) ? provided : typeof provided === 'string' ? [provided] : defaultValue;
+    };
+    const getPath = function (value: unknown, paths: string[]) {
+      for (const path of paths) {
+        const result = String(_get(value, path, '')).trim();
+        if (result) {
+          return result;
+        }
+      }
+      return '';
+    };
+
+    const fullPath = pathOptions(fullOrOptions, ['full_name_honorific', 'text_full_name', 'full_name', 'fullName']);
+    const honorificPath = pathOptions(honorificOrOptions, ['honorific']);
+    const givenPath = pathOptions(givenOrOptions, ['given_name', 'givenName']);
+    const familyPath = pathOptions(familyOrOptions, ['family_name', 'familyName']);
+
+    return getPath(value, fullPath) || [honorificPath, givenPath, familyPath].join(' ').trim();
   },
 };
 
