@@ -53,9 +53,51 @@
     "subsequent_cleanup_step": "success",
     "note": "Build timings include image loading; PDF reused runtime layers in the same job. A fresh builder does not prove a cold host. Publication, portal HTTP startup, peak daemon memory, billed credits and matched parallel-build comparison were not measured. The later cleanup step succeeded; the initial failure's cause is unknown."
   },
+  "final_workflow": {
+    "status": "success",
+    "stopped_at": "2026-10-30T22:50:53Z",
+    "workflow_elapsed_seconds": 1551,
+    "last_required_test_job": "test-playwright",
+    "last_required_test_stopped_at": "2026-10-30T22:50:20Z",
+    "required_tests_and_docs_elapsed_seconds": 1518,
+    "validation_gate_stopped_at": "2026-10-30T22:50:25Z",
+    "last_workflow_job": "test-mocha-baseline",
+    "note": "The non-gating matched baseline finished after the validation gate. This chore-branch run did not publish images and is not a representative timing cohort."
+  },
+  "other_image_test_result_comparison": {
+    "previous_pipeline": 13584,
+    "jobs_compared": 4,
+    "result_identity_differences": 0,
+    "records_each": { "bruno_general": 534, "bruno_oidc": 17, "bruno_s3": 12, "playwright": 19 },
+    "note": "Sorted source, classname, name and result tuples match with multiplicity; all API pagination tokens were null. Reported test identities do not establish coverage equivalence."
+  },
   "matched_mocha_pilot": {
     "candidate_job_number": 199615,
     "baseline_job_number": 199623,
-    "note": "Both jobs await the shared image producer; result identity, coverage, failure behavior, and timing comparisons are not yet established."
+    "both_jobs_success": true,
+    "matching_identity_fields": ["workflow_id", "revision", "source_tree", "image_archive_sha256", "image_id", "rbportal_image", "node", "npm", "compose", "configuration_and_source_input_hashes"],
+    "junit_records_each": 444,
+    "junit_declared_tests_each": 454,
+    "junit_declared_skipped_each": 10,
+    "junit_declared_failures_each": 0,
+    "junit_identity_multisets_match": true,
+    "baseline_host_compile_seconds": 52.971,
+    "baseline_job_seconds": 423.086,
+    "candidate_job_seconds": 378.328,
+    "coverage_comparator_exit": 1,
+    "coverage_summary": {
+      "line_identity_total": 49076,
+      "line_covered_each": 21793,
+      "line_count_decreases": 148,
+      "function_identity_total": 8800,
+      "function_covered_each": 3740,
+      "function_count_decreases": 30,
+      "branch_identity_total": 28708,
+      "branch_covered_each": 7827,
+      "branch_count_decreases": 47,
+      "identity_additions_or_removals": 0,
+      "covered_identity_regressions": 0
+    },
+    "note": "The 444 emitted JUnit testcase identities match with multiplicity; the identities of the 10 declared skipped tests are unavailable, so full discovery parity is unproven. Covered identity totals match, but the comparator flags hit-count decreases. Source-map correctness was not attested, and matching totals do not prove coverage equivalence. Deliberate failure and artifact/gate retention remain untested; timing is one pair, not representative performance."
   }
 }
