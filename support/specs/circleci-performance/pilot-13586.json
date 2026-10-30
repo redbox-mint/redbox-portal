@@ -11,5 +11,15 @@
     "last_stopped_at": "2026-10-30T23:16:33Z",
     "elapsed_seconds": 239,
     "note": "Nineteen Angular jobs, six package jobs and API documentation. This single chore-branch observation does not establish a representative median or test/coverage parity. The complete workflow was still running when this group was observed."
+  },
+  "independent_test_result_comparison": {
+    "previous_pipeline": 13585,
+    "jobs_compared": 25,
+    "records_each": 6843,
+    "angular_records_each": 1875,
+    "package_records_each": 4968,
+    "result_identity_differences": 0,
+    "empty_result_jobs": ["test-agenda-sqs-backend", "test-rva-registry", "test-storage-mongo"],
+    "note": "Reported source, classname, name and result tuples match with multiplicity; all 50 test endpoints had null pagination tokens. Empty result lists do not establish discovery parity; reported identities do not establish complete discovery or coverage equivalence."
   }
 }
