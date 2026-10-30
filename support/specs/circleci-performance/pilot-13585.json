@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "pipeline": 13585,
+  "workflow_id": "0a37259c-4b23-462f-b64b-64304a76527a",
+  "revision": "dd0aecdc0c1c8272421774a351191273dfb69f31",
+  "created_at": "2026-10-30T22:25:02Z",
+  "independent_checks": {
+    "count": 26,
+    "all_success": true,
+    "last_job": "test-redbox-core",
+    "last_job_number": 199599,
+    "last_finished_at": "2026-10-30T22:28:56Z",
+    "elapsed_seconds": 234,
+    "note": "Same independent test and documentation group as previous pilots. This is one chore-branch run, not the representative median required for acceptance."
+  },
+  "matched_mocha_pilot": {
+    "candidate_job_number": 199615,
+    "baseline_job_number": 199623,
+    "note": "Both jobs await the shared image producer; result identity, coverage, failure behavior, and timing comparisons are not yet established."
+  }
+}
