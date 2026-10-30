@@ -1966,5 +1966,12 @@
   "harvest-runs-chunk-view-failures": "View failures",
   "harvest-runs-records-for-chunk": "Records for chunk:",
   "harvest-runs-chunk-duplicate-note": "Duplicate submission; no new record events.",
-  "harvest-runs-history-expired": "Some detailed history has expired. Successful records and chunks are kept for {{successfulDays}} days; failures for {{failedDays}} days. Summary counts cover the full run."
+  "harvest-runs-history-expired": "Some detailed history has expired. Successful records and chunks are kept for {{successfulDays}} days; failures for {{failedDays}} days. Summary counts cover the full run.",
+  "harvest-runs-count_one": "{{count}} run",
+  "harvest-runs-count_other": "{{count}} runs",
+  "harvest-runs-range": "Showing {{start}}-{{end}} of {{total}}",
+  "harvest-runs-status-all": "All",
+  "harvest-runs-col-run-id": "Run ID",
+  "harvest-runs-show-all-records": "Show all records",
+  "harvest-runs-outcome-filter-hint": "Filter records by outcome"
 }

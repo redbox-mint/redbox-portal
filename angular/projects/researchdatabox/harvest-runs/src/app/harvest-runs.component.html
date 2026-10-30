@@ -1,423 +1,399 @@
 @if (!isReady) {
-  <div class="hr-loading hr-loading--page">
+  <div class="hr-loading hr-loading--page" role="status">
     <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
     <span>{{ 'harvest-runs-loading' | i18next }}</span>
   </div>
 } @else {
-  <div class="col-xs-12">
-    <div class="panel panel-default hr-panel">
-      <div class="panel-heading">
-        <span class="panel-title">
-          <i class="fa fa-cloud-download" aria-hidden="true"></i>
-          {{ 'harvest-runs-heading' | i18next }}
-        </span>
+  <div class="container-fluid py-3 harvest-runs-app">
+
+    <!-- Runs list -->
+    <section class="panel panel-default hr-panel hr-section">
+      <div class="panel-heading hr-panel__heading">
+        <strong>{{ 'harvest-runs-heading' | i18next }}</strong>
+        @if (!loadingRuns) {
+          <small>{{ 'harvest-runs-count' | i18next: { count: listResponse.summary.numFound } }}</small>
+        }
       </div>
       <div class="panel-body">
-
         @if (listError) {
-          <div class="alert alert-danger hr-alert" role="alert">
-            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
-            <span>{{ listError }}</span>
-          </div>
+          <div class="alert alert-danger" role="alert">{{ listError }}</div>
         }
 
-        <!-- Filter toolbar -->
-        <form class="hr-toolbar" (ngSubmit)="applyFilters($event)">
-          <div class="hr-toolbar__fields">
-            <div class="hr-field">
-              <label class="hr-field__label" for="harvest-runs-status">{{ 'harvest-runs-filter-status' | i18next }}</label>
-              <select id="harvest-runs-status" class="form-control hr-field__input" [(ngModel)]="filters.status" name="status">
-                @for (option of statusOptions; track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
-                }
-              </select>
-            </div>
-            <div class="hr-field">
-              <label class="hr-field__label" for="harvest-runs-record-type">{{ 'harvest-runs-filter-record-type' | i18next }}</label>
-              <input id="harvest-runs-record-type" type="text" class="form-control hr-field__input" [(ngModel)]="filters.recordType" name="recordType" placeholder="e.g. rdmp">
-            </div>
-            <div class="hr-field hr-field--wide">
-              <label class="hr-field__label" for="harvest-runs-source-name">{{ 'harvest-runs-filter-source' | i18next }}</label>
-              <input id="harvest-runs-source-name" type="text" class="form-control hr-field__input" [(ngModel)]="filters.sourceName" name="sourceName" placeholder="e.g. s3-csv-harvester">
-            </div>
-            <div class="hr-field">
-              <label class="hr-field__label" for="harvest-runs-date-from">{{ 'harvest-runs-filter-date-from' | i18next }}</label>
-              <input id="harvest-runs-date-from" type="date" class="form-control hr-field__input" [(ngModel)]="filters.dateFrom" name="dateFrom">
-            </div>
-            <div class="hr-field">
-              <label class="hr-field__label" for="harvest-runs-date-to">{{ 'harvest-runs-filter-date-to' | i18next }}</label>
-              <input id="harvest-runs-date-to" type="date" class="form-control hr-field__input" [(ngModel)]="filters.dateTo" name="dateTo">
-            </div>
+        <form class="hr-filters" (ngSubmit)="applyFilters($event)">
+          <div class="hr-filter">
+            <label for="harvest-runs-status">{{ 'harvest-runs-filter-status' | i18next }}</label>
+            <select id="harvest-runs-status" class="form-select" [(ngModel)]="filters.status" name="status">
+              @for (option of statusOptions; track option.value) {
+                <option [value]="option.value">{{ option.labelKey | i18next }}</option>
+              }
+            </select>
           </div>
-          <div class="hr-toolbar__actions">
-            <button type="button" class="btn btn-default hr-toolbar__clear" (click)="clearFilters()">
-              <i class="fa fa-refresh" aria-hidden="true"></i>
-              {{ 'harvest-runs-filter-clear' | i18next }}
-            </button>
-            <button type="submit" class="btn btn-primary hr-toolbar__apply">
+          <div class="hr-filter">
+            <label for="harvest-runs-record-type">{{ 'harvest-runs-filter-record-type' | i18next }}</label>
+            <input id="harvest-runs-record-type" type="text" class="form-control" [(ngModel)]="filters.recordType" name="recordType">
+          </div>
+          <div class="hr-filter">
+            <label for="harvest-runs-source-name">{{ 'harvest-runs-filter-source' | i18next }}</label>
+            <input id="harvest-runs-source-name" type="text" class="form-control" [(ngModel)]="filters.sourceName" name="sourceName">
+          </div>
+          <div class="hr-filter">
+            <label for="harvest-runs-date-from">{{ 'harvest-runs-filter-date-from' | i18next }}</label>
+            <input id="harvest-runs-date-from" type="date" class="form-control" [(ngModel)]="filters.dateFrom" name="dateFrom">
+          </div>
+          <div class="hr-filter">
+            <label for="harvest-runs-date-to">{{ 'harvest-runs-filter-date-to' | i18next }}</label>
+            <input id="harvest-runs-date-to" type="date" class="form-control" [(ngModel)]="filters.dateTo" name="dateTo">
+          </div>
+          <div class="hr-filter-actions">
+            <button type="submit" class="btn btn-primary btn-sm" [disabled]="loadingRuns">
               <i class="fa fa-filter" aria-hidden="true"></i>
               {{ 'harvest-runs-filter-apply' | i18next }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearFilters()" [disabled]="loadingRuns">
+              {{ 'harvest-runs-filter-clear' | i18next }}
             </button>
           </div>
         </form>
 
-        <!-- Runs list -->
-        <section class="hr-section">
-          <div class="hr-section__header">
-            <h2 class="hr-section__title">{{ 'harvest-runs-heading' | i18next }}</h2>
-            @if (!loadingRuns && listResponse.summary.numFound > 0) {
-              <span class="hr-section__count">{{ listResponse.summary.numFound }}</span>
-            }
+        @if (loadingRuns) {
+          <div class="hr-loading" role="status">
+            <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+            <span>{{ 'harvest-runs-loading' | i18next }}</span>
+          </div>
+        } @else if (listResponse.records.length === 0) {
+          <p class="hr-empty text-muted">{{ 'harvest-runs-empty' | i18next }}</p>
+        } @else {
+          <div class="hr-table-wrap">
+            <table class="hr-table hr-table--runs">
+              <thead>
+                <tr>
+                  <th>{{ 'harvest-runs-col-started' | i18next }}</th>
+                  <th>{{ 'harvest-runs-col-status' | i18next }}</th>
+                  <th>{{ 'harvest-runs-col-source' | i18next }}</th>
+                  <th>{{ 'harvest-runs-col-record-type' | i18next }}</th>
+                  <th class="hr-num">{{ 'harvest-runs-col-processed' | i18next }}</th>
+                  <th class="hr-num">{{ 'harvest-runs-col-failed' | i18next }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (run of listResponse.records; track run.id ?? run.sourceRunId) {
+                  <tr [class.hr-selected]="selectedRunId === (run.id ?? '')"
+                      [attr.aria-selected]="selectedRunId === (run.id ?? '')"
+                      tabindex="0"
+                      (click)="selectRun(run.id ?? '')"
+                      (keydown.enter)="selectRun(run.id ?? '')">
+                    <td class="text-nowrap">{{ formatDate(run.startedAt) || '—' }}</td>
+                    <td><span [class]="getStatusBadgeClass(run.status)">{{ getStatusLabel(run.status) }}</span></td>
+                    <td>
+                      <div>{{ run.sourceName }}</div>
+                      <div class="hr-subtext" [title]="run.sourceRunId">{{ run.sourceRunId }}</div>
+                    </td>
+                    <td><code>{{ run.recordType }}</code></td>
+                    <td class="hr-num">{{ run.totalProcessed }}</td>
+                    <td class="hr-num" [class.hr-failed]="run.failed > 0">{{ run.failed }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
 
-          @if (loadingRuns) {
-            <div class="hr-loading">
+          <div class="hr-pager">
+            <small class="text-muted">{{ getRangeLabel(listResponse, runPageSize) }}</small>
+            @if (listResponse.summary.numFound > runPageSize) {
+              <pagination
+                [totalItems]="listResponse.summary.numFound"
+                [itemsPerPage]="runPageSize"
+                [(ngModel)]="listResponse.summary.page"
+                [ngModelOptions]="{ standalone: true }"
+                [maxSize]="7"
+                [boundaryLinks]="true"
+                [directionLinks]="false"
+                class="pagination-sm"
+                (pageChanged)="onRunPageChanged($event)">
+              </pagination>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Run detail -->
+    @if (selectedRunId || loadingDetail || detailError) {
+      <section class="panel panel-default hr-panel hr-detail" [attr.aria-busy]="loadingDetail">
+        <div class="panel-heading hr-panel__heading">
+          <strong>{{ 'harvest-runs-detail-summary' | i18next }}</strong>
+          @if (selectedRun) {
+            <span [class]="getStatusBadgeClass(selectedRun.run.status)">{{ getStatusLabel(selectedRun.run.status) }}</span>
+          }
+        </div>
+        <div class="panel-body">
+          @if (detailError) {
+            <div class="alert alert-danger" role="alert">{{ detailError }}</div>
+          }
+
+          @if (loadingDetail && selectedRunId) {
+            <div class="hr-loading" role="status">
               <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
               <span>{{ 'harvest-runs-loading' | i18next }}</span>
             </div>
-          } @else if (listResponse.records.length === 0) {
-            <div class="hr-empty-state">
-              <i class="fa fa-inbox" aria-hidden="true"></i>
-              <p>{{ 'harvest-runs-empty' | i18next }}</p>
-            </div>
+          } @else if (!selectedRun) {
+            <p class="hr-empty text-muted">{{ 'harvest-runs-select-run' | i18next }}</p>
           } @else {
-            <div class="table-responsive">
-              <table class="table hr-table hr-table--runs">
-                <thead>
-                  <tr>
-                    <th class="hr-table__th">{{ 'harvest-runs-col-started' | i18next }}</th>
-                    <th class="hr-table__th">{{ 'harvest-runs-col-status' | i18next }}</th>
-                    <th class="hr-table__th">{{ 'harvest-runs-col-source' | i18next }}</th>
-                    <th class="hr-table__th">{{ 'harvest-runs-col-record-type' | i18next }}</th>
-                    <th class="hr-table__th hr-table__th--num">{{ 'harvest-runs-col-processed' | i18next }}</th>
-                    <th class="hr-table__th hr-table__th--num">{{ 'harvest-runs-col-failed' | i18next }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (run of listResponse.records; track run.id ?? run.sourceRunId) {
-                    <tr class="hr-table__row hr-table__row--selectable"
-                        [class.hr-table__row--active]="selectedRunId === (run.id ?? '')"
-                        (click)="selectRun(run.id ?? '')">
-                      <td class="hr-table__cell hr-table__cell--primary">
-                        <div class="hr-run-when">{{ formatDate(run.startedAt) || run.sourceRunId }}</div>
-                        <div class="hr-run-id" title="{{ run.sourceRunId }}">{{ run.sourceRunId }}</div>
-                      </td>
-                      <td class="hr-table__cell">
-                        <span class="hr-status" [class]="'hr-status hr-status--' + getStatusVariant(run.status)">
-                          <span class="hr-status__dot"></span>
-                          {{ getStatusLabel(run.status) }}
-                        </span>
-                      </td>
-                      <td class="hr-table__cell">{{ run.sourceName }}</td>
-                      <td class="hr-table__cell">
-                        <span class="hr-record-type-tag">{{ run.recordType }}</span>
-                      </td>
-                      <td class="hr-table__cell hr-table__cell--num">{{ run.totalProcessed }}</td>
-                      <td class="hr-table__cell hr-table__cell--num">
-                        @if (run.failed > 0) {
-                          <span class="hr-fail-count">{{ run.failed }}</span>
-                        } @else {
-                          {{ run.failed }}
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+            <dl class="hr-meta">
+              <div>
+                <dt>{{ 'harvest-runs-col-source' | i18next }}</dt>
+                <dd>{{ selectedRun.run.sourceName }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'harvest-runs-col-record-type' | i18next }}</dt>
+                <dd><code>{{ selectedRun.run.recordType }}</code></dd>
+              </div>
+              <div>
+                <dt>{{ 'harvest-runs-col-started' | i18next }}</dt>
+                <dd>{{ formatDate(selectedRun.run.startedAt) || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'harvest-runs-col-completed' | i18next }}</dt>
+                <dd>{{ formatDate(selectedRun.run.completedAt) || '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'harvest-runs-col-chunks-processed' | i18next }}</dt>
+                <dd>{{ selectedRun.aggregateCounts.chunksProcessed }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'harvest-runs-col-duplicate-chunks' | i18next }}</dt>
+                <dd>{{ selectedRun.aggregateCounts.duplicateChunks }}</dd>
+              </div>
+              <div class="hr-meta__wide">
+                <dt>{{ 'harvest-runs-col-run-id' | i18next }}</dt>
+                <dd><code>{{ selectedRun.run.sourceRunId }}</code></dd>
+              </div>
+            </dl>
+
+            @if (selectedRun.run.historyRetention; as retention) {
+              <div class="alert alert-info" role="status">
+                {{ 'harvest-runs-history-expired' | i18next: { successfulDays: retention.successfulDays, failedDays: retention.failedDays } }}
+              </div>
+            }
+            @if (hasCountMismatch()) {
+              <div class="alert alert-warning" role="alert">
+                <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                {{ 'harvest-runs-verified-count-warning' | i18next }}
+              </div>
+            }
+
+            <div class="hr-stats" role="group" [attr.aria-label]="'harvest-runs-outcome-filter-hint' | i18next">
+              @for (count of getSummaryCounts(); track count.labelKey) {
+                <button type="button" class="hr-stat"
+                        [class.hr-stat--active]="activeOutcome === count.outcome"
+                        [class.hr-stat--danger]="count.outcome === 'failed' && count.value > 0"
+                        [attr.aria-pressed]="activeOutcome === count.outcome"
+                        [disabled]="loadingEvents"
+                        (click)="filterByOutcome(count.outcome)">
+                  <span class="hr-stat__label">{{ count.labelKey | i18next }}</span>
+                  <span class="hr-stat__value">{{ count.value }}</span>
+                </button>
+              }
             </div>
 
-            @if (listResponse.summary.numFound > runPageSize) {
-              <div class="hr-pagination-wrap">
-                <pagination
-                  [totalItems]="listResponse.summary.numFound"
-                  [itemsPerPage]="runPageSize"
-                  [(ngModel)]="listResponse.summary.page"
-                  [ngModelOptions]="{ standalone: true }"
-                  [maxSize]="10"
-                  [boundaryLinks]="true"
-                  [directionLinks]="false"
-                  class="pagination-sm"
-                  (pageChanged)="onRunPageChanged($event)">
-                </pagination>
-              </div>
-            }
-          }
-        </section>
+            <!-- Records -->
+            <div class="hr-subsection" id="harvest-records" #recordSection>
+              <h3 class="hr-subsection__title">
+                {{ 'harvest-runs-detail-events' | i18next }}
+                <span class="badge rounded-pill text-bg-light border">{{ eventResponse.summary.numFound }}</span>
+              </h3>
 
-        <!-- Detail -->
-        @if (selectedRunId || loadingDetail || detailError) {
-          <section class="hr-section hr-section--detail">
-            @if (detailError) {
-              <div class="alert alert-danger hr-alert" role="alert">
-                <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
-                <span>{{ detailError }}</span>
-              </div>
-            }
-
-            @if (loadingDetail && selectedRunId) {
-              <div class="hr-loading">
-                <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
-                <span>{{ 'harvest-runs-loading' | i18next }}</span>
-              </div>
-            } @else if (!selectedRun) {
-              <div class="hr-empty-state">
-                <i class="fa fa-mouse-pointer" aria-hidden="true"></i>
-                <p>{{ 'harvest-runs-select-run' | i18next }}</p>
-              </div>
-            } @else {
-              <header class="hr-detail-header">
-                <div class="hr-detail-header__info">
-                  <h2 class="hr-section__title">{{ 'harvest-runs-detail-summary' | i18next }}</h2>
-                  <div class="hr-detail-header__meta">
-                    <span class="hr-meta-pill">
-                      <span class="hr-meta-pill__label">{{ 'harvest-runs-col-source' | i18next }}</span>
-                      <span class="hr-meta-pill__value">{{ selectedRun.run.sourceName }}</span>
-                    </span>
-                    <span class="hr-meta-pill">
-                      <span class="hr-meta-pill__label">Run ID</span>
-                      <span class="hr-meta-pill__value">{{ selectedRun.run.sourceRunId }}</span>
-                    </span>
-                    <span class="hr-meta-pill">
-                      <span class="hr-meta-pill__label">{{ 'harvest-runs-col-record-type' | i18next }}</span>
-                      <span class="hr-meta-pill__value hr-meta-pill__value--type">{{ selectedRun.run.recordType }}</span>
-                    </span>
-                  </div>
-                </div>
-                <span class="hr-status hr-status--large" [class]="'hr-status hr-status--large hr-status--' + getStatusVariant(selectedRun.run.status)">
-                  <span class="hr-status__dot"></span>
-                  {{ getStatusLabel(selectedRun.run.status) }}
-                </span>
-              </header>
-
-              @if (selectedRun.run.historyRetention; as retention) {
-                <div class="alert alert-info hr-alert" role="status">
-                  <span>{{ 'harvest-runs-history-expired' | i18next: { successfulDays: retention.successfulDays, failedDays: retention.failedDays } }}</span>
-                </div>
-              }
-              @if (hasCountMismatch()) {
-                <div class="alert alert-warning hr-alert" role="alert">
-                  <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
-                  <span>{{ 'harvest-runs-verified-count-warning' | i18next }}</span>
+              @if (selectedChunk) {
+                <div class="hr-scope" role="status">
+                  <span>{{ 'harvest-runs-records-for-chunk' | i18next }} <strong>{{ selectedChunk.chunkLabel || selectedChunk.chunkIndex || selectedChunk.id }}</strong></span>
+                  <button type="button" class="btn btn-link btn-sm" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'harvest-runs-show-all-records' | i18next }}</button>
                 </div>
               }
 
-              <div class="hr-stat-grid">
-                @for (count of getSummaryCounts(); track count.labelKey) {
-                  <div class="hr-stat" [class]="'hr-stat hr-stat--' + count.accent">
-                    <div class="hr-stat__label">{{ count.labelKey | i18next }}</div>
-                    <div class="hr-stat__value">{{ count.value }}</div>
-                  </div>
-                }
-              </div>
-
-              <div class="hr-detail-subsection" id="harvest-records" #recordSection>
-                <div class="hr-section__header">
-                  <h3 class="hr-section__subtitle">
-                    <i class="fa fa-list-ul" aria-hidden="true"></i>
-                    {{ 'harvest-runs-detail-events' | i18next }}
-                  </h3>
-                  @if (eventResponse.summary.numFound > 0) {
-                    <span class="hr-section__count">{{ eventResponse.summary.numFound }}</span>
-                  }
+              <form class="hr-filters hr-filters--compact" (ngSubmit)="applyEventFilters($event)">
+                <div class="hr-filter">
+                  <label for="harvest-events-outcome">{{ 'harvest-runs-col-outcome' | i18next }}</label>
+                  <select id="harvest-events-outcome" class="form-select" [(ngModel)]="eventFilters.outcome" name="eventOutcome" [disabled]="loadingEvents">
+                    @for (outcome of eventOutcomes; track outcome) {
+                      <option [value]="outcome">{{ ('harvest-runs-outcome-' + (outcome || 'all')) | i18next }}</option>
+                    }
+                  </select>
                 </div>
-                @if (selectedChunk) {
-                  <p class="hr-chunk-scope">{{ 'harvest-runs-records-for-chunk' | i18next }} <strong>{{ selectedChunk.chunkLabel || selectedChunk.chunkIndex || selectedChunk.id }}</strong></p>
-                }
-                <form class="hr-toolbar" (ngSubmit)="applyEventFilters($event)">
-                  <div class="hr-toolbar__fields">
-                    <div class="hr-field">
-                      <label class="hr-field__label" for="harvest-events-outcome">{{ 'harvest-runs-col-outcome' | i18next }}</label>
-                      <select id="harvest-events-outcome" class="form-control hr-field__input" [(ngModel)]="eventFilters.outcome" name="eventOutcome" [disabled]="loadingEvents">
-                        @for (outcome of eventOutcomes; track outcome) {
-                          <option [value]="outcome">{{ ('harvest-runs-outcome-' + (outcome || 'all')) | i18next }}</option>
-                        }
-                      </select>
-                    </div>
-                    <div class="hr-field hr-field--wide">
-                      <label class="hr-field__label" for="harvest-events-id">{{ 'harvest-runs-filter-harvest-id' | i18next }}</label>
-                      <input id="harvest-events-id" type="text" class="form-control hr-field__input" [(ngModel)]="eventFilters.harvestId" name="eventHarvestId" [disabled]="loadingEvents">
-                    </div>
-                  </div>
-                  <div class="hr-toolbar__actions">
-                    <button type="button" class="btn btn-default hr-toolbar__clear" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'harvest-runs-filter-clear' | i18next }}</button>
-                    <button type="submit" class="btn btn-primary hr-toolbar__apply" [disabled]="loadingEvents">{{ 'harvest-runs-filter-apply' | i18next }}</button>
-                  </div>
-                </form>
-                @if (loadingEvents) {
-                  <div class="hr-loading" role="status">
-                    <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
-                    <span>{{ 'harvest-runs-events-loading' | i18next }}</span>
-                  </div>
-                } @else if (eventResponse.records.length === 0) {
-                  <div class="hr-empty-state hr-empty-state--small">
-                    <p>{{ 'harvest-runs-no-matching-events' | i18next }}</p>
-                  </div>
-                } @else {
-                  <div class="table-responsive">
-                    <table class="table hr-table">
-                      <thead>
+                <div class="hr-filter hr-filter--wide">
+                  <label for="harvest-events-id">{{ 'harvest-runs-filter-harvest-id' | i18next }}</label>
+                  <input id="harvest-events-id" type="text" class="form-control" [(ngModel)]="eventFilters.harvestId" name="eventHarvestId" [disabled]="loadingEvents">
+                </div>
+                <div class="hr-filter-actions">
+                  <button type="submit" class="btn btn-primary btn-sm" [disabled]="loadingEvents">
+                    <i class="fa fa-filter" aria-hidden="true"></i>
+                    {{ 'harvest-runs-filter-apply' | i18next }}
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'harvest-runs-filter-clear' | i18next }}</button>
+                </div>
+              </form>
+
+              @if (loadingEvents) {
+                <div class="hr-loading" role="status">
+                  <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+                  <span>{{ 'harvest-runs-events-loading' | i18next }}</span>
+                </div>
+              } @else if (eventResponse.records.length === 0) {
+                <p class="hr-empty text-muted">{{ 'harvest-runs-no-matching-events' | i18next }}</p>
+              } @else {
+                <div class="hr-table-wrap">
+                  <table class="hr-table">
+                    <thead>
+                      <tr>
+                        <th>{{ 'harvest-runs-col-created-at' | i18next }}</th>
+                        <th>{{ 'harvest-runs-col-harvest-id' | i18next }}</th>
+                        <th>{{ 'harvest-runs-col-oid' | i18next }}</th>
+                        <th>{{ 'harvest-runs-col-operation' | i18next }}</th>
+                        <th>{{ 'harvest-runs-col-outcome' | i18next }}</th>
+                        <th>{{ 'harvest-runs-col-message' | i18next }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (event of eventResponse.records; track event.id ?? event.createdAt + '-' + event.harvestId) {
                         <tr>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-created-at' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-harvest-id' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-oid' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-operation' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-outcome' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-message' | i18next }}</th>
+                          <td class="text-nowrap">{{ formatDate(event.createdAt) }}</td>
+                          <td><code class="hr-truncate" [title]="event.harvestId">{{ event.harvestId }}</code></td>
+                          <td>
+                            @if (event.oid) {
+                              <a [href]="getRecordUrl(event.oid)" [title]="event.oid"><code class="hr-truncate">{{ event.oid }}</code></a>
+                            } @else {
+                              <span class="text-muted">—</span>
+                            }
+                          </td>
+                          <td>{{ event.operation }}</td>
+                          <td><span [class]="getOutcomeBadgeClass(event.outcome)">{{ event.outcome }}</span></td>
+                          <td class="hr-message">{{ getEventMessage(event) || '—' }}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        @for (event of eventResponse.records; track event.id ?? event.createdAt + '-' + event.harvestId) {
-                          <tr>
-                            <td class="hr-table__cell hr-table__cell--muted">{{ formatDate(event.createdAt) }}</td>
-                            <td class="hr-table__cell hr-table__cell--mono">{{ event.harvestId }}</td>
-                            <td class="hr-table__cell hr-table__cell--mono">
-                              @if (event.oid) {
-                                <a class="hr-link" [href]="getRecordUrl(event.oid)" title="{{ event.oid }}">
-                                  <span class="hr-truncate">{{ event.oid }}</span>
-                                  <i class="fa fa-external-link" aria-hidden="true"></i>
-                                </a>
-                              } @else {
-                                <span class="hr-table__cell--muted">—</span>
-                              }
-                            </td>
-                            <td class="hr-table__cell">
-                              <span class="hr-tag hr-tag--neutral">{{ event.operation }}</span>
-                            </td>
-                            <td class="hr-table__cell">
-                              <span class="hr-status" [class]="'hr-status hr-status--' + getOutcomeVariant(event.outcome)">
-                                <span class="hr-status__dot"></span>
-                                {{ event.outcome }}
-                              </span>
-                            </td>
-                            <td class="hr-table__cell hr-table__cell--message">{{ getEventMessage(event) || '—' }}</td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
+                      }
+                    </tbody>
+                  </table>
+                </div>
 
+                <div class="hr-pager">
+                  <small class="text-muted">{{ getRangeLabel(eventResponse, eventPageSize) }}</small>
                   @if (eventResponse.summary.numFound > eventPageSize) {
-                    <div class="hr-pagination-wrap">
-                      <pagination
-                        [totalItems]="eventResponse.summary.numFound"
-                        [itemsPerPage]="eventPageSize"
-                        [(ngModel)]="eventResponse.summary.page"
-                        [ngModelOptions]="{ standalone: true }"
-                        [maxSize]="10"
-                        [boundaryLinks]="true"
-                        [directionLinks]="false"
-                        class="pagination-sm"
-                        (pageChanged)="onEventPageChanged($event)">
-                      </pagination>
-                    </div>
+                    <pagination
+                      [totalItems]="eventResponse.summary.numFound"
+                      [itemsPerPage]="eventPageSize"
+                      [(ngModel)]="eventResponse.summary.page"
+                      [ngModelOptions]="{ standalone: true }"
+                      [maxSize]="7"
+                      [boundaryLinks]="true"
+                      [directionLinks]="false"
+                      class="pagination-sm"
+                      (pageChanged)="onEventPageChanged($event)">
+                    </pagination>
                   }
-                }
-              </div>
-              <details class="hr-detail-subsection hr-chunks">
-                <summary class="hr-section__header">
-                  <span class="hr-section__subtitle">
-                    <i class="fa fa-cubes" aria-hidden="true"></i>
-                    {{ 'harvest-runs-detail-chunks' | i18next }}
-                  </span>
-                  @if (chunkResponse.records.length > 0) {
-                    <span class="hr-section__count">{{ chunkResponse.summary.numFound }}</span>
-                  }
-                </summary>
-                @if (chunkError) {
-                  <div class="alert alert-danger hr-alert" role="alert">{{ chunkError }}</div>
-                }
-                @if (loadingChunks) {
-                  <div class="hr-loading" role="status">
-                    <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
-                    <span>{{ 'harvest-runs-chunks-loading' | i18next }}</span>
-                  </div>
-                } @else if (chunkResponse.records.length === 0) {
-                  <div class="hr-empty-state hr-empty-state--small">
-                    <p>{{ 'harvest-runs-no-chunks' | i18next }}</p>
-                  </div>
-                } @else {
-                  <div class="table-responsive">
-                    <table class="table hr-table">
-                      <thead>
-                        <tr>
-                          <th class="hr-table__th hr-table__th--num">{{ 'harvest-runs-col-chunk-index' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-chunk-label' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-status' | i18next }}</th>
-                          <th class="hr-table__th hr-table__th--num">{{ 'harvest-runs-chunk-progress' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-chunk-results' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-chunk-timing' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-chunk-records' | i18next }}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (chunk of chunkResponse.records; track chunk.id ?? chunk.contentHash) {
-                          <tr>
-                            <td class="hr-table__cell hr-table__cell--num">{{ chunk.chunkIndex ?? '-' }}</td>
-                            <td class="hr-table__cell">{{ chunk.chunkLabel || '—' }}
-                              <div class="hr-table__cell--muted">{{ 'harvest-runs-chunk-attempt' | i18next }} {{ chunk.attempt ?? 1 }}</div>
-                            </td>
-                            <td class="hr-table__cell">
-                              <span class="hr-status" [class]="'hr-status hr-status--' + getChunkVariant(chunk.status)">
-                                <span class="hr-status__dot"></span>
-                                {{ chunk.status }}
-                              </span>
-                            </td>
-                            <td class="hr-table__cell hr-table__cell--num">{{ chunk.totalProcessed }} / {{ chunk.recordCount }}</td>
-                            <td class="hr-table__cell">
-                              <div class="hr-chunk-results">
-                                <span>{{ 'harvest-runs-col-created' | i18next }}: {{ chunk.created }}</span>
-                                <span>{{ 'harvest-runs-col-updated' | i18next }}: {{ chunk.updated }}</span>
-                                <span>{{ 'harvest-runs-col-unchanged' | i18next }}: {{ chunk.unchanged }}</span>
-                                <span>{{ 'harvest-runs-col-deleted' | i18next }}: {{ chunk.deleted }}</span>
-                                <span [class.hr-fail-count]="chunk.failed > 0">{{ 'harvest-runs-col-failed' | i18next }}: {{ chunk.failed }}</span>
-                              </div>
-                              @if (chunk.errorMessage) {
-                                <p class="hr-chunk-error">{{ chunk.errorMessage }}</p>
-                              }
-                              @if (chunk.duplicate) {
-                                <span class="hr-tag hr-tag--warning">{{ 'harvest-runs-chunk-duplicate-note' | i18next }}</span>
-                              }
-                            </td>
-                            <td class="hr-table__cell hr-table__cell--muted">
-                              <div>{{ formatDate(chunk.submittedAt) }}</div>
-                              <div>{{ 'harvest-runs-chunk-duration' | i18next }}: {{ getChunkDuration(chunk) }}</div>
-                            </td>
-                            <td class="hr-table__cell">
-                              @if (chunk.id && !chunk.duplicate) {
-                                <button type="button" class="btn btn-link hr-chunk-action" (click)="viewChunkRecords(chunk)" [disabled]="loadingEvents">{{ 'harvest-runs-chunk-view-records' | i18next }}</button>
+                </div>
+              }
+            </div>
+
+            <!-- Chunks -->
+            <details class="hr-subsection hr-chunks">
+              <summary class="hr-subsection__title">
+                <i class="fa fa-chevron-right hr-chunks__chevron" aria-hidden="true"></i>
+                {{ 'harvest-runs-detail-chunks' | i18next }}
+                <span class="badge rounded-pill text-bg-light border hr-section__count">{{ chunkResponse.summary.numFound }}</span>
+              </summary>
+              @if (chunkError) {
+                <div class="alert alert-danger" role="alert">{{ chunkError }}</div>
+              }
+              @if (loadingChunks) {
+                <div class="hr-loading" role="status">
+                  <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+                  <span>{{ 'harvest-runs-chunks-loading' | i18next }}</span>
+                </div>
+              } @else if (chunkResponse.records.length === 0) {
+                <p class="hr-empty text-muted">{{ 'harvest-runs-no-chunks' | i18next }}</p>
+              } @else {
+                <div class="hr-table-wrap">
+                  <table class="hr-table">
+                    <thead>
+                      <tr>
+                        <th class="hr-num">{{ 'harvest-runs-col-chunk-index' | i18next }}</th>
+                        <th>{{ 'harvest-runs-col-chunk-label' | i18next }}</th>
+                        <th>{{ 'harvest-runs-col-status' | i18next }}</th>
+                        <th class="hr-num">{{ 'harvest-runs-chunk-progress' | i18next }}</th>
+                        <th>{{ 'harvest-runs-chunk-results' | i18next }}</th>
+                        <th>{{ 'harvest-runs-chunk-timing' | i18next }}</th>
+                        <th class="text-end">{{ 'harvest-runs-chunk-records' | i18next }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (chunk of chunkResponse.records; track chunk.id ?? chunk.contentHash) {
+                        <tr [class.hr-selected]="selectedChunk?.id === chunk.id">
+                          <td class="hr-num">{{ chunk.chunkIndex ?? '—' }}</td>
+                          <td>
+                            <div>{{ chunk.chunkLabel || '—' }}</div>
+                            <div class="hr-subtext">{{ 'harvest-runs-chunk-attempt' | i18next }} {{ chunk.attempt ?? 1 }}</div>
+                          </td>
+                          <td>
+                            <span [class]="getChunkBadgeClass(chunk.status)">{{ chunk.status }}</span>
+                            @if (chunk.duplicate) {
+                              <div class="hr-subtext">{{ 'harvest-runs-chunk-duplicate-note' | i18next }}</div>
+                            }
+                          </td>
+                          <td class="hr-num">{{ chunk.totalProcessed }} / {{ chunk.recordCount }}</td>
+                          <td>
+                            <div class="hr-chunk-results">
+                              <span>{{ 'harvest-runs-col-created' | i18next }}: {{ chunk.created }}</span>
+                              <span>{{ 'harvest-runs-col-updated' | i18next }}: {{ chunk.updated }}</span>
+                              <span>{{ 'harvest-runs-col-unchanged' | i18next }}: {{ chunk.unchanged }}</span>
+                              <span>{{ 'harvest-runs-col-deleted' | i18next }}: {{ chunk.deleted }}</span>
+                              <span [class.hr-failed]="chunk.failed > 0">{{ 'harvest-runs-col-failed' | i18next }}: {{ chunk.failed }}</span>
+                            </div>
+                            @if (chunk.errorMessage) {
+                              <div class="hr-chunk-error text-danger">{{ chunk.errorMessage }}</div>
+                            }
+                          </td>
+                          <td class="text-nowrap">
+                            <div>{{ formatDate(chunk.submittedAt) || '—' }}</div>
+                            <div class="hr-subtext">{{ 'harvest-runs-chunk-duration' | i18next }}: {{ getChunkDuration(chunk) }}</div>
+                          </td>
+                          <td class="text-end text-nowrap">
+                            @if (chunk.id && !chunk.duplicate) {
+                              <div class="hr-chunk-actions">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="viewChunkRecords(chunk)" [disabled]="loadingEvents">{{ 'harvest-runs-chunk-view-records' | i18next }}</button>
                                 @if (chunk.failed > 0) {
-                                  <br><button type="button" class="btn btn-link hr-chunk-action" (click)="viewChunkRecords(chunk, true)" [disabled]="loadingEvents">{{ 'harvest-runs-chunk-view-failures' | i18next }}</button>
+                                  <button type="button" class="btn btn-outline-danger btn-sm" (click)="viewChunkRecords(chunk, true)" [disabled]="loadingEvents">{{ 'harvest-runs-chunk-view-failures' | i18next }}</button>
                                 }
-                              } @else {
-                                <span>—</span>
-                              }
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                }
-                @if (!loadingChunks && chunkResponse.summary.numFound > chunkPageSize) {
-                  <div class="hr-pagination-wrap">
+                              </div>
+                            } @else {
+                              <span class="text-muted">—</span>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+              @if (!loadingChunks && chunkResponse.records.length > 0) {
+                <div class="hr-pager">
+                  <small class="text-muted">{{ getRangeLabel(chunkResponse, chunkPageSize) }}</small>
+                  @if (chunkResponse.summary.numFound > chunkPageSize) {
                     <pagination
                       [totalItems]="chunkResponse.summary.numFound"
                       [itemsPerPage]="chunkPageSize"
                       [(ngModel)]="chunkResponse.summary.page"
                       [ngModelOptions]="{ standalone: true }"
-                      [maxSize]="10"
+                      [maxSize]="7"
                       [boundaryLinks]="true"
                       [directionLinks]="false"
                       class="pagination-sm"
                       (pageChanged)="onChunkPageChanged($event)">
                     </pagination>
-                  </div>
-                }
-              </details>
-            }
-          </section>
-        }
-      </div>
-    </div>
+                  }
+                </div>
+              }
+            </details>
+          }
+        </div>
+      </section>
+    }
   </div>
 }

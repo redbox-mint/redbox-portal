@@ -16,7 +16,7 @@ type EventFilters = { outcome: string; harvestId: string };
 
 type StatusOption = {
   value: string;
-  label: string;
+  labelKey: string;
 };
 
 @Component({
@@ -31,11 +31,11 @@ export class HarvestRunsComponent extends BaseComponent {
   readonly chunkPageSize = 20;
   readonly displayDateFormat = 'dd/MM/yyyy HH:mm';
   readonly statusOptions: StatusOption[] = [
-    { value: '', label: 'All' },
-    { value: 'running', label: 'Running' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'completed_with_errors', label: 'Completed with errors' },
-    { value: 'failed', label: 'Failed' },
+    { value: '', labelKey: 'harvest-runs-status-all' },
+    { value: 'running', labelKey: 'harvest-runs-status-running' },
+    { value: 'completed', labelKey: 'harvest-runs-status-completed' },
+    { value: 'completed_with_errors', labelKey: 'harvest-runs-status-completed-with-errors' },
+    { value: 'failed', labelKey: 'harvest-runs-status-failed' },
   ];
 
   @ViewChild('recordSection') recordSection?: ElementRef<HTMLElement>;
@@ -193,6 +193,20 @@ export class HarvestRunsComponent extends BaseComponent {
     await this.loadRunEvents(1);
   }
 
+  /** Outcome the records list is filtered to, or null when a harvest ID or chunk narrows it further. */
+  public get activeOutcome(): string | null {
+    return this.appliedEventFilters.harvestId || this.appliedChunkId ? null : this.appliedEventFilters.outcome;
+  }
+
+  public async filterByOutcome(outcome: string): Promise<void> {
+    if (this.loadingEvents) {
+      return;
+    }
+    this.selectedChunk = null;
+    this.eventFilters = { outcome, harvestId: '' };
+    await this.applyEventFilters();
+  }
+
   public async viewChunkRecords(chunk: HarvestRunChunkSummary, failuresOnly = false): Promise<void> {
     if (!chunk.id || this.loadingEvents) {
       return;
@@ -290,6 +304,28 @@ export class HarvestRunsComponent extends BaseComponent {
     }
   }
 
+  public getStatusBadgeClass(status?: string): string {
+    return this.getBadgeClass(this.getStatusVariant(status));
+  }
+
+  public getOutcomeBadgeClass(outcome?: string): string {
+    return this.getBadgeClass(this.getOutcomeVariant(outcome));
+  }
+
+  public getChunkBadgeClass(status?: string): string {
+    return this.getBadgeClass(this.getChunkVariant(status));
+  }
+
+  public getRangeLabel(response: ListApiResponse<unknown>, pageSize: number): string {
+    const total = response.summary.numFound;
+    if (!total) {
+      return '';
+    }
+    const start = (Math.max(1, response.summary.page) - 1) * pageSize + 1;
+    const end = Math.min(total, start + response.records.length - 1);
+    return String(this.translationService.t('harvest-runs-range', { start, end, total }));
+  }
+
   public getChunkVariant(status?: string): string {
     const value = String(status ?? '').trim();
     if (value === 'processed') {
@@ -344,21 +380,20 @@ export class HarvestRunsComponent extends BaseComponent {
     );
   }
 
-  public getSummaryCounts(): Array<{ labelKey: string; value: number; accent: string }> {
+  /** Record outcome totals; each `outcome` doubles as the records filter value ('' = all). */
+  public getSummaryCounts(): Array<{ labelKey: string; value: number; outcome: string }> {
     const counts = this.selectedRun?.aggregateCounts;
     if (!counts) {
       return [];
     }
 
     return [
-      { labelKey: 'harvest-runs-col-processed', value: counts.totalProcessed, accent: 'primary' },
-      { labelKey: 'harvest-runs-col-created', value: counts.created, accent: 'success' },
-      { labelKey: 'harvest-runs-col-updated', value: counts.updated, accent: 'info' },
-      { labelKey: 'harvest-runs-col-deleted', value: counts.deleted, accent: 'warning' },
-      { labelKey: 'harvest-runs-col-unchanged', value: counts.unchanged, accent: 'muted' },
-      { labelKey: 'harvest-runs-col-failed', value: counts.failed, accent: 'danger' },
-      { labelKey: 'harvest-runs-col-chunks-processed', value: counts.chunksProcessed, accent: 'neutral' },
-      { labelKey: 'harvest-runs-col-duplicate-chunks', value: counts.duplicateChunks, accent: 'neutral' }
+      { labelKey: 'harvest-runs-col-processed', value: counts.totalProcessed, outcome: '' },
+      { labelKey: 'harvest-runs-col-created', value: counts.created, outcome: 'created' },
+      { labelKey: 'harvest-runs-col-updated', value: counts.updated, outcome: 'updated' },
+      { labelKey: 'harvest-runs-col-unchanged', value: counts.unchanged, outcome: 'unchanged' },
+      { labelKey: 'harvest-runs-col-deleted', value: counts.deleted, outcome: 'deleted' },
+      { labelKey: 'harvest-runs-col-failed', value: counts.failed, outcome: 'failed' }
     ];
   }
 
@@ -416,6 +451,11 @@ export class HarvestRunsComponent extends BaseComponent {
         this.loadingRuns = false;
       }
     }
+  }
+
+  private getBadgeClass(variant: string): string {
+    const tone = variant === 'muted' || variant === 'neutral' ? 'secondary' : variant;
+    return `badge rounded-pill hr-badge bg-${tone}-subtle text-${tone}-emphasis border border-${tone}-subtle`;
   }
 
   private getStatusTranslationKey(status?: string): string {

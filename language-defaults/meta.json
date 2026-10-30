@@ -7348,5 +7348,40 @@
     "category": "harvest-runs",
     "description": "Notice when retention has removed harvest detail; summary counts remain complete",
     "contentFormat": "plain"
+  },
+  "harvest-runs-count_one": {
+    "category": "harvest-runs",
+    "description": "Harvest runs panel heading count (singular)",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-count_other": {
+    "category": "harvest-runs",
+    "description": "Harvest runs panel heading count (plural)",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-range": {
+    "category": "harvest-runs",
+    "description": "Range of rows shown above harvest run, record and chunk pagination",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-status-all": {
+    "category": "harvest-runs",
+    "description": "Harvest run status filter option matching every status",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-col-run-id": {
+    "category": "harvest-runs",
+    "description": "Run ID",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-show-all-records": {
+    "category": "harvest-runs",
+    "description": "Clears the chunk scope on the harvest run records list",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-outcome-filter-hint": {
+    "category": "harvest-runs",
+    "description": "Accessible label for the clickable outcome count tiles",
+    "contentFormat": "plain"
   }
 }

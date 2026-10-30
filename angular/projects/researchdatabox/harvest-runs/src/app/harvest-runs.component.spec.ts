@@ -408,4 +408,20 @@ describe('HarvestRunsComponent', () => {
     expect(component.hasCountMismatch()).toBeFalse();
   });
 
+  it('filters records by outcome from the summary tiles and tracks the active tile', async () => {
+    await component.selectRun('run-1');
+    expect(component.activeOutcome).toBe('');
+    await component.viewChunkRecords(detail.chunks[0]);
+    expect(component.activeOutcome).toBeNull();
+
+    await component.filterByOutcome('failed');
+    expect(apiService.listRunEvents.calls.mostRecent().args).toEqual(['run-1', {
+      outcome: 'failed', harvestId: '', page: 1, pageSize: 20
+    }]);
+    expect(component.selectedChunk).toBeNull();
+    expect(component.activeOutcome).toBe('failed');
+    expect(component.getSummaryCounts().map(count => count.outcome))
+      .toEqual(['', 'created', 'updated', 'unchanged', 'deleted', 'failed']);
+  });
+
 });
