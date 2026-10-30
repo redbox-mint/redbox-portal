@@ -33,7 +33,7 @@ module.exports = function (config) {
     junitReporter: {
       outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-translation')
     },
-    reporters: ['progress', 'kjhtml', 'coverage'],
+    reporters: ['progress', 'kjhtml', 'junit', 'coverage'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
