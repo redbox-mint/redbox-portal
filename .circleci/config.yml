@@ -509,6 +509,18 @@ jobs:
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-playwright" --file "./coverage/playwright/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
+      # Artifact steps still run after test/upload failures; capture the prepared report.
+      - when:
+          condition:
+            and:
+              - equal: [chore/circleci-performance, << pipeline.git.branch >>]
+              - equal: ['', << pipeline.git.tag >>]
+              - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+              - equal: [none, << pipeline.parameters.docker_publish_mode >>]
+          steps:
+            - store_artifacts:
+                path: coverage/playwright/lcov.info
+                destination: ci-mocha-pilot/playwright/lcov.info
       - store_test_results:
           path: .tmp/junit
       - store_artifacts:
@@ -546,10 +558,20 @@ jobs:
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
-      - run:
-          name: Install required ReDBox dependencies
-          command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+      # Pilot only: portal tests consume compiled application code from the image.
+      # Rollback: unwrap this unless and restore its run step unconditionally.
+      - unless:
+          condition:
+            and:
+              - equal: [chore/circleci-performance, << pipeline.git.branch >>]
+              - equal: ['', << pipeline.git.tag >>]
+              - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+              - equal: [none, << pipeline.parameters.docker_publish_mode >>]
+          steps:
+            - run:
+                name: Install required ReDBox dependencies
+                command: |
+                  npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -570,6 +592,18 @@ jobs:
              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
              --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
           when: always
+      # Artifact steps still run after test/upload failures; capture the prepared report.
+      - when:
+          condition:
+            and:
+              - equal: [chore/circleci-performance, << pipeline.git.branch >>]
+              - equal: ['', << pipeline.git.tag >>]
+              - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+              - equal: [none, << pipeline.parameters.docker_publish_mode >>]
+          steps:
+            - store_artifacts:
+                path: coverage/mocha/lcov.info
+                destination: ci-mocha-pilot/mocha/lcov.info
       - store_test_results:
           path: .tmp/junit
       - save_cache:

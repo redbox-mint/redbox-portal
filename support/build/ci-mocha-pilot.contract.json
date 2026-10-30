@@ -1,0 +1,200 @@
+{
+  "test-mocha": {
+    "machine": {
+      "image": "ubuntu-2404:current"
+    },
+    "resource_class": "large",
+    "environment": {
+      "RBPORTAL_IMAGE": "redbox-portal:test"
+    },
+    "steps": [
+      "checkout",
+      {
+        "run": {
+          "name": "Use patched Node.js from .nvmrc",
+          "command": "# Keep download options scoped to nvm and avoid a source build on network failure.\n(\n  curl() {\n    command curl --http1.1 --connect-timeout 20 --max-time 60 \\\n      --retry 2 --retry-delay 3 --retry-all-errors \"$@\"\n  }\n  nvm install -b\n)\nnvm use\nprintf 'export PATH=%q:$PATH\\n' \"$(dirname \"$(command -v node)\")\" >> \"$BASH_ENV\"\n"
+        }
+      },
+      {
+        "attach_workspace": {
+          "at": "/tmp"
+        }
+      },
+      "use-refreshed-revision",
+      {
+        "run": {
+          "name": "Load Docker image",
+          "command": "docker load -i /tmp/docker-images/test/redbox-portal-test.tar"
+        }
+      },
+      {
+        "run": {
+          "name": "Point compose at tested image",
+          "command": "echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> \"$BASH_ENV\""
+        }
+      },
+      {
+        "restore_cache": {
+          "keys": [
+            "v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum \"package-lock.json\" }}",
+            "v1-npm-cache-{{ arch }}-{{ .Branch }}",
+            "v1-npm-cache-"
+          ]
+        }
+      },
+      {
+        "run": {
+          "name": "Install npm dependencies",
+          "command": "npm ci --ignore-scripts --strict-peer-deps"
+        }
+      },
+      {
+        "run": {
+          "name": "Install codecov",
+          "command": "mkdir -p /tmp/.codecov-cli\ncd /tmp/.codecov-cli\ndownloadCodecovFile() {\n  local url=\"$1\"\n  local target=\"$2\"\n  local attempt\n  for attempt in 1 2 3 4 5; do\n    if curl --http1.1 --fail --location --silent --show-error \\\n      --connect-timeout 15 --max-time 60 --speed-time 30 --speed-limit 1024 \\\n      --retry 2 --retry-delay 3 --retry-all-errors --retry-max-time 120 \\\n      --output \"$target\" \"$url\" && test -s \"$target\"; then\n      return 0\n    fi\n    echo \"Retrying Codecov download ($attempt/5): $url\" >&2\n    sleep 3\n  done\n  return 1\n}\ndownloadCodecovFile https://keybase.io/codecovsecops/pgp_keys.asc pgp_keys.asc\ngpg --no-default-keyring --keyring trustedkeys.gpg --import pgp_keys.asc\ndownloadCodecovFile https://cli.codecov.io/latest/linux/codecov codecov\ndownloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM codecov.SHA256SUM\ndownloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig codecov.SHA256SUM.sig\ngpgv codecov.SHA256SUM.sig codecov.SHA256SUM\nshasum -a 256 -c codecov.SHA256SUM\nchmod +x codecov\n/tmp/.codecov-cli/codecov --help\n"
+        }
+      },
+      {
+        "run": {
+          "name": "Install required ReDBox dependencies",
+          "command": "npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails\n"
+        }
+      },
+      {
+        "run": {
+          "name": "Setup test directories",
+          "command": "sudo mkdir -p .tmp/junit/backend-mocha\nsudo mkdir -p .tmp/attachments/staging\nsudo chmod -R 777 .\n"
+        }
+      },
+      {
+        "run": {
+          "name": "Run Mocha tests",
+          "no_output_timeout": "30m",
+          "command": "timeout 1800s npm run test:mocha:ci"
+        }
+      },
+      {
+        "run": {
+          "name": "Upload Mocha code coverage",
+          "command": "sudo chmod -R a+rwX ./coverage\nnode support/unit-testing/codecov/prepare-report.cjs \"./coverage/mocha/lcov.info\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-mocha\" --file \"./coverage/mocha/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      },
+      {
+        "store_test_results": {
+          "path": ".tmp/junit"
+        }
+      },
+      {
+        "save_cache": {
+          "key": "v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum \"package-lock.json\" }}",
+          "paths": [
+            "~/.npm"
+          ]
+        }
+      }
+    ]
+  },
+  "test-playwright": {
+    "machine": {
+      "image": "ubuntu-2404:current"
+    },
+    "resource_class": "large",
+    "environment": {
+      "RBPORTAL_IMAGE": "redbox-portal:test"
+    },
+    "steps": [
+      "checkout",
+      {
+        "run": {
+          "name": "Use patched Node.js from .nvmrc",
+          "command": "# Keep download options scoped to nvm and avoid a source build on network failure.\n(\n  curl() {\n    command curl --http1.1 --connect-timeout 20 --max-time 60 \\\n      --retry 2 --retry-delay 3 --retry-all-errors \"$@\"\n  }\n  nvm install -b\n)\nnvm use\nprintf 'export PATH=%q:$PATH\\n' \"$(dirname \"$(command -v node)\")\" >> \"$BASH_ENV\"\n"
+        }
+      },
+      {
+        "attach_workspace": {
+          "at": "/tmp"
+        }
+      },
+      "use-refreshed-revision",
+      {
+        "run": {
+          "name": "Load Docker image",
+          "command": "docker load -i /tmp/docker-images/test/redbox-portal-test.tar"
+        }
+      },
+      {
+        "run": {
+          "name": "Point compose at tested image",
+          "command": "echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> \"$BASH_ENV\""
+        }
+      },
+      {
+        "restore_cache": {
+          "keys": [
+            "v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum \"package-lock.json\" }}",
+            "v1-npm-cache-{{ arch }}-{{ .Branch }}",
+            "v1-npm-cache-"
+          ]
+        }
+      },
+      {
+        "run": {
+          "name": "Install npm dependencies",
+          "command": "npm ci --ignore-scripts --strict-peer-deps"
+        }
+      },
+      {
+        "run": {
+          "name": "Install codecov",
+          "command": "mkdir -p /tmp/.codecov-cli\ncd /tmp/.codecov-cli\ndownloadCodecovFile() {\n  local url=\"$1\"\n  local target=\"$2\"\n  local attempt\n  for attempt in 1 2 3 4 5; do\n    if curl --http1.1 --fail --location --silent --show-error \\\n      --connect-timeout 15 --max-time 60 --speed-time 30 --speed-limit 1024 \\\n      --retry 2 --retry-delay 3 --retry-all-errors --retry-max-time 120 \\\n      --output \"$target\" \"$url\" && test -s \"$target\"; then\n      return 0\n    fi\n    echo \"Retrying Codecov download ($attempt/5): $url\" >&2\n    sleep 3\n  done\n  return 1\n}\ndownloadCodecovFile https://keybase.io/codecovsecops/pgp_keys.asc pgp_keys.asc\ngpg --no-default-keyring --keyring trustedkeys.gpg --import pgp_keys.asc\ndownloadCodecovFile https://cli.codecov.io/latest/linux/codecov codecov\ndownloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM codecov.SHA256SUM\ndownloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig codecov.SHA256SUM.sig\ngpgv codecov.SHA256SUM.sig codecov.SHA256SUM\nshasum -a 256 -c codecov.SHA256SUM\nchmod +x codecov\n/tmp/.codecov-cli/codecov --help\n"
+        }
+      },
+      {
+        "run": {
+          "name": "Setup test directories",
+          "command": "sudo mkdir -p coverage/playwright\nsudo mkdir -p .tmp/junit/backend-playwright\nsudo mkdir -p .tmp/playwright\nsudo mkdir -p .tmp/attachments/staging\nsudo chmod -R 777 .\n"
+        }
+      },
+      {
+        "run": {
+          "name": "Run Playwright browser smoke tests",
+          "no_output_timeout": "30m",
+          "command": "timeout 1800s npm run test:playwright:ci"
+        }
+      },
+      {
+        "run": {
+          "name": "Clean up Playwright containers",
+          "command": "npm run test:playwright:clean || true",
+          "when": "always"
+        }
+      },
+      {
+        "run": {
+          "name": "Upload Playwright code coverage",
+          "command": "sudo chmod -R a+rwX ./coverage\nnode support/unit-testing/codecov/prepare-report.cjs \"./coverage/playwright/lcov.info\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-playwright\" --file \"./coverage/playwright/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      },
+      {
+        "store_test_results": {
+          "path": ".tmp/junit"
+        }
+      },
+      {
+        "store_artifacts": {
+          "path": ".tmp/playwright"
+        }
+      },
+      {
+        "save_cache": {
+          "key": "v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum \"package-lock.json\" }}",
+          "paths": [
+            "~/.npm"
+          ]
+        }
+      }
+    ]
+  }
+}
