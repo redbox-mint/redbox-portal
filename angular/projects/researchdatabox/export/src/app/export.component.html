@@ -102,7 +102,7 @@
           {{ 'export-recent-title' | i18next }}
         </strong>
         <div class="ex-panel__tools">
-          @if (hasActiveJobs()) {
+          @if (isUpdatingAutomatically()) {
             <small class="ex-auto-refresh">
               <span class="fa fa-circle-notch fa-spin" aria-hidden="true"></span>
               {{ 'export-auto-refresh' | i18next }}

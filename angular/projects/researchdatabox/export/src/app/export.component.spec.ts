@@ -197,6 +197,8 @@ describe('ExportComponent', () => {
     tick(3000); flushMicrotasks();
     expect(component.jobsErrorKey).toBe('export-load-error');
     expect(component.jobs[0].status).toBe('running');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.ex-auto-refresh')).not.toBeNull();
     service.list.and.resolveTo([job({ status: 'failed' })]);
     tick(3000); flushMicrotasks();
     expect(component.jobsErrorKey).toBe('');
@@ -208,15 +210,33 @@ describe('ExportComponent', () => {
   it('stops automatic polling after access is denied and allows explicit refresh recovery', fakeAsync(() => {
     service.list.and.resolveTo([job()]);
     initialize();
+    expect(fixture.nativeElement.querySelector('.ex-auto-refresh')).not.toBeNull();
     service.list.and.rejectWith({ status: 403 });
-    tick(3000); flushMicrotasks();
+    tick(3000); flushMicrotasks(); fixture.detectChanges();
     expect(component.jobsErrorKey).toBe('export-session-error');
+    expect(fixture.nativeElement.querySelector('.ex-auto-refresh')).toBeNull();
     tick(9000);
     expect(service.list).toHaveBeenCalledTimes(2);
-    service.list.and.resolveTo([job({ status: 'failed' })]);
-    void component.refreshJobs(); flushMicrotasks();
+    service.list.and.resolveTo([job({ status: 'running' })]);
+    void component.refreshJobs(); flushMicrotasks(); fixture.detectChanges();
     expect(component.jobsErrorKey).toBe('');
+    expect(fixture.nativeElement.querySelector('.ex-auto-refresh')).not.toBeNull();
     expect(service.list).toHaveBeenCalledTimes(3);
+    fixture.destroy();
+  }));
+
+  it('shows a neutral list error before any exports load and recovers on refresh', fakeAsync(() => {
+    service.list.and.rejectWith({ status: 503 });
+    initialize();
+    expect(component.jobsErrorKey).toBe('export-list-error');
+    expect(fixture.nativeElement.querySelector('.alert-warning').textContent).toContain('export-list-error');
+    expect(fixture.nativeElement.querySelector('.ex-empty')).toBeNull();
+    expect(fixture.nativeElement.querySelector('table')).toBeNull();
+    expect(fixture.nativeElement.querySelector('button[type="submit"]').disabled).toBeFalse();
+    service.list.and.resolveTo([job({ status: 'failed' })]);
+    void component.refreshJobs(); flushMicrotasks(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.alert-warning')).toBeNull();
+    expect(fixture.nativeElement.querySelector('table')).not.toBeNull();
     fixture.destroy();
   }));
 

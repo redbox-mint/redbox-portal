@@ -1982,6 +1982,7 @@
   "export-refresh": "Refresh",
   "export-refreshing": "Refreshing…",
   "export-no-jobs": "You have no recent CSV exports.",
+  "export-list-error": "Unable to load recent exports. Check your connection and refresh to try again.",
   "export-load-error": "Unable to refresh export statuses. Your existing exports are still listed. Check your connection and refresh to try again.",
   "export-session-error": "Your session may have expired or access was denied. Sign in again, then refresh this page.",
   "export-submit-error": "Unable to confirm the export request. Refresh the list before trying again; the request may already have been accepted.",

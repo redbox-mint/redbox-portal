@@ -7424,6 +7424,11 @@
     "description": "Empty state for the current user’s recent export jobs",
     "contentFormat": "plain"
   },
+  "export-list-error": {
+    "category": "export",
+    "description": "Shown when export statuses cannot load and no previous rows are displayed",
+    "contentFormat": "plain"
+  },
   "export-load-error": {
     "category": "export",
     "description": "Shown when an export status request fails without replacing previously loaded jobs",

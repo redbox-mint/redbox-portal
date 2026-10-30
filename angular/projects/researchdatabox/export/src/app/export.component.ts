@@ -190,6 +190,10 @@ export class ExportComponent extends BaseComponent {
     return this.jobs.some(job => job.status === 'queued' || job.status === 'running');
   }
 
+  isUpdatingAutomatically(): boolean {
+    return this.hasActiveJobs() && !this.pollingBlocked && !this.disposed && !this.mutationPending;
+  }
+
   getStatusBadgeClass(status: ExportJobStatus): string {
     const tone = ExportComponent.statusTones[status] ?? 'secondary';
     return `badge rounded-pill ex-badge bg-${tone}-subtle text-${tone}-emphasis border border-${tone}-subtle`;
@@ -247,7 +251,8 @@ export class ExportComponent extends BaseComponent {
     } catch (error: unknown) {
       if (!this.disposed) {
         this.pollingBlocked = this.isAccessError(error);
-        this.jobsErrorKey = this.pollingBlocked ? 'export-session-error' : 'export-load-error';
+        const loadErrorKey = this.jobs.length ? 'export-load-error' : 'export-list-error';
+        this.jobsErrorKey = this.pollingBlocked ? 'export-session-error' : loadErrorKey;
       }
     }
   }
