@@ -94,7 +94,9 @@ export interface HarvestRunAggregateCounts {
 export interface HarvestRunDetail {
   run: HarvestRunSummary;
   chunks: HarvestRunChunkSummary[];
+  chunksTotal: number;
   events: HarvestRunEvent[];
+  eventsTotal: number;
   aggregateCounts: HarvestRunAggregateCounts;
 }
 
@@ -109,6 +111,7 @@ export interface HarvestRunListQuery {
 }
 
 export interface HarvestRunEventsQuery {
+  chunkId?: string;
   outcome?: string;
   operation?: string;
   harvestId?: string;
@@ -159,6 +162,15 @@ export class HarvestRunApiService extends HttpClientService {
       this.getJsonRequestOptions()
     ));
     return this.unwrap(response);
+  }
+
+  public async listRunChunks(id: string, page: number, pageSize: number): Promise<ListApiResponse<HarvestRunChunkSummary>> {
+    await this.waitForInit();
+    const response = await firstValueFrom(this.http.get<MaybeWrapped<ListApiResponse<HarvestRunChunkSummary>>>(
+      this.apiUrl(`/${encodeURIComponent(id)}/chunks`),
+      { ...this.getJsonRequestOptions(), params: this.toHttpParams({ page, pageSize }) }
+    ));
+    return this.normalizeList(this.unwrap(response));
   }
 
   public async listRunEvents(id: string, query: HarvestRunEventsQuery = {}): Promise<ListApiResponse<HarvestRunEvent>> {

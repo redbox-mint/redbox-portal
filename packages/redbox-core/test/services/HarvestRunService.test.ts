@@ -925,9 +925,19 @@ describe('HarvestRunService', function () {
     );
     (global as any).HarvestRecordEvent.find.returns(createChainableQuery([]));
 
+    (global as any).HarvestRecordEvent.count.resolves(42);
+    (global as any).HarvestRunChunk.count.resolves(1332);
+
     const result = await service.getRun({ id: 'brand-1', name: 'default' }, 'run-1');
 
     expect(result).to.not.equal(null);
+    expect(result.eventsTotal).to.equal(42);
+    expect(result.chunksTotal).to.equal(1332);
+    expect(result.events).to.deep.equal([]);
+    expect(
+      (global as any).HarvestRecordEvent.count.calledWith({ runId: 'run-1', brandId: 'brand-1' })
+    ).to.equal(true);
+    expect((global as any).HarvestRecordEvent.find.firstCall.returnValue.limit.calledWith(20)).to.equal(true);
     expect(result.aggregateCounts).to.deep.equal({
       totalProcessed: 5,
       created: 1,
@@ -938,7 +948,7 @@ describe('HarvestRunService', function () {
       chunksProcessed: 2,
       duplicateChunks: 1,
     });
-    expect((global as any).HarvestRunChunk.find.firstCall.returnValue.limit.calledWith(100)).to.equal(true);
+    expect((global as any).HarvestRunChunk.find.firstCall.returnValue.limit.calledWith(20)).to.equal(true);
   });
 
   it('rejects tracked chunks over the configured record limit before processing', async function () {
@@ -2697,6 +2707,40 @@ describe('HarvestRunService', function () {
     }
   });
 
+  it('awaits Mongo index provisioning during initialization and surfaces failures', async function () {
+    const createIndexes = sinon.stub().resolves();
+    const collection = sinon.stub().returns({ createIndexes });
+    (global as Record<string, unknown>).HarvestRun = {
+      getDatastore: () => ({ config: { adapter: 'sails-mongo' }, manager: { collection } }),
+    };
+    await service.init();
+    expect(collection.args.map(args => args[0])).to.deep.equal(['harvestrun', 'harvestrunchunk', 'harvestrecordevent']);
+    const error = new Error('duplicate unique keys');
+    createIndexes.rejects(error);
+    try {
+      await service.init();
+      throw new Error('Initialization should fail');
+    } catch (actual) {
+      expect(actual).to.equal(error);
+    }
+  });
+
+  it('paginates chunks within the authenticated brand with deterministic ordering', async function () {
+    (global as Record<string, unknown>).HarvestRunChunk = {
+      count: sinon.stub().resolves(1332),
+      find: sinon.stub().returns(createChainableQuery([])),
+    };
+    const result = await service.listRunChunks({ id: 'brand-1' }, 'run-1', { page: 3, pageSize: 500 });
+    expect(result).to.deep.equal({ rows: [], total: 1332 });
+    const model = HarvestRunChunk as unknown as { count: sinon.SinonStub; find: sinon.SinonStub };
+    expect(model.count.firstCall.args[0]).to.deep.equal({ runId: 'run-1', brandId: 'brand-1' });
+    expect(model.find.firstCall.args[0]).to.deep.equal({ runId: 'run-1', brandId: 'brand-1' });
+    const query = model.find.firstCall.returnValue as QueryLike;
+    expect(query.skip.calledWith(200)).to.equal(true);
+    expect(query.limit.calledWith(100)).to.equal(true);
+    expect(query.sort.firstCall.args[0]).to.deep.equal([{ submittedAt: 'ASC' }, { id: 'ASC' }]);
+  });
+
   it('lists runs and events with brand-scoped filters', async function () {
     (global as any).HarvestRun.count.resolves(2);
     (global as any).HarvestRun.find.returns(
@@ -2749,6 +2793,8 @@ describe('HarvestRunService', function () {
     const events = await service.listRunEvents({ id: 'brand-1', name: 'default' }, 'run-1', {
       runId: 'run-1',
       brandId: 'brand-1',
+      chunkId: 'chunk-1',
+      outcome: 'failed',
       page: 1,
       pageSize: 20,
     });
@@ -2757,6 +2803,8 @@ describe('HarvestRunService', function () {
     expect((global as any).HarvestRecordEvent.find.firstCall.args[0]).to.deep.equal({
       runId: 'run-1',
       brandId: 'brand-1',
+      chunkId: 'chunk-1',
+      outcome: 'failed',
     });
     expect(runs.total).to.equal(2);
     expect(runs.rows[0].sourceRunId).to.equal('source-run-1');

@@ -46,6 +46,7 @@ describe('Webservice HarvestRunController', () => {
           duplicateChunks: 0,
         },
       }),
+      listRunChunks: sinon.stub().resolves({ rows: [{ id: 'chunk-1' }], total: 1332 }),
       runExists: sinon.stub().resolves(true),
       listRunEvents: sinon.stub().resolves({ rows: [{ id: 'event-1', harvestId: 'harvest-1' }], total: 1 }),
     };
@@ -125,7 +126,7 @@ describe('Webservice HarvestRunController', () => {
       session: { branding: 'default' },
       apiRequest: {
         params: { id: 'run-1' },
-        query: { page: '1', pageSize: '10' },
+        query: { page: '1', pageSize: '10', chunkId: 'chunk-1', outcome: 'failed' },
         body: {},
         files: {},
       },
@@ -137,6 +138,7 @@ describe('Webservice HarvestRunController', () => {
     expect((global as any).HarvestRunService.runExists.calledOnce).to.equal(true);
     expect((global as any).HarvestRunService.listRunEvents.calledOnce).to.equal(true);
     expect((global as any).HarvestRunService.listRunEvents.firstCall.args[1]).to.equal('run-1');
+    expect((global as any).HarvestRunService.listRunEvents.firstCall.args[2]).to.include({ chunkId: 'chunk-1', outcome: 'failed' });
     expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal([{ id: 'event-1', harvestId: 'harvest-1' }]);
   });
 
@@ -179,4 +181,39 @@ describe('Webservice HarvestRunController', () => {
     expect((global as any).HarvestRunService.listRunEvents.called).to.equal(false);
     expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
   });
+  it('returns bounded chunk pages for the authenticated brand', async () => {
+    const req = { session: { branding: 'default' }, apiRequest: {
+      params: { id: 'run-1' }, query: { page: '3', pageSize: '500' }, body: {}, files: {}
+    }} as unknown as Sails.Req;
+    const send = sinon.stub(controller as unknown as { sendResp: (...args: unknown[]) => unknown }, 'sendResp');
+    await controller.listRunChunks(req, {} as Sails.Res);
+    const service = HarvestRunService as unknown as { listRunChunks: sinon.SinonStub };
+    expect(service.listRunChunks.firstCall.args).to.deep.equal([
+      { id: 'brand-1', name: 'default' }, 'run-1', { page: 3, pageSize: 100 }
+    ]);
+    expect(send.firstCall.args[2]).to.have.nested.property('data.summary.numFound', 1332);
+    expect(send.firstCall.args[2]).to.have.nested.property('data.summary.start', 200);
+  });
+
+  it('rejects chunk requests for a missing or foreign-brand run before querying chunks', async () => {
+    const service = HarvestRunService as unknown as { runExists: sinon.SinonStub; listRunChunks: sinon.SinonStub };
+    service.runExists.resolves(false);
+    const req = { session: { branding: 'default' }, apiRequest: {
+      params: { id: 'foreign-run' }, query: {}, body: {}, files: {}
+    }} as unknown as Sails.Req;
+    const send = sinon.stub(controller as unknown as { sendResp: (...args: unknown[]) => unknown }, 'sendResp');
+    await controller.listRunChunks(req, {} as Sails.Res);
+    expect(service.listRunChunks.called).to.equal(false);
+    expect(send.firstCall.args[2]).to.have.property('status', 404);
+  });
+
+  it('returns a client error for an invalid chunk page', async () => {
+    const req = { session: { branding: 'default' }, apiRequest: {
+      params: { id: 'run-1' }, query: { page: '-1' }, body: {}, files: {}
+    }} as unknown as Sails.Req;
+    const send = sinon.stub(controller as unknown as { sendResp: (...args: unknown[]) => unknown }, 'sendResp');
+    await controller.listRunChunks(req, {} as Sails.Res);
+    expect(send.firstCall.args[2]).to.have.property('status', 400);
+  });
+
 });

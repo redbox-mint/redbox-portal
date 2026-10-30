@@ -702,3 +702,40 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.hr-chunks > summary {
+  cursor: pointer;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+}
+
+.hr-chunks > summary::before {
+  content: '▸';
+}
+
+.hr-chunks[open] > summary::before {
+  content: '▾';
+}
+
+.hr-chunk-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  min-width: 12rem;
+}
+
+.hr-chunk-error {
+  margin: 0.5rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.hr-chunk-scope {
+  overflow-wrap: anywhere;
+}
+
+.hr-chunk-action {
+  padding: 0;
+  text-align: left;
+  white-space: nowrap;
+}

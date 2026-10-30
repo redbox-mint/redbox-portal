@@ -7238,5 +7238,110 @@
     "category": "figshare",
     "description": "Error detail shown when publishing a Figshare article fails",
     "contentFormat": "plain"
+  },
+  "harvest-runs-filter-harvest-id": {
+    "category": "harvest-runs",
+    "description": "Label for the exact harvest identifier filter on run events",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-events-loading": {
+    "category": "harvest-runs",
+    "description": "Loading status while fetching a page of harvest events",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-no-matching-events": {
+    "category": "harvest-runs",
+    "description": "Empty state when a harvest run has no events matching the event filters",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-outcome-all": {
+    "category": "harvest-runs",
+    "description": "Harvest event outcome filter option: all",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-outcome-failed": {
+    "category": "harvest-runs",
+    "description": "Harvest event outcome filter option: failed",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-outcome-created": {
+    "category": "harvest-runs",
+    "description": "Harvest event outcome filter option: created",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-outcome-updated": {
+    "category": "harvest-runs",
+    "description": "Harvest event outcome filter option: updated",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-outcome-deleted": {
+    "category": "harvest-runs",
+    "description": "Harvest event outcome filter option: deleted",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-outcome-unchanged": {
+    "category": "harvest-runs",
+    "description": "Harvest event outcome filter option: unchanged",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunks-loading": {
+    "category": "harvest-runs",
+    "description": "Loading status while fetching a page of harvest chunks",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunks-error": {
+    "category": "harvest-runs",
+    "description": "Fallback error when a harvest chunk page cannot be loaded",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-results": {
+    "category": "harvest-runs",
+    "description": "Results",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-timing": {
+    "category": "harvest-runs",
+    "description": "Submitted / duration",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-records": {
+    "category": "harvest-runs",
+    "description": "Records",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-attempt": {
+    "category": "harvest-runs",
+    "description": "Attempt",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-duration": {
+    "category": "harvest-runs",
+    "description": "Duration",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-progress": {
+    "category": "harvest-runs",
+    "description": "Processed / submitted",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-view-records": {
+    "category": "harvest-runs",
+    "description": "View records",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-view-failures": {
+    "category": "harvest-runs",
+    "description": "View failures",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-records-for-chunk": {
+    "category": "harvest-runs",
+    "description": "Records for chunk:",
+    "contentFormat": "plain"
+  },
+  "harvest-runs-chunk-duplicate-note": {
+    "category": "harvest-runs",
+    "description": "Duplicate submission; no new record events.",
+    "contentFormat": "plain"
   }
 }

@@ -240,7 +240,9 @@ export const harvestRunDetailResponseSchema = withOpenApi(
   z.object({
     run: harvestRunSummarySchema,
     chunks: z.array(harvestRunChunkSummarySchema),
+    chunksTotal: z.number().int().nonnegative(),
     events: z.array(harvestRunEventSchema),
+    eventsTotal: z.number().int().nonnegative(),
     aggregateCounts: harvestRunAggregateCountsSchema,
   }),
   { description: 'Harvest run detail response' }

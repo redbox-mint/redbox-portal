@@ -1,4 +1,6 @@
 import * as _ from 'lodash';
+import type { Db } from 'mongodb';
+import { ensureHarvestRunIndexes } from '../utilities/HarvestRunIndexes';
 import { createHash } from 'node:crypto';
 import { firstValueFrom, Observable } from 'rxjs';
 
@@ -24,6 +26,8 @@ import {
   HarvestOutcome,
   HarvestRecordEventModel,
   HarvestRunChunkModel,
+  HarvestRunChunksQuery,
+  HarvestRunChunksResult,
   HarvestRunDetailResult,
   HarvestRunEventsQuery,
   HarvestRunEventsResult,
@@ -91,6 +95,8 @@ type ProcessTrackedRecordResult = {
 export namespace Services {
   export class HarvestRunService extends services.Core.Service implements HarvestRunServiceContract {
     protected override _exportedMethods: string[] = [
+      'init',
+      'listRunChunks',
       'submitCompatibilityRecords',
       'submitLegacyRecords',
       'submitChunk',
@@ -103,6 +109,17 @@ export namespace Services {
     constructor() {
       super();
       this.logHeader = 'HarvestRunService::';
+    }
+
+    public async init(): Promise<void> {
+      const datastore = HarvestRun.getDatastore() as unknown as { config?: { adapter?: string }; manager?: Db };
+      if (datastore?.config?.adapter !== 'sails-mongo') {
+        return;
+      }
+      if (!datastore.manager) {
+        throw new Error('Harvest Mongo datastore manager is unavailable during initialization.');
+      }
+      await ensureHarvestRunIndexes(datastore.manager);
     }
 
     private asError(error: unknown): Error {
@@ -1907,7 +1924,10 @@ export namespace Services {
       }
 
       const total = await HarvestRun.count(where);
-      const rows = (await HarvestRun.find(where).sort('startedAt DESC').skip(skip).limit(pageSize)) as HarvestRunRow[];
+      const rows = (await HarvestRun.find(where)
+        .sort([{ startedAt: 'DESC' }, { id: 'DESC' }])
+        .skip(skip)
+        .limit(pageSize)) as HarvestRunRow[];
       return {
         rows: rows.map(row => this.toRunModel(row)),
         total: Number(total ?? 0),
@@ -1921,16 +1941,16 @@ export namespace Services {
         return null;
       }
 
-      const chunks = (await HarvestRunChunk.find({ runId, brandId })
-        .sort('submittedAt ASC')
-        .limit(100)) as HarvestRunChunkRow[];
-      const events = (await HarvestRecordEvent.find({ runId, brandId })
-        .sort('createdAt DESC')
-        .limit(20)) as HarvestRecordEventRow[];
+      const [chunks, events] = await Promise.all([
+        this.listRunChunks(brand, runId, { page: 1, pageSize: 20 }),
+        this.listRunEvents(brand, runId, { page: 1, pageSize: 20 }),
+      ]);
       return {
         run: this.toRunModel(run),
-        chunks: chunks.map(row => this.toChunkModel(row)),
-        events: events.map(row => this.toEventModel(row)),
+        chunks: chunks.rows,
+        chunksTotal: chunks.total,
+        events: events.rows,
+        eventsTotal: events.total,
         aggregateCounts: {
           totalProcessed: Number(run.totalProcessed ?? 0),
           created: Number(run.created ?? 0),
@@ -1950,6 +1970,22 @@ export namespace Services {
       return !_.isNil(run);
     }
 
+    public async listRunChunks(
+      brand: BrandingModel,
+      runId: string,
+      params: Partial<HarvestRunChunksQuery>
+    ): Promise<HarvestRunChunksResult> {
+      const page = this.parsePositiveInt(params.page, 1);
+      const pageSize = Math.min(100, this.parsePositiveInt(params.pageSize, 20));
+      const where = { runId, brandId: this.resolveBrandId(brand) };
+      const total = await HarvestRunChunk.count(where);
+      const rows = (await HarvestRunChunk.find(where)
+        .sort([{ submittedAt: 'ASC' }, { id: 'ASC' }])
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)) as HarvestRunChunkRow[];
+      return { rows: rows.map(row => this.toChunkModel(row)), total: Number(total ?? 0) };
+    }
+
     public async listRunEvents(
       brand: BrandingModel,
       runId: string,
@@ -1963,6 +1999,9 @@ export namespace Services {
         runId,
         brandId,
       };
+      if (!_.isEmpty(params.chunkId)) {
+        where.chunkId = String(params.chunkId);
+      }
       if (!_.isEmpty(params.outcome)) {
         where.outcome = String(params.outcome);
       }
@@ -1978,7 +2017,7 @@ export namespace Services {
 
       const total = await HarvestRecordEvent.count(where);
       const rows = (await HarvestRecordEvent.find(where)
-        .sort('createdAt DESC')
+        .sort([{ createdAt: 'DESC' }, { id: 'DESC' }])
         .skip(skip)
         .limit(pageSize)) as HarvestRecordEventRow[];
       return {

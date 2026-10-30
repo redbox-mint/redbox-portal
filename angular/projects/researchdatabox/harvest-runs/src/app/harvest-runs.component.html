@@ -205,62 +205,7 @@
                 }
               </div>
 
-              <div class="hr-detail-subsection">
-                <div class="hr-section__header">
-                  <h3 class="hr-section__subtitle">
-                    <i class="fa fa-cubes" aria-hidden="true"></i>
-                    {{ 'harvest-runs-detail-chunks' | i18next }}
-                  </h3>
-                  @if (selectedRun.chunks.length > 0) {
-                    <span class="hr-section__count">{{ selectedRun.chunks.length }}</span>
-                  }
-                </div>
-                @if (selectedRun.chunks.length === 0) {
-                  <div class="hr-empty-state hr-empty-state--small">
-                    <p>{{ 'harvest-runs-no-chunks' | i18next }}</p>
-                  </div>
-                } @else {
-                  <div class="table-responsive">
-                    <table class="table hr-table">
-                      <thead>
-                        <tr>
-                          <th class="hr-table__th hr-table__th--num">{{ 'harvest-runs-col-chunk-index' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-chunk-label' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-status' | i18next }}</th>
-                          <th class="hr-table__th hr-table__th--num">{{ 'harvest-runs-col-record-count' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-duplicate' | i18next }}</th>
-                          <th class="hr-table__th">{{ 'harvest-runs-col-submitted' | i18next }}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (chunk of selectedRun.chunks; track chunk.id ?? chunk.contentHash) {
-                          <tr>
-                            <td class="hr-table__cell hr-table__cell--num">{{ chunk.chunkIndex ?? '-' }}</td>
-                            <td class="hr-table__cell">{{ chunk.chunkLabel || '—' }}</td>
-                            <td class="hr-table__cell">
-                              <span class="hr-status" [class]="'hr-status hr-status--' + getChunkVariant(chunk.status)">
-                                <span class="hr-status__dot"></span>
-                                {{ chunk.status }}
-                              </span>
-                            </td>
-                            <td class="hr-table__cell hr-table__cell--num">{{ chunk.recordCount }}</td>
-                            <td class="hr-table__cell">
-                              @if (chunk.duplicate) {
-                                <span class="hr-tag hr-tag--warning">Duplicate</span>
-                              } @else {
-                                <span class="hr-tag hr-tag--neutral">Unique</span>
-                              }
-                            </td>
-                            <td class="hr-table__cell hr-table__cell--muted">{{ formatDate(chunk.submittedAt) }}</td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                }
-              </div>
-
-              <div class="hr-detail-subsection">
+              <div class="hr-detail-subsection" id="harvest-records" #recordSection>
                 <div class="hr-section__header">
                   <h3 class="hr-section__subtitle">
                     <i class="fa fa-list-ul" aria-hidden="true"></i>
@@ -270,9 +215,37 @@
                     <span class="hr-section__count">{{ eventResponse.summary.numFound }}</span>
                   }
                 </div>
-                @if (eventResponse.records.length === 0) {
+                @if (selectedChunk) {
+                  <p class="hr-chunk-scope">{{ 'harvest-runs-records-for-chunk' | i18next }} <strong>{{ selectedChunk.chunkLabel || selectedChunk.chunkIndex || selectedChunk.id }}</strong></p>
+                }
+                <form class="hr-toolbar" (ngSubmit)="applyEventFilters($event)">
+                  <div class="hr-toolbar__fields">
+                    <div class="hr-field">
+                      <label class="hr-field__label" for="harvest-events-outcome">{{ 'harvest-runs-col-outcome' | i18next }}</label>
+                      <select id="harvest-events-outcome" class="form-control hr-field__input" [(ngModel)]="eventFilters.outcome" name="eventOutcome" [disabled]="loadingEvents">
+                        @for (outcome of eventOutcomes; track outcome) {
+                          <option [value]="outcome">{{ ('harvest-runs-outcome-' + (outcome || 'all')) | i18next }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="hr-field hr-field--wide">
+                      <label class="hr-field__label" for="harvest-events-id">{{ 'harvest-runs-filter-harvest-id' | i18next }}</label>
+                      <input id="harvest-events-id" type="text" class="form-control hr-field__input" [(ngModel)]="eventFilters.harvestId" name="eventHarvestId" [disabled]="loadingEvents">
+                    </div>
+                  </div>
+                  <div class="hr-toolbar__actions">
+                    <button type="button" class="btn btn-default hr-toolbar__clear" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'harvest-runs-filter-clear' | i18next }}</button>
+                    <button type="submit" class="btn btn-primary hr-toolbar__apply" [disabled]="loadingEvents">{{ 'harvest-runs-filter-apply' | i18next }}</button>
+                  </div>
+                </form>
+                @if (loadingEvents) {
+                  <div class="hr-loading" role="status">
+                    <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+                    <span>{{ 'harvest-runs-events-loading' | i18next }}</span>
+                  </div>
+                } @else if (eventResponse.records.length === 0) {
                   <div class="hr-empty-state hr-empty-state--small">
-                    <p>{{ 'harvest-runs-no-events' | i18next }}</p>
+                    <p>{{ 'harvest-runs-no-matching-events' | i18next }}</p>
                   </div>
                 } @else {
                   <div class="table-responsive">
@@ -335,6 +308,107 @@
                   }
                 }
               </div>
+              <details class="hr-detail-subsection hr-chunks">
+                <summary class="hr-section__header">
+                  <span class="hr-section__subtitle">
+                    <i class="fa fa-cubes" aria-hidden="true"></i>
+                    {{ 'harvest-runs-detail-chunks' | i18next }}
+                  </span>
+                  @if (chunkResponse.records.length > 0) {
+                    <span class="hr-section__count">{{ chunkResponse.summary.numFound }}</span>
+                  }
+                </summary>
+                @if (chunkError) {
+                  <div class="alert alert-danger hr-alert" role="alert">{{ chunkError }}</div>
+                }
+                @if (loadingChunks) {
+                  <div class="hr-loading" role="status">
+                    <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+                    <span>{{ 'harvest-runs-chunks-loading' | i18next }}</span>
+                  </div>
+                } @else if (chunkResponse.records.length === 0) {
+                  <div class="hr-empty-state hr-empty-state--small">
+                    <p>{{ 'harvest-runs-no-chunks' | i18next }}</p>
+                  </div>
+                } @else {
+                  <div class="table-responsive">
+                    <table class="table hr-table">
+                      <thead>
+                        <tr>
+                          <th class="hr-table__th hr-table__th--num">{{ 'harvest-runs-col-chunk-index' | i18next }}</th>
+                          <th class="hr-table__th">{{ 'harvest-runs-col-chunk-label' | i18next }}</th>
+                          <th class="hr-table__th">{{ 'harvest-runs-col-status' | i18next }}</th>
+                          <th class="hr-table__th hr-table__th--num">{{ 'harvest-runs-chunk-progress' | i18next }}</th>
+                          <th class="hr-table__th">{{ 'harvest-runs-chunk-results' | i18next }}</th>
+                          <th class="hr-table__th">{{ 'harvest-runs-chunk-timing' | i18next }}</th>
+                          <th class="hr-table__th">{{ 'harvest-runs-chunk-records' | i18next }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (chunk of chunkResponse.records; track chunk.id ?? chunk.contentHash) {
+                          <tr>
+                            <td class="hr-table__cell hr-table__cell--num">{{ chunk.chunkIndex ?? '-' }}</td>
+                            <td class="hr-table__cell">{{ chunk.chunkLabel || '—' }}
+                              <div class="hr-table__cell--muted">{{ 'harvest-runs-chunk-attempt' | i18next }} {{ chunk.attempt ?? 1 }}</div>
+                            </td>
+                            <td class="hr-table__cell">
+                              <span class="hr-status" [class]="'hr-status hr-status--' + getChunkVariant(chunk.status)">
+                                <span class="hr-status__dot"></span>
+                                {{ chunk.status }}
+                              </span>
+                            </td>
+                            <td class="hr-table__cell hr-table__cell--num">{{ chunk.totalProcessed }} / {{ chunk.recordCount }}</td>
+                            <td class="hr-table__cell">
+                              <div class="hr-chunk-results">
+                                <span>{{ 'harvest-runs-col-created' | i18next }}: {{ chunk.created }}</span>
+                                <span>{{ 'harvest-runs-col-updated' | i18next }}: {{ chunk.updated }}</span>
+                                <span>{{ 'harvest-runs-col-unchanged' | i18next }}: {{ chunk.unchanged }}</span>
+                                <span>{{ 'harvest-runs-col-deleted' | i18next }}: {{ chunk.deleted }}</span>
+                                <span [class.hr-fail-count]="chunk.failed > 0">{{ 'harvest-runs-col-failed' | i18next }}: {{ chunk.failed }}</span>
+                              </div>
+                              @if (chunk.errorMessage) {
+                                <p class="hr-chunk-error">{{ chunk.errorMessage }}</p>
+                              }
+                              @if (chunk.duplicate) {
+                                <span class="hr-tag hr-tag--warning">{{ 'harvest-runs-chunk-duplicate-note' | i18next }}</span>
+                              }
+                            </td>
+                            <td class="hr-table__cell hr-table__cell--muted">
+                              <div>{{ formatDate(chunk.submittedAt) }}</div>
+                              <div>{{ 'harvest-runs-chunk-duration' | i18next }}: {{ getChunkDuration(chunk) }}</div>
+                            </td>
+                            <td class="hr-table__cell">
+                              @if (chunk.id && !chunk.duplicate) {
+                                <button type="button" class="btn btn-link hr-chunk-action" (click)="viewChunkRecords(chunk)" [disabled]="loadingEvents">{{ 'harvest-runs-chunk-view-records' | i18next }}</button>
+                                @if (chunk.failed > 0) {
+                                  <br><button type="button" class="btn btn-link hr-chunk-action" (click)="viewChunkRecords(chunk, true)" [disabled]="loadingEvents">{{ 'harvest-runs-chunk-view-failures' | i18next }}</button>
+                                }
+                              } @else {
+                                <span>—</span>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+                @if (!loadingChunks && chunkResponse.summary.numFound > chunkPageSize) {
+                  <div class="hr-pagination-wrap">
+                    <pagination
+                      [totalItems]="chunkResponse.summary.numFound"
+                      [itemsPerPage]="chunkPageSize"
+                      [(ngModel)]="chunkResponse.summary.page"
+                      [ngModelOptions]="{ standalone: true }"
+                      [maxSize]="10"
+                      [boundaryLinks]="true"
+                      [directionLinks]="false"
+                      class="pagination-sm"
+                      (pageChanged)="onChunkPageChanged($event)">
+                    </pagination>
+                  </div>
+                }
+              </details>
             }
           </section>
         }

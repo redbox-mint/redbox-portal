@@ -1,6 +1,8 @@
 import { APIHarvestResponse, BrandingModel, RecordTypeModel, UserModel } from './model';
 import {
   HarvestRunDetailResult,
+  HarvestRunChunksQuery,
+  HarvestRunChunksResult,
   HarvestRunEventsQuery,
   HarvestRunEventsResult,
   HarvestRunListQuery,
@@ -58,6 +60,12 @@ export class HarvestRunServiceError extends Error {
 }
 
 export interface HarvestRunService {
+  init(): Promise<void>;
+  listRunChunks(
+    brand: BrandingModel,
+    runId: string,
+    params: Partial<HarvestRunChunksQuery>
+  ): Promise<HarvestRunChunksResult>;
   submitCompatibilityRecords(
     brand: BrandingModel,
     recordTypeModel: RecordTypeModel,

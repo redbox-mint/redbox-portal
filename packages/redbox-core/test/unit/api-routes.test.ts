@@ -1346,7 +1346,9 @@ describe('API routes contract layer', function () {
           duplicateChunks: 0,
         },
         chunks: [],
+        chunksTotal: 0,
         events: [],
+        eventsTotal: 0,
         aggregateCounts: {
           totalProcessed: 1,
           created: 1,
@@ -1562,6 +1564,13 @@ describe('API routes contract layer', function () {
     );
     expect(harvestRunDetailSchema.properties).to.have.property('run');
     expect(harvestRunDetailSchema.properties).to.have.property('chunks');
+    expect(harvestRunDetailSchema.properties).to.have.property('chunksTotal');
+    expect(harvestRunDetailSchema.properties).to.have.property('eventsTotal');
+
+    const chunksRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/{id}/chunks']?.get);
+    const chunksSchema = asOpenApiSchema(chunksRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(asOpenApiSchema(chunksSchema.properties?.records).items?.properties).to.have.property('chunkIndex');
+    expect(chunksRoute.responses).to.have.property('404');
 
     const harvestRunEventsRoute = asOpenApiOperation(
       document.paths['/{branding}/{portal}/api/harvest-runs/{id}/events']?.get

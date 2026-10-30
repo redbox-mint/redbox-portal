@@ -129,7 +129,18 @@ export type HarvestRunListQuery = {
   pageSize: number;
 };
 
+export type HarvestRunChunksQuery = {
+  page: number;
+  pageSize: number;
+};
+
+export type HarvestRunChunksResult = {
+  rows: HarvestRunChunkModel[];
+  total: number;
+};
+
 export type HarvestRunEventsQuery = {
+  chunkId?: string;
   runId: string;
   brandId: string;
   outcome?: string;
@@ -153,7 +164,11 @@ export type HarvestRunEventsResult = {
 export type HarvestRunDetailResult = {
   run: HarvestRunModel;
   chunks: HarvestRunChunkModel[];
+  /** Total chunks, including those beyond the first 20 in chunks. */
+  chunksTotal: number;
   events: HarvestRecordEventModel[];
+  /** Total persisted events, including those beyond the first 20 in events. */
+  eventsTotal: number;
   aggregateCounts: HarvestCounterSummary & {
     chunksProcessed: number;
     duplicateChunks: number;

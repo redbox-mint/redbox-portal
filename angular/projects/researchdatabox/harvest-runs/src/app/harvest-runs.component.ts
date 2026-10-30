@@ -1,16 +1,18 @@
-import { Component, Inject } from '@angular/core';
+import { Component, ElementRef, Inject, ViewChild } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { DateTime } from 'luxon';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
-  HarvestRunAggregateCounts,
   HarvestRunApiService,
   HarvestRunDetail,
+  HarvestRunChunkSummary,
   HarvestRunEvent,
   HarvestRunListQuery,
   HarvestRunSummary,
   ListApiResponse,
 } from './harvest-run-api.service';
+
+type EventFilters = { outcome: string; harvestId: string };
 
 type StatusOption = {
   value: string;
@@ -26,6 +28,7 @@ type StatusOption = {
 export class HarvestRunsComponent extends BaseComponent {
   readonly runPageSize = 20;
   readonly eventPageSize = 20;
+  readonly chunkPageSize = 20;
   readonly displayDateFormat = 'dd/MM/yyyy HH:mm';
   readonly statusOptions: StatusOption[] = [
     { value: '', label: 'All' },
@@ -34,6 +37,21 @@ export class HarvestRunsComponent extends BaseComponent {
     { value: 'completed_with_errors', label: 'Completed with errors' },
     { value: 'failed', label: 'Failed' },
   ];
+
+  @ViewChild('recordSection') recordSection?: ElementRef<HTMLElement>;
+  selectedChunk: HarvestRunChunkSummary | null = null;
+  private appliedChunkId = '';
+  readonly eventOutcomes = ['', 'failed', 'created', 'updated', 'deleted', 'unchanged'];
+  eventFilters: EventFilters = { outcome: '', harvestId: '' };
+  private appliedEventFilters: EventFilters = { outcome: '', harvestId: '' };
+  loadingEvents = false;
+  loadingChunks = false;
+  chunkError = '';
+  chunkResponse: ListApiResponse<HarvestRunChunkSummary> = this.emptyListResponse<HarvestRunChunkSummary>();
+  private chunkRequestId = 0;
+  private runRequestId = 0;
+  private loadedRunPage = 0;
+  private loadedChunkPage = 1;
 
   filters: HarvestRunListQuery = this.createEmptyFilters();
   listResponse: ListApiResponse<HarvestRunSummary> = this.emptyListResponse<HarvestRunSummary>();
@@ -44,6 +62,9 @@ export class HarvestRunsComponent extends BaseComponent {
   loadingDetail = false;
   listError = '';
   detailError = '';
+  private detailRequestId = 0;
+  // Pagination updates its bound page before emitting pageChanged.
+  private loadedEventPage = 1;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -70,52 +91,168 @@ export class HarvestRunsComponent extends BaseComponent {
 
   public async selectRun(runId: string): Promise<void> {
     const trimmedRunId = String(runId ?? '').trim();
-    if (!trimmedRunId) {
+    if (!trimmedRunId || (trimmedRunId === this.selectedRunId && (this.loadingDetail || this.selectedRun))) {
       return;
     }
 
+    const requestId = ++this.detailRequestId;
     this.loadingDetail = true;
     this.detailError = '';
     this.selectedRunId = trimmedRunId;
+    this.selectedRun = null;
+    ++this.chunkRequestId;
+    this.loadingChunks = false;
+    this.chunkError = '';
+    this.chunkResponse = this.emptyListResponse<HarvestRunChunkSummary>();
+    this.loadingEvents = false;
+    this.selectedChunk = null;
+    this.appliedChunkId = '';
+    this.eventFilters = { outcome: '', harvestId: '' };
+    this.appliedEventFilters = { ...this.eventFilters };
+    this.eventResponse = this.emptyListResponse<HarvestRunEvent>();
 
     try {
-      const [detail, events] = await Promise.all([
-        this.harvestRunApiService.getRun(trimmedRunId),
-        this.harvestRunApiService.listRunEvents(trimmedRunId, { page: 1, pageSize: this.eventPageSize })
-      ]);
+      const detail = await this.harvestRunApiService.getRun(trimmedRunId);
+      if (requestId !== this.detailRequestId) {
+        return;
+      }
       this.selectedRun = detail;
-      this.eventResponse = events;
+      this.loadedChunkPage = 1;
+      this.chunkResponse = {
+        summary: { numFound: detail.chunksTotal, page: 1, start: 0 },
+        records: detail.chunks
+      };
+      this.loadedEventPage = 1;
+      this.eventResponse = {
+        summary: { numFound: detail.eventsTotal, page: 1, start: 0 },
+        records: detail.events
+      };
     } catch (error) {
-      this.selectedRun = null;
-      this.eventResponse = this.emptyListResponse<HarvestRunEvent>();
+      if (requestId !== this.detailRequestId) {
+        return;
+      }
       this.detailError = this.getErrorMessage(error, 'harvest-runs-error');
       this.loggerService.error(this.detailError);
     } finally {
-      this.loadingDetail = false;
+      if (requestId === this.detailRequestId) {
+        this.loadingDetail = false;
+      }
     }
   }
 
   public async onRunPageChanged(event: PageChangedEvent): Promise<void> {
+    if (this.loadingRuns || event.page === this.loadedRunPage) {
+      return;
+    }
     await this.loadRuns(event.page);
   }
 
-  public async onEventPageChanged(event: PageChangedEvent): Promise<void> {
-    if (!this.selectedRunId) {
+  public async onChunkPageChanged(event: PageChangedEvent): Promise<void> {
+    if (!this.selectedRun || this.loadingChunks || event.page === this.loadedChunkPage) {
       return;
     }
+    const requestId = ++this.chunkRequestId;
+    this.loadingChunks = true;
+    this.chunkError = '';
+    try {
+      const chunks = await this.harvestRunApiService.listRunChunks(this.selectedRunId, event.page, this.chunkPageSize);
+      if (requestId !== this.chunkRequestId) {
+        return;
+      }
+      this.chunkResponse = chunks;
+      this.loadedChunkPage = event.page;
+    } catch (error) {
+      if (requestId !== this.chunkRequestId) {
+        return;
+      }
+      this.chunkResponse.summary.page = this.loadedChunkPage;
+      this.chunkError = this.getErrorMessage(error, 'harvest-runs-chunks-error');
+      this.loggerService.error(this.chunkError);
+    } finally {
+      if (requestId === this.chunkRequestId) {
+        this.loadingChunks = false;
+      }
+    }
+  }
 
-    this.loadingDetail = true;
+  public async applyEventFilters(event?: Event): Promise<void> {
+    event?.preventDefault();
+    if (!this.selectedRun || this.loadingEvents) {
+      return;
+    }
+    const filters = { outcome: this.eventFilters.outcome, harvestId: this.eventFilters.harvestId.trim() };
+    if (!this.detailError && filters.outcome === this.appliedEventFilters.outcome
+      && filters.harvestId === this.appliedEventFilters.harvestId
+      && (this.selectedChunk?.id ?? '') === this.appliedChunkId) {
+      return;
+    }
+    this.appliedEventFilters = filters;
+    this.appliedChunkId = this.selectedChunk?.id ?? '';
+    this.eventResponse = this.emptyListResponse<HarvestRunEvent>();
+    this.loadedEventPage = 0;
+    await this.loadRunEvents(1);
+  }
+
+  public async viewChunkRecords(chunk: HarvestRunChunkSummary, failuresOnly = false): Promise<void> {
+    if (!chunk.id || this.loadingEvents) {
+      return;
+    }
+    this.selectedChunk = chunk;
+    this.eventFilters = { outcome: failuresOnly ? 'failed' : '', harvestId: '' };
+    await this.applyEventFilters();
+    this.recordSection?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  public getChunkDuration(chunk: HarvestRunChunkSummary): string {
+    const start = Date.parse(chunk.submittedAt ?? '');
+    const end = Date.parse(chunk.completedAt ?? '');
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+      return '—';
+    }
+    const seconds = (end - start) / 1000;
+    return seconds < 60 ? `${seconds.toFixed(1)} s` : `${Math.floor(seconds / 60)} min ${Math.round(seconds % 60)} s`;
+  }
+
+  public async clearEventFilters(): Promise<void> {
+    this.selectedChunk = null;
+    this.eventFilters = { outcome: '', harvestId: '' };
+    await this.applyEventFilters();
+  }
+
+  public async onEventPageChanged(event: PageChangedEvent): Promise<void> {
+    if (!this.selectedRun || this.loadingEvents || event.page === this.loadedEventPage) {
+      return;
+    }
+    await this.loadRunEvents(event.page);
+  }
+
+  private async loadRunEvents(page: number): Promise<void> {
+    const requestId = ++this.detailRequestId;
+    this.loadingEvents = true;
     this.detailError = '';
     try {
-      this.eventResponse = await this.harvestRunApiService.listRunEvents(this.selectedRunId, {
-        page: event.page,
+      const events = await this.harvestRunApiService.listRunEvents(this.selectedRunId, {
+        ...this.appliedEventFilters,
+        ...(this.appliedChunkId ? { chunkId: this.appliedChunkId } : {}),
+        page,
         pageSize: this.eventPageSize
       });
+      if (requestId !== this.detailRequestId) {
+        return;
+      }
+      this.eventResponse = events;
+      this.loadedEventPage = page;
     } catch (error) {
+      if (requestId !== this.detailRequestId) {
+        return;
+      }
+      this.eventResponse.summary.page = Math.max(1, this.loadedEventPage);
       this.detailError = this.getErrorMessage(error, 'harvest-runs-error');
       this.loggerService.error(this.detailError);
     } finally {
-      this.loadingDetail = false;
+      if (requestId === this.detailRequestId) {
+        this.loadingEvents = false;
+      }
     }
   }
 
@@ -182,7 +319,7 @@ export class HarvestRunsComponent extends BaseComponent {
   }
 
   public getEventMessage(event: HarvestRunEvent): string {
-    return [event.message, event.details].filter(Boolean).join(' ').trim();
+    return [event.errorCode, event.message, event.details].filter(Boolean).join(' ').trim();
   }
 
   public getRecordUrl(oid?: string): string {
@@ -226,10 +363,11 @@ export class HarvestRunsComponent extends BaseComponent {
   }
 
   private async loadRuns(page: number): Promise<void> {
+    const requestId = ++this.runRequestId;
     this.loadingRuns = true;
     this.listError = '';
     try {
-      this.listResponse = await this.harvestRunApiService.listRuns({
+      const response = await this.harvestRunApiService.listRuns({
         status: this.filters.status,
         recordType: this.filters.recordType,
         sourceName: this.filters.sourceName,
@@ -239,8 +377,22 @@ export class HarvestRunsComponent extends BaseComponent {
         pageSize: this.runPageSize
       });
 
+      if (requestId !== this.runRequestId) {
+        return;
+      }
+      this.listResponse = response;
+      this.loadedRunPage = page;
+
       const runIds = new Set(this.listResponse.records.map(run => String(run.id ?? '').trim()).filter(Boolean));
       if (this.selectedRunId && !runIds.has(this.selectedRunId)) {
+        ++this.detailRequestId;
+        this.loadingDetail = false;
+        this.loadingEvents = false;
+        ++this.chunkRequestId;
+        this.loadingChunks = false;
+        this.chunkResponse = this.emptyListResponse<HarvestRunChunkSummary>();
+        this.chunkError = '';
+        this.detailError = '';
         this.selectedRunId = '';
         this.selectedRun = null;
         this.eventResponse = this.emptyListResponse<HarvestRunEvent>();
@@ -253,11 +405,16 @@ export class HarvestRunsComponent extends BaseComponent {
         }
       }
     } catch (error) {
+      if (requestId !== this.runRequestId) {
+        return;
+      }
       this.listError = this.getErrorMessage(error, 'harvest-runs-error');
-      this.listResponse = this.emptyListResponse<HarvestRunSummary>();
+      this.listResponse.summary.page = this.loadedRunPage || 1;
       this.loggerService.error(this.listError);
     } finally {
-      this.loadingRuns = false;
+      if (requestId === this.runRequestId) {
+        this.loadingRuns = false;
+      }
     }
   }
 
