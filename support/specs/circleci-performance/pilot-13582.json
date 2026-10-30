@@ -4,8 +4,8 @@
   "workflow_id": "ffa2773c-757c-4685-8da9-54656b16cf9f",
   "revision": "3abb4a0289f2ace0293016cea6578190ae16e4d3",
   "created_at": "2026-10-30T21:11:53Z",
-  "measured_at": "2026-10-30T21:16:59.801Z",
-  "scope": "Independent test jobs and API documentation only; image-based suites and publication are excluded.",
+  "independent_checks_observed_at": "2026-10-30T21:16:59.801Z",
+  "independent_comparison_scope": "Independent test jobs and API documentation only; image-based suites and publication are excluded from that comparison.",
   "independent_checks": {
     "count": 26,
     "all_success": true,
@@ -196,6 +196,7 @@
     ]
   },
   "pdf_preparation": {
+    "observed_at": "2026-10-30T21:31:14Z",
     "job_number": 199518,
     "status": "success",
     "started_at": "2026-10-30T21:12:10.222Z",
@@ -206,6 +207,7 @@
     "note": "Single chore-branch pilot; this does not measure production publication."
   },
   "test_image_preparation": {
+    "observed_at": "2026-10-30T21:31:14Z",
     "job_number": 199503,
     "status": "success",
     "started_at": "2026-10-30T21:12:11Z",
@@ -220,18 +222,51 @@
       "angular": 216,
       "webpack": 88.2,
       "test_dependency_snapshot": 25.2,
-      "production_dependency_install": 90.9,
-      "test_dependency_copy": 43.2
+      "production_dependency_removal_and_install": 90.9,
+      "test_root_dependency_copy": 43.2,
+      "test_package_dependency_copy": 60.4
     },
     "note": "Five image-dependent checks started after this job completed."
   },
-  "workflow_status": "running",
+  "workflow_status": "success",
+  "workflow_stopped_at": "2026-10-30T21:34:03Z",
+  "workflow_elapsed_seconds": 1330,
+  "all_checks_elapsed_seconds": 1321,
+  "all_checks_note": "Last check was test-mocha. This single chore workflow excludes production publication and is not a matched cohort or a median.",
   "all_checks_target_observation": {
     "observed_at": "2026-10-30T21:25:11Z",
     "target_seconds": 720,
     "elapsed_seconds": 798,
     "result": "missed",
     "reason": "The build remained running and all five image-dependent checks were blocked more than 12 minutes after workflow creation. The final check duration is not yet available."
+  },
+  "integration_setup_observation": {
+    "observed_at": "2026-10-30T21:37:38Z",
+    "note": "Each job attaches and loads its own image before installing host dependencies; these are individual job timings, not cumulative workflow time.",
+    "mocha": { "workspace_attach_seconds": 16.88, "image_load_seconds": 52.533, "npm_cache_restore_seconds": 20.329, "host_npm_install_seconds": 25.231, "host_compile_seconds": 53.609, "test_step_seconds": 226.783 },
+    "playwright": { "workspace_attach_seconds": 16.344, "image_load_seconds": 52.954, "npm_cache_restore_seconds": 19.733 },
+    "bruno_general": { "workspace_attach_seconds": 16.22, "image_load_seconds": 52.028, "npm_cache_restore_seconds": 18.929 }
+  },
+  "completed_image_checks": [
+    { "name": "test-bruno-oidc", "job_number": 199511, "status": "success", "started_at": "2026-10-30T21:27:05Z", "stopped_at": "2026-10-30T21:31:40Z", "execution_seconds": 275, "test_counts": { "success": 17 } },
+    { "name": "test-bruno-s3", "job_number": 199504, "status": "success", "started_at": "2026-10-30T21:27:05Z", "stopped_at": "2026-10-30T21:31:41Z", "execution_seconds": 276, "test_counts": { "success": 12 } }
+  ],
+  "bruno_test_count_comparison": {
+    "baseline_workflow_id": "11433aad-8849-4ace-892f-cd0a07d26d30",
+    "oidc": { "baseline_job_number": 199052, "baseline_success": 17, "pilot_success": 17 },
+    "s3": { "baseline_job_number": 199033, "baseline_success": 12, "pilot_success": 12 },
+    "note": "CircleCI test-result API counts from one historical workflow; this does not establish coverage equivalence."
+  },
+  "other_image_test_count_comparison": {
+    "baseline_workflow_id": "11433aad-8849-4ace-892f-cd0a07d26d30",
+    "bruno_general": { "baseline_job_number": 199047, "pilot_job_number": 199519, "baseline_success": 534, "pilot_success": 534 },
+    "mocha": { "baseline_job_number": 199037, "pilot_job_number": 199515, "baseline_success": 444, "pilot_success": 444 },
+    "playwright": { "baseline_job_number": 199043, "pilot_job_number": 199505, "baseline_success": 19, "pilot_success": 19 },
+    "note": "CircleCI test-result API counts from one historical workflow; matching counts do not establish coverage equivalence."
+  },
+  "coverage_comparison": {
+    "status": "unverified",
+    "note": "The public CircleCI artifact listings for baseline and pilot Mocha jobs contain no artifacts; the Playwright listings contain reports and storage state but no LCOV file. Test-count parity is not coverage parity."
   },
   "comparison": {
     "baseline_independent_seconds": [
