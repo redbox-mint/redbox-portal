@@ -1,10 +1,44 @@
+commands:
+  checkout-validation-source:
+    steps:
+      - checkout
+      - when:
+          condition:
+            matches:
+              pattern: "^dependabot.*"
+              value: << pipeline.git.branch >>
+          steps:
+            - attach_workspace:
+                at: /tmp
+      - use-refreshed-revision
+  use-refreshed-revision:
+    steps:
+      - when:
+          condition:
+            matches:
+              pattern: "^dependabot.*"
+              value: << pipeline.git.branch >>
+          steps:
+            - run:
+                name: Check out exact refreshed Dependabot revision
+                command: |
+                  revision=$(cat /tmp/source-revision/revision)
+                  [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+                  git fetch origin "$revision"
+                  git checkout --detach "$revision"
+                  test "$(git rev-parse HEAD)" = "$revision"
+                  # Codecov and provenance must identify the source actually tested.
+                  printf 'export CI_PIPELINE_REVISION=%q\n' "$CIRCLE_SHA1" >> "$BASH_ENV"
+                  printf 'export CIRCLE_SHA1=%q\n' "$revision" >> "$BASH_ENV"
 jobs:
   build:
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
+    environment:
+      CI_RESOURCE_CLASS: large
     steps:
-      - checkout
+      - checkout-validation-source
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -22,6 +56,9 @@ jobs:
       - run:
           name: Test Docker tag handling
           command: bash support/build/docker-build-vars.test.sh
+      - run:
+          name: Test CI scheduling and measurement contracts
+          command: node --test support/build/circleci-config.test.cjs support/build/ci-performance.test.cjs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -31,7 +68,7 @@ jobs:
           name: Build test image via Dockerfile
           no_output_timeout: 30m
           command: |
-            docker build \
+            node support/build/ci-performance.cjs run docker-build -- docker build \
               --progress plain \
               --target test \
               --tag redbox-portal:test \
@@ -39,18 +76,29 @@ jobs:
       - run:
           name: Save Docker image
           command: |
-            mkdir -p /tmp/docker-images
-            docker save -o /tmp/docker-images/redbox-portal-test.tar redbox-portal:test
+            mkdir -p /tmp/docker-images/test
+            node support/build/ci-performance.cjs run docker-save --artifact /tmp/docker-images/test/redbox-portal-test.tar -- \
+              docker save -o /tmp/docker-images/test/redbox-portal-test.tar redbox-portal:test
+      - store_artifacts:
+          path: .tmp/ci-performance
+          destination: ci-performance
+      # Concurrent image producers persist disjoint files and directories.
       - persist_to_workspace:
           root: /tmp
           paths:
-            - docker-images/redbox-portal-test.tar
+            - docker-images/test/redbox-portal-test.tar
+  validation-complete:
+    docker:
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+    resource_class: small
+    steps:
+      - run: echo 'All enabled validation jobs passed.'
   generate-api-docs:
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
     steps:
-      - checkout
+      - checkout-validation-source
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -128,17 +176,28 @@ jobs:
 
             git commit -m 'Build(deps): refresh package locks'
             git push origin "HEAD:${CIRCLE_BRANCH}"
+      - run:
+          name: Record refreshed source revision
+          command: |
+            mkdir -p /tmp/source-revision
+            git rev-parse HEAD > /tmp/source-revision/revision
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - source-revision/revision
   build-runtime-pdfgen:
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
+    environment:
+      CI_RESOURCE_CLASS: large
     steps:
       - checkout
       - setup_remote_docker
       - run:
           name: Build runtime_pdfgen image via Dockerfile
           command: |
-            docker build \
+            node support/build/ci-performance.cjs run docker-build -- docker build \
               --progress plain \
               --target runtime_pdfgen \
               --tag redbox-portal:runtime-pdfgen-test \
@@ -146,12 +205,17 @@ jobs:
       - run:
           name: Save Docker image
           command: |
-            mkdir -p /tmp/docker-images
-            docker save -o /tmp/docker-images/redbox-portal-runtime-pdfgen-test.tar redbox-portal:runtime-pdfgen-test
+            mkdir -p /tmp/docker-images/pdfgen
+            node support/build/ci-performance.cjs run docker-save --artifact /tmp/docker-images/pdfgen/redbox-portal-runtime-pdfgen-test.tar -- \
+              docker save -o /tmp/docker-images/pdfgen/redbox-portal-runtime-pdfgen-test.tar redbox-portal:runtime-pdfgen-test
+      - store_artifacts:
+          path: .tmp/ci-performance
+          destination: ci-performance
+      # Concurrent image producers persist disjoint files and directories.
       - persist_to_workspace:
           root: /tmp
           paths:
-            - docker-images/redbox-portal-runtime-pdfgen-test.tar
+            - docker-images/pdfgen/redbox-portal-runtime-pdfgen-test.tar
   test-bruno-general:
     machine:
       image: ubuntu-2404:current
@@ -175,9 +239,11 @@ jobs:
             printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
       - attach_workspace:
           at: /tmp
+      # Reuse the image workspace for the refreshed revision; do not download it twice.
+      - use-refreshed-revision
       - run:
           name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -261,9 +327,11 @@ jobs:
       - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
+      # Reuse the image workspace for the refreshed revision; do not download it twice.
+      - use-refreshed-revision
       - run:
           name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -318,9 +386,11 @@ jobs:
       - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
+      # Reuse the image workspace for the refreshed revision; do not download it twice.
+      - use-refreshed-revision
       - run:
           name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -375,9 +445,11 @@ jobs:
       - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
+      # Reuse the image workspace for the refreshed revision; do not download it twice.
+      - use-refreshed-revision
       - run:
           name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -436,9 +508,11 @@ jobs:
       - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
+      # Reuse the image workspace for the refreshed revision; do not download it twice.
+      - use-refreshed-revision
       - run:
           name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -495,7 +569,7 @@ jobs:
       npm_config_fetch_timeout: "60000"
       npm_config_loglevel: http
     steps:
-      - checkout
+      - checkout-validation-source
       - run: *usePatchedNode
       - restore_cache:
           keys:
@@ -535,10 +609,8 @@ jobs:
       image: ubuntu-2404:current
     resource_class: large
     steps:
-      - checkout
+      - checkout-validation-source
       - run: *usePatchedNode
-      - attach_workspace:
-          at: /tmp
       - run:
           <<: *installCodecov
       - run:
@@ -580,10 +652,8 @@ jobs:
       NAMED_QUERY_TEST_MONGO_URL: mongodb://127.0.0.1:27028
       HARVEST_MONGO_TEST_URL: mongodb://127.0.0.1:27028
     steps:
-      - checkout
+      - checkout-validation-source
       - run: *usePatchedNode
-      - attach_workspace:
-          at: /tmp
       - run:
           name: Start MongoDB for core integration tests
           command: |
@@ -638,7 +708,7 @@ jobs:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: medium
     steps:
-      - checkout
+      - checkout-validation-source
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -676,7 +746,7 @@ jobs:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: medium
     steps:
-      - checkout
+      - checkout-validation-source
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -714,7 +784,7 @@ jobs:
       image: ubuntu-2404:current
     resource_class: medium
     steps:
-      - checkout
+      - checkout-validation-source
       - run: *usePatchedNode
       - run:
           <<: *installCodecov
@@ -774,7 +844,7 @@ jobs:
     environment:
       MONGO_TEST_URL: mongodb://127.0.0.1:27017
     steps:
-      - checkout
+      - checkout-validation-source
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -961,7 +1031,7 @@ jobs:
       - run:
           name: Publish amd64 runtime image
           command: |
-            docker load -i /tmp/docker-images/redbox-portal-test.tar
+            docker load -i /tmp/docker-images/test/redbox-portal-test.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
             source support/build/docker-build-vars.sh
             docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
@@ -1021,7 +1091,7 @@ jobs:
       - run:
           name: Load and push pdfgen image
           command: |
-            docker load -i /tmp/docker-images/redbox-portal-runtime-pdfgen-test.tar
+            docker load -i /tmp/docker-images/pdfgen/redbox-portal-runtime-pdfgen-test.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
             source support/build/docker-build-vars.sh
 
@@ -1177,8 +1247,6 @@ workflows:
             branches:
               ignore: /^dependabot.*/
       - generate-api-docs:
-          requires:
-            - build
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -1200,27 +1268,41 @@ workflows:
               only: master
             tags:
               ignore: /.*/
+      # Build-only pilot on the chore branch; publication filters below stay unchanged.
       - build-runtime-pdfgen:
+          filters:
+            branches:
+              only: /^(master|develop|support\/.*|chore\/circleci-performance)$/
+      - test-bruno-general:
           requires:
             - build
           filters:
             branches:
-              only: /^(master|develop|support\/.*)$/
-      - test-bruno-general:
-          requires:
-            - build
+              ignore: /^dependabot.*/
       - test-bruno-oidc:
           requires:
             - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-bruno-s3:
           requires:
             - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-playwright:
           requires:
             - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-mocha:
           requires:
             - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-angular:
           name: test-angular-<< matrix.angular_app >>
           matrix:
@@ -1246,41 +1328,54 @@ workflows:
                 - branding
                 - translation
                 - record-search
-          requires:
-            - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-sails-ng-common:
-          requires:
-            - build
-      # - lint-redbox-core:
-      #     requires:
-      #       - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-redbox-core:
-          requires:
-            - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-agenda-sqs-backend:
-          requires:
-            - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-rva-registry:
-          requires:
-            - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-redbox-dev-tools-cli:
-          requires:
-            - build
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test-storage-mongo:
-          requires:
-            - build
-      - deploy-arm64:
-          requires:
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - validation-complete:
+          requires: &validation-jobs
+            - generate-api-docs
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
+            - test-playwright
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
             - test-agenda-sqs-backend
+            - test-rva-registry
             - test-redbox-dev-tools-cli
             - test-storage-mongo
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - deploy-arm64:
+          requires:
+            - validation-complete
           filters:
             branches:
               only: /^(master|develop|support\/.*)$/
@@ -1293,48 +1388,21 @@ workflows:
               only: /^(master|develop|support\/.*)$/
       - deploy:
           requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
+            - validation-complete
           filters:
             branches:
               only: /^(master|develop|support\/.*)$/
       - deploy-runtime-pdfgen:
           requires:
             - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
+            - validation-complete
           filters:
             branches:
               only: /^(master|develop|support\/.*)$/
       - deploy-runtime-pdfgen-arm64:
           requires:
             - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
+            - validation-complete
           filters:
             branches:
               only: /^(master|develop|support\/.*)$/
@@ -1367,7 +1435,7 @@ workflows:
               ignore: /.*/
       - generate-api-docs:
           requires:
-            - build
+            - refresh-dependabot-package-locks
           filters:
             branches:
               only: /^dependabot.*/
@@ -1376,18 +1444,43 @@ workflows:
       - test-bruno-general:
           requires:
             - build
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-bruno-oidc:
           requires:
             - build
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-bruno-s3:
           requires:
             - build
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-playwright:
           requires:
             - build
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-mocha:
           requires:
             - build
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-angular:
           name: test-angular-<< matrix.angular_app >>
           matrix:
@@ -1414,25 +1507,60 @@ workflows:
                 - translation
                 - record-search
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-sails-ng-common:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-redbox-core:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-agenda-sqs-backend:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-rva-registry:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-redbox-dev-tools-cli:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test-storage-mongo:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -1476,16 +1604,12 @@ workflows:
             branches:
               ignore: /.*/
       - generate-api-docs:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - build-runtime-pdfgen:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
@@ -1508,6 +1632,14 @@ workflows:
             branches:
               ignore: /.*/
       - test-bruno-s3:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-playwright:
           requires:
             - build
           filters:
@@ -1548,56 +1680,49 @@ workflows:
                 - branding
                 - translation
                 - record-search
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-sails-ng-common:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-redbox-core:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-agenda-sqs-backend:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-rva-registry:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-redbox-dev-tools-cli:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-storage-mongo:
-          requires:
-            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - validation-complete:
+          requires: *validation-jobs
           filters:
             tags:
               only: /^v.*/
@@ -1605,15 +1730,7 @@ workflows:
               ignore: /.*/
       - deploy-arm64:
           requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
+            - validation-complete
           filters:
             tags:
               only: /^v.*/
@@ -1621,15 +1738,7 @@ workflows:
               ignore: /.*/
       - deploy:
           requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
+            - validation-complete
           filters:
             tags:
               only: /^v.*/
@@ -1647,15 +1756,7 @@ workflows:
       - deploy-runtime-pdfgen:
           requires:
             - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
+            - validation-complete
           filters:
             tags:
               only: /^v.*/
@@ -1664,15 +1765,7 @@ workflows:
       - deploy-runtime-pdfgen-arm64:
           requires:
             - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-storage-mongo
+            - validation-complete
           filters:
             tags:
               only: /^v.*/
@@ -1694,17 +1787,7 @@ workflows:
           context:
             - npm-publish
           requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-rva-registry
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
+            - validation-complete
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
@@ -1718,17 +1801,7 @@ workflows:
           context:
             - npm-publish
           requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-rva-registry
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
+            - validation-complete
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+-[Rr][Cc][0-9]+$/

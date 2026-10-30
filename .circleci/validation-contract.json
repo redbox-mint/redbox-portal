@@ -1,0 +1,793 @@
+{
+  "description": "Pre-scheduling suite commands (including failure and coverage behavior), reports, matrices, and event filters. New release Playwright and validation gate are tested separately.",
+  "tests": {
+    "test-bruno-general": {
+      "runs": [
+        {
+          "name": "Run Bruno General tests",
+          "no_output_timeout": "30m",
+          "command": "BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:general:ci"
+        },
+        {
+          "name": "Upload Bruno General code coverage",
+          "command": "sudo chmod -R a+rwX ./coverage\nnode support/unit-testing/codecov/prepare-report.cjs \"./coverage/bruno-general/lcov.info\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-bruno-general\" --file \"./coverage/bruno-general/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [
+        ".tmp/junit"
+      ],
+      "artifacts": []
+    },
+    "test-bruno-oidc": {
+      "runs": [
+        {
+          "name": "Run Bruno OIDC tests",
+          "no_output_timeout": "30m",
+          "command": "BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:oidc:ci"
+        },
+        {
+          "name": "Upload Bruno OIDC code coverage",
+          "command": "sudo chmod -R a+rwX ./coverage\nnode support/unit-testing/codecov/prepare-report.cjs \"./coverage/bruno-oidc/lcov.info\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-bruno-oidc\" --file \"./coverage/bruno-oidc/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [
+        ".tmp/junit"
+      ],
+      "artifacts": []
+    },
+    "test-bruno-s3": {
+      "runs": [
+        {
+          "name": "Run Bruno S3 attachment storage tests",
+          "no_output_timeout": "30m",
+          "command": "BRUNO_POST_SLEEP_SECONDS=180 timeout 1800s npm run test:bruno:s3:ci"
+        },
+        {
+          "name": "Upload Bruno S3 code coverage",
+          "command": "sudo chmod -R a+rwX ./coverage\nnode support/unit-testing/codecov/prepare-report.cjs \"./coverage/bruno-s3/lcov.info\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-bruno-s3\" --file \"./coverage/bruno-s3/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [
+        ".tmp/junit"
+      ],
+      "artifacts": []
+    },
+    "test-playwright": {
+      "runs": [
+        {
+          "name": "Run Playwright browser smoke tests",
+          "no_output_timeout": "30m",
+          "command": "timeout 1800s npm run test:playwright:ci"
+        },
+        {
+          "name": "Upload Playwright code coverage",
+          "command": "sudo chmod -R a+rwX ./coverage\nnode support/unit-testing/codecov/prepare-report.cjs \"./coverage/playwright/lcov.info\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-playwright\" --file \"./coverage/playwright/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [
+        ".tmp/junit"
+      ],
+      "artifacts": [
+        ".tmp/playwright"
+      ]
+    },
+    "test-mocha": {
+      "runs": [
+        {
+          "name": "Run Mocha tests",
+          "no_output_timeout": "30m",
+          "command": "timeout 1800s npm run test:mocha:ci"
+        },
+        {
+          "name": "Upload Mocha code coverage",
+          "command": "sudo chmod -R a+rwX ./coverage\nnode support/unit-testing/codecov/prepare-report.cjs \"./coverage/mocha/lcov.info\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-mocha\" --file \"./coverage/mocha/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [
+        ".tmp/junit"
+      ],
+      "artifacts": []
+    },
+    "test-angular": {
+      "runs": [
+        {
+          "name": "Run Angular tests",
+          "no_output_timeout": "30m",
+          "command": "chmod +x support/unit-testing/angular/testAngular.sh\nsource support/unit-testing/angular/testAngular.sh \"<< parameters.angular_app >>\"\n"
+        }
+      ],
+      "junit": [
+        ".tmp/junit"
+      ],
+      "artifacts": []
+    },
+    "test-sails-ng-common": {
+      "runs": [
+        {
+          "name": "Run Mocha tests",
+          "no_output_timeout": "30m",
+          "command": "cd ./packages/sails-ng-common\nnpm run test:compile\nnpm run test:prepare\nnpx nyc --no-clean --report-dir ./coverage/sails-ng-common --reporter=lcov --exclude-after-remap=false \\\n  npx mocha --config test/unit/.mocharc.js --exit dist/test/unit/**/*.test.js\n"
+        },
+        {
+          "name": "Upload Mocha code coverage",
+          "command": "cd ./packages/sails-ng-common\nnode ../../support/unit-testing/codecov/prepare-report.cjs \\\n  \"./coverage/sails-ng-common/lcov.info\" \"packages/sails-ng-common\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-sails-ng-common\" --file \"./coverage/sails-ng-common/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [
+        "packages/sails-ng-common/support/junit"
+      ],
+      "artifacts": []
+    },
+    "test-redbox-core": {
+      "runs": [
+        {
+          "name": "Type-check Effect integrations and tests",
+          "command": "nvm install && npm --prefix packages/redbox-core run typecheck:effect"
+        },
+        {
+          "name": "Verify record-contract coverage",
+          "command": "nvm install && npm run test:record-contracts"
+        },
+        {
+          "name": "Run Mocha tests with coverage",
+          "no_output_timeout": "30m",
+          "command": "cd ./packages/redbox-core\nmkdir -p support/junit\nnvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core --reporter=lcov --exclude-after-remap=false \\\n  npx mocha --config .mocharc.js --exit test/**/*.test.ts\n"
+        },
+        {
+          "name": "Upload redbox-core code coverage",
+          "command": "cd ./packages/redbox-core\nnode ../../support/unit-testing/codecov/prepare-report.cjs \\\n  \"./coverage/redbox-core/lcov.info\" \"packages/redbox-core\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-redbox-core\" --file \"./coverage/redbox-core/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [
+        "packages/redbox-core/support/junit"
+      ],
+      "artifacts": []
+    },
+    "test-agenda-sqs-backend": {
+      "runs": [
+        {
+          "name": "Run agenda SQS backend tests with coverage",
+          "command": "cd ./packages/agenda-sqs-backend\nnpm run test:coverage\n"
+        },
+        {
+          "name": "Upload agenda SQS backend code coverage",
+          "command": "cd ./packages/agenda-sqs-backend\nnode ../../support/unit-testing/codecov/prepare-report.cjs \\\n  \"./coverage/agenda-sqs-backend/lcov.info\" \"packages/agenda-sqs-backend\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-agenda-sqs\" --file \"./coverage/agenda-sqs-backend/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [],
+      "artifacts": []
+    },
+    "test-rva-registry": {
+      "runs": [
+        {
+          "name": "Run deterministic RVA registry client tests with coverage",
+          "command": "cd ./packages/rva-registry\nnpm run test:coverage\n"
+        },
+        {
+          "name": "Upload RVA registry code coverage",
+          "command": "cd ./packages/rva-registry\nnode ../../support/unit-testing/codecov/prepare-report.cjs \\\n  \"./coverage/rva-registry/lcov.info\" \"packages/rva-registry\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-rva-registry\" --file \"./coverage/rva-registry/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [],
+      "artifacts": []
+    },
+    "test-redbox-dev-tools-cli": {
+      "runs": [
+        {
+          "name": "Run hook-kit CLI tests with coverage",
+          "no_output_timeout": "30m",
+          "command": "nvm install\ncd ./packages/redbox-dev-tools\nmkdir -p coverage/redbox-dev-tools\nmkdir -p support/junit\nstatus=0\nTS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/nyc --no-clean --report-dir ./coverage/redbox-dev-tools --reporter=lcov --exclude-after-remap=false \\\n  npm test || status=$?\nif [ \"$status\" -ne 0 ]; then\n  echo \"redbox-dev-tools tests failed with status $status\"\n  echo \"----- support/junit/mocha.xml -----\"\n  cat support/junit/mocha.xml || true\n  echo \"----- re-running with spec reporter for diagnostics -----\"\n  CI=false TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register ./node_modules/mocha/bin/_mocha --exit test/**/*.test.ts || true\nfi\nexit \"$status\"\n"
+        },
+        {
+          "name": "Upload redbox-dev-tools CLI code coverage",
+          "command": "cd ./packages/redbox-dev-tools\nnode ../../support/unit-testing/codecov/prepare-report.cjs \\\n  \"./coverage/redbox-dev-tools/lcov.info\" \"packages/redbox-dev-tools\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-redbox-dev-tools-cli\" --file \"./coverage/redbox-dev-tools/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [
+        "packages/redbox-dev-tools/support/junit"
+      ],
+      "artifacts": []
+    },
+    "test-storage-mongo": {
+      "runs": [
+        {
+          "name": "Test Agenda watchdog cleanup with real MongoDB and SQS repository jobs",
+          "command": "AGENDA_TEST_MONGO_URL=\"$MONGO_TEST_URL/agenda_watchdog\" npm run test:agenda-watchdog"
+        },
+        {
+          "name": "Run storage-mongo package tests with coverage",
+          "command": "cd ./packages/sails-hook-redbox-storage-mongo\nnpm run test:coverage\n"
+        },
+        {
+          "name": "Upload storage-mongo code coverage",
+          "command": "cd ./packages/sails-hook-redbox-storage-mongo\nnode ../../support/unit-testing/codecov/prepare-report.cjs \\\n  \"./coverage/storage-mongo/lcov.info\" \"packages/sails-hook-redbox-storage-mongo\"\n/tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \\\n --network-root-folder \"$(git rev-parse --show-toplevel)\" \\\n --token \"${CODECOV_TOKEN}\" --name \"job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}\" \\\n --flag \"backend-storage-mongo\" --file \"./coverage/storage-mongo/lcov.info\" --branch \"${CIRCLE_TAG:-$CIRCLE_BRANCH}\"\n",
+          "when": "always"
+        }
+      ],
+      "junit": [],
+      "artifacts": []
+    }
+  },
+  "workflows": {
+    "build_test_gendocs_and_deploy": [
+      {
+        "job": "build",
+        "filters": {
+          "branches": {
+            "ignore": "/^dependabot.*/"
+          }
+        }
+      },
+      {
+        "job": "generate-api-docs",
+        "filters": {
+          "branches": {
+            "ignore": "/^dependabot.*/"
+          }
+        }
+      },
+      {
+        "job": "publish-wiki",
+        "filters": {
+          "branches": {
+            "only": "master"
+          },
+          "tags": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "generate-docs",
+        "filters": {
+          "branches": {
+            "only": "master"
+          },
+          "tags": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "build-runtime-pdfgen",
+        "filters": {
+          "branches": {
+            "only": "/^(master|develop|support\\/.*)$/"
+          }
+        }
+      },
+      {
+        "job": "test-bruno-general"
+      },
+      {
+        "job": "test-bruno-oidc"
+      },
+      {
+        "job": "test-bruno-s3"
+      },
+      {
+        "job": "test-playwright"
+      },
+      {
+        "job": "test-mocha"
+      },
+      {
+        "job": "test-angular",
+        "name": "test-angular-<< matrix.angular_app >>",
+        "matrix": {
+          "alias": "test-angular",
+          "parameters": {
+            "angular_app": [
+              "portal-ng-common",
+              "local-auth",
+              "export",
+              "dashboard",
+              "report",
+              "report-config",
+              "manage-users",
+              "record-audit",
+              "admin-vocabulary",
+              "dashboard-config-editor",
+              "named-query-editor",
+              "manage-roles",
+              "form",
+              "app-config",
+              "deleted-records",
+              "harvest-runs",
+              "branding",
+              "translation",
+              "record-search"
+            ]
+          }
+        }
+      },
+      {
+        "job": "test-sails-ng-common"
+      },
+      {
+        "job": "test-redbox-core"
+      },
+      {
+        "job": "test-agenda-sqs-backend"
+      },
+      {
+        "job": "test-rva-registry"
+      },
+      {
+        "job": "test-redbox-dev-tools-cli"
+      },
+      {
+        "job": "test-storage-mongo"
+      },
+      {
+        "job": "deploy-arm64",
+        "filters": {
+          "branches": {
+            "only": "/^(master|develop|support\\/.*)$/"
+          }
+        }
+      },
+      {
+        "job": "publish-manifest",
+        "filters": {
+          "branches": {
+            "only": "/^(master|develop|support\\/.*)$/"
+          }
+        }
+      },
+      {
+        "job": "deploy",
+        "filters": {
+          "branches": {
+            "only": "/^(master|develop|support\\/.*)$/"
+          }
+        }
+      },
+      {
+        "job": "deploy-runtime-pdfgen",
+        "filters": {
+          "branches": {
+            "only": "/^(master|develop|support\\/.*)$/"
+          }
+        }
+      },
+      {
+        "job": "deploy-runtime-pdfgen-arm64",
+        "filters": {
+          "branches": {
+            "only": "/^(master|develop|support\\/.*)$/"
+          }
+        }
+      },
+      {
+        "job": "publish-runtime-pdfgen-manifest",
+        "filters": {
+          "branches": {
+            "only": "/^(master|develop|support\\/.*)$/"
+          }
+        }
+      }
+    ],
+    "build_test_dependabot": [
+      {
+        "job": "refresh-dependabot-package-locks",
+        "filters": {
+          "branches": {
+            "only": "/^dependabot.*/"
+          },
+          "tags": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "build",
+        "filters": {
+          "branches": {
+            "only": "/^dependabot.*/"
+          },
+          "tags": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "generate-api-docs",
+        "filters": {
+          "branches": {
+            "only": "/^dependabot.*/"
+          },
+          "tags": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-bruno-general"
+      },
+      {
+        "job": "test-bruno-oidc"
+      },
+      {
+        "job": "test-bruno-s3"
+      },
+      {
+        "job": "test-playwright"
+      },
+      {
+        "job": "test-mocha"
+      },
+      {
+        "job": "test-angular",
+        "name": "test-angular-<< matrix.angular_app >>",
+        "matrix": {
+          "alias": "test-angular",
+          "parameters": {
+            "angular_app": [
+              "portal-ng-common",
+              "local-auth",
+              "export",
+              "dashboard",
+              "report",
+              "report-config",
+              "manage-users",
+              "record-audit",
+              "admin-vocabulary",
+              "dashboard-config-editor",
+              "named-query-editor",
+              "manage-roles",
+              "form",
+              "app-config",
+              "deleted-records",
+              "harvest-runs",
+              "branding",
+              "translation",
+              "record-search"
+            ]
+          }
+        }
+      },
+      {
+        "job": "test-sails-ng-common"
+      },
+      {
+        "job": "test-redbox-core"
+      },
+      {
+        "job": "test-agenda-sqs-backend"
+      },
+      {
+        "job": "test-rva-registry"
+      },
+      {
+        "job": "test-redbox-dev-tools-cli"
+      },
+      {
+        "job": "test-storage-mongo"
+      },
+      {
+        "job": "deploy-arm64",
+        "filters": {
+          "branches": {
+            "ignore": "/^dependabot.*/"
+          }
+        }
+      },
+      {
+        "job": "deploy",
+        "filters": {
+          "branches": {
+            "ignore": "/^dependabot.*/"
+          }
+        }
+      }
+    ],
+    "release_build_test_gendocs_and_deploy": [
+      {
+        "job": "build",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "generate-api-docs",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "build-runtime-pdfgen",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-bruno-general",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-bruno-oidc",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-bruno-s3",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-mocha",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-angular",
+        "name": "test-angular-<< matrix.angular_app >>",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        },
+        "matrix": {
+          "alias": "test-angular",
+          "parameters": {
+            "angular_app": [
+              "portal-ng-common",
+              "local-auth",
+              "export",
+              "dashboard",
+              "report",
+              "report-config",
+              "manage-users",
+              "record-audit",
+              "admin-vocabulary",
+              "dashboard-config-editor",
+              "named-query-editor",
+              "manage-roles",
+              "form",
+              "app-config",
+              "deleted-records",
+              "harvest-runs",
+              "branding",
+              "translation",
+              "record-search"
+            ]
+          }
+        }
+      },
+      {
+        "job": "test-sails-ng-common",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-redbox-core",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-agenda-sqs-backend",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-rva-registry",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-redbox-dev-tools-cli",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "test-storage-mongo",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "deploy-arm64",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "deploy",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "publish-manifest",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "deploy-runtime-pdfgen",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "deploy-runtime-pdfgen-arm64",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "publish-runtime-pdfgen-manifest",
+        "filters": {
+          "tags": {
+            "only": "/^v.*/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "npm-publish-backend",
+        "filters": {
+          "tags": {
+            "only": "/^v[0-9]+\\.[0-9]+\\.[0-9]+$/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      },
+      {
+        "job": "npm-publish-backend",
+        "name": "npm-publish-backend-rc",
+        "filters": {
+          "tags": {
+            "only": "/^v[0-9]+\\.[0-9]+\\.[0-9]+-[Rr][Cc][0-9]+$/"
+          },
+          "branches": {
+            "ignore": "/.*/"
+          }
+        }
+      }
+    ],
+    "docker_manual_publish": [
+      {
+        "job": "publish-runtime-amd64"
+      },
+      {
+        "job": "publish-runtime-arm64"
+      },
+      {
+        "job": "publish-manifest"
+      },
+      {
+        "job": "publish-runtime-pdfgen-amd64"
+      },
+      {
+        "job": "publish-runtime-pdfgen-arm64"
+      },
+      {
+        "job": "publish-runtime-pdfgen-manifest"
+      }
+    ],
+    "npm_beta_publish": [
+      {
+        "job": "npm-publish-backend"
+      }
+    ]
+  }
+}

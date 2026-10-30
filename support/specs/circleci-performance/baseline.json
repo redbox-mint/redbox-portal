@@ -1,0 +1,1306 @@
+{
+  "repository": "redbox-mint/redbox-portal",
+  "branch": "develop",
+  "source_revision": "6e9f227e7e4401ba64457ea7c54802b0da19f692",
+  "collected_on": "2026-10-31 Australia/Adelaide",
+  "sources": [
+    "https://circleci.com/api/v2/project/gh/redbox-mint/redbox-portal/pipeline?branch=develop",
+    "https://circleci.com/api/v2/pipeline/{pipeline_id}/workflow",
+    "https://circleci.com/api/v2/workflow/{workflow_id}/job",
+    "https://circleci.com/api/v1.1/project/github/redbox-mint/redbox-portal/{job_number}"
+  ],
+  "methodology": {
+    "sample": "Latest 12 develop pipelines returned by the public API at collection time; eight successful workflows used for duration summaries. Three failed workflows and one cancellation are retained in the sampling record.",
+    "all_checks": "Workflow creation to the latest stop among every test-* job and generate-api-docs, including scheduling and setup.",
+    "full_publish": "Workflow creation to workflow stopped_at, including all publication jobs and scheduling.",
+    "job_duration": "started_at to stopped_at from workflow/job API. Step durations use run_time_millis from v1.1.",
+    "percentiles": "Median and observed range; sample is too small to treat tail percentiles as stable.",
+    "logs": "Four successful initial-build logs inspected; latest successful PDF and ARM64 build logs inspected. No signed output URLs, credentials, or full console logs are included."
+  },
+  "sample": [
+    {
+      "pipeline": 13568,
+      "pipeline_created_at": "2026-10-30T09:36:00.626Z",
+      "workflow_id": "11433aad-8849-4ace-892f-cd0a07d26d30",
+      "status": "success",
+      "revision": "6e9f227e7e4401ba64457ea7c54802b0da19f692"
+    },
+    {
+      "pipeline": 13529,
+      "pipeline_created_at": "2026-10-29T22:23:08.015Z",
+      "workflow_id": "6d59a49e-6b47-4381-abdc-a333c4f8dcf3",
+      "status": "success",
+      "revision": "311e49ec209b8eba8d717730cfeadaba9181d8e8"
+    },
+    {
+      "pipeline": 13519,
+      "pipeline_created_at": "2026-10-29T21:14:38.051Z",
+      "workflow_id": "542749f6-6160-459b-83df-7e620cbf17b9",
+      "status": "success",
+      "revision": "9b89b4dd86320897cfab12dbac0041d5a18f97c5"
+    },
+    {
+      "pipeline": 13518,
+      "pipeline_created_at": "2026-10-29T20:48:23.063Z",
+      "workflow_id": "48f260f7-88c6-4ad2-adc3-06437cd2270e",
+      "status": "failed",
+      "revision": "803f3137883f814e2ae18a29e7807c9bde1660d0"
+    },
+    {
+      "pipeline": 13491,
+      "pipeline_created_at": "2026-10-29T08:14:40.793Z",
+      "workflow_id": "6a9a2289-ef7c-4b1e-8c04-7e2696b96e32",
+      "status": "failed",
+      "revision": "97d023fb96ed45cf857756127e177ccf1111cac4"
+    },
+    {
+      "pipeline": 13477,
+      "pipeline_created_at": "2026-10-29T03:59:46.794Z",
+      "workflow_id": "467876bd-4d4d-4220-b91a-0224f5befeff",
+      "status": "canceled",
+      "revision": "ddd73d29bde5c658c4192c96a682b30568a1748a"
+    },
+    {
+      "pipeline": 13476,
+      "pipeline_created_at": "2026-10-29T03:25:37.355Z",
+      "workflow_id": "6e6c83e1-be5c-4331-8f34-1d253abee48c",
+      "status": "success",
+      "revision": "2c7be92b25a802334e9cd9238805ad34428a41fe"
+    },
+    {
+      "pipeline": 13455,
+      "pipeline_created_at": "2026-10-29T00:41:55.447Z",
+      "workflow_id": "92555b2b-8a13-4cea-bb34-1d17d1bd2ecf",
+      "status": "success",
+      "revision": "c917fc0966d675e3931c27f5433b26383f5747d7"
+    },
+    {
+      "pipeline": 13441,
+      "pipeline_created_at": "2026-10-28T19:48:04.594Z",
+      "workflow_id": "9b20ea02-c90c-4e71-95ac-b8fa6342ebc8",
+      "status": "success",
+      "revision": "49b694fa83f5b8d7c682e99b16d8df3c71eeacf0"
+    },
+    {
+      "pipeline": 13439,
+      "pipeline_created_at": "2026-10-28T16:25:40.981Z",
+      "workflow_id": "6024b5cb-64ba-4185-998f-4b86aefdb940",
+      "status": "success",
+      "revision": "b778ae8ef6f3fd0ee5d326a364aae2fa779ba07b"
+    },
+    {
+      "pipeline": 13395,
+      "pipeline_created_at": "2026-10-27T16:09:08.983Z",
+      "workflow_id": "4feae10b-d313-46e0-883e-20f7fe001443",
+      "status": "failed",
+      "revision": "a036cdcc1b3a1d16e6b6a1c166b974808f11b40d"
+    },
+    {
+      "pipeline": 13391,
+      "pipeline_created_at": "2026-10-27T15:01:00.646Z",
+      "workflow_id": "2bf06cce-b4af-4336-87fd-45d47934b72a",
+      "status": "success",
+      "revision": "a12f62983a4aee8c486ac182dbf2581b9bac3c5e"
+    }
+  ],
+  "metrics_seconds": {
+    "total_s": {
+      "median": 2773.0,
+      "min": 2563.0,
+      "max": 3130.0,
+      "n": 8
+    },
+    "checks_s": {
+      "median": 1509.0,
+      "min": 1416.0,
+      "max": 1794.0,
+      "n": 8
+    },
+    "build": {
+      "median": 1005.0,
+      "min": 930.0,
+      "max": 1121.0,
+      "n": 8
+    },
+    "build-runtime-pdfgen": {
+      "median": 696.5,
+      "min": 684.0,
+      "max": 935.0,
+      "n": 8
+    },
+    "test-mocha": {
+      "median": 416.5,
+      "min": 399.0,
+      "max": 429.0,
+      "n": 8
+    },
+    "test-playwright": {
+      "median": 390.5,
+      "min": 370.0,
+      "max": 412.0,
+      "n": 8
+    },
+    "test-redbox-core": {
+      "median": 239.0,
+      "min": 228.0,
+      "max": 246.0,
+      "n": 8
+    },
+    "test-angular-form": {
+      "median": 212.0,
+      "min": 206.0,
+      "max": 246.0,
+      "n": 8
+    },
+    "deploy-arm64": {
+      "median": 780.0,
+      "min": 765.0,
+      "max": 838.0,
+      "n": 8
+    },
+    "deploy-runtime-pdfgen-arm64": {
+      "median": 853.0,
+      "min": 812.0,
+      "max": 898.0,
+      "n": 8
+    }
+  },
+  "successful_workflows": [
+    {
+      "pipeline": 13568,
+      "workflow_id": "11433aad-8849-4ace-892f-cd0a07d26d30",
+      "url": "https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/13568/workflows/11433aad-8849-4ace-892f-cd0a07d26d30",
+      "total_seconds": 2566.0,
+      "all_checks_seconds": 1416.0,
+      "selected_job_seconds": {
+        "build": 948.0,
+        "build-runtime-pdfgen": 690.0,
+        "test-mocha": 429.0,
+        "test-playwright": 412.0,
+        "test-redbox-core": 239.0,
+        "test-angular-form": 210.0,
+        "deploy-arm64": 781.0,
+        "deploy-runtime-pdfgen-arm64": 852.0
+      },
+      "selected_job_numbers": {
+        "build": 199020,
+        "build-runtime-pdfgen": 199032,
+        "test-mocha": 199037,
+        "test-playwright": 199043,
+        "test-redbox-core": 199030,
+        "test-angular-form": 199024,
+        "deploy-arm64": 199053,
+        "deploy-runtime-pdfgen-arm64": 199057
+      }
+    },
+    {
+      "pipeline": 13529,
+      "workflow_id": "6d59a49e-6b47-4381-abdc-a333c4f8dcf3",
+      "url": "https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/13529/workflows/6d59a49e-6b47-4381-abdc-a333c4f8dcf3",
+      "total_seconds": 3130.0,
+      "all_checks_seconds": 1794.0,
+      "selected_job_seconds": {
+        "build": 1050.0,
+        "build-runtime-pdfgen": 696.0,
+        "test-mocha": 417.0,
+        "test-playwright": 395.0,
+        "test-redbox-core": 239.0,
+        "test-angular-form": 246.0,
+        "deploy-arm64": 799.0,
+        "deploy-runtime-pdfgen-arm64": 854.0
+      },
+      "selected_job_numbers": {
+        "build": 197786,
+        "build-runtime-pdfgen": 197802,
+        "test-mocha": 197806,
+        "test-playwright": 197804,
+        "test-redbox-core": 197817,
+        "test-angular-form": 197805,
+        "deploy-arm64": 197822,
+        "deploy-runtime-pdfgen-arm64": 197820
+      }
+    },
+    {
+      "pipeline": 13519,
+      "workflow_id": "542749f6-6160-459b-83df-7e620cbf17b9",
+      "url": "https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/13519/workflows/542749f6-6160-459b-83df-7e620cbf17b9",
+      "total_seconds": 2771.0,
+      "all_checks_seconds": 1564.0,
+      "selected_job_seconds": {
+        "build": 1119.0,
+        "build-runtime-pdfgen": 703.0,
+        "test-mocha": 416.0,
+        "test-playwright": 406.0,
+        "test-redbox-core": 246.0,
+        "test-angular-form": 215.0,
+        "deploy-arm64": 838.0,
+        "deploy-runtime-pdfgen-arm64": 861.0
+      },
+      "selected_job_numbers": {
+        "build": 197458,
+        "build-runtime-pdfgen": 197479,
+        "test-mocha": 197466,
+        "test-playwright": 197475,
+        "test-redbox-core": 197465,
+        "test-angular-form": 197472,
+        "deploy-arm64": 197495,
+        "deploy-runtime-pdfgen-arm64": 197491
+      }
+    },
+    {
+      "pipeline": 13476,
+      "workflow_id": "6e6c83e1-be5c-4331-8f34-1d253abee48c",
+      "url": "https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/13476/workflows/6e6c83e1-be5c-4331-8f34-1d253abee48c",
+      "total_seconds": 2775.0,
+      "all_checks_seconds": 1566.0,
+      "selected_job_seconds": {
+        "build": 1121.0,
+        "build-runtime-pdfgen": 684.0,
+        "test-mocha": 399.0,
+        "test-playwright": 384.0,
+        "test-redbox-core": 228.0,
+        "test-angular-form": 214.0,
+        "deploy-arm64": 765.0,
+        "deploy-runtime-pdfgen-arm64": 841.0
+      },
+      "selected_job_numbers": {
+        "build": 196123,
+        "build-runtime-pdfgen": 196148,
+        "test-mocha": 196147,
+        "test-playwright": 196150,
+        "test-redbox-core": 196138,
+        "test-angular-form": 196135,
+        "deploy-arm64": 196159,
+        "deploy-runtime-pdfgen-arm64": 196156
+      }
+    },
+    {
+      "pipeline": 13455,
+      "workflow_id": "92555b2b-8a13-4cea-bb34-1d17d1bd2ecf",
+      "url": "https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/13455/workflows/92555b2b-8a13-4cea-bb34-1d17d1bd2ecf",
+      "total_seconds": 2612.0,
+      "all_checks_seconds": 1466.0,
+      "selected_job_seconds": {
+        "build": 995.0,
+        "build-runtime-pdfgen": 697.0,
+        "test-mocha": 424.0,
+        "test-playwright": 385.0,
+        "test-redbox-core": 243.0,
+        "test-angular-form": 209.0,
+        "deploy-arm64": 779.0,
+        "deploy-runtime-pdfgen-arm64": 834.0
+      },
+      "selected_job_numbers": {
+        "build": 195308,
+        "build-runtime-pdfgen": 195313,
+        "test-mocha": 195317,
+        "test-playwright": 195310,
+        "test-redbox-core": 195321,
+        "test-angular-form": 195309,
+        "deploy-arm64": 195343,
+        "deploy-runtime-pdfgen-arm64": 195345
+      }
+    },
+    {
+      "pipeline": 13441,
+      "workflow_id": "9b20ea02-c90c-4e71-95ac-b8fa6342ebc8",
+      "url": "https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/13441/workflows/9b20ea02-c90c-4e71-95ac-b8fa6342ebc8",
+      "total_seconds": 2982.0,
+      "all_checks_seconds": 1534.0,
+      "selected_job_seconds": {
+        "build": 930.0,
+        "build-runtime-pdfgen": 935.0,
+        "test-mocha": 419.0,
+        "test-playwright": 386.0,
+        "test-redbox-core": 239.0,
+        "test-angular-form": 206.0,
+        "deploy-arm64": 797.0,
+        "deploy-runtime-pdfgen-arm64": 878.0
+      },
+      "selected_job_numbers": {
+        "build": 194851,
+        "build-runtime-pdfgen": 194866,
+        "test-mocha": 194857,
+        "test-playwright": 194859,
+        "test-redbox-core": 194883,
+        "test-angular-form": 194860,
+        "deploy-arm64": 194886,
+        "deploy-runtime-pdfgen-arm64": 194888
+      }
+    },
+    {
+      "pipeline": 13439,
+      "workflow_id": "6024b5cb-64ba-4185-998f-4b86aefdb940",
+      "url": "https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/13439/workflows/6024b5cb-64ba-4185-998f-4b86aefdb940",
+      "total_seconds": 2563.0,
+      "all_checks_seconds": 1451.0,
+      "selected_job_seconds": {
+        "build": 980.0,
+        "build-runtime-pdfgen": 694.0,
+        "test-mocha": 416.0,
+        "test-playwright": 370.0,
+        "test-redbox-core": 242.0,
+        "test-angular-form": 211.0,
+        "deploy-arm64": 766.0,
+        "deploy-runtime-pdfgen-arm64": 812.0
+      },
+      "selected_job_numbers": {
+        "build": 194780,
+        "build-runtime-pdfgen": 194801,
+        "test-mocha": 194783,
+        "test-playwright": 194803,
+        "test-redbox-core": 194808,
+        "test-angular-form": 194786,
+        "deploy-arm64": 194817,
+        "deploy-runtime-pdfgen-arm64": 194815
+      }
+    },
+    {
+      "pipeline": 13391,
+      "workflow_id": "2bf06cce-b4af-4336-87fd-45d47934b72a",
+      "url": "https://app.circleci.com/pipelines/github/redbox-mint/redbox-portal/13391/workflows/2bf06cce-b4af-4336-87fd-45d47934b72a",
+      "total_seconds": 2891.0,
+      "all_checks_seconds": 1484.0,
+      "selected_job_seconds": {
+        "build": 1015.0,
+        "build-runtime-pdfgen": 732.0,
+        "test-mocha": 401.0,
+        "test-playwright": 408.0,
+        "test-redbox-core": 230.0,
+        "test-angular-form": 213.0,
+        "deploy-arm64": 769.0,
+        "deploy-runtime-pdfgen-arm64": 898.0
+      },
+      "selected_job_numbers": {
+        "build": 193198,
+        "build-runtime-pdfgen": 193205,
+        "test-mocha": 193229,
+        "test-playwright": 193212,
+        "test-redbox-core": 193224,
+        "test-angular-form": 193228,
+        "deploy-arm64": 193233,
+        "deploy-runtime-pdfgen-arm64": 193232
+      }
+    }
+  ],
+  "selected_step_measurements": [
+    {
+      "pipeline": 13568,
+      "job": "build",
+      "job_number": 199020,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/199020",
+      "steps": [
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 26.64
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 24.41
+        },
+        {
+          "step": "Build test image via Dockerfile",
+          "duration_seconds": 768.46
+        },
+        {
+          "step": "Save Docker image",
+          "duration_seconds": 38.92
+        },
+        {
+          "step": "Persisting to workspace",
+          "duration_seconds": 82.17
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "build-runtime-pdfgen",
+      "job_number": 199032,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/199032",
+      "steps": [
+        {
+          "step": "Build runtime_pdfgen image via Dockerfile",
+          "duration_seconds": 595.48
+        },
+        {
+          "step": "Save Docker image",
+          "duration_seconds": 23.33
+        },
+        {
+          "step": "Persisting to workspace",
+          "duration_seconds": 67.78
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "deploy-arm64",
+      "job_number": 199053,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/199053",
+      "steps": [
+        {
+          "step": "Build and push arm64 runtime image",
+          "duration_seconds": 773.85
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "deploy-runtime-pdfgen-arm64",
+      "job_number": 199057,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/199057",
+      "steps": [
+        {
+          "step": "Build and push arm64 pdfgen image",
+          "duration_seconds": 846.09
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "test-mocha",
+      "job_number": 199037,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/199037",
+      "steps": [
+        {
+          "step": "Load Docker image",
+          "duration_seconds": 54.26
+        },
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 23.11
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 26.34
+        },
+        {
+          "step": "Install required ReDBox dependencies",
+          "duration_seconds": 54.74
+        },
+        {
+          "step": "Run Mocha tests",
+          "duration_seconds": 240.48
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "test-playwright",
+      "job_number": 199043,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/199043",
+      "steps": [
+        {
+          "step": "Load Docker image",
+          "duration_seconds": 53.17
+        },
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 24.64
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 26.66
+        },
+        {
+          "step": "Run Playwright browser smoke tests",
+          "duration_seconds": 276.23
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "test-angular-form",
+      "job_number": 199024,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/199024",
+      "steps": [
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 23.53
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 25.23
+        },
+        {
+          "step": "Compile shared Angular packages",
+          "duration_seconds": 37.24
+        },
+        {
+          "step": "Run Angular tests",
+          "duration_seconds": 114.4
+        }
+      ]
+    },
+    {
+      "pipeline": 13529,
+      "job": "build",
+      "job_number": 197786,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197786",
+      "steps": [
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 25.72
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 25.4
+        },
+        {
+          "step": "Saving cache",
+          "duration_seconds": 34.1
+        },
+        {
+          "step": "Build test image via Dockerfile",
+          "duration_seconds": 848.22
+        },
+        {
+          "step": "Save Docker image",
+          "duration_seconds": 27.63
+        },
+        {
+          "step": "Persisting to workspace",
+          "duration_seconds": 82.31
+        }
+      ]
+    },
+    {
+      "pipeline": 13529,
+      "job": "build-runtime-pdfgen",
+      "job_number": 197802,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197802",
+      "steps": [
+        {
+          "step": "Build runtime_pdfgen image via Dockerfile",
+          "duration_seconds": 604.27
+        },
+        {
+          "step": "Save Docker image",
+          "duration_seconds": 20.6
+        },
+        {
+          "step": "Persisting to workspace",
+          "duration_seconds": 67.8
+        }
+      ]
+    },
+    {
+      "pipeline": 13529,
+      "job": "deploy-arm64",
+      "job_number": 197822,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197822",
+      "steps": [
+        {
+          "step": "Build and push arm64 runtime image",
+          "duration_seconds": 791.85
+        }
+      ]
+    },
+    {
+      "pipeline": 13529,
+      "job": "deploy-runtime-pdfgen-arm64",
+      "job_number": 197820,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197820",
+      "steps": [
+        {
+          "step": "Build and push arm64 pdfgen image",
+          "duration_seconds": 846.71
+        }
+      ]
+    },
+    {
+      "pipeline": 13529,
+      "job": "test-mocha",
+      "job_number": 197806,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197806",
+      "steps": [
+        {
+          "step": "Load Docker image",
+          "duration_seconds": 52.22
+        },
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 23.91
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 25.63
+        },
+        {
+          "step": "Install required ReDBox dependencies",
+          "duration_seconds": 52.36
+        },
+        {
+          "step": "Run Mocha tests",
+          "duration_seconds": 233.32
+        }
+      ]
+    },
+    {
+      "pipeline": 13529,
+      "job": "test-playwright",
+      "job_number": 197804,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197804",
+      "steps": [
+        {
+          "step": "Load Docker image",
+          "duration_seconds": 52.8
+        },
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 22.94
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 25.57
+        },
+        {
+          "step": "Run Playwright browser smoke tests",
+          "duration_seconds": 263.83
+        }
+      ]
+    },
+    {
+      "pipeline": 13529,
+      "job": "test-angular-form",
+      "job_number": 197805,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197805",
+      "steps": [
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 30.0
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 30.9
+        },
+        {
+          "step": "Compile shared Angular packages",
+          "duration_seconds": 44.91
+        },
+        {
+          "step": "Run Angular tests",
+          "duration_seconds": 129.48
+        }
+      ]
+    },
+    {
+      "pipeline": 13519,
+      "job": "build",
+      "job_number": 197458,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197458",
+      "steps": [
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 29.64
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 25.67
+        },
+        {
+          "step": "Build test image via Dockerfile",
+          "duration_seconds": 844.01
+        },
+        {
+          "step": "Save Docker image",
+          "duration_seconds": 130.08
+        },
+        {
+          "step": "Persisting to workspace",
+          "duration_seconds": 82.71
+        }
+      ]
+    },
+    {
+      "pipeline": 13519,
+      "job": "build-runtime-pdfgen",
+      "job_number": 197479,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197479",
+      "steps": [
+        {
+          "step": "Build runtime_pdfgen image via Dockerfile",
+          "duration_seconds": 613.65
+        },
+        {
+          "step": "Persisting to workspace",
+          "duration_seconds": 67.67
+        }
+      ]
+    },
+    {
+      "pipeline": 13519,
+      "job": "deploy-arm64",
+      "job_number": 197495,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197495",
+      "steps": [
+        {
+          "step": "Build and push arm64 runtime image",
+          "duration_seconds": 831.6
+        }
+      ]
+    },
+    {
+      "pipeline": 13519,
+      "job": "deploy-runtime-pdfgen-arm64",
+      "job_number": 197491,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197491",
+      "steps": [
+        {
+          "step": "Build and push arm64 pdfgen image",
+          "duration_seconds": 854.8
+        }
+      ]
+    },
+    {
+      "pipeline": 13519,
+      "job": "test-mocha",
+      "job_number": 197466,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197466",
+      "steps": [
+        {
+          "step": "Load Docker image",
+          "duration_seconds": 51.26
+        },
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 22.63
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 25.53
+        },
+        {
+          "step": "Install required ReDBox dependencies",
+          "duration_seconds": 52.24
+        },
+        {
+          "step": "Run Mocha tests",
+          "duration_seconds": 228.15
+        }
+      ]
+    },
+    {
+      "pipeline": 13519,
+      "job": "test-playwright",
+      "job_number": 197475,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197475",
+      "steps": [
+        {
+          "step": "Load Docker image",
+          "duration_seconds": 54.02
+        },
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 24.05
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 26.88
+        },
+        {
+          "step": "Run Playwright browser smoke tests",
+          "duration_seconds": 266.87
+        }
+      ]
+    },
+    {
+      "pipeline": 13519,
+      "job": "test-angular-form",
+      "job_number": 197472,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/197472",
+      "steps": [
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 24.87
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 24.92
+        },
+        {
+          "step": "Compile shared Angular packages",
+          "duration_seconds": 36.88
+        },
+        {
+          "step": "Run Angular tests",
+          "duration_seconds": 114.19
+        }
+      ]
+    },
+    {
+      "pipeline": 13439,
+      "job": "build",
+      "job_number": 194780,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/194780",
+      "steps": [
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 30.69
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 26.0
+        },
+        {
+          "step": "Saving cache",
+          "duration_seconds": 35.16
+        },
+        {
+          "step": "Build test image via Dockerfile",
+          "duration_seconds": 772.45
+        },
+        {
+          "step": "Save Docker image",
+          "duration_seconds": 29.36
+        },
+        {
+          "step": "Persisting to workspace",
+          "duration_seconds": 82.34
+        }
+      ]
+    },
+    {
+      "pipeline": 13439,
+      "job": "build-runtime-pdfgen",
+      "job_number": 194801,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/194801",
+      "steps": [
+        {
+          "step": "Build runtime_pdfgen image via Dockerfile",
+          "duration_seconds": 596.13
+        },
+        {
+          "step": "Save Docker image",
+          "duration_seconds": 26.38
+        },
+        {
+          "step": "Persisting to workspace",
+          "duration_seconds": 67.92
+        }
+      ]
+    },
+    {
+      "pipeline": 13439,
+      "job": "deploy-arm64",
+      "job_number": 194817,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/194817",
+      "steps": [
+        {
+          "step": "Build and push arm64 runtime image",
+          "duration_seconds": 758.35
+        }
+      ]
+    },
+    {
+      "pipeline": 13439,
+      "job": "deploy-runtime-pdfgen-arm64",
+      "job_number": 194815,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/194815",
+      "steps": [
+        {
+          "step": "Build and push arm64 pdfgen image",
+          "duration_seconds": 804.5
+        }
+      ]
+    },
+    {
+      "pipeline": 13439,
+      "job": "test-mocha",
+      "job_number": 194783,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/194783",
+      "steps": [
+        {
+          "step": "Load Docker image",
+          "duration_seconds": 51.05
+        },
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 21.15
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 24.26
+        },
+        {
+          "step": "Install required ReDBox dependencies",
+          "duration_seconds": 52.0
+        },
+        {
+          "step": "Run Mocha tests",
+          "duration_seconds": 235.05
+        }
+      ]
+    },
+    {
+      "pipeline": 13439,
+      "job": "test-playwright",
+      "job_number": 194803,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/194803",
+      "steps": [
+        {
+          "step": "Load Docker image",
+          "duration_seconds": 50.65
+        },
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 21.63
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 24.44
+        },
+        {
+          "step": "Run Playwright browser smoke tests",
+          "duration_seconds": 241.55
+        }
+      ]
+    },
+    {
+      "pipeline": 13439,
+      "job": "test-angular-form",
+      "job_number": 194786,
+      "url": "https://circleci.com/gh/redbox-mint/redbox-portal/194786",
+      "steps": [
+        {
+          "step": "Restoring cache",
+          "duration_seconds": 27.63
+        },
+        {
+          "step": "Install npm dependencies",
+          "duration_seconds": 23.81
+        },
+        {
+          "step": "Compile shared Angular packages",
+          "duration_seconds": 35.72
+        },
+        {
+          "step": "Run Angular tests",
+          "duration_seconds": 111.02
+        }
+      ]
+    }
+  ],
+  "docker_stage_measurements": [
+    {
+      "pipeline": 13568,
+      "job": "build",
+      "job_number": 199020,
+      "actions": [
+        {
+          "step": "Build test image via Dockerfile",
+          "stages": [
+            {
+              "stage": "[builder  2/17] RUN npm ci --no-audit  && (cd packages/agenda-sqs-backend && npm ci --no-audit)  && (cd packages/sails-ng-common && npm ci --no-audit)  && (cd packages/raido && npm ci --no-audit)  && (cd packages/rva-registry && npm ci --no-audit)  && (cd packages/redbox-core && npm install --no-save --no-audit)  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)",
+              "duration_s": 49.2
+            },
+            {
+              "stage": "[builder  7/17] RUN cd packages/redbox-core && npx tsc -p tsconfig.json",
+              "duration_s": 14.2
+            },
+            {
+              "stage": "[builder 13/17] RUN chmod +x support/build/compileProductionAngular.sh  && support/build/compileProductionAngular.sh",
+              "duration_s": 220.1
+            },
+            {
+              "stage": "[builder 14/17] RUN npm run webpack",
+              "duration_s": 91.3
+            },
+            {
+              "stage": "[builder 16/17] RUN cp -a node_modules /tmp/test-node_modules  && mkdir -p /tmp/test-package-node-modules/packages  && for package_path in       packages/agenda-sqs-backend       packages/raido       packages/rva-registry       packages/sails-ng-common       packages/redbox-core       packages/redbox-dev-tools       packages/sails-hook-redbox-storage-mongo       packages/redbox-hook-dev       packages/sails-hook-redbox-pdfgen; do       if [ -d \"$package_path/node_modules\" ]; then         mkdir -p \"/tmp/test-package-node-modules/$package_path\";         cp -a \"$package_path/node_modules\" \"/tmp/test-package-node-modules/$package_path/node_modules\";       fi;     done",
+              "duration_s": 116.0
+            },
+            {
+              "stage": "[builder 17/17] RUN rm -rf     packages/agenda-sqs-backend/node_modules     packages/redbox-core/node_modules     packages/redbox-dev-tools/node_modules     packages/sails-ng-common/node_modules     packages/raido/node_modules     packages/rva-registry/node_modules     packages/redbox-hook-dev/node_modules     packages/sails-hook-redbox-storage-mongo/node_modules     packages/sails-hook-redbox-pdfgen/node_modules     angular/node_modules     angular-legacy/node_modules     support/build/api-descriptors/node_modules  && npm ci --omit=dev --no-audit",
+              "duration_s": 91.3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "build-runtime-pdfgen",
+      "job_number": 199032,
+      "actions": [
+        {
+          "step": "Build runtime_pdfgen image via Dockerfile",
+          "stages": [
+            {
+              "stage": "[builder  2/17] RUN npm ci --no-audit  && (cd packages/agenda-sqs-backend && npm ci --no-audit)  && (cd packages/sails-ng-common && npm ci --no-audit)  && (cd packages/raido && npm ci --no-audit)  && (cd packages/rva-registry && npm ci --no-audit)  && (cd packages/redbox-core && npm install --no-save --no-audit)  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)",
+              "duration_s": 48.3
+            },
+            {
+              "stage": "[builder  7/17] RUN cd packages/redbox-core && npx tsc -p tsconfig.json",
+              "duration_s": 14.0
+            },
+            {
+              "stage": "[builder 13/17] RUN chmod +x support/build/compileProductionAngular.sh  && support/build/compileProductionAngular.sh",
+              "duration_s": 219.3
+            },
+            {
+              "stage": "[builder 14/17] RUN npm run webpack",
+              "duration_s": 89.5
+            },
+            {
+              "stage": "[builder 17/17] RUN rm -rf     packages/agenda-sqs-backend/node_modules     packages/redbox-core/node_modules     packages/redbox-dev-tools/node_modules     packages/sails-ng-common/node_modules     packages/raido/node_modules     packages/rva-registry/node_modules     packages/redbox-hook-dev/node_modules     packages/sails-hook-redbox-storage-mongo/node_modules     packages/sails-hook-redbox-pdfgen/node_modules     angular/node_modules     angular-legacy/node_modules     support/build/api-descriptors/node_modules  && npm ci --omit=dev --no-audit",
+              "duration_s": 89.9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "deploy-arm64",
+      "job_number": 199053,
+      "actions": [
+        {
+          "step": "Build and push arm64 runtime image",
+          "stages": [
+            {
+              "stage": "[builder  2/17] RUN npm ci --no-audit  && (cd packages/agenda-sqs-backend && npm ci --no-audit)  && (cd packages/sails-ng-common && npm ci --no-audit)  && (cd packages/raido && npm ci --no-audit)  && (cd packages/rva-registry && npm ci --no-audit)  && (cd packages/redbox-core && npm install --no-save --no-audit)  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)",
+              "duration_s": 53.8
+            },
+            {
+              "stage": "[builder  7/17] RUN cd packages/redbox-core && npx tsc -p tsconfig.json",
+              "duration_s": 16.7
+            },
+            {
+              "stage": "[builder 13/17] RUN chmod +x support/build/compileProductionAngular.sh  && support/build/compileProductionAngular.sh",
+              "duration_s": 265.8
+            },
+            {
+              "stage": "[builder 14/17] RUN npm run webpack",
+              "duration_s": 177.9
+            },
+            {
+              "stage": "[builder 16/17] RUN cp -a node_modules /tmp/test-node_modules  && mkdir -p /tmp/test-package-node-modules/packages  && for package_path in       packages/agenda-sqs-backend       packages/raido       packages/rva-registry       packages/sails-ng-common       packages/redbox-core       packages/redbox-dev-tools       packages/sails-hook-redbox-storage-mongo       packages/redbox-hook-dev       packages/sails-hook-redbox-pdfgen; do       if [ -d \"$package_path/node_modules\" ]; then         mkdir -p \"/tmp/test-package-node-modules/$package_path\";         cp -a \"$package_path/node_modules\" \"/tmp/test-package-node-modules/$package_path/node_modules\";       fi;     done",
+              "duration_s": 41.2
+            },
+            {
+              "stage": "[builder 17/17] RUN rm -rf     packages/agenda-sqs-backend/node_modules     packages/redbox-core/node_modules     packages/redbox-dev-tools/node_modules     packages/sails-ng-common/node_modules     packages/raido/node_modules     packages/rva-registry/node_modules     packages/redbox-hook-dev/node_modules     packages/sails-hook-redbox-storage-mongo/node_modules     packages/sails-hook-redbox-pdfgen/node_modules     angular/node_modules     angular-legacy/node_modules     support/build/api-descriptors/node_modules  && npm ci --omit=dev --no-audit",
+              "duration_s": 95.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pipeline": 13568,
+      "job": "deploy-runtime-pdfgen-arm64",
+      "job_number": 199057,
+      "actions": [
+        {
+          "step": "Build and push arm64 pdfgen image",
+          "stages": [
+            {
+              "stage": "[builder  2/17] RUN npm ci --no-audit  && (cd packages/agenda-sqs-backend && npm ci --no-audit)  && (cd packages/sails-ng-common && npm ci --no-audit)  && (cd packages/raido && npm ci --no-audit)  && (cd packages/rva-registry && npm ci --no-audit)  && (cd packages/redbox-core && npm install --no-save --no-audit)  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)",
+              "duration_s": 53.8
+            },
+            {
+              "stage": "[builder  7/17] RUN cd packages/redbox-core && npx tsc -p tsconfig.json",
+              "duration_s": 17.3
+            },
+            {
+              "stage": "[builder 13/17] RUN chmod +x support/build/compileProductionAngular.sh  && support/build/compileProductionAngular.sh",
+              "duration_s": 269.9
+            },
+            {
+              "stage": "[builder 14/17] RUN npm run webpack",
+              "duration_s": 179.9
+            },
+            {
+              "stage": "[builder 17/17] RUN rm -rf     packages/agenda-sqs-backend/node_modules     packages/redbox-core/node_modules     packages/redbox-dev-tools/node_modules     packages/sails-ng-common/node_modules     packages/raido/node_modules     packages/rva-registry/node_modules     packages/redbox-hook-dev/node_modules     packages/sails-hook-redbox-storage-mongo/node_modules     packages/sails-hook-redbox-pdfgen/node_modules     angular/node_modules     angular-legacy/node_modules     support/build/api-descriptors/node_modules  && npm ci --omit=dev --no-audit",
+              "duration_s": 93.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pipeline": 13529,
+      "job": "build",
+      "job_number": 197786,
+      "actions": [
+        {
+          "step": "Build test image via Dockerfile",
+          "stages": [
+            {
+              "stage": "[builder  2/17] RUN npm ci --no-audit  && (cd packages/agenda-sqs-backend && npm ci --no-audit)  && (cd packages/sails-ng-common && npm ci --no-audit)  && (cd packages/raido && npm ci --no-audit)  && (cd packages/rva-registry && npm ci --no-audit)  && (cd packages/redbox-core && npm install --no-save --no-audit)  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)",
+              "duration_s": 50.0
+            },
+            {
+              "stage": "[builder  7/17] RUN cd packages/redbox-core && npx tsc -p tsconfig.json",
+              "duration_s": 14.1
+            },
+            {
+              "stage": "[builder 13/17] RUN chmod +x support/build/compileProductionAngular.sh  && support/build/compileProductionAngular.sh",
+              "duration_s": 221.0
+            },
+            {
+              "stage": "[builder 14/17] RUN npm run webpack",
+              "duration_s": 94.3
+            },
+            {
+              "stage": "[builder 16/17] RUN cp -a node_modules /tmp/test-node_modules  && mkdir -p /tmp/test-package-node-modules/packages  && for package_path in       packages/agenda-sqs-backend       packages/raido       packages/rva-registry       packages/sails-ng-common       packages/redbox-core       packages/redbox-dev-tools       packages/sails-hook-redbox-storage-mongo       packages/redbox-hook-dev       packages/sails-hook-redbox-pdfgen; do       if [ -d \"$package_path/node_modules\" ]; then         mkdir -p \"/tmp/test-package-node-modules/$package_path\";         cp -a \"$package_path/node_modules\" \"/tmp/test-package-node-modules/$package_path/node_modules\";       fi;     done",
+              "duration_s": 106.6
+            },
+            {
+              "stage": "[builder 17/17] RUN rm -rf     packages/agenda-sqs-backend/node_modules     packages/redbox-core/node_modules     packages/redbox-dev-tools/node_modules     packages/sails-ng-common/node_modules     packages/raido/node_modules     packages/rva-registry/node_modules     packages/redbox-hook-dev/node_modules     packages/sails-hook-redbox-storage-mongo/node_modules     packages/sails-hook-redbox-pdfgen/node_modules     angular/node_modules     angular-legacy/node_modules     support/build/api-descriptors/node_modules  && npm ci --omit=dev --no-audit",
+              "duration_s": 94.0
+            },
+            {
+              "stage": "[test 3/4] COPY --from=builder --chown=node:node /tmp/test-package-node-modules/packages ./packages",
+              "duration_s": 50.3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pipeline": 13519,
+      "job": "build",
+      "job_number": 197458,
+      "actions": [
+        {
+          "step": "Build test image via Dockerfile",
+          "stages": [
+            {
+              "stage": "[builder  2/17] RUN npm ci --no-audit  && (cd packages/agenda-sqs-backend && npm ci --no-audit)  && (cd packages/sails-ng-common && npm ci --no-audit)  && (cd packages/raido && npm ci --no-audit)  && (cd packages/rva-registry && npm ci --no-audit)  && (cd packages/redbox-core && npm install --no-save --no-audit)  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)",
+              "duration_s": 51.2
+            },
+            {
+              "stage": "[builder  7/17] RUN cd packages/redbox-core && npx tsc -p tsconfig.json",
+              "duration_s": 14.5
+            },
+            {
+              "stage": "[builder 13/17] RUN chmod +x support/build/compileProductionAngular.sh  && support/build/compileProductionAngular.sh",
+              "duration_s": 227.2
+            },
+            {
+              "stage": "[builder 14/17] RUN npm run webpack",
+              "duration_s": 95.0
+            },
+            {
+              "stage": "[builder 16/17] RUN cp -a node_modules /tmp/test-node_modules  && mkdir -p /tmp/test-package-node-modules/packages  && for package_path in       packages/agenda-sqs-backend       packages/raido       packages/rva-registry       packages/sails-ng-common       packages/redbox-core       packages/redbox-dev-tools       packages/sails-hook-redbox-storage-mongo       packages/redbox-hook-dev       packages/sails-hook-redbox-pdfgen; do       if [ -d \"$package_path/node_modules\" ]; then         mkdir -p \"/tmp/test-package-node-modules/$package_path\";         cp -a \"$package_path/node_modules\" \"/tmp/test-package-node-modules/$package_path/node_modules\";       fi;     done",
+              "duration_s": 83.4
+            },
+            {
+              "stage": "[builder 17/17] RUN rm -rf     packages/agenda-sqs-backend/node_modules     packages/redbox-core/node_modules     packages/redbox-dev-tools/node_modules     packages/sails-ng-common/node_modules     packages/raido/node_modules     packages/rva-registry/node_modules     packages/redbox-hook-dev/node_modules     packages/sails-hook-redbox-storage-mongo/node_modules     packages/sails-hook-redbox-pdfgen/node_modules     angular/node_modules     angular-legacy/node_modules     support/build/api-descriptors/node_modules  && npm ci --omit=dev --no-audit",
+              "duration_s": 94.4
+            },
+            {
+              "stage": "[test 3/4] COPY --from=builder --chown=node:node /tmp/test-package-node-modules/packages ./packages",
+              "duration_s": 60.6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pipeline": 13439,
+      "job": "build",
+      "job_number": 194780,
+      "actions": [
+        {
+          "step": "Build test image via Dockerfile",
+          "stages": [
+            {
+              "stage": "[builder  2/17] RUN npm ci --no-audit  && (cd packages/agenda-sqs-backend && npm ci --no-audit)  && (cd packages/sails-ng-common && npm ci --no-audit)  && (cd packages/raido && npm ci --no-audit)  && (cd packages/rva-registry && npm ci --no-audit)  && (cd packages/redbox-core && npm install --no-save --no-audit)  && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)",
+              "duration_s": 51.0
+            },
+            {
+              "stage": "[builder  7/17] RUN cd packages/redbox-core && npx tsc -p tsconfig.json",
+              "duration_s": 14.5
+            },
+            {
+              "stage": "[builder 13/17] RUN chmod +x support/build/compileProductionAngular.sh  && support/build/compileProductionAngular.sh",
+              "duration_s": 226.0
+            },
+            {
+              "stage": "[builder 14/17] RUN npm run webpack",
+              "duration_s": 92.2
+            },
+            {
+              "stage": "[builder 16/17] RUN cp -a node_modules /tmp/test-node_modules  && mkdir -p /tmp/test-package-node-modules/packages  && for package_path in       packages/agenda-sqs-backend       packages/raido       packages/rva-registry       packages/sails-ng-common       packages/redbox-core       packages/redbox-dev-tools       packages/sails-hook-redbox-storage-mongo       packages/redbox-hook-dev       packages/sails-hook-redbox-pdfgen; do       if [ -d \"$package_path/node_modules\" ]; then         mkdir -p \"/tmp/test-package-node-modules/$package_path\";         cp -a \"$package_path/node_modules\" \"/tmp/test-package-node-modules/$package_path/node_modules\";       fi;     done",
+              "duration_s": 43.9
+            },
+            {
+              "stage": "[builder 17/17] RUN rm -rf     packages/agenda-sqs-backend/node_modules     packages/redbox-core/node_modules     packages/redbox-dev-tools/node_modules     packages/sails-ng-common/node_modules     packages/raido/node_modules     packages/rva-registry/node_modules     packages/redbox-hook-dev/node_modules     packages/sails-hook-redbox-storage-mongo/node_modules     packages/sails-hook-redbox-pdfgen/node_modules     angular/node_modules     angular-legacy/node_modules     support/build/api-descriptors/node_modules  && npm ci --omit=dev --no-audit",
+              "duration_s": 91.3
+            },
+            {
+              "stage": "[test 3/4] COPY --from=builder --chown=node:node /tmp/test-package-node-modules/packages ./packages",
+              "duration_s": 66.0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "pdf_parallel_counterfactual": {
+    "measured": false,
+    "method": "Replay the observed DAG with only build-runtime-pdfgen dependencies removed. Retain every observed job duration and ready-to-start delay. This assumes executor contention does not change. Differences from actual workflow stop also include its small completion bookkeeping delay.",
+    "median_saving_seconds": 302.0,
+    "median_replayed_full_seconds": 2469.0,
+    "runs": [
+      {
+        "pipeline": 13568,
+        "observed_s": 2566.0,
+        "pdf_parallel_replay_s": 2301.0,
+        "saving_s": 265.0
+      },
+      {
+        "pipeline": 13529,
+        "observed_s": 3130.0,
+        "pdf_parallel_replay_s": 2743.0,
+        "saving_s": 387.0
+      },
+      {
+        "pipeline": 13519,
+        "observed_s": 2771.0,
+        "pdf_parallel_replay_s": 2475.0,
+        "saving_s": 296.0
+      },
+      {
+        "pipeline": 13476,
+        "observed_s": 2775.0,
+        "pdf_parallel_replay_s": 2463.0,
+        "saving_s": 312.0
+      },
+      {
+        "pipeline": 13455,
+        "observed_s": 2612.0,
+        "pdf_parallel_replay_s": 2333.0,
+        "saving_s": 279.0
+      },
+      {
+        "pipeline": 13441,
+        "observed_s": 2982.0,
+        "pdf_parallel_replay_s": 2482.0,
+        "saving_s": 500.0
+      },
+      {
+        "pipeline": 13439,
+        "observed_s": 2563.0,
+        "pdf_parallel_replay_s": 2303.0,
+        "saving_s": 260.0
+      },
+      {
+        "pipeline": 13391,
+        "observed_s": 2891.0,
+        "pdf_parallel_replay_s": 2583.0,
+        "saving_s": 308.0
+      }
+    ]
+  },
+  "branch_protection_snapshot": {
+    "branch": "develop",
+    "required_contexts": [
+      "ci/circleci: test-playwright"
+    ],
+    "strict": false
+  },
+  "baseline_config_validation": "circleci config validate .circleci/config.yml: passed"
+}
