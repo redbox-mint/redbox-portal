@@ -9,6 +9,7 @@ import { SuggestedValidationSummaryFieldComponent } from './suggested-validation
 import { GroupFieldComponent } from './group.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './tab.component';
 import { ValidationSummaryFieldComponent } from './validation-summary.component';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 
 describe('SuggestedValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
@@ -29,6 +30,30 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
   it('should create component', () => {
     const fixture = TestBed.createComponent(SuggestedValidationSummaryFieldComponent);
     expect(fixture.componentInstance).toBeDefined();
+  });
+
+  it('renders HTML lineage and field labels as plain text without nested links', async () => {
+    const translations = TestBed.inject(TranslationService) as any;
+    translations.translationMap['@recommended-field-label'] = 'See <a href="https://example.org" target="_blank">DFAT &amp; Australia&#39;s partners</a>';
+    const { fixture } = await createFormAndWaitForReady({
+      name: 'suggested-html-labels',
+      componentDefinitions: [
+        {
+          name: 'group',
+          model: { class: 'GroupModel', config: { defaultValue: {} } },
+          layout: { class: 'DefaultLayout', config: { label: '<b>Research</b>' } },
+          component: { class: 'GroupComponent', config: { componentDefinitions: [
+            recommendedFieldDefinition('', { include: ['recommended'], exclude: ['all'] }),
+          ] } },
+        },
+        suggestedSummaryDefinition(),
+      ],
+    }, { editMode: true });
+    const link = (fixture.nativeElement as HTMLElement).querySelector('.validation-summary-item a');
+    expect(link?.textContent).toBe("Research - See DFAT & Australia's partners");
+    expect(link?.querySelector('a')).toBeNull();
+    expect(link?.textContent).not.toContain('<a href');
+    expect(link?.getAttribute('data-suggested-validation-summary-message')).toBe('@recommended-field-label');
   });
 
   it('should render no panel when no suggestion failures exist and showWhenValid is false', async () => {

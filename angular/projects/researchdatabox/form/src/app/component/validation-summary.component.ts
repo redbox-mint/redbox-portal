@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, DestroyRef, inject, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, labelToPlainText } from "@researchdatabox/portal-ng-common";
 import type { FormComponent } from "../form.component";
 import { TabComponent } from './tab.component';
 import {
@@ -354,7 +354,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
           this.isRepeatableEntry(entry) ||
           (this.includeTabLabel && this.isTabEntry(entry));
         if (includeLabel) {
-          labels.push(this.formService.translate(labelKey));
+          labels.push(labelToPlainText(this.formService.translate(labelKey)));
         }
       }
 
@@ -392,7 +392,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
         this.isRepeatableDefinition(current) ||
         (this.includeTabLabel && this.isTabDefinition(current));
       if (includeLabel) {
-        labels.push(this.formService.translate(labelKey));
+        labels.push(labelToPlainText(this.formService.translate(labelKey)));
       }
     }
 
@@ -475,12 +475,12 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
 
   private getLeafValidationLabel(summary: FormValidatorSummaryErrors): string {
     if (summary.message) {
-      return this.formService.translate(summary.message);
+      return labelToPlainText(this.formService.translate(summary.message));
     }
     if (summary.id) {
-      return this.formService.translate(summary.id);
+      return labelToPlainText(this.formService.translate(summary.id));
     }
-    return this.formService.translate("@validator-label-default");
+    return labelToPlainText(this.formService.translate("@validator-label-default"));
   }
 
   private findComponentEntryFromLineage(angularPath: Array<string | number>, entries?: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {

@@ -238,7 +238,7 @@ describe('AccordionComponent', () => {
 
   it('translates panel labels from translation keys', async () => {
     const translationService = TestBed.inject(TranslationService) as any;
-    translationService.translationMap['@dmpt-project-tab'] = 'Project';
+    translationService.translationMap['@dmpt-project-tab'] = '<a href="/project">Project &amp; partners</a>';
 
     const formConfig = buildAccordionForm('all-open');
     const panelConfig = (((formConfig.componentDefinitions?.[0]?.component as any)?.config?.panels?.[0]) as any);
@@ -250,7 +250,9 @@ describe('AccordionComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const firstPanelButton = compiled.querySelector('.panel-heading button') as HTMLButtonElement;
 
-    expect(firstPanelButton.textContent).toContain('Project');
+    expect(firstPanelButton.textContent).toContain('Project & partners');
+    expect(firstPanelButton.textContent).not.toContain('<a');
+    expect(firstPanelButton.querySelector('a')).toBeNull();
     expect(firstPanelButton.textContent).not.toContain('@dmpt-project-tab');
   });
 });
