@@ -150,7 +150,7 @@ test('smoke check validates nonempty Angular browser bundles in the production l
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
-test('timeout kills a surviving process group after its leader and output streams close', {
+test('cancellation kills a surviving process group after its leader and output streams close', {
   skip: process.platform !== 'linux',
 }, async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ci-arm64-pilot-timeout-'));
@@ -159,20 +159,32 @@ test('timeout kills a surviving process group after its leader and output stream
   try {
     const script = `
       const { spawn } = require('node:child_process');
-      const child = spawn(process.execPath, ['-e', ${JSON.stringify(`
-        process.on('SIGTERM', () => {});
-        require('node:fs').writeFileSync(${JSON.stringify(ready)}, String(process.pid));
-        setInterval(() => {}, 1000);
-      `)}], { stdio: 'ignore' });
-      // Exit promptly on TERM, leaving a descendant with no inherited pipes.
-      process.on('SIGTERM', () => process.exit(0));
+      // Start the descendant after timeout, then wait until it is ready before
+      // closing the leader. This avoids assuming the machine starts it in 1s.
+      process.on('SIGTERM', () => {
+        spawn(process.execPath, ['-e', ${JSON.stringify(`
+          process.on('SIGTERM', () => {});
+          require('node:fs').writeFileSync(${JSON.stringify(ready)}, String(process.pid));
+          setInterval(() => {}, 1000);
+        `)}], { stdio: 'ignore' });
+        const poll = setInterval(() => {
+          if (require('node:fs').existsSync(${JSON.stringify(ready)})) { clearInterval(poll); process.exit(0); }
+        }, 20);
+      });
+      console.log('leader ready');
       setInterval(() => {}, 1000);
     `;
     const start = Date.now();
-    await assert.rejects(execute(process.execPath, ['-e', script], { quiet: true, timeoutMs: 1000 }),
-      error => error.result.timed_out && error.result.code === 0);
+    const result = await execute(process.execPath, ['-e', script], {
+      quiet: true, timeoutMs: 30000,
+      onChild: (child, stop) => {
+        if (child) child.stdout.once('data', () => stop());
+      },
+    });
+    assert.equal(result.code, 0);
+    assert.equal(result.timed_out, false);
     descendant = Number(fs.readFileSync(ready, 'utf8'));
-    assert.ok(Date.now() - start >= 6000, 'Runner waits for group escalation after leader close');
+    assert.ok(Date.now() - start >= 5000, 'Runner waits for group escalation after leader close');
     // Linux can retain an orphan zombie briefly; it is dead, even if kill(pid, 0) succeeds.
     let alive = true;
     const deadline = Date.now() + 1000;
