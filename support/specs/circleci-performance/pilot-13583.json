@@ -16,7 +16,72 @@
     "pilot_13583": { "job_number": 199531, "cache_restore_seconds": 19.921, "root_npm_install_seconds": 44.04, "shared_compile_seconds": 47.711, "test_step_seconds": 157.355 },
     "note": "One run each; timings include differing machine conditions and do not isolate the Angular change's effect."
   },
-  "workflow_status": "running",
+  "angular_test_count_comparison": {
+    "baseline_workflow_id": "ffa2773c-757c-4685-8da9-54656b16cf9f",
+    "jobs_compared": 19,
+    "result_count_differences": 0,
+    "result_identity_differences": 0,
+    "note": "Sorted CircleCI source, class, name, and result records match across the two workflows, including duplicates. Translation returns no records in either run, so its test-discovery parity is unverified; this comparison does not establish coverage equivalence."
+  },
+  "package_test_result_comparison": {
+    "baseline_workflow_id": "ffa2773c-757c-4685-8da9-54656b16cf9f",
+    "jobs_compared": 6,
+    "result_identity_differences": 0,
+    "records_by_job": { "test-sails-ng-common": 418, "test-redbox-dev-tools-cli": 51, "test-redbox-core": 4499, "test-storage-mongo": 0, "test-rva-registry": 0, "test-agenda-sqs-backend": 0 },
+    "note": "Sorted CircleCI source, class, name, and result records match, including duplicates. Three jobs expose no test results via this API, so this comparison does not establish their test discovery or coverage parity."
+  },
+  "pdf_preparation": {
+    "job_number": 199539,
+    "status": "success",
+    "started_at": "2026-10-30T21:35:33.636Z",
+    "stopped_at": "2026-10-30T21:47:11.763Z",
+    "docker_build_seconds": 598.816,
+    "image_save_seconds": 27.247,
+    "workspace_persist_seconds": 67.238,
+    "note": "Single chore-branch run; production publication is excluded."
+  },
+  "test_image_preparation": {
+    "job_number": 199526,
+    "status": "success",
+    "started_at": "2026-10-30T21:35:33.287Z",
+    "stopped_at": "2026-10-30T21:51:31.158Z",
+    "docker_build_seconds": 781.09,
+    "image_save_seconds": 28.289,
+    "workspace_persist_seconds": 82.226
+  },
+  "all_checks_target_observation": {
+    "observed_at": "2026-10-30T21:51:31Z",
+    "elapsed_seconds": 976,
+    "target_seconds": 720,
+    "result": "missed",
+    "reason": "The main image job completed after the 12-minute target; all image-dependent suites were still pending or starting."
+  },
+  "completed_image_checks": [
+    { "name": "test-bruno-oidc", "job_number": 199527, "status": "success", "stopped_at": "2026-10-30T21:56:02Z", "test_counts": { "success": 17 } },
+    { "name": "test-bruno-s3", "job_number": 199529, "status": "success", "stopped_at": "2026-10-30T21:56:30Z", "test_counts": { "success": 12 } },
+    { "name": "test-bruno-general", "job_number": 199552, "status": "success", "stopped_at": "2026-10-30T21:57:05Z", "test_counts": { "success": 534 } },
+    { "name": "test-playwright", "job_number": 199548, "status": "success", "stopped_at": "2026-10-30T21:58:04Z", "test_counts": { "success": 19 } },
+    { "name": "test-mocha", "job_number": 199528, "status": "success", "stopped_at": "2026-10-30T21:58:27Z", "test_counts": { "success": 444 } }
+  ],
+  "workflow_status": "success",
+  "workflow_stopped_at": "2026-10-30T21:58:33Z",
+  "workflow_elapsed_seconds": 1398,
+  "all_checks_elapsed_seconds": 1392,
+  "all_checks_note": "All tests and documentation succeeded; Mocha completed last. This chore run excludes publication.",
   "arm64_pilot_workflow_id": "60ee5ee1-86d1-496f-a98d-fc38c9d61aad",
-  "arm64_pilot_status": "running"
+  "arm64_pilot_status": "success",
+  "arm64_pilot": {
+    "job_number": 199522,
+    "runtime_build_seconds": 823.999,
+    "pdf_build_seconds": 80.373,
+    "pdf_cached_operations": 36,
+    "runtime_archive_seconds": 28.453,
+    "pdf_archive_seconds": 27.767,
+    "runtime_smoke_seconds": 2.922,
+    "pdf_smoke_seconds": 5.710,
+    "pdf_bytes": 9938,
+    "initial_cleanup_failures": ["buildx rm"],
+    "always_cleanup_step_status": "success",
+    "note": "One fresh native ARM64 builder built and loaded both targets; PDF reused runtime layers within the same job. A fresh builder does not establish a cold host or cold PDF build. No publication, full portal HTTP startup, daemon peak memory, or billed credits were measured. The report recorded an initial cleanup failure; CircleCI's separate always-run cleanup step subsequently passed."
+  }
 }
