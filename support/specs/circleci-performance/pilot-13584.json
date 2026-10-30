@@ -96,7 +96,8 @@
     "mocha_reported_result_identities_match_previous_pilot": true,
     "retained_lcov": {
       "mocha": { "bytes": 1406406, "source_records": 638 },
-      "playwright": { "bytes": 1395758, "source_records": 638 }
+      "playwright": { "bytes": 1395758, "source_records": 638 },
+      "paths_relative_unique_and_tracked_at_revision": true
     },
     "note": "This single chore-branch workflow did not publish images. API record counts and matching Mocha identities do not prove coverage equivalence; LCOV presence and record counts do not validate source maps or establish coverage parity. A matched baseline and candidate comparison remains required."
   }
