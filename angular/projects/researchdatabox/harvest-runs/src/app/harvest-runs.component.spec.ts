@@ -368,6 +368,7 @@ describe('HarvestRunsComponent', () => {
   });
 
   it('keeps records first and chunks collapsed, with outcomes and chunk drill-down', async () => {
+    detail.chunks[0].chunkIndex = 0;
     fixture.autoDetectChanges(true);
     await component.waitForInit();
     await fixture.whenStable();
@@ -377,6 +378,8 @@ describe('HarvestRunsComponent', () => {
     expect(el.querySelector('#harvest-records')!.compareDocumentPosition(chunks) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(chunks.textContent).toContain('Created: 1');
     await component.viewChunkRecords(detail.chunks[0], true);
+    fixture.detectChanges();
+    expect(el.querySelector('.hr-scope strong')?.textContent).toBe('0');
     expect(apiService.listRunEvents.calls.mostRecent().args).toEqual(['run-1', {
       outcome: 'failed', harvestId: '', chunkId: 'chunk-1', page: 1, pageSize: 20
     }]);

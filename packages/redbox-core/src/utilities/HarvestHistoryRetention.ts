@@ -60,7 +60,8 @@ export async function pruneHarvestHistory(
     // Submission and retention claims update this same run document atomically.
     activeSubmissions: { $in: [0, null] },
   };
-  const cursor = runs.find(candidates).sort({ completedAt: 1, _id: 1 }).batchSize(100);
+  // Per-run deletion can exceed the idle cursor timeout. The finally block closes it.
+  const cursor = runs.find(candidates, { noCursorTimeout: true }).sort({ completedAt: 1, _id: 1 }).batchSize(100);
   try {
     for await (const run of cursor) {
       await heartbeat?.();

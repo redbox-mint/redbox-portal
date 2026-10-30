@@ -205,7 +205,7 @@
 
               @if (selectedChunk) {
                 <div class="hr-scope" role="status">
-                  <span>{{ 'harvest-runs-records-for-chunk' | i18next }} <strong>{{ selectedChunk.chunkLabel || selectedChunk.chunkIndex || selectedChunk.id }}</strong></span>
+                  <span>{{ 'harvest-runs-records-for-chunk' | i18next }} <strong>{{ selectedChunk.chunkLabel || (selectedChunk.chunkIndex ?? selectedChunk.id) }}</strong></span>
                   <button type="button" class="btn btn-link btn-sm" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'harvest-runs-show-all-records' | i18next }}</button>
                 </div>
               }
