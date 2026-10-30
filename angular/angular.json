@@ -1473,7 +1473,6 @@
             "tsConfig": "projects/researchdatabox/branding/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              "projects/researchdatabox/branding/src/favicon.ico",
               "projects/researchdatabox/branding/src/assets"
             ],
             "styles": ["projects/researchdatabox/branding/src/styles.scss"],
@@ -1531,7 +1530,6 @@
             "tsConfig": "projects/researchdatabox/branding/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              "projects/researchdatabox/branding/src/favicon.ico",
               "projects/researchdatabox/branding/src/assets"
             ],
             "styles": ["projects/researchdatabox/branding/src/styles.scss"],
