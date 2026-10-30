@@ -24,6 +24,8 @@ describe('Request chronicle controller integration', function () {
     'BrandingService',
     'UsersService',
     'RvaImportService',
+    'PathRulesService',
+    'Vocabulary',
     'ReportsService',
     'TranslationService',
     'I18nEntriesService',
@@ -53,6 +55,11 @@ describe('Request chronicle controller integration', function () {
     };
     (global as any).sails.services.brandingservice = (global as any).BrandingService;
     (global as any).TranslationService = { t: (value: string) => value };
+    (global as any).PathRulesService = {
+      getRulesFromPath: sinon.stub().returns([{}]),
+      canWrite: sinon.stub().returns(true),
+    };
+    (global as any).Vocabulary = { findOne: sinon.stub().resolves({ id: 'vocab-1', branding: 'brand-1' }) };
   });
 
   afterEach(function () {
@@ -63,7 +70,7 @@ describe('Request chronicle controller integration', function () {
   });
 
   function createReq(values: Record<string, unknown> = {}, startChronicle = true) {
-    const params = (values.params ?? {}) as Record<string, unknown>;
+    const params = { branding: 'default', portal: 'rdmp', ...(values.params as Record<string, unknown>) };
     const req = {
       method: 'POST',
       path: '/default/rdmp/test',
@@ -78,6 +85,7 @@ describe('Request chronicle controller integration', function () {
       _sails: (global as any).sails,
       wantsJSON: true,
       ...values,
+      params,
     } as unknown as Sails.Req;
     if (startChronicle) {
       const rc = RequestChronicleHelper.fromReq(logger, req, { generateRequestId: () => 'request-1' });
@@ -272,8 +280,9 @@ describe('Request chronicle controller integration', function () {
       await new VocabularyControllers.Vocabulary().import(req, res as unknown as Sails.Res);
       expect(res.statusCode).to.equal(400);
       expect(res.body).to.include({ message: 'Cyclic service failure' });
-      expect(chronicle(req).errors).to.have.length(1);
-      expect(chronicle(req).errors?.[0].details).to.deep.equal([{ message: '[Circular]' }]);
+      expect(chronicle(req).displayErrors).to.have.length(1);
+      expect(chronicle(req).displayErrors[0]).to.include({ detail: 'Cyclic service failure' });
+      sinon.assert.calledOnce((global as any).RvaImportService.importRvaVocabulary);
     });
 
     for (const method of ['import', 'sync'] as const) {
@@ -290,7 +299,11 @@ describe('Request chronicle controller integration', function () {
 
         expect(res.statusCode).to.equal(400);
         expect(res.body).to.deep.include({ message: 'Unknown RVA version' });
-        expect(chronicle(req).errors?.[0]).to.include({ message: 'Unknown RVA version' });
+        expect(chronicle(req).displayErrors).to.have.length(1);
+        expect(chronicle(req).displayErrors[0]).to.include({ detail: 'Unknown RVA version' });
+        sinon.assert.calledOnce(
+          (global as any).RvaImportService[method === 'import' ? 'importRvaVocabulary' : 'syncRvaVocabulary']
+        );
         expect(logger.error.called).to.equal(false);
       });
     }

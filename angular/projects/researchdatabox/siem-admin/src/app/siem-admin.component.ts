@@ -76,7 +76,7 @@ export class SiemAdminComponent extends BaseComponent {
 
   loading = false;
   saving = false;
-  loadError = '';
+  override loadError = '';
   saveError = '';
   saveSuccess = false;
   lastSavedAt = '';
