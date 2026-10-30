@@ -19,7 +19,52 @@
     "angular_records_each": 1875,
     "package_records_each": 4968,
     "result_identity_differences": 0,
-    "empty_result_jobs": ["test-agenda-sqs-backend", "test-rva-registry", "test-storage-mongo"],
+    "empty_result_jobs": [
+      "test-agenda-sqs-backend",
+      "test-rva-registry",
+      "test-storage-mongo"
+    ],
     "note": "Reported source, classname, name and result tuples match with multiplicity; all 50 test endpoints had null pagination tokens. Empty result lists do not establish discovery parity; reported identities do not establish complete discovery or coverage equivalence."
+  },
+  "arm64_pilot": {
+    "workflow_id": "4c5047c7-033b-4ed5-af3f-621f3765d962",
+    "job_number": 199628,
+    "status": "success",
+    "workflow_stopped_at": "2026-10-30T23:29:18Z",
+    "workflow_elapsed_seconds": 1004,
+    "runtime_build_seconds": 807.199,
+    "pdf_build_seconds": 85.526,
+    "runtime_archive_seconds": 12.95,
+    "pdf_archive_seconds": 48.276,
+    "runtime_smoke_seconds": 5.628,
+    "pdf_smoke_seconds": 8.828,
+    "runtime_cached_operations": 0,
+    "pdf_cached_operations": 36,
+    "pdf_bytes": 9938,
+    "cleanup_failures": [
+      "buildx rm"
+    ],
+    "artifact": "https://output.circle-artifacts.com/output/job/83f25f13-932b-4500-a629-1720658184b6/artifacts/0/ci-arm64-pilot/report.json",
+    "note": "Fresh builder with no persistent or registry cache; PDF build followed runtime and reused its cache. Builds include image export and loading. Smoke tests did not exercise portal HTTP startup or the application PDF endpoint. Initial buildx removal failed for an unknown reason; a subsequent always-run cleanup step succeeded; publication, peak daemon memory, billed credits and matched parallel-build comparison were not measured. This one chore-branch observation is not representative acceptance performance.",
+    "cleanup_retry": {
+      "status": "success",
+      "exit_code": 0,
+      "started_at": "2026-10-30T23:29:17.402Z",
+      "stopped_at": "2026-10-30T23:29:17.924Z"
+    }
+  },
+  "final_workflow": {
+    "status": "success",
+    "jobs": 35,
+    "workflow_stopped_at": "2026-10-30T23:35:54Z",
+    "workflow_elapsed_seconds": 1400,
+    "last_required_job": "test-mocha",
+    "last_required_job_number": 199651,
+    "last_required_stopped_at": "2026-10-30T23:35:22Z",
+    "required_checks_elapsed_seconds": 1368,
+    "validation_gate_stopped_at": "2026-10-30T23:35:43Z",
+    "last_job": "test-mocha-baseline",
+    "last_job_number": 199648,
+    "note": "The validation gate excludes the Mocha baseline, which completed last overall. The required-check duration exceeded the 720-second target. This chore-branch observation is not representative of acceptance medians or publication performance."
   }
 }
