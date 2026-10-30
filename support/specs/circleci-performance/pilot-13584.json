@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "pipeline": 13584,
+  "workflow_id": "3eed96d4-b9fb-42d4-8760-ae72db6e5e82",
+  "revision": "f543852aeb45ebba6371f7ab2e67e20407d70769",
+  "created_at": "2026-10-30T21:59:11Z",
+  "workflow_status": "running",
+  "workflow_status_observed_at": "2026-10-30T22:04:48Z",
+  "independent_checks": {
+    "count": 26,
+    "all_success": true,
+    "last_finished_at": "2026-10-30T22:03:10Z",
+    "elapsed_seconds": 239,
+    "note": "Same independent tests and docs group as the earlier pilots; one chore-branch run rather than a representative median."
+  },
+  "translation_reporting": {
+    "job_number": 199571,
+    "status": "success",
+    "stopped_at": "2026-10-30T22:01:03.401Z",
+    "test_counts": { "success": 40 },
+    "note": "The previous two pilot jobs exposed zero CircleCI test records for Translation; this run includes the JUnit reporter change."
+  }
+}
