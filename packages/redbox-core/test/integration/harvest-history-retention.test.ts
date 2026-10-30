@@ -29,6 +29,10 @@ const config = { enabled: true, successfulDays: 90, failedDays: 365, batchSize: 
     await client?.close();
   });
 
+  /**
+   * Insert a run with successful and failed detail at the requested age in days.
+   * Return its ID so tests can change activity dates or inspect retained history.
+   */
   async function seed(age: number, status = 'completed_with_errors', brandId = 'brand') {
     const _id = new ObjectId();
     const timestamp = daysAgo(age);

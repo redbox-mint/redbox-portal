@@ -1772,6 +1772,12 @@ export namespace Services {
       }).sort('attempt DESC')) as HarvestRunChunkRow[];
     }
 
+    /**
+     * Atomically reserve a Mongo run against retention before reading chunk history.
+     * Reject expired runs with HTTP 409. The caller must invoke the returned release
+     * function in finally; a process crash leaves the guard in place to preserve history.
+     * Other adapters return a no-op release because retention requires MongoDB.
+     */
     private async acquireSubmissionGuard(run: HarvestRunRow): Promise<() => Promise<void>> {
       const datastore = HarvestRun.getDatastore() as unknown as { config?: { adapter?: string } } | null;
       // Retention is Mongo-only. Other adapters keep their existing submission path.
@@ -1846,6 +1852,11 @@ export namespace Services {
       }
     }
 
+    /**
+     * Process or deduplicate a chunk while the caller holds the submission guard.
+     * Retries resume from persisted events; record changes and chunk checkpoints
+     * finish before the caller releases the guard.
+     */
     private async submitRunChunk(
       brand: BrandingModel,
       recordTypeModel: RecordTypeModel,

@@ -2,6 +2,11 @@
 const { MongoClient } = require('mongodb');
 const { preflightHarvestRunIndexes } = require('../dist/utilities/HarvestRunIndexes');
 
+/**
+ * Check the configured portal datastore without changing records or indexes.
+ * Print conflicts and set exit status 1 when settings are missing or checks fail.
+ * Always close the MongoDB connection before returning.
+ */
 async function main() {
   const uri = process.env.HARVEST_MONGO_URL;
   const database = process.env.HARVEST_MONGO_DATABASE;

@@ -74,6 +74,10 @@ export async function preflightHarvestRunIndexes(db: Db): Promise<string[]> {
   return issues;
 }
 
+/**
+ * Create the required harvest indexes without replacing existing definitions.
+ * Repeated calls are safe; duplicates and conflicting options reject startup.
+ */
 export async function ensureHarvestRunIndexes(db: Db): Promise<void> {
   // Mongo createIndexes is idempotent. Conflicting options or duplicate unique
   // keys reject initialization; existing indexes and records are never dropped.
