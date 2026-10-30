@@ -1,0 +1,12 @@
+// Generated only in a disposable, explicitly authorized rehearsal runner.
+// Kept outside test discovery in the repository; do not check in the generated file.
+import assert from 'node:assert/strict';
+import sails from 'sails';
+
+describe('CI Mocha compilation-removal failure rehearsal', function () {
+  it('deliberate image-backed integration failure CI_MOCHA_FAILURE_REHEARSAL_2026', function () {
+    assert.equal((sails as any).isLifted, true, 'Rehearsal requires successful Sails bootstrap');
+    assert.ok((sails as any).services.recordsservice, 'Image-backed RecordsService must exist');
+    assert.fail('CI_MOCHA_FAILURE_REHEARSAL_2026: intentional integration assertion');
+  });
+});

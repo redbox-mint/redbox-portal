@@ -51,7 +51,7 @@ jobs:
       - store_artifacts:
           path: .tmp/ci-arm64-pilot
           destination: ci-arm64-pilot
-  build:
+  build: &ciMochaFailureRehearsalBuild
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
@@ -1332,11 +1332,129 @@ jobs:
 
             git -C "$wiki_dir" commit -m "[ci skip] Update wiki docs from ${CIRCLE_SHA1}"
             git -C "$wiki_dir" push origin HEAD
+  build-mocha-failure-rehearsal: *ciMochaFailureRehearsalBuild
+  test-mocha-failure-rehearsal:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
+      CI_MOCHA_FAILURE_REHEARSAL_OPT_IN: << pipeline.parameters.ci_mocha_failure_rehearsal >>
+      CI_MOCHA_FAILURE_REHEARSAL_NPM_MODE: << pipeline.parameters.npm_publish_mode >>
+      CI_MOCHA_FAILURE_REHEARSAL_DOCKER_MODE: << pipeline.parameters.docker_publish_mode >>
+    steps:
+      - checkout
+      - run:
+          name: Authorize isolated Mocha failure rehearsal
+          command: node support/build/ci-mocha-failure-rehearsal.cjs guard
+      - run:
+          name: Use patched Node.js from .nvmrc
+          command: |
+            # Keep download options scoped to nvm and avoid a source build on network failure.
+            (
+              curl() {
+                command curl --http1.1 --connect-timeout 20 --max-time 60 \
+                  --retry 2 --retry-delay 3 --retry-all-errors "$@"
+              }
+              nvm install -b
+            )
+            nvm use
+            printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
+      - attach_workspace:
+          at: /tmp
+      - use-refreshed-revision
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Verify isolated Mocha failure rehearsal safeguards
+          command: node --test support/build/ci-mocha-failure-rehearsal.test.cjs
+      - run:
+          name: Install codecov
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            downloadCodecovFile() {
+              local url="$1"
+              local target="$2"
+              local attempt
+              for attempt in 1 2 3 4 5; do
+                if curl --http1.1 --fail --location --silent --show-error \
+                  --connect-timeout 15 --max-time 60 --speed-time 30 --speed-limit 1024 \
+                  --retry 2 --retry-delay 3 --retry-all-errors --retry-max-time 120 \
+                  --output "$target" "$url" && test -s "$target"; then
+                  return 0
+                fi
+                echo "Retrying Codecov download ($attempt/5): $url" >&2
+                sleep 3
+              done
+              return 1
+            }
+            downloadCodecovFile https://keybase.io/codecovsecops/pgp_keys.asc pgp_keys.asc
+            gpg --no-default-keyring --keyring trustedkeys.gpg --import pgp_keys.asc
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov codecov
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM codecov.SHA256SUM
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+            /tmp/.codecov-cli/codecov --help
+      - run:
+          name: Prepare isolated deliberate integration failure
+          command: node support/build/ci-mocha-failure-rehearsal.cjs prepare
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/junit/backend-mocha
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run deliberately failing Mocha integration suite
+          no_output_timeout: 30m
+          command: bash support/build/ci-mocha-failure-rehearsal.sh
+      - run:
+          name: Retain raw failure reports before coverage preparation
+          when: always
+          command: node support/build/ci-mocha-failure-rehearsal.cjs raw
+      - run:
+          name: Upload Mocha code coverage
+          command: |
+            sudo chmod -R a+rwX ./coverage
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/mocha/lcov.info"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
+             --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - run:
+          name: Retain prepared failure reports and evidence
+          when: always
+          command: node support/build/ci-mocha-failure-rehearsal.cjs prepared
+      - store_artifacts:
+          path: .tmp/ci-mocha-failure-rehearsal
+          destination: ci-mocha-failure-rehearsal
+      - store_test_results:
+          path: .tmp/junit
 orbs:
   node: circleci/node@7.2.1
   docker: circleci/docker@3.0.1
 version: 2.1
 parameters:
+  # Default-off; only the isolated, exact chore cohort may schedule this workflow.
+  ci_mocha_failure_rehearsal:
+    type: boolean
+    default: false
   npm_publish_mode:
     type: enum
     enum:
@@ -1360,6 +1478,48 @@ parameters:
       - manual
     default: none
 workflows:
+  mocha_failure_rehearsal:
+    when:
+      and:
+        - equal:
+            - true
+            - << pipeline.parameters.ci_mocha_failure_rehearsal >>
+        - equal:
+            - chore/circleci-performance
+            - << pipeline.git.branch >>
+        - equal:
+            - ''
+            - << pipeline.git.tag >>
+        - equal:
+            - none
+            - << pipeline.parameters.npm_publish_mode >>
+        - equal:
+            - none
+            - << pipeline.parameters.docker_publish_mode >>
+    jobs:
+      - build-mocha-failure-rehearsal:
+          filters:
+            branches:
+              only: chore/circleci-performance
+            tags:
+              ignore: /.*/
+      - test-mocha-failure-rehearsal:
+          requires:
+            - build-mocha-failure-rehearsal
+          filters:
+            branches:
+              only: chore/circleci-performance
+            tags:
+              ignore: /.*/
+      - validation-complete:
+          name: validation-complete-mocha-failure-rehearsal
+          requires:
+            - test-mocha-failure-rehearsal
+          filters:
+            branches:
+              only: chore/circleci-performance
+            tags:
+              ignore: /.*/
   arm64_timing_pilot:
     when:
       and:
