@@ -33,12 +33,13 @@ interface ExportFormatOption {
 @Component({
   selector: 'export',
   templateUrl: './export.component.html',
+  styleUrls: ['./export.component.scss'],
   standalone: false
 })
 export class ExportComponent extends BaseComponent {
   datePickerPlaceHolder = '';
-  modBefore: Date | string | null = null;
-  modAfter: Date | string | null = null;
+  modBefore: Date | string | null | undefined = null;
+  modAfter: Date | string | null | undefined = null;
   datePickerOpts: Partial<BsDatepickerConfig> = {};
   recTypeNames: string[] = [];
   record_type = '';
@@ -53,6 +54,9 @@ export class ExportComponent extends BaseComponent {
   jobsErrorKey = '';
   deleteErrorKey = '';
 
+  private static readonly statusTones: Record<ExportJobStatus, string> = {
+    queued: 'secondary', running: 'info', ready: 'success', failed: 'danger', expired: 'secondary'
+  };
   private readonly pollIntervalMs = 3000;
   private refreshPromise: Promise<void> | null = null;
   private refreshTimer?: ReturnType<typeof setTimeout>;
@@ -182,12 +186,39 @@ export class ExportComponent extends BaseComponent {
     return job.status === 'ready' && job.expiresAt && Date.parse(job.expiresAt) <= Date.now() ? 'expired' : job.status;
   }
 
+  hasActiveJobs(): boolean {
+    return this.jobs.some(job => job.status === 'queued' || job.status === 'running');
+  }
+
+  getStatusBadgeClass(status: ExportJobStatus): string {
+    const tone = ExportComponent.statusTones[status] ?? 'secondary';
+    return `badge rounded-pill ex-badge bg-${tone}-subtle text-${tone}-emphasis border border-${tone}-subtle`;
+  }
+
+  formatSize(bytes: number | null): string {
+    if (bytes === null || !Number.isFinite(bytes) || bytes < 0) {
+      return '';
+    }
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+      value /= 1024;
+      unit++;
+    }
+    return `${unit === 0 || value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+  }
+
   getRecordTypeNames(): string[] {
     return this.recTypeNames;
   }
 
   getExportFormatNames(): ExportFormatOption[] {
     return this.exportFormatTypes;
+  }
+
+  getSelectedFormatName(): string {
+    return this.exportFormatTypes.find(format => format.id === this.export_format)?.name ?? this.export_format.toUpperCase();
   }
 
   setRecordType(recType: string, event?: Event): void {
@@ -272,8 +303,9 @@ export class ExportComponent extends BaseComponent {
     };
   }
 
-  private normalizedDate(value: Date | string | null, endOfDay: boolean): Date | null | undefined {
-    if (value === null || value === '') {
+  private normalizedDate(value: Date | string | null | undefined, endOfDay: boolean): Date | null | undefined {
+    // bsDatepicker reports a cleared input as undefined.
+    if (value === null || value === undefined || value === '') {
       return null;
     }
     if (!(value instanceof Date) || !Number.isFinite(value.getTime())) {
@@ -290,7 +322,7 @@ export class ExportComponent extends BaseComponent {
       return;
     }
     let delay: number;
-    if (this.jobs.some(job => job.status === 'queued' || job.status === 'running')) {
+    if (this.hasActiveJobs()) {
       delay = this.pollIntervalMs;
     } else {
       const expiries = this.jobs.filter(job => job.status === 'ready' && job.expiresAt)

@@ -7533,5 +7533,75 @@
     "category": "export",
     "description": "Column heading for background CSV export download, preparation and deletion actions",
     "contentFormat": "plain"
+  },
+  "export-loading": {
+    "category": "export",
+    "description": "Shown while the export page loads",
+    "contentFormat": "plain"
+  },
+  "export-heading": {
+    "category": "export",
+    "description": "Heading of the export request panel",
+    "contentFormat": "plain"
+  },
+  "export-field-modified-after": {
+    "category": "export",
+    "description": "Label for the earliest modification date filter",
+    "contentFormat": "plain"
+  },
+  "export-field-modified-before": {
+    "category": "export",
+    "description": "Label for the latest modification date filter",
+    "contentFormat": "plain"
+  },
+  "export-field-format": {
+    "category": "export",
+    "description": "Label for the export format choice",
+    "contentFormat": "plain"
+  },
+  "export-direct-hint": {
+    "category": "export",
+    "description": "Explains direct (non-CSV) downloads",
+    "contentFormat": "plain"
+  },
+  "export-auto-refresh": {
+    "category": "export",
+    "description": "Shown in the recent exports heading while exports are queued or being prepared",
+    "contentFormat": "plain"
+  },
+  "export-count_one": {
+    "category": "export",
+    "description": "Number of recent exports listed (singular)",
+    "contentFormat": "plain"
+  },
+  "export-count_other": {
+    "category": "export",
+    "description": "Number of recent exports listed (plural)",
+    "contentFormat": "plain"
+  },
+  "export-no-jobs-hint": {
+    "category": "export",
+    "description": "Secondary text in the empty recent exports list",
+    "contentFormat": "plain"
+  },
+  "export-range-from": {
+    "category": "export",
+    "description": "Date range with only a start date",
+    "contentFormat": "plain"
+  },
+  "export-range-until": {
+    "category": "export",
+    "description": "Date range with only an end date",
+    "contentFormat": "plain"
+  },
+  "export-range-to": {
+    "category": "export",
+    "description": "Screen reader text between the start and end dates of a range",
+    "contentFormat": "plain"
+  },
+  "export-download-format": {
+    "category": "export",
+    "description": "Action to download a direct (non-CSV) export in the selected format",
+    "contentFormat": "plain"
   }
 }

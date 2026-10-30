@@ -2003,5 +2003,19 @@
   "export-requested": "Requested",
   "export-status": "Status",
   "export-expires": "Available until",
-  "export-actions": "Actions"
+  "export-actions": "Actions",
+  "export-loading": "Loading exports…",
+  "export-heading": "Export records",
+  "export-field-modified-after": "Modified after",
+  "export-field-modified-before": "Modified before",
+  "export-field-format": "Format",
+  "export-direct-hint": "The file downloads directly in a new tab. Large exports may take a while to start.",
+  "export-auto-refresh": "Updating automatically",
+  "export-count_one": "{{count}} export",
+  "export-count_other": "{{count}} exports",
+  "export-no-jobs-hint": "Prepared CSV files appear here, ready to download.",
+  "export-range-from": "From {{date}}",
+  "export-range-until": "Up to {{date}}",
+  "export-range-to": "to",
+  "export-download-format": "Download {{format}}"
 }

@@ -402,4 +402,51 @@ describe('ExportComponent', () => {
     expect(configService.refreshConfig).toHaveBeenCalled();
     fixture.destroy();
   }));
+  it('renders a status badge per job and shows the empty state without jobs', fakeAsync(() => {
+    initialize();
+    expect(fixture.nativeElement.querySelector('.ex-empty')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('table')).toBeNull();
+    component.jobs = [job({ id: 'q' }), job({ id: 'f', status: 'failed' })];
+    fixture.detectChanges();
+    const badges: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('tbody .badge'));
+    expect(badges.map(badge => badge.className)).toEqual([
+      jasmine.stringContaining('bg-secondary-subtle'),
+      jasmine.stringContaining('bg-danger-subtle')
+    ]);
+    expect(badges[0].querySelector('.fa-spin')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.ex-empty')).toBeNull();
+    fixture.destroy();
+  }));
+
+  it('reports active jobs only while exports are queued or running', () => {
+    component.jobs = [job({ status: 'ready' }), job({ id: 'x', status: 'failed' })];
+    expect(component.hasActiveJobs()).toBeFalse();
+    component.jobs = [job({ status: 'running' })];
+    expect(component.hasActiveJobs()).toBeTrue();
+  });
+
+  it('formats prepared file sizes for display', () => {
+    expect(component.formatSize(null)).toBe('');
+    expect(component.formatSize(512)).toBe('512 B');
+    expect(component.formatSize(1536)).toBe('1.5 KB');
+    expect(component.formatSize(482113)).toBe('471 KB');
+    expect(component.formatSize(3.4 * 1024 * 1024)).toBe('3.4 MB');
+  });
+
+  it('hides the format choice when only one format is configured', fakeAsync(() => {
+    configService.getConfig = jasmine.createSpy('getConfig').and.resolveTo({ app: { export: { exportFormatTypes: [{ name: 'CSV', id: 'csv' }] } } });
+    initialize();
+    expect(fixture.nativeElement.querySelector('input[name="export-format-radio"]')).toBeNull();
+    expect(component.getSelectedFormatName()).toBe('CSV');
+    fixture.destroy();
+  }));
+  it('treats date fields cleared in the date picker as no date bound', fakeAsync(() => {
+    initialize();
+    component.modAfter = undefined;
+    component.modBefore = undefined;
+    void component.download(); flushMicrotasks();
+    expect(component.submissionErrorKey).toBe('');
+    expect(service.create).toHaveBeenCalledWith({ format: 'csv', recType: 'rdmp' });
+    fixture.destroy();
+  }));
 });
