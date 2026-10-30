@@ -57,6 +57,8 @@ export async function pruneHarvestHistory(
     completedAt: { $gt: '', $lt: successfulCutoff },
     lastChunkAt: { $not: { $gte: successfulCutoff } },
     'historyRetention.complete': { $ne: true },
+    // Submission and retention claims update this same run document atomically.
+    activeSubmissions: { $in: [0, null] },
   };
   const cursor = runs.find(candidates).sort({ completedAt: 1, _id: 1 }).batchSize(100);
   try {
@@ -75,7 +77,10 @@ export async function pruneHarvestHistory(
           ...scope,
           $or: [
             { createdAt: { $gt: '', $lt: failedCutoff } },
-            { createdAt: { $gt: '', $lt: successfulCutoff }, outcome: { $in: ['created', 'updated', 'deleted', 'unchanged'] } },
+            {
+              createdAt: { $gt: '', $lt: successfulCutoff },
+              outcome: { $in: ['created', 'updated', 'deleted', 'unchanged'] },
+            },
           ],
         },
         harvestrunchunk: {

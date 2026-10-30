@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { randomUUID } from 'node:crypto';
 import { MongoClient, type Db } from 'mongodb';
-import { ensureHarvestRunIndexes } from '../../src/utilities/HarvestRunIndexes';
+import { ensureHarvestRunIndexes, preflightHarvestRunIndexes } from '../../src/utilities/HarvestRunIndexes';
 
 const mongoUrl = process.env.HARVEST_MONGO_TEST_URL;
 
@@ -116,5 +116,56 @@ const mongoUrl = process.env.HARVEST_MONGO_TEST_URL;
     await db.collection('harvestrun').createIndex({ brandId: 1, recordType: 1, sourceName: 1, sourceRunId: 1 });
     await assert.rejects(() => ensureHarvestRunIndexes(db), /already exists|conflict/i);
     assert.equal((await db.collection('harvestrun').indexes()).length, 2);
+  });
+  it('preflights fresh and indexed databases without changing data or indexes', async () => {
+    assert.deepEqual(await preflightHarvestRunIndexes(db), []);
+    assert.deepEqual(await db.listCollections().toArray(), []);
+    await ensureHarvestRunIndexes(db);
+    const before = await db.collection('harvestrun').indexes();
+    assert.deepEqual(await preflightHarvestRunIndexes(db), []);
+    assert.deepEqual(await db.collection('harvestrun').indexes(), before);
+  });
+
+  it('reports duplicate run and chunk keys and conflicting indexes without repairing them', async () => {
+    const runs = db.collection('harvestrun');
+    await runs.insertMany(
+      Array.from({ length: 2 }, () => ({
+        brandId: 'brand',
+        recordType: 'party',
+        sourceName: 'mint',
+        sourceRunId: 'run',
+      }))
+    );
+    await db.collection('harvestrunchunk').insertMany(
+      Array.from({ length: 2 }, () => ({
+        runId: 'run',
+        contentHash: 'hash',
+        attempt: 1,
+      }))
+    );
+    await runs.createIndex({ brandId: 1, recordType: 1, sourceName: 1, sourceRunId: 1 });
+    const issues = await preflightHarvestRunIndexes(db);
+    assert.equal(issues.length, 3);
+    assert.ok(issues.some(issue => issue.includes('harvestrun: 1 duplicate groups')));
+    assert.ok(issues.some(issue => issue.includes('harvestrunchunk: 1 duplicate groups')));
+    assert.ok(issues.some(issue => issue.includes('conflicting index options')));
+    assert.equal(await runs.countDocuments(), 2);
+    assert.equal(await db.collection('harvestrunchunk').countDocuments(), 2);
+    assert.equal((await runs.indexes()).length, 2);
+  });
+
+  it('detects sparse, partial, and same-name indexes that startup cannot provision', async () => {
+    await db.collection('harvestrun').createIndex({ status: 1 }, { sparse: true });
+    await db.collection('harvestrunchunk').createIndex(
+      { runId: 1, chunkIndex: 1 },
+      {
+        partialFilterExpression: { chunkIndex: { $gte: 0 } },
+      }
+    );
+    await db.collection('harvestrecordevent').createIndex({ unexpected: 1 }, { name: 'oid_1' });
+    await db.collection('harvestrun').createIndex({ recordType: 1 }, { name: 'custom_record_type' });
+    const issues = await preflightHarvestRunIndexes(db);
+    assert.equal(issues.length, 4);
+    await assert.rejects(() => ensureHarvestRunIndexes(db), /already exists|conflict/i);
   });
 });

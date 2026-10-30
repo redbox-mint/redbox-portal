@@ -424,4 +424,56 @@ describe('HarvestRunsComponent', () => {
       .toEqual(['', 'created', 'updated', 'unchanged', 'deleted', 'failed']);
   });
 
+  it('returns to the first event page when retention removes the requested page, keeping filters', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    await component.viewChunkRecords(detail.chunks[0], true);
+    apiService.listRunEvents.calls.reset();
+    apiService.listRunEvents.and.returnValues(
+      Promise.resolve({ summary: { numFound: 21, page: 3, start: 40 }, records: [] }),
+      Promise.resolve({ summary: { numFound: 21, page: 1, start: 0 }, records: detail.events })
+    );
+    await component.onEventPageChanged({ page: 3, itemsPerPage: 20 });
+    expect(apiService.listRunEvents.calls.allArgs()).toEqual([
+      ['run-1', { outcome: 'failed', harvestId: '', chunkId: 'chunk-1', page: 3, pageSize: 20 }],
+      ['run-1', { outcome: 'failed', harvestId: '', chunkId: 'chunk-1', page: 1, pageSize: 20 }]
+    ]);
+    expect(component.eventResponse.summary.page).toBe(1);
+    expect(component.eventResponse.records).toEqual(detail.events);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#harvest-records pagination')).toBeTruthy();
+  });
+
+  it('returns to the first chunk page when retention removes the requested page', async () => {
+    await component.selectRun('run-1');
+    apiService.listRunChunks.and.returnValues(
+      Promise.resolve({ summary: { numFound: 21, page: 3, start: 40 }, records: [] }),
+      Promise.resolve({ summary: { numFound: 21, page: 1, start: 0 }, records: detail.chunks })
+    );
+    await component.onChunkPageChanged({ page: 3, itemsPerPage: 20 });
+    expect(apiService.listRunChunks.calls.allArgs()).toEqual([['run-1', 3, 20], ['run-1', 1, 20]]);
+    expect(component.chunkResponse.summary.page).toBe(1);
+    expect(component.chunkResponse.records).toEqual(detail.chunks);
+  });
+
+  it('keeps navigation if a nonzero total accompanies an empty first page without retrying forever', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    apiService.listRunEvents.and.resolveTo({ summary: { numFound: 21, page: 1, start: 0 }, records: [] });
+    await component.onEventPageChanged({ page: 2, itemsPerPage: 20 });
+    expect(apiService.listRunEvents).toHaveBeenCalledTimes(2);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#harvest-records pagination')).toBeTruthy();
+    expect(component.getRangeLabel(component.eventResponse, 20)).toBe('');
+  });
+
+  it('does not reload an earlier page when all event history has expired', async () => {
+    await component.selectRun('run-1');
+    apiService.listRunEvents.and.resolveTo({ summary: { numFound: 0, page: 2, start: 20 }, records: [] });
+    await component.onEventPageChanged({ page: 2, itemsPerPage: 20 });
+    expect(apiService.listRunEvents).toHaveBeenCalledTimes(1);
+  });
+
 });

@@ -151,16 +151,23 @@ export class HarvestRunsComponent extends BaseComponent {
     if (!this.selectedRun || this.loadingChunks || event.page === this.loadedChunkPage) {
       return;
     }
+    await this.loadRunChunks(event.page);
+  }
+
+  private async loadRunChunks(page: number): Promise<void> {
     const requestId = ++this.chunkRequestId;
     this.loadingChunks = true;
     this.chunkError = '';
     try {
-      const chunks = await this.harvestRunApiService.listRunChunks(this.selectedRunId, event.page, this.chunkPageSize);
+      const chunks = await this.harvestRunApiService.listRunChunks(this.selectedRunId, page, this.chunkPageSize);
       if (requestId !== this.chunkRequestId) {
         return;
       }
       this.chunkResponse = chunks;
-      this.loadedChunkPage = event.page;
+      this.loadedChunkPage = page;
+      if (page > 1 && chunks.records.length === 0 && chunks.summary.numFound > 0) {
+        await this.loadRunChunks(1);
+      }
     } catch (error) {
       if (requestId !== this.chunkRequestId) {
         return;
@@ -256,6 +263,9 @@ export class HarvestRunsComponent extends BaseComponent {
       }
       this.eventResponse = events;
       this.loadedEventPage = page;
+      if (page > 1 && events.records.length === 0 && events.summary.numFound > 0) {
+        await this.loadRunEvents(1);
+      }
     } catch (error) {
       if (requestId !== this.detailRequestId) {
         return;
@@ -318,7 +328,7 @@ export class HarvestRunsComponent extends BaseComponent {
 
   public getRangeLabel(response: ListApiResponse<unknown>, pageSize: number): string {
     const total = response.summary.numFound;
-    if (!total) {
+    if (!total || response.records.length === 0) {
       return '';
     }
     const start = (Math.max(1, response.summary.page) - 1) * pageSize + 1;

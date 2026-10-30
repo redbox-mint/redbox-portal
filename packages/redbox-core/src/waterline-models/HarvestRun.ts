@@ -61,6 +61,9 @@ export class HarvestRunClass {
   @Attr({ type: 'number', defaultsTo: 0 })
   public duplicateChunks?: number;
 
+  @Attr({ type: 'number', defaultsTo: 0 })
+  public activeSubmissions?: number;
+
   @Attr({ type: 'json' })
   public historyRetention?: HarvestHistoryRetention;
 
@@ -89,6 +92,7 @@ export interface HarvestRunAttributes extends Sails.WaterlineAttributes {
   failed?: number;
   chunksProcessed?: number;
   duplicateChunks?: number;
+  activeSubmissions?: number;
   historyRetention?: HarvestHistoryRetention;
   metadata?: Record<string, unknown>;
 }

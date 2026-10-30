@@ -1772,6 +1772,48 @@ export namespace Services {
       }).sort('attempt DESC')) as HarvestRunChunkRow[];
     }
 
+    private async acquireSubmissionGuard(run: HarvestRunRow): Promise<() => Promise<void>> {
+      const datastore = HarvestRun.getDatastore() as unknown as { config?: { adapter?: string } } | null;
+      // Retention is Mongo-only. Other adapters keep their existing submission path.
+      if (datastore?.config?.adapter !== 'sails-mongo') {
+        return async () => {};
+      }
+      const collection = this.getHarvestRunCollection();
+      const nativeId = this.toNativeRunId(run.id, collection);
+      if (!collection || !nativeId) {
+        throw new Error('Cannot acquire harvest submission guard for the Mongo run.');
+      }
+      const claimed = this.extractUpdatedRun(
+        await collection.findOneAndUpdate(
+          { _id: nativeId, brandId: run.brandId, historyRetention: null },
+          [
+            {
+              $set: {
+                activeSubmissions: { $add: [{ $ifNull: ['$activeSubmissions', 0] }, 1] },
+                lastChunkAt: this.nowIso(),
+              },
+            },
+          ],
+          { returnDocument: 'after' }
+        )
+      );
+      if (!claimed) {
+        throw new HarvestRunServiceError('Harvest history has expired for this run. Submit a new sourceRunId.', 409);
+      }
+      return async () => {
+        const released = this.extractUpdatedRun(
+          await collection.findOneAndUpdate(
+            { _id: nativeId, brandId: run.brandId, activeSubmissions: { $gt: 0 } },
+            { $inc: { activeSubmissions: -1 }, $set: { lastChunkAt: this.nowIso() } },
+            { returnDocument: 'after' }
+          )
+        );
+        if (!released) {
+          throw new Error('Cannot release harvest submission guard.');
+        }
+      };
+    }
+
     public async submitChunk(
       brand: BrandingModel,
       recordTypeModel: RecordTypeModel,
@@ -1787,6 +1829,33 @@ export namespace Services {
       if (run.historyRetention) {
         throw new HarvestRunServiceError('Harvest history has expired for this run. Submit a new sourceRunId.', 409);
       }
+      const release = await this.acquireSubmissionGuard(run);
+      try {
+        return await this.submitRunChunk(
+          brand,
+          recordTypeModel,
+          request,
+          user,
+          saveContext,
+          run,
+          brandId,
+          recordTypeName
+        );
+      } finally {
+        await release();
+      }
+    }
+
+    private async submitRunChunk(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      request: HarvestTrackedChunkRequest,
+      user: UserModel,
+      saveContext: RecordSaveContext | undefined,
+      run: HarvestRunRow,
+      brandId: string,
+      recordTypeName: string
+    ): Promise<HarvestTrackedChunkResponse> {
       const contentHash = this.buildChunkContentHash(brandId, recordTypeName, request);
 
       const existingChunks = await this.findMatchingChunks(run.id, contentHash);

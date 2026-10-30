@@ -272,7 +272,8 @@
                     </tbody>
                   </table>
                 </div>
-
+              }
+              @if (!loadingEvents && eventResponse.summary.numFound > 0) {
                 <div class="hr-pager">
                   <small class="text-muted">{{ getRangeLabel(eventResponse, eventPageSize) }}</small>
                   @if (eventResponse.summary.numFound > eventPageSize) {
@@ -372,7 +373,7 @@
                   </table>
                 </div>
               }
-              @if (!loadingChunks && chunkResponse.records.length > 0) {
+              @if (!loadingChunks && chunkResponse.summary.numFound > 0) {
                 <div class="hr-pager">
                   <small class="text-muted">{{ getRangeLabel(chunkResponse, chunkPageSize) }}</small>
                   @if (chunkResponse.summary.numFound > chunkPageSize) {

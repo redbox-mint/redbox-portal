@@ -18,6 +18,8 @@ Record events are the main detail table. The collapsed chunks section shows outc
 
 Use View records or View failures on a chunk to filter the records table by `chunkId`. View failures also sets `outcome=failed`. Paging keeps that scope. Clear filters or select another run to remove it; clearing event filters returns to page 1. Duplicate submissions produce no new events, so they show an explanatory label instead of links to records.
 
+If retention removes the requested event or chunk page while earlier rows remain, the UI reloads page 1 and keeps the current filters. Navigation remains available when the API reports a nonzero total.
+
 Pages sort by timestamp and ID so rows with matching timestamps have a stable order. A running harvest can add events between requests, so pages do not represent a frozen snapshot. Deep pages use offset pagination and take more database work as the offset grows.
 
 ## Deploy and check MongoDB indexes
@@ -31,7 +33,24 @@ Index creation is safe to repeat and preserves existing records and indexes. Ini
 - Runs: `(brandId, recordType, sourceName, sourceRunId)`.
 - Chunks: `(runId, contentHash, attempt)`.
 
-Duplicates or conflicting index options cause initialization to fail. Resolve those conflicts explicitly; startup does not delete duplicates or replace indexes. Existing indexes with different keys remain in place. Review them before removing any that appear redundant.
+### Run the index preflight before deployment
+
+Build the core package, then run the read-only preflight against the portal datastore:
+
+```sh
+npm run compile:core
+export HARVEST_MONGO_URL='mongodb://database-host:27017'
+export HARVEST_MONGO_DATABASE='portal-database'
+npm --prefix packages/redbox-core run harvest:indexes:preflight
+```
+
+Supply connection credentials through your deployment's secret settings. The database name must be explicit. Use a MongoDB account that can read the collections and list their indexes.
+
+The command checks both unique keys for duplicate groups, including keys with missing fields. It also checks for conflicting index definitions. It exits with status 1 if it finds problems or cannot complete the check. It reports counts and index names without printing record values, and does not change records or indexes. On a large datastore, duplicate detection scans the collections and may use temporary disk space.
+
+Run this before the deployment window, resolve any reported conflicts, then run it again with harvest writers stopped. A successful check cannot rule out new duplicates introduced by older workers after the check.
+
+Startup still provisions the required indexes and fails if they cannot be created. These constraints protect run identity and chunk retry detection, so serving tracked submissions without them is unsafe. Duplicates or conflicting index options cause initialization to fail. Resolve those conflicts explicitly; startup does not delete duplicates or replace indexes. Existing indexes with different keys remain in place. Review them before removing any that appear redundant.
 
 After deployment, use `getIndexes()` on `harvestrun`, `harvestrunchunk`, and `harvestrecordevent` in the portal datastore. Check chunk and event page queries with `explain('executionStats')`. Ordered page queries should use index scans without blocking sorts. The run-specific event count should use an index without fetching whole event documents.
 
@@ -55,6 +74,12 @@ Set these values before deployment. Set `enabled` to `false` to disable cleanup.
 The Mongo-backed Agenda job `HarvestRunService-PruneHistory` calls `harvestrunservice.pruneHistoryJob` daily. It skips an immediate startup run, permits one concurrent worker, renews its lock between batches, and logs a summary. Override the schedule in `agendaQueue.jobs` if needed.
 
 ### What expires
+
+Submissions acquire an atomic guard on the run document before reading chunk history and release it after completion or failure. Retention's atomic claim requires no active submissions. Once retention marks a run, no new submission can acquire the guard, even if it loaded the run before cleanup started.
+
+Stop older portal workers before enabling retention during an upgrade. They do not acquire this guard and cannot safely share a datastore with an active retention worker.
+
+If a process crashes before releasing its guard, the run's `activeSubmissions` count stays positive and retention skips it. The guard does not expire automatically. To recover, stop harvest writers on all portal instances, confirm that no submission is still executing, inspect the run's processing chunks, and resolve any interrupted work. Only then reset that run's `activeSubmissions` to 0 in MongoDB and resume writers. The normal recent-activity and processing-chunk checks still apply.
 
 Only terminal runs with a completion date older than the successful retention window are considered. Running runs, runs without a completion date, recently active runs, and runs with processing chunks are skipped.
 
@@ -88,7 +113,8 @@ HARVEST_MONGO_TEST_URL=mongodb://127.0.0.1:27017 npm exec -- mocha \
   --require ts-node/register/transpile-only --require chai --require test/setup.ts \
   --timeout 5000 \
   test/integration/harvest-run-indexes.test.ts \
-  test/integration/harvest-history-retention.test.ts
+  test/integration/harvest-history-retention.test.ts \
+  test/services/HarvestRunService.test.ts
 ```
 
-Use an isolated test MongoDB instance. These tests create and drop randomly named `harvest-index-test-*` and `harvest-retention-test-*` databases. They are skipped unless `HARVEST_MONGO_TEST_URL` is supplied.
+Use an isolated test MongoDB instance. These tests create and drop randomly named `harvest-index-test-*`, `harvest-retention-test-*`, and `harvest-concurrency-test-*` databases. The MongoDB suites are skipped unless `HARVEST_MONGO_TEST_URL` is supplied.
