@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "pipeline": 13582,
+  "workflow_id": "ffa2773c-757c-4685-8da9-54656b16cf9f",
+  "revision": "3abb4a0289f2ace0293016cea6578190ae16e4d3",
+  "created_at": "2026-10-30T21:11:53Z",
+  "measured_at": "2026-10-30T21:16:59.801Z",
+  "scope": "Independent test jobs and API documentation only; image-based suites and publication are excluded.",
+  "independent_checks": {
+    "count": 26,
+    "all_success": true,
+    "elapsed_seconds": 242,
+    "jobs": [
+      {
+        "name": "test-storage-mongo",
+        "job_number": 199506,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:55Z",
+        "stopped_at": "2026-10-30T21:15:18Z"
+      },
+      {
+        "name": "test-sails-ng-common",
+        "job_number": 199513,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:06Z",
+        "stopped_at": "2026-10-30T21:12:55Z"
+      },
+      {
+        "name": "test-rva-registry",
+        "job_number": 199488,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:55Z",
+        "stopped_at": "2026-10-30T21:12:43Z"
+      },
+      {
+        "name": "test-redbox-dev-tools-cli",
+        "job_number": 199494,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:10Z",
+        "stopped_at": "2026-10-30T21:14:10Z"
+      },
+      {
+        "name": "test-redbox-core",
+        "job_number": 199512,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:02Z",
+        "stopped_at": "2026-10-30T21:15:55Z"
+      },
+      {
+        "name": "test-angular-translation",
+        "job_number": 199499,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:59Z",
+        "stopped_at": "2026-10-30T21:13:52Z"
+      },
+      {
+        "name": "test-angular-report-config",
+        "job_number": 199491,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:04Z",
+        "stopped_at": "2026-10-30T21:14:02Z"
+      },
+      {
+        "name": "test-angular-report",
+        "job_number": 199516,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:05Z",
+        "stopped_at": "2026-10-30T21:14:02Z"
+      },
+      {
+        "name": "test-angular-record-search",
+        "job_number": 199497,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:57Z",
+        "stopped_at": "2026-10-30T21:13:54Z"
+      },
+      {
+        "name": "test-angular-record-audit",
+        "job_number": 199500,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:01Z",
+        "stopped_at": "2026-10-30T21:13:56Z"
+      },
+      {
+        "name": "test-angular-portal-ng-common",
+        "job_number": 199490,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:04Z",
+        "stopped_at": "2026-10-30T21:14:04Z"
+      },
+      {
+        "name": "test-angular-named-query-editor",
+        "job_number": 199502,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:03Z",
+        "stopped_at": "2026-10-30T21:14:00Z"
+      },
+      {
+        "name": "test-angular-manage-users",
+        "job_number": 199517,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:58Z",
+        "stopped_at": "2026-10-30T21:13:59Z"
+      },
+      {
+        "name": "test-angular-manage-roles",
+        "job_number": 199496,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:04Z",
+        "stopped_at": "2026-10-30T21:13:56Z"
+      },
+      {
+        "name": "test-angular-local-auth",
+        "job_number": 199498,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:05Z",
+        "stopped_at": "2026-10-30T21:13:55Z"
+      },
+      {
+        "name": "test-angular-harvest-runs",
+        "job_number": 199495,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:57Z",
+        "stopped_at": "2026-10-30T21:13:51Z"
+      },
+      {
+        "name": "test-angular-form",
+        "job_number": 199489,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:59Z",
+        "stopped_at": "2026-10-30T21:15:26Z"
+      },
+      {
+        "name": "test-angular-export",
+        "job_number": 199493,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:00Z",
+        "stopped_at": "2026-10-30T21:13:54Z"
+      },
+      {
+        "name": "test-angular-deleted-records",
+        "job_number": 199510,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:59Z",
+        "stopped_at": "2026-10-30T21:14:00Z"
+      },
+      {
+        "name": "test-angular-dashboard-config-editor",
+        "job_number": 199514,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:05Z",
+        "stopped_at": "2026-10-30T21:13:58Z"
+      },
+      {
+        "name": "test-angular-dashboard",
+        "job_number": 199501,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:02Z",
+        "stopped_at": "2026-10-30T21:13:53Z"
+      },
+      {
+        "name": "test-angular-branding",
+        "job_number": 199507,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:57Z",
+        "stopped_at": "2026-10-30T21:13:52Z"
+      },
+      {
+        "name": "test-angular-app-config",
+        "job_number": 199509,
+        "status": "success",
+        "started_at": "2026-10-30T21:12:04Z",
+        "stopped_at": "2026-10-30T21:13:58Z"
+      },
+      {
+        "name": "test-angular-admin-vocabulary",
+        "job_number": 199508,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:58Z",
+        "stopped_at": "2026-10-30T21:13:53Z"
+      },
+      {
+        "name": "test-agenda-sqs-backend",
+        "job_number": 199492,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:55Z",
+        "stopped_at": "2026-10-30T21:13:14Z"
+      },
+      {
+        "name": "generate-api-docs",
+        "job_number": 199520,
+        "status": "success",
+        "started_at": "2026-10-30T21:11:55Z",
+        "stopped_at": "2026-10-30T21:14:26Z"
+      }
+    ]
+  },
+  "pdf_preparation": {
+    "job_number": 199518,
+    "status": "success",
+    "started_at": "2026-10-30T21:12:10.222Z",
+    "stopped_at": "2026-10-30T21:23:41.509Z",
+    "docker_build_seconds": 592.502,
+    "image_save_seconds": 26.878,
+    "workspace_persist_seconds": 68.302,
+    "note": "Single chore-branch pilot; this does not measure production publication."
+  },
+  "test_image_preparation": {
+    "job_number": 199503,
+    "status": "success",
+    "started_at": "2026-10-30T21:12:11Z",
+    "stopped_at": "2026-10-30T21:27:02Z",
+    "docker_build_seconds": 700.475,
+    "image_save_seconds": 29.635,
+    "workspace_persist_seconds": 82.553,
+    "npm_cache_restore_seconds": 18.555,
+    "npm_install_seconds": 23.674,
+    "npm_cache_save_seconds": 25.736,
+    "selected_docker_operations_seconds": {
+      "angular": 216,
+      "webpack": 88.2,
+      "test_dependency_snapshot": 25.2,
+      "production_dependency_install": 90.9,
+      "test_dependency_copy": 43.2
+    },
+    "note": "Five image-dependent checks started after this job completed."
+  },
+  "workflow_status": "running",
+  "all_checks_target_observation": {
+    "observed_at": "2026-10-30T21:25:11Z",
+    "target_seconds": 720,
+    "elapsed_seconds": 798,
+    "result": "missed",
+    "reason": "The build remained running and all five image-dependent checks were blocked more than 12 minutes after workflow creation. The final check duration is not yet available."
+  },
+  "comparison": {
+    "baseline_independent_seconds": [
+      1225,
+      1663,
+      1413,
+      1393,
+      1325,
+      1302,
+      1281,
+      1283
+    ],
+    "baseline_median_seconds": 1313.5,
+    "pilot_seconds": 242,
+    "relative_reduction_percent": 81.6,
+    "method": "Same independent tests and documentation group, from workflow creation to last successful check. Historical runs are the eight successful develop workflows listed in baseline.json. Pilot is one chore-branch run; not a matched cohort or median."
+  }
+}

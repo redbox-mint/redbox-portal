@@ -1,6 +1,10 @@
 # CircleCI performance implementation plan
 
-Status: analysis and proposed implementation plan; CI changes have not been applied.
+Status: implementation in progress on `chore/circleci-performance`. The baseline
+and targets below are retained as the original plan. The first scheduling pilot
+and its partial results are recorded in [pilot-13582.json](pilot-13582.json).
+Prepared image and asset changes still require integration and acceptance; the
+targets have not been demonstrated.
 
 Source checkout: `6e9f227e7e4401ba64457ea7c54802b0da19f692` (`develop`).
 Evidence collected on 31 October 2026, Australia/Adelaide.
@@ -428,6 +432,7 @@ image preparation and duplicate startup work are reduced.
 - Replayed the isolated PDF scheduling change with explicit modeling limits.
 - Validated the current CircleCI configuration successfully.
 
-The implementation PRs, image contracts, fault-injection experiments, cache
-benchmarks, and end-to-end acceptance runs remain pending. No CI timing
-improvement is claimed as delivered by this planning document.
+At the time of this analysis, the implementation, image contracts,
+fault-injection experiments, cache benchmarks, and end-to-end acceptance runs
+were pending. Consult the current pilot record and implementation commits for
+progress; this baseline does not by itself establish the acceptance targets.
