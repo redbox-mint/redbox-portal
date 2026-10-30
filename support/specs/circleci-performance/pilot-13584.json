@@ -13,6 +13,63 @@
     "elapsed_seconds": 239,
     "note": "Same independent tests and docs group as the earlier pilots; one chore-branch run rather than a representative median."
   },
+  "all_checks_target_observation": {
+    "observed_at": "2026-10-30T22:11:13Z",
+    "elapsed_seconds": 722,
+    "target_seconds": 720,
+    "result": "missed",
+    "reason": "The test image job was still running and Mocha was blocked more than 12 minutes after workflow creation."
+  },
+  "pdf_preparation": {
+    "job_number": 199588,
+    "status": "success",
+    "started_at": "2026-10-30T21:59:37.590Z",
+    "stopped_at": "2026-10-30T22:11:23.154Z",
+    "docker_build_seconds": 614.943,
+    "image_save_seconds": 19.117,
+    "workspace_persist_seconds": 67.964
+  },
+  "test_image_preparation_snapshot": {
+    "job_number": 199579,
+    "status": "running",
+    "observed_at": "2026-10-30T22:15:27Z",
+    "docker_build_seconds": 840.687,
+    "image_save_seconds": 31.718,
+    "workspace_persist_status": "running",
+    "docker_step_seconds": {
+      "initial_dependency_installs": 49.9,
+      "angular_production_build_script_including_node_and_dependency_setup": 225.2,
+      "webpack": 94.3,
+      "test_dependency_snapshot": 114.1,
+      "production_dependency_deletion_and_install": 99.2,
+      "test_root_dependency_copy": 30.1,
+      "test_package_dependency_copy": 54.8
+    },
+    "note": "Docker step timings are rounded log values; workspace transfer and the overall job were still running at the observation. This single run does not establish a representative performance change."
+  },
+  "test_image_preparation_completion": {
+    "job_number": 199579,
+    "status": "success",
+    "started_at": "2026-10-30T21:59:36.370Z",
+    "stopped_at": "2026-10-30T22:16:37.100Z",
+    "workspace_persist_seconds": 83.026
+  },
+  "arm64_pilot": {
+    "workflow_id": "25e7040b-a5b9-485e-b137-32466226e1cd",
+    "job_number": 199557,
+    "status": "success",
+    "runtime_build_and_load_seconds": 828.404,
+    "pdf_build_and_load_seconds": 83.314,
+    "pdf_cached_operations": 36,
+    "runtime_archive_seconds": 20.983,
+    "pdf_archive_seconds": 51.302,
+    "runtime_smoke_seconds": 4.799,
+    "pdf_smoke_seconds": 8.191,
+    "pdf_bytes": 9938,
+    "initial_cleanup_failures": ["buildx rm"],
+    "subsequent_cleanup_step": "success",
+    "note": "Build timings include image loading; PDF reused runtime layers in the same job. A fresh builder does not prove a cold host. No publication, portal HTTP startup, peak daemon memory, billed-credit measurement, or matched parallel-build comparison was performed. The report retains the initial cleanup failure; the later cleanup step succeeded without establishing its cause."
+  },
   "translation_reporting": {
     "job_number": 199571,
     "status": "success",
