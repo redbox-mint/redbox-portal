@@ -13,6 +13,13 @@
     "elapsed_seconds": 234,
     "note": "Same independent test and documentation group as previous pilots. This is one chore-branch run, not the representative median required for acceptance."
   },
+  "independent_test_result_comparison": {
+    "previous_pipeline": 13584,
+    "jobs_compared": 25,
+    "result_identity_differences": 0,
+    "empty_matching_jobs": ["test-storage-mongo", "test-rva-registry", "test-agenda-sqs-backend"],
+    "note": "Sorted source, classname, name and result tuples match with multiplicity and all API pagination tokens were null. Three empty result lists cannot establish discovery parity; reported results do not establish coverage equivalence. The API documentation job is not a test-result comparison."
+  },
   "matched_mocha_pilot": {
     "candidate_job_number": 199615,
     "baseline_job_number": 199623,
