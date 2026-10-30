@@ -46,6 +46,7 @@ describe('HarvestRunsComponent', () => {
         {
           provide: TranslationService,
           useValue: getStubTranslationService({
+            'harvest-runs-history-expired': 'Some detailed history has expired. Summary counts cover the full run.',
             'harvest-runs-heading': 'Harvest runs',
             'harvest-runs-loading': 'Loading harvest runs',
             'harvest-runs-empty': 'No harvest runs found.',
@@ -393,6 +394,18 @@ describe('HarvestRunsComponent', () => {
     expect(component.getChunkDuration(chunk)).toBe('—');
     expect(component.getChunkDuration({...chunk, completedAt: '2026-05-25T10:00:01.500Z'})).toBe('1.5 s');
     expect(component.getChunkDuration({...chunk, completedAt: '2026-05-25T09:59:00Z'})).toBe('—');
+  });
+
+  it('discloses expired detail while keeping original summary counts', async () => {
+    detail.run.historyRetention = {prunedAt: '2026-10-30T00:00:00Z', successfulDays: 90, failedDays: 365, complete: false};
+    detail.events = [];
+    detail.eventsTotal = 0;
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).toContain('Some detailed history has expired.');
+    expect(component.getSummaryCounts()[0].value).toBe(2);
+    expect(component.hasCountMismatch()).toBeFalse();
   });
 
 });

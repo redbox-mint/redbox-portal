@@ -2811,4 +2811,47 @@ describe('HarvestRunService', function () {
     expect(events.total).to.equal(1);
     expect(events.rows[0].harvestId).to.equal('harvest-1');
   });
+  it('exposes dry-run retention and honours the disabled configuration', async function () {
+    mockSails.config.harvestRuns = { retention: { enabled: false } };
+    (global as any).HarvestRun.getDatastore.returns({ config: { adapter: 'sails-mongo' }, manager: {} });
+    const result = await service.pruneHistory({ dryRun: true });
+    expect(result).to.include({ enabled: false, dryRun: true, runs: 0, chunks: 0, events: 0 });
+    await service.pruneHistoryJob();
+    (global as any).HarvestRun.getDatastore.returns(null);
+    try {
+      await service.pruneHistory();
+      expect.fail('Expected missing Mongo datastore to reject');
+    } catch (error) {
+      expect(String(error)).to.contain('requires a Mongo datastore');
+    }
+  });
+
+  it('rejects resubmission after retention starts without processing records', async function () {
+    configureTrackedCreateChunk();
+    (global as any).HarvestRun.findOne.resolves({
+      id: 'run-1',
+      brandId: 'brand-1',
+      status: 'completed',
+      historyRetention: { prunedAt: '2026-10-30T00:00:00Z', successfulDays: 90, failedDays: 365, complete: false },
+    });
+    try {
+      await service.submitChunk(
+        { id: 'brand-1', name: 'default' },
+        { name: 'dataset' },
+        {
+          sourceRunId: 'source-run-1',
+          sourceName: 'source-a',
+          chunk: { index: 0 },
+          records: [{ harvestId: 'record-1', operation: 'upsert', recordRequest: {metadata: {title: 'Example'}} }],
+        },
+        { username: 'tester' }
+      );
+      expect.fail('Expected expired deduplication ledger to reject');
+    } catch (error) {
+      expect(error).to.have.property('statusCode', 409);
+      expect(String(error)).to.contain('new sourceRunId');
+    }
+    expect(recordsService.create.called).to.equal(false);
+    expect((global as any).HarvestRunChunk.create.called).to.equal(false);
+  });
 });

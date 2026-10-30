@@ -7343,5 +7343,10 @@
     "category": "harvest-runs",
     "description": "Duplicate submission; no new record events.",
     "contentFormat": "plain"
+  },
+  "harvest-runs-history-expired": {
+    "category": "harvest-runs",
+    "description": "Notice when retention has removed harvest detail; summary counts remain complete",
+    "contentFormat": "plain"
   }
 }

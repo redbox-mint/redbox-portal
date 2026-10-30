@@ -1,7 +1,7 @@
 /// <reference path="../sails.ts" />
 import { Attr, Entity, toWaterlineModelDef } from '../decorators';
 import { HARVEST_RUN_INDEXES } from '../utilities/HarvestRunIndexes';
-import { HarvestRunStatus } from '../model/storage/HarvestRunModel';
+import { HarvestRunStatus, type HarvestHistoryRetention } from '../model/storage/HarvestRunModel';
 
 @Entity('harvestrun', {
   indexes: HARVEST_RUN_INDEXES.map(({ key, ...options }) => ({ attributes: key, ...options })),
@@ -62,6 +62,9 @@ export class HarvestRunClass {
   public duplicateChunks?: number;
 
   @Attr({ type: 'json' })
+  public historyRetention?: HarvestHistoryRetention;
+
+  @Attr({ type: 'json' })
   public metadata?: Record<string, unknown>;
 }
 
@@ -86,6 +89,7 @@ export interface HarvestRunAttributes extends Sails.WaterlineAttributes {
   failed?: number;
   chunksProcessed?: number;
   duplicateChunks?: number;
+  historyRetention?: HarvestHistoryRetention;
   metadata?: Record<string, unknown>;
 }
 

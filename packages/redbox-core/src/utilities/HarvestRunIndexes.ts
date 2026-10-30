@@ -3,6 +3,7 @@ import type { Db, IndexDescription } from 'mongodb';
 // Shared by model metadata and explicit Mongo provisioning: Waterline does not
 // create compound indexes from the model's indexes metadata in safe mode.
 export const HARVEST_RUN_INDEXES: IndexDescription[] = [
+  { key: { status: 1, completedAt: 1, _id: 1 } },
   { key: { brandId: 1, recordType: 1, sourceName: 1, sourceRunId: 1 }, unique: true },
   { key: { brandId: 1, startedAt: -1, _id: -1 } },
   { key: { status: 1 } },

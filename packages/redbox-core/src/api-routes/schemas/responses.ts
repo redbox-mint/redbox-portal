@@ -129,6 +129,14 @@ export const apiHarvestResponseSchema = withOpenApi(
 export const harvestRunSummarySchema = withOpenApi(
   z.object({
     id: z.string().optional(),
+    historyRetention: z
+      .object({
+        prunedAt: z.string(),
+        successfulDays: z.number().int(),
+        failedDays: z.number().int(),
+        complete: z.boolean(),
+      })
+      .optional(),
     sourceRunId: z.string(),
     brandId: z.string().optional(),
     recordType: z.string(),

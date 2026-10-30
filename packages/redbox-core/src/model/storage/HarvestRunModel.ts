@@ -38,7 +38,15 @@ export type HarvestCounterSummary = {
 
 export type HarvestRunMetadata = Record<string, unknown>;
 
+export type HarvestHistoryRetention = {
+  prunedAt: string;
+  successfulDays: number;
+  failedDays: number;
+  complete: boolean;
+};
+
 export class HarvestRunModel {
+  historyRetention?: HarvestHistoryRetention;
   id?: string;
   sourceRunId = '';
   brandId = '';

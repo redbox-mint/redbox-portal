@@ -16,6 +16,7 @@ export interface ListApiResponse<T> {
 }
 
 export interface HarvestRunSummary {
+  historyRetention?: { prunedAt: string; successfulDays: number; failedDays: number; complete: boolean };
   id?: string;
   sourceRunId: string;
   brandId?: string;

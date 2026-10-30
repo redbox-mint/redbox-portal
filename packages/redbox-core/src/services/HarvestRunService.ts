@@ -1,5 +1,11 @@
 import * as _ from 'lodash';
 import type { Db } from 'mongodb';
+import {
+  pruneHarvestHistory,
+  type HarvestHistoryRetentionOptions,
+  type HarvestHistoryRetentionResult,
+} from '../utilities/HarvestHistoryRetention';
+import { harvestRuns as defaultHarvestRuns } from '../config/harvestRuns.config';
 import { ensureHarvestRunIndexes } from '../utilities/HarvestRunIndexes';
 import { createHash } from 'node:crypto';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -96,6 +102,8 @@ export namespace Services {
   export class HarvestRunService extends services.Core.Service implements HarvestRunServiceContract {
     protected override _exportedMethods: string[] = [
       'init',
+      'pruneHistory',
+      'pruneHistoryJob',
       'listRunChunks',
       'submitCompatibilityRecords',
       'submitLegacyRecords',
@@ -120,6 +128,26 @@ export namespace Services {
         throw new Error('Harvest Mongo datastore manager is unavailable during initialization.');
       }
       await ensureHarvestRunIndexes(datastore.manager);
+    }
+
+    public async pruneHistory(options: HarvestHistoryRetentionOptions = {}): Promise<HarvestHistoryRetentionResult> {
+      return this.runHistoryRetention(options);
+    }
+
+    public async pruneHistoryJob(job?: { touch: () => Promise<unknown> }): Promise<void> {
+      const result = await this.runHistoryRetention({}, job ? () => job.touch() : undefined);
+      this.logger.info(`${this.logHeader} History retention: ${JSON.stringify(result)}`);
+    }
+
+    private async runHistoryRetention(
+      options: HarvestHistoryRetentionOptions,
+      heartbeat?: () => Promise<unknown>
+    ): Promise<HarvestHistoryRetentionResult> {
+      const datastore = HarvestRun.getDatastore() as unknown as { config?: { adapter?: string }; manager?: Db };
+      if (datastore?.config?.adapter !== 'sails-mongo' || !datastore.manager) {
+        throw new Error('Harvest history retention requires a Mongo datastore.');
+      }
+      return pruneHarvestHistory(datastore.manager, this.harvestRunConfig().retention, options, heartbeat);
     }
 
     private asError(error: unknown): Error {
@@ -184,6 +212,7 @@ export namespace Services {
         _.isPlainObject(sails.config?.harvestRuns) ? sails.config.harvestRuns : {}
       ) as Partial<HarvestRunsConfig>;
       return {
+        retention: { ...defaultHarvestRuns.retention, ...configured.retention },
         maxRecordsPerChunk: this.parsePositiveInt(configured.maxRecordsPerChunk, 250),
         maxChunkBytes: this.parsePositiveInt(configured.maxChunkBytes, 5_000_000),
         processingChunkTimeoutMinutes: this.parsePositiveInt(configured.processingChunkTimeoutMinutes, 30),
@@ -452,6 +481,7 @@ export namespace Services {
         failed: Number(row.failed ?? 0),
         chunksProcessed: Number(row.chunksProcessed ?? 0),
         duplicateChunks: Number(row.duplicateChunks ?? 0),
+        historyRetention: row.historyRetention,
         metadata: (row.metadata as Record<string, unknown> | undefined) ?? undefined,
       });
     }
@@ -506,7 +536,11 @@ export namespace Services {
       });
     }
 
-    private async findExistingHarvestRecord(brandId: string, harvestId: string, recordType: string): Promise<AnyRecord[]> {
+    private async findExistingHarvestRecord(
+      brandId: string,
+      harvestId: string,
+      recordType: string
+    ): Promise<AnyRecord[]> {
       return (await Record.find({
         harvestId,
         'metaMetadata.type': recordType,
@@ -1750,6 +1784,9 @@ export namespace Services {
       const brandId = this.resolveBrandId(brand);
       const recordTypeName = this.resolveRecordTypeName(recordTypeModel);
       const run = await this.findOrCreateRun(brand, recordTypeModel, request, user);
+      if (run.historyRetention) {
+        throw new HarvestRunServiceError('Harvest history has expired for this run. Submit a new sourceRunId.', 409);
+      }
       const contentHash = this.buildChunkContentHash(brandId, recordTypeName, request);
 
       const existingChunks = await this.findMatchingChunks(run.id, contentHash);

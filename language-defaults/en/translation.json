@@ -1965,5 +1965,6 @@
   "harvest-runs-chunk-view-records": "View records",
   "harvest-runs-chunk-view-failures": "View failures",
   "harvest-runs-records-for-chunk": "Records for chunk:",
-  "harvest-runs-chunk-duplicate-note": "Duplicate submission; no new record events."
+  "harvest-runs-chunk-duplicate-note": "Duplicate submission; no new record events.",
+  "harvest-runs-history-expired": "Some detailed history has expired. Successful records and chunks are kept for {{successfulDays}} days; failures for {{failedDays}} days. Summary counts cover the full run."
 }

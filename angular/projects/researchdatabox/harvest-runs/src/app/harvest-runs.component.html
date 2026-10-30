@@ -189,6 +189,11 @@
                 </span>
               </header>
 
+              @if (selectedRun.run.historyRetention; as retention) {
+                <div class="alert alert-info hr-alert" role="status">
+                  <span>{{ 'harvest-runs-history-expired' | i18next: { successfulDays: retention.successfulDays, failedDays: retention.failedDays } }}</span>
+                </div>
+              }
               @if (hasCountMismatch()) {
                 <div class="alert alert-warning hr-alert" role="alert">
                   <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>

@@ -1,3 +1,11 @@
+import type {
+  HarvestHistoryRetentionOptions,
+  HarvestHistoryRetentionResult,
+} from './utilities/HarvestHistoryRetention';
+export type {
+  HarvestHistoryRetentionOptions,
+  HarvestHistoryRetentionResult,
+} from './utilities/HarvestHistoryRetention';
 import { APIHarvestResponse, BrandingModel, RecordTypeModel, UserModel } from './model';
 import {
   HarvestRunDetailResult,
@@ -61,6 +69,8 @@ export class HarvestRunServiceError extends Error {
 
 export interface HarvestRunService {
   init(): Promise<void>;
+  pruneHistory(options?: HarvestHistoryRetentionOptions): Promise<HarvestHistoryRetentionResult>;
+  pruneHistoryJob(job?: { touch: () => Promise<unknown> }): Promise<void>;
   listRunChunks(
     brand: BrandingModel,
     runId: string,
