@@ -28,6 +28,31 @@
     "test_image_docker_build_seconds": 855.374,
     "note": "This establishes the target miss, not the final all-checks elapsed time."
   },
+  "test_image_preparation": {
+    "job_number": 199596,
+    "status": "success",
+    "started_at": "2026-10-30T22:25:20.526Z",
+    "stopped_at": "2026-10-30T22:43:43.977Z",
+    "docker_build_seconds": 855.374,
+    "image_save_seconds": 103.306,
+    "workspace_persist_seconds": 81.948
+  },
+  "arm64_pilot": {
+    "workflow_id": "1f52e829-533a-4092-8a8b-4d2a7decf069",
+    "job_number": 199592,
+    "status": "success",
+    "runtime_build_and_load_seconds": 762.235,
+    "pdf_build_and_load_seconds": 79.235,
+    "pdf_cached_operations": 36,
+    "runtime_archive_seconds": 41.365,
+    "pdf_archive_seconds": 32.256,
+    "runtime_smoke_seconds": 2.873,
+    "pdf_smoke_seconds": 5.990,
+    "pdf_bytes": 9938,
+    "initial_cleanup_failures": ["buildx rm"],
+    "subsequent_cleanup_step": "success",
+    "note": "Build timings include image loading; PDF reused runtime layers in the same job. A fresh builder does not prove a cold host. Publication, portal HTTP startup, peak daemon memory, billed credits and matched parallel-build comparison were not measured. The later cleanup step succeeded; the initial failure's cause is unknown."
+  },
   "matched_mocha_pilot": {
     "candidate_job_number": 199615,
     "baseline_job_number": 199623,
