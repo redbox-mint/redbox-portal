@@ -173,7 +173,10 @@ async function workflowReport(id, get = getJson) {
       const ready = parents.length ? new Date(Math.max(...parents.map(p => Date.parse(p.stopped_at)))).toISOString() : workflow.created_at;
       item.ready_to_start_seconds = seconds(ready, job.started_at);
     }
-    if (job.job_number) {
+    // CircleCI reserves job numbers for blocked/queued jobs before their detail
+    // endpoints exist. Preserve those jobs in live reports without requesting
+    // unavailable details; once started, API failures remain visible.
+    if (job.job_number && job.started_at) {
       const slug = workflow.project_slug;
       // v1 uses github/bitbucket, while v2 project slugs use gh/bb.
       const project = slug.replace(/^gh\//, 'github/').replace(/^bb\//, 'bitbucket/');

@@ -198,3 +198,18 @@ test('read-only report paginates jobs/tests and separates scheduling from execut
   });
   assert.equal(failed.all_checks_seconds, null);
 });
+
+test('live reports retain jobs that have not started without fetching unavailable details', async () => {
+  const id = '00000000-0000-0000-0000-000000000000';
+  const get = async endpoint => {
+    if (endpoint === `v2/workflow/${id}`) return { status: 'running', created_at: '2026-10-31T00:00:00Z', project_slug: 'gh/org/repo' };
+    if (endpoint === `v2/workflow/${id}/job`) return { items: [{ name: 'test-mocha', status: 'blocked', job_number: 123, started_at: null }] };
+    throw new Error(`Unexpected detail request: ${endpoint}`);
+  };
+  const report = await workflowReport(id, get);
+  assert.equal(report.status, 'running');
+  assert.equal(report.jobs[0].status, 'blocked');
+  assert.equal(report.jobs[0].job_number, 123);
+  assert.equal(report.jobs[0].test_counts, null);
+  assert.equal(report.all_checks_seconds, null);
+});
