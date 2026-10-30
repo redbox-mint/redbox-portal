@@ -129,6 +129,14 @@ export const apiHarvestResponseSchema = withOpenApi(
 export const harvestRunSummarySchema = withOpenApi(
   z.object({
     id: z.string().optional(),
+    historyRetention: z
+      .object({
+        prunedAt: z.string(),
+        successfulDays: z.number().int(),
+        failedDays: z.number().int(),
+        complete: z.boolean(),
+      })
+      .optional(),
     sourceRunId: z.string(),
     brandId: z.string().optional(),
     recordType: z.string(),
@@ -240,7 +248,9 @@ export const harvestRunDetailResponseSchema = withOpenApi(
   z.object({
     run: harvestRunSummarySchema,
     chunks: z.array(harvestRunChunkSummarySchema),
+    chunksTotal: z.number().int().nonnegative(),
     events: z.array(harvestRunEventSchema),
+    eventsTotal: z.number().int().nonnegative(),
     aggregateCounts: harvestRunAggregateCountsSchema,
   }),
   { description: 'Harvest run detail response' }

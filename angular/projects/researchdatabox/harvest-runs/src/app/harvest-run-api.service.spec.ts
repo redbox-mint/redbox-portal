@@ -71,7 +71,9 @@ describe('HarvestRunApiService', () => {
       data: {
         run: { id: 'run-1', sourceRunId: 'run-a', sourceName: 'source-a', recordType: 'rdmp', status: 'running', totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0, chunksProcessed: 1, duplicateChunks: 0 },
         chunks: [],
+      chunksTotal: 0,
         events: [],
+        eventsTotal: 0,
         aggregateCounts: { totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0, chunksProcessed: 1, duplicateChunks: 0 }
       }
     });
@@ -79,13 +81,15 @@ describe('HarvestRunApiService', () => {
     await expectAsync(responsePromise).toBeResolvedTo({
       run: { id: 'run-1', sourceRunId: 'run-a', sourceName: 'source-a', recordType: 'rdmp', status: 'running', totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0, chunksProcessed: 1, duplicateChunks: 0 },
       chunks: [],
+      chunksTotal: 0,
       events: [],
+      eventsTotal: 0,
       aggregateCounts: { totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0, chunksProcessed: 1, duplicateChunks: 0 }
     });
   });
 
   it('builds paginated event requests', async () => {
-    const responsePromise = service.listRunEvents('run-1', { page: 3, pageSize: 5, harvestId: 'harvest-1' });
+    const responsePromise = service.listRunEvents('run-1', { page: 3, pageSize: 5, outcome: 'failed', harvestId: 'harvest-1' });
     await Promise.resolve();
 
     const request = httpTestingController.expectOne(req =>
@@ -94,6 +98,7 @@ describe('HarvestRunApiService', () => {
       && req.params.get('page') === '3'
       && req.params.get('pageSize') === '5'
       && req.params.get('harvestId') === 'harvest-1'
+      && req.params.get('outcome') === 'failed'
     );
     request.flush({
       summary: { numFound: 1, page: 3, start: 10 },
@@ -105,4 +110,13 @@ describe('HarvestRunApiService', () => {
       records: [{ id: 'event-1', harvestId: 'harvest-1', operation: 'upsert', outcome: 'updated', status: true, createdAt: '2026-05-25T10:00:00Z' }]
     });
   });
+  it('builds bounded chunk page requests and normalizes the response', async () => {
+    const pending = service.listRunChunks('run/1', 3, 20);
+    await Promise.resolve();
+    const request = httpTestingController.expectOne(req => req.url.endsWith('/harvest-runs/run%2F1/chunks')
+      && req.params.get('page') === '3' && req.params.get('pageSize') === '20');
+    request.flush({ data: { summary: { numFound: 1332, page: 3, start: 40 }, records: [] } });
+    await expectAsync(pending).toBeResolvedTo({ summary: { numFound: 1332, page: 3, start: 40 }, records: [] });
+  });
+
 });

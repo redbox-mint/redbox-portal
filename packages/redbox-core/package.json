@@ -10,6 +10,7 @@
     "redbox-loader-templates"
   ],
   "scripts": {
+    "harvest:indexes:preflight": "node scripts/harvest-indexes-preflight.cjs",
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha",
     "test:record-contracts": "prettier --check \"scripts/verify-record-contract-coverage.ts\" && npm run typecheck:record-contracts && npm run typecheck:record-schema-tests && TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-contract-coverage.ts",
     "test:record-schema-rollout": "npm run test:record-schema-rollout:format && npm run typecheck:record-contracts && npm run test:record-schema-rollout:unit && npm run test:record-schema-rollout:disabled && npm run test:record-schema-rollout:runtime && npm run test:record-schema-rollout:evidence",

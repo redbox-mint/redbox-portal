@@ -108,6 +108,8 @@ export interface AgendaQueueConfig {
     jobs: AgendaJobsConfig;
 }
 
+export const HARVEST_HISTORY_RETENTION_JOB_NAME = 'HarvestRunService-PruneHistory';
+
 export const RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME = 'RecordsService-ReconcilePostCommitSave';
 
 /** Daily orphan reconciliation for content-addressed brand typeface assets (design.md section 12). */
@@ -122,6 +124,20 @@ export const agendaQueue: AgendaQueueConfig = {
         historyRetentionHours: parseAgendaHistoryRetentionHours(process.env['sails__agendaQueue_options_historyRetentionHours'], 'sails__agendaQueue_options_historyRetentionHours') ?? 25,
     },
     jobs: {
+        [HARVEST_HISTORY_RETENTION_JOB_NAME]: {
+            fnName: 'harvestrunservice.pruneHistoryJob',
+            backend: 'mongodb',
+            options: {
+                lockLifetime: 10 * 60 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            },
+            schedule: {
+                method: 'every',
+                intervalOrSchedule: '1 day',
+                opts: { skipImmediate: true }
+            }
+        },
         'SolrSearchService-CreateOrUpdateIndex': {
             fnName: 'solrsearchservice.solrAddOrUpdate',
             options: {

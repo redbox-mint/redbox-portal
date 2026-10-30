@@ -5,6 +5,8 @@ export {
   HarvestOutcome,
   HarvestRecordEventModel,
   HarvestRunChunkModel,
+  HarvestRunChunksQuery,
+  HarvestRunChunksResult,
   HarvestRunDetailResult,
   HarvestRunEventsQuery,
   HarvestRunEventsResult,

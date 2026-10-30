@@ -2,7 +2,10 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import { createHash } from 'node:crypto';
 
-import { ObjectId } from 'mongodb';
+import { MongoClient, ObjectId, type Db } from 'mongodb';
+import { randomUUID } from 'node:crypto';
+import { strict as assert } from 'node:assert';
+import { pruneHarvestHistory } from '../../src/utilities/HarvestHistoryRetention';
 import { of } from 'rxjs';
 import * as sinon from 'sinon';
 
@@ -925,9 +928,19 @@ describe('HarvestRunService', function () {
     );
     (global as any).HarvestRecordEvent.find.returns(createChainableQuery([]));
 
+    (global as any).HarvestRecordEvent.count.resolves(42);
+    (global as any).HarvestRunChunk.count.resolves(1332);
+
     const result = await service.getRun({ id: 'brand-1', name: 'default' }, 'run-1');
 
     expect(result).to.not.equal(null);
+    expect(result.eventsTotal).to.equal(42);
+    expect(result.chunksTotal).to.equal(1332);
+    expect(result.events).to.deep.equal([]);
+    expect(
+      (global as any).HarvestRecordEvent.count.calledWith({ runId: 'run-1', brandId: 'brand-1' })
+    ).to.equal(true);
+    expect((global as any).HarvestRecordEvent.find.firstCall.returnValue.limit.calledWith(20)).to.equal(true);
     expect(result.aggregateCounts).to.deep.equal({
       totalProcessed: 5,
       created: 1,
@@ -938,7 +951,7 @@ describe('HarvestRunService', function () {
       chunksProcessed: 2,
       duplicateChunks: 1,
     });
-    expect((global as any).HarvestRunChunk.find.firstCall.returnValue.limit.calledWith(100)).to.equal(true);
+    expect((global as any).HarvestRunChunk.find.firstCall.returnValue.limit.calledWith(20)).to.equal(true);
   });
 
   it('rejects tracked chunks over the configured record limit before processing', async function () {
@@ -2697,6 +2710,40 @@ describe('HarvestRunService', function () {
     }
   });
 
+  it('awaits Mongo index provisioning during initialization and surfaces failures', async function () {
+    const createIndexes = sinon.stub().resolves();
+    const collection = sinon.stub().returns({ createIndexes });
+    (global as Record<string, unknown>).HarvestRun = {
+      getDatastore: () => ({ config: { adapter: 'sails-mongo' }, manager: { collection } }),
+    };
+    await service.init();
+    expect(collection.args.map(args => args[0])).to.deep.equal(['harvestrun', 'harvestrunchunk', 'harvestrecordevent']);
+    const error = new Error('duplicate unique keys');
+    createIndexes.rejects(error);
+    try {
+      await service.init();
+      throw new Error('Initialization should fail');
+    } catch (actual) {
+      expect(actual).to.equal(error);
+    }
+  });
+
+  it('paginates chunks within the authenticated brand with deterministic ordering', async function () {
+    (global as Record<string, unknown>).HarvestRunChunk = {
+      count: sinon.stub().resolves(1332),
+      find: sinon.stub().returns(createChainableQuery([])),
+    };
+    const result = await service.listRunChunks({ id: 'brand-1' }, 'run-1', { page: 3, pageSize: 500 });
+    expect(result).to.deep.equal({ rows: [], total: 1332 });
+    const model = HarvestRunChunk as unknown as { count: sinon.SinonStub; find: sinon.SinonStub };
+    expect(model.count.firstCall.args[0]).to.deep.equal({ runId: 'run-1', brandId: 'brand-1' });
+    expect(model.find.firstCall.args[0]).to.deep.equal({ runId: 'run-1', brandId: 'brand-1' });
+    const query = model.find.firstCall.returnValue as QueryLike;
+    expect(query.skip.calledWith(200)).to.equal(true);
+    expect(query.limit.calledWith(100)).to.equal(true);
+    expect(query.sort.firstCall.args[0]).to.deep.equal([{ submittedAt: 'ASC' }, { id: 'ASC' }]);
+  });
+
   it('lists runs and events with brand-scoped filters', async function () {
     (global as any).HarvestRun.count.resolves(2);
     (global as any).HarvestRun.find.returns(
@@ -2749,6 +2796,8 @@ describe('HarvestRunService', function () {
     const events = await service.listRunEvents({ id: 'brand-1', name: 'default' }, 'run-1', {
       runId: 'run-1',
       brandId: 'brand-1',
+      chunkId: 'chunk-1',
+      outcome: 'failed',
       page: 1,
       pageSize: 20,
     });
@@ -2757,10 +2806,214 @@ describe('HarvestRunService', function () {
     expect((global as any).HarvestRecordEvent.find.firstCall.args[0]).to.deep.equal({
       runId: 'run-1',
       brandId: 'brand-1',
+      chunkId: 'chunk-1',
+      outcome: 'failed',
     });
     expect(runs.total).to.equal(2);
     expect(runs.rows[0].sourceRunId).to.equal('source-run-1');
     expect(events.total).to.equal(1);
     expect(events.rows[0].harvestId).to.equal('harvest-1');
   });
+  it('exposes dry-run retention and honours the disabled configuration', async function () {
+    mockSails.config.harvestRuns = { retention: { enabled: false } };
+    (global as any).HarvestRun.getDatastore.returns({ config: { adapter: 'sails-mongo' }, manager: {} });
+    const result = await service.pruneHistory({ dryRun: true });
+    expect(result).to.include({ enabled: false, dryRun: true, runs: 0, chunks: 0, events: 0 });
+    await service.pruneHistoryJob();
+    (global as any).HarvestRun.getDatastore.returns(null);
+    try {
+      await service.pruneHistory();
+      expect.fail('Expected missing Mongo datastore to reject');
+    } catch (error) {
+      expect(String(error)).to.contain('requires a Mongo datastore');
+    }
+  });
+
+  it('rejects resubmission after retention starts without processing records', async function () {
+    configureTrackedCreateChunk();
+    (global as any).HarvestRun.findOne.resolves({
+      id: 'run-1',
+      brandId: 'brand-1',
+      status: 'completed',
+      historyRetention: { prunedAt: '2026-10-30T00:00:00Z', successfulDays: 90, failedDays: 365, complete: false },
+    });
+    try {
+      await service.submitChunk(
+        { id: 'brand-1', name: 'default' },
+        { name: 'dataset' },
+        {
+          sourceRunId: 'source-run-1',
+          sourceName: 'source-a',
+          chunk: { index: 0 },
+          records: [{ harvestId: 'record-1', operation: 'upsert', recordRequest: {metadata: {title: 'Example'}} }],
+        },
+        { username: 'tester' }
+      );
+      expect.fail('Expected expired deduplication ledger to reject');
+    } catch (error) {
+      expect(error).to.have.property('statusCode', 409);
+      expect(String(error)).to.contain('new sourceRunId');
+    }
+    expect(recordsService.create.called).to.equal(false);
+    expect((global as any).HarvestRunChunk.create.called).to.equal(false);
+  });
+  (process.env.HARVEST_MONGO_TEST_URL ? describe : describe.skip)(
+    'submission and retention concurrency against MongoDB',
+    function () {
+      this.timeout(15000);
+      let client: MongoClient;
+      let db: Db;
+      let runId: ObjectId;
+      const now = new Date();
+      const old = new Date(now.getTime() - 400 * 86400000).toISOString();
+      const retention = { enabled: true, successfulDays: 90, failedDays: 365, batchSize: 1 };
+      const request = {
+        sourceRunId: 'source-run',
+        sourceName: 'mint',
+        chunk: { index: 0 },
+        records: [{ harvestId: 'source-1', recordRequest: { metadata: { title: 'Record' } } }],
+      };
+
+      function barrier() {
+        let resolve!: () => void;
+        const promise = new Promise<void>(done => {
+          resolve = done;
+        });
+        return { promise, resolve };
+      }
+
+      beforeEach(async () => {
+        client = new MongoClient(process.env.HARVEST_MONGO_TEST_URL!);
+        await client.connect();
+        db = client.db(`harvest-concurrency-test-${randomUUID()}`);
+        runId = new ObjectId();
+        const row = {
+          _id: runId,
+          brandId: 'brand-1',
+          recordType: 'dataset',
+          sourceRunId: 'source-run',
+          sourceName: 'mint',
+          status: 'completed',
+          startedAt: old,
+          completedAt: old,
+          lastChunkAt: old,
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          chunksProcessed: 1,
+          duplicateChunks: 0,
+        };
+        await db.collection('harvestrun').insertOne(row);
+        await db.collection('harvestrecordevent').insertMany([
+          { runId: String(runId), brandId: 'brand-1', outcome: 'created', createdAt: old },
+          { runId: String(runId), brandId: 'brand-1', outcome: 'updated', createdAt: old },
+        ]);
+        await db.collection('harvestrunchunk').insertOne({
+          runId: String(runId),
+          brandId: 'brand-1',
+          status: 'processed',
+          failed: 0,
+          submittedAt: old,
+        });
+        const model = HarvestRun as unknown as { getDatastore: sinon.SinonStub };
+        model.getDatastore.returns({ config: { adapter: 'sails-mongo' }, manager: db });
+        // Keep the run object loaded before retention starts, as in the reported race.
+        sinon.stub(service, 'findOrCreateRun').resolves({ ...row, id: String(runId) });
+      });
+
+      afterEach(async () => {
+        await db?.dropDatabase();
+        await client?.close();
+      });
+
+      it('prevents retention claiming a run while a submission is reading chunk history', async () => {
+        const candidateRead = barrier();
+        const continueRetention = barrier();
+        const submissionStarted = barrier();
+        const continueSubmission = barrier();
+        const worker = pruneHarvestHistory(
+          db,
+          retention,
+          {},
+          async () => {
+            candidateRead.resolve();
+            await continueRetention.promise;
+          },
+          now
+        );
+        await candidateRead.promise;
+        sinon.stub(service, 'findMatchingChunks').callsFake(async () => {
+          submissionStarted.resolve();
+          await continueSubmission.promise;
+          return [{ id: 'chunk', status: 'processed', totalProcessed: 1 }];
+        });
+        const submission = service.submitChunk({ id: 'brand-1' }, { name: 'dataset' }, request, {
+          username: 'harvester',
+        });
+        try {
+          await submissionStarted.promise;
+          assert.equal((await db.collection('harvestrun').findOne({ _id: runId }))?.activeSubmissions, 1);
+          // Even a submission lasting beyond the activity window must block deletion.
+          await db.collection('harvestrun').updateOne({ _id: runId }, { $set: { lastChunkAt: old } });
+          continueRetention.resolve();
+          const result = await worker;
+          assert.equal(result.runs, 0);
+          assert.equal(await db.collection('harvestrecordevent').countDocuments(), 2);
+          assert.equal((await db.collection('harvestrun').findOne({ _id: runId }))?.historyRetention, undefined);
+        } finally {
+          continueRetention.resolve();
+          continueSubmission.resolve();
+          await submission;
+          await worker;
+        }
+        assert.equal((await db.collection('harvestrun').findOne({ _id: runId }))?.activeSubmissions, 0);
+      });
+
+      it('rejects a stale submission after retention claims the run, even while deletion is incomplete', async () => {
+        const claimed = barrier();
+        const continueRetention = barrier();
+        let heartbeats = 0;
+        const worker = pruneHarvestHistory(
+          db,
+          retention,
+          {},
+          async () => {
+            if (++heartbeats === 2) {
+              claimed.resolve();
+              await continueRetention.promise;
+            }
+          },
+          now
+        );
+        await claimed.promise;
+        const findChunks = sinon.stub(service, 'findMatchingChunks');
+        try {
+          assert.equal(await db.collection('harvestrecordevent').countDocuments(), 1);
+          await assert.rejects(
+            service.submitChunk({ id: 'brand-1' }, { name: 'dataset' }, request, { username: 'harvester' }),
+            /history has expired/
+          );
+          assert.equal(findChunks.called, false);
+          assert.equal(recordsService.create.called, false);
+        } finally {
+          continueRetention.resolve();
+          await worker;
+        }
+      });
+
+      it('releases the submission guard when chunk creation or processing fails', async () => {
+        sinon.stub(service, 'findMatchingChunks').rejects(new Error('Chunk query failed'));
+        await assert.rejects(
+          service.submitChunk({ id: 'brand-1' }, { name: 'dataset' }, request, { username: 'harvester' }),
+          /Chunk query failed/
+        );
+        const row = await db.collection('harvestrun').findOne({ _id: runId });
+        assert.equal(row?.activeSubmissions, 0);
+        assert.ok(row?.lastChunkAt > old);
+      });
+    }
+  );
 });

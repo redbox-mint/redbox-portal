@@ -1,0 +1,32 @@
+meta {
+  name: List harvest run chunks
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/default/rdmp/api/harvest-runs/{{trackedHarvestRunId}}/chunks?page=1&pageSize=1
+  body: none
+  auth: none
+}
+
+query {
+  page: 1
+  pageSize: 1
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Returns a bounded chunk page with its total", function () {
+    expect(res.getStatus()).to.equal(200);
+    var body = res.getBody();
+    expect(body.summary.page).to.equal(1);
+    expect(body.summary.start).to.equal(0);
+    expect(body.summary.numFound).to.be.greaterThan(0);
+    expect(body.records).to.have.lengthOf(1);
+    expect(body.records[0]).to.have.property('runId', bru.getEnvVar('trackedHarvestRunId'));
+  });
+}

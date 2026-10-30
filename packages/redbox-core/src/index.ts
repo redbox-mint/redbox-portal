@@ -120,6 +120,7 @@ export { DatastreamService } from './DatastreamService';
 export { QueueService } from './QueueService';
 export { RecordsService, createRecordMetadataDelta } from './RecordsService';
 export { HarvestRunService } from './HarvestRunService';
+export type { HarvestHistoryRetentionOptions, HarvestHistoryRetentionResult } from './HarvestRunService';
 export type {
   RecordRelationshipExpandOptions,
   RecordRelationshipGraph,

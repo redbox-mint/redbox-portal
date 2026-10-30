@@ -1,4 +1,12 @@
 import * as _ from 'lodash';
+import type { Db } from 'mongodb';
+import {
+  pruneHarvestHistory,
+  type HarvestHistoryRetentionOptions,
+  type HarvestHistoryRetentionResult,
+} from '../utilities/HarvestHistoryRetention';
+import { harvestRuns as defaultHarvestRuns } from '../config/harvestRuns.config';
+import { ensureHarvestRunIndexes } from '../utilities/HarvestRunIndexes';
 import { createHash } from 'node:crypto';
 import { firstValueFrom, Observable } from 'rxjs';
 
@@ -24,6 +32,8 @@ import {
   HarvestOutcome,
   HarvestRecordEventModel,
   HarvestRunChunkModel,
+  HarvestRunChunksQuery,
+  HarvestRunChunksResult,
   HarvestRunDetailResult,
   HarvestRunEventsQuery,
   HarvestRunEventsResult,
@@ -91,6 +101,10 @@ type ProcessTrackedRecordResult = {
 export namespace Services {
   export class HarvestRunService extends services.Core.Service implements HarvestRunServiceContract {
     protected override _exportedMethods: string[] = [
+      'init',
+      'pruneHistory',
+      'pruneHistoryJob',
+      'listRunChunks',
       'submitCompatibilityRecords',
       'submitLegacyRecords',
       'submitChunk',
@@ -103,6 +117,37 @@ export namespace Services {
     constructor() {
       super();
       this.logHeader = 'HarvestRunService::';
+    }
+
+    public async init(): Promise<void> {
+      const datastore = HarvestRun.getDatastore() as unknown as { config?: { adapter?: string }; manager?: Db };
+      if (datastore?.config?.adapter !== 'sails-mongo') {
+        return;
+      }
+      if (!datastore.manager) {
+        throw new Error('Harvest Mongo datastore manager is unavailable during initialization.');
+      }
+      await ensureHarvestRunIndexes(datastore.manager);
+    }
+
+    public async pruneHistory(options: HarvestHistoryRetentionOptions = {}): Promise<HarvestHistoryRetentionResult> {
+      return this.runHistoryRetention(options);
+    }
+
+    public async pruneHistoryJob(job?: { touch: () => Promise<unknown> }): Promise<void> {
+      const result = await this.runHistoryRetention({}, job ? () => job.touch() : undefined);
+      this.logger.info(`${this.logHeader} History retention: ${JSON.stringify(result)}`);
+    }
+
+    private async runHistoryRetention(
+      options: HarvestHistoryRetentionOptions,
+      heartbeat?: () => Promise<unknown>
+    ): Promise<HarvestHistoryRetentionResult> {
+      const datastore = HarvestRun.getDatastore() as unknown as { config?: { adapter?: string }; manager?: Db };
+      if (datastore?.config?.adapter !== 'sails-mongo' || !datastore.manager) {
+        throw new Error('Harvest history retention requires a Mongo datastore.');
+      }
+      return pruneHarvestHistory(datastore.manager, this.harvestRunConfig().retention, options, heartbeat);
     }
 
     private asError(error: unknown): Error {
@@ -167,6 +212,7 @@ export namespace Services {
         _.isPlainObject(sails.config?.harvestRuns) ? sails.config.harvestRuns : {}
       ) as Partial<HarvestRunsConfig>;
       return {
+        retention: { ...defaultHarvestRuns.retention, ...configured.retention },
         maxRecordsPerChunk: this.parsePositiveInt(configured.maxRecordsPerChunk, 250),
         maxChunkBytes: this.parsePositiveInt(configured.maxChunkBytes, 5_000_000),
         processingChunkTimeoutMinutes: this.parsePositiveInt(configured.processingChunkTimeoutMinutes, 30),
@@ -435,6 +481,7 @@ export namespace Services {
         failed: Number(row.failed ?? 0),
         chunksProcessed: Number(row.chunksProcessed ?? 0),
         duplicateChunks: Number(row.duplicateChunks ?? 0),
+        historyRetention: row.historyRetention,
         metadata: (row.metadata as Record<string, unknown> | undefined) ?? undefined,
       });
     }
@@ -489,7 +536,11 @@ export namespace Services {
       });
     }
 
-    private async findExistingHarvestRecord(brandId: string, harvestId: string, recordType: string): Promise<AnyRecord[]> {
+    private async findExistingHarvestRecord(
+      brandId: string,
+      harvestId: string,
+      recordType: string
+    ): Promise<AnyRecord[]> {
       return (await Record.find({
         harvestId,
         'metaMetadata.type': recordType,
@@ -1721,6 +1772,54 @@ export namespace Services {
       }).sort('attempt DESC')) as HarvestRunChunkRow[];
     }
 
+    /**
+     * Atomically reserve a Mongo run against retention before reading chunk history.
+     * Reject expired runs with HTTP 409. The caller must invoke the returned release
+     * function in finally; a process crash leaves the guard in place to preserve history.
+     * Other adapters return a no-op release because retention requires MongoDB.
+     */
+    private async acquireSubmissionGuard(run: HarvestRunRow): Promise<() => Promise<void>> {
+      const datastore = HarvestRun.getDatastore() as unknown as { config?: { adapter?: string } } | null;
+      // Retention is Mongo-only. Other adapters keep their existing submission path.
+      if (datastore?.config?.adapter !== 'sails-mongo') {
+        return async () => {};
+      }
+      const collection = this.getHarvestRunCollection();
+      const nativeId = this.toNativeRunId(run.id, collection);
+      if (!collection || !nativeId) {
+        throw new Error('Cannot acquire harvest submission guard for the Mongo run.');
+      }
+      const claimed = this.extractUpdatedRun(
+        await collection.findOneAndUpdate(
+          { _id: nativeId, brandId: run.brandId, historyRetention: null },
+          [
+            {
+              $set: {
+                activeSubmissions: { $add: [{ $ifNull: ['$activeSubmissions', 0] }, 1] },
+                lastChunkAt: this.nowIso(),
+              },
+            },
+          ],
+          { returnDocument: 'after' }
+        )
+      );
+      if (!claimed) {
+        throw new HarvestRunServiceError('Harvest history has expired for this run. Submit a new sourceRunId.', 409);
+      }
+      return async () => {
+        const released = this.extractUpdatedRun(
+          await collection.findOneAndUpdate(
+            { _id: nativeId, brandId: run.brandId, activeSubmissions: { $gt: 0 } },
+            { $inc: { activeSubmissions: -1 }, $set: { lastChunkAt: this.nowIso() } },
+            { returnDocument: 'after' }
+          )
+        );
+        if (!released) {
+          throw new Error('Cannot release harvest submission guard.');
+        }
+      };
+    }
+
     public async submitChunk(
       brand: BrandingModel,
       recordTypeModel: RecordTypeModel,
@@ -1733,6 +1832,41 @@ export namespace Services {
       const brandId = this.resolveBrandId(brand);
       const recordTypeName = this.resolveRecordTypeName(recordTypeModel);
       const run = await this.findOrCreateRun(brand, recordTypeModel, request, user);
+      if (run.historyRetention) {
+        throw new HarvestRunServiceError('Harvest history has expired for this run. Submit a new sourceRunId.', 409);
+      }
+      const release = await this.acquireSubmissionGuard(run);
+      try {
+        return await this.submitRunChunk(
+          brand,
+          recordTypeModel,
+          request,
+          user,
+          saveContext,
+          run,
+          brandId,
+          recordTypeName
+        );
+      } finally {
+        await release();
+      }
+    }
+
+    /**
+     * Process or deduplicate a chunk while the caller holds the submission guard.
+     * Retries resume from persisted events; record changes and chunk checkpoints
+     * finish before the caller releases the guard.
+     */
+    private async submitRunChunk(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      request: HarvestTrackedChunkRequest,
+      user: UserModel,
+      saveContext: RecordSaveContext | undefined,
+      run: HarvestRunRow,
+      brandId: string,
+      recordTypeName: string
+    ): Promise<HarvestTrackedChunkResponse> {
       const contentHash = this.buildChunkContentHash(brandId, recordTypeName, request);
 
       const existingChunks = await this.findMatchingChunks(run.id, contentHash);
@@ -1907,7 +2041,10 @@ export namespace Services {
       }
 
       const total = await HarvestRun.count(where);
-      const rows = (await HarvestRun.find(where).sort('startedAt DESC').skip(skip).limit(pageSize)) as HarvestRunRow[];
+      const rows = (await HarvestRun.find(where)
+        .sort([{ startedAt: 'DESC' }, { id: 'DESC' }])
+        .skip(skip)
+        .limit(pageSize)) as HarvestRunRow[];
       return {
         rows: rows.map(row => this.toRunModel(row)),
         total: Number(total ?? 0),
@@ -1921,16 +2058,16 @@ export namespace Services {
         return null;
       }
 
-      const chunks = (await HarvestRunChunk.find({ runId, brandId })
-        .sort('submittedAt ASC')
-        .limit(100)) as HarvestRunChunkRow[];
-      const events = (await HarvestRecordEvent.find({ runId, brandId })
-        .sort('createdAt DESC')
-        .limit(20)) as HarvestRecordEventRow[];
+      const [chunks, events] = await Promise.all([
+        this.listRunChunks(brand, runId, { page: 1, pageSize: 20 }),
+        this.listRunEvents(brand, runId, { page: 1, pageSize: 20 }),
+      ]);
       return {
         run: this.toRunModel(run),
-        chunks: chunks.map(row => this.toChunkModel(row)),
-        events: events.map(row => this.toEventModel(row)),
+        chunks: chunks.rows,
+        chunksTotal: chunks.total,
+        events: events.rows,
+        eventsTotal: events.total,
         aggregateCounts: {
           totalProcessed: Number(run.totalProcessed ?? 0),
           created: Number(run.created ?? 0),
@@ -1950,6 +2087,22 @@ export namespace Services {
       return !_.isNil(run);
     }
 
+    public async listRunChunks(
+      brand: BrandingModel,
+      runId: string,
+      params: Partial<HarvestRunChunksQuery>
+    ): Promise<HarvestRunChunksResult> {
+      const page = this.parsePositiveInt(params.page, 1);
+      const pageSize = Math.min(100, this.parsePositiveInt(params.pageSize, 20));
+      const where = { runId, brandId: this.resolveBrandId(brand) };
+      const total = await HarvestRunChunk.count(where);
+      const rows = (await HarvestRunChunk.find(where)
+        .sort([{ submittedAt: 'ASC' }, { id: 'ASC' }])
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)) as HarvestRunChunkRow[];
+      return { rows: rows.map(row => this.toChunkModel(row)), total: Number(total ?? 0) };
+    }
+
     public async listRunEvents(
       brand: BrandingModel,
       runId: string,
@@ -1963,6 +2116,9 @@ export namespace Services {
         runId,
         brandId,
       };
+      if (!_.isEmpty(params.chunkId)) {
+        where.chunkId = String(params.chunkId);
+      }
       if (!_.isEmpty(params.outcome)) {
         where.outcome = String(params.outcome);
       }
@@ -1978,7 +2134,7 @@ export namespace Services {
 
       const total = await HarvestRecordEvent.count(where);
       const rows = (await HarvestRecordEvent.find(where)
-        .sort('createdAt DESC')
+        .sort([{ createdAt: 'DESC' }, { id: 'DESC' }])
         .skip(skip)
         .limit(pageSize)) as HarvestRecordEventRow[];
       return {
