@@ -76,5 +76,28 @@
     "stopped_at": "2026-10-30T22:01:03.401Z",
     "test_counts": { "success": 40 },
     "note": "The previous two pilot jobs exposed zero CircleCI test records for Translation; this run includes the JUnit reporter change."
+  },
+  "final_results": {
+    "status": "success",
+    "stopped_at": "2026-10-30T22:23:34Z",
+    "workflow_elapsed_seconds": 1463,
+    "last_test_job": "test-playwright",
+    "last_test_stopped_at": "2026-10-30T22:23:16Z",
+    "all_tests_and_docs_elapsed_seconds": 1445,
+    "image_dependent_successful_test_records": {
+      "bruno_general": 534,
+      "bruno_oidc": 17,
+      "bruno_s3": 12,
+      "mocha": 444,
+      "playwright": 19
+    },
+    "mocha_test_step_seconds": 235.253,
+    "mocha_previous_pilot_job": 199528,
+    "mocha_reported_result_identities_match_previous_pilot": true,
+    "retained_lcov": {
+      "mocha": { "bytes": 1406406, "source_records": 638 },
+      "playwright": { "bytes": 1395758, "source_records": 638 }
+    },
+    "note": "This single chore-branch workflow did not publish images. API record counts and matching Mocha identities do not prove coverage equivalence; LCOV presence and record counts do not validate source maps or establish coverage parity. A matched baseline and candidate comparison remains required."
   }
 }
