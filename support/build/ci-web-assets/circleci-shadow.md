@@ -18,7 +18,7 @@ parameters, logs or artifacts. Unsupported or ambiguous reruns fail closed.
 
 The source and compiled CircleCI configuration must match
 `APPROVED_CONFIG_SHA256` in `circleci-pilot-runner.cjs`. The current digest
-comes from configuration inspection run 13596: its source matches the committed
+comes from configuration inspection run 13598: its source matches the committed
 configuration, the compiled shadow workflow contains the three expected jobs,
 and its dynamic setup fields are empty.
 An environment variable or pipeline parameter cannot approve the configuration
