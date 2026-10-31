@@ -32,7 +32,9 @@ if [[ "$1 $2" == 'manifest inspect' ]]; then
   exit 1
 fi
 if [[ "$*" == *'imagetools inspect'* && "\${FAIL_INSPECT:-}" == 1 ]]; then exit 1; fi
-if [[ "$*" == *'imagetools inspect --format'* ]]; then echo "\${MANIFEST_DIGEST:-${manifestDigest}}"; fi
+if [[ "$*" == *'imagetools inspect --format'* ]]; then
+  printf '{"digest":"%s"}\\n' "\${MANIFEST_DIGEST:-${manifestDigest}}"
+fi
 if [[ "$*" == *'imagetools inspect --raw'* ]]; then
   printf '{"config":{"digest":"%s"}}\\n' '${testedId}'
 fi
@@ -129,13 +131,13 @@ test('dry runs verify staging images and print exact promotion commands without 
       assert.match(result.stdout, /DRY RUN/);
       assert.ok(result.stdout.includes(`docker buildx imagetools create --prefer-index=false --tag example/portal:chore-ci-build-speed${suffix}-${arch} ${pinned}`));
       assert.ok(result.calls.includes(`buildx imagetools inspect ${staging(variant, arch)}`));
-      assert.ok(result.calls.includes(`buildx imagetools inspect --format {{.Manifest.Digest}} ${staging(variant, arch)}`));
+      assert.ok(result.calls.includes(`buildx imagetools inspect --format {{json .Manifest}} ${staging(variant, arch)}`));
       assert.ok(result.calls.every(call => !call.includes('imagetools create')));
     }
     const manifest = run(['manifest', variant]);
     assert.equal(manifest.status, 0, manifest.stderr);
     assert.ok(manifest.stdout.includes(`docker buildx imagetools create --tag example/portal:chore-ci-build-speed${suffix} ${pinned} ${pinned}`));
-    assert.ok(manifest.calls.includes(`buildx imagetools inspect --format {{.Manifest.Digest}} ${staging(variant, 'arm64')}`));
+    assert.ok(manifest.calls.includes(`buildx imagetools inspect --format {{json .Manifest}} ${staging(variant, 'arm64')}`));
     assert.ok(manifest.calls.every(call => !call.includes('imagetools create')));
   }
 });
@@ -180,7 +182,6 @@ test('transient registry creation failures are retried', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.calls.filter(call => call.includes('imagetools create')).length, 2);
 });
-
 
 test('tested-image staging pushes the local image by ID and verifies the registry config', () => {
   const result = run(['stage-tested', 'runtime', 'amd64']);

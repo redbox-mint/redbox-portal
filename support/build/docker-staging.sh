@@ -138,7 +138,8 @@ fi
 pinned_sources=()
 for source_image in "${sources[@]}"; do
   docker buildx imagetools inspect "$source_image"
-  digest="$(docker buildx imagetools inspect --format '{{.Manifest.Digest}}' "$source_image")"
+  digest="$(docker buildx imagetools inspect --format '{{json .Manifest}}' "$source_image" |
+    node -e 'console.log(JSON.parse(require("node:fs").readFileSync(0, "utf8")).digest)')"
   [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid staging manifest digest' >&2; exit 1; }
   pinned_source="${REPO}@${digest}"
   pinned_sources+=("$pinned_source")
