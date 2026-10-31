@@ -80,7 +80,7 @@ export class GridFSDriver {
   }
 
   public async exists(key: string): Promise<boolean> {
-    return (await this.findLatestFile(key)) !== null || (await this.findPendingUploads({ filename: key })).length > 0;
+    return (await this.findLatestFile(key)) !== null;
   }
 
   public async get(key: string): Promise<string> {
@@ -230,25 +230,20 @@ export class GridFSDriver {
       name: basename(file.filename),
       ...this.fileToMetaData(file),
     }));
-
-    const completedKeys = new Set(files.map(file => file.filename));
-    for (const pending of await this.findPendingUploads(this.prefixFilter(prefix))) {
-      if (completedKeys.has(pending.filename)) continue;
-      objects.push({
-        key: pending.filename,
-        name: basename(pending.filename),
-        contentType: pending.metadata.contentType,
-        contentLength: 0,
-        lastModified: pending.startedAt,
-        etag: pending._id.toHexString(),
-      });
-    }
     objects.sort((left, right) => left.key.localeCompare(right.key));
 
     return {
       paginationToken: undefined,
       objects,
     };
+  }
+
+  /** Cleanup discovery only: these uploads are not available through exists(), listAll(), or reads. */
+  public async listIncompleteUploads(prefix: string): Promise<{ key: string; lastModified: Date }[]> {
+    return (await this.findPendingUploads(this.prefixFilter(prefix))).map(upload => ({
+      key: upload.filename,
+      lastModified: upload.startedAt,
+    }));
   }
 
   public bucket(bucketName: string): GridFSDriver {

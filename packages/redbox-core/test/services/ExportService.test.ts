@@ -125,6 +125,7 @@ describe('ExportService', function () {
     exists: sinon.SinonStub;
     delete: sinon.SinonStub;
     listAll: sinon.SinonStub;
+    listIncompleteUploads: sinon.SinonStub;
   };
   let manager: { getDiskConfig: sinon.SinonStub; bootstrap: sinon.SinonStub; disk: sinon.SinonStub };
   let queue: { now: sinon.SinonStub };
@@ -161,6 +162,7 @@ describe('ExportService', function () {
         files.delete(key);
       }),
       listAll: sinon.stub().resolves({ objects: [] }),
+      listIncompleteUploads: sinon.stub().resolves([]),
     };
     manager = {
       getDiskConfig: sinon.stub().returns({ driver: 'gridfs', config: { visibility: 'private' } }),
@@ -215,7 +217,7 @@ describe('ExportService', function () {
 
   it('validates config/indexes during initialization without resolving disks before ready', async function () {
     await service.init();
-    expect(collection.createIndex.callCount).to.equal(6);
+    expect(collection.createIndex.callCount).to.equal(7);
     expect(manager.bootstrap.called).to.equal(false);
     expect(manager.disk.called).to.equal(false);
   });
@@ -677,6 +679,65 @@ describe('ExportService', function () {
     expect(rows.map(row => row.status)).to.deep.equal(['failed', 'failed', 'queued']);
   });
 
+  it('fails acknowledged requests at the configured queue deadline and ignores late delivery', async function () {
+    mockSails.config.record.export.background.maxQueueMinutes = 10;
+    const old = await service.createJob(context, request, filename);
+    rows[0].createdAt -= 48 * 60 * 60000;
+    await clock.tickAsync(9 * 60000);
+    await service.createJob(context, request, filename);
+    await service.maintenanceJob();
+    expect(rows.map(row => row.status)).to.deep.equal(['queued', 'queued']);
+    await clock.tickAsync(60000);
+    await service.maintenanceJob();
+    expect(rows.map(row => row.status)).to.deep.equal(['failed', 'queued']);
+    expect(rows[0].errorCode).to.equal('export-queue-timed-out');
+    expect(rows[0].completedAt).to.equal(Date.now());
+    expect(rows[0].cleanedAt).to.equal(Date.now());
+    await service.generateCsvJob({ attrs: { data: { jobId: old.id } } });
+    expect(records.exportAllPlans.called).to.equal(false);
+    expect(rows[0].status).to.equal('failed');
+  });
+
+  it('defaults acknowledged queue recovery to 24 hours', async function () {
+    await service.createJob(context, request, filename);
+    await clock.tickAsync(24 * 60 * 60000 - 1);
+    await service.maintenanceJob();
+    expect(rows[0].status).to.equal('queued');
+    await clock.tickAsync(1);
+    await service.maintenanceJob();
+    expect(rows[0].errorCode).to.equal('export-queue-timed-out');
+  });
+
+  it('supports ordinary disks without incomplete-upload discovery', async function () {
+    Reflect.deleteProperty(disk, 'listIncompleteUploads');
+    const id = await prepare();
+    await service.deleteJob(context, id);
+    expect(files.size).to.equal(0);
+    expect(rows[0].cleanedAt).to.equal(Date.now());
+    await service.maintenanceJob();
+  });
+
+  it('rejects invalid queue age limits', async function () {
+    for (const value of [0, -1, '60', NaN, Infinity]) {
+      mockSails.config.record.export.background.maxQueueMinutes = value;
+      await error(service.init(), 503, 'export-invalid-config');
+    }
+  });
+
+  it('cleans failed pending uploads even though they are not readable files', async function () {
+    const id = await prepare();
+    const key = rows[0].objectKey!;
+    rows[0].status = 'failed';
+    rows[0].cleanupAfter = Date.now();
+    disk.exists.resolves(false);
+    disk.listIncompleteUploads.resolves([{ key, lastModified: new Date() }]);
+    await service.maintenanceJob();
+    expect(disk.delete.calledWith(key)).to.equal(true);
+    expect(files.has(key)).to.equal(false);
+    expect(rows[0].cleanedAt).to.equal(Date.now());
+    expect((await service.getJob(context, id)).status).to.equal('failed');
+  });
+
   it('lists only the latest 20 jobs owned in the current portal', async function () {
     for (let idx = 0; idx < 22; idx++) {
       await service.createJob(context, request, filename);
@@ -706,10 +767,21 @@ describe('ExportService', function () {
     expect(disk.listAll.secondCall.args).to.deep.equal(['exports/', { recursive: true, paginationToken: 'page2' }]);
   });
 
+  it('preserves fresh and referenced incomplete uploads during orphan reconciliation', async function () {
+    await prepare();
+    const key = rows[0].objectKey!;
+    disk.listIncompleteUploads.resolves([
+      { key, lastModified: new Date(Date.now() - EXPORT_STALE_MS - 1) },
+      { key: 'exports/fresh.csv', lastModified: new Date() },
+    ]);
+    await service.maintenanceJob();
+    expect(disk.delete.called).to.equal(false);
+  });
+
   it('reconciles incomplete orphan uploads from listing timestamps without reading unpublished metadata', async function () {
     const key = 'exports/abandoned/pending.csv';
     files.set(key, Buffer.from('partial'));
-    disk.listAll.resolves({ objects: [{ key, lastModified: new Date(Date.now() - EXPORT_STALE_MS - 1) }] });
+    disk.listIncompleteUploads.resolves([{ key, lastModified: new Date(Date.now() - EXPORT_STALE_MS - 1) }]);
     disk.getMetaData.rejects(Object.assign(new Error('Upload is not published'), { code: 'ENOENT' }));
     await service.maintenanceJob();
     expect(disk.getMetaData.called).to.equal(false);

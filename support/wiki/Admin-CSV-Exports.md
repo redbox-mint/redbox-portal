@@ -16,7 +16,8 @@ record: {
     background: {
       diskName: 'exports',
       retentionHours: 24,
-      maxRunMinutes: 60
+      maxRunMinutes: 60,
+      maxQueueMinutes: 1440
     }
   }
 }
@@ -42,7 +43,7 @@ For S3, select the existing S3 driver with the deployment's bucket, region, auth
 
 Each job records its disk name and artifact key before upload. Changing `diskName` affects new jobs; existing downloads and cleanup continue using their saved disk name. Keep old disk definitions and their contents available until those jobs have expired and cleanup has succeeded. Repointing an existing disk definition requires migrating its remaining objects or waiting for their removal.
 
-Use positive numeric values for retention and execution limits. A missing or invalid disk, or public disk visibility, prevents export preparation with an explicit configuration error. The existing `record.export.maxRecords` setting controls the database page size, not the total export count.
+Use positive numeric values for retention, execution, and queue-wait limits. A missing or invalid disk, or public disk visibility, prevents export preparation with an explicit configuration error. The existing `record.export.maxRecords` setting controls the database page size, not the total export count.
 
 ## Retention and recovery
 
@@ -51,6 +52,10 @@ Successful completion sets `expiresAt` to completion time plus the configured re
 Downloading does not delete the file or restart the retention period. Use **Delete** on a finished export to remove it early. It disappears from recent exports and its status/download URLs return `404`. The server removes its artifact through the job's saved StorageManager disk; if storage is unavailable, maintenance retries while downloads remain blocked. Failed attempts keep any remaining cleanup grace period so an unfinished write cannot leave orphaned data. Deletion does not affect the source records. Deleted-job metadata is retained briefly for cleanup and repeated requests, then pruned.
 
 An Agenda maintenance job runs approximately every five minutes on the Mongo queue backend. It expires completed exports, removes expired or abandoned artifacts through their recorded StorageManager disks, retries deletion failures, and eventually prunes terminal job metadata. Failed uploads are removed as part of failure handling. The GridFS driver records pending uploads before writing chunks so recovery can also find unfinished files after a worker restart. A database TTL index alone is insufficient because it cannot remove the stored artifact.
+
+Acknowledged requests have a separate maximum queue wait, configured with `record.export.background.maxQueueMinutes` (default: 1440 minutes, or 24 hours, from queue acknowledgement). Maintenance marks requests still queued at that age as failed so users can prepare them again; a late queue delivery cannot restart a failed request. Set this limit above the longest acceptable legitimate queue backlog. Unacknowledged submissions retain their shorter five-minute recovery window.
+
+GridFS `exists()` and ordinary `listAll()` only expose completed files. Maintenance uses a separate internal incomplete-upload listing to discover abandoned chunks without treating unfinished attachments as available. Referenced uploads and recently started unreferenced uploads are preserved during orphan reconciliation.
 
 Generation has a separate execution deadline, defaulting to 60 minutes after a worker starts. Heartbeats keep the queue lock and running-job state alive through column discovery and writing. Interrupted or stale work becomes failed and can be prepared again from the page. Download interruption does not cancel generation or delete a completed export; the user can retry until expiry.
 

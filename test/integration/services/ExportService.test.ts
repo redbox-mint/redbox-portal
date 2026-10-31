@@ -335,7 +335,9 @@ describe('Background admin CSV export integration', function () {
       const live = objects[2];
       // Reconstruct the driver to demonstrate that recovery does not rely on process memory.
       const restartedDriver = new GridFSDriver(config);
-      assert.equal(await restartedDriver.exists(stale.key), true);
+      assert.equal(await restartedDriver.exists(stale.key), false);
+      assert.equal(Array.from((await disk.listAll(stale.key)).objects).length, 0);
+      assert.ok((await disk.listIncompleteUploads?.(stale.key))?.some(upload => upload.key === stale.key));
       await assert.rejects(restartedDriver.getMetaData(stale.key), { code: 'ENOENT' });
       await assert.rejects(restartedDriver.getStream(stale.key), { code: 'ENOENT' });
       await ExportService.maintenanceJob();

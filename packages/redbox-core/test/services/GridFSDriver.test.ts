@@ -267,6 +267,8 @@ describe('GridFSDriver', function () {
     let activeChunkPreserved: boolean;
     try {
       await chunkWritten;
+      expect(await secondDriver.exists(key)).to.equal(false);
+      expect(Array.from((await secondDriver.listAll('attachments/')).objects)).to.have.length(0);
       const uploadId = pending[0]._id;
       await secondDriver.put(key, 'replacement');
       activeMappingPreserved = pending.some(upload => upload._id.equals(uploadId));
@@ -317,8 +319,9 @@ describe('GridFSDriver', function () {
     chunks.push({ files_id: uploadId, data: Buffer.from('partial CSV') });
     const driver = createDriver();
 
-    expect(await driver.exists(key)).to.equal(true);
-    const listed = Array.from((await driver.listAll('exports/')).objects);
+    expect(await driver.exists(key)).to.equal(false);
+    expect(Array.from((await driver.listAll('exports/')).objects)).to.have.length(0);
+    const listed = await driver.listIncompleteUploads('exports/');
     expect(listed.map(object => object.key)).to.deep.equal([key]);
     expect(listed[0].lastModified).to.equal(startedAt);
     for (const operation of [driver.getStream(key), driver.getMetaData(key)]) {
@@ -365,7 +368,7 @@ describe('GridFSDriver', function () {
       expect(error).to.have.property('message', 'Source failed');
     }
     expect(pending).to.have.length(1);
-    expect(await driver.exists(key)).to.equal(true);
+    expect(await driver.exists(key)).to.equal(false);
     failChunkDeletion = false;
     await driver.deleteAll('exports/failed/');
     expect(pending).to.have.length(0);

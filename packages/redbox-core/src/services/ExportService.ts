@@ -105,6 +105,7 @@ export namespace Services {
         await collection.createIndex({ status: 1, heartbeatAt: 1 });
         await collection.createIndex({ status: 1, expiresAt: 1 });
         await collection.createIndex({ status: 1, createdAt: 1, enqueuedAt: 1 });
+        await collection.createIndex({ status: 1, enqueuedAt: 1 });
         await collection.createIndex({ diskName: 1, objectKey: 1 });
       })().catch(error => {
         this.indexesReady = undefined;
@@ -113,16 +114,21 @@ export namespace Services {
       return this.indexesReady;
     }
 
-    private settings(): { diskName: string; retentionMs: number; runMs: number } {
+    private settings(): { diskName: string; retentionMs: number; runMs: number; queueMs: number } {
       const config = sails.config.record.export.background;
       const diskName = config?.diskName ?? 'exports';
       const retentionHours = config?.retentionHours ?? 24;
       const maxRunMinutes = config?.maxRunMinutes ?? 60;
+      const maxQueueMinutes = config?.maxQueueMinutes ?? 24 * 60;
+      const queueMs = maxQueueMinutes * 60000;
       const retentionMs = retentionHours * 3600000;
       const runMs = maxRunMinutes * 60000;
       if (
         typeof retentionHours !== 'number' ||
         typeof maxRunMinutes !== 'number' ||
+        typeof maxQueueMinutes !== 'number' ||
+        !Number.isSafeInteger(queueMs) ||
+        queueMs <= 0 ||
         typeof diskName !== 'string' ||
         !diskName ||
         !Number.isSafeInteger(retentionMs) ||
@@ -134,7 +140,7 @@ export namespace Services {
         throw new ExportServiceError(503, 'export-invalid-config', 'Background export configuration is invalid.');
       }
       this.validateDisk(diskName);
-      return { diskName, retentionMs, runMs };
+      return { diskName, retentionMs, runMs, queueMs };
     }
 
     private validateDisk(diskName: string): void {
@@ -588,8 +594,13 @@ export namespace Services {
       }
       try {
         const disk = await this.disk(row.diskName);
-        // exists() makes missing objects idempotent for drivers whose delete() rejects ENOENT.
-        if (await disk.exists(row.objectKey)) await disk.delete(row.objectKey);
+        // Ordinary existence only promises readable files. GridFS also exposes incomplete
+        // uploads to cleanup, without changing availability checks for other disk consumers.
+        const exists = await disk.exists(row.objectKey);
+        const incomplete = !exists && (await disk.listIncompleteUploads?.(row.objectKey));
+        if (exists || (incomplete && incomplete.some(upload => upload.key === row.objectKey))) {
+          await disk.delete(row.objectKey);
+        }
         await this.collection().updateOne(
           { jobId: row.jobId, attemptId: row.attemptId, status: { $in: ['failed', 'expired', 'deleted'] } },
           { $set: { cleanedAt: Date.now() } }
@@ -600,7 +611,7 @@ export namespace Services {
     }
 
     public async maintenanceJob(job?: ExportAgendaJob): Promise<void> {
-      const { retentionMs } = this.settings();
+      const { retentionMs, queueMs } = this.settings();
       const collection = this.collection();
       const now = Date.now();
       await collection.updateMany(
@@ -613,6 +624,21 @@ export namespace Services {
             cleanupAfter: now,
             errorCode: 'export-enqueue-failed',
             errorMessage: 'Export submission was interrupted. Prepare it again.',
+          },
+        }
+      );
+      // An acknowledged delivery may be lost by the queue backend. Bound its wait
+      // separately from the short unacknowledged-submission and running-worker timeouts.
+      await collection.updateMany(
+        { status: 'queued', enqueuedAt: { $ne: null, $lte: now - queueMs } },
+        {
+          $set: {
+            status: 'failed',
+            completedAt: now,
+            expiresAt: now + retentionMs,
+            cleanupAfter: now,
+            errorCode: 'export-queue-timed-out',
+            errorMessage: 'Export preparation did not start within its queue time limit. Prepare it again.',
           },
         }
       );
@@ -648,6 +674,35 @@ export namespace Services {
       await this.reconcileOrphans(job);
     }
 
+    private async reconcileObject(
+      diskName: string,
+      disk: storage.IDisk,
+      object: unknown,
+      job?: ExportAgendaJob
+    ): Promise<void> {
+      if (job?.touch) await job.touch();
+      if (
+        !object ||
+        typeof object !== 'object' ||
+        !('key' in object) ||
+        typeof object.key !== 'string' ||
+        !object.key.startsWith(PREFIX)
+      )
+        return;
+      // Cleanup listings may include uploads that cannot be read yet.
+      // Prefer a valid listing timestamp; only request metadata when it is absent.
+      const listedTime =
+        'lastModified' in object &&
+        object.lastModified instanceof Date &&
+        Number.isFinite(object.lastModified.getTime())
+          ? object.lastModified
+          : undefined;
+      const lastModified = listedTime ?? (await disk.getMetaData(object.key)).lastModified;
+      if (!Number.isFinite(lastModified.getTime()) || lastModified.getTime() > Date.now() - EXPORT_STALE_MS) return;
+      const referenced = await this.collection().findOne({ diskName, objectKey: object.key });
+      if (!referenced) await disk.delete(object.key);
+    }
+
     private async reconcileOrphans(job?: ExportAgendaJob): Promise<void> {
       const diskNames = await this.collection().distinct('diskName');
       diskNames.push(this.settings().diskName);
@@ -658,31 +713,13 @@ export namespace Services {
           do {
             const page = await disk.listAll(PREFIX, { recursive: true, paginationToken });
             for (const object of page.objects) {
-              if (job?.touch) await job.touch();
-              if (
-                !object ||
-                typeof object !== 'object' ||
-                !('key' in object) ||
-                typeof object.key !== 'string' ||
-                !object.key.startsWith(PREFIX)
-              )
-                continue;
-              // Listings may include recoverable in-progress objects that cannot be read yet.
-              // Prefer a valid listing timestamp; only request metadata when it is absent.
-              const listedTime =
-                'lastModified' in object &&
-                object.lastModified instanceof Date &&
-                Number.isFinite(object.lastModified.getTime())
-                  ? object.lastModified
-                  : undefined;
-              const lastModified = listedTime ?? (await disk.getMetaData(object.key)).lastModified;
-              if (!Number.isFinite(lastModified.getTime()) || lastModified.getTime() > Date.now() - EXPORT_STALE_MS)
-                continue;
-              const referenced = await this.collection().findOne({ diskName, objectKey: object.key });
-              if (!referenced) await disk.delete(object.key);
+              await this.reconcileObject(diskName, disk, object, job);
             }
             paginationToken = page.paginationToken;
           } while (paginationToken);
+          for (const upload of (await disk.listIncompleteUploads?.(PREFIX)) ?? []) {
+            await this.reconcileObject(diskName, disk, upload, job);
+          }
         } catch (error) {
           this.updateChronicle({ exportOperation: 'orphan-cleanup', exportDisk: diskName }, [error]);
         }

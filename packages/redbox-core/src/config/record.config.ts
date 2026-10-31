@@ -39,6 +39,8 @@ export interface RecordExportBackgroundConfig {
   retentionHours?: number;
   /** Maximum time spent preparing a CSV after a worker claims it. */
   maxRunMinutes?: number;
+  /** Maximum acknowledged queue wait before failing a request, independently of worker execution. */
+  maxQueueMinutes?: number;
 }
 
 export interface RecordTransferConfig {
@@ -178,6 +180,7 @@ export const record: RecordConfig = {
       diskName: 'exports',
       retentionHours: 24,
       maxRunMinutes: 60,
+      maxQueueMinutes: 24 * 60,
     },
   },
   transfer: {
