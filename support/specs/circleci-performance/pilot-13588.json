@@ -1,0 +1,27 @@
+{
+  "pipeline": 13588,
+  "revision": "11d3a6b590afbda0ba7d47ef16d8c1a71cc2eba8",
+  "workflow_id": "110ed752-3cf8-4ef2-a2d1-7e0616705aa2",
+  "workflow_created_at": "2026-10-31T00:17:21Z",
+  "independent_group": {
+    "jobs": 26,
+    "status": "success",
+    "last_job": "test-redbox-core",
+    "last_job_number": 199713,
+    "last_stopped_at": "2026-10-31T00:21:22Z",
+    "elapsed_seconds": 241,
+    "note": "Nineteen Angular jobs, six package jobs and API documentation. This single chore-branch observation does not establish a representative median or test/coverage parity; the rest of the workflow was still running when observed."
+  },
+  "independent_test_result_comparison": {
+    "previous_pipeline": 13587,
+    "jobs_compared": 25,
+    "records_each": 6843,
+    "result_identity_differences": 0,
+    "empty_result_jobs": [
+      "test-agenda-sqs-backend",
+      "test-rva-registry",
+      "test-storage-mongo"
+    ],
+    "note": "Per-job CircleCI source, classname, name and result tuples match with multiplicity across different revisions. Empty test-result lists do not establish discovery parity; reported identities cannot establish complete discovery or coverage equivalence."
+  }
+}
