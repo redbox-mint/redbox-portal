@@ -222,6 +222,33 @@ describe('ExportService', function () {
     expect(manager.disk.called).to.equal(false);
   });
 
+  it('keeps startup available when the export disk is missing or public but refuses export requests', async function () {
+    for (const missing of [true, false]) {
+      if (missing) manager.getDiskConfig.throws(new Error('Unknown disk: exports'));
+      else manager.getDiskConfig.resetBehavior();
+      if (!missing) manager.getDiskConfig.returns({ driver: 'gridfs', config: { visibility: 'public' } });
+      await service.init();
+      expect(collection.createIndex.callCount).to.equal(7);
+      expect(manager.disk.called).to.equal(false);
+      await error(service.createJob(context, request, filename), 503, 'export-storage-unavailable');
+      await error(
+        service.generateCsvJob({ attrs: { data: { jobId: randomUUID() } } }),
+        503,
+        'export-storage-unavailable'
+      );
+    }
+  });
+
+  it('still propagates index initialization failures', async function () {
+    collection.createIndex.rejects(new Error('Index unavailable'));
+    try {
+      await service.init();
+      expect.fail('Index errors must not be swallowed.');
+    } catch (failure) {
+      expect(failure).to.have.property('message', 'Index unavailable');
+    }
+  });
+
   it('accepts a durable job without scanning records or opening an artifact stream', async function () {
     const dto = await service.createJob(context, request, filename);
     expect(dto.status).to.equal('queued');
@@ -720,7 +747,7 @@ describe('ExportService', function () {
   it('rejects invalid queue age limits', async function () {
     for (const value of [0, -1, '60', NaN, Infinity]) {
       mockSails.config.record.export.background.maxQueueMinutes = value;
-      await error(service.init(), 503, 'export-invalid-config');
+      await error(service.createJob(context, request, filename), 503, 'export-invalid-config');
     }
   });
 

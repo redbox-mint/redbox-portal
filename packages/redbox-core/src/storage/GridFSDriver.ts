@@ -137,10 +137,9 @@ export class GridFSDriver {
   }
 
   public async putStream(key: string, contents: Readable, options?: GridFSWriteOptions): Promise<void> {
-    // Pending uploads may belong to another writer. Overwrites delete completed
-    // files only, leaving those uploads' chunks and markers intact.
-    const files = await this.findFilesByFilename(key);
-    await Promise.all(files.map(file => this.deleteUpload(file._id)));
+    // Snapshot completed versions before writing. Keep them readable until the
+    // replacement succeeds, and leave concurrent writers' uploads intact.
+    const previous = await this.findFilesByFilename(key);
     const bucket = await this.getBucket();
     const uploadId = new ObjectId();
     const metadata = this.buildMetadata(options);
@@ -159,6 +158,8 @@ export class GridFSDriver {
       }
       throw error;
     }
+    // Retiring old versions must not roll back an already committed replacement.
+    await Promise.all(previous.map(file => this.deleteUpload(file._id)));
   }
 
   private async writeUpload(contents: Readable, upload: Writable): Promise<void> {

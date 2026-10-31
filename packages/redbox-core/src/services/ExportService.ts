@@ -89,7 +89,13 @@ export namespace Services {
 
     public override async init(): Promise<void> {
       // The storage manager creates disks after ready; config validation does not resolve a disk yet.
-      this.settings();
+      try {
+        this.settings();
+      } catch (error) {
+        if (!(error instanceof ExportServiceError)) throw error;
+        // Export availability must not prevent deployments with custom disk maps from lifting.
+        this.updateChronicle({ exportOperation: 'init-config' }, [error]);
+      }
       await this.ensureIndexes();
     }
 

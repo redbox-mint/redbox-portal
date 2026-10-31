@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { PassThrough, Readable } from 'node:stream';
 import { createServer, request as httpRequest, type IncomingHttpHeaders, type Server } from 'node:http';
-import { finished } from 'node:stream/promises';
 import express = require('express');
 import * as sinon from 'sinon';
 import type { ExportJobDto } from '@researchdatabox/sails-ng-common';
@@ -373,22 +372,18 @@ describe('ExportController background CSV transport', function () {
     Reflect.set(globalThis, 'RecordsService', { exportAllPlans: delayedCsv });
     let artifact: Buffer | undefined;
     let resolveReady: (() => void) | undefined;
-    let rejectReady: ((error: unknown) => void) | undefined;
-    const prepared = new Promise<void>((resolve, reject) => {
+    const prepared = new Promise<void>(resolve => {
       resolveReady = resolve;
-      rejectReady = reject;
+    });
+    let releasePreparation!: () => void;
+    const preparationReleased = new Promise<void>(resolve => {
+      releasePreparation = resolve;
     });
     createJob.callsFake(async () => {
-      const stream = delayedCsv();
-      const chunks: Buffer[] = [];
-      stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-      void finished(stream).then(
-        () => {
-          artifact = Buffer.concat(chunks);
-          resolveReady?.();
-        },
-        error => rejectReady?.(error)
-      );
+      void preparationReleased.then(() => {
+        artifact = csv;
+        resolveReady?.();
+      });
       return job;
     });
     getJob.callsFake(async () => ({ ...job, status: artifact ? 'ready' : 'running' }));
@@ -435,12 +430,14 @@ describe('ExportController background CSV transport', function () {
       assert.equal(accepted.body.status, 'queued');
       const preparing = await request('GET', `${baseUrl}/${job.id}`, 200, undefined, {}, proxy);
       assert.equal(preparing.body.status, 'running');
+      releasePreparation();
       await prepared;
       const ready = await request('GET', `${baseUrl}/${job.id}`, 200, undefined, {}, proxy);
       assert.equal(ready.body.status, 'ready');
       const downloaded = await request('GET', `${baseUrl}/${job.id}/download`, 200, undefined, {}, proxy);
       assert.equal(downloaded.text, csv.toString('utf8'));
     } finally {
+      releasePreparation();
       proxy.closeAllConnections();
       if (proxy.listening) await new Promise<void>(resolve => proxy.close(() => resolve()));
       upstreamServer.closeAllConnections();

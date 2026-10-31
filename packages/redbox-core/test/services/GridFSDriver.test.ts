@@ -284,6 +284,71 @@ describe('GridFSDriver', function () {
     expect(firstFile?.buffer).to.deep.equal(Buffer.concat([Buffer.alloc(255 * 1024, 'a'), Buffer.from('tail')]));
   });
 
+  it('keeps the previous file readable while a replacement is pending and after it fails', async function () {
+    const driver = createDriver();
+    const key = 'attachments/replacement.csv';
+    await driver.put(key, 'original', { contentType: 'text/plain' });
+    const originalId = files[0]._id;
+    let releaseSource!: () => void;
+    let notifyStarted!: () => void;
+    const released = new Promise<void>(resolve => {
+      releaseSource = resolve;
+    });
+    const started = new Promise<void>(resolve => {
+      notifyStarted = resolve;
+    });
+    const replacement = driver
+      .putStream(
+        key,
+        Readable.from(
+          (async function* () {
+            yield 'partial replacement';
+            notifyStarted();
+            await released;
+            throw new Error('Replacement source failed');
+          })()
+        )
+      )
+      .then(
+        () => null,
+        error => error
+      );
+    try {
+      await started;
+      expect(await driver.get(key)).to.equal('original');
+      expect(await driver.exists(key)).to.equal(true);
+    } finally {
+      releaseSource();
+    }
+    expect(await replacement).to.have.property('message', 'Replacement source failed');
+    expect(await driver.get(key)).to.equal('original');
+    expect(await driver.getMetaData(key)).to.have.property('contentType', 'text/plain');
+    expect(files).to.have.length(1);
+    expect(files[0]._id.equals(originalId)).to.equal(true);
+    expect(chunks.every(chunk => chunk.files_id.equals(originalId))).to.equal(true);
+    expect(pending).to.have.length(0);
+  });
+
+  it('keeps a successful replacement when deleting the previous version fails', async function () {
+    const driver = createDriver();
+    const key = 'attachments/replacement.csv';
+    await driver.put(key, 'original');
+    failChunkDeletion = true;
+    try {
+      await driver.put(key, 'replacement');
+      expect.fail('Retiring the previous file should report its deletion failure.');
+    } catch (error) {
+      expect(error).to.have.property('message', 'Chunk deletion unavailable');
+    }
+    expect(await driver.get(key)).to.equal('replacement');
+    expect(files).to.have.length(2);
+    expect(pending).to.have.length(0);
+    failChunkDeletion = false;
+    await driver.delete(key);
+    expect(files).to.have.length(0);
+    expect(chunks).to.have.length(0);
+  });
+
   it('returns ENOENT-style errors for missing objects', async function () {
     const driver = createDriver();
 
