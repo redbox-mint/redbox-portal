@@ -1,0 +1,23 @@
+meta {
+  name: Background Exports - Logout
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{host}}/default/rdmp/user/logout
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("The test session is closed", function () { expect(res.getStatus()).to.equal(200); });
+}

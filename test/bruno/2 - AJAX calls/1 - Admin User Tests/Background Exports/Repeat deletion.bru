@@ -1,0 +1,26 @@
+meta {
+  name: Background Exports - Repeat deletion
+  type: http
+  seq: 13
+}
+
+delete {
+  url: {{host}}/default/rdmp/export/jobs/{{backgroundExportId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("Repeating an export deletion is safe", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

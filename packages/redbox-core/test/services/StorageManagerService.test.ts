@@ -1,5 +1,6 @@
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
+import { GridFSDriver } from '../../src/storage/GridFSDriver';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('StorageManagerService', function () {
@@ -319,13 +320,16 @@ describe('StorageManagerService', function () {
       (service as any)._FSDriver = class {
         constructor(_opts: any) { }
       };
-      (service as any)._GridFSDriver = class GridFSDriver {
-        constructor(_opts: any) { }
-      };
+      const incomplete = [{ key: 'exports/unfinished.csv', lastModified: new Date() }];
+      const listIncomplete = sinon.stub(GridFSDriver.prototype, 'listIncompleteUploads').resolves(incomplete);
 
       await service.bootstrap();
 
       expect(service.primaryDisk()).to.equal(mockPrimaryDisk);
+      expect(await service.primaryDisk().listIncompleteUploads?.('exports/')).to.equal(incomplete);
+      expect(listIncomplete.calledOnceWith('exports/')).to.equal(true);
+      expect(listIncomplete.firstCall.thisValue).to.be.instanceOf(GridFSDriver);
+      expect(service.stagingDisk()).not.to.have.property('listIncompleteUploads');
       expect(createdDrivers.some((driver: any) => driver?.constructor?.name === 'GridFSDriver')).to.equal(true);
     });
 

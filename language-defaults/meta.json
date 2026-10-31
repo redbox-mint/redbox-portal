@@ -7383,5 +7383,240 @@
     "category": "harvest-runs",
     "description": "Accessible label for the clickable outcome count tiles",
     "contentFormat": "plain"
+  },
+  "export-record-type": {
+    "category": "export",
+    "description": "Label for the record type selection and recent export record type column",
+    "contentFormat": "plain"
+  },
+  "export-prepare": {
+    "category": "export",
+    "description": "Action to prepare a CSV export in the background",
+    "contentFormat": "plain"
+  },
+  "export-submitting": {
+    "category": "export",
+    "description": "Shown while a background CSV export request is being accepted",
+    "contentFormat": "plain"
+  },
+  "export-background-hint": {
+    "category": "export",
+    "description": "Explains background CSV preparation and how to return for the download",
+    "contentFormat": "plain"
+  },
+  "export-recent-title": {
+    "category": "export",
+    "description": "Heading for the current user’s latest background CSV exports",
+    "contentFormat": "plain"
+  },
+  "export-refresh": {
+    "category": "export",
+    "description": "Action to reload export job statuses or retry loading the export page",
+    "contentFormat": "plain"
+  },
+  "export-refreshing": {
+    "category": "export",
+    "description": "Shown while export job statuses are loading",
+    "contentFormat": "plain"
+  },
+  "export-no-jobs": {
+    "category": "export",
+    "description": "Empty state for the current user’s recent export jobs",
+    "contentFormat": "plain"
+  },
+  "export-list-error": {
+    "category": "export",
+    "description": "Shown when export statuses cannot load and no previous rows are displayed",
+    "contentFormat": "plain"
+  },
+  "export-load-error": {
+    "category": "export",
+    "description": "Shown when an export status request fails without replacing previously loaded jobs",
+    "contentFormat": "plain"
+  },
+  "export-session-error": {
+    "category": "export",
+    "description": "Shown when export submission, status retrieval or deletion is denied",
+    "contentFormat": "plain"
+  },
+  "export-submit-error": {
+    "category": "export",
+    "description": "Shown when export submission fails or its acknowledgement cannot be confirmed",
+    "contentFormat": "plain"
+  },
+  "export-select-record-type": {
+    "category": "export",
+    "description": "Validation message when no record type is selected",
+    "contentFormat": "plain"
+  },
+  "export-invalid-date": {
+    "category": "export",
+    "description": "Validation message for invalid export modification date input",
+    "contentFormat": "plain"
+  },
+  "export-invalid-date-order": {
+    "category": "export",
+    "description": "Validation message for reversed export modification date bounds",
+    "contentFormat": "plain"
+  },
+  "export-status-queued": {
+    "category": "export",
+    "description": "Background CSV export status while waiting for its worker",
+    "contentFormat": "plain"
+  },
+  "export-status-running": {
+    "category": "export",
+    "description": "Background CSV export status while preparing its downloadable file",
+    "contentFormat": "plain"
+  },
+  "export-status-ready": {
+    "category": "export",
+    "description": "Background CSV export status when its file is ready to download",
+    "contentFormat": "plain"
+  },
+  "export-status-failed": {
+    "category": "export",
+    "description": "Background CSV export status after preparation failed",
+    "contentFormat": "plain"
+  },
+  "export-status-expired": {
+    "category": "export",
+    "description": "Background CSV export status after its download retention period",
+    "contentFormat": "plain"
+  },
+  "export-failed-hint": {
+    "category": "export",
+    "description": "Fallback message when export preparation fails without a specific safe message",
+    "contentFormat": "plain"
+  },
+  "export-prepare-again": {
+    "category": "export",
+    "description": "Action to prepare a new CSV export using the failed or expired job’s options",
+    "contentFormat": "plain"
+  },
+  "export-delete": {
+    "category": "export",
+    "description": "Action to delete a completed, failed or expired CSV export and its staged file",
+    "contentFormat": "plain"
+  },
+  "export-deleting": {
+    "category": "export",
+    "description": "Shown while a CSV export is being deleted",
+    "contentFormat": "plain"
+  },
+  "export-delete-error": {
+    "category": "export",
+    "description": "Shown when deleting a CSV export fails and the user can refresh or retry",
+    "contentFormat": "plain"
+  },
+  "export-date-range": {
+    "category": "export",
+    "description": "Column heading for the date filters used by a background export",
+    "contentFormat": "plain"
+  },
+  "export-all-dates": {
+    "category": "export",
+    "description": "Shown when an export has no modification date bounds",
+    "contentFormat": "plain"
+  },
+  "export-requested": {
+    "category": "export",
+    "description": "Column heading for when the user requested an export",
+    "contentFormat": "plain"
+  },
+  "export-status": {
+    "category": "export",
+    "description": "Column heading for background CSV export status",
+    "contentFormat": "plain"
+  },
+  "export-expires": {
+    "category": "export",
+    "description": "Column heading for when a completed export stops being downloadable",
+    "contentFormat": "plain"
+  },
+  "export-actions": {
+    "category": "export",
+    "description": "Column heading for background CSV export download, preparation and deletion actions",
+    "contentFormat": "plain"
+  },
+  "export-loading": {
+    "category": "export",
+    "description": "Shown while the export page loads",
+    "contentFormat": "plain"
+  },
+  "export-heading": {
+    "category": "export",
+    "description": "Heading of the export request panel",
+    "contentFormat": "plain"
+  },
+  "export-field-date-from": {
+    "category": "export",
+    "description": "Label for the earliest modification date in the export date range",
+    "contentFormat": "plain"
+  },
+  "export-field-date-to": {
+    "category": "export",
+    "description": "Label for the latest modification date in the export date range",
+    "contentFormat": "plain"
+  },
+  "export-field-format": {
+    "category": "export",
+    "description": "Label for the export format choice",
+    "contentFormat": "plain"
+  },
+  "export-direct-hint": {
+    "category": "export",
+    "description": "Explains direct (non-CSV) downloads",
+    "contentFormat": "plain"
+  },
+  "export-auto-refresh": {
+    "category": "export",
+    "description": "Shown in the recent exports heading while exports are queued or being prepared",
+    "contentFormat": "plain"
+  },
+  "export-count_one": {
+    "category": "export",
+    "description": "Number of recent exports listed (singular)",
+    "contentFormat": "plain"
+  },
+  "export-count_other": {
+    "category": "export",
+    "description": "Number of recent exports listed (plural)",
+    "contentFormat": "plain"
+  },
+  "export-no-jobs-hint": {
+    "category": "export",
+    "description": "Secondary text in the empty recent exports list",
+    "contentFormat": "plain"
+  },
+  "export-range-from": {
+    "category": "export",
+    "description": "Date range with only a start date",
+    "contentFormat": "plain"
+  },
+  "export-range-until": {
+    "category": "export",
+    "description": "Date range with only an end date",
+    "contentFormat": "plain"
+  },
+  "export-range-to": {
+    "category": "export",
+    "description": "Screen reader text between the start and end dates of a range",
+    "contentFormat": "plain"
+  },
+  "export-download-format": {
+    "category": "export",
+    "description": "Action to download a direct (non-CSV) export in the selected format",
+    "contentFormat": "plain"
+  },
+  "export-field-modification-range": {
+    "category": "export",
+    "description": "Legend for the optional modification date range on the export form",
+    "contentFormat": "plain"
+  },
+  "export-date-range-help": {
+    "category": "export",
+    "description": "Help text under the export modification date range",
+    "contentFormat": "plain"
   }
 }
