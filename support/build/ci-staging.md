@@ -5,10 +5,12 @@ pdfgen images at workflow start, alongside `build`. The `build` job pushes its
 exact `redbox-portal:test` image as the amd64 runtime staging image, then saves
 that same image with the existing Docker save/workspace hand-off for test jobs.
 The three independent staging jobs run on `master`, `develop`, `support/*`, and
-the measurement branch `chore/ci-build-speed`. `build` stages on all its branches
-when both Docker credentials are available; otherwise it logs a skip and still
+the measurement branch `chore/ci-build-speed`. The automatic branch workflow
+enables tested-image staging on all its build branches when both Docker
+credentials are available; otherwise it logs a skip and still
 builds/tests normally. Promotion requires the staging references and fails closed
-if any are missing.
+if any are missing. The build job defaults staging off; only the automatic
+branch workflow enables it, preserving tag-release and Dependabot build paths.
 
 | Variant | Architecture | Dockerfile target | Final tag |
 | --- | --- | --- | --- |

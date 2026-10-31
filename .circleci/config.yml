@@ -1,5 +1,9 @@
 jobs:
   build:
+    parameters:
+      stage_tested_image:
+        type: boolean
+        default: false
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
@@ -40,9 +44,12 @@ jobs:
               --target test \
               --tag redbox-portal:test \
               .
-      - run:
-          name: Stage the exact test image when Docker credentials are available
-          command: bash support/build/docker-staging.sh stage-tested runtime amd64
+      - when:
+          condition: << parameters.stage_tested_image >>
+          steps:
+            - run:
+                name: Stage the exact test image when Docker credentials are available
+                command: bash support/build/docker-staging.sh stage-tested runtime amd64
       - run:
           name: Save Docker image
           command: |
@@ -1287,6 +1294,7 @@ workflows:
           variant: pdfgen
           filters: *stagingBranchFilters
       - build:
+          stage_tested_image: true
           filters:
             branches:
               ignore: /^dependabot.*/

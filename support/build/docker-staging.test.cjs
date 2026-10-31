@@ -253,4 +253,11 @@ test('workflow stages the saved test image and removes the independent runtime a
   assert.match(build, /docker save -o \/tmp\/docker-images\/redbox-portal-test.tar redbox-portal:test/);
   assert.match(build, /persist_to_workspace:/);
   assert.doesNotMatch(config, /stage-runtime-amd64/);
+  assert.match(build, /stage_tested_image:\n        type: boolean\n        default: false/);
+  assert.match(build, /condition: << parameters.stage_tested_image >>/);
+  assert.equal((config.match(/stage_tested_image: true/g) || []).length, 1);
+  const automatic = config.split('  build_test_gendocs_and_deploy:')[1].split('  build_test_dependabot:')[0];
+  assert.match(automatic, /- build:\n          stage_tested_image: true/);
+  const release = config.split('  release_build_test_gendocs_and_deploy:')[1];
+  assert.doesNotMatch(release, /stage_tested_image: true/);
 });
