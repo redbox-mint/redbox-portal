@@ -173,8 +173,9 @@ These are instructions for a separately authorized run, **not executed results**
    An upload failure is still fatal, but investigate it before accepting the
    complete live rehearsal. Preserve its action log and upload receipt.
 4. Inspect the actual workflow graph/UI and API: rehearsal workflow failed;
-   `validation-complete-mocha-failure-rehearsal` blocked/not run with no start
-   time; no publication job. Inspect **every other workflow in the pipeline**
+   `validation-complete-mocha-failure-rehearsal` blocked/not run, with a
+   success-only dependency on the failed job; no publication job. CircleCI may
+   populate timestamps on a terminal `not_run` entry. Inspect **every other workflow in the pipeline**
    to confirm no npm, Docker/manifest, wiki or docs publication was scheduled.
    Preserve the processed graph and relevant API responses. Do not infer
    live scheduling/ingestion from local contracts or a report file alone.

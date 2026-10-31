@@ -61,13 +61,22 @@ def verify_circle(directory, identity, result):
         require(not response.get('next_page_token'), 'Fetch and combine every API page before verification')
     require(workflow['id'] == identity['workflow_id'] and workflow['name'] == 'mocha_failure_rehearsal'
             and workflow['status'] == 'failed', 'Wrong workflow or workflow did not fail')
-    by_name = {job['name']: job for job in jobs['items']}
+    items = jobs['items']
+    require(all(isinstance(job.get('id'), str) and job['id'] for job in items), 'Missing workflow job ID')
+    require(len({job['id'] for job in items}) == len(items)
+            and len({job['name'] for job in items}) == len(items), 'Duplicate workflow job identity')
+    by_name = {job['name']: job for job in items}
     require(set(by_name) == {'build-mocha-failure-rehearsal', JOB, GATE}, 'Unexpected jobs, missing gate, or publication path')
     require(by_name['build-mocha-failure-rehearsal']['status'] == 'success', 'Image producer did not succeed')
     require(by_name[JOB]['status'] == 'failed' and str(by_name[JOB]['job_number']) == identity['job_number'], 'Wrong or non-failing suite job')
-    require(by_name[GATE]['status'] in ['blocked', 'not_run'] and not by_name[GATE].get('started_at'), 'Validation sentinel was not blocked')
+    gate = by_name[GATE]
+    require(gate['status'] in ['blocked', 'not_run'], 'Validation sentinel was not blocked')
+    require(gate.get('requires') == {by_name[JOB]['id']: ['success']}
+            and gate.get('dependencies') == [by_name[JOB]['id']],
+            'Validation sentinel does not require the failed suite to succeed')
     require(details['vcs_revision'] == identity['revision'] and str(details['build_num']) == identity['job_number']
-            and details['status'] == 'failed' and details['workflows']['workflow_id'] == identity['workflow_id'], 'Job/source identity mismatch')
+            and details['status'] == 'failed' and details['workflows']['workflow_id'] == identity['workflow_id']
+            and details['workflows']['job_id'] == by_name[JOB]['id'], 'Job/source identity mismatch')
     actions = [action for step in details['steps'] for action in step['actions']]
     suite = [action for action in actions if action.get('name') == 'Run deliberately failing Mocha integration suite']
     require(len(suite) == 1 and suite[0]['status'] == 'failed' and suite[0]['exit_code'] == result['suite_exit'], 'CircleCI did not retain the suite exit status')

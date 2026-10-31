@@ -29,6 +29,12 @@
       },
       {
         "run": {
+          "name": "Test Solr fixture lifecycle",
+          "command": "docker run --rm --entrypoint node \\\n  -v \"$PWD/test/integration/services/solr-index-fixture-lifecycle.ts:/opt/redbox-portal/test/integration/services/solr-index-fixture-lifecycle.ts:ro\" \\\n  -v \"$PWD/test/integration/services/solr-index-fixture-lifecycle.probe.test.cjs:/opt/redbox-portal/test/integration/services/solr-index-fixture-lifecycle.probe.test.cjs:ro\" \\\n  redbox-portal:test --test test/integration/services/solr-index-fixture-lifecycle.probe.test.cjs\n"
+        }
+      },
+      {
+        "run": {
           "name": "Point compose at tested image",
           "command": "echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> \"$BASH_ENV\""
         }

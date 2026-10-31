@@ -294,13 +294,15 @@ test('independent Python verifier rejects incomplete, skipped, timed-out or corr
     const api = (name, data) => s.write(`${evidence}/${name}.json`, JSON.stringify(data));
     api('workflow', { id: environment.CIRCLE_WORKFLOW_ID, name: 'mocha_failure_rehearsal', status: 'failed' });
     const jobs = { items: [
-      { name: 'build-mocha-failure-rehearsal', status: 'success' },
-      { name: 'test-mocha-failure-rehearsal', status: 'failed', job_number: 123 },
-      { name: 'validation-complete-mocha-failure-rehearsal', status: 'not_run' },
+      { name: 'build-mocha-failure-rehearsal', status: 'success', id: 'build-id' },
+      { name: 'test-mocha-failure-rehearsal', status: 'failed', job_number: 123, id: 'suite-id' },
+      { name: 'validation-complete-mocha-failure-rehearsal', status: 'not_run', id: 'gate-id',
+        started_at: '2026-10-31T00:01:19Z', stopped_at: '2026-10-31T00:01:19Z',
+        requires: { 'suite-id': ['success'] }, dependencies: ['suite-id'] },
     ] };
     api('workflow-jobs', jobs);
     api('job-details', { vcs_revision: environment.CIRCLE_SHA1, build_num: 123, status: 'failed',
-      workflows: { workflow_id: environment.CIRCLE_WORKFLOW_ID }, steps: [{ actions: [
+      workflows: { workflow_id: environment.CIRCLE_WORKFLOW_ID, job_id: 'suite-id' }, steps: [{ actions: [
         { name: 'Run deliberately failing Mocha integration suite', status: 'failed', exit_code: 23 },
         { name: 'Upload Mocha code coverage', status: 'success' },
       ] }] });
@@ -308,13 +310,39 @@ test('independent Python verifier rejects incomplete, skipped, timed-out or corr
     api('tests', { items: [{ name: `deliberate ${marker}`, result: 'failure' }] });
     const verifyCircle = () => s.execute('python3', [verifier, directory, '--circle-evidence', evidence]);
     assert.equal(verifyCircle().status, 0);
+    jobs.items.push({ ...jobs.items[2], status: 'running', id: 'duplicate-gate-id' });
+    api('workflow-jobs', jobs);
+    assert.notEqual(verifyCircle().status, 0, 'Duplicate job names cannot be collapsed');
+    jobs.items.pop();
+    jobs.items[2].id = 'build-id';
+    api('workflow-jobs', jobs);
+    assert.notEqual(verifyCircle().status, 0, 'Duplicate workflow job IDs cannot be accepted');
+    jobs.items[2].id = 'gate-id';
+    jobs.items[1].id = 'substituted-suite-id';
+    jobs.items[2].requires = { 'substituted-suite-id': ['success'] };
+    jobs.items[2].dependencies = ['substituted-suite-id'];
+    api('workflow-jobs', jobs);
+    assert.notEqual(verifyCircle().status, 0, 'Workflow suite ID must match job details');
+    jobs.items[1].id = 'suite-id';
+    jobs.items[2].requires = { 'suite-id': ['success'] };
+    jobs.items[2].dependencies = ['suite-id'];
     jobs.items[2].status = 'success';
     api('workflow-jobs', jobs);
     assert.notEqual(verifyCircle().status, 0, 'A successful gate invalidates the rehearsal');
     jobs.items[2].status = 'not_run';
-    jobs.items.push({ name: 'publish-manifest', status: 'not_run' });
+    jobs.items[2].requires = { 'suite-id': ['failed'] };
     api('workflow-jobs', jobs);
-    assert.notEqual(verifyCircle().status, 0, 'Even a dormant publisher invalidates workflow isolation');
+    assert.notEqual(verifyCircle().status, 0, 'A failure-dependent gate is not a success gate');
+    jobs.items[2].requires = { 'suite-id': ['success'] };
+    jobs.items[2].dependencies = ['other-id'];
+    api('workflow-jobs', jobs);
+    assert.notEqual(verifyCircle().status, 0, 'A mismatched dependency cannot prove the gate');
+    jobs.items[2].dependencies = ['suite-id'];
+    jobs.items.push({ name: 'publish-manifest', status: 'not_run', id: 'publisher-id' });
+    api('workflow-jobs', jobs);
+    const publisherResult = verifyCircle();
+    assert.notEqual(publisherResult.status, 0, 'Even a dormant publisher invalidates workflow isolation');
+    assert.match(publisherResult.stderr, /Unexpected jobs, missing gate, or publication path/);
     const replaceReport = (name, text) => {
       s.write(`${directory}/prepared-${name}`, text);
       const file = path.join(s.cwd, directory, 'prepared.json');
