@@ -16,9 +16,11 @@ job artifact rather than the workspace. The job needs a `CIRCLE_TOKEN` with
 read access to those API endpoints; do not put a token in source, pipeline
 parameters, logs or artifacts. Unsupported or ambiguous reruns fail closed.
 
-The source and compiled CircleCI configuration must match the independently
-reviewed `APPROVED_CONFIG_SHA256` in `circleci-pilot-runner.cjs`. It is
-currently `null`, so the workflow deliberately fails before creating a builder.
+The source and compiled CircleCI configuration must match
+`APPROVED_CONFIG_SHA256` in `circleci-pilot-runner.cjs`. The current digest
+comes from configuration inspection run 13596: its source matches the committed
+configuration, the compiled shadow workflow contains the three expected jobs,
+and its dynamic setup fields are empty.
 An environment variable or pipeline parameter cannot approve the configuration
 that supplied it. Before a measurement, obtain the exact pilot pipeline's
 configuration from CircleCI's pipeline-config API, verify its source and
@@ -27,8 +29,8 @@ of `JSON.stringify({ source, compiled }, null, 2) + '\n'` in reviewed source.
 The job rechecks that digest at runtime. A changed config, different compiled
 parameters or changed orb expansion requires a new review and digest. Local
 `circleci config process` output is not assumed byte-identical to the API's
-compiled output. The pilot remains experimental until that approval, a clean
-commit and the focused tests are complete.
+compiled output. The pilot remains experimental until measured runs and
+subsequent validation are complete.
 
 As a limited feasibility check, 20 public `develop` pipeline configurations were
 retrieved read-only: each group with identical source configuration also had an

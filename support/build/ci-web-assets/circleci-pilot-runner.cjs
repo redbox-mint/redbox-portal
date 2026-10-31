@@ -30,7 +30,7 @@ const ARTIFACT_ORIGINS = [
 // Set only after the exact source and compiled pilot configuration have been
 // independently reviewed. Environment variables and pipeline parameters are
 // not independent approval of the configuration that supplied them.
-const APPROVED_CONFIG_SHA256 = null;
+const APPROVED_CONFIG_SHA256 = '56cca04441747ab0e66eaa6defebfb570df62087bb95e52071620362c5d0a27d';
 
 function positive(value, label) {
   assert.match(value || '', /^[1-9][0-9]*$/, `${label} must be a positive integer`);
