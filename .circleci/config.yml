@@ -3,6 +3,8 @@ jobs:
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
+    environment:
+      STAGING_RUN_ID: << pipeline.id >>
     steps:
       - checkout
       - restore_cache:
@@ -39,9 +41,13 @@ jobs:
               --tag redbox-portal:test \
               .
       - run:
+          name: Stage the exact test image when Docker credentials are available
+          command: bash support/build/docker-staging.sh stage-tested runtime amd64
+      - run:
           name: Save Docker image
           command: |
             mkdir -p /tmp/docker-images
+            docker image inspect --format 'Test workspace image ID: {{.Id}}' redbox-portal:test
             docker save -o /tmp/docker-images/redbox-portal-test.tar redbox-portal:test
       - persist_to_workspace:
           root: /tmp
@@ -940,12 +946,12 @@ jobs:
             NPM_PUBLISH_VERSION="<< parameters.release_version >>" \
             NPM_DIST_TAG="<< parameters.dist_tag >>" \
             bash support/build/npm-publish-backend-packages.sh
-  # Automatic branch publishing builds staging images before any test gates.
+  # Build the remaining variants in parallel with the tested amd64 image.
   stage-image-amd64:
     parameters:
       variant:
         type: enum
-        enum: [runtime, pdfgen]
+        enum: [pdfgen]
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
@@ -1266,16 +1272,12 @@ workflows:
         - equal: [none, << pipeline.parameters.npm_publish_mode >>]
         - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
-      - stage-image-amd64:
-          name: stage-runtime-amd64
+      - stage-image-arm64:
+          name: stage-runtime-arm64
           variant: runtime
           filters: &stagingBranchFilters
             branches:
               only: /^(master|develop|support\/.*|chore\/ci-build-speed)$/
-      - stage-image-arm64:
-          name: stage-runtime-arm64
-          variant: runtime
-          filters: *stagingBranchFilters
       - stage-image-amd64:
           name: stage-pdfgen-amd64
           variant: pdfgen
@@ -1401,7 +1403,7 @@ workflows:
           arch: amd64
           upload_nexus: true
           requires:
-            - stage-runtime-amd64
+            - build
             - generate-api-docs
             - test-bruno-general
             - test-bruno-oidc

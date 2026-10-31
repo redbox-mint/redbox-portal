@@ -7,6 +7,9 @@ const { spawnSync } = require('node:child_process');
 
 const script = join(__dirname, 'docker-staging.sh');
 const sha = 'a'.repeat(40);
+const testedId = `sha256:${'c'.repeat(64)}`;
+const manifestDigest = `sha256:${'d'.repeat(64)}`;
+const pinned = `example/portal@${manifestDigest}`;
 const pipeline = '12345678-1234-1234-1234-123456789abc';
 const staging = (variant, arch, commit = sha, run = pipeline) =>
   `example/portal:ci-staging-${commit}-${variant}-${arch}-${run}`;
@@ -17,13 +20,22 @@ function run(args, overrides = {}) {
   writeFileSync(join(directory, 'docker'), `#!/usr/bin/env bash
 printf '%s\\n' "$*" >> "$DOCKER_TEST_LOG"
 if [[ "$1" == login ]]; then cat >/dev/null; fi
+if [[ "$1 $2" == 'image inspect' ]]; then echo '${testedId}'; fi
+if [[ "$1" == push ]]; then touch "$DOCKER_TEST_LOG.pushed"; fi
 if [[ "$1 $2" == 'manifest inspect' ]]; then
   if [[ "\${FAIL_PREFLIGHT:-}" == 1 ]]; then echo 'registry connection failed' >&2; exit 1; fi
-  if [[ "\${EXISTING_STAGE:-}" == 1 ]]; then exit 0; fi
+  if [[ "\${EXISTING_STAGE:-}" == 1 || -f "$DOCKER_TEST_LOG.pushed" ]]; then
+    printf '{"config":{"digest":"%s"}}\\n' "\${STAGED_ID:-${testedId}}"
+    exit 0
+  fi
   echo 'no such manifest' >&2
   exit 1
 fi
 if [[ "$*" == *'imagetools inspect'* && "\${FAIL_INSPECT:-}" == 1 ]]; then exit 1; fi
+if [[ "$*" == *'imagetools inspect --format'* ]]; then echo "\${MANIFEST_DIGEST:-${manifestDigest}}"; fi
+if [[ "$*" == *'imagetools inspect --raw'* ]]; then
+  printf '{"config":{"digest":"%s"}}\\n' '${testedId}'
+fi
 if [[ "$*" == *'imagetools create'* && "\${FAIL_CREATE_ONCE:-}" == 1 && ! -f "$DOCKER_TEST_LOG.failed" ]]; then
   touch "$DOCKER_TEST_LOG.failed"
   exit 1
@@ -69,7 +81,7 @@ test('only exact automatic release branches enable promotion; tags cannot bypass
 
 test('staging builds preserve each published Docker target and push only the staging tag', () => {
   for (const [variant, arch, target] of [
-    ['runtime', 'amd64', 'test'], ['runtime', 'arm64', 'runtime'],
+    ['runtime', 'arm64', 'runtime'],
     ['pdfgen', 'amd64', 'runtime_pdfgen'], ['pdfgen', 'arm64', 'runtime_pdfgen'],
   ]) {
     const result = run(['build', variant, arch]);
@@ -84,14 +96,14 @@ test('staging builds preserve each published Docker target and push only the sta
 });
 
 test('reruns reuse existing staging images, and uncertain registry failures cannot overwrite tags', () => {
-  const existing = run(['build', 'runtime', 'amd64'], { EXISTING_STAGE: '1' });
+  const existing = run(['build', 'pdfgen', 'amd64'], { EXISTING_STAGE: '1' });
   assert.equal(existing.status, 0, existing.stderr);
   assert.deepEqual(existing.calls, [
     'login --username test-user --password-stdin',
-    `manifest inspect ${staging('runtime', 'amd64')}`,
+    `manifest inspect ${staging('pdfgen', 'amd64')}`,
   ]);
   assert.match(existing.stdout, /Reusing existing staging image/);
-  const failure = run(['build', 'runtime', 'amd64'], { FAIL_PREFLIGHT: '1' });
+  const failure = run(['build', 'pdfgen', 'amd64'], { FAIL_PREFLIGHT: '1' });
   assert.notEqual(failure.status, 0);
   assert.ok(failure.calls.every(call => !call.startsWith('build ') && !call.startsWith('push ')));
 });
@@ -99,12 +111,12 @@ test('reruns reuse existing staging images, and uncertain registry failures cann
 test('staging tags isolate commits and separate pipelines of the same commit', () => {
   const otherSha = 'b'.repeat(40);
   const otherPipeline = '87654321-1234-1234-1234-123456789abc';
-  const first = run(['build', 'runtime', 'amd64']);
-  const second = run(['build', 'runtime', 'amd64'], { CIRCLE_SHA1: otherSha });
-  const third = run(['build', 'runtime', 'amd64'], { STAGING_RUN_ID: otherPipeline });
+  const first = run(['build', 'pdfgen', 'amd64']);
+  const second = run(['build', 'pdfgen', 'amd64'], { CIRCLE_SHA1: otherSha });
+  const third = run(['build', 'pdfgen', 'amd64'], { STAGING_RUN_ID: otherPipeline });
   assert.notEqual(first.calls.at(-1), second.calls.at(-1));
   assert.notEqual(first.calls.at(-1), third.calls.at(-1));
-  assert.equal(third.calls.at(-1), `push ${staging('runtime', 'amd64', sha, otherPipeline)}`);
+  assert.equal(third.calls.at(-1), `push ${staging('pdfgen', 'amd64', sha, otherPipeline)}`);
   assert.ok(staging('runtime', 'amd64').split(':')[1].length <= 128);
 });
 
@@ -115,16 +127,15 @@ test('dry runs verify staging images and print exact promotion commands without 
       const result = run(['promote', variant, arch]);
       assert.equal(result.status, 0, result.stderr);
       assert.match(result.stdout, /DRY RUN/);
-      assert.ok(result.stdout.includes(`docker buildx imagetools create --prefer-index=false --tag example/portal:chore-ci-build-speed${suffix}-${arch} ${staging(variant, arch)}`));
-      assert.deepEqual(result.calls, [
-        'login --username test-user --password-stdin',
-        `buildx imagetools inspect ${staging(variant, arch)}`,
-      ]);
+      assert.ok(result.stdout.includes(`docker buildx imagetools create --prefer-index=false --tag example/portal:chore-ci-build-speed${suffix}-${arch} ${pinned}`));
+      assert.ok(result.calls.includes(`buildx imagetools inspect ${staging(variant, arch)}`));
+      assert.ok(result.calls.includes(`buildx imagetools inspect --format {{.Manifest.Digest}} ${staging(variant, arch)}`));
+      assert.ok(result.calls.every(call => !call.includes('imagetools create')));
     }
     const manifest = run(['manifest', variant]);
     assert.equal(manifest.status, 0, manifest.stderr);
-    assert.ok(manifest.stdout.includes(`docker buildx imagetools create --tag example/portal:chore-ci-build-speed${suffix} ${staging(variant, 'amd64')} ${staging(variant, 'arm64')}`));
-    assert.equal(manifest.calls.length, 3);
+    assert.ok(manifest.stdout.includes(`docker buildx imagetools create --tag example/portal:chore-ci-build-speed${suffix} ${pinned} ${pinned}`));
+    assert.ok(manifest.calls.includes(`buildx imagetools inspect --format {{.Manifest.Digest}} ${staging(variant, 'arm64')}`));
     assert.ok(manifest.calls.every(call => !call.includes('imagetools create')));
   }
 });
@@ -135,17 +146,17 @@ test('release branches promote to existing tags and assemble manifests from stag
       const suffix = variant === 'pdfgen' ? '-pdfgen' : '';
       const image = run(['promote', variant, 'amd64'], { CIRCLE_BRANCH: branch });
       assert.equal(image.status, 0, image.stderr);
-      assert.equal(image.calls.at(-1), `buildx imagetools create --prefer-index=false --tag example/portal:${tag}${suffix}-amd64 ${staging(variant, 'amd64')}`);
+      assert.equal(image.calls.at(-1), `buildx imagetools create --prefer-index=false --tag example/portal:${tag}${suffix}-amd64 ${pinned}`);
       const manifest = run(['manifest', variant], { CIRCLE_BRANCH: branch });
       assert.equal(manifest.status, 0, manifest.stderr);
-      assert.equal(manifest.calls.at(-1), `buildx imagetools create --tag example/portal:${tag}${suffix} ${staging(variant, 'amd64')} ${staging(variant, 'arm64')}`);
+      assert.equal(manifest.calls.at(-1), `buildx imagetools create --tag example/portal:${tag}${suffix} ${pinned} ${pinned}`);
     }
   }
 });
 
 test('invalid identifiers and parameters fail before contacting Docker', () => {
   for (const overrides of [{ CIRCLE_SHA1: '' }, { CIRCLE_SHA1: 'abc' }, { STAGING_RUN_ID: '' }, { STAGING_RUN_ID: 'bad/tag' }]) {
-    const result = run(['build', 'runtime', 'amd64'], overrides);
+    const result = run(['build', 'pdfgen', 'amd64'], overrides);
     assert.notEqual(result.status, 0);
     assert.deepEqual(result.calls, []);
   }
@@ -168,4 +179,77 @@ test('transient registry creation failures are retried', () => {
   const result = run(['manifest', 'pdfgen'], { CIRCLE_BRANCH: 'develop', FAIL_CREATE_ONCE: '1' });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.calls.filter(call => call.includes('imagetools create')).length, 2);
+});
+
+
+test('tested-image staging pushes the local image by ID and verifies the registry config', () => {
+  const result = run(['stage-tested', 'runtime', 'amd64']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.calls, [
+    'image inspect --format {{.Id}} redbox-portal:test',
+    'login --username test-user --password-stdin',
+    `manifest inspect ${staging('runtime', 'amd64')}`,
+    `tag ${testedId} ${staging('runtime', 'amd64')}`,
+    `push ${staging('runtime', 'amd64')}`,
+    `manifest inspect ${staging('runtime', 'amd64')}`,
+  ]);
+  assert.ok(result.stdout.includes(`Verified tested/staged amd64 image identity: ${testedId}`));
+  const rebuilt = run(['build', 'runtime', 'amd64']);
+  assert.notEqual(rebuilt.status, 0);
+  assert.deepEqual(rebuilt.calls, []);
+});
+
+test('tested-image staging reruns reject a different image and never overwrite an existing tag', () => {
+  for (const existing of ['', '1']) {
+    const mismatch = run(['stage-tested', 'runtime', 'amd64'], { EXISTING_STAGE: existing, STAGED_ID: `sha256:${'e'.repeat(64)}` });
+    assert.notEqual(mismatch.status, 0);
+    assert.match(mismatch.stderr, /differs from the tested image/);
+    if (existing) assert.ok(mismatch.calls.every(call => !call.startsWith('tag ') && !call.startsWith('push ')));
+  }
+  const reused = run(['stage-tested', 'runtime', 'amd64'], { EXISTING_STAGE: '1' });
+  assert.equal(reused.status, 0, reused.stderr);
+  assert.ok(reused.calls.every(call => !call.startsWith('tag ') && !call.startsWith('push ')));
+  const uncertain = run(['stage-tested', 'runtime', 'amd64'], { FAIL_PREFLIGHT: '1' });
+  assert.notEqual(uncertain.status, 0);
+  assert.ok(uncertain.calls.every(call => !call.startsWith('tag ') && !call.startsWith('push ')));
+});
+
+test('builds without either Docker credential skip staging so forks can test', () => {
+  for (const credentials of [{ DOCKER_USER: '', DOCKER_PASS: '' }, { DOCKER_USER: '' }, { DOCKER_PASS: '' }]) {
+    const result = run(['stage-tested', 'runtime', 'amd64'], credentials);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Skipping tested-image staging push/);
+    assert.deepEqual(result.calls, []);
+  }
+});
+
+test('credential-free dry runs inspect anonymously and print commands; writes still require credentials', () => {
+  for (const args of [['promote', 'runtime', 'amd64'], ['manifest', 'runtime'], ['promote', 'pdfgen', 'arm64']]) {
+    const result = run(args, { DOCKER_USER: '', DOCKER_PASS: '' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /inspecting public staging images anonymously/);
+    assert.ok(result.stdout.includes('docker buildx imagetools create'));
+    assert.ok(result.calls.every(call => !call.startsWith('login ') && !call.includes('imagetools create')));
+    const missing = run(args, { DOCKER_USER: '', DOCKER_PASS: '', FAIL_INSPECT: '1' });
+    assert.notEqual(missing.status, 0);
+    const write = run(args, { DOCKER_USER: '', DOCKER_PASS: '', CIRCLE_BRANCH: 'develop' });
+    assert.notEqual(write.status, 0);
+    assert.deepEqual(write.calls, []);
+  }
+});
+
+test('invalid registry digests fail before a promotion command can be written', () => {
+  const result = run(['promote', 'runtime', 'amd64'], { CIRCLE_BRANCH: 'develop', MANIFEST_DIGEST: 'invalid' });
+  assert.notEqual(result.status, 0);
+  assert.ok(result.calls.every(call => !call.includes('imagetools create')));
+});
+
+test('workflow stages the saved test image and removes the independent runtime amd64 build', () => {
+  const config = readFileSync(join(__dirname, '../../.circleci/config.yml'), 'utf8');
+  const build = config.split('  generate-api-docs:')[0];
+  assert.match(build, /STAGING_RUN_ID: << pipeline.id >>/);
+  assert.ok(build.indexOf('docker-staging.sh stage-tested runtime amd64') < build.indexOf('docker save -o'));
+  assert.match(build, /docker save -o \/tmp\/docker-images\/redbox-portal-test.tar redbox-portal:test/);
+  assert.match(build, /persist_to_workspace:/);
+  assert.doesNotMatch(config, /stage-runtime-amd64/);
 });

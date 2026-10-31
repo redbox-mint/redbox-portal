@@ -1,9 +1,14 @@
 # Automatic branch image staging
 
-The `build_test_gendocs_and_deploy` workflow builds four publishable images at
-workflow start, independently of `build` and its tests. The normal test image and
-test workspace are unchanged. Staging runs on `master`, `develop`, `support/*`,
-and the measurement branch `chore/ci-build-speed`.
+The `build_test_gendocs_and_deploy` workflow builds the arm64 runtime and both
+pdfgen images at workflow start, alongside `build`. The `build` job pushes its
+exact `redbox-portal:test` image as the amd64 runtime staging image, then saves
+that same image with the existing Docker save/workspace hand-off for test jobs.
+The three independent staging jobs run on `master`, `develop`, `support/*`, and
+the measurement branch `chore/ci-build-speed`. `build` stages on all its branches
+when both Docker credentials are available; otherwise it logs a skip and still
+builds/tests normally. Promotion requires the staging references and fails closed
+if any are missing.
 
 | Variant | Architecture | Dockerfile target | Final tag |
 | --- | --- | --- | --- |
@@ -22,25 +27,34 @@ Staging tags are
 Docker repository. The SHA prevents cross-commit selection, and the pipeline UUID
 isolates concurrent pipelines even when they build the same commit. Workflow
 reruns retain the pipeline UUID, so rerunning only failed jobs can reuse the
-original staging images. Build jobs reuse an existing staging tag on full reruns,
+original staging images. The three independent build jobs reuse an existing staging tag on full reruns,
 and build only after a definite missing-manifest response (registry/auth/network
-errors fail closed). Do not manually overwrite staging tags. Docker Hub tag
+errors fail closed). Tested amd64 staging compares the registry image config
+digest with the local `redbox-portal:test` image ID after pushing, or when reusing
+an existing tag. A mismatch fails the build without overwriting an existing tag:
+rerun a failed test job using the original workspace, or start a new pipeline if
+a rebuilt test image differs. Build logs record the tested/staged IDs, and the
+save step records the workspace image ID. Do not manually overwrite staging tags. Docker Hub tag
 immutability for `ci-staging-*` can additionally enforce write-once tags at the
 registry, including against manual overwrites or concurrent reruns of one pipeline.
 
-Each image promotion waits for its staging build and **all** test jobs plus
+Each image promotion waits for its staging build (`build` for runtime amd64) and **all** test jobs plus
 `generate-api-docs`. Promotion copies manifests with `buildx imagetools create`,
 without pulling layers, rebuilding, or attaching the large test workspace.
 The multi-architecture publisher reads the two pipeline-specific staging tags,
 not the mutable architecture tags; concurrent workflows cannot mix image sources.
+Promotion resolves and pins each source manifest digest before creating a tag or
+index. It also logs the amd64 runtime config digest for comparison with the
+build/workspace ID, without downloading image layers.
 An older successful workflow can still finish after a newer one and replace a
 branch tag with its own complete image set, as with the existing publisher.
 
 Real automatic promotion (and the existing Nexus package upload) is enabled only
 for exact `master`, `develop`, and `support/*` branch names. All other branch
-values, including an unset branch, default to dry run. Dry runs authenticate and
-inspect the actual staging references, then print the exact image/manifest create
-commands without executing them. Tag and manual Docker release workflows keep
+values, including an unset branch, default to dry run. Dry runs inspect the actual staging references, using anonymous public-registry
+access if either Docker credential is unavailable, then print the exact
+image/manifest create commands without executing them. Real writes require both
+credentials; a missing staging reference fails even during a dry run. Tag and manual Docker release workflows keep
 their existing scripts, targets, tags, gates, and rebuild-based publishing path.
 The wiki and generated-documentation publishing filters/dependencies are unchanged.
 
@@ -77,10 +91,9 @@ ARM staging stays on `arm.medium`. Historical 13–14 minute builds fit within t
 roughly 25 minute check path, so `arm.large` would not shorten that critical path.
 `arm.large` doubles vCPU/RAM and costs more per minute; use it only if measured
 staging build completion becomes the bottleneck, comparing credits per build as
-well as wall time. This change adds one independent amd64 `test` build rather
-than moving/publishing the test-workspace build; it trades that extra compute and
-push for independent staging and check paths. All four staging builds now run
-even if tests later fail.
+well as wall time. The amd64 runtime image is built once in `build`; its staging
+push and identity check add to the check path before workspace publication. The
+three independent staging builds run even if tests later fail.
 
 ## Focused verification
 
@@ -93,4 +106,6 @@ bash -n support/build/docker-staging.sh
 
 The staging tests mock Docker and cover release-branch gating, default dry run,
 tag naming/isolation, preserved image targets, final tag names, manifest sources,
-missing staging references, and registry retries. Real builds run only in CircleCI.
+missing staging references, registry retries, exact tested-image staging and
+identity mismatches, missing-credential staging skips, credential-free dry runs,
+and promotion source digest pinning. Real builds run only in CircleCI.

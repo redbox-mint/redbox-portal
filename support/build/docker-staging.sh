@@ -6,7 +6,7 @@ is_release_branch() {
   [[ "${CIRCLE_BRANCH:-}" =~ ^(master|develop|support/.*)$ ]]
 }
 
-action="${1:?expected build, promote, manifest, or can-promote}"
+action="${1:?expected build, stage-tested, promote, manifest, or can-promote}"
 if [[ "$action" == can-promote ]]; then
   is_release_branch
   exit $?
@@ -20,7 +20,7 @@ case "$variant" in
   *) echo "Unsupported variant: $variant" >&2; exit 1 ;;
 esac
 case "$action" in
-  build|promote)
+  build|stage-tested|promote)
     [[ "$arch" == amd64 || "$arch" == arm64 ]] || { echo 'Expected amd64 or arm64' >&2; exit 1; }
     ;;
   manifest) ;;
@@ -47,14 +47,33 @@ print_command() {
   printf '\n'
 }
 
-if [[ "$action" == build ]]; then
-  # Preserve the historical automatic publishing contents: amd64 uses test,
-  # arm64 uses runtime, and both PDF variants use runtime_pdfgen.
+if [[ "$action" == stage-tested ]]; then
+  [[ "$variant/$arch" == runtime/amd64 ]] || { echo 'Only runtime/amd64 can stage the tested image' >&2; exit 1; }
+  # Forks and ordinary branches must still be able to build/test without secrets.
+  if [[ -z "${DOCKER_USER:-}" || -z "${DOCKER_PASS:-}" ]]; then
+    echo 'Skipping tested-image staging push: DOCKER_USER/DOCKER_PASS unavailable; build and tests can continue'
+    exit 0
+  fi
+elif [[ "$action" == build && "$variant/$arch" == runtime/amd64 ]]; then
+  echo 'Use stage-tested for runtime/amd64; rebuilding would publish an untested image' >&2
+  exit 1
+fi
+
+manifest_config_id() {
+  node -e 'const fs = require("node:fs"); const id = JSON.parse(fs.readFileSync(0, "utf8")).config?.digest;
+    if (!/^sha256:[a-f0-9]{64}$/.test(id)) throw new Error("Expected a single-platform image config digest");
+    console.log(id);'
+}
+
+if [[ "$action" == build || "$action" == stage-tested ]]; then
   target=runtime
   if [[ "$variant" == pdfgen ]]; then
     target=runtime_pdfgen
-  elif [[ "$arch" == amd64 ]]; then
-    target=test
+  fi
+  if [[ "$action" == stage-tested ]]; then
+    tested_id="$(docker image inspect --format '{{.Id}}' redbox-portal:test)"
+    [[ "$tested_id" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid tested image ID' >&2; exit 1; }
+    echo "Tested amd64 image ID: $tested_id"
   fi
   login
   image="$(staging_image "$arch")"
@@ -64,14 +83,31 @@ if [[ "$action" == build ]]; then
   trap 'rm -f "$inspection_error"' EXIT
   if docker manifest inspect "$image" >/dev/null 2>"$inspection_error"; then
     echo "Reusing existing staging image $image"
-    exit 0
+    if [[ "$action" == build ]]; then
+      exit 0
+    fi
+    existing=true
+  else
+    existing=false
   fi
-  if ! grep -Eqi 'no such manifest|manifest unknown|manifest_unknown' "$inspection_error"; then
+  if ! "$existing" && ! grep -Eqi 'no such manifest|manifest unknown|manifest_unknown' "$inspection_error"; then
     cat "$inspection_error" >&2
     exit 1
   fi
-  docker build --progress plain --platform "linux/$arch" --target "$target" --tag "$image" .
-  docker push "$image"
+  if ! "$existing"; then
+    if [[ "$action" == stage-tested ]]; then
+      docker tag "$tested_id" "$image"
+    else
+      docker build --progress plain --platform "linux/$arch" --target "$target" --tag "$image" .
+    fi
+    docker push "$image"
+  fi
+  if [[ "$action" == stage-tested ]]; then
+    staged_id="$(docker manifest inspect "$image" | manifest_config_id)"
+    echo "Staged amd64 image config digest: $staged_id"
+    [[ "$staged_id" == "$tested_id" ]] || { echo 'Staging image differs from the tested image; refusing promotion' >&2; exit 1; }
+    echo "Verified tested/staged amd64 image identity: $tested_id ($image)"
+  fi
   exit 0
 fi
 
@@ -93,17 +129,31 @@ else
   destination="${REPO}:${DEPLOY_TAG}${suffix}"
 fi
 
-# Verify the staging references even during the chore-branch dry run.
-login
+# Only writes require credentials. Public staging images can be inspected anonymously.
+if "$real_promotion" || [[ -n "${DOCKER_USER:-}" && -n "${DOCKER_PASS:-}" ]]; then
+  login
+else
+  echo 'DRY RUN: inspecting public staging images anonymously (no Docker push credentials)'
+fi
+pinned_sources=()
 for source_image in "${sources[@]}"; do
   docker buildx imagetools inspect "$source_image"
+  digest="$(docker buildx imagetools inspect --format '{{.Manifest.Digest}}' "$source_image")"
+  [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid staging manifest digest' >&2; exit 1; }
+  pinned_source="${REPO}@${digest}"
+  pinned_sources+=("$pinned_source")
+  echo "Promotion source: $source_image -> $pinned_source"
+  if [[ "$variant" == runtime && "$source_image" == "$(staging_image amd64)" ]]; then
+    config_id="$(docker buildx imagetools inspect --raw "$pinned_source" | manifest_config_id)"
+    echo "Promotion amd64 image config digest: $config_id"
+  fi
 done
 command=(docker buildx imagetools create)
 if [[ "$action" == promote ]]; then
   # Copy the single-platform manifest without introducing an extra image index.
   command+=(--prefer-index=false)
 fi
-command+=(--tag "$destination" "${sources[@]}")
+command+=(--tag "$destination" "${pinned_sources[@]}")
 print_command "${command[@]}"
 if "$real_promotion"; then
   # Keep the registry retry behavior used by the existing manifest publisher.
