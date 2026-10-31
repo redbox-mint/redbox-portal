@@ -237,6 +237,51 @@ describe('GridFSDriver', function () {
     expect(Array.from((await driver.listAll('attachments/oid-1/', { recursive: true })).objects)).to.have.length(0);
   });
 
+  it("preserves another driver's active upload when overwriting the same key", async function () {
+    const key = 'attachments/concurrent.csv';
+    const firstDriver = new GridFSDriver({ bucketName: 'fs' }, undefined, async () => createDatabase());
+    const secondDriver = new GridFSDriver({ bucketName: 'fs' }, undefined, async () => createDatabase());
+    let releaseSource!: () => void;
+    let notifyChunk!: () => void;
+    const blocked = new Promise<void>(resolve => {
+      releaseSource = resolve;
+    });
+    const chunkWritten = new Promise<void>(resolve => {
+      notifyChunk = resolve;
+    });
+    insertChunk = async chunk => {
+      chunks.push(chunk);
+      notifyChunk();
+    };
+    const firstUpload = firstDriver.putStream(
+      key,
+      Readable.from(
+        (async function* () {
+          yield Buffer.alloc(255 * 1024, 'a');
+          await blocked;
+          yield Buffer.from('tail');
+        })()
+      )
+    );
+    let activeMappingPreserved: boolean;
+    let activeChunkPreserved: boolean;
+    try {
+      await chunkWritten;
+      const uploadId = pending[0]._id;
+      await secondDriver.put(key, 'replacement');
+      activeMappingPreserved = pending.some(upload => upload._id.equals(uploadId));
+      activeChunkPreserved = chunks.some(chunk => chunk.files_id.equals(uploadId));
+    } finally {
+      releaseSource();
+      await firstUpload;
+    }
+    expect(activeMappingPreserved, 'overwrite must retain the active upload mapping').to.equal(true);
+    expect(activeChunkPreserved, 'overwrite must retain chunks already written by the active upload').to.equal(true);
+    expect(pending).to.have.length(0);
+    const firstFile = files.find(file => file.length === 255 * 1024 + 4);
+    expect(firstFile?.buffer).to.deep.equal(Buffer.concat([Buffer.alloc(255 * 1024, 'a'), Buffer.from('tail')]));
+  });
+
   it('returns ENOENT-style errors for missing objects', async function () {
     const driver = createDriver();
 

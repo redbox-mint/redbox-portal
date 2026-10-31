@@ -137,7 +137,10 @@ export class GridFSDriver {
   }
 
   public async putStream(key: string, contents: Readable, options?: GridFSWriteOptions): Promise<void> {
-    await this.deleteMatchingFiles(key);
+    // Pending uploads may belong to another writer. Overwrites delete completed
+    // files only, leaving those uploads' chunks and markers intact.
+    const files = await this.findFilesByFilename(key);
+    await Promise.all(files.map(file => this.deleteUpload(file._id)));
     const bucket = await this.getBucket();
     const uploadId = new ObjectId();
     const metadata = this.buildMetadata(options);

@@ -190,6 +190,34 @@ describe('ExportComponent', () => {
     fixture.destroy();
   }));
 
+  it('stops refreshing after expiry even when the server still reports ready', fakeAsync(() => {
+    const expiry = new Date(Date.now() + 10000).toISOString();
+    service.list.and.resolveTo([job({ status: 'ready', downloadUrl: 'download', expiresAt: expiry })]);
+    initialize();
+    tick(10001); flushMicrotasks(); fixture.detectChanges();
+    expect(service.list).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.querySelector('a[download]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('export-status-expired');
+    tick(15000);
+    expect(service.list).toHaveBeenCalledTimes(2);
+    fixture.destroy();
+  }));
+
+  it('ignores already expired jobs when scheduling the next ready export expiry', fakeAsync(() => {
+    service.list.and.resolveTo([
+      job({ id: 'expired', status: 'ready', expiresAt: new Date(Date.now() - 10000).toISOString() }),
+      job({ id: 'ready', status: 'ready', expiresAt: new Date(Date.now() + 10000).toISOString() })
+    ]);
+    initialize();
+    tick(9999);
+    expect(service.list).toHaveBeenCalledTimes(1);
+    tick(2); flushMicrotasks();
+    expect(service.list).toHaveBeenCalledTimes(2);
+    tick(15000);
+    expect(service.list).toHaveBeenCalledTimes(2);
+    fixture.destroy();
+  }));
+
   it('continues status polling after a temporary failure without creating another export', fakeAsync(() => {
     service.list.and.resolveTo([job({ status: 'running' })]);
     initialize();

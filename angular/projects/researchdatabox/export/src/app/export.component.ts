@@ -330,7 +330,7 @@ export class ExportComponent extends BaseComponent {
     if (this.hasActiveJobs()) {
       delay = this.pollIntervalMs;
     } else {
-      const expiries = this.jobs.filter(job => job.status === 'ready' && job.expiresAt)
+      const expiries = this.jobs.filter(job => this.getStatus(job) === 'ready' && job.expiresAt)
         .map(job => Date.parse(job.expiresAt!)).filter(Number.isFinite);
       if (!expiries.length) {
         return;
