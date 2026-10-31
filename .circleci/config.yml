@@ -1,4 +1,16 @@
 commands:
+  web-assets-pilot-node:
+    steps:
+      - run:
+          name: Select the asset pilot Node and npm versions
+          command: |
+            export NVM_DIR="$HOME/.nvm"
+            test -s "$NVM_DIR/nvm.sh"
+            . "$NVM_DIR/nvm.sh"
+            nvm install 24.22.1
+            test "$(node --version)" = 'v24.22.1'
+            test "$(npm --version)" = '11.19.1'
+            printf '%s\n' 'export NVM_DIR="$HOME/.nvm"' '. "$NVM_DIR/nvm.sh"' 'nvm use 24.22.1 >/dev/null' >> "$BASH_ENV"
   checkout-validation-source:
     steps:
       - checkout
@@ -31,6 +43,83 @@ commands:
                   printf 'export CI_PIPELINE_REVISION=%q\n' "$CIRCLE_SHA1" >> "$BASH_ENV"
                   printf 'export CIRCLE_SHA1=%q\n' "$revision" >> "$BASH_ENV"
 jobs:
+  web-assets-produce:
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: false
+    resource_class: medium
+    environment:
+      NODE_OPTIONS: ''
+    steps:
+      - checkout
+      - web-assets-pilot-node
+      - run:
+          name: Install pilot test dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Test shared asset pilot safeguards
+          command: |
+            node --test support/build/ci-performance.test.cjs \
+              support/build/ci-web-assets/circleci-pilot.test.cjs \
+              support/build/ci-web-assets/circleci-pilot-runner.test.cjs \
+              support/build/ci-web-assets/circleci-pilot-config.test.cjs \
+              support/build/ci-web-assets/pilot.test.cjs
+      - run:
+          name: Build and package shared web assets
+          no_output_timeout: 30m
+          command: |
+            timeout --signal=TERM --kill-after=90s 100m node support/build/ci-performance.cjs run web-assets-produce --grace-ms 75000 -- \
+              node support/build/ci-web-assets/circleci-pilot-runner.cjs produce
+      - store_artifacts:
+          path: /tmp/redbox-web-assets-pilot/producer-success.json
+          destination: ci-web-assets-pilot/producer-success.json
+      - store_artifacts:
+          path: .tmp/ci-performance
+          destination: ci-web-assets-pilot/performance
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - redbox-web-assets-transfer
+  web-assets-control-arm64:
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: false
+    resource_class: arm.medium
+    environment:
+      NODE_OPTIONS: ''
+    steps:
+      - checkout
+      - web-assets-pilot-node
+      - run:
+          name: Build the local-asset ARM64 control
+          no_output_timeout: 30m
+          command: |
+            timeout --signal=TERM --kill-after=90s 110m node support/build/ci-performance.cjs run web-assets-control --artifact /tmp/redbox-web-assets-pilot-output/image.oci.tar --grace-ms 75000 -- \
+              node support/build/ci-web-assets/circleci-pilot-runner.cjs control
+      - store_artifacts:
+          path: .tmp/ci-performance
+          destination: ci-web-assets-pilot/performance
+  web-assets-shared-arm64:
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: false
+    resource_class: arm.medium
+    environment:
+      NODE_OPTIONS: ''
+    steps:
+      - checkout
+      - web-assets-pilot-node
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Authenticate assets and build the ARM64 candidate
+          no_output_timeout: 30m
+          command: |
+            timeout --signal=TERM --kill-after=90s 110m node support/build/ci-performance.cjs run web-assets-shared --artifact /tmp/redbox-web-assets-pilot-output/image.oci.tar --grace-ms 75000 -- \
+              node support/build/ci-web-assets/circleci-pilot-runner.cjs shared
+      - store_artifacts:
+          path: .tmp/ci-performance
+          destination: ci-web-assets-pilot/performance
   arm64-timing-pilot:
     machine:
       image: ubuntu-2404:current
@@ -1621,6 +1710,10 @@ orbs:
   docker: circleci/docker@3.0.1
 version: 2.1
 parameters:
+  # Default-off and isolated from existing validation and publication paths.
+  ci_web_assets_pilot:
+    type: boolean
+    default: false
   # Default-off; only the isolated, exact chore cohort may schedule this workflow.
   ci_mocha_failure_rehearsal:
     type: boolean
@@ -1648,6 +1741,28 @@ parameters:
       - manual
     default: none
 workflows:
+  ci_web_assets_shadow:
+    when:
+      and:
+        - equal: [true, << pipeline.parameters.ci_web_assets_pilot >>]
+        - equal: [false, << pipeline.parameters.ci_mocha_failure_rehearsal >>]
+        - equal: [chore/circleci-performance, << pipeline.git.branch >>]
+        - equal: ['', << pipeline.git.tag >>]
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
+    jobs:
+      - web-assets-produce:
+          filters: &webAssetsPilotFilters
+            branches:
+              only: chore/circleci-performance
+            tags:
+              ignore: /.*/
+      - web-assets-control-arm64:
+          filters: *webAssetsPilotFilters
+      - web-assets-shared-arm64:
+          requires:
+            - web-assets-produce
+          filters: *webAssetsPilotFilters
   mocha_failure_rehearsal:
     when:
       and:

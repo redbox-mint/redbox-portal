@@ -128,6 +128,78 @@ test('cancellation escalates when the measured command ignores SIGTERM', { skip:
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
+function stopOwnedFixtureWorker(pidFile, marker) {
+  if (!fs.existsSync(pidFile)) return;
+  const value = fs.readFileSync(pidFile, 'utf8');
+  assert.match(value, /^[1-9][0-9]*$/);
+  const pid = Number(value);
+  try {
+    // Confirm the process is still this test's worker before signaling its group.
+    if (fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes(marker)) process.kill(-pid, 'SIGKILL');
+  } catch (error) { if (!['ENOENT', 'ESRCH'].includes(error.code)) throw error; }
+}
+
+test('pilot grace lets the real wrapper terminate a detached worker and complete cleanup',
+  { skip: process.platform !== 'linux', timeout: 15000 }, async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-ci-pilot-grace-'));
+    const helper = path.join(__dirname, 'ci-performance.cjs');
+    const pilot = path.join(__dirname, 'ci-web-assets/circleci-pilot-runner.cjs');
+    const cleanup = path.join(directory, 'cleanup'), orphan = path.join(directory, 'orphan'), pid = path.join(directory, 'worker.pid');
+    const worker = `require('fs').writeFileSync(${JSON.stringify(pid)},String(process.pid)); process.on('SIGTERM',()=>{}); console.log('worker-ready'); setTimeout(()=>require('fs').writeFileSync(${JSON.stringify(orphan)},'alive'),6500); setInterval(()=>{},1000)`;
+    const script = `const r=require(${JSON.stringify(pilot)}).commandRunner(); process.on('SIGTERM',()=>r.cancel()); r.call(process.execPath,['-e',${JSON.stringify(worker)}],{env:process.env,timeoutMs:60000}).catch(()=>require('fs').writeFileSync(${JSON.stringify(cleanup)},'done'));`;
+    const child = spawn(process.execPath, [helper, 'run', 'pilot-grace', '--grace-ms', '8000', '--',
+      process.execPath, '-e', script], { cwd: directory, stdio: ['ignore', 'pipe', 'pipe'] });
+    try {
+      await new Promise((resolve, reject) => {
+        child.stdout.on('data', chunk => { if (chunk.toString().includes('worker-ready')) resolve(); });
+        child.once('error', reject);
+        child.once('exit', code => reject(new Error(`wrapper exited before worker: ${code}`)));
+      });
+      const closed = new Promise(resolve => child.once('close', code => resolve(code)));
+      child.kill('SIGTERM');
+      assert.equal(await closed, 143);
+      assert.equal(fs.readFileSync(cleanup, 'utf8'), 'done');
+      assert.equal(fs.existsSync(orphan), false);
+      assert.equal(JSON.parse(fs.readFileSync(path.join(directory, '.tmp/ci-performance/pilot-grace.json'))).cancellation_signal, 'SIGTERM');
+    } finally {
+      stopOwnedFixtureWorker(pid, orphan);
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+test('pilot grace also permits detached-worker cleanup after an output pipe fails',
+  { skip: process.platform !== 'linux', timeout: 15000 }, async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-ci-pilot-epipe-'));
+    const helper = path.join(__dirname, 'ci-performance.cjs');
+    const pilot = path.join(__dirname, 'ci-web-assets/circleci-pilot-runner.cjs');
+    const cleanup = path.join(directory, 'cleanup'), orphan = path.join(directory, 'orphan'), pid = path.join(directory, 'worker.pid');
+    const worker = `require('fs').writeFileSync(${JSON.stringify(pid)},String(process.pid)); process.on('SIGTERM',()=>{}); console.log('worker-ready'); setInterval(()=>console.log('x'.repeat(4096)),10); setTimeout(()=>require('fs').writeFileSync(${JSON.stringify(orphan)},'alive'),6500)`;
+    const script = `const r=require(${JSON.stringify(pilot)}).commandRunner(); process.on('SIGTERM',()=>r.cancel()); r.call(process.execPath,['-e',${JSON.stringify(worker)}],{env:process.env,timeoutMs:60000}).catch(()=>require('fs').writeFileSync(${JSON.stringify(cleanup)},'done'));`;
+    const child = spawn(process.execPath, [helper, 'run', 'pilot-epipe', '--grace-ms', '8000', '--',
+      process.execPath, '-e', script], { cwd: directory, stdio: ['ignore', 'pipe', 'pipe'] });
+    try {
+      child.stdout.once('data', () => child.stdout.destroy());
+      const code = await new Promise((resolve, reject) => { child.once('close', resolve); child.once('error', reject); });
+      assert.equal(code, 1);
+      assert.equal(fs.readFileSync(cleanup, 'utf8'), 'done');
+      assert.equal(fs.existsSync(orphan), false);
+      assert.equal(JSON.parse(fs.readFileSync(path.join(directory, '.tmp/ci-performance/pilot-epipe.json'))).error, 'EPIPE');
+    } finally {
+      stopOwnedFixtureWorker(pid, orphan);
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+test('measurement rejects invalid or duplicate cancellation grace values', () => {
+  const helper = path.join(__dirname, 'ci-performance.cjs');
+  for (const args of [['--grace-ms', '999'], ['--grace-ms', '120001'], ['--grace-ms', 'bad'],
+    ['--grace-ms', '1000', '--grace-ms', '2000']]) {
+    const result = spawnSync(process.execPath, [helper, 'run', 'invalid', ...args, '--', process.execPath, '-e', ''],
+      { encoding: 'utf8' });
+    assert.notEqual(result.status, 0, args.join(' '));
+  }
+});
+
 test('signaled command cannot leave a detached-stdio worker running', { skip: process.platform === 'win32', timeout: 6000 }, async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-ci-descendant-'));
   const marker = path.join(directory, 'orphan');

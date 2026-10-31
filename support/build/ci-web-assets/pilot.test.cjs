@@ -9,6 +9,7 @@ const { test } = require('node:test');
 const integration = require('../integration-prebuilt-assets.cjs');
 const { TOOL_PACKAGES, sha256, json } = require('./identity.cjs');
 const { producePilot, preparePilot, nativePlatform } = require('./pilot.cjs');
+const { verifyPlan } = require('./circleci-pilot.cjs');
 
 const cli = path.join(__dirname, 'pilot.cjs');
 function put(root, filename, bytes) {
@@ -133,6 +134,38 @@ test('CLI prepare restores byte-identical assets to isolated output and emits on
   cwd: f.consumerRoot, shell: false });
   assert.equal(fs.statSync(prepared.plan).mode & 0o777, 0o400);
   assert.equal(command(f.consumer, f).status, 1, 'rerun cannot overwrite output');
+});
+
+test('CircleCI plan guard accepts the real restored artifact and rejects a changed invocation', async t => {
+  const f = await produced(t);
+  // Exercise the cross-architecture contract without claiming a native build:
+  // the synthetic artifact is relabeled, then all trust digests are recomputed.
+  const descriptorPath = path.join(f.result.artifact, 'artifact.json');
+  const descriptor = read(descriptorPath);
+  descriptor.producer = { platform: 'linux', arch: 'x64' };
+  fs.chmodSync(descriptorPath, 0o600);
+  fs.writeFileSync(descriptorPath, json(descriptor));
+  const receipt = read(f.result.receipt);
+  receipt.producerPlatform = 'linux/amd64';
+  receipt.assets.descriptorSha256 = sha256(fs.readFileSync(descriptorPath));
+  fs.chmodSync(f.result.receipt, 0o600);
+  fs.writeFileSync(f.result.receipt, json(receipt));
+  const receiptSha256 = sha256(fs.readFileSync(f.result.receipt));
+  const previousArch = Object.getOwnPropertyDescriptor(process, 'arch');
+  try {
+    Object.defineProperty(process, 'arch', { ...previousArch, value: 'arm64' });
+    const result = await preparePilot({ ...f.consumer, platform: 'linux/arm64', producerPlatform: 'linux/amd64', receiptSha256 });
+    const bytes = fs.readFileSync(result.plan);
+    const expected = { identity: f.identity, receiptSha256, manifestSha256: receipt.assets.manifestSha256,
+      output: f.consumer.output, root: f.consumerRoot };
+    const invocation = verifyPlan(bytes, result.planSha256, expected);
+    assert.equal(invocation.shell, false);
+    const altered = JSON.parse(bytes); altered.invocation.args.push('--push');
+    const forged = Buffer.from(json(altered));
+    assert.throws(() => verifyPlan(forged, sha256(forged), expected));
+  } finally {
+    Object.defineProperty(process, 'arch', previousArch);
+  }
 });
 
 test('all documented Docker targets use the shared named context without tags, load or push', async t => {

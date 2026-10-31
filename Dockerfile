@@ -1,5 +1,9 @@
 # syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
+# Default builds need no additional context. Opt in with WEB_ASSETS=shared and
+# --build-context web-assets=RESTORED_DIRECTORY (see ci-web-assets/README.md).
+ARG WEB_ASSETS=local
+
 FROM node:26.12.1-bookworm AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -23,7 +27,7 @@ RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/inst
 WORKDIR /opt/redbox-portal
 SHELL ["bash", "-o", "pipefail", "-c"]
 
-FROM base AS builder
+FROM base AS backend_builder
 
 COPY . .
 
@@ -53,14 +57,42 @@ RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save 
 
 RUN npx tsc --project tsconfig.json
 
+FROM backend_builder AS web_assets_local
+
 RUN chmod +x support/build/compileProductionAngular.sh \
  && support/build/compileProductionAngular.sh
 
 RUN npm run webpack
 
+# Give both branches a metadata directory; ordinary builds do not require a
+# revision and do not claim to contain verified producer metadata.
+RUN mkdir -p .redbox-ci
+
+# A supplied named context overrides this empty stage. If it is omitted, shared
+# builds fail on missing files instead of resolving an implicit registry image.
+FROM scratch AS web-assets
+
+FROM backend_builder AS web_assets_shared
+ARG SOURCE_REVISION
+ARG WEB_ASSETS_MANIFEST_SHA256
+# Replace, never merge with the native checkout's assets or generated outputs.
+RUN rm -rf assets .tmp/public .redbox-ci
+COPY --from=web-assets /assets/ ./assets/
+COPY --from=web-assets /.tmp/public/ ./.tmp/public/
+COPY --from=web-assets /.redbox-ci/integration-assets.json ./.redbox-ci/integration-assets.json
+COPY --from=web-assets /.redbox-ci/integration-image.json ./.redbox-ci/integration-image.json
+RUN node support/build/docker-web-assets.cjs verify shared "${SOURCE_REVISION}" "${WEB_ASSETS_MANIFEST_SHA256}"
+
+# BuildKit prunes the unselected branch, including its named-context dependency.
+FROM web_assets_${WEB_ASSETS} AS builder
+
 RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
  && support/build/api-descriptors/generateAPIDescriptors.sh
 
+# Preserve the published test image's historical overlay: development snapshots
+# are copied over the production-installed graph, including its nested versions.
+# A direct builder graph has different Companion Express/session resolution.
+FROM builder AS test_dependencies
 RUN cp -a node_modules /tmp/test-node_modules \
  && mkdir -p /tmp/test-package-node-modules/packages \
  && for package_path in \
@@ -79,6 +111,8 @@ RUN cp -a node_modules /tmp/test-node_modules \
       fi; \
     done
 
+FROM test_dependencies AS production_dependencies
+
 # Reinstall the production graph after compilation. Removing nested dependency
 # directories after npm prunes them also removes required runtime versions.
 RUN rm -rf \
@@ -96,7 +130,7 @@ RUN rm -rf \
     support/build/api-descriptors/node_modules \
  && npm ci --omit=dev --no-audit
 
-FROM node:26.12.1-bookworm-slim AS runtime
+FROM node:26.12.1-bookworm-slim AS runtime_application
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane
@@ -117,13 +151,21 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/app.js ./app.js
 COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
 COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
 COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
+COPY --from=builder --chown=node:node /opt/redbox-portal/.redbox-ci ./.redbox-ci
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
 COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
-RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views
-COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
+
+# Verify the final web copies, retaining the producer's metadata byte for byte.
+# Bind native validation dependencies only for this RUN; dependency assembly in
+# runtime/test/PDF remains below, unchanged. Nothing is installed in this layer.
+ARG WEB_ASSETS
+ARG SOURCE_REVISION
+ARG WEB_ASSETS_MANIFEST_SHA256
+RUN --mount=type=bind,from=builder,source=/opt/redbox-portal/support/build,target=/opt/redbox-portal/support/build \
+    --mount=type=bind,from=builder,source=/opt/redbox-portal/node_modules,target=/opt/redbox-portal/node_modules \
+    node support/build/docker-web-assets.cjs verify "${WEB_ASSETS}" "${SOURCE_REVISION}" "${WEB_ASSETS_MANIFEST_SHA256}"
 
 EXPOSE 1337
 
@@ -132,9 +174,18 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
 
 USER node
 
-RUN node -e "const { createRequire } = require('module'); const corePath = require.resolve('@researchdatabox/redbox-core'); require(corePath); createRequire(corePath)('@uppy/companion')"
-
 CMD ["node", "app.js"]
+
+FROM runtime_application AS runtime
+
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages ./packages
+# These optional hooks must not be present in the pristine production image.
+USER root
+RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen
+USER node
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/node_modules ./node_modules
+
+RUN node -e "const { createRequire } = require('module'); const corePath = require.resolve('@researchdatabox/redbox-core'); require(corePath); createRequire(corePath)('@uppy/companion')"
 
 FROM runtime AS runtime_puppeteer_base
 USER root
@@ -188,7 +239,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=1
 USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
 RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --no-audit \
     ./packages/sails-hook-redbox-pdfgen
 RUN node -e "require('@researchdatabox/redbox-core'); require('@researchdatabox/sails-hook-redbox-pdfgen')"
@@ -197,21 +248,58 @@ RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
 USER node
 
-# Optional test/demo image: layers the development hook (redbox-hook-dev: demo
-# record types, workflows, dashboards and forms) on top of the otherwise pristine
-# runtime. Built with `--target test` and used by the integration test suites.
-# The vanilla runtime image never includes it, so published/client images stay
-# pristine. The hook's dist was built in the builder stage and copied in via the
-# packages/ directory; here we only re-link it into node_modules so the
-# redbox-loader discovers it (it was pruned from node_modules for `runtime`).
+# Published test/demo image: keep the baseline production-plus-snapshot overlay.
 FROM runtime AS test
 USER root
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
-COPY --from=builder --chown=node:node /tmp/test-node_modules ./node_modules
-COPY --from=builder --chown=node:node /tmp/test-package-node-modules/packages ./packages
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
+COPY --from=production_dependencies --chown=node:node /tmp/test-node_modules ./node_modules
+COPY --from=production_dependencies --chown=node:node /tmp/test-package-node-modules/packages ./packages
 RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
  && chown -h node:node node_modules/redbox-hook-dev
 USER node
+
+# Opt-in immutable integration payload. Neither the existing test/demo target nor
+# publication/runtime targets depend on this branch. Retain source, declarations,
+# maps, fixtures and each package's dependency graph for ts-node and nyc.
+# Inherit the published test graph, including the production/development overlay.
+FROM test AS integration_payload
+COPY --from=builder --chown=node:node /opt/redbox-portal/test ./test
+COPY --from=builder --chown=node:node /opt/redbox-portal/support ./support
+COPY --from=builder --chown=node:node /opt/redbox-portal/typescript ./typescript
+COPY --from=builder --chown=node:node /opt/redbox-portal/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=node:node /opt/redbox-portal/app.integrationtest.js ./app.integrationtest.js
+COPY --from=builder --chown=node:node /opt/redbox-portal/.sailsrc ./.sailsrc
+# The metadata producer reads the application inventory, without needing Angular
+# dependencies or a compiler in the final image.
+COPY --from=builder --chown=node:node /opt/redbox-portal/angular/angular.json ./angular/angular.json
+USER root
+# The old bootstrap bind hid the production tree completely; replace, never merge.
+# Make the application root writable too: the loader creates marker/debug files
+# and directories in addition to rewriting existing api/config shims.
+RUN rm -rf bootstrap-data \
+ && cp -a support/resources/development/bootstrap-data bootstrap-data \
+ && mkdir -p .tmp/junit/backend-mocha .tmp/logs .tmp/uploads .tmp/sessions \
+      attachments reports coverage/mocha coverage/playwright \
+      /attachments/staging /attachments/primary /attachments/figshare-staging \
+      /tmp/coverage/mocha /tmp/coverage/playwright /tmp/nyc_output /tmp/nyc_output_playwright \
+ && chown node:node . \
+ && chown -R node:node bootstrap-data .tmp attachments reports coverage /attachments /tmp/coverage /tmp/nyc_output /tmp/nyc_output_playwright
+USER node
+# Required independent build input. Do not infer identity from copied metadata or
+# Git (which is deliberately absent). All asset preparation/copies finished above.
+ARG SOURCE_REVISION
+RUN node support/build/docker-web-assets.cjs integration "${WEB_ASSETS}" "${SOURCE_REVISION}" "${WEB_ASSETS_MANIFEST_SHA256}" \
+ && node --test support/build/integration-prebuilt-assets.test.cjs
+
+FROM integration_payload AS integration_mocha
+COPY --from=builder --chown=node:node /opt/redbox-portal/support/integration-testing/recordtype-solr-multi-core-example.js ./config/recordtype.js
+COPY --from=builder --chown=node:node /opt/redbox-portal/support/integration-testing/solr-multi-core-example.js ./config/solr.js
+COPY --from=builder --chown=node:node /opt/redbox-portal/test/resources/config/emailnotification.js ./config/emailnotification.js
+RUN node support/build/ci-integration-image.cjs verify mocha "${SOURCE_REVISION}"
+
+FROM integration_payload AS integration_playwright
+COPY --from=builder --chown=node:node /opt/redbox-portal/test/resources/config/emailnotification.js ./config/emailnotification.js
+RUN node support/build/ci-integration-image.cjs verify playwright "${SOURCE_REVISION}"
 
 # Keep the vanilla (pristine) runtime image as the default build target.
 FROM runtime

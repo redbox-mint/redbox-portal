@@ -33,6 +33,11 @@ artifacts even on failure. Records include actual checkout and pipeline revision
 job/workflow identity, architecture, resource class, Node version, elapsed time,
 exit status, image archive bytes, and peak local process-tree RSS where GNU time
 is available. The wrapper preserves command output and exit status.
+Cancellation and output-pipe errors normally allow one second before forced
+termination. Callers that perform bounded child cleanup can explicitly use
+`--grace-ms N` (1,000–120,000 ms) before `--`; the shadow asset pilot uses
+75 seconds for its nested worker and builder cleanup. A surrounding timeout
+must allow longer than that grace before forcing termination.
 
 BuildKit `CACHED` operations are counted by operation ID. Completed operations
 include metadata and exports, so they are **not** a layer cache miss count. npm

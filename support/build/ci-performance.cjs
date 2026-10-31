@@ -14,9 +14,17 @@ async function measure(args) {
   const separator = args.indexOf('--');
   const [label, ...options] = args.slice(0, separator);
   const command = args.slice(separator + 1);
-  if (separator < 1 || !/^[\w-]+$/.test(label) || !command.length ||
-      (options.length && (options.length !== 2 || options[0] !== '--artifact'))) {
-    throw new Error('Usage: run LABEL [--artifact PATH] -- COMMAND [ARG ...]');
+  if (separator < 1 || !/^[\w-]+$/.test(label) || !command.length) {
+    throw new Error('Usage: run LABEL [--artifact PATH] [--grace-ms N] -- COMMAND [ARG ...]');
+  }
+  let artifact, graceMs = 1000, graceSet = false;
+  for (let i = 0; i < options.length; i += 2) {
+    const [key, value] = options.slice(i, i + 2);
+    if (key === '--artifact' && value && artifact === undefined) artifact = value;
+    else if (key === '--grace-ms' && /^[1-9][0-9]*$/.test(value || '') && !graceSet) {
+      graceMs = Number(value); graceSet = true;
+      if (!Number.isSafeInteger(graceMs) || graceMs < 1000 || graceMs > 120000) throw new Error('Invalid cancellation grace');
+    } else throw new Error('Invalid measurement option');
   }
   const directory = path.resolve('.tmp/ci-performance');
   fs.mkdirSync(directory, { recursive: true });
@@ -49,7 +57,7 @@ async function measure(args) {
     signalGroup(signal);
     // A child can ignore TERM/INT; do not leave a CI job hanging forever.
     if (!escalation) escalationDone = new Promise(resolve => {
-      escalation = setTimeout(() => { signalGroup('SIGKILL'); resolve(); }, 1000);
+      escalation = setTimeout(() => { signalGroup('SIGKILL'); resolve(); }, graceMs);
     });
   };
   const forward = (stream, destination) => {
@@ -86,7 +94,7 @@ async function measure(args) {
   child.once('exit', (code, signal) => {
     // Descendants can retain stdout/stderr even after the immediate child exits.
     // Clean up before waiting for close, which otherwise waits on those pipes.
-    if (!cancellationSignal && (outputError || signal || (code >= 128 && code <= 192))) signalGroup('SIGKILL');
+    if (!escalationDone && (outputError || signal || (code >= 128 && code <= 192))) signalGroup('SIGKILL');
   });
   const result = await new Promise(resolve => {
     child.on('error', error => resolve({ code: 127, error: error.code }));
@@ -94,10 +102,10 @@ async function measure(args) {
   });
   // GNU time may exit before the command's signal handler runs. Allow that
   // handler its bounded grace period even if time closes its own output first.
-  if (cancellationSignal && escalationDone) await escalationDone;
+  if ((cancellationSignal || outputError) && escalationDone) await escalationDone;
   else if (escalation) clearTimeout(escalation);
   // The immediate child may exit while a descendant with closed stdio remains.
-  if (cancellationSignal || result.signal || (result.code >= 128 && result.code <= 192)) signalGroup('SIGKILL');
+  if (cancellationSignal || outputError || result.signal || (result.code >= 128 && result.code <= 192)) signalGroup('SIGKILL');
   signals.forEach((signal, index) => process.removeListener(signal, handlers[index]));
   const exitCode = cancellationSignal ? 128 + os.constants.signals[cancellationSignal] : outputError ? 1
     : result.code ?? 128 + (os.constants.signals[result.signal] || 1);
@@ -108,7 +116,7 @@ async function measure(args) {
     fs.unlinkSync(memoryPath);
   }
   let artifactBytes = null;
-  if (options[1] && fs.existsSync(options[1])) artifactBytes = fs.statSync(options[1]).size;
+  if (artifact && fs.existsSync(artifact)) artifactBytes = fs.statSync(artifact).size;
   const report = {
     schema_version: 1, label,
     workflow_id: process.env.CIRCLE_WORKFLOW_ID || null,

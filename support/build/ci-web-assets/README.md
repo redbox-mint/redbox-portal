@@ -1,9 +1,9 @@
 # Shared production web assets
 
-This is the PR4 producer/consumer contract, ready for the CircleCI and Docker
-owners to wire in. It does not change Docker, Compose, integration startup or CI
-configuration. No registry access, new dependencies or native dependency trees
-are involved. Use Git, Bash, npm and the exact Node version in both `.nvmrc`
+This is the PR4 producer/consumer contract with a default-off Docker consumer.
+CircleCI, Compose, integration startup and production publication selection are
+unchanged. The artifact contains no native dependency trees and adds no dependencies.
+Use Git, Bash, npm and the exact Node version in both `.nvmrc`
 files, on Linux AMD64 or ARM64. An installed nvm is required by the existing
 Angular build script. Select that Node before invoking this helper.
 
@@ -157,16 +157,15 @@ CircleCI wiring:
    Restore with each job's exact source identity. A miss at this required-workspace
    boundary fails the job; repair/re-run the producer, rather than let the two
    architectures build unrelated replacement assets.
-3. Pass `STAGE` to BuildKit as an additional context, for example
-   `--build-context web-assets="$STAGE"`. The Docker owner must explicitly copy
-   `assets/`, `.tmp/public/` and `.redbox-ci/` from that context **after native
-   backend compilation**, replacing prior web roots, and omit Angular/webpack
-   from that consumer path. Retain a full-build path when reuse is not selected.
-   A named context avoids `.dockerignore` silently omitting `.tmp` or metadata.
-4. Retain the same metadata in final test/runtime/PDF images and run the existing
-   integration verifier after the final asset-changing operation. Do not regenerate
-   a manifest in consumers. Keep native installs/backend builds per architecture;
-   never transfer `node_modules` or native binaries with this artifact.
+3. Select the Docker consumer as described below. It copies the restored web roots
+   and metadata **after native backend compilation**, replacing prior web roots,
+   and omits Angular/webpack from that branch. The named context avoids
+   `.dockerignore` silently omitting `.tmp` or metadata.
+4. The Docker consumer retains the same metadata in final test/runtime/PDF images
+   and runs the existing integration verifier after the final web copies. Shared
+   integration targets verify it too; they never regenerate a manifest. Keep
+   native installs/backend builds per architecture; never transfer `node_modules`
+   or native binaries with this artifact.
 5. Forward immutable-image opt-in/revision settings following
    [`integration-prebuilt-assets.md`](../integration-prebuilt-assets.md). Its mount
    detection and source-mounted rebuild behavior are unchanged by this helper.
@@ -177,10 +176,80 @@ keep the dedicated API documentation job. If that site becomes runtime content,
 explicitly copy it into a web root **before** manifest generation and update this
 versioned build contract. No runtime-generated API site is claimed as present.
 
+## Opt-in Docker builds
+
+Ordinary `docker build .` and all existing targets use `WEB_ASSETS=local`, execute
+Angular then webpack as before, and need neither a context, revision nor digest.
+Local immutable integration targets still require `SOURCE_REVISION` and generate
+their own metadata. This change does not enable immutable startup reuse: its
+existing CI/revision settings and mounted-source fallback remain separate.
+
+For the shared path, first run `restore` above with the independent, trusted
+**descriptor** checksum. Then obtain the **manifest** checksum from that same
+validated descriptor, checking its trust anchor again when reading it:
+
+```bash
+MANIFEST_SHA256=$(node - "$ARTIFACT/artifact.json" "$CHECKSUM" <<'NODE'
+const fs = require('node:fs');
+const { createHash } = require('node:crypto');
+const bytes = fs.readFileSync(process.argv[2]);
+if (createHash('sha256').update(bytes).digest('hex') !== process.argv[3]) {
+  throw new Error('Trusted producer descriptor checksum mismatch');
+}
+console.log(JSON.parse(bytes).manifestSha256);
+NODE
+)
+
+docker buildx build --platform linux/arm64 --target runtime \
+  --build-arg WEB_ASSETS=shared \
+  --build-arg SOURCE_REVISION="$REV" \
+  --build-arg WEB_ASSETS_MANIFEST_SHA256="$MANIFEST_SHA256" \
+  --build-context web-assets="$STAGE" \
+  --load -t redbox-shared-assets:arm64 .
+```
+
+Use the same restored payload and trust inputs for the native AMD64 build;
+choose an appropriate native builder and platform. Existing `test`,
+`runtime_pdfgen`, `integration_mocha` and `integration_playwright` targets accept
+the same inputs. The final unnamed/default target remains the pristine runtime.
+No published build command or image-selection policy is changed.
+
+`WEB_ASSETS` selects `web_assets_local` or `web_assets_shared` after
+`backend_builder`; BuildKit prunes the other branch. The empty `web-assets` stage
+is a safe fallback: a supplied named context overrides it, while an omitted
+context fails on missing files without pulling an implicit `web-assets` image.
+An invalid selector fails stage resolution. Shared mode requires both the exact
+40/64-character lowercase revision and a 64-character lowercase manifest SHA-256.
+Missing files, wrong revision/digest, self-consistent forged metadata, changed
+payloads and unexpected files fail the build. There is no silent rebuild on a
+required shared-context miss. Re-run the producer, or deliberately select the
+ordinary local path. Never calculate the expected digest from the supplied
+context or its image-identity file: those are the bytes being checked.
+
+Docker verifies the trust digest plus the existing complete integration inventory
+on import and again after copying assets into `runtime_application`. Read-only
+BuildKit mounts provide the native builder's validator and TypeScript for that
+final check; they add no dependencies to the final image. Producer metadata is
+copied byte for byte and inherited by runtime, test and PDF targets. Subsequent
+copies affect packages/config/support only; the PDF install uses `--ignore-scripts`.
+Shared integration targets verify again instead of generating metadata. Native
+backend compilation, production `npm ci --omit=dev`, the published test image's
+production-plus-development-snapshot overlay, and optional hook selection retain
+their existing assembly. No native dependencies are imported from the context.
+
+Docker checks the revision against the caller's argument; it cannot independently
+identify a Git-free build context. The caller must check out that exact revision
+and use the existing `restore` identity checks before invoking Docker. Hashes are
+integrity checks backed by the trusted producer receipt, not signatures.
+
 ## Verification and remaining measurements
 
 ```bash
 node --test support/build/ci-web-assets/assets.test.cjs
+node --test support/build/docker-web-assets.test.cjs \
+  support/build/docker-image-contract.test.cjs \
+  support/build/integration-prebuilt-assets.test.cjs
+docker buildx build --call=targets -f Dockerfile .
 RB_WEB_ASSETS_COMPARE_EXISTING=true node --test \
   --test-name-pattern='optional real existing' support/build/ci-web-assets/assets.test.cjs
 ```
@@ -207,3 +276,10 @@ native ARM64 startup, application concurrency benchmarks and actual CircleCI
 transfer/cost measurements still belong to the integration acceptance run. This
 shared working tree is dirty with concurrent changes, so it must not be labeled
 as the clean revision by a production build.
+
+Actual clean cross-architecture Docker builds and Node 24/26 output/runtime
+equivalence remain unverified. The producer requires the committed Node 24
+selection, while the Docker native backend/runtime currently use Node 26; the
+shared path preserves those selections and does not establish equivalence. A
+lightweight fixture build validates Docker stage/context/mount mechanics only,
+not full production compilation, native startup, PDF generation or performance.

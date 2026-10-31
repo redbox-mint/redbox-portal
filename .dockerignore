@@ -4,22 +4,43 @@
 .tmp
 .vscode
 .circleci
+Dockerfile
+.dockerignore
 **/node_modules
 *.log
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
-support/development
 **/coverage
 **/dist
 **/.angular
-support/integration-testing
-support/unit-testing
 support/docs
 docs
-test
 coverage
 *.tgz
+
+# Integration targets bake repository test/support inputs, never host state.
+**/.git
+**/.dev
+**/.env
+**/.env.*
+**/.aws
+**/.ssh
+**/*.pem
+**/*.key
+**/config/local.js
+**/config/local.ts
+**/.nyc_output
+.redbox-ci
+.angular
+test-results
+playwright-report
+# Other agents may be running helper tests in the shared checkout.
+support/build/**/.test-*
+support/build/.integration-assets-test-*
+# Local builds rebuild Angular; shared builds import only a verified named
+# context, unaffected by this ignore file. Never stamp host bundles as new output.
+assets/angular
 
 # Required exact local dependency for Agenda watchdog cleanup.
 !packages/agenda-patched/agenda-6.2.5-redbox.1.tgz
