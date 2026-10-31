@@ -16,5 +16,61 @@
     "last_job": "test-mocha-baseline",
     "last_job_number": 199693,
     "note": "The gate requires 31 jobs directly and excludes the non-gating Mocha baseline. Required checks exceeded the 720-second target. This chore-branch run used the same revision as pipeline 13586 and overlapped an isolated deliberate-failure rehearsal and an ARM64 timing pilot; no effect of concurrency on timing is established. It is not a representative warm cohort or publication performance measurement."
+  },
+  "arm64_pilot": {
+    "workflow_id": "e43b9ae4-b04d-4db9-98a3-49af03ef44cb",
+    "job_number": 199667,
+    "status": "success",
+    "job_started_at": "2026-10-30T23:36:37Z",
+    "job_stopped_at": "2026-10-30T23:53:36Z",
+    "runtime_build_seconds": 870.264,
+    "pdf_build_seconds": 84.804,
+    "runtime_cached_operations": 0,
+    "pdf_cached_operations": 36,
+    "pdf_bytes": 9938,
+    "cleanup_failures": [
+      "buildx rm"
+    ],
+    "cleanup_retry": {
+      "status": "success",
+      "exit_code": 0,
+      "started_at": "2026-10-30T23:53:35.763Z",
+      "stopped_at": "2026-10-30T23:53:36.296Z"
+    },
+    "artifact": "https://output.circle-artifacts.com/output/job/403c669a-0e62-4e77-88b7-62497a59a634/artifacts/0/ci-arm64-pilot/report.json",
+    "note": "Native ARM64 sequential builds; the PDF build followed the runtime build and reused its builder cache. Builds include export and loading. Smoke checks did not exercise portal HTTP startup or the application PDF endpoint. Initial buildx removal failed for an unknown reason; the subsequent cleanup step succeeded. Credits, peak memory, publication and matched parallel builds were not measured."
+  },
+  "other_image_test_result_comparison": {
+    "previous_pipeline": 13586,
+    "jobs_compared": 4,
+    "records_each": 582,
+    "result_identity_differences": 0,
+    "jobs": [
+      {
+        "name": "test-bruno-general",
+        "previous_job": 199653,
+        "pilot_job": 199695,
+        "records_each": 534
+      },
+      {
+        "name": "test-bruno-oidc",
+        "previous_job": 199650,
+        "pilot_job": 199690,
+        "records_each": 17
+      },
+      {
+        "name": "test-bruno-s3",
+        "previous_job": 199652,
+        "pilot_job": 199692,
+        "records_each": 12
+      },
+      {
+        "name": "test-playwright",
+        "previous_job": 199649,
+        "pilot_job": 199694,
+        "records_each": 19
+      }
+    ],
+    "note": "Per-job CircleCI test-result multisets of source, classname, name and result match with multiplicity. Both pipelines use the same revision; reported identities do not establish complete discovery, coverage or behavioral equivalence."
   }
 }
