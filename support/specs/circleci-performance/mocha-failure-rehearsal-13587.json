@@ -1,0 +1,38 @@
+{
+  "pipeline": 13587,
+  "revision": "6669c1cef68bdc10e4e6ad2ed7c967faa766c47f",
+  "workflow_id": "f5c5e5f3-57a3-4b37-a50f-641a045c194a",
+  "workflow_status": "failed",
+  "producer_job": 199664,
+  "producer_status": "success",
+  "suite_job": 199665,
+  "suite_status": "failed",
+  "suite_exit": 1,
+  "tee_exit": 0,
+  "sentinel_job": 199666,
+  "sentinel_status": "not_run",
+  "sentinel_started_at": "2026-10-31T00:01:19Z",
+  "sentinel_stopped_at": "2026-10-31T00:01:19Z",
+  "junit": {
+    "tests": 455,
+    "skipped": 10,
+    "failures": 1,
+    "emitted_testcases": 445,
+    "ordinary_successful_identities_matching_green_job": 444,
+    "green_job": 199691
+  },
+  "coverage": {
+    "source_records": 638,
+    "upload_action": "success",
+    "codecov_response": "queued",
+    "raw_prepared_lcov_sha256": "1d6a1b5827f463ee2d3a6426d16fc6f7eb3f36f189add6b31609e49e39179f71"
+  },
+  "junit_sha256": "8f6c239743d14626eef61dd78d7f20e1b2d4a79db318210cefbf737d5bd71e63",
+  "notes": [
+    "The sentinel requires success from the failed suite. CircleCI documents blocked to not_run when dependencies cannot be satisfied; populated equal timestamps do not establish execution.",
+    "The original verifier rejected the terminal sentinel because it required no start time. A correction is under independent review; the original verifier result was a failure.",
+    "The failure fixture assertion, JUnit ingestion, raw and prepared report retention and upload acceptance were independently audited. Skipped testcase identities were not emitted.",
+    "The green job and rehearsal used different image IDs and archive hashes; a same-image green control and full suite-equivalence acceptance remain outstanding. The rehearsal sentinel is separate from the production publication gate.",
+    "The compiled and API workflow graphs contained no publication jobs; the browser UI and independent workspace archive rehash were not inspected. Codecov reported upload queued, not subsequent processing."
+  ]
+}
