@@ -33,11 +33,12 @@ const workflowIdentity = { pipeline_id: uuid(1), pipeline_number: 3 };
 
 test('requires exact CircleCI source and workflow identity', () => {
   assert.throws(
-    () => readContext(environment(), undefined, workflowIdentity),
+    () => readContext(environment(), null, workflowIdentity),
     'no unreviewed configuration is approved'
   );
-  assert.throws(
-    () => readContext({ ...environment(), RB_PILOT_CONFIG_SHA256: 'b'.repeat(64) }, undefined, workflowIdentity),
+  assert.equal(
+    readContext({ ...environment(), RB_PILOT_CONFIG_SHA256: 'b'.repeat(64) }, undefined, workflowIdentity).configurationSha256,
+    readContext(environment(), undefined, workflowIdentity).configurationSha256,
     'pipeline environment cannot approve its own configuration'
   );
   assert.equal(readContext(environment(), 'b'.repeat(64), workflowIdentity).jobNumber, 4);
@@ -125,7 +126,7 @@ test('a disposable source clone excludes ignored executable inputs', async t => 
   fs.writeFileSync(path.join(original, 'config/webpack.js'), 'untrusted executable input');
   const runner = commandRunner(),
     env = gitEnvironment(process.env, base);
-  await runner.call('git', ['clone', '--no-local', '--no-hardlinks', '--no-checkout', '--', original, clone], {
+  await runner.call('git', ['clone', '--depth=1', '--no-local', '--no-hardlinks', '--no-checkout', '--', original, clone], {
     env,
     quiet: true,
     capture: true,

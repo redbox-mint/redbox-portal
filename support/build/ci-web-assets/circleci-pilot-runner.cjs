@@ -204,7 +204,7 @@ async function run(mode, env = process.env, options = {}) {
   try {
     await checkCheckout(originalRoot, ctx, runner.call, gitEnv);
     const root = path.join(work, 'source');
-    await runner.call('git', ['clone', '--no-local', '--no-hardlinks', '--no-checkout', '--', originalRoot, root], {
+    await runner.call('git', ['clone', '--depth=1', '--no-local', '--no-hardlinks', '--no-checkout', '--', originalRoot, root], {
       env: gitEnv,
       timeoutMs: 10 * 60 * 1000,
     });
