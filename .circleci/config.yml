@@ -4,16 +4,13 @@ commands:
       - run:
           name: Select the asset pilot Node and npm versions
           command: |
-            export NVM_DIR="$HOME/.nvm"
-            if [ ! -s "$NVM_DIR/nvm.sh" ]; then
-              curl -fsSL --retry 3 https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-            fi
+            export NVM_DIR=/opt/circleci/.nvm
             test -s "$NVM_DIR/nvm.sh"
-            . "$NVM_DIR/nvm.sh"
+            . "$NVM_DIR/nvm.sh" --no-use
             nvm install 24.22.1
             test "$(node --version)" = 'v24.22.1'
             test "$(npm --version)" = '11.19.1'
-            printf '%s\n' 'export NVM_DIR="$HOME/.nvm"' '. "$NVM_DIR/nvm.sh"' 'nvm use 24.22.1 >/dev/null' >> "$BASH_ENV"
+            printf '%s\n' 'export NVM_DIR=/opt/circleci/.nvm' '. "$NVM_DIR/nvm.sh" --no-use' 'nvm use 24.22.1 >/dev/null' >> "$BASH_ENV"
   checkout-validation-source:
     steps:
       - checkout
