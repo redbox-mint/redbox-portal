@@ -12,13 +12,15 @@ case "$variant" in control|candidate) ;; *) exit 2 ;; esac
 builder="combined-${CIRCLE_WORKFLOW_JOB_ID}"
 image="localhost/combined-pilot:${CIRCLE_WORKFLOW_JOB_ID}"
 output="$PWD/.tmp/ci-combined-pilot"
-mkdir -p "$output" "$output/docker-config"
-printf '{"auths":{}}\n' > "$output/docker-config/config.json"
-export DOCKER_CONFIG="$output/docker-config" DOCKER_HOST=unix:///var/run/docker.sock
+docker_config=$(mktemp -d /tmp/redbox-combined-docker.XXXXXXXX)
+mkdir -p "$output"
+printf '{"auths":{}}\n' > "$docker_config/config.json"
+export DOCKER_CONFIG="$docker_config" DOCKER_HOST=unix:///var/run/docker.sock
 unset DOCKER_CONTEXT DOCKER_AUTH_CONFIG DOCKER_TLS_VERIFY DOCKER_CERT_PATH BUILDKIT_HOST BUILDKIT_SOURCE_POLICY BUILDX_BUILDER BUILDX_CONFIG
 cleanup() {
   docker buildx rm --force "$builder" || true
   docker image rm "$image" || true
+  rm -rf -- "$docker_config"
 }
 trap cleanup EXIT
 file=Dockerfile
