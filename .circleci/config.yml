@@ -43,6 +43,27 @@ commands:
                   printf 'export CI_PIPELINE_REVISION=%q\n' "$CIRCLE_SHA1" >> "$BASH_ENV"
                   printf 'export CIRCLE_SHA1=%q\n' "$revision" >> "$BASH_ENV"
 jobs:
+  combined-build-pilot:
+    parameters:
+      variant:
+        type: enum
+        enum: [control, candidate]
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: false
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Measure cold and download-cache builds
+          no_output_timeout: 30m
+          command: timeout --signal=TERM --kill-after=90s 110m bash support/build/ci-combined-pilot.sh << parameters.variant >>
+      - store_artifacts:
+          path: .tmp/ci-combined-pilot
+          destination: combined-build-pilot
+      - store_artifacts:
+          path: .tmp/ci-performance
+          destination: combined-build-pilot/performance
   web-assets-produce:
     machine:
       image: ubuntu-2404:current
@@ -1710,6 +1731,9 @@ orbs:
   docker: circleci/docker@3.0.1
 version: 2.1
 parameters:
+  ci_combined_build_pilot:
+    type: boolean
+    default: false
   # Default-off and isolated from existing validation and publication paths.
   ci_web_assets_pilot:
     type: boolean
@@ -1741,6 +1765,29 @@ parameters:
       - manual
     default: none
 workflows:
+  combined_build_shadow:
+    when:
+      and:
+        - equal: [true, << pipeline.parameters.ci_combined_build_pilot >>]
+        - equal: [false, << pipeline.parameters.ci_mocha_failure_rehearsal >>]
+        - equal: [false, << pipeline.parameters.ci_web_assets_pilot >>]
+        - equal: [chore/circleci-performance, << pipeline.git.branch >>]
+        - equal: ['', << pipeline.git.tag >>]
+        - equal: [none, << pipeline.parameters.npm_publish_mode >>]
+        - equal: [none, << pipeline.parameters.docker_publish_mode >>]
+    jobs:
+      - combined-build-pilot:
+          name: combined-build-control
+          variant: control
+          filters: &combinedBuildPilotFilters
+            branches:
+              only: chore/circleci-performance
+            tags:
+              ignore: /.*/
+      - combined-build-pilot:
+          name: combined-build-candidate
+          variant: candidate
+          filters: *combinedBuildPilotFilters
   ci_web_assets_shadow:
     when:
       and:
