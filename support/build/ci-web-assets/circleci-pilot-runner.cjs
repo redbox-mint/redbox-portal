@@ -23,6 +23,11 @@ const {
 const TRANSFER = '/tmp/redbox-web-assets-transfer';
 const WORK = '/tmp/redbox-web-assets-pilot';
 const OUTPUT = '/tmp/redbox-web-assets-pilot-output';
+const HOST_DEPENDENCIES = [
+  'node_modules',
+  ...['agenda-sqs-backend', 'raido', 'redbox-core', 'redbox-dev-tools', 'rva-registry',
+    'sails-hook-redbox-storage-mongo', 'sails-ng-common'].map(name => `packages/${name}/node_modules`),
+];
 const ARTIFACT_ORIGINS = [
   'https://output.circle-artifacts.com',
   'https://circleci-tasks-prod.s3.us-east-1.amazonaws.com',
@@ -143,7 +148,7 @@ async function checkSource(root, ctx, call, env, allowNodeModules = false) {
     .split('\0')
     .filter(Boolean);
   assert.ok(
-    ignored.every(name => allowNodeModules && (name === 'node_modules/' || name.startsWith('node_modules/'))),
+    ignored.every(name => allowNodeModules && HOST_DEPENDENCIES.some(dep => name === `${dep}/`)),
     'unexpected ignored input in isolated source'
   );
 }
@@ -289,10 +294,14 @@ async function run(mode, env = process.env, options = {}) {
       // The host install is needed only for restore validation. Remove this
       // owned tree before Docker reads the source, even if a future ignore
       // rule accidentally includes some of its files in the build context.
-      const dependencies = path.join(root, 'node_modules');
-      const dependencyStat = fs.lstatSync(dependencies);
-      assert.ok(dependencyStat.isDirectory() && !dependencyStat.isSymbolicLink());
-      await runner.call('/bin/rm', ['-rf', '--', dependencies], { env: gitEnv, timeoutMs: 5 * 60 * 1000 });
+      for (const relative of HOST_DEPENDENCIES) {
+        const dependencies = path.join(root, relative);
+        if (!fs.existsSync(dependencies) && relative !== 'node_modules') continue;
+        const dependencyStat = fs.lstatSync(dependencies);
+        assert.ok(dependencyStat.isDirectory() && !dependencyStat.isSymbolicLink());
+        assert.equal(fs.realpathSync(path.dirname(dependencies)), path.dirname(dependencies));
+        await runner.call('/bin/rm', ['-rf', '--', dependencies], { env: gitEnv, timeoutMs: 5 * 60 * 1000 });
+      }
       await checkSource(root, ctx, runner.call, gitEnv);
     } else {
       fs.mkdirSync(output, { mode: 0o700 });

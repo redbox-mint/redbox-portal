@@ -240,10 +240,12 @@ function sharedRunFixture(t, variant = '') {
       if (command === 'git' && args.includes('rev-parse')) return { stdout: `${ctx.revision}\n` };
       if (command === 'git' && args.includes('status')) return { stdout: '' };
       if (command === 'git' && args.includes('ls-files'))
-        return { stdout: fs.existsSync(path.join(work, 'source/node_modules')) ? 'node_modules/\0' : '' };
+        return { stdout: [ 'node_modules/', 'packages/redbox-core/node_modules/' ]
+          .filter(name => fs.existsSync(path.join(work, 'source', name))).join('\0') };
       if (command === 'npm' && variant !== 'missing-typescript') {
         fs.mkdirSync(path.join(work, 'source/node_modules/typescript'), { recursive: true });
         fs.writeFileSync(path.join(work, 'source/node_modules/typescript/package.json'), '{}');
+        fs.mkdirSync(path.join(work, 'source/packages/redbox-core/node_modules'), { recursive: true });
       }
       if (command === process.execPath && args[1] === 'produce') {
         const request = JSON.parse(fs.readFileSync(args[2], 'utf8'));
