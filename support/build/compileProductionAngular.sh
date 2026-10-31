@@ -4,9 +4,9 @@ function buildAngularApp() {
   (node_modules/.bin/ng b "@researchdatabox/${1}" --configuration production)
 }
 function compileProductionAngular() {
-  export NVM_DIR="$HOME/.nvm"
-  if [ -s "$HOME/.nvm/nvm.sh" ]; then
-    . "$HOME/.nvm/nvm.sh" || return $?
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    . "$NVM_DIR/nvm.sh" --no-use || return $?
   fi
   # CI sources this script and expects to remain in angular/ afterwards.
   cd angular || return $?
