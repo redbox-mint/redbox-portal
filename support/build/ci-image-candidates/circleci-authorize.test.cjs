@@ -156,7 +156,7 @@ test('HTTP client uses v2 exact-job metadata and v1.1 artifacts, follows paginat
   const calls = [];
   const client = new CircleCIReadClient({ token: 'test-token', artifactOrigins: ['https://artifacts.example'], fetch: async (url, options) => {
     calls.push({ url, options });
-    const value = url.includes('/job?') ? { items: [{ name: 'second' }], next_page_token: null } :
+    const value = url.includes('/job?') ? { items: [{ name: 'second' }] } :
       url.endsWith('/job') ? { items: [{ name: 'first' }], next_page_token: 'page/2' } :
         url.endsWith('/artifacts') ? [{ path: 'catalog.json', node_index: 0, url: 'https://artifacts.example/catalog' }] :
           url.endsWith('/catalog') ? { catalogSha256: sha256('catalog') } : { id: uuid(10) };

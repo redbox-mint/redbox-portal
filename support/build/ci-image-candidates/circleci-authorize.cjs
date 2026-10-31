@@ -43,7 +43,7 @@ class CircleCIReadClient {
       check(Array.isArray(result.items), 'invalid CircleCI paginated response');
       items.push(...result.items);
       token = result.next_page_token;
-      if (token === null || token === '') return items;
+      if (token == null || token === '') return items;
       check(typeof token === 'string' && !seen.has(token), 'missing or repeated CircleCI page token');
       seen.add(token);
     }
